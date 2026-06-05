@@ -12,8 +12,8 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.main import app
-from src.presentation.dependencies.auth import get_current_active_user
-from src.presentation.dependencies.auth_realms import get_request_admin_realm
+from src.presentation.dependencies.auth import get_current_active_web_user
+from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 
 
 class _MockUser:
@@ -48,11 +48,11 @@ async def _mock_admin_realm() -> SimpleNamespace:
 @pytest.fixture(autouse=True)
 def _override_auth():
     """Override authentication for all tests in this module."""
-    app.dependency_overrides[get_current_active_user] = _mock_current_active_user
-    app.dependency_overrides[get_request_admin_realm] = _mock_admin_realm
+    app.dependency_overrides[get_current_active_web_user] = _mock_current_active_user
+    app.dependency_overrides[get_request_web_auth_realm] = _mock_admin_realm
     yield
-    app.dependency_overrides.pop(get_current_active_user, None)
-    app.dependency_overrides.pop(get_request_admin_realm, None)
+    app.dependency_overrides.pop(get_current_active_web_user, None)
+    app.dependency_overrides.pop(get_request_web_auth_realm, None)
 
 
 @pytest.mark.asyncio
@@ -86,7 +86,7 @@ async def test_get_usage_success() -> None:
 async def test_get_usage_requires_auth() -> None:
     """GET /api/v1/users/me/usage returns 401/403 without auth."""
     # Remove override so real auth dependency runs
-    app.dependency_overrides.pop(get_current_active_user, None)
+    app.dependency_overrides.pop(get_current_active_web_user, None)
     try:
         async with AsyncClient(
             transport=ASGITransport(app=app),
@@ -98,4 +98,4 @@ async def test_get_usage_requires_auth() -> None:
         assert response.status_code in (401, 403)
     finally:
         # Restore override for remaining tests
-        app.dependency_overrides[get_current_active_user] = _mock_current_active_user
+        app.dependency_overrides[get_current_active_web_user] = _mock_current_active_user

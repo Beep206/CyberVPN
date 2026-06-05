@@ -79,55 +79,101 @@
   "Api": {},
   "Auth": {
     "errors": {
-      "accountDisabled": "Your account has been disabled",
-      "accountExists": "An account with this email already exists",
-      "accountNotFound": "No account found with this email",
-      "emailInvalid": "Please enter a valid email address",
-      "emailRequired": "Email is required",
-      "invalidCredentials": "Invalid email or password",
-      "networkError": "Network error. Please check your connection",
-      "passwordMismatch": "Passwords do not match",
-      "passwordRequired": "Password is required",
-      "passwordTooShort": "Password must be at least 8 characters",
-      "rateLimited": "Too many attempts. Please try again in {seconds} seconds",
-      "rateLimitedMinutes": "Too many attempts. Please try again in {minutes} minutes",
-      "serverError": "Server error. Please try again later",
-      "sessionExpired": "Your session has expired. Please sign in again",
-      "unknownError": "An unexpected error occurred"
+      "accountDisabled": "تم تعطيل حسابك",
+      "accountExists": "يوجد حساب بهذا البريد الإلكتروني بالفعل",
+      "accountNotFound": "لم يتم العثور على حساب بهذا البريد الإلكتروني",
+      "emailInvalid": "يرجى إدخال عنوان بريد إلكتروني صالح",
+      "emailRequired": "البريد الإلكتروني مطلوب",
+      "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+      "networkError": "خطأ في الشبكة. يرجى التحقق من اتصالك",
+      "passwordMismatch": "كلمات المرور غير متطابقة",
+      "passwordRequired": "كلمة المرور مطلوبة",
+      "passwordTooShort": "يجب أن تتكون كلمة المرور من 12 حرفًا على الأقل",
+      "rateLimited": "محاولات كثيرة جدًا. يرجى المحاولة مرة أخرى خلال {seconds} ثانية",
+      "rateLimitedMinutes": "محاولات كثيرة جدًا. يرجى المحاولة مرة أخرى خلال {minutes} دقيقة",
+      "serverError": "خطأ في الخادم. يرجى المحاولة لاحقًا",
+      "sessionExpired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى",
+      "unknownError": "حدث خطأ غير متوقع"
+    },
+    "forgotPassword": {
+      "backToLogin": "العودة إلى تسجيل الدخول",
+      "continueToReset": "إدخال رمز إعادة التعيين",
+      "emailLabel": "عنوان البريد الإلكتروني",
+      "emailPlaceholder": "user@cybervpn.io",
+      "sendAgain": "إرسال مرة أخرى",
+      "submitButton": "إرسال رمز إعادة التعيين",
+      "submitting": "جارٍ الإرسال...",
+      "subtitle": "أعد تعيين وصولك الآمن",
+      "successExpiry": "تنتهي صلاحية الرمز خلال 15 دقيقة",
+      "successMessage": "إذا كان هناك حساب بهذا البريد الإلكتروني، فقد أرسلنا رمز إعادة تعيين إلى",
+      "successTitle": "تحقق من بريدك الوارد",
+      "title": "نسيت كلمة المرور"
     },
     "login": {
       "divider": "أو",
-      "emailLabel": "Email address",
-      "emailPlaceholder": "Enter your email",
-      "forgotPassword": "Forgot password?",
+      "emailLabel": "عنوان البريد الإلكتروني",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "forgotPassword": "هل نسيت كلمة المرور؟",
       "magicLinkAlt": "تسجيل الدخول بالرابط السحري",
-      "noAccount": "Don't have an account?",
-      "passkeyButton": "Sign in with passkey",
-      "passkeyCancelled": "Operation cancelled. Try again or use another sign-in method.",
-      "passkeyChecking": "Checking passkey...",
-      "passkeyExpired": "Confirmation expired. Try again.",
-      "passkeyFallbackHint": "You can still use your password or another sign-in method.",
-      "passkeyGenericError": "Could not verify this passkey.",
-      "passkeyRequired": "A passkey is required for this access area.",
-      "passkeyUnsupported": "This browser or device does not support passkeys.",
-      "passwordLabel": "Password",
-      "passwordPlaceholder": "Enter your password",
-      "rememberMe": "Remember me",
-      "signUpLink": "Sign up",
-      "submitButton": "Sign In",
-      "submitting": "Signing in...",
-      "subtitle": "Access your secure connection",
-      "title": "Sign In"
+      "noAccount": "ليس لديك حساب؟",
+      "oauthErrors": {
+        "authFailed": "قبل المزود الطلب، لكن فشل التحقق من الهوية.",
+        "callbackFailed": "فشل تسجيل الدخول عبر OAuth. يرجى المحاولة مرة أخرى.",
+        "collision": "لا يمكن ربط هذا المزود تلقائيًا بحساب موجود.",
+        "deprecatedCallback": "عنوان رد الاتصال هذا لم يعد مستخدمًا. يرجى بدء تسجيل الدخول مرة أخرى من صفحة تسجيل الدخول.",
+        "invalidProvider": "مزود تسجيل الدخول هذا غير متاح.",
+        "invalidTransaction": "انتهت صلاحية جلسة تسجيل الدخول أو فُتحت في تبويب آخر. ابدأ من جديد.",
+        "linkingRequired": "سجّل الدخول إلى حسابك الحالي أولًا، ثم اربط هذا المزود يدويًا.",
+        "missingParams": "معاملات رد اتصال OAuth مفقودة. يرجى إعادة بدء تسجيل الدخول.",
+        "notConfigured": "لم يتم إعداد OAuth لهذه البيئة بعد.",
+        "providerDenied": "تم إلغاء تسجيل الدخول أو رفضه لدى المزود.",
+        "startFailed": "تعذر بدء مسار تسجيل الدخول. يرجى المحاولة مرة أخرى.",
+        "stateInvalid": "جلسة تسجيل الدخول غير صالحة أو منتهية الصلاحية. يرجى البدء من جديد.",
+        "upstreamUnavailable": "مزود تسجيل الدخول غير متاح مؤقتًا. حاول مرة أخرى بعد قليل."
+      },
+      "passkeyButton": "تسجيل الدخول باستخدام مفتاح مرور",
+      "passkeyCancelled": "تم إلغاء العملية. حاول مرة أخرى أو استخدم طريقة تسجيل دخول أخرى.",
+      "passkeyChecking": "جارٍ فحص مفتاح المرور...",
+      "passkeyExpired": "انتهت صلاحية التأكيد. حاول مرة أخرى.",
+      "passkeyFallbackHint": "لا يزال بإمكانك استخدام كلمة المرور أو طريقة تسجيل دخول أخرى.",
+      "passkeyGenericError": "تعذر التحقق من مفتاح المرور هذا.",
+      "passkeyRequired": "يلزم استخدام مفتاح مرور لمنطقة الوصول هذه.",
+      "passkeyUnsupported": "هذا المتصفح أو الجهاز لا يدعم مفاتيح المرور.",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "أدخل كلمة المرور",
+      "rememberMe": "تذكرني",
+      "signUpLink": "أنشئ حسابًا",
+      "submitButton": "تسجيل الدخول",
+      "submitting": "جارٍ تسجيل الدخول...",
+      "subtitle": "ادخل إلى اتصالك الآمن",
+      "title": "تسجيل الدخول",
+      "twoFactorChecking": "جارٍ فحص جلسة تسجيل الدخول الثنائية...",
+      "twoFactorCodeLabel": "رمز تطبيق المصادقة",
+      "twoFactorCodePlaceholder": "000000",
+      "twoFactorInfo": "أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة لإكمال تسجيل الدخول.",
+      "twoFactorSessionCheckFailed": "تعذر استعادة جلسة تسجيل الدخول الثنائية. ابدأ تسجيل الدخول من جديد.",
+      "twoFactorSessionExpired": "انتهت صلاحية جلسة تسجيل الدخول الثنائية. ابدأ تسجيل الدخول من جديد.",
+      "twoFactorStartFailed": "تعذر بدء التحقق الثنائي. حاول تسجيل الدخول مرة أخرى.",
+      "twoFactorStartOver": "ابدأ تسجيل الدخول من جديد",
+      "twoFactorSubmitButton": "تحقق من الرمز",
+      "twoFactorSubmitting": "جارٍ التحقق من الرمز...",
+      "validation": {
+        "emailInvalid": "أدخل عنوان بريد إلكتروني صالحًا",
+        "emailNoSpaces": "يجب ألا يحتوي البريد الإلكتروني على مسافات",
+        "emailRequired": "البريد الإلكتروني مطلوب",
+        "emailTooLong": "البريد الإلكتروني طويل جدًا",
+        "loginIdentifierRequired": "البريد الإلكتروني أو اسم المستخدم مطلوب"
+      }
     },
     "logout": {
-      "button": "Sign Out",
-      "cancelButton": "Cancel",
-      "confirmButton": "Sign Out",
-      "confirmMessage": "Are you sure you want to sign out?",
-      "confirmTitle": "Sign Out"
+      "button": "تسجيل الخروج",
+      "cancelButton": "إلغاء",
+      "confirmButton": "تسجيل الخروج",
+      "confirmMessage": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+      "confirmTitle": "تسجيل الخروج"
     },
     "magicLink": {
-      "backToLogin": "العودة لتسجيل الدخول",
+      "backToLogin": "العودة إلى تسجيل الدخول",
       "checkInbox": "تحقق من بريدك الوارد",
       "codeLabel": "رمز من 6 أرقام",
       "codePlaceholder": "000000",
@@ -135,7 +181,7 @@
       "emailPlaceholder": "user@cybervpn.io",
       "expiresIn": "ينتهي الرابط أو الرمز خلال ساعة واحدة",
       "orEnterCode": "أو أدخل الرمز من البريد الإلكتروني",
-      "sendAgain": "إعادة الإرسال",
+      "sendAgain": "إرسال مرة أخرى",
       "sentTo": "أرسلنا رابطًا سحريًا إلى",
       "submitButton": "إرسال الرابط السحري",
       "submitting": "جارٍ الإرسال...",
@@ -157,9 +203,13 @@
       "verifyCode": "تحقق من الرمز",
       "verifyingCode": "جارٍ التحقق..."
     },
+    "meta": {
+      "description": "بوابة مصادقة آمنة للوصول إلى شبكة VPN وإدارتها",
+      "title": "تسجيل الدخول - CyberVPN"
+    },
     "oauth": {
       "accountCreated": "تم إنشاء الحساب عبر {provider}",
-      "alreadyLinked": "هذا حساب {provider} مرتبط بالفعل بمستخدم آخر",
+      "alreadyLinked": "حساب {provider} هذا مرتبط بالفعل بمستخدم آخر",
       "continueWithApple": "المتابعة باستخدام Apple",
       "continueWithDiscord": "المتابعة باستخدام Discord",
       "continueWithGithub": "المتابعة باستخدام GitHub",
@@ -167,7 +217,7 @@
       "continueWithMicrosoft": "المتابعة باستخدام Microsoft",
       "continueWithTelegram": "المتابعة باستخدام Telegram",
       "continueWithX": "المتابعة باستخدام X",
-      "error": "فشل مصادقة OAuth",
+      "error": "فشلت مصادقة OAuth",
       "noEmail": "لم يقدم {provider} بريدًا إلكترونيًا",
       "processing": "جارٍ معالجة OAuth..."
     },
@@ -175,78 +225,138 @@
       "authenticating": "جارٍ المصادقة...",
       "defaultError": "فشلت المصادقة. يرجى المحاولة مرة أخرى.",
       "errorIcon": "أيقونة خطأ المصادقة",
-      "errorTitle": "فشل المصادقة",
+      "errorTitle": "فشلت المصادقة",
       "missingParams": "معاملات OAuth مفقودة. يرجى محاولة تسجيل الدخول مرة أخرى.",
       "securityIcon": "أيقونة التحقق الأمني",
       "tryAgain": "حاول مرة أخرى",
       "verifyingIdentity": "جارٍ التحقق من هويتك"
     },
     "passwordStrength": {
-      "fair": "Fair",
-      "good": "Good",
+      "fair": "متوسطة",
+      "good": "جيدة",
+      "label": "قوة كلمة المرور:",
       "requirements": {
-        "length": "At least 8 characters",
-        "lowercase": "One lowercase letter",
-        "number": "One number",
-        "special": "One special character",
-        "uppercase": "One uppercase letter"
+        "length": "12 حرفًا على الأقل",
+        "lowercase": "حرف لاتيني صغير واحد",
+        "number": "رقم واحد",
+        "passwordCommon": "ليست كلمة مرور شائعة",
+        "passwordLatinLayout": "استخدم لوحة المفاتيح اللاتينية فقط",
+        "passwordLowercase": "حرف لاتيني صغير واحد",
+        "passwordMinLength": "12 حرفًا على الأقل",
+        "passwordNumber": "رقم واحد",
+        "passwordNumericSequence": "ليست تسلسلًا رقميًا بسيطًا",
+        "passwordRepeated": "ليست حرفًا واحدًا مكررًا",
+        "passwordSpecial": "رمز مدعوم واحد",
+        "passwordUppercase": "حرف لاتيني كبير واحد",
+        "special": "رمز مدعوم واحد",
+        "uppercase": "حرف لاتيني كبير واحد"
       },
-      "strong": "Strong",
-      "weak": "Weak"
+      "strong": "قوية",
+      "weak": "ضعيفة"
     },
     "profile": {
-      "cantUnlinkOnly": "Cannot unlink — this is your only login method",
-      "linkedAccounts": "Linked Accounts",
-      "linkSuccess": "Telegram linked successfully",
-      "linkTelegram": "Link Telegram",
-      "telegramLinked": "Telegram linked: @{username}",
-      "unlinkConfirm": "Are you sure you want to unlink Telegram?",
-      "unlinkSuccess": "Telegram unlinked successfully",
-      "unlinkTelegram": "Unlink Telegram"
+      "cantUnlinkOnly": "لا يمكن إلغاء الربط - هذه هي طريقة تسجيل الدخول الوحيدة لديك",
+      "linkedAccounts": "الحسابات المرتبطة",
+      "linkSuccess": "تم ربط Telegram بنجاح",
+      "linkTelegram": "ربط Telegram",
+      "telegramLinked": "Telegram مرتبط: @{username}",
+      "unlinkConfirm": "هل أنت متأكد أنك تريد إلغاء ربط Telegram؟",
+      "unlinkSuccess": "تم إلغاء ربط Telegram بنجاح",
+      "unlinkTelegram": "إلغاء ربط Telegram"
     },
     "register": {
       "acceptTerms": "أوافق على",
       "and": " و ",
-      "confirmPasswordLabel": "Confirm password",
-      "confirmPasswordPlaceholder": "Confirm your password",
-      "continueWithTelegram": "التسجيل عبر تيليجرام",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور",
+      "continueWithTelegram": "التسجيل عبر Telegram",
       "divider": "أو",
-      "emailLabel": "Email address",
-      "emailPlaceholder": "Enter your email",
-      "hasAccount": "Already have an account?",
-      "passwordLabel": "Password",
+      "emailLabel": "عنوان البريد الإلكتروني",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "hasAccount": "لديك حساب بالفعل؟",
+      "passwordLabel": "كلمة المرور",
       "passwordMismatch": "كلمات المرور غير متطابقة",
-      "passwordPlaceholder": "Create a password",
+      "passwordPlaceholder": "أنشئ كلمة مرور",
       "privacyLink": "سياسة الخصوصية",
       "registerModeEmail": "بريد إلكتروني",
       "registerModeUsername": "اسم المستخدم فقط",
-      "signInLink": "Sign in",
-      "submitButton": "Create Account",
-      "submitting": "Creating account...",
-      "subtitle": "Join the secure network",
-      "telegramAutoRegister": "سيتم استخدام حساب تيليجرام الخاص بك للتسجيل السريع",
-      "termsAgreement": "By creating an account, you agree to our Terms of Service and Privacy Policy",
+      "signInLink": "تسجيل الدخول",
+      "submitButton": "إنشاء حساب",
+      "submitting": "جارٍ إنشاء الحساب...",
+      "subtitle": "انضم إلى الشبكة الآمنة",
+      "telegramAutoRegister": "سيتم استخدام حساب Telegram الخاص بك للتسجيل السريع",
+      "termsAgreement": "بإنشاء حساب، فإنك توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا",
       "termsLink": "الشروط",
-      "title": "Create Account",
+      "title": "إنشاء حساب",
       "usernameLabel": "اسم المستخدم",
-      "usernamePlaceholder": "cyberpunk_hacker"
+      "usernamePlaceholder": "cyberpunk_hacker",
+      "validation": {
+        "emailInvalid": "أدخل عنوان بريد إلكتروني صالحًا",
+        "emailNoSpaces": "يجب ألا يحتوي البريد الإلكتروني على مسافات",
+        "emailRequired": "البريد الإلكتروني مطلوب",
+        "emailTooLong": "البريد الإلكتروني طويل جدًا",
+        "passwordCommon": "اختر كلمة مرور أقل شيوعًا",
+        "passwordLatinLayout": "استخدم الحروف اللاتينية والأرقام والرموز المدعومة فقط",
+        "passwordLowercase": "أضف حرفًا لاتينيًا صغيرًا واحدًا",
+        "passwordMinLength": "استخدم 12 حرفًا على الأقل",
+        "passwordMismatch": "كلمات المرور غير متطابقة",
+        "passwordNumber": "أضف رقمًا واحدًا",
+        "passwordNumericSequence": "لا يمكن أن تكون كلمة المرور تسلسلًا رقميًا بسيطًا",
+        "passwordRepeated": "لا يمكن أن تكون كلمة المرور حرفًا واحدًا مكررًا",
+        "passwordRequired": "كلمة المرور مطلوبة",
+        "passwordSpecial": "أضف رمزًا مدعومًا واحدًا",
+        "passwordUppercase": "أضف حرفًا لاتينيًا كبيرًا واحدًا"
+      }
+    },
+    "resetPassword": {
+      "backToForgot": "طلب رمز جديد",
+      "backToLogin": "العودة إلى تسجيل الدخول",
+      "codeExpired": "انتهت صلاحية رمز إعادة التعيين. يرجى طلب رمز جديد.",
+      "codeLabel": "رمز إعادة التعيين",
+      "codePlaceholder": "أدخل الرمز المكون من 6 أرقام",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور الجديدة",
+      "emailLabel": "عنوان البريد الإلكتروني",
+      "emailPlaceholder": "user@cybervpn.io",
+      "goToLogin": "تسجيل الدخول",
+      "invalidCode": "رمز إعادة التعيين غير صالح أو منتهي الصلاحية",
+      "newPasswordLabel": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "أدخل كلمة المرور الجديدة",
+      "passwordMismatch": "كلمات المرور غير متطابقة",
+      "submitButton": "إعادة تعيين كلمة المرور",
+      "submitting": "جارٍ إعادة التعيين...",
+      "subtitle": "أدخل رمز إعادة التعيين وكلمة المرور الجديدة",
+      "successMessage": "تمت إعادة تعيين كلمة المرور بنجاح",
+      "successTitle": "تمت إعادة تعيين كلمة المرور",
+      "title": "إعادة تعيين كلمة المرور"
     },
     "telegram": {
-      "botLinkAuth": "Verifying your Telegram login...",
-      "botLinkExpired": "Login link expired. Please request a new one from the bot.",
-      "botLinkInvalid": "Invalid login link. Please try again.",
-      "connecting": "Connecting to Telegram...",
+      "botLinkAuth": "في انتظار تأكيد Telegram...",
+      "botLinkExpired": "انتهت صلاحية طلب تسجيل الدخول عبر Telegram. ابدأ طلبًا جديدًا من الموقع.",
+      "botLinkInvalid": "تعذر استعادة جلسة تسجيل الدخول عبر Telegram. يرجى البدء مرة أخرى من الموقع.",
+      "checkStatusButton": "لقد أكدت في Telegram",
+      "connecting": "وافق على تسجيل الدخول في البوت، ثم ارجع إلى هنا - سنكمل العملية تلقائيًا.",
+      "copiedStartCommand": "تم النسخ",
+      "copyStartCommand": "نسخ الأمر",
       "errors": {
-        "alreadyLinked": "This Telegram account is already linked to another user",
-        "authFailed": "Telegram authentication failed",
-        "dataInvalid": "Invalid Telegram data received",
-        "expired": "Telegram authentication expired. Please try again",
-        "hashMismatch": "Telegram data verification failed",
-        "notLinked": "This Telegram account is not linked to any user",
-        "widgetFailed": "Telegram widget failed to load"
+        "alreadyLinked": "حساب Telegram هذا مرتبط بالفعل بمستخدم آخر",
+        "authFailed": "فشلت مصادقة Telegram",
+        "dataInvalid": "تم استلام بيانات Telegram غير صالحة",
+        "expired": "انتهت صلاحية مصادقة Telegram. يرجى المحاولة مرة أخرى",
+        "hashMismatch": "فشل التحقق من بيانات Telegram",
+        "notLinked": "حساب Telegram هذا غير مرتبط بأي مستخدم",
+        "widgetFailed": "فشل تحميل ويدجت Telegram"
       },
-      "loginButton": "Sign in with Telegram",
-      "miniAppAutoAuth": "Signing you in via Telegram..."
+      "loginButton": "فتح Telegram",
+      "manualFallback": "إذا فُتح Telegram كمحادثة عادية، فأرسل هذا الأمر يدويًا:",
+      "miniAppAuthFailedMessage": "تعذر إكمال تسجيل الدخول عبر Telegram. أعد المحاولة من Telegram أو سجّل الدخول في المتصفح.",
+      "miniAppAuthFailedTitle": "فشل تسجيل الدخول عبر Telegram",
+      "miniAppAutoAuth": "جارٍ تسجيل دخولك عبر Telegram...",
+      "miniAppBrowserLogin": "استخدام تسجيل الدخول عبر المتصفح",
+      "miniAppRequiredMessage": "تحتاج هذه الشاشة إلى سياق Telegram Mini App. افتحها من بوت CyberVPN، أو أعد المحاولة إذا كان Telegram لا يزال قيد التحميل.",
+      "miniAppRequiredTitle": "افتح CyberVPN داخل Telegram",
+      "miniAppRetryTelegram": "إعادة فحص Telegram",
+      "startingNewLink": "جارٍ فتح Telegram..."
     }
   },
   "Contact": {
@@ -1304,156 +1414,173 @@
   "Pricing": {
     "addons": {
       "dedicated_ip": {
-        "availability": "Available on every paid plan. Max includes 1 by default.",
-        "description": "One IP, one location, one predictable routing identity for services that dislike shared pools.",
-        "title": "Dedicated IP"
+        "availability": "متاح في كل الباقات المدفوعة. تتضمن Max واحدًا افتراضيًا.",
+        "description": "عنوان IP واحد، وموقع واحد، وهوية توجيه متوقعة للخدمات التي لا تفضل المجمعات المشتركة.",
+        "title": "IP مخصص"
       },
       "extra_device": {
-        "availability": "Limits by plan: {limits}",
-        "description": "Extends device limit immediately and renews with the base subscription. Good product hygiene, no extra tariff cloning.",
-        "title": "+1 Device"
+        "availability": "الحدود حسب الباقة: {limits}",
+        "description": "يوسع حد الأجهزة فورًا ويتجدد مع الاشتراك الأساسي. تنظيم منتج واضح من دون نسخ تعرفة إضافية.",
+        "title": "+1 جهاز"
       },
-      "priceLabel": "from {price}",
-      "subtitle": "Keep the public line short. Extend it only where the user clearly understands the extra value.",
-      "title": "Add-ons, Not Tariff Sprawl"
+      "priceLabel": "ابتداءً من {price}",
+      "ru_traffic_100gb": {
+        "availability": "لباقتي Russia Start وRussia Basic فقط.",
+        "description": "تمديد كبير لحركة البيانات للاستخدام المكثف لحزم روسيا.",
+        "title": "+100 GB حركة بيانات روسيا"
+      },
+      "ru_traffic_30gb": {
+        "availability": "لباقتي Russia Start وRussia Basic فقط.",
+        "description": "تمديد صغير لحركة البيانات لباقتي Russia Start وRussia Basic عندما لا يكفي الحد الأساسي.",
+        "title": "+30 GB حركة بيانات روسيا"
+      },
+      "ru_traffic_50gb": {
+        "availability": "لباقتي Russia Start وRussia Basic فقط.",
+        "description": "تمديد متوازن لحركة البيانات لباقتي Russia Start وRussia Basic.",
+        "title": "+50 GB حركة بيانات روسيا"
+      },
+      "subtitle": "اجعل العرض العام مختصرًا. وسّعه فقط عندما يفهم المستخدم القيمة الإضافية بوضوح.",
+      "title": "إضافات بدل تضخم الباقات"
     },
     "catalog": {
-      "unavailableBody": "Pricing is loaded only from the backend commercial catalog. Refresh after the catalog service is available.",
-      "unavailableTitle": "Catalog temporarily unavailable"
+      "unavailableBody": "يتم تحميل الأسعار فقط من كتالوج backend التجاري. حدّث الصفحة بعد عودة خدمة الكتالوج.",
+      "unavailableTitle": "الكتالوج غير متاح مؤقتًا"
     },
     "commercialContext": {
-      "resolved": "Pricing country {country} · {currency}",
-      "title": "Commercial context"
+      "resolved": "بلد التسعير {country} · {currency}",
+      "title": "السياق التجاري"
     },
     "countrySelector": {
-      "aria": "Select country",
-      "empty": "No country found",
+      "aria": "اختيار البلد",
+      "empty": "لم يتم العثور على بلد",
       "search": "SEARCH_COUNTRY...",
-      "searchAria": "Search countries",
-      "title": "SELECT_COUNTRY"
+      "searchAria": "البحث في البلدان",
+      "title": "اختيار البلد"
     },
     "faq": {
       "items": [
         {
-          "a": "Yes. Baseline VPN protection is not tiered away. Paid plans differ by seats, routing modes, server pool quality, dedicated IP access, and support.",
-          "q": "Are all paid plans full VPN plans?"
+          "a": "نعم. لا يتم حجب حماية VPN الأساسية حسب الفئة. تختلف الباقات المدفوعة في عدد المقاعد، وأوضاع التوجيه، وجودة مجمع الخوادم، وإمكانية IP مخصص، والدعم.",
+          "q": "هل كل الباقات المدفوعة باقات VPN كاملة؟"
         },
         {
-          "a": "S1 avoids a public hard-cap promise. Traffic handling follows fair-use rules, node policy, abuse controls, and the selected plan instead of an absolute unlimited claim.",
-          "q": "What does Fair-use policy mean?"
+          "a": "يتجنب S1 وعدًا عامًا بحد صارم للبيانات. تعتمد معالجة حركة البيانات على قواعد الاستخدام العادل، وسياسة العقد، وضوابط إساءة الاستخدام، والباقة المحددة بدل ادعاء غير محدود مطلق.",
+          "q": "ماذا تعني سياسة الاستخدام العادل؟"
         },
         {
-          "a": "Invite bundles are a term-level bonus. Short terms can have none, while 180-day and 365-day plans can include invite codes with defined friend days and expiry windows.",
-          "q": "When do invite bundles appear?"
+          "a": "حزم الدعوات مكافأة مرتبطة بمدة الاشتراك. قد لا تتضمن المدد القصيرة أي حزمة، بينما يمكن أن تتضمن باقات 180 يومًا و365 يومًا رموز دعوة مع أيام محددة للأصدقاء ونوافذ انتهاء صلاحية.",
+          "q": "متى تظهر حزم الدعوات؟"
         },
         {
-          "a": "No. It is a premium option. You can buy it as an add-on on paid plans, and Max already includes one dedicated IP.",
-          "q": "Is Dedicated IP a separate plan?"
+          "a": "لا. إنه خيار مميز. يمكنك شراؤه كإضافة في الباقات المدفوعة، وتتضمن Max بالفعل IP مخصصًا واحدًا.",
+          "q": "هل IP مخصص باقة منفصلة؟"
         }
       ],
-      "title": "Before You Choose"
+      "title": "قبل أن تختار"
     },
     "introPills": {
-      "addons": "Options",
-      "live": "Live catalog",
-      "periods": "4 periods",
-      "plans": "4 plans",
-      "unavailable": "Catalog unavailable"
+      "addons": "خيارات",
+      "live": "كتالوج مباشر",
+      "periods": "4 مدد",
+      "plans": "4 باقات",
+      "sourceCatalog": "كتالوج احتياطي",
+      "sourceLive": "كتالوج مباشر",
+      "unavailable": "الكتالوج غير متاح"
     },
     "labels": {
-      "chargedInBillingCurrency": "Charged in {currency}",
-      "dedicatedIpAddon": "Dedicated IP as add-on",
-      "devices": "{count} devices",
-      "includedDedicatedIp": "{count} dedicated IP included",
-      "inviteBundle": "{count} invites · {days} friend days",
-      "inviteNone": "No invite bundle",
-      "localDisplayEstimate": "Approx. {price} display only",
-      "monthlyEquivalent": "{price} / 30 days equivalent",
-      "perSelectedTerm": "per {days}-day term",
-      "trafficFairUse": "Fair-use policy"
+      "chargedInBillingCurrency": "يتم التحصيل بعملة {currency}",
+      "dedicatedIpAddon": "IP مخصص كإضافة",
+      "devices": "{count} أجهزة",
+      "includedDedicatedIp": "{count} IP مخصص مضمن",
+      "inviteBundle": "{count} دعوات · {days} يومًا للأصدقاء",
+      "inviteNone": "لا توجد حزمة دعوات",
+      "localDisplayEstimate": "تقدير محلي: {price} للعرض فقط",
+      "monthlyEquivalent": "{price} / ما يعادل 30 يومًا",
+      "perSelectedTerm": "لكل مدة من {days} يومًا",
+      "trafficFairUse": "سياسة الاستخدام العادل"
     },
     "matrix": {
       "rows": {
-        "capability": "Capability",
-        "dedicatedIp": "Dedicated IP",
-        "devices": "Devices",
-        "invites": "Invite bundle",
-        "modes": "Connection modes",
-        "serverPool": "Server access",
-        "support": "Support",
-        "traffic": "Traffic"
+        "capability": "الميزة",
+        "dedicatedIp": "IP مخصص",
+        "devices": "الأجهزة",
+        "invites": "حزمة الدعوات",
+        "modes": "أوضاع الاتصال",
+        "serverPool": "الوصول إلى الخوادم",
+        "support": "الدعم",
+        "traffic": "حركة البيانات"
       },
-      "subtitle": "Core VPN security stays on every paid plan. The difference is device count, routing surface, premium access, invite bundles, and support.",
-      "title": "What Actually Changes Between Plans"
+      "subtitle": "يبقى أمان VPN الأساسي متاحًا في كل باقة مدفوعة. الفرق في عدد الأجهزة، ونطاق التوجيه، والوصول المميز، وحزم الدعوات، والدعم.",
+      "title": "ما الذي يتغير فعليًا بين الباقات"
     },
     "modeNames": {
-      "dedicated_ip": "Dedicated IP",
-      "experimental": "Experimental",
-      "manual_config": "Manual / Advanced",
-      "standard": "Standard",
+      "dedicated_ip": "IP مخصص",
+      "experimental": "تجريبي",
+      "manual_config": "يدوي / متقدم",
+      "standard": "قياسي",
       "stealth": "Stealth"
     },
     "periods": {
-      "best": "Best value",
-      "helper": "Choose the term that fits your setup; checkout stays simple and predictable.",
-      "label": "Choose your billing term",
+      "best": "أفضل قيمة",
+      "helper": "اختر المدة التي تناسب إعدادك؛ تبقى عملية الدفع بسيطة وواضحة.",
+      "label": "اختر مدة الفوترة",
       "options": {
-        "30": "30 days",
-        "90": "90 days",
-        "180": "180 days",
-        "365": "365 days"
+        "30": "30 يومًا",
+        "90": "90 يومًا",
+        "180": "180 يومًا",
+        "365": "365 يومًا"
       },
-      "term": "Selectable term"
+      "term": "مدة قابلة للاختيار"
     },
     "poolNames": {
-      "exclusive": "Exclusive",
-      "premium": "Premium",
-      "premium_shared": "Premium Shared",
-      "shared": "Shared",
+      "exclusive": "حصري",
+      "premium": "مميز",
+      "premium_shared": "مشترك مميز",
+      "shared": "مشترك",
       "shared_plus": "Shared+"
     },
-    "subtitle": "4 plans, 4 billing terms. One full VPN baseline on every paid plan.",
+    "subtitle": "4 باقات و4 مدد فوترة. أساس VPN كامل في كل باقة مدفوعة.",
     "summary": {
-      "noInviteBonus": "No invite bundle on this term.",
-      "selectedTerm": "Selected term: {days} days"
+      "noInviteBonus": "لا توجد حزمة دعوات لهذه المدة.",
+      "selectedTerm": "المدة المحددة: {days} يومًا"
     },
     "supportNames": {
-      "internal": "Internal",
-      "priority": "Priority support",
-      "standard": "Standard support",
-      "vip": "VIP support"
+      "internal": "داخلي",
+      "priority": "دعم أولوية",
+      "standard": "دعم قياسي",
+      "vip": "دعم VIP"
     },
     "tiers": {
       "basic": {
-        "audience": "One person, clean start",
-        "badge": "Starter",
-        "button": "Choose Basic",
-        "description": "A full VPN baseline for personal use with simple routing, no hard data cap messaging, and a healthier default than a single-device tariff.",
-        "eyebrow": "Entry plan"
+        "audience": "شخص واحد وبداية واضحة",
+        "badge": "للبداية",
+        "button": "اختر Basic",
+        "description": "أساس VPN كامل للاستخدام الشخصي مع توجيه بسيط، ومن دون وعود حد بيانات صارمة في الواجهة، وبافتراضي أفضل من تعرفة جهاز واحد فقط.",
+        "eyebrow": "باقة البداية"
       },
       "max": {
-        "audience": "Family or premium setup",
-        "badge": "Flagship",
-        "button": "Choose Max",
-        "description": "The premium top tier. More seats, stronger server access, and one included dedicated IP so the upsell is obvious instead of cosmetic.",
-        "eyebrow": "Flagship plan"
+        "audience": "إعداد عائلي أو مميز",
+        "badge": "الرائدة",
+        "button": "اختر Max",
+        "description": "الفئة الأعلى المميزة. مقاعد أكثر، ووصول أقوى للخوادم، وعنوان IP مخصص واحد مضمن حتى تكون الترقية واضحة وليست شكلية.",
+        "eyebrow": "الباقة الرائدة"
       },
       "plus": {
-        "audience": "Most users",
-        "badge": "Most Popular",
-        "button": "Choose Plus",
-        "description": "The mainline plan for phones, laptops, and normal multi-device life. Stealth mode lands here because it solves real networks, not niche edge cases.",
-        "eyebrow": "Mass market"
+        "audience": "معظم المستخدمين",
+        "badge": "الأكثر شيوعًا",
+        "button": "اختر Plus",
+        "description": "الباقة الأساسية للهواتف وأجهزة الكمبيوتر والحياة اليومية متعددة الأجهزة. وضع Stealth متاح هنا لأنه يعالج شبكات حقيقية، وليس حالات نادرة فقط.",
+        "eyebrow": "للاستخدام العام"
       },
       "pro": {
-        "audience": "Travel, work, streaming",
-        "badge": "Best Balance",
-        "button": "Choose Pro",
-        "description": "Built for heavier use: stronger routing access, manual and advanced profiles, and a support posture that fits users who actually notice network quality.",
-        "eyebrow": "Power users"
+        "audience": "السفر والعمل والبث",
+        "badge": "أفضل توازن",
+        "button": "اختر Pro",
+        "description": "مصممة للاستخدام الأثقل: وصول أقوى للتوجيه، وملفات إعداد يدوية ومتقدمة، ودعم يناسب المستخدمين الذين يلاحظون جودة الشبكة فعلًا.",
+        "eyebrow": "للمستخدمين المتقدمين"
       }
     },
-    "title": "Pricing That Stays Clear"
+    "title": "أسعار واضحة"
   },
   "Privacy": {
     "description": "PUBLIC RELEASE 1.0 PRIVACY SUMMARY",

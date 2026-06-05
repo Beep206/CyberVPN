@@ -18,6 +18,7 @@ from src.application.use_cases.referrals.release_referral_rewards import (
 from src.application.use_cases.referrals.reverse_referral_rewards import (
     ReverseReferralRewardsForOrderUseCase,
 )
+from src.config import settings
 from src.domain.enums import GrowthRewardAllocationStatus, GrowthRewardType
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -44,6 +45,11 @@ from tests.integration.test_order_attribution_resolution import _create_quote_ch
 from tests.integration.test_order_commit import _make_customer_access_token, _seed_order_context
 
 pytestmark = [pytest.mark.integration]
+
+
+@pytest.fixture(autouse=True)
+def _enable_referral_reward_flags(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "referral_enabled", True)
 
 
 def _make_admin_token(auth_service: AuthService, *, user_id, realm) -> str:

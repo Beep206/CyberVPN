@@ -15,6 +15,7 @@ from src.main import app
 from tests.helpers.realm_auth import (
     FakeRedis,
     SyncSessionAdapter,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -51,11 +52,15 @@ async def _create_admin_user(
 async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": "admin"},
+        headers={
+            "Host": "testserver",
+            "X-Forwarded-Host": "admin.cyber-vpn.net",
+            "X-Auth-Realm": "admin",
+        },
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    return access_token_from_client_cookies(async_client, response=response)
 
 
 async def _create_workspace(
@@ -117,8 +122,16 @@ async def test_phase8_operational_overlays_are_canonical_and_workspace_visible(
             admin_token = await _login(async_client, admin_user.email, "Phase8OverlayAdmin123!")
             owner_token = await _login(async_client, owner_user.email, "Phase8OverlayOwner123!")
 
-            admin_headers = {"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"}
-            owner_headers = {"Authorization": f"Bearer {owner_token}", "X-Auth-Realm": "admin"}
+            admin_headers = {
+                "Authorization": f"Bearer {admin_token}",
+                "Host": "testserver",
+                "X-Auth-Realm": "admin",
+            }
+            owner_headers = {
+                "Authorization": f"Bearer {owner_token}",
+                "Host": "testserver",
+                "X-Auth-Realm": "admin",
+            }
 
             workspace_id = await _create_workspace(
                 async_client,

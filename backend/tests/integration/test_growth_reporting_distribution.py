@@ -51,6 +51,8 @@ from tests.integration.test_quote_checkout_sessions import _seed_quote_context
 
 pytestmark = [pytest.mark.integration]
 
+ADMIN_AUTH_HEADERS = {"Host": "admin.cyber-vpn.net"}
+
 
 def _insert_old_reporting_artifacts(sessionmaker) -> None:
     now = datetime.now(UTC).replace(microsecond=0)
@@ -309,13 +311,15 @@ async def test_admin_growth_reporting_distribution_endpoints_cover_subscription_
             login_response = await async_client.post(
                 "/api/v1/auth/login",
                 json={"login_or_email": admin_user.login, "password": admin_password},
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
-            admin_token = login_response.json()["access_token"]
+            admin_token = async_client.cookies.get("access_token")
+            assert admin_token is not None
             admin_headers = {
                 "Authorization": f"Bearer {admin_token}",
                 "X-Auth-Realm": "admin",
+                **ADMIN_AUTH_HEADERS,
             }
 
             create_response = await async_client.post(
@@ -492,7 +496,7 @@ async def test_admin_growth_reporting_distribution_endpoints_cover_subscription_
             followup_subscription_id = governance_payload["followup_queue"][0]["subscription_id"]
             followup_action_response = await async_client.post(
                 f"/api/v1/admin/growth-reporting/subscriptions/{followup_subscription_id}/follow-up/resolve",
-                headers={"Authorization": f"Bearer {admin_token}"},
+                headers=admin_headers,
                 json={"reason_code": "admin_recovered"},
             )
             assert followup_action_response.status_code == 200

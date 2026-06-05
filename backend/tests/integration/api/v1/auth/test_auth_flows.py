@@ -19,10 +19,15 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.infrastructure.remnawave.adapters import get_remnawave_adapter
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.otp_code_model import OtpCodeModel
+from src.infrastructure.remnawave.adapters import get_remnawave_adapter
 from src.main import app
+from tests.integration.conftest import get_default_test_realm
+
+
+async def _customer_realm_id(db: AsyncSession):
+    return (await get_default_test_realm(db, "customer")).id
 
 
 class TestCompleteAuthFlow:
@@ -218,14 +223,13 @@ class TestCompleteAuthFlow:
 
         assert login_response.status_code == 200
         login_data = login_response.json()
-        assert "access_token" in login_data
-        assert "refresh_token" in login_data
+        assert login_data["requires_2fa"] is False
+        assert login_data["auth_realm_key"] == "customer"
+        assert "access_token" not in login_data
+        assert "refresh_token" not in login_data
 
-        # Verify access token works
-        me_response = await async_client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {login_data['access_token']}"},
-        )
+        # Browser password login delivers tokens via httpOnly cookies.
+        me_response = await async_client.get("/api/v1/auth/me")
         assert me_response.status_code == 200
         assert me_response.json()["email"] == register_data["email"]
 
@@ -247,6 +251,7 @@ class TestMagicLinkFlow:
         user = AdminUserModel(
             login=f"magicuser{secrets.token_hex(4)}",
             email=user_email,
+            auth_realm_id=await _customer_realm_id(db),
             password_hash="$argon2id$fake_hash",
             role="viewer",
             is_active=True,
@@ -331,10 +336,11 @@ class TestMagicLinkFlow:
         await redis_client.aclose()
 
         # Verify magic link (should auto-register)
-        verify_response = await async_client.post(
-            "/api/v1/auth/magic-link/verify",
-            json={"token": token},
-        )
+        with patch("src.config.settings.settings.registration_enabled", True):
+            verify_response = await async_client.post(
+                "/api/v1/auth/magic-link/verify",
+                json={"token": token},
+            )
 
         assert verify_response.status_code == 200
         verify_data = verify_response.json()
@@ -366,6 +372,7 @@ class TestMagicLinkFlow:
         user = AdminUserModel(
             login=f"singleuse{secrets.token_hex(4)}",
             email=user_email,
+            auth_realm_id=await _customer_realm_id(db),
             password_hash="$argon2id$fake_hash",
             role="viewer",
             is_active=True,
@@ -435,6 +442,7 @@ class TestPasswordResetFlow:
         user = AdminUserModel(
             login=f"resetuser{secrets.token_hex(4)}",
             email=user_email,
+            auth_realm_id=await _customer_realm_id(db),
             password_hash=password_hash,
             role="viewer",
             is_active=True,
@@ -506,7 +514,7 @@ class TestPasswordResetFlow:
             },
         )
         assert new_login_response.status_code == 200
-        assert "access_token" in new_login_response.json()
+        assert new_login_response.json()["auth_realm_key"] == "customer"
 
     @pytest.mark.integration
     async def test_password_reset_with_invalid_otp(
@@ -522,6 +530,7 @@ class TestPasswordResetFlow:
         user = AdminUserModel(
             login=f"invaliduser{secrets.token_hex(4)}",
             email=user_email,
+            auth_realm_id=await _customer_realm_id(db),
             password_hash="$argon2id$fake_hash",
             role="viewer",
             is_active=True,
@@ -821,6 +830,7 @@ class TestLogoutAllDevices:
         user = AdminUserModel(
             login=f"logoutalluser{secrets.token_hex(4)}",
             email=user_email,
+            auth_realm_id=await _customer_realm_id(db),
             password_hash=password_hash,
             role="viewer",
             is_active=True,
@@ -835,8 +845,8 @@ class TestLogoutAllDevices:
             json={"login_or_email": user_email, "password": password},
         )
         assert login1_response.status_code == 200
-        device1_access = login1_response.json()["access_token"]
-        device1_refresh = login1_response.json()["refresh_token"]
+        device1_access = async_client.cookies["customer_access_token"]
+        device1_refresh = async_client.cookies["customer_refresh_token"]
 
         # Login from "device 2"
         login2_response = await async_client.post(
@@ -844,8 +854,8 @@ class TestLogoutAllDevices:
             json={"login_or_email": user_email, "password": password},
         )
         assert login2_response.status_code == 200
-        device2_access = login2_response.json()["access_token"]
-        device2_refresh = login2_response.json()["refresh_token"]
+        device2_access = async_client.cookies["customer_access_token"]
+        device2_refresh = async_client.cookies["customer_refresh_token"]
 
         # Both tokens work
         me1_response = await async_client.get(

@@ -25,6 +25,7 @@ from src.main import app
 from tests.helpers.realm_auth import (
     FakeRedis,
     SyncSessionAdapter,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -67,11 +68,28 @@ async def _login(
 ) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": realm_key},
+        headers={
+            "Host": "testserver",
+            "X-Forwarded-Host": "admin.cyber-vpn.net",
+            "X-Auth-Realm": realm_key,
+        },
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    return access_token_from_client_cookies(async_client, response=response)
+
+
+def _make_admin_token(auth_service: AuthService, *, user_id, role: str, realm) -> str:
+    token, _, _ = auth_service.create_access_token(
+        str(user_id),
+        role,
+        audience=realm.audience,
+        principal_type="admin",
+        realm_id=str(realm.id),
+        realm_key=realm.realm_key,
+        scope_family="admin",
+    )
+    return token
 
 
 async def _create_workspace(
@@ -160,11 +178,11 @@ async def test_phase8_pilot_cohorts_enforce_green_posture_and_allow_reversible_p
                 "Phase8PilotAdmin123!",
                 realm_key="admin",
             )
-            operator_token = await _login(
-                async_client,
-                operator_user.email,
-                "Phase8PilotOperator123!",
-                realm_key="pilot-ops",
+            operator_token = _make_admin_token(
+                auth_service,
+                user_id=operator_user.id,
+                role="operator",
+                realm=operator_realm,
             )
             owner_token = await _login(
                 async_client,
@@ -173,9 +191,21 @@ async def test_phase8_pilot_cohorts_enforce_green_posture_and_allow_reversible_p
                 realm_key="admin",
             )
 
-            admin_headers = {"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"}
-            operator_headers = {"Authorization": f"Bearer {operator_token}", "X-Auth-Realm": "pilot-ops"}
-            owner_headers = {"Authorization": f"Bearer {owner_token}", "X-Auth-Realm": "admin"}
+            admin_headers = {
+                "Authorization": f"Bearer {admin_token}",
+                "Host": "testserver",
+                "X-Auth-Realm": "admin",
+            }
+            operator_headers = {
+                "Authorization": f"Bearer {operator_token}",
+                "Host": "testserver",
+                "X-Auth-Realm": "pilot-ops",
+            }
+            owner_headers = {
+                "Authorization": f"Bearer {owner_token}",
+                "Host": "testserver",
+                "X-Auth-Realm": "admin",
+            }
 
             workspace_id = await _create_workspace(
                 async_client,

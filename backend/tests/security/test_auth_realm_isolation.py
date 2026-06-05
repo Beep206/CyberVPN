@@ -7,6 +7,8 @@ from src.application.services.auth_service import AuthService
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
+from src.infrastructure.database.models.brand_model import BrandModel
+from src.infrastructure.database.models.storefront_model import StorefrontModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
 from tests.helpers.realm_auth import (
@@ -50,7 +52,22 @@ async def test_same_email_can_exist_in_multiple_realms_without_cross_realm_login
                     status="active",
                     is_default=False,
                 )
-                db.add(partner_admin_realm)
+                partner_admin_brand = BrandModel(
+                    brand_key="partner-admin-brand",
+                    display_name="Partner Admin Brand",
+                )
+                db.add_all([partner_admin_realm, partner_admin_brand])
+                db.flush()
+                db.add(
+                    StorefrontModel(
+                        storefront_key="partner-admin-web",
+                        brand_id=partner_admin_brand.id,
+                        display_name="Partner Admin Web",
+                        host="partner-admin.example.test",
+                        auth_realm_id=partner_admin_realm.id,
+                        status="active",
+                    )
+                )
 
                 shared_email = "multi-realm@example.com"
                 admin_password = "RealmAdminP@ssword123!"
@@ -82,25 +99,25 @@ async def test_same_email_can_exist_in_multiple_realms_without_cross_realm_login
 
             admin_login = await async_client.post(
                 "/api/v1/auth/login",
-                headers={"X-Auth-Realm": "admin"},
+                headers={"Host": "admin.cyber-vpn.net"},
                 json={"login_or_email": "multi-realm@example.com", "password": "RealmAdminP@ssword123!"},
             )
             assert admin_login.status_code == 200
-            admin_token = admin_login.json()["access_token"]
+            admin_token = admin_login.cookies["access_token"]
 
             partner_login = await async_client.post(
                 "/api/v1/auth/login",
-                headers={"X-Auth-Realm": "partner-admin"},
+                headers={"Host": "partner-admin.example.test"},
                 json={"login_or_email": "multi-realm@example.com", "password": "RealmPartnerP@ssword123!"},
             )
             assert partner_login.status_code == 200
-            partner_token = partner_login.json()["access_token"]
+            partner_token = partner_login.cookies["partner-admin_access_token"]
 
             admin_me = await async_client.get(
                 "/api/v1/auth/me",
                 headers={
                     "Authorization": f"Bearer {admin_token}",
-                    "X-Auth-Realm": "admin",
+                    "Host": "admin.cyber-vpn.net",
                 },
             )
             assert admin_me.status_code == 200
@@ -110,7 +127,7 @@ async def test_same_email_can_exist_in_multiple_realms_without_cross_realm_login
                 "/api/v1/auth/me",
                 headers={
                     "Authorization": f"Bearer {partner_token}",
-                    "X-Auth-Realm": "partner-admin",
+                    "Host": "partner-admin.example.test",
                 },
             )
             assert partner_me.status_code == 200
@@ -120,7 +137,7 @@ async def test_same_email_can_exist_in_multiple_realms_without_cross_realm_login
                 "/api/v1/auth/me",
                 headers={
                     "Authorization": f"Bearer {admin_token}",
-                    "X-Auth-Realm": "partner-admin",
+                    "Host": "partner-admin.example.test",
                 },
             )
             assert cross_realm_me.status_code == 401

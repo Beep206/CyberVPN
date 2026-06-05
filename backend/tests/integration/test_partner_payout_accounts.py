@@ -8,6 +8,7 @@ from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.settlement import CreateReserveUseCase
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.partner_model import PartnerAccountModel
@@ -16,8 +17,10 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.infrastructure.database.repositories.risk_subject_repo import RiskSubjectGraphRepository
 from src.main import app
 from tests.helpers.realm_auth import (
+    ADMIN_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -25,6 +28,11 @@ from tests.helpers.realm_auth import (
 )
 
 pytestmark = [pytest.mark.integration]
+
+
+@pytest.fixture(autouse=True)
+def _enable_partner_payout_surfaces(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "partner_payouts_enabled", True)
 
 
 async def _create_admin_user(
@@ -54,11 +62,11 @@ async def _create_admin_user(
 async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": "admin"},
+        headers=ADMIN_AUTH_REALM_HEADERS,
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    return access_token_from_client_cookies(async_client, response=response)
 
 
 @pytest.mark.asyncio
@@ -100,8 +108,8 @@ async def test_partner_payout_account_lifecycle_and_default_selection(async_clie
 
             admin_token = await _login(async_client, "payout-admin@example.com", "PayoutAdmin123!")
             owner_token = await _login(async_client, "payout-owner@example.com", "PayoutOwner123!")
-            admin_headers = {"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"}
-            owner_headers = {"Authorization": f"Bearer {owner_token}", "X-Auth-Realm": "admin"}
+            admin_headers = {"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
 
             workspace_response = await async_client.post(
                 "/api/v1/admin/partner-workspaces",
@@ -241,8 +249,8 @@ async def test_partner_payout_account_eligibility_reflects_workspace_risk_and_fi
 
             admin_token = await _login(async_client, "eligibility-admin@example.com", "EligibilityAdmin123!")
             owner_token = await _login(async_client, "eligibility-owner@example.com", "EligibilityOwner123!")
-            admin_headers = {"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"}
-            owner_headers = {"Authorization": f"Bearer {owner_token}", "X-Auth-Realm": "admin"}
+            admin_headers = {"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
 
             workspace_response = await async_client.post(
                 "/api/v1/admin/partner-workspaces",

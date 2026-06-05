@@ -15,6 +15,7 @@ from httpx import AsyncClient
 from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.infrastructure.cache.redis_client import get_redis_client
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from tests.integration.conftest import ADMIN_HOST_HEADERS, admin_auth_headers
 
 
 class TestLogoutAllDevices:
@@ -32,7 +33,7 @@ class TestLogoutAllDevices:
         # Act
         response = await async_client.post(
             "/api/v1/auth/logout-all",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
         )
 
         # Assert
@@ -55,7 +56,7 @@ class TestLogoutAllDevices:
         # Act
         response = await async_client.post(
             "/api/v1/auth/logout-all",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
         )
 
         # Assert
@@ -90,7 +91,7 @@ class TestLogoutAllDevices:
         # Act
         response = await async_client.post(
             "/api/v1/auth/logout-all",
-            headers={"Authorization": "Bearer invalid-token-12345"},
+            headers={"Authorization": "Bearer invalid-token-12345", **ADMIN_HOST_HEADERS},
         )
 
         # Assert
@@ -108,14 +109,14 @@ class TestLogoutAllDevices:
         # First request - should succeed
         response = await async_client.post(
             "/api/v1/auth/logout-all",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
         )
         assert response.status_code == 200
 
         # Second request with same token - should fail (token revoked)
         response2 = await async_client.get(
             "/api/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
         )
 
         # Token should be revoked, so request should fail with 401
@@ -130,13 +131,17 @@ class TestLogoutAllDevices:
         """Test POST /auth/logout-all can be called multiple times safely."""
         user, access_token1 = test_user_with_token
 
-        # Import auth service to create second token
         from src.application.services.auth_service import AuthService
 
         auth_service = AuthService()
         access_token2, jti2, access_exp2 = auth_service.create_access_token(
             subject=str(user.id),
-            role=user.role,
+            role=str(user.role),
+            audience="cybervpn:admin",
+            principal_type="admin",
+            realm_id=str(user.auth_realm_id),
+            realm_key="admin",
+            scope_family="admin",
         )
         redis_client = await get_redis_client()
         try:
@@ -151,14 +156,14 @@ class TestLogoutAllDevices:
         # First logout with first token
         response1 = await async_client.post(
             "/api/v1/auth/logout-all",
-            headers={"Authorization": f"Bearer {access_token1}"},
+            headers=admin_auth_headers(access_token1),
         )
         assert response1.status_code == 200
 
         # Second logout with second token (both should be revoked now)
         response2 = await async_client.post(
             "/api/v1/auth/logout-all",
-            headers={"Authorization": f"Bearer {access_token2}"},
+            headers=admin_auth_headers(access_token2),
         )
 
         # Token is revoked, so this should fail
@@ -176,7 +181,7 @@ class TestLogoutAllDevices:
         # Act
         response = await async_client.post(
             "/api/v1/auth/logout-all",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
         )
 
         # Assert

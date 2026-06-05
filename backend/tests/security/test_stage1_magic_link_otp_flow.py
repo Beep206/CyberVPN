@@ -14,6 +14,7 @@ from src.application.services.magic_link_service import MagicLinkService
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis_client
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.infrastructure.tasks.email_task_dispatcher import get_email_dispatcher
 from src.main import app
 
@@ -109,9 +110,11 @@ async def _clear_auth_rate_limit_state() -> None:
 
 
 async def _create_verified_user(db: AsyncSession, *, email: str) -> AdminUserModel:
+    customer_realm = await AuthRealmRepository(db).get_or_create_default_realm("customer")
     user = AdminUserModel(
         login=f"s1magic{secrets.token_hex(4)}",
         email=email,
+        auth_realm_id=customer_realm.id,
         password_hash=await AuthService.hash_password("Stage1StrongPassword123!"),
         role="viewer",
         is_active=True,

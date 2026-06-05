@@ -19,16 +19,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.usage.get_user_usage import UsageData
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from tests.integration.conftest import admin_auth_headers, get_default_test_realm, issue_realm_access_token
 
 
-async def _create_verified_user(db: AsyncSession) -> tuple[str, str]:
-    """Helper: create a verified user and return (password, email)."""
+async def _create_verified_user(db: AsyncSession) -> tuple[AdminUserModel, str]:
+    """Helper: create a verified user and return (user, access_token)."""
     password = "TestP@ssw0rd123!"
     email = f"usage{secrets.token_hex(4)}@example.com"
     auth_service = AuthService()
     password_hash = await auth_service.hash_password(password)
+    admin_realm = await get_default_test_realm(db, "admin")
 
     user = AdminUserModel(
+        auth_realm_id=admin_realm.id,
         login=f"usageuser{secrets.token_hex(4)}",
         email=email,
         password_hash=password_hash,
@@ -38,17 +41,14 @@ async def _create_verified_user(db: AsyncSession) -> tuple[str, str]:
     )
     db.add(user)
     await db.commit()
-    return password, email
-
-
-async def _login(async_client: AsyncClient, email: str, password: str) -> str:
-    """Helper: login and return access token."""
-    response = await async_client.post(
-        "/api/v1/auth/login",
-        json={"login_or_email": email, "password": password},
+    await db.refresh(user)
+    access_token = await issue_realm_access_token(
+        db,
+        subject=str(user.id),
+        role=user.role,
+        realm_type="admin",
     )
-    assert response.status_code == 200
-    return response.json()["access_token"]
+    return user, access_token
 
 
 class TestUsageEndpoint:
@@ -65,8 +65,7 @@ class TestUsageEndpoint:
 
         Mocks Remnawave API via GetUserUsageUseCase to return synthetic usage data.
         """
-        password, email = await _create_verified_user(db)
-        access_token = await _login(async_client, email, password)
+        _user, access_token = await _create_verified_user(db)
 
         mock_usage = UsageData(
             bandwidth_used_bytes=1_073_741_824,  # 1 GB
@@ -85,7 +84,7 @@ class TestUsageEndpoint:
 
             response = await async_client.get(
                 "/api/v1/users/me/usage",
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers=admin_auth_headers(access_token),
             )
 
         assert response.status_code == 200
@@ -112,8 +111,7 @@ class TestUsageEndpoint:
         The current route contract keeps the dashboard alive by returning an empty
         snapshot instead of surfacing upstream lookup failures to the client.
         """
-        password, email = await _create_verified_user(db)
-        access_token = await _login(async_client, email, password)
+        _user, access_token = await _create_verified_user(db)
 
         with patch("src.presentation.api.v1.usage.routes.GetUserUsageUseCase") as mock_uc_class:
             mock_uc = AsyncMock()
@@ -122,7 +120,7 @@ class TestUsageEndpoint:
 
             response = await async_client.get(
                 "/api/v1/users/me/usage",
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers=admin_auth_headers(access_token),
             )
 
         assert response.status_code == 200

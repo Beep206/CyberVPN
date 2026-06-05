@@ -90,11 +90,11 @@ async def test_passkey_session_success_returns_tokenless_json_and_http_only_cook
     body = result.model_dump(mode="json")
     assert "access_token" not in body
     assert "refresh_token" not in body
-    assert "auth_realm_key" not in body
     assert "expires_in" not in body
-    assert "principal_type" not in body
-    assert "scope_family" not in body
     assert "token_type" not in body
+    assert body["auth_realm_key"] == "customer"
+    assert body["principal_type"] == "customer"
+    assert body["scope_family"] == "customer"
     assert body["requires_2fa"] is False
     assert body["tfa_token"] is None
 
@@ -139,11 +139,11 @@ async def test_passkey_session_pending_2fa_returns_tokenless_json_and_pending_co
     body = result.model_dump(mode="json")
     assert "access_token" not in body
     assert "refresh_token" not in body
-    assert "auth_realm_key" not in body
     assert "expires_in" not in body
-    assert "principal_type" not in body
-    assert "scope_family" not in body
     assert "token_type" not in body
+    assert body["auth_realm_key"] == "customer"
+    assert body["principal_type"] == "customer"
+    assert body["scope_family"] == "customer"
     assert body["requires_2fa"] is True
     assert body["tfa_token"] == "pending-2fa-token"
     assert auth_service.refresh_calls == 0

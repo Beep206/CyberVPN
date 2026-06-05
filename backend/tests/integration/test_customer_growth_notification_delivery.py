@@ -58,6 +58,8 @@ from tests.helpers.realm_auth import (
 
 pytestmark = [pytest.mark.integration]
 
+ADMIN_AUTH_HEADERS = {"Host": "admin.cyber-vpn.net"}
+
 
 @pytest.fixture(autouse=True)
 def _clear_mobile_override():
@@ -371,12 +373,15 @@ async def test_admin_manual_growth_notification_routes_create_feed_and_delivery_
                     "login_or_email": admin_user.login,
                     "password": admin_password,
                 },
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
+            admin_token = async_client.cookies.get("access_token")
+            assert admin_token is not None
             admin_headers = {
-                "Authorization": f"Bearer {login_response.json()['access_token']}",
+                "Authorization": f"Bearer {admin_token}",
                 "X-Auth-Realm": "admin",
+                **ADMIN_AUTH_HEADERS,
             }
 
             manual_response = await async_client.post(
@@ -866,12 +871,15 @@ async def test_admin_resolve_route_rearms_delivery_and_creates_closure_notice(
             login_response = await async_client.post(
                 "/api/v1/auth/login",
                 json={"login_or_email": admin_user.login, "password": admin_password},
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
+            admin_token = async_client.cookies.get("access_token")
+            assert admin_token is not None
             admin_headers = {
-                "Authorization": f"Bearer {login_response.json()['access_token']}",
+                "Authorization": f"Bearer {admin_token}",
                 "X-Auth-Realm": "admin",
+                **ADMIN_AUTH_HEADERS,
             }
 
             resolve_response = await async_client.post(

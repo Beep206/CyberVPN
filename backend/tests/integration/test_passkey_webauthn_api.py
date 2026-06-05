@@ -143,7 +143,14 @@ async def _login_token(
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    payload = response.json()
+    assert "access_token" not in payload
+    assert "refresh_token" not in payload
+    for cookie_name in ("access_token", "partner_access_token", "customer_access_token"):
+        cookie_value = response.cookies.get(cookie_name)
+        if cookie_value:
+            return cookie_value
+    raise AssertionError("login did not issue an auth access cookie")
 
 
 def _fake_registration_verification() -> PasskeyRegistrationVerification:
@@ -361,6 +368,8 @@ async def test_passkey_registration_and_authentication_issue_realm_cookie_sessio
             assert auth_payload["auth_realm_key"] == "admin"
             assert auth_payload["audience"] == audience
             assert auth_payload["principal_type"] == "admin"
+            assert "access_token" not in auth_payload
+            assert "refresh_token" not in auth_payload
             assert "access_token=" in "\n".join(auth_verify_response.headers.get_list("set-cookie"))
 
             with sessionmaker() as db:
@@ -836,7 +845,10 @@ async def test_passkey_discoverable_authentication_allows_missing_user_handle(
                 },
             )
             assert verify_response.status_code == 200, verify_response.text
-            assert verify_response.json()["audience"] == audience
+            verify_payload = verify_response.json()
+            assert verify_payload["audience"] == audience
+            assert "access_token" not in verify_payload
+            assert "refresh_token" not in verify_payload
 
             with sessionmaker() as db:
                 credential = db.execute(select(PasskeyCredentialModel)).scalar_one()

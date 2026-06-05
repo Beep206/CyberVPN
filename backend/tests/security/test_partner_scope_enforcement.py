@@ -12,9 +12,13 @@ from tests.helpers.realm_auth import (
     SyncSessionAdapter,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
+    fresh_auth_headers,
     initialize_realm_test_database,
     override_realm_test_db,
 )
+
+ADMIN_AUTH_HOST = "admin.cyber-vpn.net"
+PARTNER_AUTH_HOST = "portal.localhost"
 
 
 async def _create_admin_user(
@@ -50,11 +54,12 @@ async def _login(
 ) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": realm},
+        headers={"Host": ADMIN_AUTH_HOST if realm == "admin" else PARTNER_AUTH_HOST},
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    cookie_name = "access_token" if realm == "admin" else f"{realm}_access_token"
+    return response.cookies[cookie_name]
 
 
 def _auth_headers(token: str, *, realm: str, host: str) -> dict[str, str]:
@@ -134,7 +139,7 @@ async def test_partner_workspace_scope_enforcement(
             )
             create_response = await async_client.post(
                 "/api/v1/admin/partner-workspaces",
-                headers=_auth_headers(admin_token, realm="admin", host="admin.cyber-vpn.net"),
+                headers=_auth_headers(admin_token, realm="admin", host=ADMIN_AUTH_HOST),
                 json={
                     "display_name": "Scope Guard Partners",
                     "owner_admin_user_id": str(owner_operator.id),
@@ -151,7 +156,15 @@ async def test_partner_workspace_scope_enforcement(
             )
             analyst_add_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
-                headers=_auth_headers(owner_token, realm="partner", host="partner.h.cyber-vpn.net"),
+                headers=await fresh_auth_headers(
+                    fake_redis=fake_redis,
+                    base_headers=_auth_headers(owner_token, realm="partner", host=PARTNER_AUTH_HOST),
+                    user=owner_operator,
+                    auth_realm_id=partner_realm.id,
+                    realm_key="partner",
+                    action=f"partner.member.create:{workspace_id}",
+                    principal_class="partner_operator",
+                ),
                 json={
                     "admin_user_id": str(analyst_operator.id),
                     "role_key": "analyst",
@@ -167,14 +180,14 @@ async def test_partner_workspace_scope_enforcement(
             )
             analyst_detail = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}",
-                headers=_auth_headers(analyst_token, realm="partner", host="partner.h.cyber-vpn.net"),
+                headers=_auth_headers(analyst_token, realm="partner", host=PARTNER_AUTH_HOST),
             )
             assert analyst_detail.status_code == 200
             assert analyst_detail.json()["current_role_key"] == "analyst"
 
             analyst_add_attempt = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
-                headers=_auth_headers(analyst_token, realm="partner", host="partner.h.cyber-vpn.net"),
+                headers=_auth_headers(analyst_token, realm="partner", host=PARTNER_AUTH_HOST),
                 json={
                     "admin_user_id": str(outsider_operator.id),
                     "role_key": "support_manager",
@@ -190,7 +203,7 @@ async def test_partner_workspace_scope_enforcement(
             )
             outsider_detail = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}",
-                headers=_auth_headers(outsider_token, realm="partner", host="partner.h.cyber-vpn.net"),
+                headers=_auth_headers(outsider_token, realm="partner", host=PARTNER_AUTH_HOST),
             )
             assert outsider_detail.status_code == 403
     finally:

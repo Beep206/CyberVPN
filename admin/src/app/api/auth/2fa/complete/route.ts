@@ -213,7 +213,7 @@ async function appendJsonTokenFallbackCookies(
     }
     target.cookies.set(name, value, {
       httpOnly: true,
-      path: "/",
+      path: "/api",
       sameSite: "lax",
       secure,
     });

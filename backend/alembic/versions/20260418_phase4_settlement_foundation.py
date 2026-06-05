@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 
+from alembic import op
 
 revision = "20260418_p4_settlement"
 down_revision = "20260418_p3_renewal_orders"

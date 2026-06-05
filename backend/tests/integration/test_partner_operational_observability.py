@@ -9,6 +9,7 @@ from httpx import AsyncClient
 from prometheus_client import REGISTRY
 
 from src.application.services.auth_service import AuthService
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -20,8 +21,10 @@ from src.infrastructure.database.models.settlement_period_model import Settlemen
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
 from tests.helpers.realm_auth import (
+    ADMIN_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -31,6 +34,11 @@ from tests.integration.test_order_attribution_resolution import _create_quote_ch
 from tests.integration.test_order_commit import _make_customer_access_token, _seed_order_context
 
 pytestmark = [pytest.mark.integration]
+
+
+@pytest.fixture(autouse=True)
+def _enable_partner_payout_surfaces(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "partner_payouts_enabled", True)
 
 
 def _metric_value(name: str, labels: dict[str, str]) -> float:
@@ -45,11 +53,11 @@ async def _login_admin(
 ) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": "admin"},
+        headers=ADMIN_AUTH_REALM_HEADERS,
         json={"login_or_email": email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    return access_token_from_client_cookies(async_client, response=response)
 
 
 @pytest.mark.asyncio
@@ -209,7 +217,7 @@ async def test_partner_finance_and_outbox_metrics_increment_for_statement_and_pa
             )
             admin_headers = {
                 "Authorization": f"Bearer {admin_token}",
-                "X-Auth-Realm": "admin",
+                **ADMIN_AUTH_REALM_HEADERS,
             }
             approver_token = await _login_admin(
                 async_client=async_client,
@@ -218,7 +226,7 @@ async def test_partner_finance_and_outbox_metrics_increment_for_statement_and_pa
             )
             approver_headers = {
                 "Authorization": f"Bearer {approver_token}",
-                "X-Auth-Realm": "admin",
+                **ADMIN_AUTH_REALM_HEADERS,
             }
 
             close_statement_response = await async_client.post(

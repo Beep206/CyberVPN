@@ -5,17 +5,18 @@ Revises: 20260331_oauth_token_retention
 Create Date: 2026-04-07 17:59:54.299260
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
+
 # revision identifiers, used by Alembic.
 revision: str = 'f4916143ce02'
-down_revision: Union[str, Sequence[str], None] = '20260331_oauth_token_retention'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '20260331_oauth_token_retention'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -34,7 +35,14 @@ def upgrade() -> None:
     op.add_column('admin_users', sa.Column('tos_accepted_at', sa.DateTime(timezone=True), nullable=True))
     op.add_column('admin_users', sa.Column('marketing_consent', sa.Boolean(), server_default='false', nullable=False))
     op.add_column('admin_users', sa.Column('referred_by_id', postgresql.UUID(as_uuid=True), nullable=True))
-    op.create_foreign_key('fk_admin_users_referred_by_id', 'admin_users', 'admin_users', ['referred_by_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(
+        'fk_admin_users_referred_by_id',
+        'admin_users',
+        'admin_users',
+        ['referred_by_id'],
+        ['id'],
+        ondelete='SET NULL',
+    )
 
     # oauth_accounts updates
     op.add_column('oauth_accounts', sa.Column('granted_scopes', postgresql.ARRAY(sa.String()), nullable=True))

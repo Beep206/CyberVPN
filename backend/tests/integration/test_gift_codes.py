@@ -10,6 +10,7 @@ from sqlalchemy import select
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.gifts import IssueGiftCodeUseCase
 from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
+from src.config import settings
 from src.domain.enums import PaymentAttemptStatus
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -34,6 +35,12 @@ from tests.integration.test_order_commit import _make_customer_access_token, _se
 from tests.integration.test_quote_checkout_sessions import _seed_quote_context
 
 pytestmark = [pytest.mark.integration]
+
+
+@pytest.fixture(autouse=True)
+def _enable_gift_code_conformance_flags(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
+    monkeypatch.setattr(settings, "gift_codes_enabled", True)
 
 
 @pytest.mark.asyncio

@@ -254,7 +254,10 @@ def downgrade() -> None:
     )
     op.drop_index("ix_partner_application_attachments_attachment_type", table_name="partner_application_attachments")
     op.drop_index("ix_partner_application_attachments_review_request_id", table_name="partner_application_attachments")
-    op.drop_index("ix_partner_application_attachments_lane_application_id", table_name="partner_application_attachments")
+    op.drop_index(
+        "ix_partner_application_attachments_lane_application_id",
+        table_name="partner_application_attachments",
+    )
     op.drop_index(
         "ix_partner_application_attachments_partner_application_draft_id",
         table_name="partner_application_attachments",
@@ -262,7 +265,10 @@ def downgrade() -> None:
     op.drop_index("ix_partner_application_attachments_partner_account_id", table_name="partner_application_attachments")
     op.drop_table("partner_application_attachments")
 
-    op.drop_index("ix_partner_application_review_requests_requested_at", table_name="partner_application_review_requests")
+    op.drop_index(
+        "ix_partner_application_review_requests_requested_at",
+        table_name="partner_application_review_requests",
+    )
     op.drop_index(
         "ix_partner_app_review_req_resolved_by",
         table_name="partner_application_review_requests",

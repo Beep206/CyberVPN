@@ -104,7 +104,15 @@ class TestOptionalUserRevocation:
     def mock_credentials(self):
         return HTTPAuthorizationCredentials(scheme="Bearer", credentials="test-token")
 
-    async def test_optional_user_returns_none_for_revoked_token(self, mock_credentials):
+    @pytest.fixture
+    def mock_realm(self):
+        return MagicMock(
+            audience="cybervpn:admin",
+            cookie_namespace="admin",
+            realm_key="admin",
+        )
+
+    async def test_optional_user_returns_none_for_revoked_token(self, mock_credentials, mock_realm):
         """LOW-007: optional_user should return None for revoked tokens."""
         mock_db = AsyncMock()
         mock_auth_service = MagicMock()
@@ -129,11 +137,12 @@ class TestOptionalUserRevocation:
                 db=mock_db,
                 auth_service=mock_auth_service,
                 redis_client=mock_redis,
+                current_realm=mock_realm,
             )
 
         assert result is None, "optional_user should return None for revoked tokens"
 
-    async def test_optional_user_returns_none_without_credentials(self):
+    async def test_optional_user_returns_none_without_credentials(self, mock_realm):
         """optional_user should return None when no credentials provided."""
         mock_db = AsyncMock()
         mock_auth_service = MagicMock()
@@ -147,6 +156,7 @@ class TestOptionalUserRevocation:
             db=mock_db,
             auth_service=mock_auth_service,
             redis_client=mock_redis,
+            current_realm=mock_realm,
         )
 
         assert result is None

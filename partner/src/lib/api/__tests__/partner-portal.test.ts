@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
+import { createSafePartnerBusinessFlowFixture } from '@/features/partner-portal-state/lib/safe-partner-fixtures';
 import { server } from '@/test/mocks/server';
 import { FRESH_AUTH_GRANT_ID_HEADER } from '../fresh-auth';
 import { partnerPortalApi } from '../partner-portal';
@@ -246,6 +247,78 @@ describe('partnerPortalApi', () => {
 
     expect(response.status).toBe(200);
     expect(capturedUrl).toBe('/api/v1/partner-workspaces/workspace_001/payout-accounts');
+  });
+
+  it('walks the safe partner business-flow fixture through canonical workspace subresources', async () => {
+    const fixture = createSafePartnerBusinessFlowFixture();
+    let statementQuery = '';
+    let payoutHistoryQuery = '';
+
+    server.use(
+      http.get(`${API_BASE}/partner-workspaces/${fixture.workspace.id}/codes`, () =>
+        HttpResponse.json(fixture.workspaceCodes),
+      ),
+      http.get(`${API_BASE}/partner-workspaces/${fixture.workspace.id}/conversion-records`, () =>
+        HttpResponse.json(fixture.workspaceConversionRecords),
+      ),
+      http.get(`${API_BASE}/partner-workspaces/${fixture.workspace.id}/statements`, ({ request }) => {
+        statementQuery = new URL(request.url).search;
+        return HttpResponse.json(fixture.workspaceStatements);
+      }),
+      http.get(`${API_BASE}/partner-workspaces/${fixture.workspace.id}/payout-accounts`, () =>
+        HttpResponse.json(fixture.workspacePayoutAccounts),
+      ),
+      http.get(`${API_BASE}/partner-workspaces/${fixture.workspace.id}/payout-history`, ({ request }) => {
+        payoutHistoryQuery = new URL(request.url).search;
+        return HttpResponse.json(fixture.workspacePayoutHistory);
+      }),
+    );
+
+    const [codes, conversions, statements, payoutAccounts, payoutHistory] = await Promise.all([
+      partnerPortalApi.listWorkspaceCodes(fixture.workspace.id),
+      partnerPortalApi.listWorkspaceConversionRecords(fixture.workspace.id),
+      partnerPortalApi.listWorkspaceStatements(fixture.workspace.id, {
+        limit: 20,
+        offset: 0,
+        statement_status: 'closed',
+      }),
+      partnerPortalApi.listWorkspacePayoutAccounts(fixture.workspace.id),
+      partnerPortalApi.listWorkspacePayoutHistory(fixture.workspace.id, {
+        limit: 10,
+        offset: 0,
+      }),
+    ]);
+
+    expect(codes.status).toBe(200);
+    expect(codes.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'CYBA-SAFE-42', markup_pct: 12.5 }),
+      expect.objectContaining({ code: 'CYBA-PAUSED-07', is_active: false }),
+    ]));
+    expect(conversions.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code_label: 'CYBA-SAFE-42',
+        customer_label: 'masked-customer-001',
+        status: 'commissionable',
+      }),
+    ]));
+    expect(statements.data[0]).toEqual(expect.objectContaining({
+      available_amount: 280,
+      statement_key: 'safe-partner-2026-04-v1',
+    }));
+    expect(payoutAccounts.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        display_label: 'Safe fixture settlement account',
+        masked_destination: 'Bank **** 4242',
+      }),
+    ]));
+    expect(payoutHistory.data.map((item) => item.instruction_status)).toEqual([
+      'draft',
+      'approved',
+      'rejected',
+    ]);
+    expect(statementQuery).toContain('statement_status=closed');
+    expect(payoutHistoryQuery).toContain('limit=10');
+    expect(payoutHistoryQuery).toContain('offset=0');
   });
 
   it('attaches fresh auth grants to partner security-sensitive workspace mutations', async () => {

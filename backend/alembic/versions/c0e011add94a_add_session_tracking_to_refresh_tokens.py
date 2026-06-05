@@ -5,17 +5,17 @@ Revises: 3d4a3384664c
 Create Date: 2026-02-11 10:15:55.829473
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'c0e011add94a'
-down_revision: Union[str, Sequence[str], None] = '3d4a3384664c'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '3d4a3384664c'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -31,7 +31,10 @@ def upgrade() -> None:
     op.add_column('refresh_tokens', sa.Column('user_agent', sa.String(length=512), nullable=True))
 
     # Add last_used_at (default to now, updates on use)
-    op.add_column('refresh_tokens', sa.Column('last_used_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    op.add_column(
+        'refresh_tokens',
+        sa.Column('last_used_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+    )
 
 
 def downgrade() -> None:

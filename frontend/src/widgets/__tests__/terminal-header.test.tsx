@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { TerminalHeader } from '../terminal-header';
 
@@ -52,8 +53,19 @@ vi.mock('@/features/messaging/components/NotificationCenterDropdown', () => ({
 
 describe('TerminalHeader', () => {
   async function renderHeader() {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
     render(
-      await TerminalHeader({ performanceMode: 'always', showMobileSidebar: true })
+      <QueryClientProvider client={queryClient}>
+        {await TerminalHeader({
+          performanceMode: 'always',
+          showMobileSidebar: true,
+        })}
+      </QueryClientProvider>,
     );
   }
 

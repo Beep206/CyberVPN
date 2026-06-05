@@ -2,13 +2,67 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from http.cookies import SimpleCookie
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from src.infrastructure.cache.passkey_fresh_auth import PasskeyFreshAuthGrantStore
 from src.presentation.dependencies.database import get_db
+from src.presentation.dependencies.passkey_fresh_auth import FRESH_AUTH_GRANT_ID_HEADER
+
+ADMIN_AUTH_REALM_HEADERS = {
+    "Host": "testserver",
+    "X-Forwarded-Host": "admin.cyber-vpn.net",
+    "X-Auth-Realm": "admin",
+}
+ADMIN_ACCESS_COOKIE_NAME = "access_token"
+
+PARTNER_AUTH_REALM_HEADERS = {
+    "Host": "testserver",
+    "X-Forwarded-Host": "portal.localhost",
+    "X-Auth-Realm": "partner",
+}
+PARTNER_ACCESS_COOKIE_NAME = "partner_access_token"
+_REALM_TEST_ENGINES: dict[Path, object] = {}
+
+
+def access_token_from_client_cookies(client, *, cookie_name: str = ADMIN_ACCESS_COOKIE_NAME, response=None) -> str:
+    access_token = response.cookies.get(cookie_name) if response is not None else None
+    if access_token is None and response is not None:
+        for header in response.headers.get_list("set-cookie"):
+            parsed = SimpleCookie()
+            parsed.load(header)
+            if cookie_name in parsed:
+                access_token = parsed[cookie_name].value
+                break
+    if access_token is None:
+        access_token = client.cookies.get(cookie_name)
+    assert access_token is not None
+    return access_token
+
+
+async def fresh_auth_headers(
+    *,
+    fake_redis: FakeRedis,
+    base_headers: dict[str, str],
+    user,
+    auth_realm_id,
+    realm_key: str,
+    action: str,
+    principal_class: str,
+) -> dict[str, str]:
+    grant = await PasskeyFreshAuthGrantStore(fake_redis).create(
+        principal_subject=str(user.id),
+        principal_class=principal_class,
+        auth_realm_id=str(auth_realm_id),
+        realm_key=realm_key,
+        action=action,
+        ttl_seconds=300,
+    )
+    return {**base_headers, FRESH_AUTH_GRANT_ID_HEADER: grant.grant_id}
 
 
 class FakeRedis:
@@ -136,6 +190,7 @@ def create_realm_test_sessionmaker() -> tuple[sessionmaker[Session], object, Pat
     sqlite_path = Path(temp_file.name)
     engine = create_engine(f"sqlite:///{sqlite_path}", future=True)
     factory = sessionmaker(engine, class_=Session, expire_on_commit=False)
+    _REALM_TEST_ENGINES[sqlite_path] = engine
     return factory, engine, sqlite_path
 
 
@@ -4188,4 +4243,7 @@ async def override_realm_test_db(sessionmaker: sessionmaker[Session]) -> AsyncGe
 
 
 def cleanup_sqlite_file(path: Path) -> None:
+    engine = _REALM_TEST_ENGINES.pop(path, None)
+    if engine is not None:
+        engine.dispose()
     path.unlink(missing_ok=True)

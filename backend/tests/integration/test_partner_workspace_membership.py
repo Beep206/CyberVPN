@@ -7,10 +7,15 @@ from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
 from tests.helpers.realm_auth import (
+    ADMIN_AUTH_REALM_HEADERS,
+    PARTNER_ACCESS_COOKIE_NAME,
+    PARTNER_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
+    fresh_auth_headers,
     initialize_realm_test_database,
     override_realm_test_db,
 )
@@ -40,14 +45,21 @@ async def _create_admin_user(
     return user
 
 
-async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
+async def _login(
+    async_client: AsyncClient,
+    login_or_email: str,
+    password: str,
+    *,
+    headers: dict[str, str] = ADMIN_AUTH_REALM_HEADERS,
+    cookie_name: str = "access_token",
+) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": "admin"},
+        headers=headers,
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    return access_token_from_client_cookies(async_client, cookie_name=cookie_name, response=response)
 
 
 @pytest.mark.integration
@@ -67,6 +79,7 @@ async def test_partner_workspace_membership_flow(async_client: AsyncClient) -> N
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
 
                 await _create_admin_user(
                     session=db,
@@ -80,7 +93,7 @@ async def test_partner_workspace_membership_flow(async_client: AsyncClient) -> N
                 owner_operator = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="workspace_owner",
                     email="workspace-owner@example.com",
                     password="WorkspaceOwnerP@ssword123!",
@@ -89,7 +102,7 @@ async def test_partner_workspace_membership_flow(async_client: AsyncClient) -> N
                 finance_operator = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="workspace_finance",
                     email="workspace-finance@example.com",
                     password="WorkspaceFinanceP@ssword123!",
@@ -101,7 +114,7 @@ async def test_partner_workspace_membership_flow(async_client: AsyncClient) -> N
                 "/api/v1/admin/partner-workspaces",
                 headers={
                     "Authorization": f"Bearer {admin_token}",
-                    "X-Auth-Realm": "admin",
+                    **ADMIN_AUTH_REALM_HEADERS,
                 },
                 json={
                     "display_name": "Nebula Partners",
@@ -115,12 +128,18 @@ async def test_partner_workspace_membership_flow(async_client: AsyncClient) -> N
             assert workspace_payload["members"][0]["admin_user_id"] == str(owner_operator.id)
             assert workspace_payload["members"][0]["role_key"] == "owner"
 
-            owner_token = await _login(async_client, "workspace-owner@example.com", "WorkspaceOwnerP@ssword123!")
+            owner_token = await _login(
+                async_client,
+                "workspace-owner@example.com",
+                "WorkspaceOwnerP@ssword123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+            )
             owner_workspaces = await async_client.get(
                 "/api/v1/partner-workspaces/me",
                 headers={
                     "Authorization": f"Bearer {owner_token}",
-                    "X-Auth-Realm": "admin",
+                    **PARTNER_AUTH_REALM_HEADERS,
                 },
             )
             assert owner_workspaces.status_code == 200
@@ -129,10 +148,15 @@ async def test_partner_workspace_membership_flow(async_client: AsyncClient) -> N
 
             add_member_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
-                headers={
-                    "Authorization": f"Bearer {owner_token}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=await fresh_auth_headers(
+                    fake_redis=fake_redis,
+                    base_headers={"Authorization": f"Bearer {owner_token}", **PARTNER_AUTH_REALM_HEADERS},
+                    user=owner_operator,
+                    auth_realm_id=partner_realm.id,
+                    realm_key="partner",
+                    principal_class="partner_operator",
+                    action=f"partner.member.create:{workspace_id}",
+                ),
                 json={
                     "admin_user_id": str(finance_operator.id),
                     "role_key": "finance",
@@ -145,7 +169,7 @@ async def test_partner_workspace_membership_flow(async_client: AsyncClient) -> N
                 f"/api/v1/partner-workspaces/{workspace_id}",
                 headers={
                     "Authorization": f"Bearer {owner_token}",
-                    "X-Auth-Realm": "admin",
+                    **PARTNER_AUTH_REALM_HEADERS,
                 },
             )
             assert owner_workspace_detail.status_code == 200

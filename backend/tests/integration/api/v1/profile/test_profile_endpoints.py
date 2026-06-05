@@ -16,6 +16,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from tests.integration.conftest import admin_auth_headers
 
 
 class TestProfileEndpoints:
@@ -34,7 +35,7 @@ class TestProfileEndpoints:
         # Act
         response = await async_client.get(
             "/api/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
         )
 
         # Assert
@@ -73,7 +74,7 @@ class TestProfileEndpoints:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={"display_name": new_display_name},
         )
 
@@ -99,7 +100,7 @@ class TestProfileEndpoints:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={"language": "fr-FR"},
         )
 
@@ -125,7 +126,7 @@ class TestProfileEndpoints:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={"timezone": "America/New_York"},
         )
 
@@ -152,7 +153,7 @@ class TestProfileEndpoints:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={
                 "display_name": new_display_name,
                 "language": "de-DE",
@@ -187,7 +188,7 @@ class TestProfileEndpoints:
         initial_name = f"Initial {secrets.token_hex(4)}"
         await async_client.patch(
             "/api/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={
                 "display_name": initial_name,
                 "language": "en-EN",
@@ -198,7 +199,7 @@ class TestProfileEndpoints:
         # Act: Update only language
         response = await async_client.patch(
             "/api/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={"language": "es-ES"},
         )
 
@@ -236,7 +237,7 @@ class TestProfileEndpoints:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={},
         )
 

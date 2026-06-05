@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -11,12 +12,19 @@ from src.infrastructure.database.models.brand_model import BrandModel
 from src.infrastructure.database.models.storefront_model import StorefrontModel
 from src.main import app
 from tests.helpers.realm_auth import (
+    ADMIN_AUTH_REALM_HEADERS,
     FakeRedis,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
     override_realm_test_db,
 )
+
+
+@pytest.fixture(autouse=True)
+def _enable_storefront_surfaces(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "partner_storefronts_enabled", True)
 
 
 async def _create_admin_user(
@@ -45,11 +53,11 @@ async def _create_admin_user(
 async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": "admin"},
+        headers=ADMIN_AUTH_REALM_HEADERS,
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    return access_token_from_client_cookies(async_client, response=response)
 
 
 @pytest.mark.integration
@@ -114,7 +122,7 @@ async def test_merchant_invoice_and_billing_descriptor_foundations_resolve_from_
 
             invoice_profile_response = await async_client.post(
                 "/api/v1/invoice-profiles/",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers={"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS},
                 json={
                     "profile_key": "cybervpn-eu",
                     "display_name": "CyberVPN EU",
@@ -131,7 +139,7 @@ async def test_merchant_invoice_and_billing_descriptor_foundations_resolve_from_
 
             merchant_response = await async_client.post(
                 "/api/v1/merchant-profiles/",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers={"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS},
                 json={
                     "profile_key": "cybervpn-mor",
                     "legal_entity_name": "CyberVPN LLC",
@@ -152,7 +160,7 @@ async def test_merchant_invoice_and_billing_descriptor_foundations_resolve_from_
 
             billing_descriptor_response = await async_client.post(
                 "/api/v1/billing-descriptors/",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers={"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS},
                 json={
                     "descriptor_key": "cybervpn-default",
                     "merchant_profile_id": merchant_profile_id,
@@ -192,14 +200,14 @@ async def test_merchant_invoice_and_billing_descriptor_foundations_resolve_from_
 
             listed_merchants = await async_client.get(
                 "/api/v1/merchant-profiles/",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers={"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS},
             )
             assert listed_merchants.status_code == 200
             assert len(listed_merchants.json()) == 1
 
             listed_invoices = await async_client.get(
                 "/api/v1/invoice-profiles/",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers={"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS},
             )
             assert listed_invoices.status_code == 200
             assert len(listed_invoices.json()) == 1

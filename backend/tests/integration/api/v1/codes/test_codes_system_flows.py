@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.config.settings import settings
 from src.domain.enums import InviteSource
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
@@ -28,6 +29,7 @@ from src.infrastructure.database.models.subscription_plan_model import Subscript
 from src.main import app
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from tests.conftest import TEST_DB_AVAILABLE_ENV
+from tests.integration.conftest import admin_auth_headers, get_default_test_realm, issue_admin_access_token
 
 
 @pytest.fixture(autouse=True)
@@ -45,6 +47,15 @@ def _clear_dependency_overrides():
     app.dependency_overrides.pop(get_current_mobile_user_id, None)
 
 
+@pytest.fixture(autouse=True)
+def _enable_codes_stage1_features(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "promo_codes_enabled", True)
+    monkeypatch.setattr(settings, "referral_enabled", True)
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
+    monkeypatch.setattr(settings, "partner_portal_enabled", True)
+    monkeypatch.setattr(settings, "partner_codes_enabled", True)
+
+
 def _override_mobile_user(user_id) -> None:
     app.dependency_overrides[get_current_mobile_user_id] = lambda: user_id
 
@@ -53,13 +64,14 @@ async def _create_admin_user(
     db: AsyncSession,
     *,
     role: str = "admin",
-) -> tuple[AdminUserModel, str]:
+) -> AdminUserModel:
     auth_service = AuthService()
-    password = "AdminP@ss123!"
+    admin_realm = await get_default_test_realm(db, "admin")
     admin = AdminUserModel(
+        auth_realm_id=admin_realm.id,
         login=f"admin{secrets.token_hex(4)}",
         email=f"admin{secrets.token_hex(4)}@example.com",
-        password_hash=await auth_service.hash_password(password),
+        password_hash=await auth_service.hash_password("AdminP@ss123!"),
         role=role,
         is_active=True,
         is_email_verified=True,
@@ -69,16 +81,7 @@ async def _create_admin_user(
     db.add(admin)
     await db.commit()
     await db.refresh(admin)
-    return admin, password
-
-
-async def _login_admin(async_client: AsyncClient, admin: AdminUserModel, password: str) -> str:
-    response = await async_client.post(
-        "/api/v1/auth/login",
-        json={"login_or_email": admin.email, "password": password},
-    )
-    assert response.status_code == 200
-    return response.json()["access_token"]
+    return admin
 
 
 async def _create_mobile_user(
@@ -89,7 +92,9 @@ async def _create_mobile_user(
     partner_user_id=None,
 ) -> MobileUserModel:
     auth_service = AuthService()
+    customer_realm = await get_default_test_realm(db, "customer")
     user = MobileUserModel(
+        auth_realm_id=customer_realm.id,
         email=f"mobile{secrets.token_hex(4)}@example.com",
         password_hash=await auth_service.hash_password("MobileP@ss123!"),
         username=f"mobile{secrets.token_hex(4)}",
@@ -115,11 +120,18 @@ async def _create_plan(
     plan = SubscriptionPlanModel(
         name=f"{name}-{secrets.token_hex(4)}",
         tier="pro",
+        plan_code="pro",
+        display_name=name,
+        catalog_visibility="public",
         duration_days=duration_days,
         traffic_limit_bytes=None,
         device_limit=3,
         price_usd=Decimal(price_usd),
         price_rub=None,
+        sale_channels=["web"],
+        traffic_policy={"policy": "standard"},
+        connection_modes=["shared"],
+        server_pool=["default"],
         features={},
         is_active=True,
         sort_order=0,
@@ -139,8 +151,8 @@ class TestInviteCodeFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        admin, password = await _create_admin_user(db)
-        admin_token = await _login_admin(async_client, admin, password)
+        admin = await _create_admin_user(db)
+        admin_token = await issue_admin_access_token(db, admin)
         owner_user = await _create_mobile_user(db)
         redeemer = await _create_mobile_user(db)
         plan = await _create_plan(db, name="Premium Plan", price_usd="10.00")
@@ -153,7 +165,7 @@ class TestInviteCodeFlow:
                 "count": 3,
                 "plan_id": str(plan.id),
             },
-            headers={"Authorization": f"Bearer {admin_token}"},
+            headers=admin_auth_headers(admin_token),
         )
 
         assert create_response.status_code == 201
@@ -252,8 +264,8 @@ class TestPromoCodeFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        admin, password = await _create_admin_user(db)
-        admin_token = await _login_admin(async_client, admin, password)
+        admin = await _create_admin_user(db)
+        admin_token = await issue_admin_access_token(db, admin)
         plan = await _create_plan(db, name="Premium Plan", price_usd="100.00")
         mobile_user = await _create_mobile_user(db)
 
@@ -269,7 +281,7 @@ class TestPromoCodeFlow:
                 "plan_ids": [str(plan.id)],
                 "expires_at": (datetime.now(UTC) + timedelta(days=30)).isoformat(),
             },
-            headers={"Authorization": f"Bearer {admin_token}"},
+            headers=admin_auth_headers(admin_token),
         )
 
         assert create_response.status_code == 201
@@ -336,8 +348,8 @@ class TestPromoCodeFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        admin, password = await _create_admin_user(db)
-        admin_token = await _login_admin(async_client, admin, password)
+        admin = await _create_admin_user(db)
+        admin_token = await issue_admin_access_token(db, admin)
 
         active_promo = PromoCodeModel(
             code=f"ACTIVE{secrets.token_hex(4).upper()}",
@@ -353,7 +365,7 @@ class TestPromoCodeFlow:
 
         deactivate_response = await async_client.delete(
             f"/api/v1/admin/promo-codes/{active_promo.id}",
-            headers={"Authorization": f"Bearer {admin_token}"},
+            headers=admin_auth_headers(admin_token),
         )
 
         assert deactivate_response.status_code == 200
@@ -538,14 +550,14 @@ class TestPartnerFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        admin, password = await _create_admin_user(db)
-        admin_token = await _login_admin(async_client, admin, password)
+        admin = await _create_admin_user(db)
+        admin_token = await issue_admin_access_token(db, admin)
         regular_user = await _create_mobile_user(db)
 
         promote_response = await async_client.post(
             "/api/v1/admin/partners/promote",
             json={"user_id": str(regular_user.id)},
-            headers={"Authorization": f"Bearer {admin_token}"},
+            headers=admin_auth_headers(admin_token),
         )
 
         assert promote_response.status_code == 200

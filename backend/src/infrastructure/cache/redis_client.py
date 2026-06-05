@@ -84,7 +84,15 @@ async def check_redis_connection() -> tuple[bool, float | None]:
 async def close_redis_pool() -> None:
     """Close Redis connection pool."""
     global _redis_pool, _redis_pool_loop
-    if _redis_pool is not None:
-        await _redis_pool.aclose()
-        _redis_pool = None
-        _redis_pool_loop = None
+    pool = _redis_pool
+    if pool is None:
+        return
+
+    _redis_pool = None
+    _redis_pool_loop = None
+    try:
+        await pool.aclose()
+    except RuntimeError as exc:
+        if "Event loop is closed" not in str(exc):
+            raise
+        logger.warning("Redis connection pool cleanup skipped because its event loop is already closed")

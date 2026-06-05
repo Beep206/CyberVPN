@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -29,6 +30,14 @@ from tests.integration.test_order_attribution_resolution import _create_quote_ch
 from tests.integration.test_order_commit import _make_customer_access_token, _seed_order_context
 
 pytestmark = [pytest.mark.integration]
+
+
+def _settlement_window_payload() -> dict[str, str]:
+    now = datetime.now(UTC)
+    return {
+        "window_start": (now - timedelta(days=1)).isoformat().replace("+00:00", "Z"),
+        "window_end": (now + timedelta(days=1)).isoformat().replace("+00:00", "Z"),
+    }
 
 
 @pytest.mark.asyncio
@@ -189,8 +198,7 @@ async def test_refund_and_dispute_create_typed_settlement_side_effects(async_cli
                     "partner_account_id": str(partner_account.id),
                     "period_key": "2026-04-adjustments",
                     "currency_code": "usd",
-                    "window_start": "2026-04-01T00:00:00Z",
-                    "window_end": "2026-05-01T00:00:00Z",
+                    **_settlement_window_payload(),
                 },
             )
             assert period_response.status_code == 201

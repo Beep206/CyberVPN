@@ -130,7 +130,12 @@ def upgrade() -> None:
     op.create_index(op.f("ix_admin_users_email"), "admin_users", ["email"], unique=False)
     op.create_unique_constraint("uq_admin_users_realm_login", "admin_users", ["auth_realm_id", "login"])
     op.create_unique_constraint("uq_admin_users_realm_email", "admin_users", ["auth_realm_id", "email"])
-    op.execute(f"UPDATE admin_users SET auth_realm_id = '{ADMIN_REALM_ID}' WHERE auth_realm_id IS NULL")
+    admin_users = sa.table("admin_users", sa.column("auth_realm_id", postgresql.UUID(as_uuid=True)))
+    op.execute(
+        admin_users.update()
+        .where(admin_users.c.auth_realm_id.is_(None))
+        .values(auth_realm_id=op.inline_literal(ADMIN_REALM_ID))
+    )
 
     op.add_column("mobile_users", sa.Column("auth_realm_id", postgresql.UUID(as_uuid=True), nullable=True))
     op.create_index(op.f("ix_mobile_users_auth_realm_id"), "mobile_users", ["auth_realm_id"], unique=False)
@@ -142,7 +147,12 @@ def upgrade() -> None:
         ["id"],
         ondelete="SET NULL",
     )
-    op.execute(f"UPDATE mobile_users SET auth_realm_id = '{CUSTOMER_REALM_ID}' WHERE auth_realm_id IS NULL")
+    mobile_users = sa.table("mobile_users", sa.column("auth_realm_id", postgresql.UUID(as_uuid=True)))
+    op.execute(
+        mobile_users.update()
+        .where(mobile_users.c.auth_realm_id.is_(None))
+        .values(auth_realm_id=op.inline_literal(CUSTOMER_REALM_ID))
+    )
 
     op.create_table(
         "principal_sessions",

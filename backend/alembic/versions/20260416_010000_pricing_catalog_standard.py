@@ -21,7 +21,10 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.add_column("subscription_plans", sa.Column("plan_code", sa.String(length=20), nullable=True))
-    op.add_column("subscription_plans", sa.Column("display_name", sa.String(length=100), nullable=False, server_default=""))
+    op.add_column(
+        "subscription_plans",
+        sa.Column("display_name", sa.String(length=100), nullable=False, server_default=""),
+    )
     op.add_column(
         "subscription_plans",
         sa.Column("catalog_visibility", sa.String(length=20), nullable=False, server_default="hidden"),
@@ -109,7 +112,12 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_subscription_addons_payment_id"), "subscription_addons", ["payment_id"], unique=False)
-    op.create_index(op.f("ix_subscription_addons_plan_addon_id"), "subscription_addons", ["plan_addon_id"], unique=False)
+    op.create_index(
+        op.f("ix_subscription_addons_plan_addon_id"),
+        "subscription_addons",
+        ["plan_addon_id"],
+        unique=False,
+    )
     op.create_index(op.f("ix_subscription_addons_user_id"), "subscription_addons", ["user_id"], unique=False)
 
     op.add_column("payments", sa.Column("addons_snapshot", postgresql.JSONB(astext_type=sa.Text()), nullable=True))

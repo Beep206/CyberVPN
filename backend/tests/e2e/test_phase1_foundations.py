@@ -17,11 +17,27 @@ from tests.helpers.realm_auth import (
     SyncSessionAdapter,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
+    fresh_auth_headers,
     initialize_realm_test_database,
     override_realm_test_db,
 )
 
 pytestmark = [pytest.mark.e2e, pytest.mark.integration]
+
+
+def _admin_auth_headers(token: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {token}",
+        "Host": "admin.cyber-vpn.net",
+    }
+
+
+def _partner_auth_headers(token: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {token}",
+        "Host": "portal.localhost",
+        "X-Auth-Realm": "partner",
+    }
 
 
 def _make_access_token(
@@ -69,20 +85,27 @@ async def _create_admin_user(
     return user
 
 
-async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
+async def _login(
+    async_client: AsyncClient,
+    login_or_email: str,
+    password: str,
+    *,
+    realm: str = "admin",
+) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": "admin"},
+        headers={"Host": "admin.cyber-vpn.net" if realm == "admin" else "portal.localhost"},
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    cookie_name = "access_token" if realm == "admin" else f"{realm}_access_token"
+    return response.cookies[cookie_name]
 
 
 async def _approve_policy(async_client: AsyncClient, admin_token: str, policy_id: str) -> None:
     response = await async_client.post(
         f"/api/v1/policies/{policy_id}/approve",
-        headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+        headers=_admin_auth_headers(admin_token),
         json={},
     )
     assert response.status_code == 200
@@ -95,7 +118,7 @@ async def _create_policy(
 ) -> dict:
     response = await async_client.post(
         "/api/v1/policies/",
-        headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+        headers=_admin_auth_headers(admin_token),
         json=payload,
     )
     assert response.status_code == 201
@@ -112,7 +135,7 @@ async def _create_risk_subject(
 ) -> dict:
     response = await async_client.post(
         "/api/v1/security/risk-subjects",
-        headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+        headers=_admin_auth_headers(admin_token),
         json={
             "principal_class": principal_class,
             "principal_subject": principal_subject,
@@ -140,6 +163,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
                 official_customer_realm = await realm_repo.get_or_create_default_realm("customer")
                 partner_customer_realm = AuthRealmModel(
                     id=uuid.uuid4(),
@@ -198,7 +222,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
                 owner_operator = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="phase1_owner",
                     email="phase1-owner@example.com",
                     password="Phase1OwnerP@ssword123!",
@@ -207,7 +231,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
                 analyst_operator = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="phase1_analyst",
                     email="phase1-analyst@example.com",
                     password="Phase1AnalystP@ssword123!",
@@ -234,7 +258,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
             admin_token = await _login(async_client, "phase1-admin@example.com", "Phase1AdminP@ssword123!")
             admin_me = await async_client.get(
                 "/api/v1/auth/me",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=_admin_auth_headers(admin_token),
             )
             assert admin_me.status_code == 200
 
@@ -256,7 +280,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
 
             workspace_response = await async_client.post(
                 "/api/v1/admin/partner-workspaces",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=_admin_auth_headers(admin_token),
                 json={
                     "display_name": "Phase 1 Launch Partners",
                     "owner_admin_user_id": str(owner_operator.id),
@@ -268,10 +292,24 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
             assert workspace_payload["members"][0]["admin_user_id"] == str(owner_operator.id)
             assert workspace_payload["members"][0]["role_key"] == "owner"
 
-            owner_token = await _login(async_client, "phase1-owner@example.com", "Phase1OwnerP@ssword123!")
+            owner_token = await _login(
+                async_client,
+                "phase1-owner@example.com",
+                "Phase1OwnerP@ssword123!",
+                realm="partner",
+            )
+            owner_headers = _partner_auth_headers(owner_token)
             add_member_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
-                headers={"Authorization": f"Bearer {owner_token}", "X-Auth-Realm": "admin"},
+                headers=await fresh_auth_headers(
+                    fake_redis=fake_redis,
+                    base_headers=owner_headers,
+                    user=owner_operator,
+                    auth_realm_id=partner_realm.id,
+                    realm_key="partner",
+                    action=f"partner.member.create:{workspace_id}",
+                    principal_class="partner_operator",
+                ),
                 json={
                     "admin_user_id": str(analyst_operator.id),
                     "role_key": "analyst",
@@ -282,7 +320,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
 
             owner_workspace = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}",
-                headers={"Authorization": f"Bearer {owner_token}", "X-Auth-Realm": "admin"},
+                headers=owner_headers,
             )
             assert owner_workspace.status_code == 200
             assert owner_workspace.json()["current_role_key"] == "owner"
@@ -306,7 +344,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
 
             legal_document_response = await async_client.post(
                 "/api/v1/legal-documents/",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=_admin_auth_headers(admin_token),
                 json={
                     "document_key": "partner-tos",
                     "document_type": "terms_of_service",
@@ -337,7 +375,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
 
             legal_set_response = await async_client.post(
                 "/api/v1/legal-documents/sets",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=_admin_auth_headers(admin_token),
                 json={
                     "set_key": "partner-web-legal-set",
                     "storefront_id": str(partner_storefront.id),
@@ -389,7 +427,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
                 admin_token,
                 principal_class="admin",
                 principal_subject=str(owner_operator.id),
-                auth_realm_id=str(admin_realm.id),
+                auth_realm_id=str(partner_realm.id),
             )
             shadow_subject = await _create_risk_subject(
                 async_client,
@@ -401,7 +439,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
 
             attach_owner_identifier = await async_client.post(
                 f"/api/v1/security/risk-subjects/{owner_subject['id']}/identifiers",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=_admin_auth_headers(admin_token),
                 json={
                     "identifier_type": "email",
                     "value": "shared-phase1@example.com",
@@ -413,7 +451,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
 
             attach_shadow_identifier = await async_client.post(
                 f"/api/v1/security/risk-subjects/{shadow_subject['id']}/identifiers",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=_admin_auth_headers(admin_token),
                 json={
                     "identifier_type": "email",
                     "value": "shared-phase1@example.com",
@@ -431,7 +469,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
 
             eligibility_response = await async_client.post(
                 "/api/v1/security/eligibility/checks",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=_admin_auth_headers(admin_token),
                 json={
                     "check_type": "trial_activation",
                     "risk_subject_id": owner_subject["id"],

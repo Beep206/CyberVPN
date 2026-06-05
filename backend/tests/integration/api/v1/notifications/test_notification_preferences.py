@@ -15,6 +15,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from tests.integration.conftest import admin_auth_headers
 
 
 class TestNotificationPreferences:
@@ -32,7 +33,7 @@ class TestNotificationPreferences:
         # Act
         response = await async_client.get(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
         )
 
         # Assert
@@ -70,7 +71,7 @@ class TestNotificationPreferences:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={"email_security": False},
         )
 
@@ -97,7 +98,7 @@ class TestNotificationPreferences:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={"email_marketing": True},
         )
 
@@ -124,7 +125,7 @@ class TestNotificationPreferences:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={
                 "push_connection": False,
                 "push_payment": False,
@@ -159,7 +160,7 @@ class TestNotificationPreferences:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={
                 "email_security": False,
                 "email_marketing": True,
@@ -194,7 +195,7 @@ class TestNotificationPreferences:
         # Set initial state
         await async_client.patch(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={
                 "email_security": False,
                 "email_marketing": True,
@@ -205,7 +206,7 @@ class TestNotificationPreferences:
         # Act: Update only email_security
         response = await async_client.patch(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={"email_security": True},
         )
 
@@ -250,7 +251,7 @@ class TestNotificationPreferences:
         # Act
         response = await async_client.patch(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={},
         )
 
@@ -269,7 +270,7 @@ class TestNotificationPreferences:
         # Set preferences
         await async_client.patch(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
             json={
                 "email_security": False,
                 "push_payment": False,
@@ -279,11 +280,11 @@ class TestNotificationPreferences:
         # Act: Get preferences multiple times
         response1 = await async_client.get(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
         )
         response2 = await async_client.get(
             "/api/v1/users/me/notifications",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=admin_auth_headers(access_token),
         )
 
         # Assert: Both requests return same persisted values

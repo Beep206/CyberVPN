@@ -4,6 +4,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="${REPO_ROOT}/backend"
 FRONTEND_DIR="${REPO_ROOT}/frontend"
+ADMIN_DIR="${REPO_ROOT}/admin"
+PARTNER_DIR="${REPO_ROOT}/partner"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SNAPSHOT_DIR="$(mktemp -d)"
 
@@ -29,11 +31,15 @@ fi
 
 mkdir -p "${SNAPSHOT_DIR}/backend/docs/api" \
          "${SNAPSHOT_DIR}/frontend/src/lib/api/generated" \
-         "${SNAPSHOT_DIR}/frontend/src/i18n/messages"
+         "${SNAPSHOT_DIR}/frontend/src/i18n/messages" \
+         "${SNAPSHOT_DIR}/admin/src/lib/api/generated" \
+         "${SNAPSHOT_DIR}/partner/src/lib/api/generated"
 
 cp -f "${BACKEND_DIR}/docs/api/openapi.json" "${SNAPSHOT_DIR}/backend/docs/api/openapi.json"
 cp -f "${FRONTEND_DIR}/src/lib/api/generated/types.ts" "${SNAPSHOT_DIR}/frontend/src/lib/api/generated/types.ts"
 cp -a "${FRONTEND_DIR}/src/i18n/messages/generated" "${SNAPSHOT_DIR}/frontend/src/i18n/messages/generated"
+cp -f "${ADMIN_DIR}/src/lib/api/generated/types.ts" "${SNAPSHOT_DIR}/admin/src/lib/api/generated/types.ts"
+cp -f "${PARTNER_DIR}/src/lib/api/generated/types.ts" "${SNAPSHOT_DIR}/partner/src/lib/api/generated/types.ts"
 
 info "Regenerating backend OpenAPI spec..."
 export REMNAWAVE_TOKEN="${REMNAWAVE_TOKEN:-dummy_token_for_generated_artifact_check}"
@@ -51,6 +57,18 @@ info "Regenerating frontend API types..."
     npm run generate:api-types
 )
 
+info "Regenerating admin API types..."
+(
+    cd "${ADMIN_DIR}"
+    npm run generate:api-types
+)
+
+info "Regenerating partner API types..."
+(
+    cd "${PARTNER_DIR}"
+    npm run generate:api-types
+)
+
 info "Regenerating frontend i18n bundles..."
 (
     cd "${FRONTEND_DIR}"
@@ -60,11 +78,15 @@ info "Regenerating frontend i18n bundles..."
 info "Checking for generated artifact drift..."
 if ! diff -u "${SNAPSHOT_DIR}/backend/docs/api/openapi.json" "${BACKEND_DIR}/docs/api/openapi.json" \
     || ! diff -u "${SNAPSHOT_DIR}/frontend/src/lib/api/generated/types.ts" "${FRONTEND_DIR}/src/lib/api/generated/types.ts" \
+    || ! diff -u "${SNAPSHOT_DIR}/admin/src/lib/api/generated/types.ts" "${ADMIN_DIR}/src/lib/api/generated/types.ts" \
+    || ! diff -u "${SNAPSHOT_DIR}/partner/src/lib/api/generated/types.ts" "${PARTNER_DIR}/src/lib/api/generated/types.ts" \
     || ! diff -ruN "${SNAPSHOT_DIR}/frontend/src/i18n/messages/generated" "${FRONTEND_DIR}/src/i18n/messages/generated"; then
     fail "Generated artifacts are out of date."
     echo "Run these commands and commit the results:"
     echo "  cd ${BACKEND_DIR} && ${PYTHON_BIN} scripts/export_openapi.py"
     echo "  cd ${FRONTEND_DIR} && npm run generate:api-types && npm run prepare:i18n"
+    echo "  cd ${ADMIN_DIR} && npm run generate:api-types"
+    echo "  cd ${PARTNER_DIR} && npm run generate:api-types"
     exit 1
 fi
 
