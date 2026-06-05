@@ -303,7 +303,7 @@ describe('partnerPortalApi', () => {
     ]));
     expect(statements.data[0]).toEqual(expect.objectContaining({
       available_amount: 280,
-      statement_key: 'safe-partner-2026-04-v1',
+      statement_key: 'fixture_closed',
     }));
     expect(payoutAccounts.data).toEqual(expect.arrayContaining([
       expect.objectContaining({
