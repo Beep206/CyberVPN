@@ -18,6 +18,7 @@ import { RateLimitError } from '@/lib/api/client';
 
 export default function ForgotPasswordPage() {
     const t = useTranslations('Auth.forgotPassword');
+    const tErrors = useTranslations('Auth.errors');
     const { isLoading: storeLoading, clearError } = useAuthStore();
     const isRateLimited = useIsRateLimited();
 
@@ -49,8 +50,7 @@ export default function ForgotPasswordPage() {
             if (err instanceof RateLimitError) {
                 setError(err.message);
             } else {
-                // Always show success to prevent email enumeration
-                setSent(true);
+                setError(tErrors('serverError'));
             }
         } finally {
             setIsLoading(false);

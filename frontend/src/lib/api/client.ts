@@ -105,6 +105,36 @@ export class RateLimitError extends Error {
   }
 }
 
+const NON_REFRESHABLE_UNAUTHORIZED_CODES = new Set(['USER_NOT_FOUND']);
+
+function collectApiErrorTokens(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectApiErrorTokens(item));
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return [];
+  }
+
+  const record = value as Record<string, unknown>;
+  return ['code', 'error', 'detail', 'message', 'reason'].flatMap((key) =>
+    collectApiErrorTokens(record[key])
+  );
+}
+
+function normalizeApiErrorToken(value: string): string {
+  return value.trim().replace(/[\s-]+/g, '_').toUpperCase();
+}
+
+function isNonRefreshableUnauthorized(error: AxiosError): boolean {
+  const tokens = collectApiErrorTokens(error.response?.data).map(normalizeApiErrorToken);
+  return tokens.some((token) => NON_REFRESHABLE_UNAUTHORIZED_CODES.has(token));
+}
+
 // Parse Retry-After header (can be seconds or HTTP date)
 function parseRetryAfter(header: string | null): number {
   if (!header) return 60; // Default 60 seconds if header missing
@@ -200,6 +230,10 @@ apiClient.interceptors.response.use(
     // 401 handling
     if (error.response?.status === 401 && !originalRequest._retry) {
       const requestUrl = originalRequest.url || '';
+
+      if (isNonRefreshableUnauthorized(error)) {
+        return Promise.reject(error);
+      }
 
       // Never retry refresh endpoint itself to avoid interceptor loops
       if (requestUrl.includes('/auth/refresh')) {

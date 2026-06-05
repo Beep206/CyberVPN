@@ -24,11 +24,12 @@ export interface paths {
         put?: never;
         /**
          * Login
-         * @description Authenticate user and return access and refresh tokens.
+         * @description Authenticate a browser user and establish a cookie-backed session.
          *
          *     Security:
          *     - Brute force protection with progressive lockout
          *     - Constant-time response to prevent user enumeration
+         *     - Access/refresh tokens are delivered in httpOnly cookies, not JSON
          */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
@@ -7568,7 +7569,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List Partner Workspace Creative Approvals */
+        get: operations["list_partner_workspace_creative_approvals_api_v1_partner_workspaces__workspace_id__creative_approvals_get"];
         put?: never;
         /** Submit Partner Workspace Creative Approval */
         post: operations["submit_partner_workspace_creative_approval_api_v1_partner_workspaces__workspace_id__creative_approvals_post"];
@@ -19332,40 +19334,6 @@ export interface components {
             /** Total */
             total: number;
         };
-        /** LoginResponse */
-        LoginResponse: {
-            /** Access Token */
-            access_token: string;
-            /** Refresh Token */
-            refresh_token: string;
-            /**
-             * Token Type
-             * @default bearer
-             */
-            token_type: string;
-            /**
-             * Expires In
-             * @default 0
-             */
-            expires_in: number;
-            /** Auth Realm Id */
-            auth_realm_id?: string | null;
-            /** Auth Realm Key */
-            auth_realm_key?: string | null;
-            /** Audience */
-            audience?: string | null;
-            /** Principal Type */
-            principal_type?: string | null;
-            /** Scope Family */
-            scope_family?: string | null;
-            /**
-             * Requires 2Fa
-             * @default false
-             */
-            requires_2fa: boolean;
-            /** Tfa Token */
-            tfa_token?: string | null;
-        };
         /**
          * LogoutAllResponse
          * @description Response for logout-all-devices operation (HIGH-6).
@@ -22975,6 +22943,16 @@ export interface components {
             credential: {
                 [key: string]: unknown;
             };
+        };
+        /** PasskeyAuthenticationVerifyResponse */
+        PasskeyAuthenticationVerifyResponse: {
+            /**
+             * Requires 2Fa
+             * @default false
+             */
+            requires_2fa: boolean;
+            /** Tfa Token */
+            tfa_token?: string | null;
         };
         /** PasskeyComplianceCredentialResponse */
         PasskeyComplianceCredentialResponse: {
@@ -29291,10 +29269,6 @@ export interface components {
             payout_status_emails?: boolean | null;
             /** Product Announcements */
             product_announcements?: boolean | null;
-            /** Require Mfa For Workspace */
-            require_mfa_for_workspace?: boolean | null;
-            /** Prefer Passkeys */
-            prefer_passkeys?: boolean | null;
             /** Reviewed Active Sessions */
             reviewed_active_sessions?: boolean | null;
         };
@@ -29845,6 +29819,32 @@ export interface components {
             created_at: string;
         };
         /**
+         * WebLoginResponse
+         * @description Browser password login result.
+         *
+         *     Full access/refresh token delivery for web login is cookie-only. Native token
+         *     payload compatibility stays on token-bearing/mobile endpoints.
+         */
+        WebLoginResponse: {
+            /**
+             * Requires 2Fa
+             * @default false
+             */
+            requires_2fa: boolean;
+            /** Tfa Token */
+            tfa_token?: string | null;
+            /** Auth Realm Id */
+            auth_realm_id?: string | null;
+            /** Auth Realm Key */
+            auth_realm_key?: string | null;
+            /** Audience */
+            audience?: string | null;
+            /** Principal Type */
+            principal_type?: string | null;
+            /** Scope Family */
+            scope_family?: string | null;
+        };
+        /**
          * WebhookLogResponse
          * @description Response schema for webhook log entry.
          */
@@ -30310,7 +30310,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LoginResponse"];
+                    "application/json": components["schemas"]["WebLoginResponse"];
                 };
             };
             /** @description Invalid credentials */
@@ -30383,9 +30383,9 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__LogoutRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__LogoutRequest"] | null;
             };
         };
         responses: {
@@ -31338,7 +31338,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LoginResponse"];
+                    "application/json": components["schemas"]["PasskeyAuthenticationVerifyResponse"];
                 };
             };
             /** @description Validation Error */
@@ -46318,6 +46318,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrafficDeclarationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_partner_workspace_creative_approvals_api_v1_partner_workspaces__workspace_id__creative_approvals_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreativeApprovalResponse"][];
                 };
             };
             /** @description Validation Error */

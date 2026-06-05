@@ -10,6 +10,7 @@ import {
   CANONICAL_AUTH_REALM_HEADER,
   CANONICAL_IDEMPOTENCY_HEADER,
   CANONICAL_REQUEST_ID_HEADER,
+  isDevelopmentAuthBypassEnabled,
   tokenStorage,
   RateLimitError,
   normalizeApiRequestPath,
@@ -22,6 +23,7 @@ import {
 
 beforeEach(() => {
   localStorage.clear();
+  document.cookie = 'DEV_BYPASS_AUTH=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
 });
 
 describe('tokenStorage (SEC-01 httpOnly cookie shim)', () => {
@@ -112,6 +114,20 @@ describe('normalizeApiRequestPath', () => {
 describe('resolveApiBaseUrl', () => {
   it('uses same-origin api path in the browser', () => {
     expect(resolveApiBaseUrl()).toBe(CANONICAL_API_BASE_PATH);
+  });
+});
+
+describe('isDevelopmentAuthBypassEnabled', () => {
+  it('detects the dev auth bypass cookie outside production', () => {
+    document.cookie = 'DEV_BYPASS_AUTH=true; path=/';
+
+    expect(isDevelopmentAuthBypassEnabled()).toBe(true);
+  });
+
+  it('ignores missing or disabled dev auth bypass cookies', () => {
+    document.cookie = 'DEV_BYPASS_AUTH=false; path=/';
+
+    expect(isDevelopmentAuthBypassEnabled()).toBe(false);
   });
 });
 

@@ -20,6 +20,15 @@
     "latency": "AVG PING: 12ms",
     "encryption": "AES-256-GCM"
   },
+  "telemetry": {
+    "overviewUnavailableTitle": "Network telemetry unavailable",
+    "overviewUnavailableDescription": "Live traffic, server, and user metrics could not be refreshed. The public map is in degraded mode.",
+    "regionsUnavailableTitle": "Region telemetry unavailable",
+    "regionsUnavailableDescription": "Current public regions could not be loaded. Try again later or check the status page.",
+    "emptyRegionsTitle": "No public regions published",
+    "emptyRegionsDescription": "Region data is temporarily unavailable for public display.",
+    "unavailableValue": "Unavailable"
+  },
   "widget": {
     "eyebrow": "CYBERVPN PUBLIC NETWORK PROOF",
     "title": "Network Widget",

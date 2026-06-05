@@ -234,6 +234,11 @@ class PasskeyAuthenticationVerifyRequest(BaseModel):
     credential: dict[str, Any]
 
 
+class PasskeyAuthenticationVerifyResponse(BaseModel):
+    requires_2fa: bool = False
+    tfa_token: str | None = None
+
+
 class PasskeyReauthenticationOptionsRequest(BaseModel):
     action: str = Field(..., min_length=1, max_length=120)
 

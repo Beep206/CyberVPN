@@ -27,6 +27,7 @@ def test_passkey_openapi_components_are_exposed() -> None:
 
     assert "PasskeyPolicyResponse" in components
     assert "PasskeyOptionsResponse" in components
+    assert "PasskeyAuthenticationVerifyResponse" in components
     assert "PasskeyCredentialResponse" in components
     assert "PasskeyComplianceResponse" in components
     assert "PasskeyComplianceCredentialResponse" in components
@@ -34,6 +35,35 @@ def test_passkey_openapi_components_are_exposed() -> None:
     assert "PartnerWorkspacePasskeyComplianceResponse" in components
     assert "UpdateAdminPasskeyPolicyRequest" in components
     assert "UpdatePartnerWorkspacePasskeyPolicyRequest" in components
+
+    auth_verify_response = components["PasskeyAuthenticationVerifyResponse"]
+    assert "access_token" not in auth_verify_response["properties"]
+    assert "refresh_token" not in auth_verify_response["properties"]
+    assert "auth_realm_key" not in auth_verify_response["properties"]
+    assert "expires_in" not in auth_verify_response["properties"]
+    assert "principal_type" not in auth_verify_response["properties"]
+    assert "scope_family" not in auth_verify_response["properties"]
+    assert "token_type" not in auth_verify_response["properties"]
+    assert auth_verify_response["properties"] == {
+        "requires_2fa": {
+            "default": False,
+            "title": "Requires 2Fa",
+            "type": "boolean",
+        },
+        "tfa_token": {
+            "anyOf": [{"type": "string"}, {"type": "null"}],
+            "title": "Tfa Token",
+        },
+    }
+
+
+def test_passkey_authentication_verify_uses_tokenless_response_schema() -> None:
+    schema = app.openapi()
+    operation = schema["paths"][f"{API_V1_PREFIX}/auth/passkeys/authentication/verify"]["post"]
+
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/PasskeyAuthenticationVerifyResponse"
+    }
 
 
 def test_partner_workspace_settings_update_contract_excludes_passkey_policy_fields() -> None:

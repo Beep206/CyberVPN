@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import type { LoginResponse } from './auth';
 import {
   buildFreshAuthRequestConfig,
   type FreshAuthRequestOptions,
@@ -127,6 +126,11 @@ export interface PasskeyReauthenticationVerifyResponse {
   expiresAt: string;
 }
 
+export interface PasskeyAuthenticationVerifyResponse {
+  requires_2fa: boolean;
+  tfa_token?: string | null;
+}
+
 export interface UpdatePartnerWorkspacePasskeyPolicyRequest {
   preferPasskeys?: boolean;
   requireMfaForWorkspace?: boolean;
@@ -166,7 +170,7 @@ export const passkeysApi = {
     challengeId: string;
     credential: PasskeyCredentialPayload;
   }) =>
-    apiClient.post<LoginResponse>('/auth/passkeys/authentication/verify', data),
+    apiClient.post<PasskeyAuthenticationVerifyResponse>('/auth/passkeys/authentication/verify', data),
 
   listPasskeys: () =>
     apiClient.get<PasskeyCredentialListResponse>('/auth/passkeys'),

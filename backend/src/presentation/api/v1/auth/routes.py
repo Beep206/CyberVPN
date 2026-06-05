@@ -6,11 +6,12 @@ Includes device fingerprint support for token binding (MED-002).
 import asyncio
 import logging
 import secrets
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from time import perf_counter
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,7 +30,7 @@ from src.application.use_cases.auth.change_password import ChangePasswordUseCase
 from src.application.use_cases.auth.delete_account import DeleteAccountUseCase
 from src.application.use_cases.auth.forgot_password import ForgotPasswordUseCase
 from src.application.use_cases.auth.login import LoginUseCase
-from src.application.use_cases.auth.logout import LogoutUseCase
+from src.application.use_cases.auth.logout import LogoutUseCase, RevokedAccessToken
 from src.application.use_cases.auth.refresh_token import RefreshTokenUseCase
 from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
 from src.application.use_cases.auth.reset_password import ResetPasswordUseCase
@@ -117,7 +118,6 @@ from src.presentation.api.v1.auth.schemas import (
     GenerateLoginLinkRequest,
     GenerateLoginLinkResponse,
     LoginRequest,
-    LoginResponse,
     LogoutAllResponse,
     LogoutRequest,
     MagicLinkRequest,
@@ -142,6 +142,7 @@ from src.presentation.api.v1.auth.schemas import (
     TokenResponse,
     VerifyOtpRequest,
     VerifyOtpResponse,
+    WebLoginResponse,
 )
 from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 from src.presentation.dependencies.auth import get_current_active_user, get_current_active_web_user
@@ -246,6 +247,26 @@ def _build_pending_2fa_magic_link_response(
 def _build_miniapp_mobile_login(*, login: str | None, telegram_id: int) -> str:
     base = (login or "").strip().lstrip("@") or f"tg{telegram_id}"
     return base[:50]
+
+
+def _normalize_token_expiry(expires_at: datetime) -> datetime:
+    if expires_at.tzinfo is None:
+        return expires_at.replace(tzinfo=UTC)
+    return expires_at
+
+
+async def _revoke_access_tokens(
+    revocation_service: JWTRevocationService,
+    access_tokens: Iterable[RevokedAccessToken],
+) -> int:
+    revoked_count = 0
+    for access_token in access_tokens:
+        await revocation_service.revoke_token(
+            access_token.jti,
+            _normalize_token_expiry(access_token.expires_at),
+        )
+        revoked_count += 1
+    return revoked_count
 
 
 async def _resolve_miniapp_mobile_login(
@@ -465,7 +486,7 @@ async def _repair_unverified_customer_web_user_realm(
 
 @router.post(
     "/login",
-    response_model=LoginResponse,
+    response_model=WebLoginResponse,
     responses={
         401: {"description": "Invalid credentials"},
         422: {"description": "Validation error"},
@@ -480,12 +501,13 @@ async def login(
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
-) -> LoginResponse:
-    """Authenticate user and return access and refresh tokens.
+) -> WebLoginResponse:
+    """Authenticate a browser user and establish a cookie-backed session.
 
     Security:
     - Brute force protection with progressive lockout
     - Constant-time response to prevent user enumeration
+    - Access/refresh tokens are delivered in httpOnly cookies, not JSON
     """
     started_at = perf_counter()
     identifier = request.login_or_email.lower()
@@ -768,6 +790,7 @@ async def login(
             response,
             result["access_token"],
             result["refresh_token"],
+            request=http_request,
             cookie_namespace=current_realm.cookie_namespace,
         )
         await sync_active_sessions(db)
@@ -787,11 +810,7 @@ async def login(
         requires_2fa=result["requires_2fa"],
     )
 
-    return LoginResponse(
-        access_token=result["access_token"],
-        refresh_token=result["refresh_token"],
-        token_type=result["token_type"],
-        expires_in=result["expires_in"],
+    return WebLoginResponse(
         auth_realm_id=result.get("auth_realm_id"),
         auth_realm_key=result.get("auth_realm_key"),
         audience=result.get("audience"),
@@ -827,7 +846,7 @@ async def refresh_token(
         principal_class=PARTNER_PRINCIPAL_CLASS,
     )
     # SEC-01: Resolve refresh token from body or cookie
-    token = request.refresh_token
+    token = request.refresh_token if request else None
     if not token:
         token = get_refresh_token_cookie(http_request.cookies, current_realm.cookie_namespace)
     if not token:
@@ -929,6 +948,7 @@ async def refresh_token(
         response,
         result["access_token"],
         result["refresh_token"],
+        request=http_request,
         cookie_namespace=current_realm.cookie_namespace,
     )
     await sync_active_sessions(db)
@@ -968,10 +988,11 @@ async def refresh_token(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
-    request: LogoutRequest,
     http_request: Request,
     response: Response,
+    request: LogoutRequest | None = Body(default=None),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ):
     """Logout user by invalidating refresh token and clearing auth cookies.
@@ -984,13 +1005,15 @@ async def logout(
         route_group="auth_logout",
         principal_class=PARTNER_PRINCIPAL_CLASS,
     )
-    token = request.refresh_token
+    token = request.refresh_token if request else None
     if not token:
         token = get_refresh_token_cookie(http_request.cookies, current_realm.cookie_namespace)
 
     if token:
         use_case = LogoutUseCase(session=db)
-        await use_case.execute(refresh_token=token)
+        logout_result = await use_case.execute(refresh_token=token)
+        revocation_service = JWTRevocationService(redis_client)
+        await _revoke_access_tokens(revocation_service, logout_result.access_tokens)
         await sync_active_sessions(db)
         observe_partner_auth_logout(result="success", reason="none")
         bind_partner_context_from_realm(
@@ -1031,7 +1054,7 @@ async def logout(
             reason="missing_token",
         )
 
-    clear_auth_cookies(response, cookie_namespace=current_realm.cookie_namespace)
+    clear_auth_cookies(response, request=http_request, cookie_namespace=current_realm.cookie_namespace)
     return None
 
 
@@ -1041,6 +1064,7 @@ async def logout(
     responses={401: {"description": "Not authenticated"}},
 )
 async def logout_all_devices(
+    http_request: Request,
     response: Response,
     current_user=Depends(get_current_active_web_user),
     redis_client: redis.Redis = Depends(get_redis),
@@ -1069,16 +1093,21 @@ async def logout_all_devices(
         )
     )
     principal_sessions = list(principal_sessions_result.scalars().all())
+    revoked_at = datetime.now(UTC)
+    access_tokens_to_revoke: list[RevokedAccessToken] = []
     for principal_session in principal_sessions:
         if principal_session.access_token_jti:
-            expires_at = principal_session.expires_at
-            if expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=UTC)
-            await revocation_service.revoke_token(
-                principal_session.access_token_jti,
-                expires_at,
+            access_tokens_to_revoke.append(
+                RevokedAccessToken(
+                    jti=principal_session.access_token_jti,
+                    expires_at=principal_session.expires_at,
+                )
             )
-    sessions_revoked = max(refresh_sessions_revoked, revoked_count)
+        principal_session.revoked_at = revoked_at
+        principal_session.status = "revoked"
+    access_sessions_revoked = await _revoke_access_tokens(revocation_service, access_tokens_to_revoke)
+    sessions_revoked = max(refresh_sessions_revoked, revoked_count, access_sessions_revoked, len(principal_sessions))
+    await db.flush()
     await sync_active_sessions(db)
     track_auth_session_operation("logout_all", "success")
     track_auth_session_detail(
@@ -1090,7 +1119,7 @@ async def logout_all_devices(
         amount=max(sessions_revoked, 1),
     )
 
-    clear_auth_cookies(response, cookie_namespace=current_realm.cookie_namespace)
+    clear_auth_cookies(response, request=http_request, cookie_namespace=current_realm.cookie_namespace)
 
     logger.info(
         "User logged out from all devices",
@@ -1453,6 +1482,7 @@ async def verify_otp(
             response,
             result.access_token,
             result.refresh_token,
+            request=http_request,
             cookie_namespace=current_realm.cookie_namespace,
         )
 
@@ -1900,7 +1930,13 @@ async def verify_magic_link(
             started_at=created_at,
         )
 
-    set_auth_cookies(response, access_token, refresh_token, cookie_namespace=current_realm.cookie_namespace)
+    set_auth_cookies(
+        response,
+        access_token,
+        refresh_token,
+        request=http_request,
+        cookie_namespace=current_realm.cookie_namespace,
+    )
     await sync_active_sessions(db)
     await sync_auth_security_posture(db, redis_client)
     observe_auth_request_duration("magic_link", started_at)
@@ -2146,7 +2182,13 @@ async def verify_magic_link_otp(
             started_at=created_at,
         )
 
-    set_auth_cookies(response, access_token, refresh_token, cookie_namespace=current_realm.cookie_namespace)
+    set_auth_cookies(
+        response,
+        access_token,
+        refresh_token,
+        request=http_request,
+        cookie_namespace=current_realm.cookie_namespace,
+    )
     await sync_active_sessions(db)
     await sync_auth_security_posture(db, redis_client)
     observe_auth_request_duration("magic_link_otp", started_at)
@@ -2371,6 +2413,7 @@ async def telegram_miniapp_auth(
             response,
             response_access_token,
             response_refresh_token,
+            request=http_request,
             cookie_namespace=str(customer_realm["cookie_namespace"]),
         )
         response_user = _build_miniapp_mobile_user_response(mobile_user)
@@ -2547,7 +2590,7 @@ async def telegram_web_auth(
             ip_address=_get_client_ip(http_request),
             user_agent=http_request.headers.get("User-Agent"),
         )
-        set_auth_cookies(response, result.access_token, result.refresh_token)
+        set_auth_cookies(response, result.access_token, result.refresh_token, request=http_request)
 
     await sync_active_sessions(db)
     await sync_auth_security_posture(db)
@@ -2638,7 +2681,7 @@ async def telegram_bot_link_auth(
             ip_address=_get_client_ip(http_request),
             user_agent=http_request.headers.get("User-Agent"),
         )
-        set_auth_cookies(response, result.access_token, result.refresh_token)
+        set_auth_cookies(response, result.access_token, result.refresh_token, request=http_request)
         await sync_active_sessions(db)
         await sync_auth_security_posture(db, redis_client)
 

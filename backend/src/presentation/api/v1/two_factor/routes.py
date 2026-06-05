@@ -362,6 +362,7 @@ async def complete_2fa_login(
         response,
         access_token,
         refresh_token,
+        request=http_request,
         cookie_namespace=current_realm.cookie_namespace,
     )
     track_2fa_operation(operation="complete_login", success=True)

@@ -395,7 +395,7 @@ if settings.rate_limit_enabled:
     )
 
 # Add CSRF guard for production-like cookie-auth browser flows.
-if settings.csrf_protection_enabled and settings.environment in {"production", "staging"}:
+if settings.csrf_protection_enabled and settings.environment.lower() in {"production", "staging", "local-stage"}:
     app.add_middleware(CSRFMiddleware, allowed_origins=settings.cors_origins)
 
 # Add CORSMiddleware last (runs FIRST to handle preflight OPTIONS requests)

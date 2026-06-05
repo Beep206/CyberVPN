@@ -27,7 +27,6 @@ from src.infrastructure.database.models.partner_account_user_model import Partne
 from src.infrastructure.database.models.partner_workspace_profile_model import PartnerWorkspaceProfileModel
 from src.infrastructure.database.models.passkey_credential_model import PasskeyCredentialModel
 from src.infrastructure.database.models.system_config_model import SystemConfigModel
-from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.infrastructure.database.repositories.partner_account_repository import PartnerAccountRepository
 from src.infrastructure.database.repositories.partner_workspace_profile_repository import (
     PartnerWorkspaceProfileRepository,
@@ -296,13 +295,6 @@ def _summary(credentials: list[PasskeyCredentialModel]) -> PasskeyComplianceSumm
     )
 
 
-async def _get_default_partner_realm(db: AsyncSession) -> AuthRealmModel:
-    realm = await AuthRealmRepository(db).get_default_realm("partner")
-    if realm is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner auth realm not configured")
-    return realm
-
-
 def _operator_compliance(
     *,
     workspace_id: UUID,
@@ -332,21 +324,23 @@ async def _partner_workspace_passkey_context(
     *,
     db: AsyncSession,
     access: PartnerWorkspaceAccess,
+    partner_realm: AuthRealmModel,
 ) -> tuple[
     AuthRealmModel,
     PartnerWorkspaceProfileModel,
     list[PartnerAccountUserModel],
     list[PasskeyCredentialModel],
 ]:
-    partner_realm = await _get_default_partner_realm(db)
     profile = await PartnerWorkspaceProfileRepository(db).get_or_create(access.workspace.id)
     memberships = await PartnerAccountRepository(db).list_memberships(access.workspace.id)
     member_subjects = [str(membership.admin_user_id) for membership in memberships]
-    credentials = await PasskeyCredentialRepository(db).list_for_principal_subjects(
-        auth_realm_id=partner_realm.id,
-        principal_class=PrincipalClass.PARTNER_OPERATOR.value,
-        principal_subjects=member_subjects,
-    )
+    credentials = []
+    if _surface_enabled("partner"):
+        credentials = await PasskeyCredentialRepository(db).list_for_principal_subjects(
+            auth_realm_id=partner_realm.id,
+            principal_class=PrincipalClass.PARTNER_OPERATOR.value,
+            principal_subjects=member_subjects,
+        )
     return partner_realm, profile, memberships, credentials
 
 
@@ -534,7 +528,11 @@ async def get_partner_workspace_passkey_policy(
         db=db,
         permission=PartnerPermission.WORKSPACE_READ,
     )
-    partner_realm, profile, memberships, credentials = await _partner_workspace_passkey_context(db=db, access=access)
+    partner_realm, profile, memberships, credentials = await _partner_workspace_passkey_context(
+        db=db,
+        access=access,
+        partner_realm=current_realm.auth_realm,
+    )
     _track("partner_workspace_policy", "success")
     return _partner_workspace_policy_response(
         access=access,
@@ -606,6 +604,7 @@ async def update_partner_workspace_passkey_policy(
     partner_realm, refreshed_profile, memberships, credentials = await _partner_workspace_passkey_context(
         db=db,
         access=access,
+        partner_realm=current_realm.auth_realm,
     )
     _track("partner_workspace_policy_update", "success")
     return _partner_workspace_policy_response(
@@ -634,7 +633,11 @@ async def get_partner_workspace_passkey_compliance(
         db=db,
         permission=PartnerPermission.WORKSPACE_READ,
     )
-    partner_realm, profile, memberships, credentials = await _partner_workspace_passkey_context(db=db, access=access)
+    partner_realm, profile, memberships, credentials = await _partner_workspace_passkey_context(
+        db=db,
+        access=access,
+        partner_realm=current_realm.auth_realm,
+    )
     operator_compliance = _operator_compliance(
         workspace_id=access.workspace.id,
         memberships=memberships,

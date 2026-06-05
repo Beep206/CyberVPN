@@ -437,7 +437,13 @@
       },
       "loginButton": "Open Telegram",
       "manualFallback": "If Telegram opens as a regular chat, send this command manually:",
+      "miniAppAuthFailedMessage": "We could not complete Telegram sign-in. Retry from Telegram or sign in in your browser.",
+      "miniAppAuthFailedTitle": "Telegram sign-in failed",
       "miniAppAutoAuth": "Signing you in via Telegram...",
+      "miniAppBrowserLogin": "Use browser sign-in",
+      "miniAppRequiredMessage": "This screen needs Telegram Mini App context. Open it from the CyberVPN bot, or retry if Telegram is still loading.",
+      "miniAppRequiredTitle": "Open CyberVPN in Telegram",
+      "miniAppRetryTelegram": "Retry Telegram check",
       "startingNewLink": "Starting Telegram..."
     }
   },
@@ -2242,6 +2248,15 @@
       "5": "Frankfurt, EU",
       "6": "São Paulo, BR",
       "7": "Sydney, AU"
+    },
+    "telemetry": {
+      "emptyRegionsDescription": "Region data is temporarily unavailable for public display.",
+      "emptyRegionsTitle": "No public regions published",
+      "overviewUnavailableDescription": "Live traffic, server, and user metrics could not be refreshed. The public map is in degraded mode.",
+      "overviewUnavailableTitle": "Network telemetry unavailable",
+      "regionsUnavailableDescription": "Current public regions could not be loaded. Try again later or check the status page.",
+      "regionsUnavailableTitle": "Region telemetry unavailable",
+      "unavailableValue": "Unavailable"
     },
     "title": "Global Infrastructure",
     "widget": {

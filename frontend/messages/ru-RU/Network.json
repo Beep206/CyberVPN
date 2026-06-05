@@ -20,6 +20,15 @@
     "latency": "Средний пинг: 12 мс",
     "encryption": "AES-256-GCM"
   },
+  "telemetry": {
+    "overviewUnavailableTitle": "Телеметрия сети недоступна",
+    "overviewUnavailableDescription": "Live traffic, server и user metrics сейчас не обновились. Публичная карта работает в degraded mode.",
+    "regionsUnavailableTitle": "Телеметрия регионов недоступна",
+    "regionsUnavailableDescription": "Текущие публичные регионы не загрузились. Повторите позже или проверьте статус-страницу.",
+    "emptyRegionsTitle": "Публичные регионы не опубликованы",
+    "emptyRegionsDescription": "Region data временно недоступны для публичного показа.",
+    "unavailableValue": "Нет данных"
+  },
   "widget": {
     "eyebrow": "Публичное подтверждение сети CyberVPN",
     "title": "Виджет сети",

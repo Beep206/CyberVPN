@@ -699,7 +699,7 @@ async def check_telegram_magic_link_status(
             ip_address=_get_client_ip(request),
             user_agent=request.headers.get("User-Agent"),
         )
-        set_auth_cookies(response, result.access_token, result.refresh_token)
+        set_auth_cookies(response, result.access_token, result.refresh_token, request=request)
         await sync_active_sessions(db)
         await sync_auth_security_posture(db, redis_client)
 
@@ -1078,7 +1078,7 @@ async def oauth_login_callback(
             ip_address=_get_client_ip(request),
             user_agent=request.headers.get("User-Agent"),
         )
-        set_auth_cookies(response, result.access_token, result.refresh_token)
+        set_auth_cookies(response, result.access_token, result.refresh_token, request=request)
         await sync_active_sessions(db)
         await sync_auth_security_posture(db, redis_client)
 

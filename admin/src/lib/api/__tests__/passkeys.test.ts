@@ -3,8 +3,18 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { FRESH_AUTH_GRANT_ID_HEADER } from '../fresh-auth';
 import { passkeysApi } from '../passkeys';
+import type { AxiosError } from 'axios';
 
 const API_BASE = '*/api/v1';
+
+function isAxiosError(error: unknown): error is AxiosError<{ detail: string }> {
+  return (
+    typeof error === 'object'
+    && error !== null
+    && 'isAxiosError' in error
+    && (error as Record<string, unknown>).isAxiosError === true
+  );
+}
 
 describe('passkeysApi', () => {
   it('uses passkey auth, management, admin policy, and compliance endpoints', async () => {
@@ -28,10 +38,7 @@ describe('passkeysApi', () => {
       http.post(`${API_BASE}/auth/passkeys/authentication/verify`, async ({ request }) => {
         capturedVerifyBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({
-          access_token: 'access',
-          expires_in: 3600,
-          refresh_token: 'refresh',
-          token_type: 'bearer',
+          requires_2fa: false,
         });
       }),
       http.get(`${API_BASE}/auth/passkeys`, () => HttpResponse.json({
@@ -164,7 +171,9 @@ describe('passkeysApi', () => {
     const compliance = await passkeysApi.getSecurityCompliance();
 
     expect(options.data.challengeId).toBe('challenge-admin-001');
-    expect(verify.data.token_type).toBe('bearer');
+    expect(verify.data.requires_2fa).toBe(false);
+    expect(verify.data).not.toHaveProperty('access_token');
+    expect(verify.data).not.toHaveProperty('refresh_token');
     expect(list.data.credentials[0].label).toBe('Admin laptop');
     expect(rename.data.label).toBe('Renamed admin laptop');
     expect(deleted.data.status).toBe('revoked');
@@ -187,5 +196,40 @@ describe('passkeysApi', () => {
       registrationEnabled: false,
     });
     expect(capturedPolicyFreshAuthGrantId).toBe('fresh-policy-grant');
+  });
+
+  it('does not refresh or expose refresh detail for public passkey authentication 401s', async () => {
+    let refreshAttempts = 0;
+    server.use(
+      http.post(`${API_BASE}/auth/refresh`, () => {
+        refreshAttempts += 1;
+        return HttpResponse.json(
+          { detail: 'Invalid or expired refresh token' },
+          { status: 401 },
+        );
+      }),
+      http.post(`${API_BASE}/auth/passkeys/authentication/verify`, () => {
+        return HttpResponse.json(
+          { detail: 'Invalid passkey ceremony' },
+          { status: 401 },
+        );
+      }),
+    );
+
+    try {
+      await passkeysApi.verifyAuthentication({
+        challengeId: 'expired-challenge',
+        credential: { id: 'stale-credential' },
+      });
+      expect.fail('Expected request to reject');
+    } catch (error: unknown) {
+      expect(isAxiosError(error)).toBe(true);
+      if (isAxiosError(error)) {
+        expect(error.response?.status).toBe(401);
+        expect(error.response?.data.detail).toBe('Invalid passkey ceremony');
+      }
+    }
+
+    expect(refreshAttempts).toBe(0);
   });
 });
