@@ -61,6 +61,7 @@ variables:
         - .gitlab-ci.yml
         - package.json
         - package-lock.json
+        - infra/deploy/stage1/Dockerfile.next-workspace
         - frontend/**/*
     - when: never
 
@@ -73,6 +74,7 @@ variables:
         - .gitlab-ci.yml
         - package.json
         - package-lock.json
+        - infra/deploy/stage1/Dockerfile.next-workspace
         - admin/**/*
     - when: never
 
@@ -85,6 +87,7 @@ variables:
         - .gitlab-ci.yml
         - package.json
         - package-lock.json
+        - infra/deploy/stage1/Dockerfile.next-workspace
         - partner/**/*
     - when: never
 
