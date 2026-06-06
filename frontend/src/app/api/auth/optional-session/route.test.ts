@@ -4,13 +4,12 @@ const { connectionMock } = vi.hoisted(() => ({
   connectionMock: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('next/server', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('next/server')>();
-  return {
-    ...actual,
-    connection: connectionMock,
-  };
-});
+vi.mock('next/server', () => ({
+  connection: connectionMock,
+  NextResponse: {
+    json: (body: unknown, init?: ResponseInit) => Response.json(body, init),
+  },
+}));
 
 import { GET } from './route';
 

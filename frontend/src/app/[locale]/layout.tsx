@@ -80,7 +80,12 @@ export default async function RootLayout({
             <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
 
             <AnalyticsReporters />
-            {isDevelopment ? <DevTools /> : null}
+            {isDevelopment ? (
+              <DevTools
+                closeButtonLabel={t('closeDeveloperTools')}
+                openButtonLabel={t('openDeveloperTools')}
+              />
+            ) : null}
           </MotionProvider>
         </ThemeProvider>
 

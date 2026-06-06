@@ -1,7 +1,9 @@
 {
   "A11y": {
+    "closeDeveloperTools": "Close developer tools",
     "closeModal": "Close modal",
     "mainContent": "Main content",
+    "openDeveloperTools": "Open developer tools",
     "skipToMainContent": "Skip to main content"
   },
   "AcceptableUse": {

@@ -297,14 +297,15 @@ tags_metadata = [
 
 def _swagger_enabled_for_environment() -> bool:
     """Return whether public OpenAPI/Swagger routes may be mounted."""
-    if settings.environment.lower() == "production":
+    environment = settings.environment.lower()
+    if environment in {"production", "test"}:
         if settings.swagger_enabled:
-            logger.warning("Swagger/OpenAPI forced off in production despite SWAGGER_ENABLED=true")
+            logger.warning("Swagger/OpenAPI forced off in %s despite SWAGGER_ENABLED=true", environment)
         return False
     return settings.swagger_enabled
 
 
-# MED-7 / S1-BE-004: disable public OpenAPI/Swagger routes in production.
+# MED-7 / S1-BE-004: disable public OpenAPI/Swagger routes in production and test release gates.
 swagger_enabled_for_environment = _swagger_enabled_for_environment()
 openapi_url = "/openapi.json" if swagger_enabled_for_environment else None
 docs_url = "/docs" if swagger_enabled_for_environment else None

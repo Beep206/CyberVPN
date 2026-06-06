@@ -36,3 +36,29 @@ Context7 docs checked: unavailable - quota exceeded. Fallback official docs chec
 - Evidence JSON: `docs/qa/manual-flow-audit/2026-06-04/evidence/partner/CYBA-523__partner-2fa-path-cookie-retest__20260604T210730Z.json`
 
 Context7 MCP проверен: quota exceeded. ctx7 fallback проверен: `/microsoft/playwright` `BrowserContext.cookies(urls)` и `page.screenshot` path option.
+
+## CYBA-573 heartbeat snapshot
+
+- Issue: [CYBA-573](/CYBA/issues/CYBA-573)
+- Причина wake: `issue_blockers_resolved`; blocker [CYBA-569](/CYBA/issues/CYBA-569) был закрыт, поэтому recheck выполнялся на текущем clean `main`-baseline без повторного checkout.
+- Scope: partner portal business-flow recheck для access/visibility, partner codes/markup, team access, finance balances/payout posture, conversion attribution/explainability.
+- Environment: local `partner` Next dev server `http://127.0.0.1:3002`, Chromium via Playwright, viewport `1440x1000`, locale `en-EN`.
+- Data safety: использован synthetic safe fixture `Safe Partner Lab`, partner code `CYBA-SAFE-42`, masked customers (`masked-customer-*`), masked payout account `Bank **** 4242`; credentials, JWT/cookies/storageState, payment secrets, production PII и Telegram initData не сохранялись.
+- Targeted partner Vitest:
+  - `npm run test:run -- src/lib/api/__tests__/partner-portal.test.ts src/features/partner-portal-state/lib/safe-partner-fixtures.test.ts src/features/partner-portal-state/lib/portal-access.test.ts src/features/partner-portal-state/lib/portal-visibility.test.ts src/features/partner-portal-state/components/partner-route-guard.test.tsx src/features/partner-finance/lib/finance-contract.test.ts src/features/partner-commercial/lib/commercial-capabilities.test.ts src/features/partner-operations/lib/reporting-finance-capabilities.test.ts`
+  - Result: `8 passed`, `48 passed`.
+- Playwright rerun:
+  - Harness: `evidence/partner/CYBA-573/cyba-573-partner-smoke-rerun.mjs`
+  - Summary: `evidence/partner/CYBA-573/playwright-ui-smoke-summary.json`
+  - Log: `evidence/partner/CYBA-573/playwright-ui-smoke-rerun.log`
+  - Assertions used full normalized body text; `bodyTextSample` is truncated evidence only.
+- Business-flow content result: `PASS` for `/en-EN/dashboard`, `/en-EN/codes`, `/en-EN/finance`, `/en-EN/conversions`, `/en-EN/team`; no `SYSTEM FAILURE`, no `pageErrors`.
+- Corrected earlier false negatives:
+  - Finance contains `SAFE FIXTURE SETTLEMENT ACCOUNT` and `$280.00`; earlier mixed-case expected text caused a false miss.
+  - Conversions contains `masked-customer-001`, `CYBA-SAFE-42`, and contract-backed explainability `eligible`; rerun used required `commissionability_evaluation` response and called `/conversion-records/safe-conversion-first-paid/explainability`.
+- Findings left after rerun:
+  - `P3` i18n/UX bug: `/en-EN/codes` logs `IntlError: MISSING_MESSAGE` for `Partner.codes.modes.review`.
+  - `P4` product/observability gap: local smoke logs 403 responses for `POST /api/analytics/web-vitals`, `POST /api/analytics/product-events`, and `POST /api/analytics/traffic`; these are `navigator.sendBeacon` telemetry calls and did not block partner business content.
+- Local dev server started only for this smoke and stopped after evidence collection; `127.0.0.1:3002` no longer listening.
+
+Context7 MCP проверен: quota exceeded. ctx7 fallback проверен: `/microsoft/playwright` `page.goto`, route mocks, console capture, screenshot; `/amannn/next-intl` missing-message `IntlErrorCode.MISSING_MESSAGE`, `onError`, `getMessageFallback`.

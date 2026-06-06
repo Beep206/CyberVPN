@@ -232,6 +232,41 @@ describe('admin API proxy route', () => {
     expect(setCookieHeaders).not.toContain('Secure');
   });
 
+  it('strips Secure from logout cleanup cookies for approved local-stage admin origin', async () => {
+    vi.stubEnv('API_URL', 'http://backend.internal/');
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 204,
+        headers: {
+          'set-cookie': [
+            'access_token=; Max-Age=0; Path=/api; HttpOnly; Secure; SameSite=Lax',
+            'refresh_token=; Max-Age=0; Path=/api; HttpOnly; Secure; SameSite=Lax',
+          ].join(', '),
+        },
+      }),
+    ) as typeof fetch;
+
+    const request = new NextRequest('http://127.0.0.1:13001/api/v1/auth/logout', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: 'http://127.0.0.1:13001',
+      },
+      body: JSON.stringify({}),
+    });
+    request.cookies.set('access_token', 'current-access');
+    request.cookies.set('refresh_token', 'current-refresh');
+
+    const response = await POST(request, createContext(['auth', 'logout']));
+    const setCookieHeaders = readSetCookieHeaders(response).join('\n');
+
+    expect(response.status).toBe(204);
+    expect(setCookieHeaders).toContain('access_token=');
+    expect(setCookieHeaders).toContain('refresh_token=');
+    expect(setCookieHeaders).toContain('Max-Age=0');
+    expect(setCookieHeaders).not.toContain('Secure');
+  });
+
   it('preserves foreign origins so backend CSRF can reject cross-site cookie requests', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal');
     global.fetch = vi.fn().mockResolvedValue(

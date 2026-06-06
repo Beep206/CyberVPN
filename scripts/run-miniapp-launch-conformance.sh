@@ -35,6 +35,9 @@ run_backend() {
     info "Running backend Mini App launch-control tests via uv..."
     (
       cd "${BACKEND_DIR}"
+      REMNAWAVE_TOKEN="${REMNAWAVE_TOKEN:-dummy_token_for_miniapp_conformance_only}" \
+      JWT_SECRET="${JWT_SECRET:-miniapp_launch_conformance_dummy_secret_that_is_at_least_32_chars_long}" \
+      CRYPTOBOT_TOKEN="${CRYPTOBOT_TOKEN:-dummy_cryptobot_token}" \
       PYTHONPATH=. uv run python -m pytest --noconftest --no-cov \
         tests/unit/presentation/api/v1/miniapp/test_routes.py \
         tests/unit/presentation/api/v1/admin/test_system_config.py \
