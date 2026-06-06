@@ -1,0 +1,148 @@
+{
+  "issue": "CYBA-593",
+  "generatedAt": "2026-06-06T17:45:09.737Z",
+  "baseUrl": "http://127.0.0.1:9001",
+  "chromium": "/home/beep/.local/bin/chromium",
+  "browserFlags": [
+    "--headless=new",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader"
+  ],
+  "checksPassed": true,
+  "results": [
+    {
+      "route": "login",
+      "url": "http://127.0.0.1:9001/en-EN/login",
+      "viewport": "390x844",
+      "state": "input hover+focus",
+      "activeTag": "INPUT",
+      "canvasClip": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "hashBefore": "6d6838dbf6cdd7b9dfd13ef8bd7fd08c5bf85bbf14f6c96c902a2fcf0e54983c",
+      "hashAfter": "8197fd766845ad226999432be80d8f89e9ccc7b687a9076f431503fd79fc58ed",
+      "frameChanged": true,
+      "width": 390,
+      "height": 844,
+      "changedPixels": 2760,
+      "totalPixels": 329160,
+      "changedRatio": 0.008385,
+      "totalDelta": 124787
+    },
+    {
+      "route": "register",
+      "url": "http://127.0.0.1:9001/en-EN/register",
+      "viewport": "390x844",
+      "state": "input hover+focus",
+      "activeTag": "INPUT",
+      "canvasClip": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "hashBefore": "6c93163780abcaf289ed765fbc8f5e5317fffde420288c4bf10fcaf1a80e7eed",
+      "hashAfter": "1981d08eb132668b1591c9ddf9744b440c43f298f46ab598b73bbec0ef307f4a",
+      "frameChanged": true,
+      "width": 390,
+      "height": 844,
+      "changedPixels": 1138,
+      "totalPixels": 329160,
+      "changedRatio": 0.003457,
+      "totalDelta": 67439
+    },
+    {
+      "route": "login",
+      "url": "http://127.0.0.1:9001/en-EN/login",
+      "viewport": "768x1024",
+      "state": "input hover+focus",
+      "activeTag": "INPUT",
+      "canvasClip": {
+        "x": 0,
+        "y": 0,
+        "width": 768,
+        "height": 1024
+      },
+      "hashBefore": "803f7c8b1b24c158c2fbf1dbbd31e81e5afb2c392ed14dd2ca4cfefd5cb90d95",
+      "hashAfter": "b0fe24096f7cd4133ed06d50b3919ac0e70bd17ff1a62400d0b70f0f7626500f",
+      "frameChanged": true,
+      "width": 768,
+      "height": 1024,
+      "changedPixels": 26186,
+      "totalPixels": 786432,
+      "changedRatio": 0.033297,
+      "totalDelta": 1117622
+    },
+    {
+      "route": "register",
+      "url": "http://127.0.0.1:9001/en-EN/register",
+      "viewport": "768x1024",
+      "state": "input hover+focus",
+      "activeTag": "INPUT",
+      "canvasClip": {
+        "x": 0,
+        "y": 0,
+        "width": 768,
+        "height": 1024
+      },
+      "hashBefore": "372f3edfcb0d7cba80142cd72aec6cd432cf6c4b250b75ced0e51d89de65016a",
+      "hashAfter": "9d72c91e5da8e1f0dd40f48d6cb285d8dabc78612976efb34a9d7952cfb4661b",
+      "frameChanged": true,
+      "width": 768,
+      "height": 1024,
+      "changedPixels": 26010,
+      "totalPixels": 786432,
+      "changedRatio": 0.033073,
+      "totalDelta": 1108490
+    },
+    {
+      "route": "login",
+      "url": "http://127.0.0.1:9001/en-EN/login",
+      "viewport": "1440x900",
+      "state": "input hover+focus",
+      "activeTag": "INPUT",
+      "canvasClip": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "hashBefore": "f1dea32e66fd53879d20125445d0895384926e45897479c58fcc487598cc8d49",
+      "hashAfter": "1dc2ba86b77908a013f6c8e4bb894e19fcfb6b558f740e28795b04269d40cd74",
+      "frameChanged": true,
+      "width": 1440,
+      "height": 900,
+      "changedPixels": 30602,
+      "totalPixels": 1296000,
+      "changedRatio": 0.023613,
+      "totalDelta": 1206190
+    },
+    {
+      "route": "register",
+      "url": "http://127.0.0.1:9001/en-EN/register",
+      "viewport": "1440x900",
+      "state": "input hover+focus",
+      "activeTag": "INPUT",
+      "canvasClip": {
+        "x": 0,
+        "y": 0,
+        "width": 1434,
+        "height": 900
+      },
+      "hashBefore": "b79b51c0245ad9d48ff33acd12d4cc940203a5b94baf3603aa73ade1f24233b2",
+      "hashAfter": "f7bb3831b0a6abf7120c3875ee83e943240c8cc17e06590b82dd5e18b36934d9",
+      "frameChanged": true,
+      "width": 1434,
+      "height": 900,
+      "changedPixels": 26004,
+      "totalPixels": 1290600,
+      "changedRatio": 0.020149,
+      "totalDelta": 949290
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": []
+}

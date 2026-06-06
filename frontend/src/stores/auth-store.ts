@@ -20,6 +20,13 @@ import {
 import { getDefaultPostLoginPath, getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
 
 let fetchUserInFlight: Promise<void> | null = null;
+let pendingPasswordLoginSuccess = false;
+
+export function consumePendingPasswordLoginSuccess(): boolean {
+  const pending = pendingPasswordLoginSuccess;
+  pendingPasswordLoginSuccess = false;
+  return pending;
+}
 
 function getLocalePrefix(): string {
   if (typeof window === 'undefined') return '/en-EN';
@@ -77,22 +84,25 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email, password, rememberMe = false) => {
         authAnalytics.loginStarted();
+        pendingPasswordLoginSuccess = false;
         set({ isLoading: true, error: null, rateLimitUntil: null });
         try {
           // SEC-01: backend sets httpOnly cookies automatically
           const { data } = await authApi.login({ email, password, remember_me: rememberMe });
 
           if (data.requires_2fa) {
+            pendingPasswordLoginSuccess = false;
             set({ isAuthenticated: false, isLoading: false, user: null });
             return data;
           }
 
-          // Fetch user info (auth via httpOnly cookie)
-          const { data: user } = await authApi.session();
-          set({ user, isAuthenticated: true, isLoading: false });
-          authAnalytics.loginSuccess(user.id, 'email');
+          // The dashboard guard validates the httpOnly cookie session after
+          // navigation. Do not block the auth surface on /auth/session here.
+          pendingPasswordLoginSuccess = true;
+          set({ user: null, isAuthenticated: false, isLoading: false });
           return data;
         } catch (error: unknown) {
+          pendingPasswordLoginSuccess = false;
           if (error instanceof RateLimitError) {
             authAnalytics.rateLimited(error.retryAfter);
             set({
@@ -236,6 +246,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         fetchUserInFlight = null;
+        pendingPasswordLoginSuccess = false;
         const logoutRequest = authApi.logout();
         // Clear browser-visible state immediately; the server-side cookie
         // revocation may finish later or fail transiently.

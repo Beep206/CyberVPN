@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, PerformanceMonitor, Trail } from '@react-three/drei';
 import { Bloom, ChromaticAberration, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -339,89 +339,15 @@ function AuthSceneContent() {
 }
 
 // ============================================
-// INPUT-FOCUS WARM-UP
-// ============================================
-function AuthSceneFramePrewarmer({ isInputFocused }: { isInputFocused: boolean }) {
-    const invalidate = useThree((state) => state.invalidate);
-
-    useEffect(() => {
-        if (!isInputFocused) return;
-
-        let secondFrame: number | null = null;
-        const firstFrame = window.requestAnimationFrame(() => {
-            invalidate();
-            secondFrame = window.requestAnimationFrame(() => invalidate());
-        });
-
-        return () => {
-            window.cancelAnimationFrame(firstFrame);
-            if (secondFrame !== null) {
-                window.cancelAnimationFrame(secondFrame);
-            }
-        };
-    }, [invalidate, isInputFocused]);
-
-    return null;
-}
-
-function isFormControl(target: EventTarget | Element | null): boolean {
-    return target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement;
-}
-
-// ============================================
 // EXPORTED COMPONENT
 // ============================================
 export function AuthScene3D() {
     const pathname = usePathname();
     const { host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const [dpr, setDpr] = useState(1);
-    const [isInputFocused, setIsInputFocused] = useState(false);
 
     // Force a fresh WebGL tree for each auth route entry while keeping route-level remounts predictable.
     const sceneKey = `auth-scene:${pathname}`;
-
-    useEffect(() => {
-        const handleFocusIn = (event: FocusEvent) => {
-            if (isFormControl(event.target)) {
-                setIsInputFocused(true);
-            }
-        };
-
-        const handleFocusOut = () => {
-            window.setTimeout(() => {
-                setIsInputFocused(isFormControl(document.activeElement));
-            }, 0);
-        };
-
-        const handlePointerDown = (event: PointerEvent) => {
-            const nextInputFocused = isFormControl(event.target);
-            if (nextInputFocused || !isFormControl(document.activeElement)) {
-                setIsInputFocused(nextInputFocused);
-            }
-        };
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== 'Tab') return;
-
-            window.requestAnimationFrame(() => {
-                setIsInputFocused(isFormControl(document.activeElement));
-            });
-        };
-
-        document.addEventListener('focusin', handleFocusIn);
-        document.addEventListener('focusout', handleFocusOut);
-        document.addEventListener('pointerdown', handlePointerDown, true);
-        document.addEventListener('keydown', handleKeyDown, true);
-
-        return () => {
-            document.removeEventListener('focusin', handleFocusIn);
-            document.removeEventListener('focusout', handleFocusOut);
-            document.removeEventListener('pointerdown', handlePointerDown, true);
-            document.removeEventListener('keydown', handleKeyDown, true);
-        };
-    }, []);
 
     return (
         <div key={sceneKey} ref={setHostRef} className="absolute inset-0 z-0 pointer-events-none">
@@ -429,7 +355,7 @@ export function AuthScene3D() {
                 {host ? (
                     <Canvas
                         eventSource={host}
-                        frameloop={isInputFocused ? 'demand' : 'always'}
+                        frameloop="always"
                         camera={{ position: [0, 0, 5], fov: 50 }}
                         dpr={dpr}
                         gl={{
@@ -443,7 +369,6 @@ export function AuthScene3D() {
                             onDecline={() => setDpr(0.75)} 
                             onIncline={() => setDpr(1.5)} 
                         />
-                        <AuthSceneFramePrewarmer isInputFocused={isInputFocused} />
                         <AuthSceneContent />
                     </Canvas>
                 ) : null}

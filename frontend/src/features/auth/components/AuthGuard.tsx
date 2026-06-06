@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
+import { authAnalytics } from '@/lib/analytics';
 import { authApi } from '@/lib/api/auth';
-import { useAuthStore } from '@/stores/auth-store';
+import { consumePendingPasswordLoginSuccess, useAuthStore } from '@/stores/auth-store';
 import { buildInternalLoginHref } from '@/features/auth/lib/session';
 import { Loader2 } from 'lucide-react';
 
@@ -64,11 +65,15 @@ export function AuthGuard({ children }: AuthGuardProps) {
                     isLoading: false,
                     error: null,
                 });
+                if (consumePendingPasswordLoginSuccess()) {
+                    authAnalytics.loginSuccess(data.id, 'email');
+                }
                 setIsAuthorized(true);
             } catch (error: unknown) {
                 if (!isMounted) return;
 
                 const currentState = useAuthStore.getState();
+                consumePendingPasswordLoginSuccess();
 
                 useAuthStore.setState({
                     user: null,

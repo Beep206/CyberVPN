@@ -102,7 +102,7 @@ export function SocialAuthButtons({
     className,
 }: SocialAuthButtonsProps) {
     return (
-        <div className={cn("flex flex-col gap-3", className)}>
+        <div data-auth-oauth-options className={cn("flex flex-col gap-3", className)}>
             <div className="grid grid-cols-3 gap-3">
                 {COMPACT_PROVIDERS.map((provider, index) => {
                     const { name, icon, colors } = PROVIDERS[provider];

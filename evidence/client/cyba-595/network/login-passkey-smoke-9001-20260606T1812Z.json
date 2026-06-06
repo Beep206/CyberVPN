@@ -1,0 +1,30 @@
+
+> vpn-frontend@0.1.0 check:login-passkey-smoke
+> node scripts/login-passkey-browser-smoke.mjs
+
+{
+  "status": "passed",
+  "url": "http://127.0.0.1:9001/en-EN/login",
+  "dashboardUrl": "http://127.0.0.1:9001/en-EN/dashboard",
+  "dashboardPath": "/en-EN/dashboard",
+  "sessionResponseDelayMs": 2500,
+  "postLoginNavigationBudgetMs": 1000,
+  "postLoginNavigationLatencyMs": 660,
+  "autocomplete": "username webauthn",
+  "apiRequests": [
+    "POST http://127.0.0.1:9001/api/analytics/web-vitals",
+    "POST http://127.0.0.1:9001/api/analytics/web-vitals",
+    "GET http://127.0.0.1:9001/api/v1/auth/passkeys/policy",
+    "POST http://127.0.0.1:9001/api/v1/auth/passkeys/authentication/options",
+    "POST http://127.0.0.1:9001/api/analytics/traffic",
+    "POST http://127.0.0.1:9001/api/v1/auth/login",
+    "GET http://127.0.0.1:9001/api/auth/optional-session",
+    "GET http://127.0.0.1:9001/api/v1/auth/session"
+  ],
+  "authenticationOptionsBodies": [
+    {
+      "conditional": true,
+      "identifier": null
+    }
+  ]
+}
