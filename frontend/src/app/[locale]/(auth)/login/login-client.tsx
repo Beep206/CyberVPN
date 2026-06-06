@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
@@ -35,7 +35,7 @@ import {
   getPasskeyErrorMessageKey,
   type PasskeyBrowserSupport,
 } from '@/features/auth/lib/passkey-webauthn';
-import { getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
+import { getCanonicalPostLoginHref, getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
 import {
   validateLoginIdentifierInput,
   type LoginIdentifierValidationCode,
@@ -116,11 +116,24 @@ export function LoginClient() {
       ? 'username webauthn'
       : 'username';
 
+  const navigateAfterAuth = useCallback((targetPath: string) => {
+    const canonicalHref = typeof window === 'undefined'
+      ? null
+      : getCanonicalPostLoginHref(targetPath, window.location);
+
+    if (canonicalHref) {
+      window.location.assign(canonicalHref);
+      return;
+    }
+
+    router.push(targetPath);
+  }, [router]);
+
   useEffect(() => {
     if (isAuthenticated) {
-      router.push(redirectPath);
+      navigateAfterAuth(redirectPath);
     }
-  }, [isAuthenticated, redirectPath, router, locale]);
+  }, [isAuthenticated, navigateAfterAuth, redirectPath]);
 
   useEffect(() => {
     clearError();
@@ -241,7 +254,7 @@ export function LoginClient() {
         }
 
         await fetchUser();
-        router.push(redirectPath);
+        navigateAfterAuth(redirectPath);
       })
       .catch((err) => {
         if (cancelled) {
@@ -258,7 +271,7 @@ export function LoginClient() {
       cancelled = true;
       cancelPasskeyCeremony();
     };
-  }, [fetchUser, isTwoFactorFlow, locale, passkeyPolicy, passkeySupport, redirectPath, router, t]);
+  }, [fetchUser, isTwoFactorFlow, locale, navigateAfterAuth, passkeyPolicy, passkeySupport, redirectPath, router, t]);
 
   useEffect(() => {
     if (!oauthProvider) {
@@ -329,7 +342,7 @@ export function LoginClient() {
       }
 
       await fetchUser();
-      router.push(redirectPath);
+      navigateAfterAuth(redirectPath);
     } catch (err) {
       setPasskeyError(t(getPasskeyErrorMessageKey(err) as never));
     } finally {
@@ -363,7 +376,7 @@ export function LoginClient() {
         setTwoFactorError(t('twoFactorStartFailed'));
         return;
       }
-      router.push(redirectPath);
+      navigateAfterAuth(redirectPath);
     } catch {}
   };
 
