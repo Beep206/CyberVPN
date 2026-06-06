@@ -255,3 +255,50 @@ Sanitization:
 - Secret value scan in `direct-api-business-flow-20260606T072026Z.json`: 0 hits for the three protected synthetic credential values.
 - Secret value scan in `focused-post-business-flow-20260606T072157Z.json`: 0 hits.
 - Secret value scan in `focused-subscriptions-surface-20260606T072408Z.json`: 0 hits.
+
+## CYBA-595 Final Auth UX QA - 2026-06-06T18:09:19Z
+
+Issue: [CYBA-595](/CYBA/issues/CYBA-595)
+Wake reason: `issue_blockers_resolved`
+
+Setup:
+
+- Parent [CYBA-591](/CYBA/issues/CYBA-591) was `done`; blockers [CYBA-592](/CYBA/issues/CYBA-592), [CYBA-593](/CYBA/issues/CYBA-593), and [CYBA-594](/CYBA/issues/CYBA-594) were `done`.
+- `currentExecutionWorkspace` from Paperclip heartbeat context was `null`, so no managed runtime service URL was available.
+- Existing local-stage frontend `http://127.0.0.1:13000` was reachable but failed the scoped passkey CTA smoke before auth submit with `Passkey CTA did not render`; this was kept as an environment note, not filed as a product bug because the current checkout dev server passed the same smoke.
+- Started current checkout frontend in an active tool session at `http://127.0.0.1:9001` with `API_INTERNAL_ORIGIN=http://127.0.0.1:18080`, `API_URL=http://127.0.0.1:18080`, `NEXT_TELEMETRY_DISABLED=1`.
+- Backend readiness target `http://127.0.0.1:18080/readiness` was reachable.
+- User role/state: mocked/synthetic customer auth browser smoke only. Credential values, cookies, JWTs, refresh tokens, passwords, payment data, VPN config secrets, Telegram `initData`, and production PII were not stored.
+
+Evidence:
+
+- `evidence/client/cyba-595/manifest.md`
+- `evidence/client/cyba-595/network/login-passkey-smoke-20260606T1806Z.json` - failed on `13000`, passkey CTA not rendered.
+- `evidence/client/cyba-595/network/login-passkey-smoke-9001-20260606T1810Z.json` - failed before `9001` was actually reachable.
+- `evidence/client/cyba-595/network/login-passkey-smoke-9001-20260606T1812Z.json` - PASS on current checkout.
+- `evidence/client/cyba-595/network/targeted-auth-tests-20260606T1831Z.log`
+- `evidence/client/cyba-595/network/targeted-layout-3d-tests-20260606T1814Z.log`
+- `evidence/client/cyba-595/network/auth-3d-freeze-summary-from-cyba-593.json`
+- `evidence/client/cyba-595/network/passkey-oauth-spacing-summary-from-cyba-594.json`
+- `evidence/client/cyba-595/network/no-secret-scan-20260606T1815Z.txt`
+- `evidence/client/cyba-595/screenshots/*.png`
+
+Final auth UX checks:
+
+- PASS: successful non-2FA password login route transition starts immediately after accepted login response, without waiting for delayed `/auth/session`. Runtime smoke result: `sessionResponseDelayMs=2500`, `postLoginNavigationBudgetMs=1000`, `postLoginNavigationLatencyMs=660`, final path `/en-EN/dashboard`.
+- PASS: passkey conditional UI keeps username autocomplete as `username webauthn` and the conditional authentication options body was `{ "conditional": true, "identifier": null }`.
+- PASS: targeted auth regression tests passed: `3 files`, `99 tests`. This covers auth store/login/AuthGuard contracts including invalid credentials, 2FA-only routing, and deferred session validation behavior.
+- PASS: targeted 3D/layout tests passed: `2 files`, `23 tests`.
+- PASS: [CYBA-593](/CYBA/issues/CYBA-593) mirrored evidence shows login/register 3D scene still changes frames while input is hover+focused on `390x844`, `768x1024`, `1440x900`.
+- PASS: [CYBA-594](/CYBA/issues/CYBA-594) mirrored evidence shows passkey/OAuth spacing on `390x844`, `768x1024`, `1440x900`; provider order stayed `google`, `github`, `telegram`.
+- PASS: no-secret scan over `evidence/client/cyba-595` text artifacts returned `No sensitive value hits.`
+
+Security signoff:
+
+- [CYBA-596](/CYBA/issues/CYBA-596) was completed by `SecurityEngineer` at `2026-06-06T18:17:43Z`.
+- Signoff: `Approved: auth redirect/session behavior acceptable for this scope.`
+- Security review lenses included OWASP Auth Failures, Broken Access Control, Open Redirect, Sensitive Data Exposure, WebAuthn identifier disclosure, secure defaults, fail securely, and complete mediation.
+- SecurityEngineer confirmed: non-2FA login routes after accepted `/auth/login` without setting authenticated user state before `AuthGuard` session validation; `requires_2fa=true` returns after `/{locale}/login?2fa=true`; conditional passkey uses `identifier: null`; redirects are relative/sanitized; runtime token storage remains httpOnly-cookie based with no frontend token persistence.
+- Residual risk: sanitized local/mock evidence only; real production/staging credentials, real passkey ceremony, OAuth provider round-trip, payment, VPN delivery, and Telegram signed `initData` were not tested.
+
+Context7 docs checked: MCP Context7 quota exceeded; `ctx7 library Playwright` resolved `/microsoft/playwright`, but no new Playwright code was written. Manual UI/business-flow findings are `N/A - manual UI/business-flow finding`.

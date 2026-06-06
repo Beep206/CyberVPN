@@ -192,13 +192,16 @@ describe('3D performance baseline', () => {
     expect(dashboardLayout).toContain('<TerminalHeader performanceMode="always" showMobileSidebar />');
   });
 
-  it('auth scene pre-warms the first focused input frame while staying demand-driven during input', async () => {
+  it('auth scene keeps its render loop active while auth inputs are focused', async () => {
     const source = await readSource('3d/scenes/AuthScene3D.tsx');
 
-    expect(source).toContain("frameloop={isInputFocused ? 'demand' : 'always'}");
-    expect(source).toContain('function AuthSceneFramePrewarmer');
-    expect(source).toContain('useThree((state) => state.invalidate)');
-    expect(source).toContain("document.addEventListener('pointerdown', handlePointerDown, true)");
-    expect(source).toContain("document.addEventListener('keydown', handleKeyDown, true)");
+    expect(source).toContain('frameloop="always"');
+    expect(source).toContain('<PerformanceMonitor');
+    expect(source).not.toContain("frameloop={isInputFocused ? 'demand' : 'always'}");
+    expect(source).not.toContain('function AuthSceneFramePrewarmer');
+    expect(source).not.toContain('useThree((state) => state.invalidate)');
+    expect(source).not.toContain("document.addEventListener('focusin'");
+    expect(source).not.toContain("document.addEventListener('pointerdown', handlePointerDown, true)");
+    expect(source).not.toContain("document.addEventListener('keydown', handleKeyDown, true)");
   });
 });

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginClient } from '../login-client';
@@ -135,7 +135,7 @@ describe('LoginClient passkeys', () => {
   });
 
   it('shows explicit passkey login and enables Conditional UI autocomplete', async () => {
-    render(<LoginClient />);
+    const { container } = render(<LoginClient />);
 
     expect(
       await screen.findByRole('button', { name: 'Sign in with passkey' }),
@@ -143,6 +143,10 @@ describe('LoginClient passkeys', () => {
     expect(screen.getByLabelText('Email address')).toHaveAttribute(
       'autocomplete',
       'username webauthn',
+    );
+    expect(container.querySelector('[data-auth-oauth-options]')).toHaveClass(
+      'mt-4',
+      'sm:mt-5',
     );
   });
 
@@ -165,6 +169,69 @@ describe('LoginClient passkeys', () => {
       );
       expect(authStore.fetchUser).toHaveBeenCalled();
       expect(routerPush).toHaveBeenCalledWith('/en-EN/dashboard');
+    });
+  });
+
+  it('navigates immediately after successful password login without fetching session first', async () => {
+    passkeyMocks.getPolicy.mockResolvedValueOnce({
+      data: {
+        ...defaultPasskeyPolicy,
+        conditionalUiEnabled: false,
+      },
+    });
+    authStore.login.mockResolvedValue({
+      requires_2fa: false,
+      tfa_token: null,
+    });
+
+    render(<LoginClient />);
+
+    fireEvent.change(screen.getByLabelText('Email address'), {
+      target: { value: 'user@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: 'correct-password' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+
+    await waitFor(() => {
+      expect(authStore.login).toHaveBeenCalledWith('user@example.com', 'correct-password', false);
+      expect(authStore.fetchUser).not.toHaveBeenCalled();
+      expect(routerPush).toHaveBeenCalledWith('/en-EN/dashboard');
+    });
+  });
+
+  it('routes password login requiring 2FA to the 2FA step only', async () => {
+    passkeyMocks.getPolicy.mockResolvedValueOnce({
+      data: {
+        ...defaultPasskeyPolicy,
+        conditionalUiEnabled: false,
+      },
+    });
+    authStore.login.mockResolvedValue({
+      requires_2fa: true,
+      tfa_token: 'pending_2fa_token',
+    });
+    twoFactorMocks.stagePendingTwoFactorSession.mockResolvedValue(undefined);
+
+    render(<LoginClient />);
+
+    fireEvent.change(screen.getByLabelText('Email address'), {
+      target: { value: 'user@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: 'correct-password' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+
+    await waitFor(() => {
+      expect(twoFactorMocks.stagePendingTwoFactorSession).toHaveBeenCalledWith({
+        token: 'pending_2fa_token',
+        locale: 'en-EN',
+        returnTo: '/en-EN/dashboard',
+      });
+      expect(routerPush).toHaveBeenCalledTimes(1);
+      expect(routerPush).toHaveBeenCalledWith('/en-EN/login?2fa=true');
     });
   });
 

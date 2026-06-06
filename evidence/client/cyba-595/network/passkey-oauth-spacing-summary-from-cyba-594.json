@@ -1,0 +1,125 @@
+{
+  "loginUrl": "http://127.0.0.1:9001/en-EN/login",
+  "results": [
+    {
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844,
+        "mobile": true,
+        "scale": 2
+      },
+      "passkeyBottom": 283.55,
+      "oauthTop": 299.05,
+      "gapPx": 15.5,
+      "oauthClassName": "flex flex-col gap-3 mt-4 sm:mt-5",
+      "providers": [
+        "google",
+        "github",
+        "telegram"
+      ],
+      "oauthButtons": [
+        {
+          "provider": "google",
+          "width": 86.53,
+          "height": 44.56
+        },
+        {
+          "provider": "github",
+          "width": 86.53,
+          "height": 44.56
+        },
+        {
+          "provider": "telegram",
+          "width": 86.55,
+          "height": 44.56
+        }
+      ],
+      "bodyScrollWidth": 390,
+      "viewportWidth": 390,
+      "screenshotPath": "evidence/cyba-594-passkey-oauth-spacing/login-mobile-390x844.png",
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "viewport": {
+        "name": "tablet",
+        "width": 768,
+        "height": 1024,
+        "mobile": false,
+        "scale": 1
+      },
+      "passkeyBottom": 371.39,
+      "oauthTop": 390.83,
+      "gapPx": 19.44,
+      "oauthClassName": "flex flex-col gap-3 mt-4 sm:mt-5",
+      "providers": [
+        "google",
+        "github",
+        "telegram"
+      ],
+      "oauthButtons": [
+        {
+          "provider": "google",
+          "width": 116.01,
+          "height": 44.72
+        },
+        {
+          "provider": "github",
+          "width": 116.01,
+          "height": 44.72
+        },
+        {
+          "provider": "telegram",
+          "width": 116.02,
+          "height": 44.72
+        }
+      ],
+      "bodyScrollWidth": 768,
+      "viewportWidth": 768,
+      "screenshotPath": "evidence/cyba-594-passkey-oauth-spacing/login-tablet-768x1024.png",
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "mobile": false,
+        "scale": 1
+      },
+      "passkeyBottom": 309.56,
+      "oauthTop": 329,
+      "gapPx": 19.44,
+      "oauthClassName": "flex flex-col gap-3 mt-4 sm:mt-5",
+      "providers": [
+        "google",
+        "github",
+        "telegram"
+      ],
+      "oauthButtons": [
+        {
+          "provider": "google",
+          "width": 115.97,
+          "height": 44.71
+        },
+        {
+          "provider": "github",
+          "width": 115.97,
+          "height": 44.71
+        },
+        {
+          "provider": "telegram",
+          "width": 115.99,
+          "height": 44.71
+        }
+      ],
+      "bodyScrollWidth": 1440,
+      "viewportWidth": 1440,
+      "screenshotPath": "evidence/cyba-594-passkey-oauth-spacing/login-desktop-1440x900.png",
+      "consoleErrors": [],
+      "pageErrors": []
+    }
+  ]
+}

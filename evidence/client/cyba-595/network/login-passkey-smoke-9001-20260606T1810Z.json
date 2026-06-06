@@ -1,0 +1,15 @@
+
+> vpn-frontend@0.1.0 check:login-passkey-smoke
+> node scripts/login-passkey-browser-smoke.mjs
+
+Error: Frontend dev server is not reachable at http://127.0.0.1:9001/en-EN/login. Start it before running this smoke.
+    at assert (file:///srv/paperclip/data/instances/default/projects/b412bbf0-42d3-4803-913b-15951083d2fb/55092778-1c70-4f8a-aa61-869c6d0f33ae/_default/VPNBussiness-main/frontend/scripts/login-passkey-browser-smoke.mjs:114:11)
+    at main (file:///srv/paperclip/data/instances/default/projects/b412bbf0-42d3-4803-913b-15951083d2fb/55092778-1c70-4f8a-aa61-869c6d0f33ae/_default/VPNBussiness-main/frontend/scripts/login-passkey-browser-smoke.mjs:258:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+npm error Lifecycle script `check:login-passkey-smoke` failed with error:
+npm error code 1
+npm error path /srv/paperclip/data/instances/default/projects/***/***/_default/VPNBussiness-main/frontend
+npm error workspace vpn-frontend@0.1.0
+npm error location /srv/paperclip/data/instances/default/projects/***/***/_default/VPNBussiness-main/frontend
+npm error command failed
+npm error command sh -c node scripts/login-passkey-browser-smoke.mjs

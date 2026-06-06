@@ -110,6 +110,7 @@ export function LoginClient() {
     passkeySupport &&
     (!passkeySupport.secureContext || !passkeySupport.webAuthn),
   );
+  const hasPasskeyEntryPoint = !isTwoFactorFlow && (passkeyAvailable || passkeyUnsupported);
   const passkeyInputAutocomplete =
     passkeyPolicy?.conditionalUiEnabled && passkeySupport?.autofill && passkeyAvailable
       ? 'username webauthn'
@@ -356,10 +357,13 @@ export function LoginClient() {
           returnTo: redirectPath,
         });
         router.push(`/${locale}/login?2fa=true`);
+        return;
       }
       if (result.requires_2fa && !result.tfa_token) {
         setTwoFactorError(t('twoFactorStartFailed'));
+        return;
       }
+      router.push(redirectPath);
     } catch {}
   };
 
@@ -388,7 +392,7 @@ export function LoginClient() {
 
   return (
     <AuthFormCard title={t('title')} subtitle={t('subtitle')} className="keyboard-safe-bottom">
-      {!isTwoFactorFlow && (passkeyAvailable || passkeyUnsupported) && (
+      {hasPasskeyEntryPoint && (
         <div className="space-y-2">
           {passkeyAvailable ? (
             <motion.div
@@ -425,7 +429,11 @@ export function LoginClient() {
           )}
         </div>
       )}
-      <SocialAuthButtons onProviderClick={handleOAuthLogin} disabled={isLoading || isRateLimited} />
+      <SocialAuthButtons
+        onProviderClick={handleOAuthLogin}
+        disabled={isLoading || isRateLimited}
+        className={hasPasskeyEntryPoint ? 'mt-4 sm:mt-5' : undefined}
+      />
       <AuthDivider text={t('divider')} />
       <RateLimitCountdown />
       <div aria-live="assertive" aria-atomic="true">
