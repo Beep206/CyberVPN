@@ -1,5 +1,7 @@
 {
     "skipToMainContent": "Перейти к основному содержимому",
     "closeModal": "Закрыть модальное окно",
-    "mainContent": "Основное содержимое"
+    "mainContent": "Основное содержимое",
+    "closeDeveloperTools": "Закрыть инструменты разработчика",
+    "openDeveloperTools": "Открыть инструменты разработчика"
 }

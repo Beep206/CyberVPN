@@ -194,3 +194,64 @@ Fresh backend/data-support evidence from [CYBA-489](/CYBA/issues/CYBA-489) was c
 - Remaining not-tested/product-data gaps: active/trial/expired subscriptions, non-empty wallet/payment rows, referral/promo/partner-code outcome rows, subscription-backed Mini App config/VPN config, service identity/device credential, and signed synthetic Telegram Mini App entry.
 
 Final client QA disposition: complete with documented pass/fail/blocked coverage. This is a NO-GO for real production readiness until the residual fixture/product gaps and open P1/P2 findings are accepted into a fix backlog or covered by separate approved safe fixtures.
+
+## CYBA-572 Business-Flow Recheck - 2026-06-06T07:20:26Z
+
+Issue: [CYBA-572](/CYBA/issues/CYBA-572)
+Wake reason: `issue_blockers_resolved`
+
+Setup:
+
+- `CYBA-569` was `done`; `currentExecutionWorkspace` from Paperclip heartbeat context was `null`, so no managed runtime service URL was available.
+- Used approved local-stage frontend/API pair:
+  - Frontend: `http://127.0.0.1:13000`
+  - Backend: `http://127.0.0.1:18080`
+- Browser evidence: Playwright Chromium headless, desktop `1440x1000`, mobile `390x844`.
+- API evidence: direct local-stage API probes with `Origin` / `Referer` set to `http://127.0.0.1:13000`.
+- User role/state: unauthenticated visitor plus protected synthetic customer fixture from `CYBA451_CUSTOMER_WEB_*`.
+- Safe handling: credential values, cookies, JWTs, refresh tokens, request bodies, storageState, raw Telegram `initData`, VPN config links and payment secrets were not stored.
+- Context7 docs checked: Context7 quota exceeded for Playwright; fallback official docs opened for Playwright Page API. Product findings below are manual UI/business-flow findings, not framework-dependent root-cause claims.
+
+Evidence:
+
+- `evidence/client/cyba-572/network/frontend-route-survey-20260606T072248Z.json`
+- `evidence/client/cyba-572/network/direct-api-business-flow-20260606T072026Z.json`
+- `evidence/client/cyba-572/network/focused-post-business-flow-20260606T072157Z.json`
+- `evidence/client/cyba-572/network/focused-subscriptions-surface-20260606T072408Z.json`
+- `evidence/client/cyba-572/screenshots/compact-public-pricing-en-desktop-20260606T071705Z.png`
+- `evidence/client/cyba-572/screenshots/compact-login-ru-mobile-20260606T071705Z.png`
+- `evidence/client/cyba-572/screenshots/compact-unauth-dashboard-en-desktop-20260606T071705Z.png`
+- `evidence/client/cyba-572/screenshots/compact-miniapp-home-no-telegram-mobile-20260606T071705Z.png`
+
+Pass / reachable:
+
+- Backend readiness/status: `GET /readiness -> 200`, `GET /api/v1/status -> 200`.
+- Frontend route survey: 27/28 checked frontend routes returned `200`; only `/en-EN/miniapp/vpn` returned `404`.
+- Public/auth smoke: `/en-EN`, `/pricing`, `/features`, `/download`, `/network`, `/help`, `/contact`, `/status`, `/login`, `/register`, `/forgot-password`, `/magic-link`, `/telegram-link` returned `200`.
+- Mobile/locale smoke: `/ru-RU`, `/ru-RU/pricing`, `/ru-RU/login` returned `200`.
+- Unauthenticated protected route HTTP shell returned `200` and the screenshot for `/en-EN/dashboard` shows the login screen after guard handling; no unauthenticated customer data exposure was observed in the captured screenshot.
+- Synthetic customer API login/session: `POST /api/v1/auth/login -> 200`, `GET /api/v1/auth/session -> 200`.
+- Customer empty-state business APIs are reachable: `/wallet -> 200`, `/wallet/transactions -> 200` length `0`, `/payments/history -> 200` payments length `0`, `/referral/status -> 200` with `enabled=false`, `/miniapp/bootstrap -> 200`, `/entitlements/current -> 200` with status `none`, `/customer-subscriptions/ -> 200`.
+- Checkout/service POSTs now reach business logic with approved origin: `POST /payments/checkout/quote -> 200`, `POST /access-delivery-channels/current/service-state -> 200`, `POST /auth/refresh -> 200`.
+- Old Mini App outside-Telegram hang symptom was not reproduced in this smoke. `/en-EN/miniapp/home` rendered a deterministic empty state: `No Active Subscription` and `No VPN config available`.
+
+New handoff:
+
+- [CYBA-580](/CYBA/issues/CYBA-580): P2 Mini App VPN route returns `404` from a linked home surface.
+
+Blocked / gaps remaining:
+
+- Active/trial/expired subscription states were not tested because the current fixture has entitlement status `none`.
+- Non-empty wallet transaction rows and payment history rows were not available.
+- Referral/promo/partner-code accepted/rejected/enabled outcome fixtures were not available; current `/referral/status` is disabled.
+- Subscription-backed Mini App config/VPN config remains unavailable: `/api/v1/miniapp/config -> 404 Subscription config not found`.
+- Service-state route is reachable, but `service_identity`, `device_credential`, and `access_delivery_channel` are absent because entitlement status is `none`; no real VPN config/device credential was inspected.
+- Signed Telegram Mini App entry with sanitized `initData` was not available and was not tested.
+- Checkout quote was tested; checkout commit/payment capture was not attempted.
+- A broad browser route collection run timed out before JSON output. Partial screenshots were kept, then direct API/HTTP evidence was used for durable coverage. This is a tooling limitation, not filed as a product bug.
+
+Sanitization:
+
+- Secret value scan in `direct-api-business-flow-20260606T072026Z.json`: 0 hits for the three protected synthetic credential values.
+- Secret value scan in `focused-post-business-flow-20260606T072157Z.json`: 0 hits.
+- Secret value scan in `focused-subscriptions-surface-20260606T072408Z.json`: 0 hits.

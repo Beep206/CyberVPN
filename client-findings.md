@@ -161,3 +161,57 @@ Fresh backend/data-support evidence from [CYBA-489](/CYBA/issues/CYBA-489) was c
 - Remaining not-tested/product-data gaps: active/trial/expired subscriptions, non-empty wallet/payment rows, referral/promo/partner-code outcome rows, subscription-backed Mini App config/VPN config, service identity/device credential, and signed synthetic Telegram Mini App entry.
 
 Final client QA disposition: complete with documented pass/fail/blocked coverage. This is a NO-GO for real production readiness until the residual fixture/product gaps and open P1/P2 findings are accepted into a fix backlog or covered by separate approved safe fixtures.
+
+## CYBA-572 Recheck Update - 2026-06-06T07:20:26Z
+
+Post-blocker customer frontend recheck for [CYBA-572](/CYBA/issues/CYBA-572) used local-stage `http://127.0.0.1:13000` + backend `http://127.0.0.1:18080`.
+
+Result:
+
+- PASS: public/auth `en-EN` routes and `ru-RU` mobile smoke returned `200`.
+- PASS: protected dashboard shell did not expose unauthenticated customer data in captured evidence.
+- PASS: synthetic customer login/session returned `200/200`.
+- PASS: wallet, wallet transactions empty state, payment history empty state, referral disabled state, Mini App bootstrap, entitlements empty state, customer subscriptions empty list, checkout quote, service-state and auth refresh are reachable with approved local-stage origin.
+- PASS: old Mini App outside-Telegram indefinite `Signing you in via Telegram...` symptom was not reproduced; Mini App home now renders empty subscription/config states.
+- FAIL: [CYBA-580](/CYBA/issues/CYBA-580) filed for `/en-EN/miniapp/vpn -> 404` from a linked Mini App home VPN surface.
+- GAP: active/trial/expired subscriptions, non-empty wallet/payment history, referral/promo/partner-code outcomes, subscription-backed Mini App/VPN config, service identity/device credential, signed Telegram Mini App `initData`, and checkout commit/payment capture remain not tested due missing safe fixtures or explicit out-of-scope policy.
+
+Evidence:
+
+- `evidence/client/cyba-572/network/frontend-route-survey-20260606T072248Z.json`
+- `evidence/client/cyba-572/network/direct-api-business-flow-20260606T072026Z.json`
+- `evidence/client/cyba-572/network/focused-post-business-flow-20260606T072157Z.json`
+- `evidence/client/cyba-572/network/focused-subscriptions-surface-20260606T072408Z.json`
+- `evidence/client/cyba-572/screenshots/compact-public-pricing-en-desktop-20260606T071705Z.png`
+- `evidence/client/cyba-572/screenshots/compact-login-ru-mobile-20260606T071705Z.png`
+- `evidence/client/cyba-572/screenshots/compact-unauth-dashboard-en-desktop-20260606T071705Z.png`
+- `evidence/client/cyba-572/screenshots/compact-miniapp-home-no-telegram-mobile-20260606T071705Z.png`
+
+### P2 - Mini App VPN route returns 404 from linked home surface
+
+- Handoff: [CYBA-580](/CYBA/issues/CYBA-580)
+- Environment: local-stage frontend `http://127.0.0.1:13000`, backend `http://127.0.0.1:18080`, Playwright Chromium headless mobile `390x844` and HTTP route survey, locale `en-EN`.
+- User role/state: Mini App visitor outside Telegram; no signed `initData`, no real customer/payment/VPN data.
+- Steps to reproduce:
+  1. Open `http://127.0.0.1:13000/en-EN/miniapp/home`.
+  2. Use the Mini App home VPN/config quick action that links to `href="/miniapp/vpn"`.
+  3. Open `http://127.0.0.1:13000/en-EN/miniapp/vpn`.
+- Expected result: the implemented dedicated VPN access surface renders, or shows a clear no-subscription/no-config empty state.
+- Actual result: the route returns `404 Page Not Found | CyberVPN`.
+- Evidence:
+  - `evidence/client/cyba-572/network/frontend-route-survey-20260606T072248Z.json`
+  - `evidence/client/cyba-572/screenshots/compact-miniapp-home-no-telegram-mobile-20260606T071705Z.png`
+  - Source reference: `frontend/src/app/[locale]/miniapp/home/page.tsx` links to `/miniapp/vpn`; `frontend/src/app/[locale]/miniapp/vpn/page.tsx` implements the page.
+- Context7 docs checked: N/A - manual UI/business-flow finding.
+
+### Product Gaps / Not Tested After CYBA-572
+
+- Current synthetic customer entitlement status is `none`, so active/trial/expired subscription lifecycle UI was not covered.
+- Wallet/payment history APIs are reachable but only empty states were available.
+- Referral status is reachable but disabled; accepted/rejected promo/referral/partner-code outcomes were not available.
+- `/api/v1/miniapp/config` still returns `404 Subscription config not found`; subscription-backed VPN config was not inspected.
+- Service-state returns `200` but no `service_identity`, `device_credential`, or `access_delivery_channel` is present with the current empty entitlement state.
+- Signed Telegram Mini App entry remains untested without approved sanitized `initData`.
+- Payment capture/checkout commit was not attempted.
+
+Context7 docs checked: N/A - manual UI/business-flow findings and safe-fixture coverage report. No code/config/dependency changes were made.

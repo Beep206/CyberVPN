@@ -16,6 +16,7 @@ PUBLIC_DOC_PATHS = ("/docs", "/docs/", "/openapi.json", "/redoc", "/redoc/")
         ("development", True, True),
         ("staging", True, True),
         ("test", False, False),
+        ("test", True, False),
         ("production", False, False),
         ("production", True, False),
         ("Production", True, False),

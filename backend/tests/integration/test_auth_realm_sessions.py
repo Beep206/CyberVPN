@@ -200,6 +200,84 @@ async def test_admin_logout_revokes_realm_session_and_access_token() -> None:
 
 
 @pytest.mark.integration
+async def test_admin_logout_revokes_current_access_session_when_refresh_cookie_missing() -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            with sessionmaker() as db:
+                realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
+                admin_realm = await realm_repo.get_or_create_default_realm("admin")
+
+                user = AdminUserModel(
+                    login="realm_access_only_logout_admin",
+                    email="realm-access-only-logout@example.com",
+                    auth_realm_id=admin_realm.id,
+                    password_hash=await auth_service.hash_password("RealmAccessOnlyLogoutP@ssword123!"),
+                    role="admin",
+                    is_active=True,
+                    is_email_verified=True,
+                )
+                db.add(user)
+                db.commit()
+                user_id = user.id
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="https://admin.cyber-vpn.net",
+            ) as client:
+                login_response = await client.post(
+                    "/api/v1/auth/login",
+                    json={
+                        "login_or_email": "realm-access-only-logout@example.com",
+                        "password": "RealmAccessOnlyLogoutP@ssword123!",
+                    },
+                )
+                assert login_response.status_code == 200
+                access_token = client.cookies.get("access_token")
+                assert access_token is not None
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="https://admin.cyber-vpn.net",
+                cookies={"access_token": access_token},
+            ) as logout_client:
+                logout_response = await logout_client.post("/api/v1/auth/logout")
+                assert logout_response.status_code == 204
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="https://admin.cyber-vpn.net",
+            ) as stale_client:
+                stale_access_response = await stale_client.get(
+                    "/api/v1/auth/session",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+                assert stale_access_response.status_code == 401
+
+            with sessionmaker() as db:
+                sessions_result = await SyncSessionAdapter(db).execute(
+                    select(PrincipalSessionModel).where(PrincipalSessionModel.principal_subject == str(user_id))
+                )
+                sessions = list(sessions_result.scalars().all())
+                assert len(sessions) == 1
+                assert sessions[0].status == "revoked"
+                assert sessions[0].revoked_at is not None
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.integration
 async def test_partner_login_issues_partner_realm_cookies_and_session() -> None:
     auth_service = AuthService()
     fake_redis = FakeRedis()

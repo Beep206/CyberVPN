@@ -1,5 +1,7 @@
 {
     "skipToMainContent": "Skip to main content",
     "closeModal": "Close modal",
-    "mainContent": "Main content"
+    "mainContent": "Main content",
+    "closeDeveloperTools": "Close developer tools",
+    "openDeveloperTools": "Open developer tools"
 }

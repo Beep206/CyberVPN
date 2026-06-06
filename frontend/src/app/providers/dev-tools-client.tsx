@@ -12,16 +12,31 @@ const LazyDevPanel = dynamic(
   },
 );
 
-export function DevToolsClient() {
+type DevToolsClientProps = {
+  closeButtonLabel: string;
+  openButtonLabel: string;
+};
+
+export function DevToolsClient({
+  closeButtonLabel,
+  openButtonLabel,
+}: DevToolsClientProps) {
   const [isPanelEnabled, setPanelEnabled] = useState(false);
 
   return (
     <>
       <DevToolsBootstrap />
       {isPanelEnabled ? (
-        <LazyDevPanel defaultOpen />
+        <LazyDevPanel
+          closeButtonLabel={closeButtonLabel}
+          defaultOpen
+          openButtonLabel={openButtonLabel}
+        />
       ) : (
-        <DevButton onClick={() => setPanelEnabled(true)} />
+        <DevButton
+          ariaLabel={openButtonLabel}
+          onClick={() => setPanelEnabled(true)}
+        />
       )}
     </>
   );

@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, it, expect, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -14,9 +16,14 @@ vi.mock('@/i18n/config', () => ({
 // Import after mocks
 const { proxy } = await import('../proxy');
 
-function createRequest(path: string, cookies?: Record<string, string>, baseUrl = 'http://localhost:3000'): NextRequest {
+function createRequest(
+  path: string,
+  cookies?: Record<string, string>,
+  baseUrl = 'http://localhost:3000',
+  headers?: HeadersInit,
+): NextRequest {
   const url = new URL(path, baseUrl);
-  const req = new NextRequest(url);
+  const req = new NextRequest(url, { headers });
   if (cookies) {
     for (const [name, value] of Object.entries(cookies)) {
       req.cookies.set(name, value);
@@ -58,6 +65,19 @@ describe('proxy routing', () => {
     expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/ru-RU/dashboard/analytics');
   });
 
+  it('redirects public dashboard route by Host header when runtime URL is local', () => {
+    const req = createRequest(
+      '/en-EN/dashboard?tab=ops',
+      undefined,
+      'http://127.0.0.1:9001',
+      { host: 'cyber-vpn.net:9001' },
+    );
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net:9001/en-EN/dashboard?tab=ops');
+  });
+
   it('passes register route through', () => {
     const req = createRequest('/en-EN/register');
     const res = proxy(req);
@@ -79,6 +99,19 @@ describe('proxy routing', () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/en-EN/dashboard');
+  });
+
+  it('redirects cabinet root by Host header when runtime URL is local', () => {
+    const req = createRequest(
+      '/',
+      undefined,
+      'http://127.0.0.1:9001',
+      { host: 'my.cyber-vpn.net:9001' },
+    );
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net:9001/en-EN/dashboard');
   });
 
   it('keeps public marketing routes canonical on public host', () => {
