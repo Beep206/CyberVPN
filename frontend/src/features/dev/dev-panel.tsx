@@ -81,10 +81,16 @@ function MiniFPSGraph({ isDark }: { isDark: boolean }) {
 }
 
 interface DevPanelProps {
+    closeButtonLabel: string;
     defaultOpen?: boolean;
+    openButtonLabel: string;
 }
 
-export function DevPanel({ defaultOpen = false }: DevPanelProps) {
+export function DevPanel({
+    closeButtonLabel,
+    defaultOpen = false,
+    openButtonLabel,
+}: DevPanelProps) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "network" | "flags" | "chaos" | "i18n" | "theme" | "tools" | "storage" | "mocker" | "a11y" | "render" | "events" | "twa" | "console" | "xray" | "query" | "autofill">("nav");
     const [bypassAuth, setBypassAuth] = useState(false);
@@ -108,13 +114,23 @@ export function DevPanel({ defaultOpen = false }: DevPanelProps) {
         }
     };
 
-    if (!mounted) return <DevButton onClick={() => setIsOpen(true)} />;
+    if (!mounted) {
+        return (
+            <DevButton
+                ariaLabel={openButtonLabel}
+                onClick={() => setIsOpen(true)}
+            />
+        );
+    }
 
     const isDark = resolvedTheme === 'dark';
 
     return (
         <>
-            <DevButton onClick={() => setIsOpen(true)} />
+            <DevButton
+                ariaLabel={openButtonLabel}
+                onClick={() => setIsOpen(true)}
+            />
 
             <AnimatePresence>
                 {isOpen && (
@@ -166,6 +182,8 @@ export function DevPanel({ defaultOpen = false }: DevPanelProps) {
                                 <div className="flex items-center gap-4">
                                     <MiniFPSGraph isDark={isDark} />
                                     <button
+                                        type="button"
+                                        aria-label={closeButtonLabel}
                                         onClick={() => setIsOpen(false)}
                                         className={cn(
                                             "p-1 rounded transition-colors transition-all",

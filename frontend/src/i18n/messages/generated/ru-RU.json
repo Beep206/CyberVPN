@@ -1,7 +1,9 @@
 {
   "A11y": {
+    "closeDeveloperTools": "Закрыть инструменты разработчика",
     "closeModal": "Закрыть модальное окно",
     "mainContent": "Основное содержимое",
+    "openDeveloperTools": "Открыть инструменты разработчика",
     "skipToMainContent": "Перейти к основному содержимому"
   },
   "AcceptableUse": {

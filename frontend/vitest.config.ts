@@ -12,6 +12,14 @@ const resolveWorkspaceDependency = (...segments: string[]) => {
   return resolve(__dirname, '..', 'node_modules', ...segments);
 };
 
+const browserTestDeps = [
+  '@tanstack/react-query',
+  '@testing-library/dom',
+  '@testing-library/jest-dom/vitest',
+  '@testing-library/react',
+  '@testing-library/user-event',
+];
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -35,6 +43,14 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     css: false,
+    deps: {
+      optimizer: {
+        client: {
+          enabled: true,
+          include: browserTestDeps,
+        },
+      },
+    },
     alias: {
       '@': resolve(__dirname, './src'),
       'server-only': resolve(__dirname, './src/test/server-only.ts'),

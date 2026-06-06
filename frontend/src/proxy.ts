@@ -65,8 +65,29 @@ const PUBLIC_ROUTE_SEGMENTS = new Set([
   'trust',
 ]);
 
+function normalizeHostnameCandidate(candidate?: string | null): string | null {
+  const host = candidate?.split(',')[0]?.trim();
+
+  if (!host) {
+    return null;
+  }
+
+  try {
+    return new URL(`http://${host}`).hostname.toLowerCase().replace(/\.$/, '');
+  } catch {
+    return host.replace(/:\d+$/, '').toLowerCase().replace(/\.$/, '');
+  }
+}
+
 function normalizedHostname(request: NextRequest): string {
-  return request.nextUrl.hostname.toLowerCase();
+  return (
+    // In local/runtime proxy requests, nextUrl can point at the listener while
+    // Host carries the externally requested authority that isolation depends on.
+    normalizeHostnameCandidate(request.headers.get('host'))
+    ?? normalizeHostnameCandidate(request.headers.get('x-forwarded-host'))
+    ?? normalizeHostnameCandidate(request.nextUrl.host)
+    ?? request.nextUrl.hostname.toLowerCase()
+  );
 }
 
 function getRouteSegment(pathname: string): string {
@@ -114,6 +135,7 @@ export function proxy(request: NextRequest) {
     if (!routeSegment) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.protocol = 'https:';
+      redirectUrl.hostname = CABINET_PRIMARY_HOST;
       redirectUrl.pathname = `/${defaultLocale}/dashboard`;
       return NextResponse.redirect(redirectUrl);
     }

@@ -34,3 +34,80 @@
 - Bug packet: `docs/qa/manual-flow-audit/2026-06-04/evidence/bug-packets/MF-PART-002.md`
 
 Context7 MCP проверен: quota exceeded. ctx7 fallback проверен: `/microsoft/playwright` `BrowserContext.cookies(urls)` и `page.screenshot` path option.
+
+## CYBA-573 Partner Business-Flow Recheck
+
+Дата: `2026-06-06`
+
+### Result
+
+- Business-flow content: `PASS`.
+- Routes checked: `/en-EN/dashboard`, `/en-EN/codes`, `/en-EN/finance`, `/en-EN/conversions`, `/en-EN/team`.
+- Environment: local `partner` Next dev server `http://127.0.0.1:3002`, Chromium via Playwright, viewport `1440x1000`, locale `en-EN`.
+- User role/state: `partner_operator`, workspace owner, active workspace, Creator / Affiliate lane, release ring `R4`, synthetic `Safe Partner Lab` fixture.
+- Data safety: synthetic masked fixture only; no credentials, JWT/cookies/storageState, production PII, payment secrets, or live payout/customer data stored.
+- Contract/unit checks: `8 passed`, `48 passed` in targeted partner Vitest.
+- UI smoke content checks: all five route assertions passed with no `SYSTEM FAILURE` and no `pageErrors`.
+- Overall smoke summary is `pass=false` only because console/network findings below remain in evidence.
+
+### Bugs
+
+#### CYBA-573-PART-I18N-001 - `/codes` logs missing `Partner.codes.modes.review`
+
+- Severity: `P3`.
+- Type: i18n/UX.
+- Route: `/en-EN/codes`.
+- Browser/viewport/locale: Chromium via Playwright, `1440x1000`, `en-EN`.
+- Role/state: `partner_operator`, workspace owner, active safe fixture workspace.
+- Steps to reproduce:
+  1. Start `partner` locally on `http://127.0.0.1:3002`.
+  2. Use dev bypass as partner operator with safe fixture mocks from `evidence/partner/CYBA-573/cyba-573-partner-smoke-rerun.mjs`.
+  3. Open `/en-EN/codes`.
+  4. Capture browser console.
+- Expected result: page renders without missing-translation console errors; every commercial mode returned by `getPartnerCommercialSurfaceMode('codes', state)` has a `Partner.codes.modes.*` message.
+- Actual result: page content renders, but console logs `IntlError: MISSING_MESSAGE: Could not resolve Partner.codes.modes.review in messages for locale en-EN`.
+- Evidence:
+  - Summary: `evidence/partner/CYBA-573/playwright-ui-smoke-summary.json`
+  - Screenshot: `evidence/partner/CYBA-573/screenshots/CYBA-573__partner-codes__safe-fixture__en-EN__desktop-1440__pass__20260606-rerun.png`
+  - Source context: `partner/src/features/partner-commercial/components/codes-tracking-page.tsx:135`, `partner/src/features/partner-commercial/lib/commercial-capabilities.ts:122`, `partner/messages/en-EN/partner.json:1166`.
+- Context7 docs checked: MCP quota exceeded; ctx7 fallback `/amannn/next-intl` checked for missing messages, `IntlErrorCode.MISSING_MESSAGE`, `onError`, and `getMessageFallback`.
+
+### Product Gaps
+
+#### CYBA-573-PART-OBS-001 - local partner smoke logs 403 analytics beacon responses
+
+- Severity: `P4`.
+- Type: observability/dev-smoke hygiene.
+- Routes affected during smoke: `/en-EN/dashboard`, `/en-EN/codes`, `/en-EN/finance`, `/en-EN/conversions`, `/en-EN/team`.
+- Browser/viewport/locale: Chromium via Playwright, `1440x1000`, `en-EN`.
+- Role/state: `partner_operator`, workspace owner, active safe fixture workspace.
+- Steps to reproduce:
+  1. Run the CYBA-573 Playwright harness against local `partner` dev server.
+  2. Watch console/network responses while navigating the five partner routes.
+- Expected result: local smoke either disables telemetry beacons or receives non-error responses so business-flow QA is not polluted by console/network 403 noise.
+- Actual result: `navigator.sendBeacon` requests return 403 for `POST /api/analytics/web-vitals`, `POST /api/analytics/product-events`, and `POST /api/analytics/traffic`. Partner `/api/v1/partner-workspaces/**` mocks returned expected data and business content still rendered.
+- Evidence:
+  - Summary failedResponses: `evidence/partner/CYBA-573/playwright-ui-smoke-summary.json`
+  - Log: `evidence/partner/CYBA-573/playwright-ui-smoke-rerun.log`
+  - Source context: `partner/src/shared/lib/web-vitals.ts`, `partner/src/lib/product-intelligence/client.ts`, `partner/src/shared/ui/atoms/traffic-analytics-reporter.tsx`.
+- Context7 docs checked: N/A - product observability/dev-environment finding; no framework behavior conclusion required.
+
+### Not Tested / Limitations
+
+- Real backend/staging partner credentials were not used.
+- No production/customer/payment data was touched.
+- Cross-surface client/admin attribution consistency was not verified against live backend data in this heartbeat; this recheck used safe local route mocks plus partner API contract tests.
+- Withdrawal mutations, payout creation, and destructive partner data changes were not executed.
+
+### Evidence
+
+- Targeted Vitest log: `evidence/partner/CYBA-573/targeted-vitest.log`
+- Playwright harness: `evidence/partner/CYBA-573/cyba-573-partner-smoke-rerun.mjs`
+- Playwright summary: `evidence/partner/CYBA-573/playwright-ui-smoke-summary.json`
+- Playwright log: `evidence/partner/CYBA-573/playwright-ui-smoke-rerun.log`
+- Screenshots:
+  - `evidence/partner/CYBA-573/screenshots/CYBA-573__partner-dashboard__safe-fixture__en-EN__desktop-1440__pass__20260606-rerun.png`
+  - `evidence/partner/CYBA-573/screenshots/CYBA-573__partner-codes__safe-fixture__en-EN__desktop-1440__pass__20260606-rerun.png`
+  - `evidence/partner/CYBA-573/screenshots/CYBA-573__partner-finance__safe-fixture__en-EN__desktop-1440__pass__20260606-rerun.png`
+  - `evidence/partner/CYBA-573/screenshots/CYBA-573__partner-conversions__safe-fixture__en-EN__desktop-1440__pass__20260606-rerun.png`
+  - `evidence/partner/CYBA-573/screenshots/CYBA-573__partner-team__safe-fixture__en-EN__desktop-1440__pass__20260606-rerun.png`

@@ -1,229 +1,158 @@
-# Accessibility, i18n and Responsive Review
+# Accessibility, i18n and Responsive Post-Fix Smoke
 
-Issue: [CYBA-460](/CYBA/issues/CYBA-460)
-Parent audit: [CYBA-451](/CYBA/issues/CYBA-451)
-Date: `2026-06-04`
+Issue: [CYBA-577](/CYBA/issues/CYBA-577)
+Parent: [CYBA-568](/CYBA/issues/CYBA-568)
+Baseline references: [CYBA-460](/CYBA/issues/CYBA-460), [CYBA-549](/CYBA/issues/CYBA-549)
+Date: `2026-06-06`
 Reviewer: `qa-accessibility-i18n-reviewer`
 
 ## Scope Tested
 
 Environment:
 
-- Client approved local-stage: `http://127.0.0.1:13000`
-- Admin approved local-stage: `http://127.0.0.1:13001`
-- Backend health: `http://127.0.0.1:18080/health`
-- Partner local-dev only: `http://127.0.0.1:3002`; no approved partner stage container was available
+- Client local dev: `http://127.0.0.1:9001`
+- Admin local dev: `http://127.0.0.1:3003`
+- Partner local dev: `http://127.0.0.1:3002`
+- Note: `127.0.0.1:3001` was occupied by an unrelated `Uptime Kuma` service, so admin was intentionally started on `3003`.
 - Browser: Chromium via Playwright headless
 - User state: anonymous only; no cookies, storage state, HAR, traces, JWT, Telegram `initData`, payment data, or production data saved
 
 Viewport matrix:
 
-- `1440x900`
-- `1366x768`
-- `768x1024`
 - `390x844`
+- `768x1024`
+- `1366x768`
+- `1440x900`
 
 Locale matrix:
 
 - Client: `en-EN`, `ru-RU`, `ar-SA` RTL smoke
-- Admin: `en-EN`, `ru-RU`; `ar-SA` redirects to `ru-RU` because `admin/src/i18n/config.ts` has only `ru-RU` and `en-EN`
-- Partner: `en-EN`, `ru-RU`; `ar-SA` redirects to `ru-RU` because `partner/src/i18n/config.ts` has only `ru-RU` and `en-EN`
+- Admin: `en-EN`, `ru-RU`; `ar-SA` redirects to `ru-RU` because admin supports only `ru-RU` and `en-EN`
+- Partner: `en-EN`, `ru-RU`; `ar-SA` redirects to `ru-RU` because partner supports only `ru-RU` and `en-EN`
 
 Evidence:
 
-- `evidence/a11y-i18n-responsive/manifest.md`
-- `evidence/a11y-i18n-responsive/audit-results.json`
-- `evidence/a11y-i18n-responsive/screenshots/**`
-- Revalidation after gate resolution: `evidence/a11y-i18n-responsive/revalidation/20260604T162940Z/manifest.md`
-- Revalidation raw results: `evidence/a11y-i18n-responsive/revalidation/20260604T162940Z/revalidation-results.json`
+- `evidence/a11y-i18n-responsive/CYBA-577-client-partner-20260606T072341Z/manifest.md`
+- `evidence/a11y-i18n-responsive/CYBA-577-client-partner-20260606T072341Z/audit-results.json`
+- `evidence/a11y-i18n-responsive/CYBA-577-client-partner-20260606T072341Z/delayed-client-visibility-check.json`
+- `evidence/a11y-i18n-responsive/CYBA-577-client-partner-20260606T072341Z/screenshots/**`
+- `evidence/a11y-i18n-responsive/CYBA-577-admin-3003-20260606T072828Z/manifest.md`
+- `evidence/a11y-i18n-responsive/CYBA-577-admin-3003-20260606T072828Z/audit-results.json`
+- `evidence/a11y-i18n-responsive/CYBA-577-admin-3003-20260606T072828Z/delayed-visibility-check.json`
+- `evidence/a11y-i18n-responsive/CYBA-577-admin-3003-20260606T072828Z/screenshots/**`
 
 Docs evidence:
 
-- Context7 docs checked: unavailable - MCP quota exceeded.
-- Fallback docs checked: `ctx7 docs /microsoft/playwright` for screenshot, viewport and keyboard APIs.
-- Web Interface Guidelines fetched from `https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md` on `2026-06-04`.
-
-## Revalidation After Readiness Gate Resolution
-
-Triggered by [CYBA-460](/CYBA/issues/CYBA-460) `issue_blockers_resolved` wake on `2026-06-04`.
-
-Scope:
-
-- Client/admin anonymous bounded smoke only; no authenticated, payment, VPN, OAuth, email or Telegram flows were exercised.
-- Browser: Chromium via Playwright headless.
-- Viewports: `390x844` and `1440x900` targeted smoke.
-- Locales: client `en-EN`, `ru-RU`, `ar-SA`; admin `en-EN`, `ru-RU`, `ar-SA` redirect smoke.
-- Backend health: `http://127.0.0.1:18080/health`.
-
-Result:
-
-- PASS: 8 client/admin cases loaded at `200`.
-- PASS: backend health returned `200`.
-- PASS: DOM smoke found no page-level horizontal overflow, no unlabeled visible inputs and no nameless visible controls in the revalidated cases.
-- PASS: 5 new anonymous/public screenshots saved under `evidence/a11y-i18n-responsive/revalidation/20260604T162940Z/screenshots/`.
-- PASS: strict token/value scan over new non-binary revalidation artifacts found no bearer/JWT/token/cookie/password/secret/API-key values.
-- No new P0/P1 issue was found. The original 3 P2 bugs remain the active findings and follow-up ownership remains unchanged.
-
-Partner revalidation note:
-
-- Partner local-dev was probed but not revalidated in this heartbeat because `http://127.0.0.1:3002/en-EN/login` was not serving and `npm run dev` in `partner/` failed during `partner/scripts/ensure-local-next-deps.sh`.
-- Failure reason: `npm ci` lockfile/package mismatch, missing `@simplewebauthn/browser@13.3.0` in the lock file.
-- I did not update dependencies or lockfiles in this QA issue. Existing partner evidence remains `local-dev only` from the earlier pass, and the absence of an approved partner stage container remains a limitation.
-
-Context7 docs checked: unavailable - monthly quota exceeded; fallback `ctx7 docs /microsoft/playwright` checked for viewport, `newContext`, `page.goto` and screenshot APIs.
+- Context7 docs checked: N/A - manual UI/accessibility/i18n smoke; no source code or framework-dependent fix recommendation was made.
 
 ## Result Summary
 
-No P0/P1 issue was found in the anonymous/read-only a11y/i18n/responsive smoke.
+Post-fix smoke found one P1 and one P2 issue.
 
-Found bugs:
-
-| ID | Severity | Area | Summary |
-|---|---|---|---|
-| BUG-CYBA-460-001 | P2 | client i18n/RTL | `ar-SA` client auth/pricing pages are declared RTL but remain largely English |
-| BUG-CYBA-460-002 | P2 | mobile responsive/a11y | Login password reveal/input adornments are clipped or off-card on `390x844` |
-| BUG-CYBA-460-003 | P2 | keyboard focus | Login text inputs have weak/non-obvious focus indication |
+| ID | Severity | Area | Summary | Follow-up |
+|---|---|---|---|---|
+| BUG-001 | P1 | admin visual accessibility | Admin login form exists in DOM but is visually absent/near-invisible after 5 seconds | [CYBA-583](/CYBA/issues/CYBA-583) |
+| BUG-002 | P2 | client accessibility | Client floating bottom-left icon button has no accessible name | [CYBA-584](/CYBA/issues/CYBA-584) |
 
 Positive checks:
 
-- Client/admin/partner anonymous login surfaces loaded at `200` for `en-EN` and `ru-RU`.
-- Representative pages had `html` scroll width equal to viewport width in the DOM audit; no page-level horizontal scroll was detected.
-- Skip links were present on tested login/marketing pages.
-- Visible form inputs had programmatic labels in the DOM audit.
-- Icon-only theme/language controls had accessible names in the DOM audit.
+- Client `ar-SA` login/pricing now renders `html lang="ar-SA"` and `dir="rtl"` with Arabic text and no tracked English fallback phrase hits in the smoke cases.
+- Client `ru-RU` login/pricing and partner/admin `ru-RU` login cases had no tracked English fallback phrase hits.
+- Partner login/application smoke passed at `200` with no horizontal overflow, unlabeled visible inputs, nameless controls, or clipped visible controls.
+- Client/partner/admin tested cases had `0` page-level horizontal overflow and `0` unlabeled visible input cases in the DOM audit.
+- Delayed client visibility check confirmed the client login form is visible after the entry animation; the earlier 1-second screenshots are timing artifacts, not a client form visibility bug.
 
 ## Bugs
 
-### BUG-CYBA-460-001 - Client `ar-SA` pages are RTL but largely English
+### BUG-001 - Admin login form is visually absent after load
+
+Severity: P1
+Type: visual accessibility / responsive regression
+Surface: `admin-panel`
+Environment: local dev `http://127.0.0.1:3003`, Chromium via Playwright headless, anonymous, `ru-RU` `390x844` and `en-EN` `1440x900`
+
+Steps to reproduce:
+
+1. Start admin with `NEXT_TELEMETRY_DISABLED=1 HOST=0.0.0.0 PORT=3003 npm run dev -w admin`.
+2. Open `http://127.0.0.1:3003/ru-RU/login`.
+3. Set viewport to `390x844`.
+4. Wait 5 seconds after `domcontentloaded`.
+5. Repeat with `http://127.0.0.1:3003/en-EN/login` at `1440x900`.
+
+Expected:
+
+- The admin login form should be visible: heading, passkey button, email/password fields, password reveal, submit button and helper copy should have usable contrast and be visually discoverable.
+
+Actual:
+
+- Screenshots after 5 seconds show only the header/language controls and grey scanline background; the central login form is not visually discernible.
+- DOM evidence still contains in-viewport form elements and body text, including `Email адрес`, `Пароль`, `Войти`, `Email address`, `Password`, and `Sign In`, so the route returns `200` and the form exists but the visual flow is effectively blocked.
+
+Evidence:
+
+- `evidence/a11y-i18n-responsive/CYBA-577-admin-3003-20260606T072828Z/screenshots/CYBA-577__admin-panel__anonymous__ru-RU__mobile390__login-after-5s__20260606T072828Z.png`
+- `evidence/a11y-i18n-responsive/CYBA-577-admin-3003-20260606T072828Z/screenshots/CYBA-577__admin-panel__anonymous__en-EN__desktop1440__login-after-5s__20260606T072828Z.png`
+- `evidence/a11y-i18n-responsive/CYBA-577-admin-3003-20260606T072828Z/delayed-visibility-check.json`
+- `evidence/a11y-i18n-responsive/CYBA-577-admin-3003-20260606T072828Z/audit-results.json`
+
+Context7 docs checked: N/A - manual UI/accessibility visual finding.
+
+### BUG-002 - Client floating icon button has no accessible name
 
 Severity: P2
-Type: i18n/RTL bug
+Type: accessibility bug
 Surface: `client-frontend`
-Environment: local-stage `http://127.0.0.1:13000`, Chromium, anonymous, `ar-SA`, `390x844` and `1440x900`
+Environment: local dev `http://127.0.0.1:9001`, Chromium via Playwright headless, anonymous, `390x844`, `768x1024`, `1366x768`
 
 Steps to reproduce:
 
-1. Open `http://127.0.0.1:13000/ar-SA/login`.
-2. Set viewport to `390x844`.
-3. Observe heading, subtitle, field labels, buttons and helper links.
-4. Open `http://127.0.0.1:13000/ar-SA/pricing`.
-5. Observe plan duration labels, selected-term copy and price card text.
+1. Start client with `NEXT_TELEMETRY_DISABLED=1 npm run dev -w frontend`.
+2. Open `http://127.0.0.1:9001/en-EN/login` at `390x844`.
+3. Inspect visible controls or run a screen-reader/accessibility smoke.
+4. Repeat on `http://127.0.0.1:9001/ar-SA/pricing` at `390x844` and `http://127.0.0.1:9001/en-EN/login` at `768x1024`.
 
 Expected:
 
-- `ar-SA` should render a coherent Arabic RTL experience for user-facing auth and pricing text.
-- English should remain only for brand names, protocol names, code tokens or explicit `translate="no"` content.
+- Every visible icon-only button should expose a meaningful accessible name, for example through `aria-label`, `aria-labelledby`, or visible text.
 
 Actual:
 
-- `html lang="ar-SA"` and `dir="rtl"` are set, but login renders English strings such as `Sign In`, `Access your secure connection`, `Email address`, `Password`, `Remember me`, `Forgot password?`, and `Sign up`.
-- Pricing renders English strings such as `CHOOSE YOUR BILLING TERM`, `DAYS 30`, `SELECTABLE TERM`, `BEST VALUE`, `BASIC`, and English supporting copy.
-- Source evidence confirms the issue is data-backed: `frontend/messages/ar-SA/auth.json` contains many English values under `login`.
+- A visible bottom-left floating `button` at `48x48` has empty text and empty accessible name.
+- DOM audit records the nameless button on client login/pricing/dashboard smoke cases, including `en-EN`, `ru-RU`, and `ar-SA`.
+- Touch size is acceptable and the control is not clipped; the defect is the missing accessible name.
 
 Evidence:
 
-- `evidence/a11y-i18n-responsive/screenshots/client-frontend/login/CYBA-460__client-frontend__anonymous-rtl-smoke__ar-SA__mobile390__login__20260604T160112Z.png`
-- `evidence/a11y-i18n-responsive/screenshots/client-frontend/pricing/CYBA-460__client-frontend__anonymous-rtl-smoke__ar-SA__mobile390__pricing__20260604T160112Z.png`
-- `evidence/a11y-i18n-responsive/audit-results.json`
+- `evidence/a11y-i18n-responsive/CYBA-577-client-partner-20260606T072341Z/audit-results.json`
+- `evidence/a11y-i18n-responsive/CYBA-577-client-partner-20260606T072341Z/screenshots/CYBA-577__client-frontend__anonymous__en-EN__mobile390__login-after-3s__20260606T072341Z.png`
+- `evidence/a11y-i18n-responsive/CYBA-577-client-partner-20260606T072341Z/screenshots/CYBA-577__client-frontend__anonymous__ar-SA__mobile390__-pricing__20260606T072341Z.png`
 
-Context7 docs checked: N/A - manual UI/i18n finding; repo-local locale messages confirm the content mismatch.
+Context7 docs checked: N/A - manual UI/accessibility finding.
 
-### BUG-CYBA-460-002 - Mobile login adornments are clipped/off-card
+## Product Gaps / Not Tested
 
-Severity: P2
-Type: responsive/accessibility bug
-Surfaces: `client-frontend`, `partner-portal`; same layout risk visible in `admin-panel` input adornments
-Environment: client/admin local-stage, partner local-dev, Chromium, anonymous, `ru-RU`, `390x844`
-
-Steps to reproduce:
-
-1. Open `http://127.0.0.1:13000/ru-RU/login` at `390x844`.
-2. Observe the password field and password reveal button area.
-3. Open `http://127.0.0.1:3002/ru-RU/login` at `390x844`.
-4. Observe the email/password terminal-prefix adornments and password reveal area.
-5. Repeat with `http://127.0.0.1:13001/ru-RU/login` for admin input adornments.
-
-Expected:
-
-- Input text, terminal-prefix adornments and password reveal controls should remain fully inside the card/input bounds.
-- Touch targets should be fully visible and at least `44x44` where they are interactive.
-
-Actual:
-
-- Client mobile login reports password reveal control at `x=368`, `width=38`, `right=406` against a `390px` viewport.
-- Partner mobile login reports password reveal control at `x=390`, `width=38`, `right=428` against a `390px` viewport.
-- Admin mobile login reports the password reveal control at `x=410`, `width=40`, `right=450` against a `390px` viewport in the DOM audit.
-- Partner/admin screenshots show terminal-prefix text clipped at the left side of inputs; the reveal control is not fully visible.
-
-Evidence:
-
-- `evidence/a11y-i18n-responsive/screenshots/client-frontend/login/CYBA-460__client-frontend__anonymous__ru-RU__mobile390__login__20260604T160112Z.png`
-- `evidence/a11y-i18n-responsive/screenshots/partner-portal/login/CYBA-460__partner-portal__anonymous-local-dev__ru-RU__mobile390__login__20260604T160112Z.png`
-- `evidence/a11y-i18n-responsive/screenshots/admin-panel/login/CYBA-460__admin-panel__anonymous__ru-RU__mobile390__login__20260604T160112Z.png`
-- `evidence/a11y-i18n-responsive/audit-results.json`
-
-Context7 docs checked: N/A - manual UI/responsive finding; Web Interface Guidelines touch/layout rules were used as QA criteria.
-
-### BUG-CYBA-460-003 - Login text inputs do not show a clear focus indication
-
-Severity: P2
-Type: keyboard accessibility bug
-Surfaces: `client-frontend`, `admin-panel`, `partner-portal`
-Environment: Chromium, anonymous, `ru-RU`, `390x844`
-
-Steps to reproduce:
-
-1. Open any of:
-   - `http://127.0.0.1:13000/ru-RU/login`
-   - `http://127.0.0.1:13001/ru-RU/login`
-   - `http://127.0.0.1:3002/ru-RU/login`
-2. Use keyboard `Tab` until the email field receives focus, or focus the first input programmatically.
-3. Compare the field focus state to the visible focus rings on header buttons and CTA buttons.
-
-Expected:
-
-- Focused text inputs should have a clear visible focus state comparable to other interactive controls.
-- The focus state should not rely only on subtle color/opacity changes or ambiguous decorative artifacts.
-
-Actual:
-
-- DOM audit recorded input focus styles as effectively transparent box-shadow/outline values on tested login fields.
-- Focus screenshots show weak or ambiguous focus indication: the field changes are subtle and in some cases appear as a horizontal artifact through the input rather than a distinct focus ring.
-
-Evidence:
-
-- `evidence/a11y-i18n-responsive/screenshots/client-frontend/focus/CYBA-460__client-frontend__anonymous__ru-RU__mobile390__email-focus__20260604T160736Z.png`
-- `evidence/a11y-i18n-responsive/screenshots/admin-panel/focus/CYBA-460__admin-panel__anonymous__ru-RU__mobile390__email-focus__20260604T160736Z.png`
-- `evidence/a11y-i18n-responsive/screenshots/partner-portal/focus/CYBA-460__partner-portal__anonymous__ru-RU__mobile390__email-focus__20260604T160736Z.png`
-- `evidence/a11y-i18n-responsive/audit-results.json`
-
-Context7 docs checked: N/A - manual UI/a11y finding; Web Interface Guidelines focus-state rules were used as QA criteria.
-
-## Product Gaps / Not Bugs
-
-- Admin RTL smoke is not available in this pass: `admin/src/i18n/config.ts` declares only `ru-RU` and `en-EN`, and `ar-SA` requests redirect to `ru-RU`.
-- Partner RTL smoke is not available in this pass: `partner/src/i18n/config.ts` declares only `ru-RU` and `en-EN`, and `ar-SA` requests redirect to `ru-RU`.
-- Partner evidence is `local-dev` only. The operator handoff said the partner stage container was not found, so these captures should not be treated as full staging approval.
-- Authenticated client/partner/admin dashboards, RBAC states, payment/VPN/OAuth/email/Telegram flows, and account-dependent long-text states remain blocked/not-tested because no approved synthetic accounts or fixtures were provided through a secret-safe channel.
-- Console notes included local `401`/`403` resource messages on some anonymous pages. I did not classify those as bugs in this review because the tested pages still rendered at `200` and no user-facing failure was observed in the accessibility/i18n/responsive scope.
+- Admin RTL smoke is not available: admin supports only `ru-RU` and `en-EN`; `http://127.0.0.1:3003/ar-SA/login` redirects to `http://127.0.0.1:3003/ru-RU/login`.
+- Partner RTL smoke is not available: partner supports only `ru-RU` and `en-EN`; `http://127.0.0.1:3002/ar-SA/login` redirects to `http://127.0.0.1:3002/ru-RU/login`.
+- Authenticated client/partner/admin dashboards, RBAC states, payment/VPN/OAuth/email/Telegram flows, and account-dependent long-text states remain not tested because no approved synthetic accounts or fixtures were provided through a secret-safe channel.
+- Managed Paperclip runtime workspace was not available for this issue; smoke used local dev servers in this checkout.
+- Console/server logs included local backend proxy connection failures for anonymous client passkey policy calls to `127.0.0.1:8000`; those were not classified as a11y/i18n/responsive bugs because the anonymous pages rendered and no production data was used.
 
 ## Coverage Matrix
 
 | Surface | Routes checked | Locales | Viewports | State | Result |
 |---|---|---|---|---|---|
-| Client | `/`, `/login`, `/pricing`, `/dashboard` status; `/login` and `/pricing` screenshots | `en-EN`, `ru-RU`, `ar-SA` | `1440x900`, `1366x768`, `768x1024`, `390x844` | anonymous | Tested with bugs above |
-| Admin | `/login`, `/dashboard` status; `/login` screenshots | `en-EN`, `ru-RU`; `ar-SA` redirect smoke | `1440x900`, `1366x768`, `768x1024`, `390x844` | anonymous | Tested with bugs/RTL gap above |
-| Partner | `/`, `/login`, `/dashboard`, `/application` status; `/login` and root redirect screenshots | `en-EN`, `ru-RU`; `ar-SA` redirect smoke | `1440x900`, `1366x768`, `768x1024`, `390x844` | anonymous local-dev | Limited evidence only |
+| Client | `/login`, `/pricing`, `/dashboard` status/DOM smoke | `en-EN`, `ru-RU`, `ar-SA` | `390x844`, `768x1024`, `1366x768`, `1440x900` | anonymous | P2 unnamed floating button; no overflow/clipping/unlabeled inputs; `ar-SA` RTL text smoke passed |
+| Admin | `/login`, `/dashboard` status/DOM smoke | `en-EN`, `ru-RU`; `ar-SA` redirect smoke | `390x844`, `768x1024`, `1440x900` | anonymous | P1 visual login form issue; no overflow/clipping/unlabeled inputs in DOM audit |
+| Partner | `/login`, `/application` | `en-EN`, `ru-RU`; `ar-SA` redirect smoke | `390x844`, `768x1024`, `1440x900` | anonymous | Passed within anonymous scope |
 
 ## Sanitization Review
 
 - PASS: screenshots contain anonymous login/public UI only.
-- PASS: `audit-results.json` redacts token-like query parameters and bearer/JWT-like strings.
 - PASS: no cookies, storage state, HAR, trace, video, `.env`, payment data, production PII, Telegram `initData`, JWT, refresh token, or password values were saved.
+- PASS: strict value scan over `evidence/a11y-i18n-responsive/**` found no bearer/JWT/token/API-key/secret/password assignments. Broader word scan produced only benign policy labels such as `Cookie Policy` and manifest text.
 
 ## Recommended Handoff
 
-- [CYBA-469](/CYBA/issues/CYBA-469): Luma Localization Translator owns client `ar-SA` auth/pricing localization follow-up.
-- [CYBA-470](/CYBA/issues/CYBA-470): Neon Customer Frontend Engineer owns client mobile login input/adornment/focus follow-up.
-- [CYBA-471](/CYBA/issues/CYBA-471): Prism Admin Partner Frontend Engineer owns admin/partner mobile login input/adornment/focus follow-up.
-- QA Lead / Flow Mapper: keep authenticated/RBAC/payment/VPN/Telegram/OAuth coverage blocked until synthetic accounts and integration fixtures are available.
+- [CYBA-583](/CYBA/issues/CYBA-583): Prism Admin Partner Frontend Engineer owns the P1 admin login visibility fix and revalidation.
+- [CYBA-584](/CYBA/issues/CYBA-584): Neon Customer Frontend Engineer owns the P2 client floating icon accessible-name fix and revalidation.
+- QA Lead / Flow Mapper: treat this smoke as complete, but keep final acceptance gated on the two follow-up findings above.

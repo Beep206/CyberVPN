@@ -87,6 +87,39 @@ class LogoutUseCase:
         await self._session.flush()
         return LogoutResult(refresh_token_revoked=True, access_tokens=tuple(access_tokens))
 
+    async def execute_access_token(self, *, access_token_jti: str, expires_at: datetime) -> LogoutResult:
+        """Revoke the currently presented access token and linked session.
+
+        This is a defense-in-depth path for web logout: the current access JWT
+        must stop working even if the refresh cookie is missing, stale, or could
+        not be matched to a principal session.
+        """
+        revoked_at = datetime.now(UTC)
+        refresh_token_revoked = False
+
+        result = await self._session.execute(
+            select(PrincipalSessionModel).where(
+                PrincipalSessionModel.access_token_jti == access_token_jti,
+                PrincipalSessionModel.revoked_at.is_(None),
+            )
+        )
+        principal_session = result.scalar_one_or_none()
+
+        if principal_session:
+            principal_session.revoked_at = revoked_at
+            principal_session.status = "revoked"
+            if principal_session.refresh_token_id:
+                refresh_token = await self._session.get(RefreshToken, principal_session.refresh_token_id)
+                if refresh_token and refresh_token.revoked_at is None:
+                    refresh_token.revoked_at = revoked_at
+                    refresh_token_revoked = True
+            await self._session.flush()
+
+        return LogoutResult(
+            refresh_token_revoked=refresh_token_revoked,
+            access_tokens=(RevokedAccessToken(jti=access_token_jti, expires_at=expires_at),),
+        )
+
     async def execute_all(self, user_id: UUID) -> int:
         """
         Revoke all refresh tokens for a specific user.

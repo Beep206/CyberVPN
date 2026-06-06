@@ -81,6 +81,10 @@ function shouldPreserveLocalStagePasskeyOrigin(request: NextRequest, path: strin
   return isPasskeyApiPath(path) && isApprovedLocalStageAdminRequest(request);
 }
 
+function shouldUseSecureCookie(request: NextRequest): boolean {
+  return !isApprovedLocalStageAdminRequest(request);
+}
+
 function normalizeApprovedLocalStageCsrfHeaders(request: NextRequest, headers: Headers, path: string[]): void {
   if (SAFE_METHODS.has(request.method.toUpperCase())) {
     return;
@@ -155,8 +159,8 @@ function getSetCookieHeaders(response: Response): string[] {
   return setCookie ? [setCookie] : [];
 }
 
-function normalizeSetCookieForRequest(headerValue: string, request: NextRequest, path: string[]): string {
-  if (!shouldPreserveLocalStagePasskeyOrigin(request, path)) {
+function normalizeSetCookieForRequest(headerValue: string, request: NextRequest): string {
+  if (shouldUseSecureCookie(request)) {
     return headerValue;
   }
 
@@ -180,7 +184,7 @@ function buildResponseHeaders(upstreamResponse: Response, request: NextRequest, 
   }
 
   for (const cookie of getSetCookieHeaders(upstreamResponse)) {
-    headers.append('set-cookie', normalizeSetCookieForRequest(cookie, request, path));
+    headers.append('set-cookie', normalizeSetCookieForRequest(cookie, request));
   }
 
   return headers;

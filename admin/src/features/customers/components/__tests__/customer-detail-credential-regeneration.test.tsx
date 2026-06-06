@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomerDetail } from '../customer-detail';
 
 const {
+  mockUseState,
   mockGetMobileUser,
   mockGetWallet,
   mockGetCustomerPaymentAttempts,
@@ -21,31 +22,35 @@ const {
   mockRevokeAllDevices,
   mockResetPassword,
   mockRegenerateVpnCredentials,
-} = vi.hoisted(() => ({
-  mockGetMobileUser: vi.fn(),
-  mockGetWallet: vi.fn(),
-  mockGetCustomerPaymentAttempts: vi.fn(),
-  mockGetReferralUserDetail: vi.fn(),
-  mockGetPartnerDetail: vi.fn(),
-  mockListSupportNotes: vi.fn(),
-  mockListCustomerSubscriptions: vi.fn(),
-  mockGetVpnUser: vi.fn(),
-  mockEnableVpnUser: vi.fn(),
-  mockDisableVpnUser: vi.fn(),
-  mockGetSubscriptionSnapshot: vi.fn(),
-  mockGetTimeline: vi.fn(),
-  mockRevokeAllDevices: vi.fn(),
-  mockResetPassword: vi.fn(),
-  mockRegenerateVpnCredentials: vi.fn(),
-}));
+} = vi.hoisted(() => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useState } = require('react') as typeof import('react');
+
+  return {
+    mockUseState: useState,
+    mockGetMobileUser: vi.fn(),
+    mockGetWallet: vi.fn(),
+    mockGetCustomerPaymentAttempts: vi.fn(),
+    mockGetReferralUserDetail: vi.fn(),
+    mockGetPartnerDetail: vi.fn(),
+    mockListSupportNotes: vi.fn(),
+    mockListCustomerSubscriptions: vi.fn(),
+    mockGetVpnUser: vi.fn(),
+    mockEnableVpnUser: vi.fn(),
+    mockDisableVpnUser: vi.fn(),
+    mockGetSubscriptionSnapshot: vi.fn(),
+    mockGetTimeline: vi.fn(),
+    mockRevokeAllDevices: vi.fn(),
+    mockResetPassword: vi.fn(),
+    mockRegenerateVpnCredentials: vi.fn(),
+  };
+});
 
 vi.mock('@/features/customers/components/customer-operations-insight', () => ({
   CustomerOperationsInsight: () => <div data-testid="customer-operations-insight" />,
 }));
 
-vi.mock('@/shared/ui/admin-action-dialog', async () => {
-  const React = await vi.importActual<typeof import('react')>('react');
-
+vi.mock('@/shared/ui/admin-action-dialog', () => {
   return {
     AdminActionDialog: ({
       isOpen,
@@ -70,8 +75,8 @@ vi.mock('@/shared/ui/admin-action-dialog', async () => {
       reasonRequired?: boolean;
       reasonValidationMessage?: string;
     }) => {
-      const [reason, setReason] = React.useState('');
-      const [error, setError] = React.useState<string | null>(null);
+      const [reason, setReason] = mockUseState('');
+      const [error, setError] = mockUseState<string | null>(null);
 
       if (!isOpen) {
         return null;

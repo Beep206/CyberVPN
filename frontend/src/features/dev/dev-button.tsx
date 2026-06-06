@@ -7,10 +7,11 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 interface DevButtonProps {
+    ariaLabel: string;
     onClick: () => void;
 }
 
-export function DevButton({ onClick }: DevButtonProps) {
+export function DevButton({ ariaLabel, onClick }: DevButtonProps) {
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
@@ -26,6 +27,8 @@ export function DevButton({ onClick }: DevButtonProps) {
 
     return (
         <motion.button
+            type="button"
+            aria-label={ariaLabel}
             className={cn(
                 "fixed bottom-4 left-4 z-50 flex h-12 w-12 items-center justify-center rounded-lg backdrop-blur-md overflow-hidden group transition-all duration-300",
                 isDark

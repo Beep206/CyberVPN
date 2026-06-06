@@ -1,240 +1,90 @@
-# CYBA-459 Security/RBAC QA Findings
+# Security RBAC Regression Findings
 
-Дата: 2026-06-04
-Исполнитель: `qa-security-rbac-reviewer`
+Issue: [CYBA-575](/CYBA/issues/CYBA-575) for [CYBA-568](/CYBA/issues/CYBA-568)
+Date: 2026-06-06 UTC
+Reviewer: `qa-security-rbac-reviewer`
 
 ## Summary
 
-P0 не подтверждены. Подтверждены 2 P1 security/session findings в approved local-stage synthetic scope:
+- Scope tested: direct URL access, unauthenticated private-route shells, admin/partner/customer guard wiring, session/refresh/logout unit coverage, partner storefront vs portal routing, obvious token/initData leakage signals.
+- P0/P1 findings: none observed.
+- [CYBA-579](/CYBA/issues/CYBA-579) completed; host-isolation runtime gap retested as fixed, including scoped HEAD-only QA verification in [CYBA-582](/CYBA/issues/CYBA-582).
+- No production data, real credentials, JWT, cookies, refresh tokens, passwords, `.env` values, payment secrets, or real Telegram `initData` were stored.
 
-1. `SEC-RBAC-001`: customer web login response exposes `access_token` and `refresh_token` field names in browser-visible JSON; immediate browser `/api/v1/auth/session` remains `401`, so customer web session is not established on the approved HTTP local-stage surface.
-2. `SEC-RBAC-002`: admin `owner/super_admin` browser logout returns `403` with `CSRF origin validation failed`; `/api/v1/auth/session` remains `200` after logout.
+## Finding SRBAC-001
 
-Admin API RBAC and partner API permission smoke did not show role-boundary bypass in the tested read-only matrix. Partner browser local-dev surface was not stable enough for browser auth/logout validation and is listed under blocked/not-tested.
+Severity: P2
+Type: Security/RBAC-adjacent host isolation regression
+Status: fixed in [CYBA-579](/CYBA/issues/CYBA-579) and retested by QA in [CYBA-582](/CYBA/issues/CYBA-582)
 
-## Environment
+Environment:
 
-- Repo: `VPNBussiness-main`
-- Date/time: 2026-06-04 UTC
-- Browser automation: Playwright + `/home/beep/.local/bin/chromium`
-- Approved local-stage endpoints:
-  - Client frontend: `http://127.0.0.1:13000`
-  - Admin panel: `http://127.0.0.1:13001`
-  - Backend API: `http://127.0.0.1:18080`
-  - Partner local-dev attempted: `http://127.0.0.1:3004` after `3002` was unavailable
-- Credentials: synthetic protected file `/srv/paperclip/data/instances/default/runtime-secrets/cyba-451-stage1-qa.env`, mode `0600`; values not copied into report/evidence.
-- Context7 docs checked: MCP Context7 returned quota exceeded; `ctx7` fallback checked `/microsoft/playwright` for `chromium.launch`, `newContext`, `page.goto`, `page.screenshot`, response/status capture, console/pageerror capture, and `storageState`/storage inspection. Findings below are manual UI/API behavior observations, not framework root-cause assertions.
-
-## Evidence
-
-- Sanitized machine-readable results: `evidence/security-rbac/cyba459-stage-security-rbac-smoke-results.json`
-- QA runner used to reproduce: `evidence/security-rbac/cyba459-stage-security-rbac-smoke.mjs`
-- Screenshots:
-  - `evidence/security-rbac/stage-client-unauth-dashboard.png`
-  - `evidence/security-rbac/stage-admin-unauth-dashboard.png`
-  - `evidence/security-rbac/stage-partner-local-unauth-dashboard.png` (blocked browser surface / connection refused)
-- Secret scan: no JWT/password/TOTP/token values detected in `evidence/security-rbac` or this report by the local regex scan.
-
-## Bugs
-
-### SEC-RBAC-001: Customer web login exposes token fields and does not establish browser session
-
-Severity: `P1`
-
-Type: security/session bug
-
-Environment: client frontend `http://127.0.0.1:13000`, backend `http://127.0.0.1:18080`, clean Chromium context.
-
-User role/state: active synthetic customer web account, realm `customer`.
+- Local repo workspace, no credentials, no cookies.
+- Frontend dev server on `9001`.
+- Heartbeat shell had `NODE_ENV=production PORT=3110`; dev smoke used explicit `NODE_ENV=development NEXT_TELEMETRY_DISABLED=1`.
+- Context7 docs checked: `/vercel/next.js/v16.1.6` via `ctx7`; Next.js docs indicate `src/proxy.ts` is supported by proxy detection. Playwright CLI docs checked via `ctx7`, but Playwright was not installed.
 
 Steps to reproduce:
 
-1. Open a clean browser context at `http://127.0.0.1:13000/en-EN/login`.
-2. Submit synthetic customer credentials to same-origin `POST /api/v1/auth/login` with `X-Auth-Realm: customer`.
-3. Record only response status and response field names; do not store response values.
-4. Immediately call same-origin `GET /api/v1/auth/session`.
-5. Navigate directly to `http://127.0.0.1:13000/en-EN/dashboard`.
-6. Inspect `localStorage`, `sessionStorage`, and visible cookie names for token-like data.
+1. Start frontend dev server: `NODE_ENV=development NEXT_TELEMETRY_DISABLED=1 npm run dev -w frontend`.
+2. Run `curl --noproxy '*' -I --resolve 'cyber-vpn.net:9001:127.0.0.1' 'http://cyber-vpn.net:9001/en-EN/dashboard?tab=ops'`.
+3. Run `curl --noproxy '*' -I --resolve 'www.cyber-vpn.net:9001:127.0.0.1' 'http://www.cyber-vpn.net:9001/en-EN/users'`.
+4. Run `curl --noproxy '*' -I --resolve 'my.cyber-vpn.net:9001:127.0.0.1' 'http://my.cyber-vpn.net:9001/'`.
 
-Expected:
+Expected result:
 
-- Web login should establish an authenticated httpOnly-cookie-backed browser session.
-- Browser-visible response body should not expose JWT/refresh-token values for the web flow.
-- `GET /api/v1/auth/session` should return `200` for the active customer after login.
-- Dashboard should render authenticated customer state.
-- No JWT/refresh token should be present in `localStorage` or `sessionStorage`.
+- Public-host cabinet routes redirect to `my.cyber-vpn.net` before serving cabinet HTML.
+- Cabinet root redirects to localized dashboard (`/{locale}/dashboard`) per `frontend/src/proxy.ts`.
 
-Actual:
+Actual result:
 
-- Login returned `200`.
-- Response field names included `access_token` and `refresh_token`; values were not stored.
-- Immediate browser `GET /api/v1/auth/session` returned `401`.
-- Dashboard remained at the login/redirect state.
-- `localStorage` and `sessionStorage` had no sensitive keys and no JWT-like values.
-
-Sanitized evidence:
-
-- `evidence/security-rbac/cyba459-stage-security-rbac-smoke-results.json`
-  - `.browser.auth.customerActive.loginResult.loginShape.keys`
-  - `.browser.auth.customerActive.loginResult.loginShape.hasAccessToken=true`
-  - `.browser.auth.customerActive.loginResult.loginShape.hasRefreshToken=true`
-  - `.browser.auth.customerActive.loginResult.sessionStatus=401`
-  - `.browser.auth.customerActive.storageAfterLogin`
-
-Sensitive evidence handling:
-
-- Token values, password, TOTP secret, cookies, and user identifiers were not written to the report.
-- Evidence records only field names, booleans, statuses, and redacted paths.
-
-Recommended owner/action:
-
-- `SecurityEngineer` should review the web auth response contract/BFF behavior and decide whether web login must strip token bodies and rely only on httpOnly cookies.
-
-### SEC-RBAC-002: Admin logout is blocked by CSRF and leaves session active
-
-Severity: `P1`
-
-Type: security/session bug
-
-Environment: admin panel `http://127.0.0.1:13001`, backend `http://127.0.0.1:18080`, clean Chromium context.
-
-User role/state: synthetic admin `owner/super_admin`, 2FA completed via approved TOTP fixture.
-
-Steps to reproduce:
-
-1. Open a clean browser context at `http://127.0.0.1:13001/en-EN/login`.
-2. Submit synthetic `owner/super_admin` credentials to same-origin `POST /api/v1/auth/login`.
-3. Complete 2FA through same-origin `/api/auth/2fa/pending` and `/api/auth/2fa/complete`.
-4. Confirm same-origin `GET /api/v1/auth/session` returns `200` with role `owner/super_admin`.
-5. Submit same-origin `POST /api/v1/auth/logout`.
-6. Immediately call same-origin `GET /api/v1/auth/session`.
-7. Use browser Back / observe final URL.
-
-Expected:
-
-- Logout should return success, clear/revoke the admin session, and leave subsequent `/api/v1/auth/session` at `401`.
-- Browser Back after logout must not restore or preserve an active protected admin session.
-
-Actual:
-
-- 2FA completion returned `200`; session returned `200` for `owner/super_admin`.
-- Logout returned `403`.
-- Logout detail: `CSRF origin validation failed`.
-- Follow-up `/api/v1/auth/session` still returned `200`.
-- Browser ended at `/en-EN/login?error=access_denied`, but the backend session remained active.
-
-Sanitized evidence:
-
-- `evidence/security-rbac/cyba459-stage-security-rbac-smoke-results.json`
-  - `.browser.auth.adminOwner.loginResult.sessionStatus=200`
-  - `.browser.auth.adminOwner.logoutStatus=403`
-  - `.browser.auth.adminOwner.logoutDetail`
-  - `.browser.auth.adminOwner.afterLogoutSession=200`
-  - `.browser.auth.adminOwner.afterBackUrl`
-
-Sensitive evidence handling:
-
-- TOTP secret, `tfa_token`, cookies, and JWT values were not written to evidence.
-- Evidence records only response field names, statuses, role labels, and redacted URL paths.
-
-Recommended owner/action:
-
-- `SecurityEngineer` should review CSRF origin allowlist/session revocation behavior for admin logout on approved local-stage origins.
-
-## Passed / Confirmed
-
-### Unauthenticated direct URLs
-
-Steps:
-
-1. Open clean browser contexts.
-2. Navigate directly to:
-   - `http://127.0.0.1:13000/en-EN/dashboard`
-   - `http://127.0.0.1:13001/en-EN/dashboard`
-3. Observe final URL, DOM markers, console/pageerror state, and browser-visible storage.
-
-Expected:
-
-- Unauthenticated protected routes redirect to login/redirect state.
-- No protected shell or token material appears in storage.
-
-Actual:
-
-- Client final URL: `/en-EN/login?redirect=%2Fen-EN%2Fdashboard`.
-- Admin final URL: `/en-EN/login?redirect=%2Fen-EN%2Fdashboard`.
-- No `SYSTEM FAILURE`.
-- `localStorage` and `sessionStorage` empty; no visible cookies.
+- Public-host cabinet routes returned `200 OK` unauthenticated cabinet shell instead of redirecting to `my.cyber-vpn.net`.
+- Cabinet root returned `307` to `/{locale}` rather than `/{locale}/dashboard`.
+- No private user/customer/payment data, `access_token`, `refresh_token`, or Telegram `initData` was observed in the sampled response bodies.
 
 Evidence:
 
-- `evidence/security-rbac/stage-client-unauth-dashboard.png`
-- `evidence/security-rbac/stage-admin-unauth-dashboard.png`
-- `evidence/security-rbac/cyba459-stage-security-rbac-smoke-results.json`
+- `evidence/security-rbac/frontend-host-canonicalization-2026-06-06.txt`
+- `evidence/security-rbac/frontend-host-canonicalization-retest-2026-06-06.txt`
+- `evidence/security-rbac/frontend-host-canonicalization-runtime-qa-2026-06-06.txt`
+- `evidence/security-rbac/direct-url-smoke-2026-06-06.txt`
 
-### Backend unauth/session and disabled-account smoke
+Retest result:
 
-Confirmed:
+- `cyber-vpn.net:9001/en-EN/dashboard?tab=ops` returned `307` to `https://my.cyber-vpn.net:9001/en-EN/dashboard?tab=ops`.
+- `www.cyber-vpn.net:9001/en-EN/users` returned `307` to `https://my.cyber-vpn.net:9001/en-EN/users`.
+- `my.cyber-vpn.net:9001/` returned `307` to `https://my.cyber-vpn.net:9001/en-EN/dashboard`.
+- `admin.cyber-vpn.org:9001/en-EN/dashboard` returned `307` to `https://admin.cyber-vpn.net:9001/en-EN/dashboard`.
+- Direct cabinet dashboard remained an unauthenticated `AUTHENTICATING...` shell and did not expose checked `access_token`, `refresh_token`, `initData`, customer ledger, payment attempts, or `DEV_BYPASS_AUTH` markers.
 
-- `GET /health` -> `200`
-- Unauth `GET /api/v1/auth/session` -> `401`
-- Unauth `GET /api/v1/partner-session/bootstrap` -> `401`
-- Disabled synthetic customer login -> `401`
+[CYBA-582](/CYBA/issues/CYBA-582) scoped verification:
 
-### Admin API RBAC read-only matrix
+- Result: PASS for all four required `curl -I` checks.
+- Response bodies opened: no.
+- Context7 docs checked: N/A - manual HTTP-header runtime verification against issue-defined expected statuses/locations.
+- Evidence: `evidence/security-rbac/frontend-host-canonicalization-runtime-qa-2026-06-06.txt`
 
-Roles tested: `owner/super_admin`, `admin`, `operator`, `finance`, `support`, `viewer`.
+## Passed / Not Reproduced
 
-Read-only routes tested:
+- Customer dashboard direct URL without cookies rendered an `AUTHENTICATING...` shell and did not expose checked private markers.
+- Customer Mini App direct URL without Telegram `initData` did not expose checked token/initData/private markers.
+- Admin direct dashboard/customer detail checks did not expose checked private markers in the local response body.
+- Partner storefront host redirected workspace route to storefront root; retired legacy admin route returned `404` with `Cache-Control: no-store`.
+- Partner portal unauthenticated body contained only generic guard/i18n copy around `Access denied` and `Partner workspace`; no customer/payment/token/initData values observed.
 
-- `GET /api/v1/users/`
-- `GET /api/v1/helix/admin/nodes`
-- `GET /api/v1/plans/admin`
-- `GET /api/v1/provisioning-profiles/`
+## Verification
 
-Result:
+- `npm run test:run -w frontend -- src/__tests__/proxy.test.ts src/features/auth/lib/session.test.ts src/stores/__tests__/auth-store.test.ts src/lib/api/__tests__/auth.test.ts src/lib/api/__tests__/client.test.ts src/app/api/auth/optional-session/route.test.ts`
+  Result: 6 files, 220 tests passed.
+- `npm run test:run -w admin -- src/__tests__/proxy.test.ts src/shared/lib/__tests__/admin-rbac.test.ts src/features/auth/components/__tests__/AuthGuard.test.tsx src/features/auth/lib/session.test.ts src/app/api/v1/[...path]/route.test.ts src/lib/api/__tests__/client.test.ts src/stores/auth-store.test.ts`
+  Result: 7 files, 62 tests passed.
+- `npm run test:run -w partner -- src/features/partner-portal-state/components/partner-route-guard.test.tsx src/shared/lib/__tests__/surface-policy.test.ts src/__tests__/proxy.test.ts src/features/auth/components/__tests__/AuthGuard.test.tsx src/features/auth/lib/session.test.ts src/lib/api/__tests__/client.test.ts src/app/api/v1/[...path]/route.test.ts`
+  Result: 7 files, 68 tests passed.
+- `npm run test:run -w frontend -- src/__tests__/proxy.test.ts`
+  Retest result: 1 file, 11 tests passed after [CYBA-579](/CYBA/issues/CYBA-579).
 
-- No role-boundary bypass observed.
-- Expected-denied roles returned `403`.
-- Expected-allowed roles returned `200` or reached handler-level `404` where the same route returned `403` for denied roles.
+## Not Tested / Constraints
 
-### Partner API permission matrix
-
-Roles tested: partner `owner`, `manager`, `finance`, `analyst`.
-
-Read-only routes tested after `GET /api/v1/partner-session/bootstrap`:
-
-- `GET /api/v1/partner-workspaces/[workspace-id]/lane-applications`
-- `GET /api/v1/partner-workspaces/[workspace-id]/codes`
-- `GET /api/v1/partner-workspaces/[workspace-id]/earnings`
-- `GET /api/v1/partner-workspaces/[workspace-id]/payout-accounts`
-
-Result:
-
-- No partner workspace permission bypass observed.
-- Expected-denied permissions returned `403` with missing-permission details.
-- Expected-allowed permissions returned `200` or handler-level `404`.
-
-Product gap noted:
-
-- `partner-session/bootstrap` returned permission keys and active workspace id, but `currentRoleKey` was `null` for all four partner role fixtures. Since permission enforcement still matched `currentPermissionKeys`, this is recorded as a product/debuggability gap, not a confirmed RBAC bypass.
-
-### Cross-realm isolation
-
-Confirmed:
-
-- Customer session cookies sent against admin realm `GET /api/v1/users/` -> `401`.
-- Admin session cookies sent against partner realm `GET /api/v1/partner-session/bootstrap` -> `401`.
-
-## Blocked / Not Tested
-
-- Partner browser direct/auth/logout flow: local-dev surface on `3002` was unavailable; direct restart on `3004` exited without stdout/stderr, and browser probe hit `ERR_CONNECTION_REFUSED`. Backend partner API/RBAC was still covered.
-- Customer authenticated dashboard/logout/back behavior: blocked by `SEC-RBAC-001` because browser session did not establish after login.
-- Real payment capture/refund/payout/settlement: not tested by safety gate.
-- Real Telegram `initData`: not tested by safety gate.
-- Remnawave/provisioning mutations and destructive admin actions: not tested by safety gate.
-
-## Evidence Hygiene
-
-- No JWT, refresh token, password, `.env` value, TOTP secret, production PII, payment secret, or Telegram `initData` was stored in Markdown, JSON evidence, screenshots, or issue comments.
-- Evidence uses field names, booleans, statuses, role labels, and redacted route placeholders.
-- Local secret scan command found no token/password/TOTP values in `evidence/security-rbac` or this report.
+- Browser screenshots/video were not captured because Playwright is not installed in this workspace.
+- Authenticated role-to-role data isolation was not exercised because no local/staging test credentials were provided in scope.
+- Expired-token browser-back behavior was covered only through existing unit/client interceptor tests, not with a live authenticated browser session.

@@ -24,7 +24,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
 
         return (
             <motion.div
-                initial={{ opacity: 0, x: -10 }}
+                initial={false}
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-2"
             >

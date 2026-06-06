@@ -12,6 +12,7 @@ from time import perf_counter
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
+from jwt.exceptions import PyJWTError as JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -99,6 +100,7 @@ from src.presentation.api.shared import (
 )
 from src.presentation.api.v1.auth.cookies import (
     clear_auth_cookies,
+    get_access_token_cookie,
     get_refresh_token_cookie,
     set_auth_cookies,
 )
@@ -253,6 +255,58 @@ def _normalize_token_expiry(expires_at: datetime) -> datetime:
     if expires_at.tzinfo is None:
         return expires_at.replace(tzinfo=UTC)
     return expires_at
+
+
+def _datetime_from_jwt_exp(value: object) -> datetime | None:
+    if isinstance(value, datetime):
+        return _normalize_token_expiry(value)
+    if isinstance(value, int | float):
+        return datetime.fromtimestamp(value, UTC)
+    return None
+
+
+def _get_bearer_token(request: Request) -> str | None:
+    authorization = request.headers.get("Authorization")
+    if not authorization:
+        return None
+
+    scheme, separator, token = authorization.partition(" ")
+    if separator and scheme.lower() == "bearer" and token.strip():
+        return token.strip()
+    return None
+
+
+def _resolve_logout_access_token(
+    http_request: Request,
+    current_realm: RealmResolution,
+    auth_service: AuthService,
+) -> RevokedAccessToken | None:
+    token = _get_bearer_token(http_request) or get_access_token_cookie(
+        http_request.cookies,
+        current_realm.cookie_namespace,
+    )
+    if not token:
+        return None
+
+    try:
+        payload = auth_service.decode_token(token, audience=current_realm.audience)
+    except JWTError:
+        if current_realm.realm_key != "admin":
+            return None
+        try:
+            payload = auth_service.decode_token(token, audience=None)
+        except JWTError:
+            return None
+
+    if payload.get("type") != "access":
+        return None
+
+    jti = payload.get("jti")
+    expires_at = _datetime_from_jwt_exp(payload.get("exp"))
+    if not isinstance(jti, str) or expires_at is None:
+        return None
+
+    return RevokedAccessToken(jti=jti, expires_at=expires_at)
 
 
 async def _revoke_access_tokens(
@@ -993,6 +1047,7 @@ async def logout(
     request: LogoutRequest | None = Body(default=None),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
+    auth_service: AuthService = Depends(get_auth_service),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ):
     """Logout user by invalidating refresh token and clearing auth cookies.
@@ -1008,12 +1063,26 @@ async def logout(
     token = request.refresh_token if request else None
     if not token:
         token = get_refresh_token_cookie(http_request.cookies, current_realm.cookie_namespace)
+    presented_access_token = _resolve_logout_access_token(http_request, current_realm, auth_service)
 
-    if token:
+    if token or presented_access_token:
         use_case = LogoutUseCase(session=db)
-        logout_result = await use_case.execute(refresh_token=token)
+        access_tokens: list[RevokedAccessToken] = []
+        if token:
+            logout_result = await use_case.execute(refresh_token=token)
+            access_tokens.extend(logout_result.access_tokens)
+
+        if presented_access_token and not any(
+            access_token.jti == presented_access_token.jti for access_token in access_tokens
+        ):
+            access_logout_result = await use_case.execute_access_token(
+                access_token_jti=presented_access_token.jti,
+                expires_at=presented_access_token.expires_at,
+            )
+            access_tokens.extend(access_logout_result.access_tokens)
+
         revocation_service = JWTRevocationService(redis_client)
-        await _revoke_access_tokens(revocation_service, logout_result.access_tokens)
+        await _revoke_access_tokens(revocation_service, access_tokens)
         await sync_active_sessions(db)
         observe_partner_auth_logout(result="success", reason="none")
         bind_partner_context_from_realm(
