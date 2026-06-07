@@ -215,3 +215,48 @@ Evidence:
 - Payment capture/checkout commit was not attempted.
 
 Context7 docs checked: N/A - manual UI/business-flow findings and safe-fixture coverage report. No code/config/dependency changes were made.
+
+## CYBA-595 Final Auth UX QA / Scribe Evidence
+
+Issue: [CYBA-595](/CYBA/issues/CYBA-595)
+Timestamp: `2026-06-06T18:09:19Z`
+
+### Summary
+
+- PASS: final auth UX QA evidence pack is present under `evidence/client/cyba-595/`.
+- PASS: successful password login no longer waits on delayed `/auth/session` before routing. Runtime smoke on current checkout `9001` measured `660ms` from accepted `/api/v1/auth/login` to `/en-EN/dashboard` with `/auth/session` delayed `2500ms`.
+- PASS: invalid credentials, 2FA-only routing, deferred AuthGuard session validation, and related auth contracts are covered by targeted tests: `3 files`, `99 tests`.
+- PASS: auth 3D scene remains active while login/register inputs are hover+focused at `390x844`, `768x1024`, and `1440x900`; [CYBA-593](/CYBA/issues/CYBA-593) summary is mirrored into this pack.
+- PASS: passkey/OAuth layout has visible separation at `390x844`, `768x1024`, and `1440x900`; provider order remains `google`, `github`, `telegram`; [CYBA-594](/CYBA/issues/CYBA-594) summary is mirrored into this pack.
+- PASS: no-secret scan over `evidence/client/cyba-595` text artifacts returned `No sensitive value hits.`
+- PASS: SecurityEngineer signoff for auth redirect/session behavior completed in [CYBA-596](/CYBA/issues/CYBA-596).
+
+### Evidence
+
+- `evidence/client/cyba-595/manifest.md`
+- `evidence/client/cyba-595/network/login-passkey-smoke-9001-20260606T1812Z.json`
+- `evidence/client/cyba-595/network/targeted-auth-tests-20260606T1831Z.log`
+- `evidence/client/cyba-595/network/targeted-layout-3d-tests-20260606T1814Z.log`
+- `evidence/client/cyba-595/network/auth-3d-freeze-summary-from-cyba-593.json`
+- `evidence/client/cyba-595/network/passkey-oauth-spacing-summary-from-cyba-594.json`
+- `evidence/client/cyba-595/network/no-secret-scan-20260606T1815Z.txt`
+- `evidence/client/cyba-595/screenshots/*.png`
+
+### Environment Notes
+
+- `http://127.0.0.1:13000` was reachable but failed the scoped passkey CTA smoke before auth submit with `Passkey CTA did not render`. This was treated as stale/not-suitable preview evidence and not filed as a product bug because the current checkout dev server passed the same smoke.
+- Current checkout dev server `http://127.0.0.1:9001` was used for final runtime proof with backend target `http://127.0.0.1:18080`.
+- No production testing, real customer/payment data, JWT/cookies/refresh tokens, passwords, VPN config secrets, or Telegram `initData` were stored.
+
+### Scribe Summary
+
+Final QA/Scribe disposition for [CYBA-595](/CYBA/issues/CYBA-595): auth UX fixes are verified at the frontend/runtime evidence level, with a clear PASS for post-login routing latency, passkey conditional identifier handling, 3D focus motion, passkey/OAuth spacing, targeted regression tests, no-secret scan, and SecurityEngineer signoff in [CYBA-596](/CYBA/issues/CYBA-596). No follow-up remains on this issue.
+
+### Security Signoff
+
+- [CYBA-596](/CYBA/issues/CYBA-596) completed at `2026-06-06T18:17:43Z`.
+- Signoff: `Approved: auth redirect/session behavior acceptable for this scope.`
+- SecurityEngineer confirmed the scoped fast-login path does not set authenticated user state before `AuthGuard` session validation, keeps `requires_2fa=true` isolated, uses `identifier: null` for conditional passkey, keeps redirects relative/sanitized, and does not persist frontend tokens.
+- Residual risk remains scoped to untested real production/staging credentials, real passkey ceremony, OAuth provider round-trip, payment, VPN delivery, and Telegram signed `initData`.
+
+Context7 docs checked: MCP Context7 quota exceeded; `ctx7 library Playwright` resolved `/microsoft/playwright`, but no new Playwright code was written. Manual UI/business-flow findings are `N/A - manual UI/business-flow finding`.

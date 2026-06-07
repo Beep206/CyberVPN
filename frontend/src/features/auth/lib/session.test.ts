@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDefaultMiniAppPath, getSafeRedirectPath } from './redirect-path';
+import {
+  getCanonicalPostLoginHref,
+  getDefaultMiniAppPath,
+  getSafeRedirectPath,
+} from './redirect-path';
 import {
   buildInternalLoginHref,
   buildLocalizedLoginRedirect,
@@ -39,6 +43,33 @@ describe('auth redirect canonicalization', () => {
 
   it('builds the canonical localized mini app home path', () => {
     expect(getDefaultMiniAppPath('ru-RU')).toBe('/ru-RU/miniapp/home');
+  });
+
+  it('builds a canonical cabinet URL for post-login dashboard routes on the public host', () => {
+    expect(
+      getCanonicalPostLoginHref('/ru-RU/dashboard/servers?tab=active', {
+        hostname: 'cyber-vpn.net',
+        port: '',
+      }),
+    ).toBe('https://my.cyber-vpn.net/ru-RU/dashboard/servers?tab=active');
+  });
+
+  it('keeps post-login dashboard navigation internal on the cabinet host', () => {
+    expect(
+      getCanonicalPostLoginHref('/ru-RU/dashboard', {
+        hostname: 'my.cyber-vpn.net',
+        port: '',
+      }),
+    ).toBeNull();
+  });
+
+  it('does not canonicalize public auth redirects to the cabinet host', () => {
+    expect(
+      getCanonicalPostLoginHref('/ru-RU/login', {
+        hostname: 'cyber-vpn.net',
+        port: '',
+      }),
+    ).toBeNull();
   });
 
   it('recognizes localized and internal mini app routes', () => {

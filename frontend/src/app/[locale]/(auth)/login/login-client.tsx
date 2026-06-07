@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
@@ -35,7 +35,7 @@ import {
   getPasskeyErrorMessageKey,
   type PasskeyBrowserSupport,
 } from '@/features/auth/lib/passkey-webauthn';
-import { getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
+import { getCanonicalPostLoginHref, getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
 import {
   validateLoginIdentifierInput,
   type LoginIdentifierValidationCode,
@@ -110,16 +110,30 @@ export function LoginClient() {
     passkeySupport &&
     (!passkeySupport.secureContext || !passkeySupport.webAuthn),
   );
+  const hasPasskeyEntryPoint = !isTwoFactorFlow && (passkeyAvailable || passkeyUnsupported);
   const passkeyInputAutocomplete =
     passkeyPolicy?.conditionalUiEnabled && passkeySupport?.autofill && passkeyAvailable
       ? 'username webauthn'
       : 'username';
 
+  const navigateAfterAuth = useCallback((targetPath: string) => {
+    const canonicalHref = typeof window === 'undefined'
+      ? null
+      : getCanonicalPostLoginHref(targetPath, window.location);
+
+    if (canonicalHref) {
+      window.location.assign(canonicalHref);
+      return;
+    }
+
+    router.push(targetPath);
+  }, [router]);
+
   useEffect(() => {
     if (isAuthenticated) {
-      router.push(redirectPath);
+      navigateAfterAuth(redirectPath);
     }
-  }, [isAuthenticated, redirectPath, router, locale]);
+  }, [isAuthenticated, navigateAfterAuth, redirectPath]);
 
   useEffect(() => {
     clearError();
@@ -240,7 +254,7 @@ export function LoginClient() {
         }
 
         await fetchUser();
-        router.push(redirectPath);
+        navigateAfterAuth(redirectPath);
       })
       .catch((err) => {
         if (cancelled) {
@@ -257,7 +271,7 @@ export function LoginClient() {
       cancelled = true;
       cancelPasskeyCeremony();
     };
-  }, [fetchUser, isTwoFactorFlow, locale, passkeyPolicy, passkeySupport, redirectPath, router, t]);
+  }, [fetchUser, isTwoFactorFlow, locale, navigateAfterAuth, passkeyPolicy, passkeySupport, redirectPath, router, t]);
 
   useEffect(() => {
     if (!oauthProvider) {
@@ -328,7 +342,7 @@ export function LoginClient() {
       }
 
       await fetchUser();
-      router.push(redirectPath);
+      navigateAfterAuth(redirectPath);
     } catch (err) {
       setPasskeyError(t(getPasskeyErrorMessageKey(err) as never));
     } finally {
@@ -356,10 +370,13 @@ export function LoginClient() {
           returnTo: redirectPath,
         });
         router.push(`/${locale}/login?2fa=true`);
+        return;
       }
       if (result.requires_2fa && !result.tfa_token) {
         setTwoFactorError(t('twoFactorStartFailed'));
+        return;
       }
+      navigateAfterAuth(redirectPath);
     } catch {}
   };
 
@@ -388,7 +405,7 @@ export function LoginClient() {
 
   return (
     <AuthFormCard title={t('title')} subtitle={t('subtitle')} className="keyboard-safe-bottom">
-      {!isTwoFactorFlow && (passkeyAvailable || passkeyUnsupported) && (
+      {hasPasskeyEntryPoint && (
         <div className="space-y-2">
           {passkeyAvailable ? (
             <motion.div
@@ -425,7 +442,11 @@ export function LoginClient() {
           )}
         </div>
       )}
-      <SocialAuthButtons onProviderClick={handleOAuthLogin} disabled={isLoading || isRateLimited} />
+      <SocialAuthButtons
+        onProviderClick={handleOAuthLogin}
+        disabled={isLoading || isRateLimited}
+        className={hasPasskeyEntryPoint ? 'mt-4 sm:mt-5' : undefined}
+      />
       <AuthDivider text={t('divider')} />
       <RateLimitCountdown />
       <div aria-live="assertive" aria-atomic="true">

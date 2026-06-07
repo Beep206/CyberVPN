@@ -147,7 +147,7 @@ vi.mock('@/lib/analytics', () => ({
 }));
 
 // Import AFTER mocks are set up
-import { useAuthStore } from '../auth-store';
+import { consumePendingPasswordLoginSuccess, useAuthStore } from '../auth-store';
 
 // ---------------------------------------------------------------------------
 // Factory helpers
@@ -272,22 +272,37 @@ describe('Auth Store', () => {
   // =========================================================================
 
   describe('login', () => {
-    it('test_login_success_sets_authenticated_user', async () => {
+    it('test_login_success_returns_without_blocking_session_restore', async () => {
       // Arrange
-      const mockUser = createMockUser();
       const mockTokens = createMockTokenResponse();
       mockLogin.mockResolvedValue({ data: mockTokens });
-      mockMe.mockResolvedValue({ data: mockUser });
 
       // Act
-      await useAuthStore.getState().login('testuser@cybervpn.io', 'correct_password');
+      const result = await useAuthStore.getState().login('testuser@cybervpn.io', 'correct_password');
 
       // Assert
       const state = useAuthStore.getState();
-      expect(state.isAuthenticated).toBe(true);
-      expect(state.user).toEqual(mockUser);
+      expect(result).toEqual(mockTokens);
+      expect(mockMe).not.toHaveBeenCalled();
+      expect(state.isAuthenticated).toBe(false);
+      expect(state.user).toBe(null);
       expect(state.isLoading).toBe(false);
       expect(state.error).toBe(null);
+    });
+
+    it('test_login_success_clears_stale_user_until_guard_session_restore', async () => {
+      const staleUser = createMockUser({ id: 'stale_user' });
+      const mockTokens = createMockTokenResponse();
+      useAuthStore.setState({ isAuthenticated: true, user: staleUser });
+      mockLogin.mockResolvedValue({ data: mockTokens });
+
+      await useAuthStore.getState().login('testuser@cybervpn.io', 'correct_password');
+
+      const state = useAuthStore.getState();
+      expect(mockMe).not.toHaveBeenCalled();
+      expect(state.isAuthenticated).toBe(false);
+      expect(state.user).toBe(null);
+      expect(consumePendingPasswordLoginSuccess()).toBe(true);
     });
 
     it('test_login_success_does_not_store_tokens_locally_SEC01', async () => {
@@ -298,27 +313,27 @@ describe('Auth Store', () => {
           refresh_token: 'rt_login',
         }),
       });
-      mockMe.mockResolvedValue({ data: createMockUser() });
 
       // Act
       await useAuthStore.getState().login('test@test.com', 'password');
 
       // Assert — setTokens must NOT be called (cookies handle it)
       expect(mockSetTokens).not.toHaveBeenCalled();
+      expect(mockMe).not.toHaveBeenCalled();
     });
 
-    it('test_login_success_calls_analytics', async () => {
+    it('test_login_success_defers_success_analytics_until_session_restore', async () => {
       // Arrange
-      const mockUser = createMockUser({ id: 'user_analytics_test' });
       mockLogin.mockResolvedValue({ data: createMockTokenResponse() });
-      mockMe.mockResolvedValue({ data: mockUser });
 
       // Act
       await useAuthStore.getState().login('test@test.com', 'pw');
 
       // Assert
       expect(mockLoginStarted).toHaveBeenCalledOnce();
-      expect(mockLoginSuccess).toHaveBeenCalledWith('user_analytics_test', 'email');
+      expect(mockLoginSuccess).not.toHaveBeenCalled();
+      expect(consumePendingPasswordLoginSuccess()).toBe(true);
+      expect(consumePendingPasswordLoginSuccess()).toBe(false);
     });
 
     it('test_login_requires_2fa_returns_pending_token_without_session_restore', async () => {
@@ -356,7 +371,6 @@ describe('Auth Store', () => {
       expect(useAuthStore.getState().error).toBe(null);
 
       // Cleanup
-      mockMe.mockResolvedValue({ data: createMockUser() });
       resolveLogin!({ data: createMockTokenResponse() });
       await promise;
     });
@@ -365,7 +379,6 @@ describe('Auth Store', () => {
       // Arrange
       useAuthStore.setState({ error: 'previous error', rateLimitUntil: 99999 });
       mockLogin.mockResolvedValue({ data: createMockTokenResponse() });
-      mockMe.mockResolvedValue({ data: createMockUser() });
 
       // Act
       await useAuthStore.getState().login('e@e.com', 'p');
@@ -441,7 +454,6 @@ describe('Auth Store', () => {
     it('test_login_with_rememberMe_passes_flag_to_api', async () => {
       // Arrange
       mockLogin.mockResolvedValue({ data: createMockTokenResponse() });
-      mockMe.mockResolvedValue({ data: createMockUser() });
 
       // Act
       await useAuthStore.getState().login('e@e.com', 'p', true);
@@ -1605,9 +1617,8 @@ describe('Auth Store', () => {
       // login -> logout -> fetchUser should leave a clean state
       // Step 1: Login
       mockLogin.mockResolvedValue({ data: createMockTokenResponse() });
-      mockMe.mockResolvedValue({ data: createMockUser() });
       await useAuthStore.getState().login('e@e.com', 'p');
-      expect(useAuthStore.getState().isAuthenticated).toBe(true);
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
 
       // Step 2: Logout
       mockLogout.mockResolvedValue({ data: {} });
@@ -1627,14 +1638,13 @@ describe('Auth Store', () => {
       useAuthStore.setState({ error: 'old error', isLoading: false });
 
       mockLogin.mockResolvedValue({ data: createMockTokenResponse() });
-      mockMe.mockResolvedValue({ data: createMockUser() });
 
       await useAuthStore.getState().login('e@e.com', 'p');
 
       const state = useAuthStore.getState();
       expect(state.error).toBe(null);
       expect(state.isLoading).toBe(false);
-      expect(state.isAuthenticated).toBe(true);
+      expect(state.isAuthenticated).toBe(false);
     });
   });
 });

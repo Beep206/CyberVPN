@@ -8,6 +8,10 @@ const SMOKE_URL = process.env.FRONTEND_LOGIN_SMOKE_URL || DEFAULT_URL;
 const CHROMIUM_BIN = process.env.CHROMIUM_BIN || findChromium();
 const NAVIGATION_TIMEOUT_MS = 60_000;
 const ASSERTION_TIMEOUT_MS = 10_000;
+const SESSION_RESPONSE_DELAY_MS = 2_500;
+const POST_LOGIN_NAVIGATION_BUDGET_MS = 1_000;
+const DASHBOARD_PATH = new URL(SMOKE_URL).pathname.replace(/\/login\/?$/, '/dashboard');
+const DASHBOARD_URL = new URL(DASHBOARD_PATH, SMOKE_URL).toString();
 
 const PASSKEY_POLICY = {
   enabled: true,
@@ -252,6 +256,11 @@ async function main() {
 
   const response = await fetch(SMOKE_URL, { method: 'GET' }).catch(() => null);
   assert(response?.ok, `Frontend dev server is not reachable at ${SMOKE_URL}. Start it before running this smoke.`);
+  const dashboardResponse = await fetch(DASHBOARD_URL, { method: 'GET' }).catch(() => null);
+  assert(
+    dashboardResponse?.ok,
+    `Frontend dashboard route is not reachable at ${DASHBOARD_URL}. Warm-up is required before measuring login latency.`,
+  );
 
   const userDataDir = await mkdtemp(join(tmpdir(), 'cybervpn-login-smoke-'));
   const browserProcess = spawn(CHROMIUM_BIN, [
@@ -290,6 +299,8 @@ async function main() {
     const interceptionErrors = [];
     const consoleErrors = [];
     const pageErrors = [];
+    let loginFulfilledAt = null;
+    let dashboardObservedAt = null;
 
     client.on('Network.requestWillBeSent', (message) => {
       if (message.sessionId !== sessionId) return;
@@ -355,10 +366,12 @@ async function main() {
           responseHeaders: [{ name: 'content-type', value: 'application/json' }],
           body: encodeJsonBody(LOGIN_RESPONSE),
         }, sessionId);
+        loginFulfilledAt = Date.now();
         return;
       }
 
       if (url.includes('/api/v1/auth/session')) {
+        await sleep(SESSION_RESPONSE_DELAY_MS);
         await client.send('Fetch.fulfillRequest', {
           requestId,
           responseCode: 200,
@@ -444,14 +457,18 @@ async function main() {
     await waitForExpression(
       client,
       sessionId,
-      `location.href === ${JSON.stringify(SMOKE_URL)}`,
+      `location.pathname === ${JSON.stringify(DASHBOARD_PATH)}`,
       ASSERTION_TIMEOUT_MS,
-      'Login form performed native navigation instead of staying under React control.',
+      `Login form did not navigate to ${DASHBOARD_PATH} after successful login.`,
     );
+    dashboardObservedAt = Date.now();
 
     const policyRequested = apiRequests.some((request) => request.includes('/api/v1/auth/passkeys/policy'));
     const loginRequested = apiRequests.some((request) => request.includes('/api/v1/auth/login'));
     const conditionalOptionsBody = authenticationOptionsBodies.find((body) => body?.conditional === true);
+    const postLoginNavigationLatencyMs = loginFulfilledAt && dashboardObservedAt
+      ? dashboardObservedAt - loginFulfilledAt
+      : null;
 
     assert(policyRequested, 'Passkey policy request was not observed.');
     assert(interceptionErrors.length === 0, `Interception errors observed:\n${interceptionErrors.join('\n')}`);
@@ -476,12 +493,22 @@ async function main() {
       `Conditional UI passkey authentication options leaked the typed identifier: ${conditionalOptionsBodyText}`,
     );
     assert(loginRequested, 'Normal login submit did not call /api/v1/auth/login.');
+    assert(
+      typeof postLoginNavigationLatencyMs === 'number' &&
+        postLoginNavigationLatencyMs <= POST_LOGIN_NAVIGATION_BUDGET_MS,
+      `Post-login navigation latency exceeded ${POST_LOGIN_NAVIGATION_BUDGET_MS}ms: ${postLoginNavigationLatencyMs}ms`,
+    );
     assert(pageErrors.length === 0, `Page errors observed:\n${pageErrors.join('\n')}`);
     assert(consoleErrors.length === 0, `Console errors observed:\n${consoleErrors.join('\n')}`);
 
     process.stdout.write(`${JSON.stringify({
       status: 'passed',
       url: SMOKE_URL,
+      dashboardUrl: DASHBOARD_URL,
+      dashboardPath: DASHBOARD_PATH,
+      sessionResponseDelayMs: SESSION_RESPONSE_DELAY_MS,
+      postLoginNavigationBudgetMs: POST_LOGIN_NAVIGATION_BUDGET_MS,
+      postLoginNavigationLatencyMs,
       autocomplete,
       apiRequests,
       authenticationOptionsBodies,
