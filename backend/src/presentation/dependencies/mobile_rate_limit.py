@@ -25,6 +25,7 @@ from fastapi import Depends, HTTPException, Request, status
 
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis_pool
+from src.presentation.dependencies.client_ip import resolve_client_ip
 
 logger = logging.getLogger("cybervpn")
 
@@ -107,19 +108,7 @@ def _get_fail_open() -> bool:
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract client IP from request, respecting proxy headers if configured."""
-    if settings.trust_proxy_headers:
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        real_ip = request.headers.get("x-real-ip")
-        if real_ip:
-            return real_ip.strip()
-
-    if request.client:
-        return request.client.host
-
-    return "unknown"
+    return resolve_client_ip(request).ip
 
 
 async def _check_rate_limit(key: str, limit: int) -> tuple[bool, bool]:

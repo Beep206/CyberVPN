@@ -1,5 +1,6 @@
 """HTTP-only cookie helpers for auth token delivery (SEC-01)."""
 
+import secrets
 from urllib.parse import urlsplit
 
 from fastapi import Request, Response
@@ -11,6 +12,10 @@ LEGACY_REFRESH_COOKIE = "refresh_token"
 ACCESS_COOKIE_PATH = "/api"
 REFRESH_COOKIE_PATH = "/api"
 LEGACY_REFRESH_COOKIE_PATH = "/api/v1/auth/refresh"
+WEB_DEVICE_COOKIE_PATH = "/"
+WEB_DEVICE_COOKIE_MAX_AGE_SECONDS = 400 * 86400
+WEB_DEVICE_COOKIE_MIN_LENGTH = 32
+WEB_DEVICE_COOKIE_MAX_LENGTH = 256
 LOCAL_HTTP_COOKIE_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "test", "testserver"})
 INTERNAL_API_COOKIE_HOSTS = frozenset({"cybervpn-backend", "localhost", "127.0.0.1", "::1", "test", "testserver"})
 CUSTOMER_LOCAL_HTTP_COOKIE_PORTS = frozenset({3000, 13000})
@@ -34,6 +39,49 @@ def get_access_token_cookie(cookie_source, cookie_namespace: str | None = None) 
 
 def get_refresh_token_cookie(cookie_source, cookie_namespace: str | None = None) -> str | None:
     return cookie_source.get(resolve_refresh_cookie_name(cookie_namespace))
+
+
+def get_web_device_cookie(cookie_source) -> str | None:
+    value = cookie_source.get(settings.web_device_cookie_name)
+    if not _is_valid_web_device_cookie(value):
+        return None
+    return value
+
+
+def get_or_create_web_device_cookie_value(cookie_source) -> tuple[str, bool]:
+    value = get_web_device_cookie(cookie_source)
+    if value is not None:
+        return value, False
+    return secrets.token_urlsafe(32), True
+
+
+def set_web_device_cookie(
+    response: Response,
+    device_cookie_value: str,
+    *,
+    request: Request | None = None,
+    cookie_namespace: str | None = None,
+    max_age: int = WEB_DEVICE_COOKIE_MAX_AGE_SECONDS,
+) -> None:
+    """Attach the opaque backend-issued web device cookie."""
+    response.set_cookie(
+        key=settings.web_device_cookie_name,
+        value=device_cookie_value,
+        httponly=True,
+        secure=_resolve_cookie_secure(request, cookie_namespace),
+        samesite="lax",
+        path=WEB_DEVICE_COOKIE_PATH,
+        max_age=max_age,
+        domain=None,
+    )
+
+
+def _is_valid_web_device_cookie(value: str | None) -> bool:
+    if not value:
+        return False
+    if not (WEB_DEVICE_COOKIE_MIN_LENGTH <= len(value) <= WEB_DEVICE_COOKIE_MAX_LENGTH):
+        return False
+    return all(char.isalnum() or char in "-_" for char in value)
 
 
 def _request_host(request: Request) -> str:

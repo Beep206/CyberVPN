@@ -48,6 +48,7 @@ from src.presentation.api.v1.auth.passkey_schemas import (
 from src.presentation.api.v1.auth.realm_context import get_principal_type_for_realm
 from src.presentation.dependencies.auth import get_current_active_web_user
 from src.presentation.dependencies.auth_realms import get_request_admin_realm, get_request_web_auth_realm
+from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.partner_workspace import (
     PartnerWorkspaceAccess,
@@ -165,9 +166,7 @@ def _policy_response(
             if surface == "admin"
             else None
         ),
-        workspace_policy_enabled=(
-            settings.passkey_partner_workspace_policy_enabled if surface == "partner" else None
-        ),
+        workspace_policy_enabled=(settings.passkey_partner_workspace_policy_enabled if surface == "partner" else None),
         admin_counts_as_mfa=admin_counts_as_mfa,
         challenge_ttl_seconds=challenge_ttl_seconds,
         browser_timeout_ms=browser_timeout_ms,
@@ -197,6 +196,7 @@ async def _write_admin_policy_audit_entry(
     next_payload: dict[str, object],
     change_reason: str | None,
 ) -> None:
+    client_ip = resolve_client_ip(request)
     db.add(
         AuditLog(
             admin_id=actor.id,
@@ -205,7 +205,7 @@ async def _write_admin_policy_audit_entry(
             entity_id=PASSKEY_ADMIN_POLICY_CONFIG_KEY,
             old_value=previous_payload,
             new_value={**next_payload, "change_reason": change_reason},
-            ip_address=request.client.host if request.client else None,
+            ip_address=client_ip.ip,
             user_agent=request.headers.get("user-agent"),
         )
     )
@@ -222,6 +222,7 @@ async def _write_partner_policy_audit_entry(
     next_payload: dict[str, object],
     change_reason: str | None,
 ) -> None:
+    client_ip = resolve_client_ip(request)
     db.add(
         AuditLog(
             admin_id=actor.id,
@@ -230,7 +231,7 @@ async def _write_partner_policy_audit_entry(
             entity_id=str(workspace_id),
             old_value=previous_payload,
             new_value={**next_payload, "change_reason": change_reason},
-            ip_address=request.client.host if request.client else None,
+            ip_address=client_ip.ip,
             user_agent=request.headers.get("user-agent"),
         )
     )
@@ -302,9 +303,7 @@ def _operator_compliance(
     credentials: list[PasskeyCredentialModel],
 ) -> PartnerWorkspacePasskeyOperatorComplianceResponse:
     active_subjects = {
-        str(membership.admin_user_id)
-        for membership in memberships
-        if membership.membership_status == "active"
+        str(membership.admin_user_id) for membership in memberships if membership.membership_status == "active"
     }
     subjects_with_active_passkeys = {
         credential.principal_subject

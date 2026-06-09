@@ -1,0 +1,294 @@
+{
+  "console": [
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/_next/static/chunks/0f.k_next_dist_00~0qs6._.js",
+        "line": 1074,
+        "column": 27,
+        "lineNumber": 1074,
+        "columnNumber": 27
+      },
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+      "type": "info"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/_next/static/chunks/0f.k_next_dist_00~0qs6._.js",
+        "line": 1074,
+        "column": 27,
+        "lineNumber": 1074,
+        "columnNumber": 27
+      },
+      "text": "[HMR] connected",
+      "type": "log"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/_next/static/chunks/0f.k_next_dist_00~0qs6._.js",
+        "line": 1074,
+        "column": 27,
+        "lineNumber": 1074,
+        "columnNumber": 27
+      },
+      "text": "[Dev Tools] Console Intercepted globally.",
+      "type": "log"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/_next/static/chunks/0f.k_next_dist_00~0qs6._.js",
+        "line": 1074,
+        "column": 27,
+        "lineNumber": 1074,
+        "columnNumber": 27
+      },
+      "text": "[Fast Refresh] rebuilding",
+      "type": "log"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/v1/partner-workspaces/me",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/v1/partner-session/bootstrap",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/analytics/web-vitals",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/analytics/web-vitals",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/analytics/frontend-runtime",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/analytics/frontend-runtime",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/_next/static/chunks/0f.k_next_dist_00~0qs6._.js",
+        "line": 1074,
+        "column": 27,
+        "lineNumber": 1074,
+        "columnNumber": 27
+      },
+      "text": "[Fast Refresh] done in 1668ms",
+      "type": "log"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/analytics/frontend-runtime",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/analytics/product-events",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/analytics/frontend-runtime",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/analytics/frontend-runtime",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/_next/static/chunks/0f.k_next_dist_00~0qs6._.js",
+        "line": 1074,
+        "column": 27,
+        "lineNumber": 1074,
+        "columnNumber": 27
+      },
+      "text": "[Fast Refresh] rebuilding",
+      "type": "log"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/api/analytics/traffic",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      },
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "type": "error"
+    },
+    {
+      "location": {
+        "url": "http://127.0.0.1:3002/_next/static/chunks/0f.k_next_dist_00~0qs6._.js",
+        "line": 1074,
+        "column": 27,
+        "lineNumber": 1074,
+        "columnNumber": 27
+      },
+      "text": "[Fast Refresh] done in 433ms",
+      "type": "log"
+    }
+  ],
+  "cdpExceptions": [],
+  "failedResponses": [
+    {
+      "method": "GET",
+      "resourceType": "xhr",
+      "status": 404,
+      "url": "/api/v1/partner-workspaces/me"
+    },
+    {
+      "method": "GET",
+      "resourceType": "xhr",
+      "status": 404,
+      "url": "/api/v1/partner-session/bootstrap"
+    },
+    {
+      "method": "POST",
+      "resourceType": "ping",
+      "status": 403,
+      "url": "/api/analytics/web-vitals"
+    },
+    {
+      "method": "POST",
+      "resourceType": "ping",
+      "status": 403,
+      "url": "/api/analytics/web-vitals"
+    },
+    {
+      "method": "POST",
+      "resourceType": "ping",
+      "status": 403,
+      "url": "/api/analytics/frontend-runtime"
+    },
+    {
+      "method": "POST",
+      "resourceType": "ping",
+      "status": 403,
+      "url": "/api/analytics/frontend-runtime"
+    },
+    {
+      "method": "POST",
+      "resourceType": "ping",
+      "status": 403,
+      "url": "/api/analytics/frontend-runtime"
+    },
+    {
+      "method": "POST",
+      "resourceType": "ping",
+      "status": 403,
+      "url": "/api/analytics/product-events"
+    },
+    {
+      "method": "POST",
+      "resourceType": "ping",
+      "status": 403,
+      "url": "/api/analytics/frontend-runtime"
+    },
+    {
+      "method": "POST",
+      "resourceType": "ping",
+      "status": 403,
+      "url": "/api/analytics/frontend-runtime"
+    },
+    {
+      "method": "POST",
+      "resourceType": "ping",
+      "status": 403,
+      "url": "/api/analytics/traffic"
+    }
+  ],
+  "pageErrors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/partner-workspaces/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/partner-session/bootstrap"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices"
+    }
+  ],
+  "status": 200,
+  "url": "http://127.0.0.1:3002/en-EN/security/sessions",
+  "finalUrl": "http://127.0.0.1:3002/en-EN/security/sessions",
+  "bodyTextSample": "Skip to main content{\"@context\":\"https://schema.org\",\"@type\":\"SoftwareApplication\",\"name\":\"CyberVPN\",\"applicationCategory\":\"SecurityApplication\",\"operatingSystem\":\"Web, Android, iOS\",\"offers\":{\"@type\":\"Offer\",\"price\":\"0\",\"priceCurrency\":\"USD\"}}Skip to main contentOZOXYPARTNEROverviewCurrent posture, alerts, urgent actionsDASHBOARDDASHBOARDDASHBOARDStatus, tasks, portal readinessACTIONINBOXINBOXINBOXStatus changes and alertsREAD ONLYStartApplication, organization, contractsAPPLICATIONAPPLICATIONAPPLICATIONOnboarding, review, requested infoORGANIZATIONORGANIZATIONORGANIZATIONBusiness profile, domains, contactsCONTRACTS & LEGALCONTRACTS & LEGALCONTRACTS & LEGALTerms, policies, acceptance historyREAD ONLYWorkspacePeople, settings, workspace securitySETTINGSSETTINGSSETTINGSMFA, sessions, preferencesControl & SupportCompliance tasks, disputes, requested infoSUPPORT & CASESSUPPORT & CASESSUPPORT & CASESMessages, disputes, requestsACTIONPTPARTNER PORTALDevUserWORKSPACE OWNER/SECURE SESSIONFPS16|PING12msNET_UPLINKENDevUserDESESSION CONTROLSessions ConsoleInspect every active admin device, revoke stale device sessions, and execute a realm-scoped hard stop when needed.RefreshLogout othersLogout allTotal0unique active devicesRemote0unique devices excluding currentCurrent IP--active operator endpointDevice limit0/55 slots remainingNo active devices found.Current DeviceThis is the device currently operating the admin console.No active devices found.Hard StopImmediately revoke every current-realm device session, including the one running this admin console.Logout all{\"@context\":\"https://schema.org\",\"@type\":\"Organization\",\"name\":\"CyberVPN\",\"url\":\"http://localhost:3002\",\"logo\":\"http://localhost:3002/logo.png\",\"sameAs\":[\"https://t.me/cybervpn\"]}{\"@context\":\"https://schema.org\",\"@type\":\"W"
+}

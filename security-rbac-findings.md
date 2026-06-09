@@ -7,9 +7,75 @@ Reviewer: `qa-security-rbac-reviewer`
 ## Summary
 
 - Scope tested: direct URL access, unauthenticated private-route shells, admin/partner/customer guard wiring, session/refresh/logout unit coverage, partner storefront vs portal routing, obvious token/initData leakage signals.
-- P0/P1 findings: none observed.
+- P0/P1 findings: none observed. P2 finding SRBAC-002 fixed in [CYBA-627](/CYBA/issues/CYBA-627) and retested by QA in [CYBA-606](/CYBA/issues/CYBA-606): web `/auth/refresh` больше не возвращает JS-readable token body.
 - [CYBA-579](/CYBA/issues/CYBA-579) completed; host-isolation runtime gap retested as fixed, including scoped HEAD-only QA verification in [CYBA-582](/CYBA/issues/CYBA-582).
 - No production data, real credentials, JWT, cookies, refresh tokens, passwords, `.env` values, payment secrets, or real Telegram `initData` were stored.
+
+## Обновление gate - [CYBA-606](/CYBA/issues/CYBA-606) (2026-06-09)
+
+- Исторический triage из dependency-blocked heartbeat: тогда blocked deliverable QA не возобновлялась.
+- Последний supervisor note: [comment 1de94eb3-8299-4d79-9338-56ad6eb1f2f8](/CYBA/issues/CYBA-606#comment-1de94eb3-8299-4d79-9338-56ad6eb1f2f8) сообщает, что [CYBA-614](/CYBA/issues/CYBA-614) добавил mobile auth scope в [CYBA-597](/CYBA/issues/CYBA-597).
+- Обязательный blocker [CYBA-616](/CYBA/issues/CYBA-616) был учтён; в текущем разблокированном heartbeat [CYBA-616](/CYBA/issues/CYBA-616), [CYBA-617](/CYBA/issues/CYBA-617), [CYBA-604](/CYBA/issues/CYBA-604) и [CYBA-603](/CYBA/issues/CYBA-603) уже `done`.
+- Follow-up blocker [CYBA-627](/CYBA/issues/CYBA-627) по finding SRBAC-002 закрыт и retested; текущих gate blockers нет.
+- Context7 docs checked: N/A - ручной triage issue-thread/gate; поведение framework/library/API не оценивалось.
+- Evidence: `evidence/security-rbac/cyba-606-soft-blocker-triage-2026-06-09.txt`
+
+## Finding SRBAC-002
+
+Серьёзность: P2
+Тип: sensitive token exposure / httpOnly-cookie posture regression
+Статус: fixed in [CYBA-627](/CYBA/issues/CYBA-627), retested in [CYBA-606](/CYBA/issues/CYBA-606)
+
+Окружение:
+
+- Local [CYBA-606](/CYBA/issues/CYBA-606) workspace.
+- Production data, real credentials, raw JWT, cookies, refresh tokens, passwords, `.env` values, payment secrets и real Telegram `initData` не сохранялись.
+- Role/state: authenticated web admin/partner/customer session with httpOnly auth cookies.
+- Context7 docs checked: MCP `context7` вернул `Monthly quota exceeded`; fallback official docs checked: FastAPI response cookies, SQLAlchemy 2.0 `with_for_update()`, Next.js `proxy.ts`.
+
+Шаги воспроизведения:
+
+1. Authenticate through `POST /api/v1/auth/login` on a web realm.
+2. Убедиться, что login response body не содержит `access_token` и `refresh_token`, а auth cookies выставлены.
+3. С теми же cookies вызвать `POST /api/v1/auth/refresh` с empty JSON body.
+4. Проверить JSON response body.
+
+Ожидаемый результат:
+
+- Web cookie refresh возвращает cookie-only response body и не отдаёт raw `access_token` или `refresh_token` browser JavaScript.
+- Token-bearing refresh остаётся на `/api/v1/mobile/auth/refresh` или другом явно non-web contract.
+
+Фактический результат:
+
+- `POST /api/v1/auth/refresh` выставляет auth cookies и одновременно возвращает `TokenResponse(access_token=..., refresh_token=...)` в JS-readable body.
+- Frontend/admin/partner `authApi.refresh()` отдаёт этот response browser JavaScript, хотя client code comments фиксируют `SEC-01` migration web auth to httpOnly cookies.
+
+Evidence:
+
+- До фикса: `backend/src/presentation/api/v1/auth/routes.py` выставлял auth cookies и возвращал token-bearing `TokenResponse` на web refresh.
+- После фикса: `backend/src/presentation/api/v1/auth/routes.py:983` uses `response_model=WebRefreshResponse`; `backend/src/presentation/api/v1/auth/routes.py:1143` returns `WebRefreshResponse(...)`.
+- После фикса: `backend/src/presentation/api/v1/auth/schemas.py:83` defines `WebRefreshResponse` без `access_token` и `refresh_token`.
+- После фикса: `frontend/src/lib/api/auth.ts:326`, `admin/src/lib/api/auth.ts:307`, `partner/src/lib/api/auth.ts:302` type `authApi.refresh()` as `WebRefreshResponse`.
+- После фикса: generated OpenAPI/types for web `/auth/refresh` reference `WebRefreshResponse`; mobile `/mobile/auth/refresh` still uses mobile `TokenResponse`.
+- Sanitized evidence file: `evidence/security-rbac/cyba-606-web-refresh-token-body-2026-06-09.txt`
+- Retest evidence file: `evidence/security-rbac/cyba-606-web-refresh-retest-2026-06-09.txt`
+
+Проверка:
+
+- `uv run pytest tests/integration/test_auth_realm_sessions.py tests/unit/presentation/test_client_ip.py -q --no-cov`
+  Result: 21 tests passed.
+- `npm run test:run -w frontend -- src/lib/api/__tests__/auth.test.ts`
+  Result: 1 file, 87 tests passed.
+- `npm run test:run -w admin -- src/lib/api/__tests__/auth.test.ts`
+  Result: 1 file, 85 tests passed.
+- `npm run test:run -w partner -- src/lib/api/__tests__/auth.test.ts`
+  Result: 1 file, 83 tests passed.
+- `REDIS_URL=redis://localhost:6379/15 uv run pytest tests/integration/api/v1/mobile_auth/test_refresh_token_principal_owner.py -q --no-cov`
+  Result: 2 tests skipped, потому что Docker-backed PostgreSQL at `localhost:6767` был недоступен в этом heartbeat; [CYBA-617](/CYBA/issues/CYBA-617) содержит DB-backed mobile evidence from disposable PostgreSQL.
+
+Влияние на gate:
+
+- [CYBA-627](/CYBA/issues/CYBA-627) fixed and retested. Finding SRBAC-002 больше не блокирует [CYBA-606](/CYBA/issues/CYBA-606).
 
 ## Finding SRBAC-001
 

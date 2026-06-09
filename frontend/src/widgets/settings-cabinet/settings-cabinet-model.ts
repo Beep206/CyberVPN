@@ -14,6 +14,7 @@ export type TwoFactorStatus = components['schemas']['TwoFactorStatusResponse'];
 export type AntiphishingCode = components['schemas']['AntiPhishingCodeResponse'];
 export type DeviceSession =
   components['schemas']['src__presentation__api__v1__auth__schemas__DeviceSessionResponse'];
+export type DeviceSessionList = components['schemas']['DeviceSessionListResponse'];
 export type CurrentEntitlementState =
   components['schemas']['CurrentEntitlementStateResponse'];
 
@@ -252,12 +253,44 @@ export function readDeviceLimit(
   return null;
 }
 
+export function readDeviceListTotal(
+  deviceList: DeviceSessionList | null | undefined,
+): number {
+  const contractTotal = readNumericValue(deviceList?.total_devices);
+  if (contractTotal !== null && contractTotal >= 0) {
+    return Math.floor(contractTotal);
+  }
+
+  const legacyTotal = readNumericValue(deviceList?.total);
+  if (legacyTotal !== null && legacyTotal >= 0) {
+    return Math.floor(legacyTotal);
+  }
+
+  return deviceList?.devices.length ?? 0;
+}
+
+export function readDeviceListLimit(
+  deviceList: DeviceSessionList | null | undefined,
+): number | null {
+  const contractLimit = readNumericValue(deviceList?.device_limit);
+  return contractLimit !== null && contractLimit >= 0 ? Math.floor(contractLimit) : null;
+}
+
+export function readDeviceListRemaining(
+  deviceList: DeviceSessionList | null | undefined,
+): number | null {
+  const contractRemaining = readNumericValue(deviceList?.remaining_devices);
+  return contractRemaining !== null ? Math.floor(contractRemaining) : null;
+}
+
 export function getDeviceLimitSummary({
   active,
   limit,
+  remaining,
 }: {
   active: number;
   limit: number | null;
+  remaining?: number | null;
 }): DeviceLimitSummary {
   const normalizedActive = Math.max(0, Math.floor(active));
 
@@ -273,7 +306,10 @@ export function getDeviceLimitSummary({
   }
 
   const normalizedLimit = Math.max(0, Math.floor(limit));
-  const remaining = normalizedLimit - normalizedActive;
+  const normalizedRemaining =
+    typeof remaining === 'number' && Number.isFinite(remaining)
+      ? Math.floor(remaining)
+      : normalizedLimit - normalizedActive;
   const percent =
     normalizedLimit === 0
       ? normalizedActive > 0
@@ -281,23 +317,23 @@ export function getDeviceLimitSummary({
         : 0
       : Math.min(100, Math.round((normalizedActive / normalizedLimit) * 100));
 
-  if (remaining < 0) {
+  if (normalizedRemaining < 0) {
     return {
       active: normalizedActive,
       limit: normalizedLimit,
       percent: 100,
-      remaining,
+      remaining: normalizedRemaining,
       state: 'over_limit',
       tone: 'pink',
     };
   }
 
-  if (remaining === 0) {
+  if (normalizedRemaining === 0) {
     return {
       active: normalizedActive,
       limit: normalizedLimit,
       percent,
-      remaining,
+      remaining: normalizedRemaining,
       state: 'at_limit',
       tone: 'amber',
     };
@@ -308,7 +344,7 @@ export function getDeviceLimitSummary({
       active: normalizedActive,
       limit: normalizedLimit,
       percent,
-      remaining,
+      remaining: normalizedRemaining,
       state: 'near_limit',
       tone: 'amber',
     };
@@ -318,7 +354,7 @@ export function getDeviceLimitSummary({
     active: normalizedActive,
     limit: normalizedLimit,
     percent,
-    remaining,
+    remaining: normalizedRemaining,
     state: 'available',
     tone: 'green',
   };

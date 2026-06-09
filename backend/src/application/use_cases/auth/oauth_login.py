@@ -4,10 +4,12 @@ import logging
 import re
 import secrets
 from datetime import UTC, datetime
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.use_cases.auth.verify_otp import RemnawaveGateway
 from src.config.settings import settings
@@ -63,6 +65,7 @@ class OAuthLoginUseCase:
         self._session = session
         self._remnawave_gateway = remnawave_gateway
         self._allow_new_users = allow_new_users
+        self._session_issuer = AuthSessionIssuer(auth_service=auth_service, session=session)
 
     @staticmethod
     def _generate_telegram_login(
@@ -95,7 +98,16 @@ class OAuthLoginUseCase:
         provider: str,
         user_info: dict,
         client_fingerprint: str | None = None,
+        client_device_key: str | None = None,
         client_ip: str | None = None,
+        client_ip_source: str | None = None,
+        proxy_peer: str | None = None,
+        user_agent: str | None = None,
+        auth_realm_id: UUID | None = None,
+        auth_realm_key: str | None = None,
+        audience: str | None = None,
+        principal_type: str = "admin",
+        scope_family: str = "admin",
     ) -> OAuthLoginResult:
         """Execute OAuth login flow.
 
@@ -175,7 +187,7 @@ class OAuthLoginUseCase:
             if is_telegram:
                 user = await self._user_repo.get_by_telegram_id(telegram_user_id)
             elif email:
-                user = await self._user_repo.get_by_email(email)
+                user = await self._user_repo.get_by_email(email, realm_id=auth_realm_id)
 
             if user:
                 if is_telegram and telegram_user_id is not None:
@@ -224,6 +236,7 @@ class OAuthLoginUseCase:
                 user = AdminUserModel(
                     login=login,
                     email=None if is_telegram else email,
+                    auth_realm_id=auth_realm_id,
                     password_hash=password_hash,
                     role="viewer",
                     telegram_id=telegram_user_id if is_telegram else None,
@@ -281,8 +294,7 @@ class OAuthLoginUseCase:
         user.sign_in_count += 1
         user.failed_login_attempts = 0
 
-        # Commit the transaction
-        await self._session.commit()
+        await self._session.flush()
 
         # 2FA gate: if user has TOTP enabled, return partial response
         if user.totp_enabled:
@@ -290,6 +302,11 @@ class OAuthLoginUseCase:
                 subject=str(user.id),
                 role="2fa_pending",
                 extra={"type": "2fa_pending"},
+                audience=audience,
+                principal_type=principal_type,
+                realm_id=str(auth_realm_id) if auth_realm_id else None,
+                realm_key=auth_realm_key,
+                scope_family=scope_family,
             )
             logger.info(
                 "OAuth login requires 2FA verification",
@@ -306,22 +323,32 @@ class OAuthLoginUseCase:
                 tfa_token=tfa_token,
             )
 
-        # Issue JWT tokens
-        access_token, _, access_exp = self._auth_service.create_access_token(
-            subject=str(user.id),
-            role=user.role if isinstance(user.role, str) else user.role.value,
+        issued_session = await self._session_issuer.issue_auth_session(
+            AuthSessionIssueRequest(
+                user_id=user.id,
+                role=user.role if isinstance(user.role, str) else user.role.value,
+                device_key=client_device_key,
+                refresh_fingerprint=client_fingerprint,
+                ip_address=client_ip,
+                ip_source=client_ip_source,
+                proxy_peer=proxy_peer,
+                user_agent=user_agent,
+                auth_realm_id=auth_realm_id,
+                auth_realm_key=auth_realm_key,
+                audience=audience,
+                principal_class=principal_type,
+                principal_subject=str(user.id),
+                scope_family=scope_family,
+                access_extra={"auth_method": "telegram" if is_telegram else f"oauth:{provider}"},
+                platform="web",
+            )
         )
-        refresh_token, _, _ = self._auth_service.create_refresh_token(
-            subject=str(user.id),
-            fingerprint=client_fingerprint,
-        )
-        expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
 
         return OAuthLoginResult(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="bearer",
-            expires_in=expires_in,
+            access_token=issued_session.access_token,
+            refresh_token=issued_session.refresh_token,
+            token_type=issued_session.token_type,
+            expires_in=issued_session.expires_in,
             user=user,
             is_new_user=is_new_user,
         )

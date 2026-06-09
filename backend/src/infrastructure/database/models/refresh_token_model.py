@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, func, text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, func, text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,13 +31,29 @@ class RefreshToken(Base):
         Index("ix_refresh_tokens_replaced_by_token_id", "replaced_by_token_id"),
         Index("ix_refresh_tokens_consumed_at", "consumed_at"),
         Index("ix_refresh_tokens_session_family", "principal_session_id", "family_id"),
+        Index("ix_refresh_tokens_principal_owner", "principal_class", "principal_subject", "auth_realm_id"),
+        CheckConstraint(
+            "principal_class in ('admin', 'partner_operator', 'customer')",
+            name="ck_refresh_tokens_principal_class",
+        ),
+        CheckConstraint("principal_subject <> ''", name="ck_refresh_tokens_principal_subject_nonempty"),
+        CheckConstraint("audience <> ''", name="ck_refresh_tokens_audience_nonempty"),
+        CheckConstraint("scope_family <> ''", name="ck_refresh_tokens_scope_family_nonempty"),
     )
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
 
-    user_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("admin_users.id", ondelete="CASCADE"), nullable=False, index=True
+    user_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False, index=True)
+    auth_realm_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("auth_realms.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
+    principal_class: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    principal_subject: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    audience: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    scope_family: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
 
     token_hash: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
 
@@ -89,4 +105,7 @@ class RefreshToken(Base):
 
     def __repr__(self) -> str:
         status = "revoked" if self.revoked_at else "active"
-        return f"<RefreshToken(id={self.id}, user_id={self.user_id}, status='{status}')>"
+        return (
+            f"<RefreshToken(id={self.id}, principal_class={self.principal_class}, "
+            f"principal_subject={self.principal_subject}, status='{status}')>"
+        )

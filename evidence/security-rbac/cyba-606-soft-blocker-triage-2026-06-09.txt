@@ -1,0 +1,31 @@
+Доказательства triage Security RBAC gate
+Issue: CYBA-606
+Date: 2026-06-09 UTC
+Reviewer: qa-security-rbac-reviewer
+
+Область:
+- Только triage. CYBA-606 была dependency-blocked, поэтому blocker-dependent deliverable QA не возобновлялась.
+- Browser session, credentials, JWT, cookies, refresh tokens, passwords, .env values, production PII, payment secrets и Telegram initData не собирались и не сохранялись.
+
+Источник wake:
+- Supervisor note comment id: 1de94eb3-8299-4d79-9338-56ad6eb1f2f8
+- Summary: CYBA-614 decision добавил mobile auth scope в CYBA-597. Supervisor note попросил считать CYBA-616 обязательным soft-blocker для CYBA-606, потому что Paperclip не разрешил добавить его как first-class blocker.
+- Финальная проверка состояния CYBA-606 в этом heartbeat показала, что CYBA-616 и CYBA-617 уже присутствуют в blockedBy. Поэтому gate учитывает CYBA-616 как обязательный blocker независимо от исходного soft-blocker wording.
+
+Проверенное состояние Paperclip во время heartbeat:
+- CYBA-606: blocked
+- CYBA-604: in_progress, first-class blocker
+- CYBA-603: done, first-class blocker resolved during heartbeat
+- CYBA-615: in_progress, входное evidence для mobile shared session migration
+- CYBA-616: blocked, first-class blocker и обязательный SecurityEngineer native mobile session migration review
+- CYBA-617: blocked, first-class blocker и входное evidence для mobile shared session backend QA
+
+Итог gate:
+- CYBA-606 остаётся blocked.
+- CYBA-606 нельзя закрывать как passed, пока CYBA-604, CYBA-616 и CYBA-617 не будут завершены или явно сняты как blockers.
+- Следующий разблокированный QA pass должен учесть results/evidence из CYBA-615 и CYBA-617.
+
+Context7 docs checked: N/A - ручной triage issue-thread/gate; поведение framework/library/API не оценивалось.
+
+Пометка о superseded state:
+- Позднее в heartbeat 2026-06-09 upstream blockers CYBA-604, CYBA-603, CYBA-616 и CYBA-617 были resolved, gate review возобновился, и CYBA-606 была заблокирована новым finding blocker CYBA-627.

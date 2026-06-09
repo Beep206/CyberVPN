@@ -9,14 +9,18 @@ import secrets
 from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from time import perf_counter
+from uuid import UUID
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from jwt.exceptions import PyJWTError as JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
+from src.application.services.entitlements_service import EntitlementsService
 from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
@@ -32,7 +36,7 @@ from src.application.use_cases.auth.delete_account import DeleteAccountUseCase
 from src.application.use_cases.auth.forgot_password import ForgotPasswordUseCase
 from src.application.use_cases.auth.login import LoginUseCase
 from src.application.use_cases.auth.logout import LogoutUseCase, RevokedAccessToken
-from src.application.use_cases.auth.refresh_token import RefreshTokenUseCase
+from src.application.use_cases.auth.refresh_token import RefreshTokenReplayError, RefreshTokenUseCase
 from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
 from src.application.use_cases.auth.reset_password import ResetPasswordUseCase
 from src.application.use_cases.auth.telegram_bot_link import TelegramBotLinkUseCase
@@ -49,6 +53,7 @@ from src.infrastructure.cache.telegram_init_data_replay import RedisTelegramInit
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
+from src.infrastructure.database.models.user_device_model import UserDeviceModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
@@ -101,8 +106,10 @@ from src.presentation.api.shared import (
 from src.presentation.api.v1.auth.cookies import (
     clear_auth_cookies,
     get_access_token_cookie,
+    get_or_create_web_device_cookie_value,
     get_refresh_token_cookie,
     set_auth_cookies,
+    set_web_device_cookie,
 )
 from src.presentation.api.v1.auth.realm_context import (
     get_principal_type_for_realm,
@@ -121,6 +128,7 @@ from src.presentation.api.v1.auth.schemas import (
     GenerateLoginLinkResponse,
     LoginRequest,
     LogoutAllResponse,
+    LogoutOthersResponse,
     LogoutRequest,
     MagicLinkRequest,
     MagicLinkResponse,
@@ -141,14 +149,14 @@ from src.presentation.api.v1.auth.schemas import (
     TelegramMiniAppResponse,
     TelegramWebLoginRequest,
     TelegramWebLoginResponse,
-    TokenResponse,
     VerifyOtpRequest,
     VerifyOtpResponse,
     WebLoginResponse,
+    WebRefreshResponse,
 )
-from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 from src.presentation.dependencies.auth import get_current_active_user, get_current_active_web_user
 from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
+from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 from src.presentation.dependencies.telegram_rate_limit import (
@@ -165,11 +173,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract client IP from request, respecting X-Forwarded-For."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    return resolve_client_ip(request).ip
 
 
 def _resolve_locale(*, user: AdminUserModel | None = None, fallback: str | None = None) -> str:
@@ -265,6 +269,26 @@ def _datetime_from_jwt_exp(value: object) -> datetime | None:
     return None
 
 
+def _normalize_response_datetime(value: datetime | str | None, fallback: datetime | str | None) -> datetime:
+    if isinstance(value, datetime):
+        return _normalize_token_expiry(value)
+    if isinstance(value, str):
+        normalized = value.replace("Z", "+00:00")
+        try:
+            return _normalize_token_expiry(datetime.fromisoformat(normalized))
+        except ValueError:
+            pass
+    if isinstance(fallback, datetime):
+        return _normalize_token_expiry(fallback)
+    if isinstance(fallback, str):
+        normalized_fallback = fallback.replace("Z", "+00:00")
+        try:
+            return _normalize_token_expiry(datetime.fromisoformat(normalized_fallback))
+        except ValueError:
+            pass
+    return datetime.now(UTC)
+
+
 def _get_bearer_token(request: Request) -> str | None:
     authorization = request.headers.get("Authorization")
     if not authorization:
@@ -321,6 +345,72 @@ async def _revoke_access_tokens(
         )
         revoked_count += 1
     return revoked_count
+
+
+async def _resolve_current_session_user_device_id(
+    *,
+    http_request: Request,
+    current_realm: RealmResolution,
+    auth_service: AuthService,
+    db: AsyncSession,
+    principal_subject: str,
+    principal_class: str,
+) -> UUID | None:
+    token = _get_bearer_token(http_request) or get_access_token_cookie(
+        http_request.cookies,
+        current_realm.cookie_namespace,
+    )
+    if not token:
+        return None
+
+    try:
+        payload = auth_service.decode_token(token, audience=current_realm.audience)
+    except JWTError:
+        if current_realm.realm_key != "admin":
+            return None
+        try:
+            payload = auth_service.decode_token(token, audience=None)
+        except JWTError:
+            return None
+
+    if payload.get("type") != "access":
+        return None
+    jti = payload.get("jti")
+    if not isinstance(jti, str):
+        return None
+
+    result = await db.execute(
+        select(PrincipalSessionModel.user_device_id).where(
+            PrincipalSessionModel.auth_realm_id == current_realm.auth_realm.id,
+            PrincipalSessionModel.principal_subject == principal_subject,
+            PrincipalSessionModel.principal_class == principal_class,
+            PrincipalSessionModel.access_token_jti == jti,
+            PrincipalSessionModel.revoked_at.is_(None),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def _resolve_customer_device_limit(
+    *,
+    current_user: AdminUserModel,
+    current_realm: RealmResolution,
+    db: AsyncSession,
+) -> int | None:
+    if current_realm.realm_type != "customer":
+        return None
+
+    snapshot = await EntitlementsService(db).get_current_snapshot(
+        current_user.id,
+        auth_realm_id=current_realm.auth_realm.id,
+    )
+    raw_device_limit = (snapshot.get("effective_entitlements") or {}).get("device_limit")
+    if raw_device_limit is None:
+        return None
+    try:
+        return max(0, int(raw_device_limit))
+    except (TypeError, ValueError):
+        return None
 
 
 async def _resolve_miniapp_mobile_login(
@@ -651,6 +741,8 @@ async def login(
 
     # MED-002: Generate client fingerprint for token device binding
     fingerprint = generate_client_fingerprint(http_request)
+    device_key, set_device_cookie = get_or_create_web_device_cookie_value(http_request.cookies)
+    client_ip = resolve_client_ip(http_request)
 
     try:
         await _repair_customer_web_user_realm_after_password_match(
@@ -665,7 +757,10 @@ async def login(
             login_or_email=request.login_or_email,
             password=request.password,
             client_fingerprint=fingerprint,
-            client_ip=_get_client_ip(http_request),
+            client_device_key=device_key,
+            client_ip=client_ip.ip,
+            client_ip_source=client_ip.ip_source,
+            proxy_peer=client_ip.proxy_peer,
             user_agent=http_request.headers.get("User-Agent"),
             auth_realm_id=current_realm.auth_realm.id,
             auth_realm_key=current_realm.realm_key,
@@ -847,6 +942,13 @@ async def login(
             request=http_request,
             cookie_namespace=current_realm.cookie_namespace,
         )
+        if set_device_cookie:
+            set_web_device_cookie(
+                response,
+                device_key,
+                request=http_request,
+                cookie_namespace=current_realm.cookie_namespace,
+            )
         await sync_active_sessions(db)
 
     await sync_auth_security_posture(db, redis_client)
@@ -877,7 +979,7 @@ async def login(
 
 @router.post(
     "/refresh",
-    response_model=TokenResponse,
+    response_model=WebRefreshResponse,
     responses={401: {"description": "Invalid or expired refresh token"}},
 )
 async def refresh_token(
@@ -887,10 +989,11 @@ async def refresh_token(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
-) -> TokenResponse:
+) -> WebRefreshResponse | JSONResponse:
     """Refresh access token using refresh token.
 
-    SEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).
+    SEC-01: Accepts refresh_token from httpOnly cookie or legacy request body;
+    refreshed web tokens are returned only via httpOnly Set-Cookie headers.
     MED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.
     """
     started_at = perf_counter()
@@ -963,6 +1066,13 @@ async def refresh_token(
             include_legacy_default=current_realm.realm_key == "admin",
         )
     except InvalidCredentialsError as exc:
+        error_response = None
+        if isinstance(exc, RefreshTokenReplayError) and exc.clear_cookies:
+            error_response = JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Invalid or expired refresh token"},
+            )
+            clear_auth_cookies(error_response, request=http_request, cookie_namespace=current_realm.cookie_namespace)
         observe_partner_auth_refresh(result="failure", reason="expired_token")
         bind_partner_context_from_realm(
             current_realm=current_realm,
@@ -993,6 +1103,8 @@ async def refresh_token(
             error_type="expired_token",
         )
         observe_auth_request_duration("refresh_token", started_at)
+        if error_response is not None:
+            return error_response
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
@@ -1027,11 +1139,7 @@ async def refresh_token(
         auth_realm_key=current_realm.realm_key,
     )
 
-    return TokenResponse(
-        access_token=result["access_token"],
-        refresh_token=result["refresh_token"],
-        token_type=result["token_type"],
-        expires_in=result["expires_in"],
+    return WebRefreshResponse(
         auth_realm_id=result.get("auth_realm_id"),
         auth_realm_key=result.get("auth_realm_key"),
         audience=result.get("audience"),
@@ -1140,9 +1248,9 @@ async def logout_all_devices(
     db: AsyncSession = Depends(get_db),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> LogoutAllResponse:
-    """Logout from all devices by revoking all user tokens (HIGH-6).
+    """Logout from all devices in the current auth realm (HIGH-6).
 
-    Revokes all access and refresh tokens for the current user.
+    Revokes access and refresh tokens attached to current-realm sessions only.
     """
     logout_use_case = LogoutUseCase(session=db)
     bind_partner_context_from_realm(
@@ -1150,33 +1258,16 @@ async def logout_all_devices(
         route_group="auth_logout_all",
         principal_class=PARTNER_PRINCIPAL_CLASS,
     )
-    refresh_sessions_revoked = await logout_use_case.execute_all(current_user.id)
+    principal_class = get_principal_type_for_realm(current_realm)
+    logout_result = await logout_use_case.execute_realm(
+        auth_realm_id=current_realm.auth_realm.id,
+        principal_subject=str(current_user.id),
+        principal_class=principal_class,
+    )
 
     revocation_service = JWTRevocationService(redis_client)
-    revoked_count = await revocation_service.revoke_all_user_tokens(str(current_user.id))
-    principal_sessions_result = await db.execute(
-        select(PrincipalSessionModel).where(
-            PrincipalSessionModel.auth_realm_id == current_realm.auth_realm.id,
-            PrincipalSessionModel.principal_subject == str(current_user.id),
-            PrincipalSessionModel.revoked_at.is_(None),
-        )
-    )
-    principal_sessions = list(principal_sessions_result.scalars().all())
-    revoked_at = datetime.now(UTC)
-    access_tokens_to_revoke: list[RevokedAccessToken] = []
-    for principal_session in principal_sessions:
-        if principal_session.access_token_jti:
-            access_tokens_to_revoke.append(
-                RevokedAccessToken(
-                    jti=principal_session.access_token_jti,
-                    expires_at=principal_session.expires_at,
-                )
-            )
-        principal_session.revoked_at = revoked_at
-        principal_session.status = "revoked"
-    access_sessions_revoked = await _revoke_access_tokens(revocation_service, access_tokens_to_revoke)
-    sessions_revoked = max(refresh_sessions_revoked, revoked_count, access_sessions_revoked, len(principal_sessions))
-    await db.flush()
+    access_sessions_revoked = await _revoke_access_tokens(revocation_service, logout_result.access_tokens)
+    sessions_revoked = logout_result.principal_sessions_revoked
     await sync_active_sessions(db)
     track_auth_session_operation("logout_all", "success")
     track_auth_session_detail(
@@ -1194,9 +1285,10 @@ async def logout_all_devices(
         "User logged out from all devices",
         extra={
             "user_id": str(current_user.id),
+            "auth_realm_id": str(current_realm.auth_realm.id),
             "sessions_revoked": sessions_revoked,
-            "refresh_sessions_revoked": refresh_sessions_revoked,
-            "jwt_tokens_revoked": revoked_count,
+            "refresh_tokens_revoked": logout_result.refresh_tokens_revoked,
+            "access_tokens_revoked": access_sessions_revoked,
         },
     )
     observe_partner_auth_logout(result="success", reason="logout_all")
@@ -1399,11 +1491,16 @@ async def verify_otp(
         email=request.email,
         current_realm=current_realm,
     )
+    device_key, set_device_cookie = get_or_create_web_device_cookie_value(http_request.cookies)
+    client_ip = resolve_client_ip(http_request)
     result = await use_case.execute(
         email=request.email,
         code=request.code,
         client_fingerprint=generate_client_fingerprint(http_request),
-        client_ip=_get_client_ip(http_request),
+        client_device_key=device_key,
+        client_ip=client_ip.ip,
+        client_ip_source=client_ip.ip_source,
+        proxy_peer=client_ip.proxy_peer,
         user_agent=http_request.headers.get("User-Agent"),
         auth_realm_id=current_realm.auth_realm.id,
         auth_realm_key=current_realm.realm_key,
@@ -1554,6 +1651,13 @@ async def verify_otp(
             request=http_request,
             cookie_namespace=current_realm.cookie_namespace,
         )
+        if set_device_cookie:
+            set_web_device_cookie(
+                response,
+                device_key,
+                request=http_request,
+                cookie_namespace=current_realm.cookie_namespace,
+            )
 
     await sync_active_sessions(db)
     await sync_auth_security_posture(db)
@@ -1896,45 +2000,34 @@ async def verify_magic_link(
             user=user,
         )
 
-    # Issue JWT tokens
-    access_token, _, access_exp = auth_service.create_access_token(
-        subject=str(user.id),
-        role=user.role if isinstance(user.role, str) else user.role.value,
-        audience=current_realm.audience,
-        principal_type=get_principal_type_for_realm(current_realm),
-        realm_id=str(current_realm.auth_realm.id),
-        realm_key=current_realm.realm_key,
-        scope_family=get_scope_family_for_realm(current_realm),
-    )
-    fingerprint = generate_client_fingerprint(http_request)
-    refresh_token, _, refresh_exp = auth_service.create_refresh_token(
-        subject=str(user.id),
-        fingerprint=fingerprint,
-        audience=current_realm.audience,
-        principal_type=get_principal_type_for_realm(current_realm),
-        realm_id=str(current_realm.auth_realm.id),
-        realm_key=current_realm.realm_key,
-        scope_family=get_scope_family_for_realm(current_realm),
-    )
-    expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
     await _ensure_customer_web_mobile_shadow(
         db=db,
         user=user,
         current_realm=current_realm,
     )
-    await store_refresh_token(
-        db,
-        user_id=user.id,
-        refresh_token=refresh_token,
-        expires_at=refresh_exp,
-        device_id=fingerprint,
-        ip_address=_get_client_ip(http_request),
-        user_agent=http_request.headers.get("User-Agent"),
-        auth_realm_id=current_realm.auth_realm.id,
-        principal_class=get_principal_type_for_realm(current_realm),
-        principal_subject=str(user.id),
-        audience=current_realm.audience,
-        scope_family=get_scope_family_for_realm(current_realm),
+    principal_type = get_principal_type_for_realm(current_realm)
+    scope_family = get_scope_family_for_realm(current_realm)
+    device_key, set_device_cookie = get_or_create_web_device_cookie_value(http_request.cookies)
+    client_ip = resolve_client_ip(http_request)
+    issued_session = await AuthSessionIssuer(auth_service=auth_service, session=db).issue_auth_session(
+        AuthSessionIssueRequest(
+            user_id=user.id,
+            role=user.role if isinstance(user.role, str) else user.role.value,
+            device_key=device_key,
+            refresh_fingerprint=generate_client_fingerprint(http_request),
+            ip_address=client_ip.ip,
+            ip_source=client_ip.ip_source,
+            proxy_peer=client_ip.proxy_peer,
+            user_agent=http_request.headers.get("User-Agent"),
+            auth_realm_id=current_realm.auth_realm.id,
+            auth_realm_key=current_realm.realm_key,
+            audience=current_realm.audience,
+            principal_class=principal_type,
+            principal_subject=str(user.id),
+            scope_family=scope_family,
+            access_extra={"auth_method": "magic_link"},
+            platform="web",
+        )
     )
 
     # Track successful magic link auth
@@ -2001,20 +2094,27 @@ async def verify_magic_link(
 
     set_auth_cookies(
         response,
-        access_token,
-        refresh_token,
+        issued_session.access_token,
+        issued_session.refresh_token,
         request=http_request,
         cookie_namespace=current_realm.cookie_namespace,
     )
+    if set_device_cookie:
+        set_web_device_cookie(
+            response,
+            device_key,
+            request=http_request,
+            cookie_namespace=current_realm.cookie_namespace,
+        )
     await sync_active_sessions(db)
     await sync_auth_security_posture(db, redis_client)
     observe_auth_request_duration("magic_link", started_at)
 
     return MagicLinkVerifyResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        expires_in=expires_in,
+        access_token=issued_session.access_token,
+        refresh_token=issued_session.refresh_token,
+        token_type=issued_session.token_type,
+        expires_in=issued_session.expires_in,
         user=_build_admin_user_response(user, current_realm),
     )
 
@@ -2147,46 +2247,34 @@ async def verify_magic_link_otp(
             user=user,
         )
 
-    # Issue JWT tokens
-    access_token, _, access_exp = auth_service.create_access_token(
-        subject=str(user.id),
-        role=user.role if isinstance(user.role, str) else user.role.value,
-        audience=current_realm.audience,
-        principal_type=get_principal_type_for_realm(current_realm),
-        realm_id=str(current_realm.auth_realm.id),
-        realm_key=current_realm.realm_key,
-        scope_family=get_scope_family_for_realm(current_realm),
-    )
-    fingerprint = generate_client_fingerprint(http_request)
-    refresh_token, _, refresh_exp = auth_service.create_refresh_token(
-        subject=str(user.id),
-        fingerprint=fingerprint,
-        audience=current_realm.audience,
-        principal_type=get_principal_type_for_realm(current_realm),
-        realm_id=str(current_realm.auth_realm.id),
-        realm_key=current_realm.realm_key,
-        scope_family=get_scope_family_for_realm(current_realm),
-    )
-    expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
     await _ensure_customer_web_mobile_shadow(
         db=db,
         user=user,
         current_realm=current_realm,
     )
-
-    await store_refresh_token(
-        db,
-        user_id=user.id,
-        refresh_token=refresh_token,
-        expires_at=refresh_exp,
-        device_id=fingerprint,
-        ip_address=_get_client_ip(http_request),
-        user_agent=http_request.headers.get("User-Agent"),
-        auth_realm_id=current_realm.auth_realm.id,
-        principal_class=get_principal_type_for_realm(current_realm),
-        principal_subject=str(user.id),
-        audience=current_realm.audience,
-        scope_family=get_scope_family_for_realm(current_realm),
+    principal_type = get_principal_type_for_realm(current_realm)
+    scope_family = get_scope_family_for_realm(current_realm)
+    device_key, set_device_cookie = get_or_create_web_device_cookie_value(http_request.cookies)
+    client_ip = resolve_client_ip(http_request)
+    issued_session = await AuthSessionIssuer(auth_service=auth_service, session=db).issue_auth_session(
+        AuthSessionIssueRequest(
+            user_id=user.id,
+            role=user.role if isinstance(user.role, str) else user.role.value,
+            device_key=device_key,
+            refresh_fingerprint=generate_client_fingerprint(http_request),
+            ip_address=client_ip.ip,
+            ip_source=client_ip.ip_source,
+            proxy_peer=client_ip.proxy_peer,
+            user_agent=http_request.headers.get("User-Agent"),
+            auth_realm_id=current_realm.auth_realm.id,
+            auth_realm_key=current_realm.realm_key,
+            audience=current_realm.audience,
+            principal_class=principal_type,
+            principal_subject=str(user.id),
+            scope_family=scope_family,
+            access_extra={"auth_method": "magic_link_otp"},
+            platform="web",
+        )
     )
 
     # Track successful magic link OTP auth
@@ -2253,20 +2341,27 @@ async def verify_magic_link_otp(
 
     set_auth_cookies(
         response,
-        access_token,
-        refresh_token,
+        issued_session.access_token,
+        issued_session.refresh_token,
         request=http_request,
         cookie_namespace=current_realm.cookie_namespace,
     )
+    if set_device_cookie:
+        set_web_device_cookie(
+            response,
+            device_key,
+            request=http_request,
+            cookie_namespace=current_realm.cookie_namespace,
+        )
     await sync_active_sessions(db)
     await sync_auth_security_posture(db, redis_client)
     observe_auth_request_duration("magic_link_otp", started_at)
 
     return MagicLinkVerifyResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        expires_in=expires_in,
+        access_token=issued_session.access_token,
+        refresh_token=issued_session.refresh_token,
+        token_type=issued_session.token_type,
+        expires_in=issued_session.expires_in,
         user=_build_admin_user_response(user, current_realm),
     )
 
@@ -2517,6 +2612,7 @@ async def telegram_web_auth(
     response: Response,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> TelegramWebLoginResponse:
     """Authenticate via Telegram Web Widget OAuth payload.
@@ -2542,7 +2638,22 @@ async def telegram_web_auth(
     )
 
     try:
-        result = await use_case.execute(payload=request.model_dump())
+        device_key, set_device_cookie = get_or_create_web_device_cookie_value(http_request.cookies)
+        client_ip = resolve_client_ip(http_request)
+        result = await use_case.execute(
+            payload=request.model_dump(),
+            client_fingerprint=generate_client_fingerprint(http_request),
+            client_device_key=device_key,
+            client_ip=client_ip.ip,
+            client_ip_source=client_ip.ip_source,
+            proxy_peer=client_ip.proxy_peer,
+            user_agent=http_request.headers.get("User-Agent"),
+            auth_realm_id=current_realm.auth_realm.id,
+            auth_realm_key=current_realm.realm_key,
+            audience=current_realm.audience,
+            principal_type=get_principal_type_for_realm(current_realm),
+            scope_family=get_scope_family_for_realm(current_realm),
+        )
     except PublicRegistrationDisabledError as e:
         track_auth_attempt(method="telegram", success=False)
         track_auth_error("registration_disabled")
@@ -2648,18 +2759,20 @@ async def telegram_web_auth(
         )
 
     if result.access_token and result.refresh_token:
-        refresh_payload = auth_service.decode_token(result.refresh_token)
-        refresh_exp = datetime.fromtimestamp(refresh_payload["exp"], UTC)
-        await store_refresh_token(
-            db,
-            user_id=result.user.id,
-            refresh_token=result.refresh_token,
-            expires_at=refresh_exp,
-            device_id=generate_client_fingerprint(http_request),
-            ip_address=_get_client_ip(http_request),
-            user_agent=http_request.headers.get("User-Agent"),
+        set_auth_cookies(
+            response,
+            result.access_token,
+            result.refresh_token,
+            request=http_request,
+            cookie_namespace=current_realm.cookie_namespace,
         )
-        set_auth_cookies(response, result.access_token, result.refresh_token, request=http_request)
+        if set_device_cookie:
+            set_web_device_cookie(
+                response,
+                device_key,
+                request=http_request,
+                cookie_namespace=current_realm.cookie_namespace,
+            )
 
     await sync_active_sessions(db)
     await sync_auth_security_posture(db)
@@ -2692,6 +2805,7 @@ async def telegram_bot_link_auth(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> TelegramBotLinkResponse:
     """Authenticate via one-time Telegram bot login link token.
 
@@ -2709,10 +2823,26 @@ async def telegram_bot_link_auth(
         user_repo=user_repo,
         auth_service=auth_service,
         redis_client=redis_client,
+        session=db,
     )
 
     try:
-        result = await use_case.execute(token=request.token)
+        device_key, set_device_cookie = get_or_create_web_device_cookie_value(http_request.cookies)
+        client_ip = resolve_client_ip(http_request)
+        result = await use_case.execute(
+            token=request.token,
+            client_fingerprint=generate_client_fingerprint(http_request),
+            client_device_key=device_key,
+            client_ip=client_ip.ip,
+            client_ip_source=client_ip.ip_source,
+            proxy_peer=client_ip.proxy_peer,
+            user_agent=http_request.headers.get("User-Agent"),
+            auth_realm_id=current_realm.auth_realm.id,
+            auth_realm_key=current_realm.realm_key,
+            audience=current_realm.audience,
+            principal_type=get_principal_type_for_realm(current_realm),
+            scope_family=get_scope_family_for_realm(current_realm),
+        )
     except ValueError as e:
         track_auth_attempt(method="telegram", success=False)
         track_auth_error("expired_token")
@@ -2739,18 +2869,20 @@ async def telegram_bot_link_auth(
         )
 
     if result.access_token and result.refresh_token:
-        refresh_payload = auth_service.decode_token(result.refresh_token)
-        refresh_exp = datetime.fromtimestamp(refresh_payload["exp"], UTC)
-        await store_refresh_token(
-            db,
-            user_id=result.user.id,
-            refresh_token=result.refresh_token,
-            expires_at=refresh_exp,
-            device_id=generate_client_fingerprint(http_request),
-            ip_address=_get_client_ip(http_request),
-            user_agent=http_request.headers.get("User-Agent"),
+        set_auth_cookies(
+            response,
+            result.access_token,
+            result.refresh_token,
+            request=http_request,
+            cookie_namespace=current_realm.cookie_namespace,
         )
-        set_auth_cookies(response, result.access_token, result.refresh_token, request=http_request)
+        if set_device_cookie:
+            set_web_device_cookie(
+                response,
+                device_key,
+                request=http_request,
+                cookie_namespace=current_realm.cookie_namespace,
+            )
         await sync_active_sessions(db)
         await sync_auth_security_posture(db, redis_client)
 
@@ -3052,56 +3184,155 @@ async def list_devices(
     http_request: Request,
     current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> DeviceSessionListResponse:
-    """List all active sessions/devices for the current user (BF2-4).
+    """List unique active devices for the current user and auth realm (BF2-4).
 
-    Returns device_id, IP address, user agent, last used time, and marks the current session.
+    Returns one row per active stable device and marks the current device.
     """
-    from sqlalchemy import select
+    principal_class = get_principal_type_for_realm(current_realm)
+    principal_subject = str(current_user.id)
+    current_user_device_id = await _resolve_current_session_user_device_id(
+        http_request=http_request,
+        current_realm=current_realm,
+        auth_service=auth_service,
+        db=db,
+        principal_subject=principal_subject,
+        principal_class=principal_class,
+    )
 
-    from src.infrastructure.database.models.refresh_token_model import RefreshToken
-
-    # Get the current device fingerprint to mark the current session
-    current_fingerprint = generate_client_fingerprint(http_request)
-
-    # Query all active (non-revoked) refresh tokens for the user
+    now = datetime.now(UTC)
     stmt = (
-        select(RefreshToken)
+        select(UserDeviceModel, PrincipalSessionModel)
+        .join(PrincipalSessionModel, PrincipalSessionModel.user_device_id == UserDeviceModel.id)
         .where(
-            RefreshToken.user_id == current_user.id,
-            RefreshToken.revoked_at.is_(None),
-            RefreshToken.expires_at > datetime.now(UTC),
+            UserDeviceModel.auth_realm_id == current_realm.auth_realm.id,
+            UserDeviceModel.principal_subject == principal_subject,
+            UserDeviceModel.principal_class == principal_class,
+            UserDeviceModel.revoked_at.is_(None),
+            PrincipalSessionModel.auth_realm_id == current_realm.auth_realm.id,
+            PrincipalSessionModel.principal_subject == principal_subject,
+            PrincipalSessionModel.principal_class == principal_class,
+            PrincipalSessionModel.status == "active",
+            PrincipalSessionModel.revoked_at.is_(None),
+            PrincipalSessionModel.expires_at > now,
         )
-        .order_by(RefreshToken.last_used_at.desc())
+        .order_by(UserDeviceModel.last_seen_at.desc(), PrincipalSessionModel.last_seen_at.desc())
     )
 
     result = await db.execute(stmt)
-    tokens = result.scalars().all()
+    rows = result.all()
 
-    # Convert to response format
-    devices = []
-    for token in tokens:
-        is_current = token.device_id == current_fingerprint
+    devices: list[DeviceSessionResponse] = []
+    seen_device_ids: set[UUID] = set()
+    for user_device, principal_session in rows:
+        if user_device.id in seen_device_ids:
+            continue
+        seen_device_ids.add(user_device.id)
+        fallback_time = now
+        device_last_seen_at = _normalize_response_datetime(user_device.last_seen_at, fallback_time)
+        session_last_seen_at = _normalize_response_datetime(principal_session.last_seen_at, fallback_time)
+        last_used_at = max(device_last_seen_at, session_last_seen_at)
+        created_at = _normalize_response_datetime(user_device.created_at, user_device.first_seen_at)
         devices.append(
             DeviceSessionResponse(
-                device_id=token.device_id,
-                ip_address=token.ip_address,
-                user_agent=token.user_agent,
-                last_used_at=token.last_used_at,
-                created_at=token.created_at,
-                is_current=is_current,
+                device_id=str(user_device.id),
+                ip_address=user_device.last_ip_address or user_device.ip_address,
+                user_agent=user_device.last_user_agent or user_device.user_agent,
+                last_used_at=last_used_at,
+                created_at=created_at,
+                is_current=user_device.id == current_user_device_id,
             )
         )
 
+    device_limit = await _resolve_customer_device_limit(current_user=current_user, current_realm=current_realm, db=db)
+    total_devices = len(devices)
+    remaining_devices = max(device_limit - total_devices, 0) if device_limit is not None else None
+
     logger.info(
         "Device list requested",
-        extra={"user_id": str(current_user.id), "device_count": len(devices)},
+        extra={
+            "user_id": str(current_user.id),
+            "auth_realm_id": str(current_realm.auth_realm.id),
+            "device_count": total_devices,
+        },
     )
 
     return DeviceSessionListResponse(
         devices=devices,
-        total=len(devices),
+        total=total_devices,
+        total_devices=total_devices,
+        device_limit=device_limit,
+        remaining_devices=remaining_devices,
     )
+
+
+@router.post(
+    "/devices/logout-others",
+    response_model=LogoutOthersResponse,
+    responses={
+        401: {"description": "Not authenticated"},
+        409: {"description": "Current device could not be resolved"},
+    },
+)
+async def logout_other_devices(
+    http_request: Request,
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
+) -> LogoutOthersResponse:
+    """Logout every active device in the current realm except the current device."""
+    principal_class = get_principal_type_for_realm(current_realm)
+    principal_subject = str(current_user.id)
+    current_user_device_id = await _resolve_current_session_user_device_id(
+        http_request=http_request,
+        current_realm=current_realm,
+        auth_service=auth_service,
+        db=db,
+        principal_subject=principal_subject,
+        principal_class=principal_class,
+    )
+    if current_user_device_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Current device could not be resolved",
+        )
+
+    logout_result = await LogoutUseCase(session=db).execute_other_devices(
+        auth_realm_id=current_realm.auth_realm.id,
+        principal_subject=principal_subject,
+        principal_class=principal_class,
+        current_user_device_id=current_user_device_id,
+    )
+    revocation_service = JWTRevocationService(redis_client)
+    access_sessions_revoked = await _revoke_access_tokens(revocation_service, logout_result.access_tokens)
+    await db.commit()
+    await sync_active_sessions(db)
+    track_auth_session_operation("logout_others", "success")
+    track_auth_session_detail(
+        channel="web",
+        method="session",
+        operation="logout_others",
+        status="success",
+        reason="none",
+        amount=logout_result.principal_sessions_revoked,
+    )
+
+    logger.info(
+        "Other device sessions revoked",
+        extra={
+            "user_id": str(current_user.id),
+            "auth_realm_id": str(current_realm.auth_realm.id),
+            "current_user_device_id": str(current_user_device_id),
+            "sessions_revoked": logout_result.principal_sessions_revoked,
+            "access_tokens_revoked": access_sessions_revoked,
+        },
+    )
+
+    return LogoutOthersResponse(sessions_revoked=logout_result.principal_sessions_revoked)
 
 
 @router.delete(
@@ -3117,29 +3348,36 @@ async def revoke_device(
     current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> RevokeDeviceResponse:
     """Revoke a specific device session (remote logout) (BF2-4).
 
-    Revokes all refresh tokens associated with the device and revokes all JWT access tokens for the user.
+    Revokes access and refresh tokens associated with the selected device only.
     """
-    from sqlalchemy import select, update
+    try:
+        user_device_id = UUID(device_id)
+    except ValueError:
+        user_device_id = None
 
-    from src.infrastructure.database.models.refresh_token_model import RefreshToken
-
-    # Find tokens for this device
-    stmt = select(RefreshToken).where(
-        RefreshToken.user_id == current_user.id,
-        RefreshToken.device_id == device_id,
-        RefreshToken.revoked_at.is_(None),
+    principal_class = get_principal_type_for_realm(current_realm)
+    logout_result = (
+        await LogoutUseCase(session=db).execute_device(
+            auth_realm_id=current_realm.auth_realm.id,
+            principal_subject=str(current_user.id),
+            principal_class=principal_class,
+            user_device_id=user_device_id,
+        )
+        if user_device_id is not None
+        else None
     )
-
-    result = await db.execute(stmt)
-    tokens = result.scalars().all()
-
-    if not tokens:
+    if logout_result is None or logout_result.principal_sessions_revoked == 0:
         logger.warning(
             "Device revocation attempted for non-existent device",
-            extra={"user_id": str(current_user.id), "device_id": device_id},
+            extra={
+                "user_id": str(current_user.id),
+                "auth_realm_id": str(current_realm.auth_realm.id),
+                "device_id": device_id,
+            },
         )
         track_auth_session_operation("revoke_device", "not_found")
         track_auth_session_detail(
@@ -3154,17 +3392,8 @@ async def revoke_device(
             detail="Device not found or already revoked",
         )
 
-    # Revoke all tokens for this device
-    await db.execute(
-        update(RefreshToken)
-        .where(
-            RefreshToken.user_id == current_user.id,
-            RefreshToken.device_id == device_id,
-            RefreshToken.revoked_at.is_(None),
-        )
-        .values(revoked_at=datetime.now(UTC))
-    )
-
+    revocation_service = JWTRevocationService(redis_client)
+    access_sessions_revoked = await _revoke_access_tokens(revocation_service, logout_result.access_tokens)
     await db.commit()
     await sync_active_sessions(db)
     track_auth_session_operation("revoke_device", "success")
@@ -3174,16 +3403,19 @@ async def revoke_device(
         operation="revoke_device",
         status="success",
         reason="none",
-        amount=len(tokens),
+        amount=logout_result.principal_sessions_revoked,
     )
-
-    # Also revoke JWT access tokens for this user (they'll need to re-login)
-    revocation_service = JWTRevocationService(redis_client)
-    await revocation_service.revoke_all_user_tokens(str(current_user.id))
 
     logger.info(
         "Device session revoked",
-        extra={"user_id": str(current_user.id), "device_id": device_id, "tokens_revoked": len(tokens)},
+        extra={
+            "user_id": str(current_user.id),
+            "auth_realm_id": str(current_realm.auth_realm.id),
+            "device_id": device_id,
+            "sessions_revoked": logout_result.principal_sessions_revoked,
+            "refresh_tokens_revoked": logout_result.refresh_tokens_revoked,
+            "access_tokens_revoked": access_sessions_revoked,
+        },
     )
 
     return RevokeDeviceResponse(

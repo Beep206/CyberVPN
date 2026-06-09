@@ -1,0 +1,58 @@
+Доказательства finding SRBAC-002
+Issue: CYBA-606
+Follow-up: CYBA-627
+Date: 2026-06-09 UTC
+Reviewer: qa-security-rbac-reviewer
+
+Область:
+- Non-destructive local security/RBAC review.
+- Browser session, production credentials, raw JWT, cookies, refresh tokens, passwords, .env values, production PII, payment secrets и Telegram initData не собирались и не сохранялись.
+
+Наблюдение:
+- Серьёзность: P2.
+- Тип: sensitive token exposure / httpOnly-cookie posture regression.
+- Web auth login использует cookie-only body contract, но web refresh всё ещё возвращает JS-readable token fields.
+
+Окружение:
+- Local CYBA-606 workspace.
+- Role/state: authenticated web admin/partner/customer session with httpOnly auth cookies.
+
+Точные шаги воспроизведения:
+1. Authenticate through POST /api/v1/auth/login on a web realm.
+2. Убедиться, что response body не содержит access_token и refresh_token, а auth cookies выставлены.
+3. С теми же cookies вызвать POST /api/v1/auth/refresh с empty JSON body.
+4. Проверить JSON response body.
+
+Ожидаемый результат:
+- Web cookie refresh не должен отдавать raw access_token или refresh_token в JSON.
+- Token-bearing refresh должен оставаться на /api/v1/mobile/auth/refresh или другом явно non-web contract.
+
+Фактический результат:
+- backend/src/presentation/api/v1/auth/routes.py выставляет auth cookies, затем возвращает TokenResponse with access_token and refresh_token.
+- frontend/admin/partner authApi.refresh() отдаёт этот body browser JavaScript.
+
+Санитизированное source evidence:
+- backend/src/presentation/api/v1/auth/routes.py:1112 -> set_auth_cookies(...)
+- backend/src/presentation/api/v1/auth/routes.py:1141 -> return TokenResponse(...)
+- backend/src/presentation/api/v1/auth/schemas.py:50 -> TokenResponse includes access_token and refresh_token.
+- frontend/src/lib/api/client.ts:72 -> SEC-01 token storage migrated to httpOnly cookies.
+- frontend/src/lib/api/auth.ts:323 -> authApi.refresh()
+- admin/src/lib/api/auth.ts:305 -> authApi.refresh()
+- partner/src/lib/api/auth.ts:300 -> authApi.refresh()
+- backend/tests/integration/test_auth_realm_sessions.py:162 and :1008 assert refresh_payload["access_token"].
+- frontend/src/lib/api/__tests__/auth.test.ts:510, admin/src/lib/api/__tests__/auth.test.ts:490, partner/src/lib/api/__tests__/auth.test.ts:464 assert mock_refreshed_access_token in refresh response.
+
+Команды проверки:
+- uv run pytest tests/integration/test_auth_realm_sessions.py tests/unit/presentation/test_client_ip.py -q --no-cov
+  Result: 21 passed.
+- REDIS_URL=redis://localhost:6379/15 uv run pytest tests/integration/api/v1/mobile_auth/test_refresh_token_principal_owner.py -q --no-cov
+  Result: 2 skipped, потому что Docker-backed PostgreSQL at localhost:6767 был недоступен в этом heartbeat. CYBA-617 содержит DB-backed mobile evidence from disposable PostgreSQL.
+
+Документация:
+- Context7 MCP: Monthly quota exceeded.
+- FastAPI Response Cookies official docs: https://fastapi.tiangolo.com/advanced/response-cookies/
+- SQLAlchemy 2.0 with_for_update official docs: https://docs.sqlalchemy.org/en/20/core/selectable.html#sqlalchemy.sql.expression.Select.with_for_update
+- Next.js proxy.ts official docs: https://nextjs.org/docs/app/api-reference/file-conventions/proxy
+
+Итог gate:
+- Superseded: CYBA-627 завершён и retested в CYBA-606. См. `evidence/security-rbac/cyba-606-web-refresh-retest-2026-06-09.txt`.

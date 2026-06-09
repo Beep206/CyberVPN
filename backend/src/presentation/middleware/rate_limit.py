@@ -19,6 +19,7 @@ from starlette.responses import JSONResponse, Response
 
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis_pool
+from src.presentation.dependencies.client_ip import resolve_client_ip
 
 logger = logging.getLogger("cybervpn")
 
@@ -519,34 +520,4 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         )
 
     def _get_client_ip(self, request: Request) -> str:
-        """Get client IP address with trusted proxy validation (MED-8).
-
-        Only accepts X-Forwarded-For from trusted proxies.
-        """
-        direct_ip = request.client.host if request.client else "unknown"
-
-        if not settings.trust_proxy_headers:
-            return direct_ip
-
-        # MED-8: Validate request comes from trusted proxy
-        trusted_proxies = set(settings.trusted_proxy_ips) if settings.trusted_proxy_ips else set()
-
-        # If trusted_proxy_ips is configured, validate direct connection is from trusted proxy
-        if trusted_proxies and direct_ip not in trusted_proxies:
-            # Direct connection not from trusted proxy - use direct IP
-            logger.warning(
-                "X-Forwarded-For from untrusted source ignored",
-                extra={"direct_ip": direct_ip, "trusted_proxies": list(trusted_proxies)[:5]},
-            )
-            return direct_ip
-
-        # Accept X-Forwarded-For from trusted proxy
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-
-        real_ip = request.headers.get("x-real-ip")
-        if real_ip:
-            return real_ip.strip()
-
-        return direct_ip
+        return resolve_client_ip(request).ip

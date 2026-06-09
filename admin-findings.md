@@ -1,5 +1,59 @@
 # Результаты проверки admin panel
 
+## CYBA-609 результат admin security sessions browser QA
+
+Общий результат: `PASS WITH PRODUCT GAP`. Scoped session-console flows for [CYBA-609](/CYBA/issues/CYBA-609) passed on synthetic local browser data: unauthenticated direct URL redirected to login, unique/current-device rendering was correct after scoped recheck, selected device revoke used stable `device_id`, `logout-others` and `logout-all` were action-locked against double confirm, and `logout-all` redirected the current console to login. No real backend session or token was mutated.
+
+### Bugs
+
+No new functional `P0/P1/P2` bugs were confirmed for the scoped [CYBA-609](/CYBA/issues/CYBA-609) session behavior.
+
+### ADM-GAP-CYBA609-001: session table action column is off initial desktop viewport
+
+Severity: `P3 UX`
+
+Environment: admin app `http://127.0.0.1:9101`, Playwright Chromium headless, viewport `1440x1000`, locale `ru-RU`, synthetic dev admin via `DEV_BYPASS_AUTH=true` and Playwright `/api/v1/auth/*` route stubs.
+
+Steps to reproduce:
+
+1. Open `/ru-RU/security/sessions` as a synthetic admin with at least one current and one remote device.
+2. Observe the session table at `1440x1000`.
+3. Try to find the per-row `Завершить сессию` action without horizontal table scrolling.
+
+Expected result:
+
+- Per-row session action is visible or clearly discoverable in the initial desktop table layout.
+
+Actual result:
+
+- The table is `1487.5px` wide inside a `707.3px` scroll container.
+- The first revoke button is outside the viewport: `left=1597.5`, `right=1773.5`, viewport width `1440`.
+- Functional Playwright flow can still click the DOM element and the table parent has `overflow-x: auto`, so this is a UX/discoverability gap rather than a functional release blocker.
+
+Evidence:
+
+- Summary: `evidence/admin/cyba-609/notes/cyba-609-admin-sessions-browser-qa__20260609T190544Z.md`
+- Browser QA JSON: `evidence/admin/cyba-609/notes/cyba-609-admin-sessions-browser-qa__20260609T190544Z.json`
+- Scoped layout/current-marker recheck: `evidence/admin/cyba-609/notes/cyba-609-admin-sessions-scoped-recheck__20260609T190756Z.json`
+- Screenshot: `evidence/admin/cyba-609/screenshots/CYBA-609__admin-sessions__synthetic__ru-RU__desktop-1440__sessions-loaded__20260609T190544Z.png`
+
+Recommended owner/action: admin frontend owner should consider sticky/frozen action column, denser table columns, or row action menu that remains visible at desktop widths.
+
+Context7 docs checked: N/A - manual UI/business-flow finding.
+
+### CYBA-609 pass coverage
+
+- `npm run test:run -- src/features/security/components/__tests__/security-sessions-console.test.tsx`: PASS, `4` tests.
+- Anonymous direct URL `/ru-RU/security/sessions`: PASS, redirected to `/ru-RU/login?redirect=%2Fru-RU%2Fsecurity%2Fsessions`.
+- Synthetic admin sessions page: PASS, exactly one table current marker after scoped recheck.
+- `POST /api/v1/auth/devices/logout-others`: PASS, called once after double confirm.
+- `DELETE /api/v1/auth/devices/dev_second_flag_beta`: PASS, called once after double confirm.
+- `POST /api/v1/auth/logout-all`: PASS, called once and redirected to `/ru-RU/login`.
+
+Blocked/not-tested: real backend session revocation, real credentials, production/staging data, customer/payment/wallet/withdrawal/permission mutations, real Telegram/OAuth/email operations. These were intentionally out of scope and not required for [CYBA-609](/CYBA/issues/CYBA-609).
+
+Проверка sensitive data: PASS - evidence contains only synthetic reserved IPs, synthetic device ids, local URLs, screenshots and route-stub counts; no cookies, JWTs, refresh tokens, passwords, `.env` values, production PII, payment secrets, real Telegram `initData`, HAR, trace, video or storage state.
+
 ## CYBA-574 результат post-fix recheck
 
 Общий результат: `FAIL`. Anonymous direct-route guards and owner read-only navigation passed on current [CYBA-568](/CYBA/issues/CYBA-568) baseline, but admin UI logout still does not revoke the current server session.

@@ -18,6 +18,11 @@ def test_user_devices_have_active_principal_device_uniqueness() -> None:
         "principal_class",
         "audience",
         "device_key_hash",
+        "first_user_agent",
+        "last_user_agent",
+        "last_ip_address",
+        "last_ip_source",
+        "last_proxy_peer",
         "revoked_at",
         "revoked_reason",
     }.issubset(table.columns.keys())
@@ -54,6 +59,11 @@ def test_refresh_tokens_are_append_only_rotation_ready() -> None:
 
     assert {
         "jti",
+        "auth_realm_id",
+        "principal_class",
+        "principal_subject",
+        "audience",
+        "scope_family",
         "family_id",
         "parent_token_id",
         "principal_session_id",
@@ -65,6 +75,7 @@ def test_refresh_tokens_are_append_only_rotation_ready() -> None:
     index_names = {index.name for index in table.indexes}
     assert {
         "uq_refresh_tokens_jti",
+        "ix_refresh_tokens_principal_owner",
         "ix_refresh_tokens_principal_session_id",
         "ix_refresh_tokens_family_id",
         "ix_refresh_tokens_parent_token_id",
@@ -76,3 +87,17 @@ def test_refresh_tokens_are_append_only_rotation_ready() -> None:
     unique_index = next(index for index in table.indexes if index.name == "uq_refresh_tokens_jti")
     assert unique_index.unique is True
     assert str(unique_index.dialect_options["postgresql"]["where"]) == "jti IS NOT NULL"
+
+    assert table.columns["auth_realm_id"].nullable is False
+    assert table.columns["principal_class"].nullable is False
+    assert table.columns["principal_subject"].nullable is False
+    assert table.columns["audience"].nullable is False
+    assert table.columns["scope_family"].nullable is False
+
+    constraint_names = {constraint.name for constraint in table.constraints}
+    assert {
+        "ck_refresh_tokens_principal_class",
+        "ck_refresh_tokens_principal_subject_nonempty",
+        "ck_refresh_tokens_audience_nonempty",
+        "ck_refresh_tokens_scope_family_nonempty",
+    }.issubset(constraint_names)

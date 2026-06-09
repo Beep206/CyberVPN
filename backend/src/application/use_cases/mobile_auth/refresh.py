@@ -4,14 +4,17 @@ Handles JWT token refresh for mobile app users.
 """
 
 import logging
+from dataclasses import dataclass
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.dto.mobile_auth import (
     RefreshTokenRequestDTO,
     TokenResponseDTO,
 )
 from src.application.services.auth_service import AuthService
-from src.config.settings import settings
-from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
+from src.application.services.mobile_session import MobileSessionService
+from src.application.use_cases.auth.refresh_token import RefreshTokenReplayError
 from src.domain.exceptions import InvalidTokenError
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
@@ -21,6 +24,7 @@ from src.infrastructure.database.repositories.mobile_user_repo import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class MobileRefreshUseCase:
     """Use case for refreshing mobile app authentication tokens.
 
@@ -30,6 +34,8 @@ class MobileRefreshUseCase:
     user_repo: MobileUserRepository
     device_repo: MobileDeviceRepository
     auth_service: AuthService
+    session: AsyncSession | None = None
+    mobile_session_service: MobileSessionService | None = None
 
     async def execute(self, request: RefreshTokenRequestDTO) -> TokenResponseDTO:
         """Refresh authentication tokens.
@@ -43,65 +49,27 @@ class MobileRefreshUseCase:
         Raises:
             InvalidTokenError: If refresh token is invalid, expired, or device mismatch.
         """
-        # Decode and validate refresh token
-        customer_realm = DEFAULT_AUTH_REALMS["customer"]
         try:
-            payload = self.auth_service.decode_token(request.refresh_token, audience=str(customer_realm["audience"]))
-        except Exception as e:
-            logger.warning("Mobile refresh token decode failed: %s", e)
-            try:
-                payload = self.auth_service.decode_token(request.refresh_token, audience=None)
-            except Exception:
-                raise InvalidTokenError() from e
+            return await self._mobile_sessions().refresh(
+                refresh_token=request.refresh_token,
+                device_id=request.device_id,
+            )
+        except RefreshTokenReplayError:
+            raise
+        except InvalidTokenError:
+            raise
+        except Exception as exc:
+            logger.warning("Mobile refresh failed: %s", exc)
+            raise InvalidTokenError() from exc
 
-        # Verify token type
-        if payload.get("type") != "refresh":
-            raise InvalidTokenError()
-
-        # Get user ID from token
-        user_id = payload.get("sub")
-        if not user_id:
-            raise InvalidTokenError()
-
-        # Verify user exists and is active
-        from uuid import UUID
-
-        user = await self.user_repo.get_by_id(UUID(user_id))
-        if not user or not user.is_active:
-            raise InvalidTokenError()
-
-        # Verify device is registered to this user
-        device = await self.device_repo.get_by_device_id_and_user(
-            device_id=request.device_id,
-            user_id=user.id,
-        )
-        if not device:
-            raise InvalidTokenError()
-
-        # Generate new tokens
-        # MED-003: Properly unpack token tuple (token, jti, expires_at)
-        access_token, _access_jti, _access_expire = self.auth_service.create_access_token(
-            subject=str(user.id),
-            role="mobile_user",
-            extra={"device_id": request.device_id},
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
-        )
-        refresh_token, _refresh_jti, _refresh_expire = self.auth_service.create_refresh_token(
-            subject=str(user.id),
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
-        )
-
-        return TokenResponseDTO(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="Bearer",
-            expires_in=settings.access_token_expire_minutes * 60,
+    def _mobile_sessions(self) -> MobileSessionService:
+        if self.mobile_session_service is not None:
+            return self.mobile_session_service
+        if self.session is None:
+            raise RuntimeError("MobileRefreshUseCase requires session-backed mobile sessions")
+        return MobileSessionService(
+            session=self.session,
+            auth_service=self.auth_service,
+            user_repo=self.user_repo,
+            device_repo=self.device_repo,
         )

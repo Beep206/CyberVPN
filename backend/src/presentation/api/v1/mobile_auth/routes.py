@@ -33,6 +33,7 @@ from src.application.services.telegram_oidc_auth import (
     InvalidTelegramOIDCTokenError,
     TelegramOIDCAuthService,
 )
+from src.application.use_cases.auth.refresh_token import RefreshTokenReplayError
 from src.application.use_cases.growth_notifications.automation import (
     AutomateCustomerGrowthNotificationRepairUseCase,
 )
@@ -269,6 +270,7 @@ async def register(
         device_repo=device_repo,
         auth_service=auth_service,
         allow_new_users=settings.registration_enabled,
+        session=db,
     )
 
     try:
@@ -374,6 +376,7 @@ async def login(
         device_repo=device_repo,
         auth_service=auth_service,
         subscription_client=sub_client,
+        session=db,
     )
 
     try:
@@ -460,6 +463,7 @@ async def refresh_token(
         user_repo=user_repo,
         device_repo=device_repo,
         auth_service=auth_service,
+        session=db,
     )
 
     try:
@@ -468,6 +472,7 @@ async def refresh_token(
             device_id=request.device_id,
         )
         result = await use_case.execute(dto_request)
+        await db.commit()
         track_auth_session_operation("refresh", "success")
         track_auth_session_detail(
             channel="mobile",
@@ -484,6 +489,29 @@ async def refresh_token(
             expires_in=result.expires_in,
         )
 
+    except RefreshTokenReplayError as exc:
+        await db.commit()
+        track_auth_error("expired_token")
+        track_auth_session_operation("refresh", "failure")
+        track_auth_session_detail(
+            channel="mobile",
+            method="session",
+            operation="refresh",
+            status="failure",
+            reason="replay_detected",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="session",
+            provider="native",
+            locale="unknown",
+            error_type="expired_token",
+        )
+        observe_auth_request_duration("refresh_token", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Invalid or expired refresh token"},
+        ) from exc
     except InvalidTokenError:
         track_auth_error("expired_token")
         track_auth_session_operation("refresh", "failure")
@@ -537,6 +565,7 @@ async def logout(
         user_repo=user_repo,
         device_repo=device_repo,
         auth_service=auth_service,
+        session=db,
     )
 
     try:
@@ -686,7 +715,14 @@ async def list_devices(
 ) -> list[DeviceSessionResponse]:
     """List active mobile device registrations for the current user."""
     user_repo = MobileUserRepository(db)
-    use_case = MobileListDevicesUseCase(user_repo=user_repo)
+    device_repo = MobileDeviceRepository(db)
+    auth_service = AuthService()
+    use_case = MobileListDevicesUseCase(
+        user_repo=user_repo,
+        device_repo=device_repo,
+        auth_service=auth_service,
+        session=db,
+    )
 
     try:
         devices = await use_case.execute(user_id)
@@ -731,7 +767,13 @@ async def remove_device(
     """Remove a mobile device registration owned by the current user."""
     user_repo = MobileUserRepository(db)
     device_repo = MobileDeviceRepository(db)
-    use_case = MobileRemoveDeviceUseCase(user_repo=user_repo, device_repo=device_repo)
+    auth_service = AuthService()
+    use_case = MobileRemoveDeviceUseCase(
+        user_repo=user_repo,
+        device_repo=device_repo,
+        auth_service=auth_service,
+        session=db,
+    )
 
     try:
         await use_case.execute(user_id=user_id, device_id=device_id)
@@ -832,6 +874,7 @@ async def complete_mobile_2fa(
         auth_service=auth_service,
         totp_service=TOTPService(),
         subscription_client=sub_client,
+        session=db,
     )
 
     try:
@@ -928,6 +971,7 @@ async def telegram_callback(
         telegram_auth_service=telegram_auth_service,
         subscription_client=sub_client,
         allow_new_users=settings.registration_enabled,
+        session=db,
     )
 
     try:
@@ -1114,6 +1158,7 @@ async def telegram_oidc(
         telegram_oidc_service=telegram_oidc_service,
         subscription_client=sub_client,
         allow_new_users=settings.registration_enabled,
+        session=db,
     )
 
     track_telegram_native_login_started(platform=platform)

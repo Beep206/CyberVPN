@@ -10,19 +10,20 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.application.dto.mobile_auth import (
     AuthResponseDTO,
     DeviceInfoDTO,
     SubscriptionInfoDTO,
     SubscriptionStatus,
     TelegramOIDCAuthRequestDTO,
-    TokenResponseDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.services.mobile_session import MobileSessionService
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.services.telegram_oidc_auth import TelegramOIDCAuthService, TelegramOIDCUserInfo
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
-from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
@@ -53,6 +54,8 @@ class MobileTelegramOIDCAuthUseCase:
     telegram_oidc_service: TelegramOIDCAuthService
     subscription_client: CachedSubscriptionClient | None = None
     allow_new_users: bool = True
+    session: AsyncSession | None = None
+    mobile_session_service: MobileSessionService | None = None
 
     async def execute(self, request: TelegramOIDCAuthRequestDTO) -> tuple[AuthResponseDTO, bool]:
         """Validate Telegram OIDC token, resolve user, and issue mobile tokens."""
@@ -124,32 +127,7 @@ class MobileTelegramOIDCAuthUseCase:
         user.last_login_at = datetime.now(UTC)
         await self.user_repo.update(user)
 
-        customer_realm = DEFAULT_AUTH_REALMS["customer"]
-        access_token, _access_jti, _access_expire = self.auth_service.create_access_token(
-            subject=str(user.id),
-            role="mobile_user",
-            extra={"device_id": request.device.device_id},
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
-        )
-        refresh_token, _refresh_jti, _refresh_expire = self.auth_service.create_refresh_token(
-            subject=str(user.id),
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
-        )
-
-        tokens = TokenResponseDTO(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="Bearer",
-            expires_in=settings.access_token_expire_minutes * 60,
-        )
+        tokens = await self._mobile_sessions().issue_session(user=user, device=request.device)
 
         if self.subscription_client and user.remnawave_uuid:
             subscription = await self.subscription_client.get_subscription(user.remnawave_uuid)
@@ -293,3 +271,15 @@ class MobileTelegramOIDCAuthUseCase:
     @staticmethod
     def _hash_subject(subject: str) -> str:
         return hashlib.sha256(subject.encode("utf-8")).hexdigest()[:12]
+
+    def _mobile_sessions(self) -> MobileSessionService:
+        if self.mobile_session_service is not None:
+            return self.mobile_session_service
+        if self.session is None:
+            raise RuntimeError("MobileTelegramOIDCAuthUseCase requires session-backed mobile sessions")
+        return MobileSessionService(
+            session=self.session,
+            auth_service=self.auth_service,
+            user_repo=self.user_repo,
+            device_repo=self.device_repo,
+        )
