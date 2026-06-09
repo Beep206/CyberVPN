@@ -262,6 +262,8 @@ class Settings(BaseSettings):
     # Cookie settings (SEC-01)
     cookie_domain: str = ""  # Leave empty for current domain
     cookie_secure: bool = True  # Set to False for local HTTP development
+    web_device_cookie_name: str = "__Host-cvpn_device_id"
+    device_cookie_pepper_secret_name: str = "CYBERVPN_DEVICE_COOKIE_PEPPER"  # noqa: S105 - env var name only.
 
     # Passkey/WebAuthn 2.0
     passkey_enabled: bool = False
@@ -468,8 +470,7 @@ class Settings(BaseSettings):
             invalid_origins = set(normalized_origins) - S1_LOCAL_STAGE_BROWSER_ORIGINS
             if invalid_origins:
                 raise ValueError(
-                    "Local-stage CORS origin is not approved for S1 synthetic QA: "
-                    + ", ".join(sorted(invalid_origins))
+                    "Local-stage CORS origin is not approved for S1 synthetic QA: " + ", ".join(sorted(invalid_origins))
                 )
 
         return normalized_origins
@@ -578,6 +579,39 @@ class Settings(BaseSettings):
         environment = str(info.data.get("environment", "development")).lower()
         if environment == "production" and not v:
             raise ValueError("COOKIE_SECURE=false is not allowed in production.")
+        return v
+
+    @field_validator("web_device_cookie_name", mode="before")
+    @classmethod
+    def normalize_web_device_cookie_name(cls, v: str | None) -> str:
+        return (v or "").strip()
+
+    @field_validator("web_device_cookie_name", mode="after")
+    @classmethod
+    def validate_web_device_cookie_name(cls, v: str) -> str:
+        if not v:
+            raise ValueError("WEB_DEVICE_COOKIE_NAME must not be empty.")
+        if not v.startswith("__Host-"):
+            raise ValueError("WEB_DEVICE_COOKIE_NAME must use the __Host- prefix.")
+        if any(char in v for char in ("=", ";", " ", "\t", "\n", "\r")):
+            raise ValueError("WEB_DEVICE_COOKIE_NAME must be a bare cookie name.")
+        return v
+
+    @field_validator("device_cookie_pepper_secret_name", mode="before")
+    @classmethod
+    def normalize_device_cookie_pepper_secret_name(cls, v: str | None) -> str:
+        return (v or "").strip()
+
+    @field_validator("device_cookie_pepper_secret_name", mode="after")
+    @classmethod
+    def validate_device_cookie_pepper_secret_name(cls, v: str) -> str:
+        if not v:
+            raise ValueError("DEVICE_COOKIE_PEPPER_SECRET_NAME must name an environment secret.")
+        if len(v) > 128:
+            raise ValueError("DEVICE_COOKIE_PEPPER_SECRET_NAME must be at most 128 characters.")
+        allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
+        if any(char not in allowed for char in v) or v[0].isdigit():
+            raise ValueError("DEVICE_COOKIE_PEPPER_SECRET_NAME must be an uppercase env-var style name.")
         return v
 
     @field_validator("csrf_protection_enabled", mode="after")

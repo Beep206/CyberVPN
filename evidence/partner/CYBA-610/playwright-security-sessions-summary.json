@@ -1,0 +1,248 @@
+{
+  "apiHits": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/product-events",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/partner-workspaces/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/partner-session/bootstrap",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/partner-session/bootstrap?workspace_id=10000000-0000-4000-8000-000000000001",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/traffic",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "status": 202
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/auth/devices/dev_remote_android",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/devices/logout-others",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout-all",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/frontend-runtime",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "status": 202
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/traffic",
+      "status": 202
+    }
+  ],
+  "assertionPolicy": "Expected text matched against full normalized body text; bodyTextSample is truncated evidence only.",
+  "consoleMessages": [],
+  "environment": {
+    "app": "partner",
+    "browser": "Chromium via Playwright",
+    "locale": "en-EN",
+    "mode": "local Next dev + Playwright route mocks",
+    "url": "http://127.0.0.1:3002",
+    "viewport": "1440x1000"
+  },
+  "failedResponses": [],
+  "fixture": {
+    "dataSafety": "synthetic masked device fixture; no credentials, cookies, JWTs, refresh tokens, storageState, HAR, payment data, production PII, or Telegram initData stored",
+    "role": "partner_operator"
+  },
+  "issue": "CYBA-610",
+  "mutations": [
+    {
+      "deviceId": "dev_remote_android",
+      "method": "DELETE",
+      "operation": "revoke-device"
+    },
+    {
+      "method": "POST",
+      "operation": "logout-others",
+      "sessions_revoked": 1
+    },
+    {
+      "method": "POST",
+      "operation": "logout-all",
+      "sessions_revoked": 1
+    }
+  ],
+  "pageErrors": [],
+  "pass": true,
+  "results": [
+    {
+      "bodyTextSample": "Skip to main content{\"@context\":\"https://schema.org\",\"@type\":\"SoftwareApplication\",\"name\":\"CyberVPN\",\"applicationCategory\":\"SecurityApplication\",\"operatingSystem\":\"Web, Android, iOS\",\"offers\":{\"@type\":\"Offer\",\"price\":\"0\",\"priceCurrency\":\"USD\"}}Skip to main contentOZOXYPARTNEROverviewCurrent posture, alerts, urgent actionsDASHBOARDDASHBOARDDASHBOARDStatus, tasks, portal readinessINBOXINBOXINBOXStatus changes and alertsREAD ONLYStartApplication, organization, contractsAPPLICATIONAPPLICATIONAPPLICATIONOnboarding, review, requested infoREAD ONLYORGANIZATIONORGANIZATIONORGANIZATIONBusiness profile, domains, contactsCONTRACTS & LEGALCONTRACTS & LEGALCONTRACTS & LEGALTerms, policies, acceptance historyWorkspacePeople, settings, workspace securityTEAM & ACCESSTEAM & ACCESSTEAM & ACCESSMembers, roles, workspace securitySETTINGSSETTINGSSETTINGSMFA, sessions, preferencesPrograms & PromotionLanes, links, campaignsPROGRAMSPROGRAMSPROGRAMSLanes, restrictions, approvalsControl & SupportCompliance tasks, disputes, requested infoCOMPLIANCECOMPLIANCECOMPLIANCEDeclarations, policy, governanceSUPPORT & CASESSUPPORT & CASESSUPPORT & CASESMessages, disputes, requestsIntegrationsTokens, postbacks, reseller toolsINTEGRATIONSINTEGRATIONSINTEGRATIONSTokens, postbacks, delivery logsPTPARTNER PORTALDevUserWORKSPACE OWNER/SECURE SESSIONFPS--|PING15msNET_UPLINKENDevUserDESESSION CONTROLSessions ConsoleInspect every active admin device, revoke stale device sessions, and execute a realm-scoped hard stop when needed.RefreshLogout othersLogout allTotal3unique active devicesRemote2unique devices excluding currentCurrent IP203.0.113.10active operator endpointDevice limit3/52 slots remainingActive unique devices for the current accountDevicesIP addressLast usedCreatedActionsSafari on macOSCurrent#dev_curr / Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit Safari203.0.113.10Jun 9, 2026, 7:00 PMJun 9, 2026, 5:30 PMCurrent deviceChrome on Android#dev_remo / Mozilla/5.0 (Linux; Android 14) AppleWebKit Chrome Mobile198.51.100.77Jun 9, 2026, 6:50 PMJun 8, 2026, 12:00 PMLogout deviceChrome on Windows#dev_remo / Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit Chrome192.0.2.44Jun 9, 2026, 4:25 PMJun 7, 2026, 9:15 AMLogout deviceCurrent DeviceThis is the device currently operating the admin console.IP address203.0.113.10Last usedJun 9, 2026, 7:00 PMHard StopImmediately revoke every current-realm",
+      "currentDeviceBadgeCount": 1,
+      "expectedText": [
+        "Sessions Console",
+        "Safari on macOS",
+        "Chrome on Android",
+        "Chrome on Windows",
+        "203.0.113.10",
+        "198.51.100.77",
+        "192.0.2.44",
+        "3/5"
+      ],
+      "missingExpectedText": [],
+      "name": "initial-render",
+      "path": "/en-EN/security/sessions",
+      "remoteLogoutButtonCount": 2,
+      "routeReachable": true,
+      "screenshot": "evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__initial__pass__20260609.png"
+    },
+    {
+      "name": "revoke-selected-device",
+      "path": "/en-EN/security/sessions",
+      "selectedDeviceAbsent": true,
+      "untouchedRemotePresent": true,
+      "mutationCount": 1,
+      "mutationDeviceIds": [
+        "dev_remote_android"
+      ],
+      "screenshot": "evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__after-revoke-device__pass__20260609.png"
+    },
+    {
+      "currentDevicePresent": true,
+      "mutationCount": 1,
+      "name": "logout-others",
+      "path": "/en-EN/security/sessions",
+      "remoteWindowsAbsent": true,
+      "screenshot": "evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__after-logout-others__pass__20260609.png"
+    },
+    {
+      "loginRedirected": true,
+      "mutationCount": 1,
+      "name": "logout-all",
+      "path": "/en-EN/security/sessions",
+      "screenshot": "evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__after-logout-all__pass__20260609.png"
+    }
+  ],
+  "timestamp": "2026-06-09T19:53:53.117Z"
+}

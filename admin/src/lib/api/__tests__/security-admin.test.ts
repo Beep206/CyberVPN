@@ -38,6 +38,9 @@ describe('authApi security session operations', () => {
             },
           ],
           total: 2,
+          total_devices: 2,
+          device_limit: 5,
+          remaining_devices: 3,
         }),
       ),
     );
@@ -46,6 +49,9 @@ describe('authApi security session operations', () => {
 
     expect(response.status).toBe(200);
     expect(response.data.total).toBe(2);
+    expect(response.data.total_devices).toBe(2);
+    expect(response.data.device_limit).toBe(5);
+    expect(response.data.remaining_devices).toBe(3);
     expect(response.data.devices[0]?.device_id).toBe('dev_current');
     expect(response.data.devices[1]?.is_current).toBe(false);
   });
@@ -69,6 +75,23 @@ describe('authApi security session operations', () => {
     expect(response.status).toBe(200);
     expect(revokedDeviceId).toBe('dev_remote');
     expect(response.data.device_id).toBe('dev_remote');
+  });
+
+  it('logs out every other active device without ending the current session', async () => {
+    server.use(
+      http.post(`${API_BASE}/auth/devices/logout-others`, () =>
+        HttpResponse.json({
+          message: 'Other device sessions terminated',
+          sessions_revoked: 3,
+        }),
+      ),
+    );
+
+    const response = await authApi.logoutOtherDevices();
+
+    expect(response.status).toBe(200);
+    expect(response.data.message).toBe('Other device sessions terminated');
+    expect(response.data.sessions_revoked).toBe(3);
   });
 
   it('logs out all active sessions and returns revoked session count', async () => {

@@ -1,0 +1,60 @@
+{
+  "apiHits": [],
+  "assertionPolicy": "Expected text matched against full normalized body text; bodyTextSample is truncated evidence only.",
+  "consoleMessages": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "type": "error"
+    }
+  ],
+  "environment": {
+    "app": "partner",
+    "browser": "Chromium via Playwright",
+    "locale": "en-EN",
+    "mode": "local Next dev + Playwright route mocks",
+    "url": "http://127.0.0.1:3002",
+    "viewport": "1440x1000"
+  },
+  "failedResponses": [
+    {
+      "method": "GET",
+      "resourceType": "document",
+      "status": 404,
+      "url": "/en-EN/security/sessions"
+    }
+  ],
+  "fixture": {
+    "dataSafety": "synthetic masked device fixture; no credentials, cookies, JWTs, refresh tokens, storageState, HAR, payment data, production PII, or Telegram initData stored",
+    "role": "partner_operator"
+  },
+  "issue": "CYBA-610",
+  "mutations": [],
+  "pageErrors": [],
+  "pass": false,
+  "results": [
+    {
+      "bodyTextSample": "404SIGNAL LOSTREQUESTED COORDINATES NOT FOUND IN NETWORK> SCANNING NETWORK...> CHECKING BACKUP ROUTES...> ERROR: DESTINATION UNREACHABLE> STATUS: 404 NOT_FOUNDReturn to Base[PRESS ANY KEY TO CONTINUE]self.__next_r=\"zTFGhB7rNDE2WZYFeAQ4x\"(self.__next_f=self.__next_f||[]).push([0])self.__next_f.push([1,\"b:\\\"$Sreact.fragment\\\"\\n17:I[\\\"[project]/partner/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)\\\",[\\\"/_next/static/chunks/0f.k_next_dist_0hanf68._.js\\\",\\\"/_next/static/chunks/partner_src_app_global-not-found_tsx_0-g4pat._.js\\\"],\\\"ViewportBoundary\\\"]\\n21:I[\\\"[project]/partner/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)\\\",[\\\"/_next/static/chunks/0f.k_next_dist_0hanf68._.js\\\",\\\"/_next/static/chunks/partner_src_app_global-not-found_tsx_0-g4pat._.js\\\"],\\\"MetadataBoundary\\\"]\\n23:\\\"$Sreact.suspense\\\"\\n29:I[\\\"[project]/partner/src/app/global-error.tsx [app-client] (ecmascript)\\\",[\\\"/_next/static/chunks/partner_0t8y2kz._.js\\\",\\\"/_next/static/chunks/partner_src_app_global-error_tsx_0-g4pat._.js\\\"],\\\"default\\\"]\\n2b:I[\\\"[project]/partner/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js [app-client] (ecmascript)\\\",[\\\"/_next/static/chunks/0f.k_next_dist_0hanf68._.js\\\",\\\"/_next/static/chunks/partner_src_app_global-not-found_tsx_0-g4pat._.js\\\"],\\\"SegmentViewNode\\\"]\\n5b:I[\\\"[project]/partner/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)\\\",[\\\"/_next/static/chunks/0f.k_next_dist_0~hnotb._.js\\\",\\\"/_next/static/chunks/partner_src_app_not-found_tsx_0-g4pat._.js\\\"],\\\"\\\"]\\n61:I[\\\"[project]/partner/node_modules/next/dist/client/components/layout-router.js [app-client] (ecmascript)\\\",[\\\"/_next/static/chunks/0f.k_next_dist_0hanf68._.js\\\",\\\"/_next/static/chunks/partner_src_app_global-not-found_tsx_0-g4pat._.js\\\"],\\\"default\\\"]\\n63:I[\\\"[project]/partner/node_modules/next/dist/client/components/render-from-template-context.js [app-client] (ecmascript)\\\",[\\\"/_next/static/chunks/0f.k_next_dist_0hanf68._.js\\\",\\\"/_next/static/chunks/partner_src_app_global-not-found_tsx_0-g4pat._.js\\\"],\\\"default\\\"]\\n72:I[\\\"[project]/partner/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)\\\",[\\\"/_next/static/chunks/0f.k_next_dist_0hanf68._.js\\\",\\\"/_next/static/chunks/partner_src_app_global-not-found_tsx_0-g4pat._.js\\\"],\\\"OutletBoundary\\\"]\\n8b:I[\\",
+      "currentDeviceBadgeCount": 0,
+      "expectedText": [
+        "Sessions Console",
+        "dev_current",
+        "dev_remote_android",
+        "dev_remote_windows",
+        "3/5"
+      ],
+      "missingExpectedText": [
+        "Sessions Console",
+        "dev_current",
+        "dev_remote_android",
+        "dev_remote_windows",
+        "3/5"
+      ],
+      "name": "initial-render",
+      "path": "/en-EN/security/sessions",
+      "remoteLogoutButtonCount": 0,
+      "routeReachable": false,
+      "screenshot": "evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__initial__fail__20260609.png"
+    }
+  ],
+  "timestamp": "2026-06-09T19:06:04.078Z"
+}

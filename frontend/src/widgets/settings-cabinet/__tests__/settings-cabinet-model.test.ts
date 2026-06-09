@@ -12,6 +12,9 @@ import {
   getSecurityPosture,
   maskAntiphishingCode,
   parseDeviceLabel,
+  readDeviceListLimit,
+  readDeviceListRemaining,
+  readDeviceListTotal,
   readDeviceLimit,
 } from '../settings-cabinet-model';
 
@@ -83,6 +86,46 @@ describe('settings-cabinet-model', () => {
 
   it('reads and summarizes plan device limits from entitlements', () => {
     expect(
+      readDeviceListTotal({
+        devices: [
+          {
+            created_at: '2026-06-09T10:00:00Z',
+            device_id: 'current',
+            ip_address: '127.0.0.1',
+            is_current: true,
+            last_used_at: '2026-06-09T10:00:00Z',
+            user_agent: 'Mozilla/5.0 Chrome/120.0.0.0',
+          },
+        ],
+        device_limit: 5,
+        remaining_devices: 1,
+        total: 3,
+        total_devices: 4,
+      }),
+    ).toBe(4);
+    expect(
+      readDeviceListLimit({
+        devices: [],
+        device_limit: 5,
+        remaining_devices: 1,
+        total: 0,
+        total_devices: 0,
+      }),
+    ).toBe(5);
+    expect(
+      readDeviceListRemaining({
+        devices: [],
+        device_limit: 5,
+        remaining_devices: -1,
+        total: 0,
+        total_devices: 6,
+      }),
+    ).toBe(-1);
+    expect(readDeviceListTotal(null)).toBe(0);
+    expect(readDeviceListLimit(null)).toBeNull();
+    expect(readDeviceListRemaining(null)).toBeNull();
+
+    expect(
       readDeviceLimit({
         addons: [],
         effective_entitlements: { device_limit: '5' },
@@ -117,6 +160,12 @@ describe('settings-cabinet-model', () => {
       remaining: 3,
       state: 'available',
       tone: 'green',
+    });
+    expect(getDeviceLimitSummary({ active: 4, limit: 5, remaining: 0 })).toMatchObject({
+      percent: 80,
+      remaining: 0,
+      state: 'at_limit',
+      tone: 'amber',
     });
     expect(getDeviceLimitSummary({ active: 4, limit: 5 })).toMatchObject({
       percent: 80,

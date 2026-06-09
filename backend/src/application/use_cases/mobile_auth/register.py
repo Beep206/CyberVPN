@@ -4,22 +4,20 @@ Handles registration of new mobile app users with device tracking.
 """
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.dto.mobile_auth import (
     AuthResponseDTO,
     RegisterRequestDTO,
     SubscriptionInfoDTO,
     SubscriptionStatus,
-    TokenResponseDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.services.mobile_session import MobileSessionService
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
-from src.config.settings import settings
-from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.exceptions import DuplicateUsernameError
-from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
@@ -39,6 +37,8 @@ class MobileRegisterUseCase:
     device_repo: MobileDeviceRepository
     auth_service: AuthService
     allow_new_users: bool = True
+    session: AsyncSession | None = None
+    mobile_session_service: MobileSessionService | None = None
 
     async def execute(self, request: RegisterRequestDTO) -> AuthResponseDTO:
         """Register a new mobile user.
@@ -65,10 +65,7 @@ class MobileRegisterUseCase:
         # Hash password
         password_hash = await self.auth_service.hash_password(request.password)
 
-        # Create mobile user
-        customer_realm = DEFAULT_AUTH_REALMS["customer"]
         user = MobileUserModel(
-            auth_realm_id=stable_auth_realm_id(str(customer_realm["realm_key"])),
             email=request.email,
             password_hash=password_hash,
             is_active=True,
@@ -76,48 +73,7 @@ class MobileRegisterUseCase:
         )
         created_user = await self.user_repo.create(user)
 
-        # Register device
-        device = MobileDeviceModel(
-            device_id=request.device.device_id,
-            platform=request.device.platform.value,
-            platform_id=request.device.platform_id,
-            os_version=request.device.os_version,
-            app_version=request.device.app_version,
-            device_model=request.device.device_model,
-            push_token=request.device.push_token,
-            user_id=created_user.id,
-            last_active_at=datetime.now(UTC),
-        )
-        await self.device_repo.create(device)
-
-        # Generate tokens
-        # MED-003: Properly unpack token tuple (token, jti, expires_at)
-        access_token, _access_jti, _access_expire = self.auth_service.create_access_token(
-            subject=str(created_user.id),
-            role="mobile_user",
-            extra={"device_id": request.device.device_id},
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(created_user.auth_realm_id),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
-        )
-        refresh_token, _refresh_jti, _refresh_expire = self.auth_service.create_refresh_token(
-            subject=str(created_user.id),
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(created_user.auth_realm_id),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
-        )
-
-        # Build response
-        tokens = TokenResponseDTO(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="Bearer",
-            expires_in=settings.access_token_expire_minutes * 60,
-        )
+        tokens = await self._mobile_sessions().issue_session(user=created_user, device=request.device)
 
         subscription = SubscriptionInfoDTO(
             status=SubscriptionStatus.NONE,
@@ -129,4 +85,16 @@ class MobileRegisterUseCase:
             tokens=tokens,
             user=user_response,
             is_new_user=True,
+        )
+
+    def _mobile_sessions(self) -> MobileSessionService:
+        if self.mobile_session_service is not None:
+            return self.mobile_session_service
+        if self.session is None:
+            raise RuntimeError("MobileRegisterUseCase requires session-backed mobile sessions")
+        return MobileSessionService(
+            session=self.session,
+            auth_service=self.auth_service,
+            user_repo=self.user_repo,
+            device_repo=self.device_repo,
         )

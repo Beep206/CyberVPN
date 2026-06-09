@@ -259,4 +259,47 @@ Final QA/Scribe disposition for [CYBA-595](/CYBA/issues/CYBA-595): auth UX fixes
 - SecurityEngineer confirmed the scoped fast-login path does not set authenticated user state before `AuthGuard` session validation, keeps `requires_2fa=true` isolated, uses `identifier: null` for conditional passkey, keeps redirects relative/sanitized, and does not persist frontend tokens.
 - Residual risk remains scoped to untested real production/staging credentials, real passkey ceremony, OAuth provider round-trip, payment, VPN delivery, and Telegram signed `initData`.
 
-Context7 docs checked: MCP Context7 quota exceeded; `ctx7 library Playwright` resolved `/microsoft/playwright`, but no new Playwright code was written. Manual UI/business-flow findings are `N/A - manual UI/business-flow finding`.
+## CYBA-608 Customer Device Browser QA
+
+Issue: [CYBA-608](/CYBA/issues/CYBA-608)
+Timestamp: `2026-06-09T18:58:50Z`
+
+### Summary
+
+- PASS: customer settings device panel consumes backend `total_devices/device_limit/remaining_devices` counters correctly for the synthetic post-dedup state.
+- PASS: one current browser/device row shows exactly one `Current` badge and `1 of 3` / remaining `2` after the repeated same-browser-login fixture.
+- PASS: `Revoke others` uses exactly one `POST /api/v1/auth/devices/logout-others`; no duplicate `DELETE /api/v1/auth/devices/{device_id}` calls were made.
+- PASS: after `Revoke others`, the panel refetched and settled back to one current device with `1 of 3`.
+- PASS: ru-RU mobile smoke rendered the device panel and `3 из 3` backend counter without page errors.
+- No new bugs were found in this scoped customer frontend device browser QA.
+
+### Environment
+
+- Frontend: local checkout dev server `http://127.0.0.1:9001`.
+- Browser: Chrome for Testing through global Playwright.
+- Viewports: desktop `1440x1000`, mobile `390x844`.
+- Locales: `en-EN`, `ru-RU`.
+- User role/state: synthetic `DEV_BYPASS_AUTH=true` customer `user`.
+- Safe handling: no production data, real cookies, JWTs, refresh tokens, passwords, payment secrets, VPN config secrets, or Telegram `initData` were stored.
+- Context7 docs checked: MCP quota exceeded; fallback `ctx7` CLI checked `/microsoft/playwright` for `page.route`, `route.fulfill`, and `page.screenshot`.
+
+### Evidence
+
+- `evidence/client/cyba-608/network/settings-device-browser-qa-summary.json`
+- `evidence/client/cyba-608/network/no-secret-scan.txt`
+- `evidence/client/cyba-608/screenshots/settings-devices-deduped-en-desktop.png`
+- `evidence/client/cyba-608/screenshots/settings-devices-before-logout-others-en-desktop.png`
+- `evidence/client/cyba-608/screenshots/settings-devices-after-logout-others-en-desktop.png`
+- `evidence/client/cyba-608/screenshots/settings-devices-ru-mobile.png`
+- `evidence/client/cyba-608/device-browser-qa-runner.mjs`
+
+### Bugs
+
+- None filed from [CYBA-608](/CYBA/issues/CYBA-608).
+
+### Product Gaps / Not Tested
+
+- Real backend repeated-login creation was not executed with live credentials in this frontend manual QA; the UI was verified against synthetic post-dedup backend contract responses.
+- Signed Telegram Mini App device entry was not tested because no approved sanitized `initData` was available in this heartbeat.
+
+Context7 docs checked: MCP Context7 quota exceeded; fallback `ctx7` CLI checked `/microsoft/playwright` for `page.route`, `route.fulfill`, and `page.screenshot`. Product result is a manual UI/business-flow finding.

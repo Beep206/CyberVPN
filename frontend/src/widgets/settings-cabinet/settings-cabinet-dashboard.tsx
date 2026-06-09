@@ -59,6 +59,9 @@ import {
   getProfileTimezoneOptions,
   maskAntiphishingCode,
   parseDeviceLabel,
+  readDeviceListLimit,
+  readDeviceListRemaining,
+  readDeviceListTotal,
   PROFILE_LANGUAGE_OPTIONS,
   readDeviceLimit,
   type CoreNotificationPreferenceKey,
@@ -311,7 +314,8 @@ export function SettingsCabinetDashboard() {
   );
   const coreNotifications = coreNotificationsQuery.data ?? null;
   const growthNotifications = growthNotificationsQuery.data ?? null;
-  const devices = devicesQuery.data?.devices ?? [];
+  const deviceList = devicesQuery.data ?? null;
+  const devices = deviceList?.devices ?? [];
   const entitlement = entitlementQuery.data ?? null;
   const timezoneOptions = getProfileTimezoneOptions();
   const selectedLanguage = PROFILE_LANGUAGE_OPTIONS.some(
@@ -324,14 +328,20 @@ export function SettingsCabinetDashboard() {
   )
     ? profile?.timezone ?? ''
     : '';
-  const currentDevice = devices.find((device) => device.is_current) ?? null;
-  const otherDevices = devices.filter((device) => !device.is_current && device.device_id);
+  const currentDeviceIndex = devices.findIndex((device) => device.is_current);
+  const currentDevice = currentDeviceIndex >= 0 ? devices[currentDeviceIndex] : null;
+  const activeDeviceCount = readDeviceListTotal(deviceList);
+  const otherDeviceCount = Math.max(0, activeDeviceCount - (currentDevice ? 1 : 0));
+  const backendDeviceLimit = readDeviceListLimit(deviceList);
+  const isDeviceLimitPending =
+    devicesQuery.isPending || (backendDeviceLimit === null && entitlementQuery.isPending);
   const deviceLimitSummary = getDeviceLimitSummary({
-    active: devices.length,
-    limit: readDeviceLimit(entitlement),
+    active: activeDeviceCount,
+    limit: backendDeviceLimit ?? readDeviceLimit(entitlement),
+    remaining: readDeviceListRemaining(deviceList),
   });
   const deviceLimitText =
-    entitlementQuery.isPending
+    isDeviceLimitPending
       ? t('labels.loading')
       : deviceLimitSummary.limit === null
         ? t('devices.limitUnknown', { used: deviceLimitSummary.active })
@@ -340,7 +350,7 @@ export function SettingsCabinetDashboard() {
             used: deviceLimitSummary.active,
           });
   const deviceRemainingText =
-    entitlementQuery.isPending || deviceLimitSummary.remaining === null
+    isDeviceLimitPending || deviceLimitSummary.remaining === null
       ? t('labels.notAvailable')
       : String(Math.max(0, deviceLimitSummary.remaining));
   const deviceLimitHelp = t(getLimitHelpKey(deviceLimitSummary.state), {
@@ -460,10 +470,8 @@ export function SettingsCabinetDashboard() {
 
   const revokeOtherDevicesMutation = useMutation({
     mutationFn: async () => {
-      await Promise.all(
-        otherDevices.map((device) => authApi.logoutDevice(String(device.device_id))),
-      );
-      return otherDevices.length;
+      const response = await authApi.logoutOtherDevices();
+      return response.data.sessions_revoked;
     },
     onSuccess: (count) => {
       void queryClient.invalidateQueries({ queryKey: ['settings', 'devices'] });
@@ -759,8 +767,8 @@ export function SettingsCabinetDashboard() {
           tone={deviceLimitSummary.tone === 'muted' ? 'purple' : deviceLimitSummary.tone}
           value={
             deviceLimitSummary.limit === null
-              ? String(devices.length)
-              : `${devices.length}/${deviceLimitSummary.limit}`
+              ? String(activeDeviceCount)
+              : `${activeDeviceCount}/${deviceLimitSummary.limit}`
           }
         />
       </section>
@@ -1248,7 +1256,7 @@ export function SettingsCabinetDashboard() {
             <button
               type="button"
               onClick={() => revokeOtherDevicesMutation.mutate()}
-              disabled={otherDevices.length === 0 || revokeOtherDevicesMutation.isPending}
+              disabled={otherDeviceCount === 0 || revokeOtherDevicesMutation.isPending}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neon-pink/35 bg-neon-pink/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-pink transition hover:bg-neon-pink/15 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -1285,14 +1293,14 @@ export function SettingsCabinetDashboard() {
                 <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   {t('devices.activeCount')}
                 </p>
-                <p className="mt-2 font-mono text-xl text-white">{devices.length}</p>
+                <p className="mt-2 font-mono text-xl text-white">{activeDeviceCount}</p>
               </div>
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   {t('devices.planLimit')}
                 </p>
                 <p className="mt-2 font-mono text-xl text-white">
-                  {entitlementQuery.isPending
+                  {isDeviceLimitPending
                     ? t('labels.loading')
                     : deviceLimitSummary.limit ?? t('labels.notAvailable')}
                 </p>
@@ -1334,8 +1342,9 @@ export function SettingsCabinetDashboard() {
             </div>
           ) : (
             <div className="mt-6 space-y-3">
-              {devices.map((device) => {
+              {devices.map((device, index) => {
                 const deviceId = device.device_id ?? '';
+                const isCurrentDevice = index === currentDeviceIndex;
                 const deviceKind = getDeviceKind(device.user_agent);
                 const Icon = getDeviceIcon(deviceKind);
                 const isRevoking =
@@ -1343,12 +1352,12 @@ export function SettingsCabinetDashboard() {
 
                 return (
                   <div
-                    key={deviceId || `${device.user_agent}-${device.last_used_at}`}
-                    className={`rounded-2xl border p-4 ${device.is_current ? 'border-matrix-green/35 bg-matrix-green/5' : 'border-grid-line/30 bg-black/20'}`}
+                    key={deviceId || `${device.user_agent ?? 'unknown'}-${device.last_used_at}-${index}`}
+                    className={`rounded-2xl border p-4 ${isCurrentDevice ? 'border-matrix-green/35 bg-matrix-green/5' : 'border-grid-line/30 bg-black/20'}`}
                   >
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div className="flex items-start gap-3">
-                        <div className={device.is_current ? 'text-matrix-green' : 'text-neon-cyan'}>
+                        <div className={isCurrentDevice ? 'text-matrix-green' : 'text-neon-cyan'}>
                           <Icon className="h-5 w-5" aria-hidden="true" />
                         </div>
                         <div>
@@ -1356,7 +1365,7 @@ export function SettingsCabinetDashboard() {
                             <p className="font-mono text-sm text-white">
                               {parseDeviceLabel(device.user_agent)}
                             </p>
-                            {device.is_current && (
+                            {isCurrentDevice && (
                               <StatusPill tone="green">{t('devices.current')}</StatusPill>
                             )}
                           </div>
@@ -1367,14 +1376,14 @@ export function SettingsCabinetDashboard() {
                               ip: device.ip_address ?? t('labels.notAvailable'),
                             })}
                           </p>
-                          {currentDevice?.device_id === device.device_id && (
+                          {currentDevice?.device_id === deviceId && isCurrentDevice && (
                             <p className="mt-1 font-mono text-xs text-matrix-green">
                               {t('devices.currentHint')}
                             </p>
                           )}
                         </div>
                       </div>
-                      {!device.is_current && deviceId && (
+                      {!isCurrentDevice && deviceId && (
                         <button
                           type="button"
                           onClick={() => revokeDeviceMutation.mutate(deviceId)}

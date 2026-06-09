@@ -51,7 +51,8 @@ export interface paths {
          * Refresh Token
          * @description Refresh access token using refresh token.
          *
-         *     SEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).
+         *     SEC-01: Accepts refresh_token from httpOnly cookie or legacy request body;
+         *     refreshed web tokens are returned only via httpOnly Set-Cookie headers.
          *     MED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.
          */
         post: operations["refresh_token_api_v1_auth_refresh_post"];
@@ -94,9 +95,9 @@ export interface paths {
         put?: never;
         /**
          * Logout All Devices
-         * @description Logout from all devices by revoking all user tokens (HIGH-6).
+         * @description Logout from all devices in the current auth realm (HIGH-6).
          *
-         *     Revokes all access and refresh tokens for the current user.
+         *     Revokes access and refresh tokens attached to current-realm sessions only.
          */
         post: operations["logout_all_devices_api_v1_auth_logout_all_post"];
         delete?: never;
@@ -503,13 +504,33 @@ export interface paths {
         };
         /**
          * List Devices
-         * @description List all active sessions/devices for the current user (BF2-4).
+         * @description List unique active devices for the current user and auth realm (BF2-4).
          *
-         *     Returns device_id, IP address, user agent, last used time, and marks the current session.
+         *     Returns one row per active stable device and marks the current device.
          */
         get: operations["list_devices_api_v1_auth_devices_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/devices/logout-others": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout Other Devices
+         * @description Logout every active device in the current realm except the current device.
+         */
+        post: operations["logout_other_devices_api_v1_auth_devices_logout_others_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -530,7 +551,7 @@ export interface paths {
          * Revoke Device
          * @description Revoke a specific device session (remote logout) (BF2-4).
          *
-         *     Revokes all refresh tokens associated with the device and revokes all JWT access tokens for the user.
+         *     Revokes access and refresh tokens associated with the selected device only.
          */
         delete: operations["revoke_device_api_v1_auth_devices__device_id__delete"];
         options?: never;
@@ -17735,9 +17756,24 @@ export interface components {
             devices: components["schemas"]["src__presentation__api__v1__auth__schemas__DeviceSessionResponse"][];
             /**
              * Total
-             * @description Total number of active sessions
+             * @description Backward-compatible total number of active devices
              */
             total: number;
+            /**
+             * Total Devices
+             * @description Total number of active unique devices
+             */
+            total_devices: number;
+            /**
+             * Device Limit
+             * @description Current realm device limit, if enforced
+             */
+            device_limit: number | null;
+            /**
+             * Remaining Devices
+             * @description Remaining devices before the enforced limit
+             */
+            remaining_devices: number | null;
         };
         /**
          * DisputeCaseKind
@@ -19666,6 +19702,22 @@ export interface components {
             /**
              * Message
              * @default All sessions terminated
+             */
+            message: string;
+            /**
+             * Sessions Revoked
+             * @default 0
+             */
+            sessions_revoked: number;
+        };
+        /**
+         * LogoutOthersResponse
+         * @description Response for logout-other-devices operation.
+         */
+        LogoutOthersResponse: {
+            /**
+             * Message
+             * @default Other device sessions terminated
              */
             message: string;
             /**
@@ -30512,6 +30564,24 @@ export interface components {
             scope_family?: string | null;
         };
         /**
+         * WebRefreshResponse
+         * @description Browser refresh result.
+         *
+         *     Refreshed access/refresh tokens are delivered only through httpOnly cookies.
+         */
+        WebRefreshResponse: {
+            /** Auth Realm Id */
+            auth_realm_id?: string | null;
+            /** Auth Realm Key */
+            auth_realm_key?: string | null;
+            /** Audience */
+            audience?: string | null;
+            /** Principal Type */
+            principal_type?: string | null;
+            /** Scope Family */
+            scope_family?: string | null;
+        };
+        /**
          * WebhookLogResponse
          * @description Response schema for webhook log entry.
          */
@@ -31022,7 +31092,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__TokenResponse"];
+                    "application/json": components["schemas"]["WebRefreshResponse"];
                 };
             };
             /** @description Invalid or expired refresh token */
@@ -31815,6 +31885,40 @@ export interface operations {
             };
             /** @description Not authenticated */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    logout_other_devices_api_v1_auth_devices_logout_others_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoutOthersResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Current device could not be resolved */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

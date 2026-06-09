@@ -80,6 +80,19 @@ class WebLoginResponse(BaseModel):
     scope_family: str | None = None
 
 
+class WebRefreshResponse(BaseModel):
+    """Browser refresh result.
+
+    Refreshed access/refresh tokens are delivered only through httpOnly cookies.
+    """
+
+    auth_realm_id: UUID | None = None
+    auth_realm_key: str | None = None
+    audience: str | None = None
+    principal_type: str | None = None
+    scope_family: str | None = None
+
+
 class AdminUserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -165,6 +178,13 @@ class LogoutAllResponse(BaseModel):
     """Response for logout-all-devices operation (HIGH-6)."""
 
     message: str = "All sessions terminated"
+    sessions_revoked: int = 0
+
+
+class LogoutOthersResponse(BaseModel):
+    """Response for logout-other-devices operation."""
+
+    message: str = "Other device sessions terminated"
     sessions_revoked: int = 0
 
 
@@ -388,7 +408,10 @@ class DeviceSessionListResponse(BaseModel):
     """Response schema for list of active sessions (BF2-4)."""
 
     devices: list[DeviceSessionResponse] = Field(..., description="List of active sessions")
-    total: int = Field(..., description="Total number of active sessions")
+    total: int = Field(..., description="Backward-compatible total number of active devices")
+    total_devices: int = Field(..., description="Total number of active unique devices")
+    device_limit: int | None = Field(..., description="Current realm device limit, if enforced")
+    remaining_devices: int | None = Field(..., description="Remaining devices before the enforced limit")
 
 
 class RevokeDeviceResponse(BaseModel):

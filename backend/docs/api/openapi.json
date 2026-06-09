@@ -59,7 +59,7 @@
           "auth"
         ],
         "summary": "Refresh Token",
-        "description": "Refresh access token using refresh token.\n\nSEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).\nMED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.",
+        "description": "Refresh access token using refresh token.\n\nSEC-01: Accepts refresh_token from httpOnly cookie or legacy request body;\nrefreshed web tokens are returned only via httpOnly Set-Cookie headers.\nMED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.",
         "operationId": "refresh_token_api_v1_auth_refresh_post",
         "requestBody": {
           "content": {
@@ -77,7 +77,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__TokenResponse"
+                  "$ref": "#/components/schemas/WebRefreshResponse"
                 }
               }
             }
@@ -146,7 +146,7 @@
           "auth"
         ],
         "summary": "Logout All Devices",
-        "description": "Logout from all devices by revoking all user tokens (HIGH-6).\n\nRevokes all access and refresh tokens for the current user.",
+        "description": "Logout from all devices in the current auth realm (HIGH-6).\n\nRevokes access and refresh tokens attached to current-realm sessions only.",
         "operationId": "logout_all_devices_api_v1_auth_logout_all_post",
         "responses": {
           "200": {
@@ -935,7 +935,7 @@
           "auth"
         ],
         "summary": "List Devices",
-        "description": "List all active sessions/devices for the current user (BF2-4).\n\nReturns device_id, IP address, user agent, last used time, and marks the current session.",
+        "description": "List unique active devices for the current user and auth realm (BF2-4).\n\nReturns one row per active stable device and marks the current device.",
         "operationId": "list_devices_api_v1_auth_devices_get",
         "responses": {
           "200": {
@@ -959,13 +959,46 @@
         ]
       }
     },
+    "/api/v1/auth/devices/logout-others": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout Other Devices",
+        "description": "Logout every active device in the current realm except the current device.",
+        "operationId": "logout_other_devices_api_v1_auth_devices_logout_others_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutOthersResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "409": {
+            "description": "Current device could not be resolved"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/devices/{device_id}": {
       "delete": {
         "tags": [
           "auth"
         ],
         "summary": "Revoke Device",
-        "description": "Revoke a specific device session (remote logout) (BF2-4).\n\nRevokes all refresh tokens associated with the device and revokes all JWT access tokens for the user.",
+        "description": "Revoke a specific device session (remote logout) (BF2-4).\n\nRevokes access and refresh tokens associated with the selected device only.",
         "operationId": "revoke_device_api_v1_auth_devices__device_id__delete",
         "security": [
           {
@@ -55346,13 +55379,45 @@
           "total": {
             "type": "integer",
             "title": "Total",
-            "description": "Total number of active sessions"
+            "description": "Backward-compatible total number of active devices"
+          },
+          "total_devices": {
+            "type": "integer",
+            "title": "Total Devices",
+            "description": "Total number of active unique devices"
+          },
+          "device_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Limit",
+            "description": "Current realm device limit, if enforced"
+          },
+          "remaining_devices": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Devices",
+            "description": "Remaining devices before the enforced limit"
           }
         },
         "type": "object",
         "required": [
           "devices",
-          "total"
+          "total",
+          "total_devices",
+          "device_limit",
+          "remaining_devices"
         ],
         "title": "DeviceSessionListResponse",
         "description": "Response schema for list of active sessions (BF2-4)."
@@ -59922,6 +59987,23 @@
         "type": "object",
         "title": "LogoutAllResponse",
         "description": "Response for logout-all-devices operation (HIGH-6)."
+      },
+      "LogoutOthersResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Other device sessions terminated"
+          },
+          "sessions_revoked": {
+            "type": "integer",
+            "title": "Sessions Revoked",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "LogoutOthersResponse",
+        "description": "Response for logout-other-devices operation."
       },
       "MagicLinkRequest": {
         "properties": {
@@ -86440,6 +86522,69 @@
         "type": "object",
         "title": "WebLoginResponse",
         "description": "Browser password login result.\n\nFull access/refresh token delivery for web login is cookie-only. Native token\npayload compatibility stays on token-bearing/mobile endpoints."
+      },
+      "WebRefreshResponse": {
+        "properties": {
+          "auth_realm_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Realm Id"
+          },
+          "auth_realm_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Realm Key"
+          },
+          "audience": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audience"
+          },
+          "principal_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Principal Type"
+          },
+          "scope_family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Family"
+          }
+        },
+        "type": "object",
+        "title": "WebRefreshResponse",
+        "description": "Browser refresh result.\n\nRefreshed access/refresh tokens are delivered only through httpOnly cookies."
       },
       "WebhookLogResponse": {
         "properties": {
