@@ -25,8 +25,8 @@ export function DevicesSection() {
   });
 
   // Get device icon based on user agent
-  const getDeviceIcon = (userAgent: string) => {
-    const ua = userAgent.toLowerCase();
+  const getDeviceIcon = (userAgent: string | null | undefined) => {
+    const ua = userAgent?.toLowerCase() ?? '';
     if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
       return Smartphone;
     }
@@ -37,7 +37,11 @@ export function DevicesSection() {
   };
 
   // Parse user agent for display
-  const parseUserAgent = (ua: string): string => {
+  const parseUserAgent = (ua: string | null | undefined): string => {
+    if (!ua) {
+      return t('cabinet.labels.notAvailable');
+    }
+
     const browser =
       ua.includes('Edg/') ? 'Edge'
         : ua.includes('Firefox/') ? 'Firefox'
@@ -61,6 +65,10 @@ export function DevicesSection() {
 
   // Handle device logout
   const handleLogout = (deviceId: string) => {
+    if (!deviceId) {
+      return;
+    }
+
     setLoggingOut(deviceId);
     setError('');
 
@@ -82,18 +90,20 @@ export function DevicesSection() {
 
   // Handle logout all other devices
   const handleLogoutAllOthers = async () => {
-    if (!data?.devices) return;
-
-    const otherDevices = data.devices.filter(d => !d.is_current);
-    if (otherDevices.length === 0) return;
-
     setError('');
+    setLoggingOut('others');
 
     try {
-      await Promise.all(otherDevices.map(d => authApi.logoutDevice(d.device_id)));
+      await authApi.logoutOtherDevices();
       await refetch();
-    } catch {
-      setError('Failed to logout some devices');
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        setError(err.response?.data?.detail || 'Failed to logout some devices');
+      } else {
+        setError('Failed to logout some devices');
+      }
+    } finally {
+      setLoggingOut(null);
     }
   };
 
@@ -110,6 +120,11 @@ export function DevicesSection() {
     );
   }
 
+  const devices = data?.devices ?? [];
+  const currentDeviceIndex = devices.findIndex((device) => device.is_current);
+  const activeDeviceCount = data?.total_devices ?? data?.total ?? devices.length;
+  const otherDeviceCount = Math.max(0, activeDeviceCount - (currentDeviceIndex >= 0 ? 1 : 0));
+
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
@@ -117,9 +132,10 @@ export function DevicesSection() {
           {t('devices') || 'Active Devices'}
         </h2>
 
-        {data?.devices && data.devices.length > 1 && (
+        {otherDeviceCount > 0 && (
           <button
             onClick={handleLogoutAllOthers}
+            disabled={loggingOut === 'others'}
             className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 font-mono text-sm rounded transition-colors"
           >
             Logout All Others
@@ -139,18 +155,20 @@ export function DevicesSection() {
       )}
 
       <div className="space-y-3">
-        {data?.devices && data.devices.length > 0 ? (
-          data.devices.map((device, i) => {
+        {devices.length > 0 ? (
+          devices.map((device, i) => {
+            const deviceId = device.device_id ?? '';
+            const isCurrentDevice = i === currentDeviceIndex;
             const Icon = getDeviceIcon(device.user_agent);
 
             return (
               <motion.div
-                key={device.device_id}
+                key={deviceId || `${device.user_agent ?? 'unknown'}-${device.last_used_at}-${i}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
                 className={`cyber-card p-4 ${
-                  device.is_current
+                  isCurrentDevice
                     ? 'border-matrix-green shadow-[0_0_15px_rgba(0,255,136,0.2)]'
                     : 'border-grid-line/30'
                 }`}
@@ -158,12 +176,12 @@ export function DevicesSection() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1">
                     <div className={`p-3 rounded-lg ${
-                      device.is_current
+                      isCurrentDevice
                         ? 'bg-matrix-green/10 border border-matrix-green/30'
                         : 'bg-neon-cyan/10 border border-neon-cyan/30'
                     }`}>
                       <Icon className={`h-5 w-5 ${
-                        device.is_current ? 'text-matrix-green' : 'text-neon-cyan'
+                        isCurrentDevice ? 'text-matrix-green' : 'text-neon-cyan'
                       }`} />
                     </div>
 
@@ -172,7 +190,7 @@ export function DevicesSection() {
                         <h3 className="font-mono text-sm text-foreground">
                           {parseUserAgent(device.user_agent)}
                         </h3>
-                        {device.is_current && (
+                        {isCurrentDevice && (
                           <span className="px-2 py-0.5 bg-matrix-green/20 text-matrix-green text-xs font-mono rounded">
                             Current
                           </span>
@@ -181,7 +199,7 @@ export function DevicesSection() {
 
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground font-mono">
-                          IP: {device.ip_address}
+                          IP: {device.ip_address || t('cabinet.labels.notAvailable')}
                         </p>
                         <p className="text-xs text-muted-foreground font-mono">
                           Last active: {new Date(device.last_used_at).toLocaleString()}
@@ -190,10 +208,10 @@ export function DevicesSection() {
                     </div>
                   </div>
 
-                  {!device.is_current && (
+                  {!isCurrentDevice && deviceId && (
                     <button
-                      onClick={() => handleLogout(device.device_id)}
-                      disabled={loggingOut === device.device_id}
+                      onClick={() => handleLogout(deviceId)}
+                      disabled={loggingOut === deviceId}
                       className="p-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Logout device"
                     >

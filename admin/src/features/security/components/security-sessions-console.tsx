@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Laptop,
+  LogOut,
   Monitor,
   RefreshCw,
   Smartphone,
@@ -20,6 +21,7 @@ import {
   formatDateTime,
   getDeviceKind,
   getErrorMessage,
+  getUniqueDeviceCount,
   shortId,
 } from '@/features/security/lib/formatting';
 import {
@@ -32,6 +34,23 @@ import {
 } from '@/shared/ui/organisms/table';
 import { AdminActionDialog } from '@/shared/ui/admin-action-dialog';
 
+type DeviceActionKind = 'logout-all' | 'logout-others' | 'revoke-device';
+
+interface SecurityDeviceRow {
+  device_id?: string | null;
+  user_agent?: string | null;
+  ip_address?: string | null;
+  last_used_at: string;
+  created_at: string;
+  is_current: boolean;
+}
+
+interface DeviceRevokeCandidate {
+  device_id: string;
+  user_agent: string | null;
+  ip_address: string | null;
+}
+
 function DeviceIcon({ userAgent }: { userAgent: string | null | undefined }) {
   const kind = getDeviceKind(userAgent);
   if (kind === 'mobile') {
@@ -43,17 +62,20 @@ function DeviceIcon({ userAgent }: { userAgent: string | null | undefined }) {
   return <Laptop className="h-5 w-5" />;
 }
 
+function getDeviceRowKey(device: SecurityDeviceRow, index: number) {
+  return device.device_id ?? `missing-device-id-${index}`;
+}
+
 export function SecuritySessionsConsole() {
   const t = useTranslations('AdminSecurity');
   const locale = useLocale();
   const queryClient = useQueryClient();
+  const actionLockRef = useRef<DeviceActionKind | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [logoutAllOpen, setLogoutAllOpen] = useState(false);
-  const [deviceToRevoke, setDeviceToRevoke] = useState<{
-    device_id: string | null;
-    user_agent: string | null;
-    ip_address: string | null;
-  } | null>(null);
+  const [logoutOthersOpen, setLogoutOthersOpen] = useState(false);
+  const [deviceToRevoke, setDeviceToRevoke] =
+    useState<DeviceRevokeCandidate | null>(null);
 
   const devicesQuery = useQuery({
     queryKey: ['security', 'devices'],
@@ -69,6 +91,21 @@ export function SecuritySessionsConsole() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: ['security', 'devices'] });
       setFeedback(response.data.message || t('sessions.revokeSuccess'));
+    },
+    onError: (error) => {
+      setFeedback(getErrorMessage(error, t('common.actionFailed')));
+    },
+  });
+
+  const logoutOthersMutation = useMutation({
+    mutationFn: () => authApi.logoutOtherDevices(),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: ['security', 'devices'] });
+      setFeedback(
+        t('sessions.logoutOthersSuccess', {
+          count: response.data.sessions_revoked,
+        }),
+      );
     },
     onError: (error) => {
       setFeedback(getErrorMessage(error, t('common.actionFailed')));
@@ -91,7 +128,41 @@ export function SecuritySessionsConsole() {
   });
 
   const devices = devicesQuery.data?.devices ?? [];
-  const currentDevice = devices.find((device) => device.is_current);
+  const deviceCount = getUniqueDeviceCount(devicesQuery.data);
+  const currentDeviceIndex = devices.findIndex((device) => device.is_current);
+  const currentDevice =
+    currentDeviceIndex >= 0 ? devices[currentDeviceIndex] : undefined;
+  const currentDeviceCount = currentDevice ? 1 : 0;
+  const remoteDeviceCount = Math.max(deviceCount - currentDeviceCount, 0);
+  const deviceLimit = devicesQuery.data?.device_limit ?? null;
+  const remainingDevices = devicesQuery.data?.remaining_devices ?? null;
+  const hasDevices = deviceCount > 0;
+  const limitValue =
+    deviceLimit === null
+      ? t('sessions.metrics.unlimited')
+      : `${deviceCount}/${deviceLimit}`;
+  const limitHint =
+    deviceLimit === null
+      ? t('sessions.metrics.limitUnlimitedHint')
+      : t('sessions.metrics.limitHint', {
+        remaining: remainingDevices ?? 0,
+      });
+
+  async function runDeviceAction(
+    kind: DeviceActionKind,
+    action: () => Promise<void>,
+  ) {
+    if (actionLockRef.current) {
+      return;
+    }
+
+    actionLockRef.current = kind;
+    try {
+      await action();
+    } finally {
+      actionLockRef.current = null;
+    }
+  }
 
   return (
     <SecurityPageShell
@@ -104,6 +175,7 @@ export function SecuritySessionsConsole() {
           <Button
             magnetic={false}
             variant="ghost"
+            aria-label={t('common.refresh')}
             onClick={() => {
               void queryClient.invalidateQueries({ queryKey: ['security', 'devices'] });
             }}
@@ -114,7 +186,18 @@ export function SecuritySessionsConsole() {
           <Button
             magnetic={false}
             variant="ghost"
-            disabled={logoutAllMutation.isPending || devices.length === 0}
+            aria-label={t('common.logoutOthers')}
+            disabled={logoutOthersMutation.isPending || remoteDeviceCount === 0}
+            onClick={() => setLogoutOthersOpen(true)}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            {t('common.logoutOthers')}
+          </Button>
+          <Button
+            magnetic={false}
+            variant="ghost"
+            aria-label={t('common.logoutAll')}
+            disabled={logoutAllMutation.isPending || !hasDevices}
             onClick={() => setLogoutAllOpen(true)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
@@ -125,13 +208,13 @@ export function SecuritySessionsConsole() {
       metrics={[
         {
           label: t('sessions.metrics.total'),
-          value: String(devices.length),
+          value: String(deviceCount),
           hint: t('sessions.metrics.totalHint'),
-          tone: devices.length > 3 ? 'warning' : 'info',
+          tone: deviceCount > 3 ? 'warning' : 'info',
         },
         {
           label: t('sessions.metrics.remote'),
-          value: String(devices.filter((device) => !device.is_current).length),
+          value: String(remoteDeviceCount),
           hint: t('sessions.metrics.remoteHint'),
           tone: 'warning',
         },
@@ -142,9 +225,9 @@ export function SecuritySessionsConsole() {
           tone: 'success',
         },
         {
-          label: t('sessions.metrics.lastSeen'),
-          value: formatDateTime(currentDevice?.last_used_at, locale),
-          hint: t('sessions.metrics.lastSeenHint'),
+          label: t('sessions.metrics.limit'),
+          value: limitValue,
+          hint: limitHint,
           tone: 'neutral',
         },
       ]}
@@ -170,9 +253,10 @@ export function SecuritySessionsConsole() {
             <SecurityEmptyState label={t('sessions.empty')} />
           ) : (
             <Table>
+              <caption className="sr-only">{t('sessions.tableCaption')}</caption>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('common.sessions')}</TableHead>
+                  <TableHead>{t('common.devices')}</TableHead>
                   <TableHead>{t('common.ipAddress')}</TableHead>
                   <TableHead>{t('common.lastUsed')}</TableHead>
                   <TableHead>{t('common.createdAt')}</TableHead>
@@ -180,63 +264,68 @@ export function SecuritySessionsConsole() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {devices.map((device) => (
-                  <TableRow key={device.device_id ?? device.created_at}>
-                    <TableCell>
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl border border-grid-line/20 bg-terminal-bg/60 text-neon-pink">
-                          <DeviceIcon userAgent={device.user_agent} />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-display uppercase tracking-[0.14em] text-white">
-                              {describeUserAgent(device.user_agent)}
-                            </p>
-                            {device.is_current ? (
-                              <SecurityStatusChip
-                                label={t('common.current')}
-                                tone="success"
-                              />
-                            ) : null}
+                {devices.map((device, index) => {
+                  const isCurrentDevice = index === currentDeviceIndex;
+
+                  return (
+                    <TableRow key={getDeviceRowKey(device, index)}>
+                      <TableCell>
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl border border-grid-line/20 bg-terminal-bg/60 text-neon-pink">
+                            <DeviceIcon userAgent={device.user_agent} />
                           </div>
-                          <p className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                            #{shortId(device.device_id)} / {device.user_agent ?? '--'}
-                          </p>
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-display uppercase tracking-[0.14em] text-white">
+                                {describeUserAgent(device.user_agent)}
+                              </p>
+                              {isCurrentDevice ? (
+                                <SecurityStatusChip
+                                  label={t('common.current')}
+                                  tone="success"
+                                />
+                              ) : null}
+                            </div>
+                            <p className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                              #{shortId(device.device_id)} / {device.user_agent ?? '--'}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{device.ip_address ?? '--'}</TableCell>
-                    <TableCell>{formatDateTime(device.last_used_at, locale)}</TableCell>
-                    <TableCell>{formatDateTime(device.created_at, locale)}</TableCell>
-                    <TableCell>
-                      {device.is_current ? (
-                        <SecurityStatusChip
-                          label={t('sessions.currentDevice')}
-                          tone="info"
-                        />
-                      ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          magnetic={false}
-                          disabled={revokeMutation.isPending}
-                          onClick={() => {
-                            if (!device.device_id) return;
-                            setDeviceToRevoke({
-                              device_id: device.device_id,
-                              user_agent: device.user_agent ?? null,
-                              ip_address: device.ip_address ?? null,
-                            });
-                          }}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          {t('common.logoutDevice')}
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>{device.ip_address ?? '--'}</TableCell>
+                      <TableCell>{formatDateTime(device.last_used_at, locale)}</TableCell>
+                      <TableCell>{formatDateTime(device.created_at, locale)}</TableCell>
+                      <TableCell>
+                        {isCurrentDevice ? (
+                          <SecurityStatusChip
+                            label={t('sessions.currentDevice')}
+                            tone="info"
+                          />
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            magnetic={false}
+                            aria-label={t('common.logoutDevice')}
+                            disabled={revokeMutation.isPending || !device.device_id}
+                            onClick={() => {
+                              if (!device.device_id) return;
+                              setDeviceToRevoke({
+                                device_id: device.device_id,
+                                user_agent: device.user_agent ?? null,
+                                ip_address: device.ip_address ?? null,
+                              });
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {t('common.logoutDevice')}
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -288,7 +377,8 @@ export function SecuritySessionsConsole() {
               type="button"
               magnetic={false}
               className="mt-5"
-              disabled={logoutAllMutation.isPending}
+              aria-label={t('common.logoutAll')}
+              disabled={logoutAllMutation.isPending || !hasDevices}
               onClick={() => setLogoutAllOpen(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -307,8 +397,28 @@ export function SecuritySessionsConsole() {
         cancelLabel={t('common.cancel')}
         onClose={() => setLogoutAllOpen(false)}
         onConfirm={async () => {
-          await logoutAllMutation.mutateAsync();
-          setLogoutAllOpen(false);
+          await runDeviceAction('logout-all', async () => {
+            await logoutAllMutation.mutateAsync();
+            setLogoutAllOpen(false);
+          });
+        }}
+      />
+
+      <AdminActionDialog
+        isOpen={logoutOthersOpen}
+        isPending={logoutOthersMutation.isPending}
+        title={t('sessions.logoutOthersTitle')}
+        description={t('sessions.logoutOthersConfirm', {
+          count: remoteDeviceCount,
+        })}
+        confirmLabel={t('common.logoutOthers')}
+        cancelLabel={t('common.cancel')}
+        onClose={() => setLogoutOthersOpen(false)}
+        onConfirm={async () => {
+          await runDeviceAction('logout-others', async () => {
+            await logoutOthersMutation.mutateAsync();
+            setLogoutOthersOpen(false);
+          });
         }}
       />
 
@@ -319,7 +429,7 @@ export function SecuritySessionsConsole() {
         description={t('sessions.revokeConfirm')}
         confirmLabel={t('common.logoutDevice')}
         cancelLabel={t('common.cancel')}
-        subjectLabel={t('common.sessions')}
+        subjectLabel={t('common.devices')}
         subject={
           deviceToRevoke ? (
             <div className="space-y-1">
@@ -335,8 +445,10 @@ export function SecuritySessionsConsole() {
           if (!deviceToRevoke?.device_id) {
             return;
           }
-          await revokeMutation.mutateAsync(deviceToRevoke.device_id);
-          setDeviceToRevoke(null);
+          await runDeviceAction('revoke-device', async () => {
+            await revokeMutation.mutateAsync(deviceToRevoke.device_id);
+            setDeviceToRevoke(null);
+          });
         }}
       />
     </SecurityPageShell>

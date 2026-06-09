@@ -1,0 +1,408 @@
+{
+  "issue": "CYBA-608",
+  "timestamp": "2026-06-09T18:58:50.364Z",
+  "baseUrl": "http://127.0.0.1:9001",
+  "environment": {
+    "browser": "Chrome for Testing via global Playwright",
+    "desktopViewport": "1440x1000",
+    "mobileViewport": "390x844",
+    "locales": [
+      "en-EN",
+      "ru-RU"
+    ],
+    "auth": "DEV_BYPASS_AUTH=true synthetic user; no real cookies/JWT/passwords stored"
+  },
+  "scenarios": {
+    "repeatedSameBrowserDeduped": {
+      "fixtureMeaning": "Synthetic backend response representing 10 same-browser logins collapsed to one stable device.",
+      "expected": "one row/current badge, active count 1, plan limit 3, remaining slots 2",
+      "currentBadgeCount": 1,
+      "visibleHasExpectedCounter": true,
+      "visibleHasRemainingSlots": true
+    },
+    "logoutOthers": {
+      "expected": "one POST /auth/devices/logout-others, no per-device DELETE loop, current badge once",
+      "beforeCurrentBadgeCount": 1,
+      "afterCurrentBadgeCount": 1,
+      "logoutOthersCalls": 1,
+      "singleDeviceDeleteCalls": 0,
+      "visiblePostLogoutBanner": true
+    },
+    "ruMobile": {
+      "expected": "mobile ru-RU device panel renders without overlap-critical failure and current badge once",
+      "currentBadgeCount": 1,
+      "visibleHasExpectedCounter": true
+    }
+  },
+  "screenshots": [
+    "evidence/client/cyba-608/screenshots/settings-devices-deduped-en-desktop.png",
+    "evidence/client/cyba-608/screenshots/settings-devices-before-logout-others-en-desktop.png",
+    "evidence/client/cyba-608/screenshots/settings-devices-after-logout-others-en-desktop.png",
+    "evidence/client/cyba-608/screenshots/settings-devices-ru-mobile.png"
+  ],
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "status": 200,
+      "label": "GET /client/capabilities"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications",
+      "status": 200,
+      "label": "GET /me/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations",
+      "status": 200,
+      "label": "GET /me/conversations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "status": 200,
+      "label": "GET /users/me/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200,
+      "label": "GET /auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/2fa/status",
+      "status": 200,
+      "label": "GET /2fa/status"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/security/antiphishing",
+      "status": 200,
+      "label": "GET /security/antiphishing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/passkeys/policy",
+      "status": 200,
+      "label": "GET /auth/passkeys/policy"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/notifications",
+      "status": 200,
+      "label": "GET /users/me/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications/preferences",
+      "status": 200,
+      "label": "GET /growth-notifications/preferences"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices",
+      "status": 200,
+      "label": "GET /auth/devices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entitlements/current",
+      "status": 200,
+      "label": "GET /entitlements/current"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "status": 200,
+      "label": "GET /customer-subscriptions/"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "label": "GET /me/realtime/sse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "label": "GET /me/realtime/sse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "label": "GET /me/realtime/sync"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "label": "GET /me/realtime/sync"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/qa-subscription-1/entitlements",
+      "status": 200,
+      "label": "GET /customer-subscriptions/qa-subscription-1/entitlements"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "status": 200,
+      "label": "GET /client/capabilities"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications",
+      "status": 200,
+      "label": "GET /me/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations",
+      "status": 200,
+      "label": "GET /me/conversations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "status": 200,
+      "label": "GET /users/me/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200,
+      "label": "GET /auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/2fa/status",
+      "status": 200,
+      "label": "GET /2fa/status"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/security/antiphishing",
+      "status": 200,
+      "label": "GET /security/antiphishing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/passkeys/policy",
+      "status": 200,
+      "label": "GET /auth/passkeys/policy"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/notifications",
+      "status": 200,
+      "label": "GET /users/me/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications/preferences",
+      "status": 200,
+      "label": "GET /growth-notifications/preferences"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices",
+      "status": 200,
+      "label": "GET /auth/devices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entitlements/current",
+      "status": 200,
+      "label": "GET /entitlements/current"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "status": 200,
+      "label": "GET /customer-subscriptions/"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "label": "GET /me/realtime/sse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "label": "GET /me/realtime/sse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "label": "GET /me/realtime/sync"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "label": "GET /me/realtime/sync"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/qa-subscription-1/entitlements",
+      "status": 200,
+      "label": "GET /customer-subscriptions/qa-subscription-1/entitlements"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/devices/logout-others",
+      "status": 200,
+      "label": "POST /auth/devices/logout-others"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices",
+      "status": 200,
+      "label": "GET /auth/devices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "label": "GET /me/realtime/sse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "label": "GET /me/realtime/sync"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "label": "GET /me/realtime/sse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "label": "GET /me/realtime/sync"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "status": 200,
+      "label": "GET /client/capabilities"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications",
+      "status": 200,
+      "label": "GET /me/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations",
+      "status": 200,
+      "label": "GET /me/conversations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "status": 200,
+      "label": "GET /users/me/profile"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": 200,
+      "label": "GET /auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/2fa/status",
+      "status": 200,
+      "label": "GET /2fa/status"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/security/antiphishing",
+      "status": 200,
+      "label": "GET /security/antiphishing"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/passkeys/policy",
+      "status": 200,
+      "label": "GET /auth/passkeys/policy"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/notifications",
+      "status": 200,
+      "label": "GET /users/me/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications/preferences",
+      "status": 200,
+      "label": "GET /growth-notifications/preferences"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices",
+      "status": 200,
+      "label": "GET /auth/devices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entitlements/current",
+      "status": 200,
+      "label": "GET /entitlements/current"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "status": 200,
+      "label": "GET /customer-subscriptions/"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "label": "GET /me/realtime/sse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "label": "GET /me/realtime/sse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "label": "GET /me/realtime/sync"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "label": "GET /me/realtime/sync"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/qa-subscription-1/entitlements",
+      "status": 200,
+      "label": "GET /customer-subscriptions/qa-subscription-1/entitlements"
+    }
+  ],
+  "consoleMessages": [],
+  "pageErrors": [],
+  "failures": []
+}

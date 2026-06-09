@@ -1,0 +1,413 @@
+{
+  "issue": "CYBA-609",
+  "baseURL": "http://127.0.0.1:9101",
+  "timestamp": "20260609T190544Z",
+  "environment": {
+    "app": "admin",
+    "server": "Next.js dev server on 127.0.0.1:9101",
+    "browser": "Playwright chromium headless",
+    "dataBoundary": "Synthetic Playwright route stubs only; no real cookies/tokens/backend session mutations.",
+    "viewport": "1440x1000",
+    "locale": "ru-RU"
+  },
+  "checks": [
+    {
+      "id": "TC-ADMIN-SESS-001",
+      "name": "Unauthenticated direct URL redirects to login",
+      "status": "passed",
+      "observedUrl": "http://127.0.0.1:9101/ru-RU/login?redirect=%2Fru-RU%2Fsecurity%2Fsessions"
+    },
+    {
+      "id": "TC-ADMIN-SESS-002",
+      "name": "Session console renders backend totals and only one current-device marker",
+      "status": "failed",
+      "currentBadgeCount": 1,
+      "currentDeviceActionChipCount": 2,
+      "observed": "Metrics show 3 total unique devices, 2 remote devices, limit 3/7, current IP 203.0.113.10."
+    },
+    {
+      "id": "TC-ADMIN-SESS-003",
+      "name": "Logout others confirm is action-locked against double submit",
+      "status": "passed",
+      "postCount": 1
+    },
+    {
+      "id": "TC-ADMIN-SESS-004",
+      "name": "Selected remote device revoke uses stable device_id and is action-locked",
+      "status": "passed",
+      "deleteCount": 1,
+      "revokedDeviceIds": [
+        "dev_second_flag_beta"
+      ]
+    },
+    {
+      "id": "TC-ADMIN-SESS-005",
+      "name": "Logout all is realm-scoped hard stop in UI and redirects current console to login",
+      "status": "passed",
+      "postCount": 1,
+      "observedUrl": "http://127.0.0.1:9101/ru-RU/login"
+    }
+  ],
+  "screenshots": [
+    "../evidence/admin/cyba-609/screenshots/CYBA-609__admin-sessions__synthetic__ru-RU__desktop-1440__unauth-direct-url-redirect__20260609T190544Z.png",
+    "../evidence/admin/cyba-609/screenshots/CYBA-609__admin-sessions__synthetic__ru-RU__desktop-1440__sessions-loaded__20260609T190544Z.png",
+    "../evidence/admin/cyba-609/screenshots/CYBA-609__admin-sessions__synthetic__ru-RU__desktop-1440__logout-others-confirm__20260609T190544Z.png",
+    "../evidence/admin/cyba-609/screenshots/CYBA-609__admin-sessions__synthetic__ru-RU__desktop-1440__revoke-device-confirm__20260609T190544Z.png",
+    "../evidence/admin/cyba-609/screenshots/CYBA-609__admin-sessions__synthetic__ru-RU__desktop-1440__logout-all-confirm__20260609T190544Z.png",
+    "../evidence/admin/cyba-609/screenshots/CYBA-609__admin-sessions__synthetic__ru-RU__desktop-1440__logout-all-login-redirect__20260609T190544Z.png"
+  ],
+  "network": {
+    "devicesGet": 3,
+    "logoutOthersPost": 1,
+    "revokeDeviceDelete": 1,
+    "logoutAllPost": 1,
+    "revokedDeviceIds": [
+      "dev_second_flag_beta"
+    ]
+  },
+  "console": [
+    {
+      "page": "unauth",
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "page": "unauth",
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "page": "unauth",
+      "type": "warning",
+      "text": "%c%s%c Route /[locale]/security/sessions is rendering with server caches disabled. For this navigation, Component Metadata in React DevTools will not accurately reflect what is statically prerenderable and runtime prefetchable. See more info here: https://nextjs.org/docs/messages/cache-bypass-in-dev"
+    },
+    {
+      "page": "unauth",
+      "type": "log",
+      "text": "[Dev Tools] Console Intercepted globally."
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "page": "unauth",
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "unauth",
+      "type": "log",
+      "text": "[Fast Refresh] done in 1671ms"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "unauth",
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "page": "unauth",
+      "type": "log",
+      "text": "[Fast Refresh] done in 111ms"
+    },
+    {
+      "page": "unauth",
+      "type": "warning",
+      "text": "%c%s%c Route /[locale]/login is rendering with server caches disabled. For this navigation, Component Metadata in React DevTools will not accurately reflect what is statically prerenderable and runtime prefetchable. See more info here: https://nextjs.org/docs/messages/cache-bypass-in-dev background:"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "unauth",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Dev Tools] Console Intercepted globally."
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Fast Refresh] done in 115ms"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Fast Refresh] done in 101ms"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Fast Refresh] done in 149ms"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Fast Refresh] done in 386ms"
+    },
+    {
+      "page": "admin",
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "page": "admin",
+      "type": "log",
+      "text": "[Dev Tools] Console Intercepted globally."
+    },
+    {
+      "page": "admin",
+      "type": "error",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` wh"
+    }
+  ],
+  "pageErrors": [],
+  "summary": {
+    "passed": 4,
+    "failed": 1,
+    "screenshots": 6,
+    "pageErrors": 0,
+    "consoleMessages": 67
+  }
+}

@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type { AxiosResponse } from 'axios';
+import type { components } from './generated/types';
 
 // Request interfaces
 export interface LoginRequest {
@@ -76,6 +77,8 @@ export interface LoginResponse {
   principal_type?: string | null;
   scope_family?: string | null;
 }
+
+export type WebRefreshResponse = components['schemas']['WebRefreshResponse'];
 
 export interface VerifyOtpResponse extends TokenResponse {
   user: User;
@@ -253,6 +256,12 @@ export interface MagicLinkVerifyOtpRequest {
   code: string;
 }
 
+export type DeviceSessionListResponse = components['schemas']['DeviceSessionListResponse'];
+export type DeviceSessionResponse =
+  components['schemas']['src__presentation__api__v1__auth__schemas__DeviceSessionResponse'];
+export type LogoutOthersResponse = components['schemas']['LogoutOthersResponse'];
+export type RevokeDeviceResponse = components['schemas']['RevokeDeviceResponse'];
+
 // Account linking types
 export interface LinkedAccount {
   provider: string;
@@ -314,7 +323,7 @@ export const authApi = {
    * POST /api/v1/auth/refresh
    */
   refresh: () =>
-    apiClient.post('/auth/refresh'),
+    apiClient.post<WebRefreshResponse>('/auth/refresh'),
 
   /**
    * Get current authenticated user
@@ -472,15 +481,14 @@ export const authApi = {
    * Returns all active sessions with device info, IP, user agent, and is_current flag.
    */
   listDevices: () =>
-    apiClient.get<{
-      devices: Array<{
-        device_id: string;
-        ip_address: string;
-        user_agent: string;
-        last_used_at: string;
-        is_current: boolean;
-      }>;
-    }>('/auth/devices'),
+    apiClient.get<DeviceSessionListResponse>('/auth/devices'),
+
+  /**
+   * Remote logout for all devices except the current one.
+   * POST /api/v1/auth/devices/logout-others
+   */
+  logoutOtherDevices: () =>
+    apiClient.post<LogoutOthersResponse>('/auth/devices/logout-others'),
 
   /**
    * Remote logout for a specific device
@@ -492,7 +500,7 @@ export const authApi = {
    * @throws 404 - Device not found
    */
   logoutDevice: (deviceId: string) =>
-    apiClient.delete<{ message: string }>(`/auth/devices/${deviceId}`),
+    apiClient.delete<RevokeDeviceResponse>(`/auth/devices/${deviceId}`),
 
   /**
    * Request a magic link for Telegram Login

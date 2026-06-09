@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
 from src.application.services.config_service import PASSKEY_ADMIN_POLICY_CONFIG_KEY, ConfigService
 from src.application.services.passkey_webauthn import (
     PasskeyVerificationError,
@@ -36,7 +37,12 @@ from src.infrastructure.database.repositories.passkey_credential_repo import Pas
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.monitoring.instrumentation.routes import sync_active_sessions
 from src.infrastructure.monitoring.metrics import route_operations_total
-from src.presentation.api.v1.auth.cookies import set_auth_cookies, set_pending_2fa_cookie
+from src.presentation.api.v1.auth.cookies import (
+    get_or_create_web_device_cookie_value,
+    set_auth_cookies,
+    set_pending_2fa_cookie,
+    set_web_device_cookie,
+)
 from src.presentation.api.v1.auth.passkey_schemas import (
     PasskeyAuthenticationOptionsRequest,
     PasskeyAuthenticationVerifyRequest,
@@ -54,9 +60,9 @@ from src.presentation.api.v1.auth.passkey_schemas import (
     PasskeyRenameRequest,
 )
 from src.presentation.api.v1.auth.realm_context import get_principal_type_for_realm
-from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 from src.presentation.dependencies.auth import get_current_active_web_user
 from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
+from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.passkey_fresh_auth import enforce_passkey_fresh_auth
 from src.presentation.dependencies.services import get_auth_service
@@ -243,10 +249,7 @@ def _enforce_credential_user_handle(payload: dict, credential: PasskeyCredential
 
 
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",", 1)[0].strip()
-    return request.client.host if request.client else "unknown"
+    return resolve_client_ip(request).ip
 
 
 def _track(action: str, metric_status: str) -> None:
@@ -343,48 +346,42 @@ async def _issue_session_for_passkey(
             tfa_token=tfa_token,
         )
 
-    fingerprint = generate_client_fingerprint(request)
-    access_token, access_jti, _access_expire = auth_service.create_access_token(
-        subject=str(user.id),
-        role=user.role,
-        audience=credential.audience,
-        principal_type=credential.principal_class,
-        realm_id=str(credential.auth_realm_id),
-        realm_key=credential.realm_key,
-        scope_family=scope_family,
-        extra={"auth_method": "passkey"},
-    )
-    refresh_token, _refresh_jti, refresh_expire = auth_service.create_refresh_token(
-        subject=str(user.id),
-        fingerprint=fingerprint,
-        audience=credential.audience,
-        principal_type=credential.principal_class,
-        realm_id=str(credential.auth_realm_id),
-        realm_key=credential.realm_key,
-        scope_family=scope_family,
-    )
-    await store_refresh_token(
-        db,
-        user_id=user.id,
-        refresh_token=refresh_token,
-        expires_at=refresh_expire,
-        device_id=fingerprint,
-        ip_address=_client_ip(request),
-        user_agent=request.headers.get("User-Agent"),
-        auth_realm_id=credential.auth_realm_id,
-        principal_class=credential.principal_class,
-        principal_subject=str(user.id),
-        audience=credential.audience,
-        scope_family=scope_family,
-        access_token_jti=access_jti,
+    device_key, set_device_cookie = get_or_create_web_device_cookie_value(request.cookies)
+    client_ip = resolve_client_ip(request)
+    issued_session = await AuthSessionIssuer(auth_service=auth_service, session=db).issue_auth_session(
+        AuthSessionIssueRequest(
+            user_id=user.id,
+            role=user.role,
+            device_key=device_key,
+            refresh_fingerprint=generate_client_fingerprint(request),
+            ip_address=client_ip.ip,
+            ip_source=client_ip.ip_source,
+            proxy_peer=client_ip.proxy_peer,
+            user_agent=request.headers.get("User-Agent"),
+            auth_realm_id=credential.auth_realm_id,
+            auth_realm_key=credential.realm_key,
+            audience=credential.audience,
+            principal_class=credential.principal_class,
+            principal_subject=str(user.id),
+            scope_family=scope_family,
+            access_extra={"auth_method": "passkey"},
+            platform="web",
+        )
     )
     set_auth_cookies(
         response,
-        access_token,
-        refresh_token,
+        issued_session.access_token,
+        issued_session.refresh_token,
         request=request,
         cookie_namespace=cookie_namespace,
     )
+    if set_device_cookie:
+        set_web_device_cookie(
+            response,
+            device_key,
+            request=request,
+            cookie_namespace=cookie_namespace,
+        )
     await sync_active_sessions(db)
     return PasskeyAuthenticationVerifyResponse(**response_metadata, requires_2fa=False)
 

@@ -224,7 +224,7 @@ class TestOAuthLoginUseCase:
     async def test_auto_link_commits_session(
         self, mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session, make_user
     ):
-        """Auto-link flow commits the database session."""
+        """Auto-link flow flushes changes and leaves commit to the caller."""
         user = make_user()
 
         mock_oauth_repo.get_by_provider_and_user_id.return_value = None
@@ -237,7 +237,8 @@ class TestOAuthLoginUseCase:
             user_info={"id": "123", "email": user.email, "access_token": "tok"},
         )
 
-        mock_session.commit.assert_called_once()
+        mock_session.flush.assert_called_once()
+        mock_session.commit.assert_not_called()
 
     # ------------------------------------------------------------------
     # Path 3: Create new user
@@ -505,6 +506,11 @@ class TestOAuthLoginUseCase:
             subject=str(user.id),
             role="2fa_pending",
             extra={"type": "2fa_pending"},
+            audience=None,
+            principal_type="admin",
+            realm_id=None,
+            realm_key=None,
+            scope_family="admin",
         )
 
     # ------------------------------------------------------------------
@@ -531,10 +537,22 @@ class TestOAuthLoginUseCase:
         mock_auth_service.create_access_token.assert_called_once_with(
             subject=str(user.id),
             role="admin",
+            extra={"auth_method": "oauth:google"},
+            audience=None,
+            principal_type="admin",
+            realm_id=None,
+            realm_key=None,
+            scope_family="admin",
         )
         mock_auth_service.create_refresh_token.assert_called_once_with(
             subject=str(user.id),
+            remember_me=False,
             fingerprint=None,
+            audience=None,
+            principal_type="admin",
+            realm_id=None,
+            realm_key=None,
+            scope_family="admin",
         )
 
     @pytest.mark.unit
@@ -557,7 +575,13 @@ class TestOAuthLoginUseCase:
 
         mock_auth_service.create_refresh_token.assert_called_once_with(
             subject=str(user.id),
+            remember_me=False,
             fingerprint="device_fp_abc123",
+            audience=None,
+            principal_type="admin",
+            realm_id=None,
+            realm_key=None,
+            scope_family="admin",
         )
 
     @pytest.mark.unit

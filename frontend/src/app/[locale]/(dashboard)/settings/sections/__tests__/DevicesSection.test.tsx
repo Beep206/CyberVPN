@@ -261,15 +261,26 @@ describe('DevicesSection', () => {
 
     it('test_logout_all_others_successfully', async () => {
       const user = userEvent.setup();
+      let logoutOthersRequests = 0;
+      let legacyDeleteRequests = 0;
 
       server.use(
         http.get(`${API_BASE}/auth/devices`, () => {
           return HttpResponse.json({ devices: mockDevices });
         }),
+        http.post(`${API_BASE}/auth/devices/logout-others`, () => {
+          logoutOthersRequests += 1;
+          return HttpResponse.json({
+            message: 'Other device sessions terminated',
+            sessions_revoked: 2,
+          });
+        }),
         http.delete(`${API_BASE}/auth/devices/device-2`, () => {
+          legacyDeleteRequests += 1;
           return HttpResponse.json({ message: 'Logged out successfully' });
         }),
         http.delete(`${API_BASE}/auth/devices/device-3`, () => {
+          legacyDeleteRequests += 1;
           return HttpResponse.json({ message: 'Logged out successfully' });
         })
       );
@@ -287,6 +298,8 @@ describe('DevicesSection', () => {
       await waitFor(() => {
         expect(screen.getByText(/Active Devices/i)).toBeInTheDocument();
       });
+      expect(logoutOthersRequests).toBe(1);
+      expect(legacyDeleteRequests).toBe(0);
     });
 
     it('test_shows_error_when_logout_all_others_fails', async () => {
@@ -296,14 +309,11 @@ describe('DevicesSection', () => {
         http.get(`${API_BASE}/auth/devices`, () => {
           return HttpResponse.json({ devices: mockDevices });
         }),
-        http.delete(`${API_BASE}/auth/devices/device-2`, () => {
+        http.post(`${API_BASE}/auth/devices/logout-others`, () => {
           return HttpResponse.json(
             { detail: 'Internal server error' },
             { status: 500 }
           );
-        }),
-        http.delete(`${API_BASE}/auth/devices/device-3`, () => {
-          return HttpResponse.json({ message: 'Logged out successfully' });
         })
       );
 
@@ -317,7 +327,7 @@ describe('DevicesSection', () => {
       await user.click(logoutAllButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Failed to logout some devices/i)).toBeInTheDocument();
+        expect(screen.getByText(/Internal server error/i)).toBeInTheDocument();
       });
     });
   });

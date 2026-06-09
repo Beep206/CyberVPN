@@ -263,8 +263,7 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_merchant_profiles_invoice_profile_id "
-            "ON merchant_profiles(invoice_profile_id)"
+            "CREATE INDEX ix_merchant_profiles_invoice_profile_id ON merchant_profiles(invoice_profile_id)"
         )
         conn.exec_driver_sql(
             """
@@ -401,8 +400,7 @@ async def initialize_realm_test_database(engine) -> None:
         )
         conn.exec_driver_sql("CREATE INDEX ix_offer_versions_offer_key ON offer_versions(offer_key)")
         conn.exec_driver_sql(
-            "CREATE INDEX ix_offer_versions_subscription_plan_id "
-            "ON offer_versions(subscription_plan_id)"
+            "CREATE INDEX ix_offer_versions_subscription_plan_id ON offer_versions(subscription_plan_id)"
         )
         conn.exec_driver_sql("CREATE INDEX ix_offer_versions_version_status ON offer_versions(version_status)")
         conn.exec_driver_sql("CREATE INDEX ix_offer_versions_effective_from ON offer_versions(effective_from)")
@@ -584,20 +582,57 @@ async def initialize_realm_test_database(engine) -> None:
             CREATE TABLE refresh_tokens (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
+                auth_realm_id TEXT NOT NULL,
+                principal_class TEXT NOT NULL CHECK (principal_class IN ('admin', 'partner_operator', 'customer')),
+                principal_subject TEXT NOT NULL CHECK (principal_subject <> ''),
+                audience TEXT NOT NULL CHECK (audience <> ''),
+                scope_family TEXT NOT NULL CHECK (scope_family <> ''),
                 token_hash TEXT NOT NULL,
                 expires_at TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 revoked_at TEXT,
+                revoked_reason TEXT,
+                jti TEXT,
+                family_id TEXT,
+                parent_token_id TEXT,
+                principal_session_id TEXT,
+                consumed_at TEXT,
+                replaced_by_token_id TEXT,
                 device_id TEXT,
                 ip_address TEXT,
                 user_agent TEXT,
                 last_used_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES admin_users(id)
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id),
+                FOREIGN KEY (parent_token_id) REFERENCES refresh_tokens(id),
+                FOREIGN KEY (principal_session_id) REFERENCES principal_sessions(id),
+                FOREIGN KEY (replaced_by_token_id) REFERENCES refresh_tokens(id)
             )
             """
         )
         conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_user_id ON refresh_tokens(user_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_auth_realm_id ON refresh_tokens(auth_realm_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_principal_class ON refresh_tokens(principal_class)")
+        conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_principal_subject ON refresh_tokens(principal_subject)")
+        conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_audience ON refresh_tokens(audience)")
+        conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_scope_family ON refresh_tokens(scope_family)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_refresh_tokens_principal_owner "
+            "ON refresh_tokens(principal_class, principal_subject, auth_realm_id)"
+        )
         conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_token_hash ON refresh_tokens(token_hash)")
+        conn.exec_driver_sql("CREATE UNIQUE INDEX uq_refresh_tokens_jti ON refresh_tokens(jti)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_refresh_tokens_principal_session_id ON refresh_tokens(principal_session_id)"
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_family_id ON refresh_tokens(family_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_parent_token_id ON refresh_tokens(parent_token_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_refresh_tokens_replaced_by_token_id ON refresh_tokens(replaced_by_token_id)"
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_consumed_at ON refresh_tokens(consumed_at)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_refresh_tokens_session_family ON refresh_tokens(principal_session_id, family_id)"
+        )
         conn.exec_driver_sql(
             """
             CREATE TABLE passkey_credentials (
@@ -636,12 +671,9 @@ async def initialize_realm_test_database(engine) -> None:
             )
             """
         )
+        conn.exec_driver_sql("CREATE INDEX ix_passkey_credentials_auth_realm_id ON passkey_credentials(auth_realm_id)")
         conn.exec_driver_sql(
-            "CREATE INDEX ix_passkey_credentials_auth_realm_id ON passkey_credentials(auth_realm_id)"
-        )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_passkey_credentials_credential_id_hash "
-            "ON passkey_credentials(credential_id_hash)"
+            "CREATE INDEX ix_passkey_credentials_credential_id_hash ON passkey_credentials(credential_id_hash)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_passkey_credentials_principal_class ON passkey_credentials(principal_class)"
@@ -753,8 +785,7 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_notification_queue_status_scheduled "
-            "ON notification_queue(status, scheduled_at)"
+            "CREATE INDEX ix_notification_queue_status_scheduled ON notification_queue(status, scheduled_at)"
         )
         conn.exec_driver_sql(
             """
@@ -980,8 +1011,7 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_growth_code_touchpoints_code_type ON growth_code_touchpoints(code_type)",
             "CREATE INDEX ix_growth_code_touchpoints_anonymous_session_id "
             "ON growth_code_touchpoints(anonymous_session_id)",
-            "CREATE INDEX ix_growth_code_touchpoints_registered_user_id "
-            "ON growth_code_touchpoints(registered_user_id)",
+            "CREATE INDEX ix_growth_code_touchpoints_registered_user_id ON growth_code_touchpoints(registered_user_id)",
             "CREATE INDEX ix_growth_code_touchpoints_risk_subject_id ON growth_code_touchpoints(risk_subject_id)",
             "CREATE INDEX ix_growth_code_touchpoints_storefront_id ON growth_code_touchpoints(storefront_id)",
             "CREATE INDEX ix_growth_code_touchpoints_auth_realm_id ON growth_code_touchpoints(auth_realm_id)",
@@ -1018,16 +1048,14 @@ async def initialize_realm_test_database(engine) -> None:
         )
         for index_sql in (
             "CREATE INDEX ix_growth_signup_attributions_user_id ON growth_signup_attributions(user_id)",
-            "CREATE INDEX ix_growth_signup_attributions_growth_code_id "
-            "ON growth_signup_attributions(growth_code_id)",
+            "CREATE INDEX ix_growth_signup_attributions_growth_code_id ON growth_signup_attributions(growth_code_id)",
             "CREATE INDEX ix_growth_signup_attributions_code_type ON growth_signup_attributions(code_type)",
             "CREATE INDEX ix_growth_signup_attributions_touchpoint_id ON growth_signup_attributions(touchpoint_id)",
             "CREATE INDEX ix_growth_signup_attributions_attribution_source "
             "ON growth_signup_attributions(attribution_source)",
             "CREATE INDEX ix_growth_signup_attributions_storefront_id ON growth_signup_attributions(storefront_id)",
             "CREATE INDEX ix_growth_signup_attributions_auth_realm_id ON growth_signup_attributions(auth_realm_id)",
-            "CREATE INDEX ix_growth_signup_attributions_risk_subject_id "
-            "ON growth_signup_attributions(risk_subject_id)",
+            "CREATE INDEX ix_growth_signup_attributions_risk_subject_id ON growth_signup_attributions(risk_subject_id)",
         ):
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
@@ -1139,12 +1167,8 @@ async def initialize_realm_test_database(engine) -> None:
             )
             """
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_gift_code_policies_growth_code_id ON gift_code_policies(growth_code_id)"
-        )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_gift_code_policies_batch_id ON gift_code_policies(batch_id)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_gift_code_policies_growth_code_id ON gift_code_policies(growth_code_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_gift_code_policies_batch_id ON gift_code_policies(batch_id)")
         conn.exec_driver_sql(
             """
             CREATE TABLE growth_code_resolution_events (
@@ -1221,16 +1245,14 @@ async def initialize_realm_test_database(engine) -> None:
         )
         for index_sql in (
             "CREATE INDEX ix_growth_code_reservations_growth_code_id ON growth_code_reservations(growth_code_id)",
-            "CREATE INDEX ix_growth_code_reservations_quote_session_id "
-            "ON growth_code_reservations(quote_session_id)",
+            "CREATE INDEX ix_growth_code_reservations_quote_session_id ON growth_code_reservations(quote_session_id)",
             "CREATE INDEX ix_growth_code_reservations_checkout_session_id "
             "ON growth_code_reservations(checkout_session_id)",
             "CREATE INDEX ix_growth_code_reservations_user_id ON growth_code_reservations(user_id)",
             "CREATE INDEX ix_growth_code_reservations_reserved_at ON growth_code_reservations(reserved_at)",
             "CREATE INDEX ix_growth_code_reservations_expires_at ON growth_code_reservations(expires_at)",
             "CREATE INDEX ix_growth_code_reservations_status ON growth_code_reservations(status)",
-            "CREATE INDEX ix_growth_code_reservations_consumed_order_id "
-            "ON growth_code_reservations(consumed_order_id)",
+            "CREATE INDEX ix_growth_code_reservations_consumed_order_id ON growth_code_reservations(consumed_order_id)",
             "CREATE INDEX ix_growth_code_reservations_released_at ON growth_code_reservations(released_at)",
         ):
             conn.exec_driver_sql(index_sql)
@@ -1277,10 +1299,8 @@ async def initialize_realm_test_database(engine) -> None:
             "ON growth_code_redemptions(wallet_transaction_id)",
             "CREATE INDEX ix_growth_code_redemptions_reward_allocation_id "
             "ON growth_code_redemptions(reward_allocation_id)",
-            "CREATE INDEX ix_growth_code_redemptions_policy_version_id "
-            "ON growth_code_redemptions(policy_version_id)",
-            "CREATE INDEX ix_growth_code_redemptions_risk_decision_id "
-            "ON growth_code_redemptions(risk_decision_id)",
+            "CREATE INDEX ix_growth_code_redemptions_policy_version_id ON growth_code_redemptions(policy_version_id)",
+            "CREATE INDEX ix_growth_code_redemptions_risk_decision_id ON growth_code_redemptions(risk_decision_id)",
             "CREATE INDEX ix_growth_code_redemptions_status ON growth_code_redemptions(status)",
             "CREATE INDEX ix_growth_code_redemptions_redeemed_at ON growth_code_redemptions(redeemed_at)",
             "CREATE INDEX ix_growth_code_redemptions_reversed_at ON growth_code_redemptions(reversed_at)",
@@ -1499,8 +1519,7 @@ async def initialize_realm_test_database(engine) -> None:
             "ON partner_traffic_declarations(reviewed_by_admin_user_id)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_traffic_declarations_reviewed_at "
-            "ON partner_traffic_declarations(reviewed_at)"
+            "CREATE INDEX ix_partner_traffic_declarations_reviewed_at ON partner_traffic_declarations(reviewed_at)"
         )
         conn.exec_driver_sql(
             """
@@ -1528,15 +1547,11 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql(
             "CREATE INDEX ix_creative_approvals_partner_account_id ON creative_approvals(partner_account_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_creative_approvals_approval_kind ON creative_approvals(approval_kind)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_creative_approvals_approval_kind ON creative_approvals(approval_kind)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_creative_approvals_approval_status ON creative_approvals(approval_status)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_creative_approvals_creative_ref ON creative_approvals(creative_ref)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_creative_approvals_creative_ref ON creative_approvals(creative_ref)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_creative_approvals_submitted_by_admin_user_id "
             "ON creative_approvals(submitted_by_admin_user_id)"
@@ -1545,12 +1560,8 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_creative_approvals_reviewed_by_admin_user_id "
             "ON creative_approvals(reviewed_by_admin_user_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_creative_approvals_reviewed_at ON creative_approvals(reviewed_at)"
-        )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_creative_approvals_expires_at ON creative_approvals(expires_at)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_creative_approvals_reviewed_at ON creative_approvals(reviewed_at)")
+        conn.exec_driver_sql("CREATE INDEX ix_creative_approvals_expires_at ON creative_approvals(expires_at)")
         conn.exec_driver_sql(
             """
             CREATE TABLE partner_integration_credentials (
@@ -1694,8 +1705,7 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_earning_events_legacy_partner_earning_id ON earning_events(legacy_partner_earning_id)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_earning_events_order_attribution_result_id "
-            "ON earning_events(order_attribution_result_id)"
+            "CREATE INDEX ix_earning_events_order_attribution_result_id ON earning_events(order_attribution_result_id)"
         )
         conn.exec_driver_sql("CREATE INDEX ix_earning_events_owner_type ON earning_events(owner_type)")
         conn.exec_driver_sql("CREATE INDEX ix_earning_events_event_status ON earning_events(event_status)")
@@ -1769,9 +1779,7 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql(
             "CREATE INDEX ix_reserves_released_by_admin_user_id ON reserves(released_by_admin_user_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_reserves_created_by_admin_user_id ON reserves(created_by_admin_user_id)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_reserves_created_by_admin_user_id ON reserves(created_by_admin_user_id)")
         conn.exec_driver_sql(
             """
             CREATE TABLE settlement_periods (
@@ -1798,24 +1806,14 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql(
             "CREATE INDEX ix_settlement_periods_partner_account_id ON settlement_periods(partner_account_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_settlement_periods_period_key ON settlement_periods(period_key)"
-        )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_settlement_periods_window_start ON settlement_periods(window_start)"
-        )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_settlement_periods_window_end ON settlement_periods(window_end)"
-        )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_settlement_periods_closed_at ON settlement_periods(closed_at)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_settlement_periods_period_key ON settlement_periods(period_key)")
+        conn.exec_driver_sql("CREATE INDEX ix_settlement_periods_window_start ON settlement_periods(window_start)")
+        conn.exec_driver_sql("CREATE INDEX ix_settlement_periods_window_end ON settlement_periods(window_end)")
+        conn.exec_driver_sql("CREATE INDEX ix_settlement_periods_closed_at ON settlement_periods(closed_at)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_settlement_periods_closed_by_admin_user_id ON settlement_periods(closed_by_admin_user_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_settlement_periods_reopened_at ON settlement_periods(reopened_at)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_settlement_periods_reopened_at ON settlement_periods(reopened_at)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_settlement_periods_reopened_by_admin_user_id "
             "ON settlement_periods(reopened_by_admin_user_id)"
@@ -1861,12 +1859,8 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql(
             "CREATE INDEX ix_partner_statements_settlement_period_id ON partner_statements(settlement_period_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_statements_statement_key ON partner_statements(statement_key)"
-        )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_statements_closed_at ON partner_statements(closed_at)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_partner_statements_statement_key ON partner_statements(statement_key)")
+        conn.exec_driver_sql("CREATE INDEX ix_partner_statements_closed_at ON partner_statements(closed_at)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_partner_statements_closed_by_admin_user_id ON partner_statements(closed_by_admin_user_id)"
         )
@@ -1968,8 +1962,7 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_payout_accounts_partner_account_id "
-            "ON partner_payout_accounts(partner_account_id)"
+            "CREATE INDEX ix_partner_payout_accounts_partner_account_id ON partner_payout_accounts(partner_account_id)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_partner_payout_accounts_settlement_profile_id "
@@ -1983,12 +1976,10 @@ async def initialize_realm_test_database(engine) -> None:
             "ON partner_payout_accounts(verification_status)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_payout_accounts_approval_status "
-            "ON partner_payout_accounts(approval_status)"
+            "CREATE INDEX ix_partner_payout_accounts_approval_status ON partner_payout_accounts(approval_status)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_payout_accounts_account_status "
-            "ON partner_payout_accounts(account_status)"
+            "CREATE INDEX ix_partner_payout_accounts_account_status ON partner_payout_accounts(account_status)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_partner_payout_accounts_created_by_admin_user_id "
@@ -1999,32 +1990,28 @@ async def initialize_realm_test_database(engine) -> None:
             "ON partner_payout_accounts(verified_by_admin_user_id)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_payout_accounts_verified_at "
-            "ON partner_payout_accounts(verified_at)"
+            "CREATE INDEX ix_partner_payout_accounts_verified_at ON partner_payout_accounts(verified_at)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_partner_payout_accounts_approved_by_admin_user_id "
             "ON partner_payout_accounts(approved_by_admin_user_id)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_payout_accounts_approved_at "
-            "ON partner_payout_accounts(approved_at)"
+            "CREATE INDEX ix_partner_payout_accounts_approved_at ON partner_payout_accounts(approved_at)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_partner_payout_accounts_suspended_by_admin_user_id "
             "ON partner_payout_accounts(suspended_by_admin_user_id)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_payout_accounts_suspended_at "
-            "ON partner_payout_accounts(suspended_at)"
+            "CREATE INDEX ix_partner_payout_accounts_suspended_at ON partner_payout_accounts(suspended_at)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_partner_payout_accounts_archived_by_admin_user_id "
             "ON partner_payout_accounts(archived_by_admin_user_id)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_partner_payout_accounts_archived_at "
-            "ON partner_payout_accounts(archived_at)"
+            "CREATE INDEX ix_partner_payout_accounts_archived_at ON partner_payout_accounts(archived_at)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_partner_payout_accounts_default_selected_by_admin_user_id "
@@ -2088,19 +2075,13 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_payout_instructions_approved_by_admin_user_id "
             "ON payout_instructions(approved_by_admin_user_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_instructions_approved_at ON payout_instructions(approved_at)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_payout_instructions_approved_at ON payout_instructions(approved_at)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_payout_instructions_rejected_by_admin_user_id "
             "ON payout_instructions(rejected_by_admin_user_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_instructions_rejected_at ON payout_instructions(rejected_at)"
-        )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_instructions_completed_at ON payout_instructions(completed_at)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_payout_instructions_rejected_at ON payout_instructions(rejected_at)")
+        conn.exec_driver_sql("CREATE INDEX ix_payout_instructions_completed_at ON payout_instructions(completed_at)")
         conn.exec_driver_sql(
             """
             CREATE TABLE payout_executions (
@@ -2139,8 +2120,7 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_executions_payout_instruction_id "
-            "ON payout_executions(payout_instruction_id)"
+            "CREATE INDEX ix_payout_executions_payout_instruction_id ON payout_executions(payout_instruction_id)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_payout_executions_partner_account_id ON payout_executions(partner_account_id)"
@@ -2152,18 +2132,13 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_payout_executions_partner_payout_account_id "
             "ON payout_executions(partner_payout_account_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_executions_execution_key ON payout_executions(execution_key)"
-        )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_executions_execution_mode ON payout_executions(execution_mode)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_payout_executions_execution_key ON payout_executions(execution_key)")
+        conn.exec_driver_sql("CREATE INDEX ix_payout_executions_execution_mode ON payout_executions(execution_mode)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_payout_executions_execution_status ON payout_executions(execution_status)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_executions_request_idempotency_key "
-            "ON payout_executions(request_idempotency_key)"
+            "CREATE INDEX ix_payout_executions_request_idempotency_key ON payout_executions(request_idempotency_key)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_payout_executions_external_reference ON payout_executions(external_reference)"
@@ -2176,22 +2151,58 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_payout_executions_submitted_by_admin_user_id "
             "ON payout_executions(submitted_by_admin_user_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_executions_submitted_at ON payout_executions(submitted_at)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_payout_executions_submitted_at ON payout_executions(submitted_at)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_payout_executions_completed_by_admin_user_id "
             "ON payout_executions(completed_by_admin_user_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_executions_completed_at ON payout_executions(completed_at)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_payout_executions_completed_at ON payout_executions(completed_at)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_payout_executions_reconciled_by_admin_user_id "
             "ON payout_executions(reconciled_by_admin_user_id)"
         )
+        conn.exec_driver_sql("CREATE INDEX ix_payout_executions_reconciled_at ON payout_executions(reconciled_at)")
         conn.exec_driver_sql(
-            "CREATE INDEX ix_payout_executions_reconciled_at ON payout_executions(reconciled_at)"
+            """
+            CREATE TABLE user_devices (
+                id TEXT PRIMARY KEY,
+                auth_realm_id TEXT NOT NULL,
+                principal_subject TEXT NOT NULL,
+                principal_class TEXT NOT NULL,
+                audience TEXT NOT NULL,
+                device_key_hash TEXT NOT NULL,
+                device_label TEXT,
+                platform TEXT,
+                ip_address TEXT,
+                user_agent TEXT,
+                first_user_agent TEXT,
+                last_user_agent TEXT,
+                last_ip_address TEXT,
+                last_ip_source TEXT,
+                last_proxy_peer TEXT,
+                first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                revoked_at TEXT,
+                revoked_reason TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id)
+            )
+            """
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_user_devices_auth_realm_id ON user_devices(auth_realm_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_user_devices_principal_subject ON user_devices(principal_subject)")
+        conn.exec_driver_sql("CREATE INDEX ix_user_devices_principal_class ON user_devices(principal_class)")
+        conn.exec_driver_sql("CREATE INDEX ix_user_devices_audience ON user_devices(audience)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_user_devices_principal ON user_devices(auth_realm_id, principal_class, principal_subject)"
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_user_devices_last_seen_at ON user_devices(last_seen_at)")
+        conn.exec_driver_sql("CREATE INDEX ix_user_devices_revoked_at ON user_devices(revoked_at)")
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX uq_user_devices_active_principal_device_key "
+            "ON user_devices(auth_realm_id, principal_class, principal_subject, device_key_hash) "
+            "WHERE revoked_at IS NULL"
         )
         conn.exec_driver_sql(
             """
@@ -2204,13 +2215,17 @@ async def initialize_realm_test_database(engine) -> None:
                 scope_family TEXT NOT NULL,
                 access_token_jti TEXT,
                 refresh_token_id TEXT,
+                user_device_id TEXT,
+                current_refresh_token_id TEXT,
                 status TEXT NOT NULL DEFAULT 'active',
                 issued_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 expires_at TEXT NOT NULL,
                 revoked_at TEXT,
                 FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id),
-                FOREIGN KEY (refresh_token_id) REFERENCES refresh_tokens(id)
+                FOREIGN KEY (refresh_token_id) REFERENCES refresh_tokens(id),
+                FOREIGN KEY (user_device_id) REFERENCES user_devices(id),
+                FOREIGN KEY (current_refresh_token_id) REFERENCES refresh_tokens(id)
             )
             """
         )
@@ -2219,6 +2234,14 @@ async def initialize_realm_test_database(engine) -> None:
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_principal_sessions_refresh_token_id ON principal_sessions(refresh_token_id)"
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_principal_sessions_user_device_id ON principal_sessions(user_device_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_principal_sessions_user_device_status ON principal_sessions(user_device_id, status)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_principal_sessions_current_refresh_token_id "
+            "ON principal_sessions(current_refresh_token_id)"
         )
         conn.exec_driver_sql(
             """
@@ -2335,12 +2358,10 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_risk_review_attachments_risk_review_id "
-            "ON risk_review_attachments(risk_review_id)"
+            "CREATE INDEX ix_risk_review_attachments_risk_review_id ON risk_review_attachments(risk_review_id)"
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_risk_review_attachments_attachment_type "
-            "ON risk_review_attachments(attachment_type)"
+            "CREATE INDEX ix_risk_review_attachments_attachment_type ON risk_review_attachments(attachment_type)"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_risk_review_attachments_created_by_admin_user_id "
@@ -2373,13 +2394,9 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql(
             "CREATE INDEX ix_governance_actions_risk_subject_id ON governance_actions(risk_subject_id)"
         )
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_governance_actions_risk_review_id ON governance_actions(risk_review_id)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_governance_actions_risk_review_id ON governance_actions(risk_review_id)")
         conn.exec_driver_sql("CREATE INDEX ix_governance_actions_action_type ON governance_actions(action_type)")
-        conn.exec_driver_sql(
-            "CREATE INDEX ix_governance_actions_action_status ON governance_actions(action_status)"
-        )
+        conn.exec_driver_sql("CREATE INDEX ix_governance_actions_action_status ON governance_actions(action_status)")
         conn.exec_driver_sql("CREATE INDEX ix_governance_actions_target_type ON governance_actions(target_type)")
         conn.exec_driver_sql("CREATE INDEX ix_governance_actions_target_ref ON governance_actions(target_ref)")
         conn.exec_driver_sql(
@@ -2485,8 +2502,7 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         conn.exec_driver_sql(
-            "CREATE INDEX ix_checkout_sessions_quote_session_id "
-            "ON checkout_sessions(quote_session_id)"
+            "CREATE INDEX ix_checkout_sessions_quote_session_id ON checkout_sessions(quote_session_id)"
         )
         conn.exec_driver_sql("CREATE INDEX ix_checkout_sessions_user_id ON checkout_sessions(user_id)")
         conn.exec_driver_sql("CREATE INDEX ix_checkout_sessions_auth_realm_id ON checkout_sessions(auth_realm_id)")
@@ -2820,12 +2836,10 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_renewal_orders_winning_binding_id ON renewal_orders(winning_binding_id)",
             "CREATE INDEX ix_renewal_orders_provenance_partner_account_id "
             "ON renewal_orders(provenance_partner_account_id)",
-            "CREATE INDEX ix_renewal_orders_provenance_partner_code_id "
-            "ON renewal_orders(provenance_partner_code_id)",
+            "CREATE INDEX ix_renewal_orders_provenance_partner_code_id ON renewal_orders(provenance_partner_code_id)",
             "CREATE INDEX ix_renewal_orders_effective_partner_account_id "
             "ON renewal_orders(effective_partner_account_id)",
-            "CREATE INDEX ix_renewal_orders_effective_partner_code_id "
-            "ON renewal_orders(effective_partner_code_id)",
+            "CREATE INDEX ix_renewal_orders_effective_partner_code_id ON renewal_orders(effective_partner_code_id)",
             "CREATE INDEX ix_renewal_orders_payout_eligible ON renewal_orders(payout_eligible)",
         ):
             conn.exec_driver_sql(index_sql)
@@ -3236,8 +3250,7 @@ async def initialize_realm_test_database(engine) -> None:
             "ON partner_application_review_requests(lane_application_id)",
             "CREATE INDEX ix_partner_application_review_requests_request_kind "
             "ON partner_application_review_requests(request_kind)",
-            "CREATE INDEX ix_partner_application_review_requests_status "
-            "ON partner_application_review_requests(status)",
+            "CREATE INDEX ix_partner_application_review_requests_status ON partner_application_review_requests(status)",
             "CREATE INDEX ix_partner_application_review_requests_requested_by_admin_user_id "
             "ON partner_application_review_requests(requested_by_admin_user_id)",
             "CREATE INDEX ix_partner_application_review_requests_resolved_by_admin_user_id "
@@ -3281,8 +3294,7 @@ async def initialize_realm_test_database(engine) -> None:
             "ON partner_application_attachments(attachment_type)",
             "CREATE INDEX ix_partner_application_attachments_uploaded_by_admin_user_id "
             "ON partner_application_attachments(uploaded_by_admin_user_id)",
-            "CREATE INDEX ix_partner_application_attachments_created_at "
-            "ON partner_application_attachments(created_at)",
+            "CREATE INDEX ix_partner_application_attachments_created_at ON partner_application_attachments(created_at)",
         ):
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
@@ -3523,8 +3535,7 @@ async def initialize_realm_test_database(engine) -> None:
         for index_sql in (
             "CREATE INDEX ix_pilot_owner_acknowledgements_pilot_cohort_id "
             "ON pilot_owner_acknowledgements(pilot_cohort_id)",
-            "CREATE INDEX ix_pilot_owner_acknowledgements_owner_team "
-            "ON pilot_owner_acknowledgements(owner_team)",
+            "CREATE INDEX ix_pilot_owner_acknowledgements_owner_team ON pilot_owner_acknowledgements(owner_team)",
             "CREATE INDEX ix_pilot_owner_acknowledgements_acknowledgement_status "
             "ON pilot_owner_acknowledgements(acknowledgement_status)",
             "CREATE INDEX ix_pilot_owner_acknowledgements_acknowledged_by_admin_user_id "
@@ -3557,8 +3568,7 @@ async def initialize_realm_test_database(engine) -> None:
         for index_sql in (
             "CREATE INDEX ix_pilot_rollback_drills_pilot_cohort_id ON pilot_rollback_drills(pilot_cohort_id)",
             "CREATE INDEX ix_pilot_rollback_drills_cutover_unit_key ON pilot_rollback_drills(cutover_unit_key)",
-            "CREATE INDEX ix_pilot_rollback_drills_rollback_scope_class "
-            "ON pilot_rollback_drills(rollback_scope_class)",
+            "CREATE INDEX ix_pilot_rollback_drills_rollback_scope_class ON pilot_rollback_drills(rollback_scope_class)",
             "CREATE INDEX ix_pilot_rollback_drills_drill_status ON pilot_rollback_drills(drill_status)",
             "CREATE INDEX ix_pilot_rollback_drills_executed_by_admin_user_id "
             "ON pilot_rollback_drills(executed_by_admin_user_id)",
@@ -3589,16 +3599,13 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         for index_sql in (
-            "CREATE INDEX ix_pilot_go_no_go_decisions_pilot_cohort_id "
-            "ON pilot_go_no_go_decisions(pilot_cohort_id)",
-            "CREATE INDEX ix_pilot_go_no_go_decisions_decision_status "
-            "ON pilot_go_no_go_decisions(decision_status)",
+            "CREATE INDEX ix_pilot_go_no_go_decisions_pilot_cohort_id ON pilot_go_no_go_decisions(pilot_cohort_id)",
+            "CREATE INDEX ix_pilot_go_no_go_decisions_decision_status ON pilot_go_no_go_decisions(decision_status)",
             "CREATE INDEX ix_pilot_go_no_go_decisions_rollback_scope_class "
             "ON pilot_go_no_go_decisions(rollback_scope_class)",
             "CREATE INDEX ix_pilot_go_no_go_decisions_decided_by_admin_user_id "
             "ON pilot_go_no_go_decisions(decided_by_admin_user_id)",
-            "CREATE INDEX ix_pilot_go_no_go_decisions_decided_at "
-            "ON pilot_go_no_go_decisions(decided_at)",
+            "CREATE INDEX ix_pilot_go_no_go_decisions_decided_at ON pilot_go_no_go_decisions(decided_at)",
         ):
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
@@ -3727,12 +3734,10 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         for index_sql in (
-            "CREATE INDEX ix_growth_reporting_daily_rollups_report_date "
-            "ON growth_reporting_daily_rollups(report_date)",
+            "CREATE INDEX ix_growth_reporting_daily_rollups_report_date ON growth_reporting_daily_rollups(report_date)",
             "CREATE INDEX ix_growth_reporting_daily_rollups_report_family "
             "ON growth_reporting_daily_rollups(report_family)",
-            "CREATE INDEX ix_growth_reporting_daily_rollups_metric_key "
-            "ON growth_reporting_daily_rollups(metric_key)",
+            "CREATE INDEX ix_growth_reporting_daily_rollups_metric_key ON growth_reporting_daily_rollups(metric_key)",
             "CREATE INDEX ix_growth_reporting_daily_rollups_source_watermark_at "
             "ON growth_reporting_daily_rollups(source_watermark_at)",
             "CREATE INDEX ix_growth_reporting_daily_rollups_refreshed_at "
@@ -3760,18 +3765,13 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         for index_sql in (
-            "CREATE INDEX ix_growth_reporting_refresh_runs_trigger_kind "
-            "ON growth_reporting_refresh_runs(trigger_kind)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_trigger_kind ON growth_reporting_refresh_runs(trigger_kind)",
             "CREATE INDEX ix_growth_reporting_refresh_runs_refresh_status "
             "ON growth_reporting_refresh_runs(refresh_status)",
-            "CREATE INDEX ix_growth_reporting_refresh_runs_window_start "
-            "ON growth_reporting_refresh_runs(window_start)",
-            "CREATE INDEX ix_growth_reporting_refresh_runs_window_end "
-            "ON growth_reporting_refresh_runs(window_end)",
-            "CREATE INDEX ix_growth_reporting_refresh_runs_refreshed_at "
-            "ON growth_reporting_refresh_runs(refreshed_at)",
-            "CREATE INDEX ix_growth_reporting_refresh_runs_created_at "
-            "ON growth_reporting_refresh_runs(created_at)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_window_start ON growth_reporting_refresh_runs(window_start)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_window_end ON growth_reporting_refresh_runs(window_end)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_refreshed_at ON growth_reporting_refresh_runs(refreshed_at)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_created_at ON growth_reporting_refresh_runs(created_at)",
         ):
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
@@ -3821,8 +3821,7 @@ async def initialize_realm_test_database(engine) -> None:
             "ON growth_reporting_subscriptions(audience_key)",
             "CREATE INDEX ix_growth_reporting_subscriptions_delivery_channel "
             "ON growth_reporting_subscriptions(delivery_channel)",
-            "CREATE INDEX ix_growth_reporting_subscriptions_cadence "
-            "ON growth_reporting_subscriptions(cadence)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_cadence ON growth_reporting_subscriptions(cadence)",
             "CREATE INDEX ix_growth_reporting_subscriptions_subscription_status "
             "ON growth_reporting_subscriptions(subscription_status)",
             "CREATE INDEX ix_growth_reporting_subscriptions_next_delivery_at "
@@ -3884,24 +3883,17 @@ async def initialize_realm_test_database(engine) -> None:
             "ON growth_reporting_deliveries(subscription_id)",
             "CREATE INDEX ix_growth_reporting_deliveries_recipient_email "
             "ON growth_reporting_deliveries(recipient_email)",
-            "CREATE INDEX ix_growth_reporting_deliveries_audience_key "
-            "ON growth_reporting_deliveries(audience_key)",
-            "CREATE INDEX ix_growth_reporting_deliveries_template_key "
-            "ON growth_reporting_deliveries(template_key)",
+            "CREATE INDEX ix_growth_reporting_deliveries_audience_key ON growth_reporting_deliveries(audience_key)",
+            "CREATE INDEX ix_growth_reporting_deliveries_template_key ON growth_reporting_deliveries(template_key)",
             "CREATE INDEX ix_growth_reporting_deliveries_delivery_channel "
             "ON growth_reporting_deliveries(delivery_channel)",
-            "CREATE INDEX ix_growth_reporting_deliveries_cadence "
-            "ON growth_reporting_deliveries(cadence)",
+            "CREATE INDEX ix_growth_reporting_deliveries_cadence ON growth_reporting_deliveries(cadence)",
             "CREATE INDEX ix_growth_reporting_deliveries_delivery_status "
             "ON growth_reporting_deliveries(delivery_status)",
-            "CREATE INDEX ix_growth_reporting_deliveries_window_start "
-            "ON growth_reporting_deliveries(window_start)",
-            "CREATE INDEX ix_growth_reporting_deliveries_window_end "
-            "ON growth_reporting_deliveries(window_end)",
-            "CREATE INDEX ix_growth_reporting_deliveries_planned_at "
-            "ON growth_reporting_deliveries(planned_at)",
-            "CREATE INDEX ix_growth_reporting_deliveries_delivered_at "
-            "ON growth_reporting_deliveries(delivered_at)",
+            "CREATE INDEX ix_growth_reporting_deliveries_window_start ON growth_reporting_deliveries(window_start)",
+            "CREATE INDEX ix_growth_reporting_deliveries_window_end ON growth_reporting_deliveries(window_end)",
+            "CREATE INDEX ix_growth_reporting_deliveries_planned_at ON growth_reporting_deliveries(planned_at)",
+            "CREATE INDEX ix_growth_reporting_deliveries_delivered_at ON growth_reporting_deliveries(delivered_at)",
         ):
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
@@ -4091,8 +4083,7 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_device_credentials_credential_status ON device_credentials(credential_status)",
             "CREATE INDEX ix_device_credentials_subject_key ON device_credentials(subject_key)",
             "CREATE INDEX ix_device_credentials_provider_name ON device_credentials(provider_name)",
-            "CREATE INDEX ix_device_credentials_provider_credential_ref "
-            "ON device_credentials(provider_credential_ref)",
+            "CREATE INDEX ix_device_credentials_provider_credential_ref ON device_credentials(provider_credential_ref)",
             "CREATE INDEX ix_device_credentials_issued_at ON device_credentials(issued_at)",
             "CREATE INDEX ix_device_credentials_last_used_at ON device_credentials(last_used_at)",
             "CREATE INDEX ix_device_credentials_revoked_at ON device_credentials(revoked_at)",
@@ -4149,10 +4140,8 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_access_delivery_channels_channel_subject_ref "
             "ON access_delivery_channels(channel_subject_ref)",
             "CREATE INDEX ix_access_delivery_channels_provider_name ON access_delivery_channels(provider_name)",
-            "CREATE INDEX ix_access_delivery_channels_last_delivered_at "
-            "ON access_delivery_channels(last_delivered_at)",
-            "CREATE INDEX ix_access_delivery_channels_last_accessed_at "
-            "ON access_delivery_channels(last_accessed_at)",
+            "CREATE INDEX ix_access_delivery_channels_last_delivered_at ON access_delivery_channels(last_delivered_at)",
+            "CREATE INDEX ix_access_delivery_channels_last_accessed_at ON access_delivery_channels(last_accessed_at)",
             "CREATE INDEX ix_access_delivery_channels_archived_at ON access_delivery_channels(archived_at)",
             "CREATE INDEX ix_access_delivery_channels_archived_by_admin_user_id "
             "ON access_delivery_channels(archived_by_admin_user_id)",
@@ -4213,8 +4202,7 @@ async def initialize_realm_test_database(engine) -> None:
         for index_sql in (
             "CREATE INDEX ix_outbox_publications_outbox_event_id ON outbox_publications(outbox_event_id)",
             "CREATE INDEX ix_outbox_publications_consumer_key ON outbox_publications(consumer_key)",
-            "CREATE INDEX ix_outbox_publications_publication_status "
-            "ON outbox_publications(publication_status)",
+            "CREATE INDEX ix_outbox_publications_publication_status ON outbox_publications(publication_status)",
             "CREATE INDEX ix_outbox_publications_lease_owner ON outbox_publications(lease_owner)",
             "CREATE INDEX ix_outbox_publications_leased_until ON outbox_publications(leased_until)",
         ):

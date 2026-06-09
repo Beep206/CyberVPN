@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException, Request, Response
 
-from src.application.dto.mobile_auth import DeviceInfoDTO, Platform, RegisterRequestDTO
+from src.application.dto.mobile_auth import DeviceInfoDTO, Platform, RegisterRequestDTO, TokenResponseDTO
 from src.application.services.public_registration_policy import (
     REGISTRATION_DISABLED_CODE,
     PublicRegistrationDisabledError,
@@ -43,6 +43,17 @@ def _auth_service() -> MagicMock:
     service.create_access_token.return_value = ("access_token", "access_jti", access_exp)
     service.create_refresh_token.return_value = ("refresh_token", "refresh_jti", refresh_exp)
     service.hash_password = AsyncMock(return_value="$argon2id$synthetic")
+    return service
+
+
+def _mobile_session_service() -> AsyncMock:
+    service = AsyncMock()
+    service.issue_session.return_value = TokenResponseDTO(
+        access_token="access_token",
+        refresh_token="refresh_token",
+        token_type="Bearer",
+        expires_in=900,
+    )
     return service
 
 
@@ -411,6 +422,7 @@ async def test_mobile_telegram_oidc_existing_user_login_allowed_when_paused():
         auth_service=_auth_service(),
         telegram_oidc_service=telegram_oidc_service,
         allow_new_users=False,
+        mobile_session_service=_mobile_session_service(),
     )
     request = SimpleNamespace(id_token="id-token", device=_device())
 

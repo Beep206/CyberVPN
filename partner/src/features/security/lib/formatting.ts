@@ -23,6 +23,18 @@ export function shortId(value: string | null | undefined, size = 8) {
   return value.slice(0, size);
 }
 
+export interface DeviceListSummaryInput {
+  devices?: readonly unknown[];
+  total?: number;
+  total_devices?: number;
+}
+
+export function getUniqueDeviceCount(
+  input: DeviceListSummaryInput | null | undefined,
+) {
+  return input?.total_devices ?? input?.total ?? input?.devices?.length ?? 0;
+}
+
 export function maskSensitiveCode(value: string | null | undefined) {
   if (!value) return '--';
   if (value.length <= 4) return value;

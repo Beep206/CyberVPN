@@ -49,6 +49,13 @@ export const MOCK_TOKENS = {
   expires_in: 3600,
 };
 
+/** Browser refresh response; rotated tokens are set via httpOnly cookies. */
+export const MOCK_WEB_REFRESH_RESPONSE = {
+  auth_realm_key: 'customer',
+  principal_type: 'customer',
+  scope_family: 'customer',
+};
+
 /** Browser password login response; tokens are set via httpOnly cookies. */
 export const MOCK_WEB_LOGIN_RESPONSE = {
   requires_2fa: false,
@@ -281,14 +288,10 @@ export const authHandlers = [
 
   /**
    * POST /auth/refresh
-   * Returns new token pair.
+   * Rotates httpOnly auth cookies without exposing token material.
    */
   http.post(`${API_BASE}/auth/refresh`, () => {
-    return HttpResponse.json({
-      ...MOCK_TOKENS,
-      access_token: 'mock_refreshed_access_token',
-      refresh_token: 'mock_refreshed_refresh_token',
-    });
+    return HttpResponse.json(MOCK_WEB_REFRESH_RESPONSE);
   }),
 
   /**

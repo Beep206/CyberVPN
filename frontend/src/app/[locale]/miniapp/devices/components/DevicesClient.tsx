@@ -51,8 +51,8 @@ export function DevicesClient() {
     },
   });
 
-  const getDeviceIcon = (userAgent: string) => {
-    const ua = userAgent.toLowerCase();
+  const getDeviceIcon = (userAgent: string | null | undefined) => {
+    const ua = userAgent?.toLowerCase() ?? '';
     if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
       return <Smartphone className="h-5 w-5 text-neon-cyan" />;
     }
@@ -62,7 +62,11 @@ export function DevicesClient() {
     return <Monitor className="h-5 w-5 text-matrix-green" />;
   };
 
-  const parseUserAgent = (userAgent: string) => {
+  const parseUserAgent = (userAgent: string | null | undefined) => {
+    if (!userAgent) {
+      return { browser: 'Unknown Browser', operatingSystem: 'Unknown OS' };
+    }
+
     // Simple UA parsing - extract browser and OS
     const browsers = ['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera'];
     const os = ['Windows', 'Mac', 'Linux', 'Android', 'iOS'];
@@ -96,6 +100,7 @@ export function DevicesClient() {
   }
 
   const devices = devicesData?.devices || [];
+  const currentDeviceIndex = devices.findIndex((device) => device.is_current);
 
   if (devices.length === 0) {
     return (
@@ -121,18 +126,20 @@ export function DevicesClient() {
       )}
 
       {devices.map((device, index) => {
+        const deviceId = device.device_id ?? '';
+        const isCurrentDevice = index === currentDeviceIndex;
         const { browser, operatingSystem } = parseUserAgent(device.user_agent);
         const lastUsed = new Date(device.last_used_at);
         const isRecent = now - lastUsed.getTime() < 5 * 60 * 1000; // Active in last 5 min
 
         return (
           <motion.div
-            key={device.device_id}
+            key={deviceId || `${device.user_agent ?? 'unknown'}-${device.last_used_at}-${index}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
             className={`cyber-card p-4 ${
-              device.is_current
+              isCurrentDevice
                 ? 'border-matrix-green/50 bg-matrix-green/5'
                 : 'border-grid-line/30'
             }`}
@@ -146,19 +153,19 @@ export function DevicesClient() {
                     <h3 className="text-sm font-mono text-foreground truncate">
                       {browser} on {operatingSystem}
                     </h3>
-                    {device.is_current && (
+                    {isCurrentDevice && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-matrix-green/20 border border-matrix-green/30 rounded text-xs text-matrix-green">
                         <CheckCircle className="h-3 w-3" />
                         Current
                       </span>
                     )}
-                    {isRecent && !device.is_current && (
+                    {isRecent && !isCurrentDevice && (
                       <span className="inline-flex h-2 w-2 rounded-full bg-neon-cyan animate-pulse" />
                     )}
                   </div>
 
                   <div className="space-y-1 text-xs text-muted-foreground">
-                    <p className="truncate">IP: {device.ip_address}</p>
+                    <p className="truncate">IP: {device.ip_address ?? ''}</p>
                     <p>
                       Last active:{' '}
                       {lastUsed.toLocaleString('en-US', {
@@ -172,9 +179,9 @@ export function DevicesClient() {
                 </div>
               </div>
 
-              {!device.is_current && (
+              {!isCurrentDevice && deviceId && (
                 <button
-                  onClick={() => logoutMutation.mutate(device.device_id)}
+                  onClick={() => logoutMutation.mutate(deviceId)}
                   disabled={logoutMutation.isPending}
                   className="flex items-center gap-2 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-500 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Logout this device"

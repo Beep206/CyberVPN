@@ -6,10 +6,13 @@ looks up the user by telegram_id, and issues JWT tokens.
 
 import logging
 from datetime import UTC, datetime
+from uuid import UUID
 
 import redis.asyncio as redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
 from src.infrastructure.cache.bot_link_tokens import consume_bot_link_token
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
@@ -47,12 +50,29 @@ class TelegramBotLinkUseCase:
         user_repo: AdminUserRepository,
         auth_service: AuthService,
         redis_client: redis.Redis,
+        session: AsyncSession | None = None,
     ) -> None:
         self._user_repo = user_repo
         self._auth_service = auth_service
         self._redis = redis_client
+        self._session_issuer = AuthSessionIssuer(auth_service=auth_service, session=session) if session else None
 
-    async def execute(self, token: str) -> TelegramBotLinkResult:
+    async def execute(
+        self,
+        token: str,
+        *,
+        client_fingerprint: str | None = None,
+        client_device_key: str | None = None,
+        client_ip: str | None = None,
+        client_ip_source: str | None = None,
+        proxy_peer: str | None = None,
+        user_agent: str | None = None,
+        auth_realm_id: UUID | None = None,
+        auth_realm_key: str | None = None,
+        audience: str | None = None,
+        principal_type: str = "admin",
+        scope_family: str = "admin",
+    ) -> TelegramBotLinkResult:
         """Consume one-time token, find user, issue JWT.
 
         Args:
@@ -91,6 +111,11 @@ class TelegramBotLinkUseCase:
                 subject=str(user.id),
                 role="2fa_pending",
                 extra={"type": "2fa_pending"},
+                audience=audience,
+                principal_type=principal_type,
+                realm_id=str(auth_realm_id) if auth_realm_id else None,
+                realm_key=auth_realm_key,
+                scope_family=scope_family,
             )
             return TelegramBotLinkResult(
                 access_token="",
@@ -102,20 +127,58 @@ class TelegramBotLinkUseCase:
                 tfa_token=tfa_token,
             )
 
-        # Step 3: Issue JWT tokens
-        access_token, _, access_exp = self._auth_service.create_access_token(
-            subject=str(user.id),
-            role=user.role if isinstance(user.role, str) else user.role.value,
+        if self._session_issuer is None:
+            access_token, _, access_exp = self._auth_service.create_access_token(
+                subject=str(user.id),
+                role=user.role if isinstance(user.role, str) else user.role.value,
+                audience=audience,
+                principal_type=principal_type,
+                realm_id=str(auth_realm_id) if auth_realm_id else None,
+                realm_key=auth_realm_key,
+                scope_family=scope_family,
+            )
+            refresh_token, _, _ = self._auth_service.create_refresh_token(
+                subject=str(user.id),
+                fingerprint=client_fingerprint,
+                audience=audience,
+                principal_type=principal_type,
+                realm_id=str(auth_realm_id) if auth_realm_id else None,
+                realm_key=auth_realm_key,
+                scope_family=scope_family,
+            )
+            return TelegramBotLinkResult(
+                access_token=access_token,
+                refresh_token=refresh_token,
+                token_type="bearer",
+                expires_in=int((access_exp - datetime.now(UTC)).total_seconds()),
+                user=user,
+            )
+
+        issued_session = await self._session_issuer.issue_auth_session(
+            AuthSessionIssueRequest(
+                user_id=user.id,
+                role=user.role if isinstance(user.role, str) else user.role.value,
+                device_key=client_device_key,
+                refresh_fingerprint=client_fingerprint,
+                ip_address=client_ip,
+                ip_source=client_ip_source,
+                proxy_peer=proxy_peer,
+                user_agent=user_agent,
+                auth_realm_id=auth_realm_id,
+                auth_realm_key=auth_realm_key,
+                audience=audience,
+                principal_class=principal_type,
+                principal_subject=str(user.id),
+                scope_family=scope_family,
+                access_extra={"auth_method": "telegram_bot_link"},
+                platform="web",
+            )
         )
-        refresh_token, _, _ = self._auth_service.create_refresh_token(
-            subject=str(user.id),
-        )
-        expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
 
         return TelegramBotLinkResult(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="bearer",
-            expires_in=expires_in,
+            access_token=issued_session.access_token,
+            refresh_token=issued_session.refresh_token,
+            token_type=issued_session.token_type,
+            expires_in=issued_session.expires_in,
             user=user,
         )

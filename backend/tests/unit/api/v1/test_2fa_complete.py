@@ -60,11 +60,19 @@ class TestComplete2FALoginRoute:
         refresh_exp = datetime.now(UTC) + timedelta(days=7)
         auth_service.create_access_token.return_value = ("access_tok", "jti_a", access_exp)
         auth_service.create_refresh_token.return_value = ("refresh_tok", "jti_r", refresh_exp)
+        issued_session = SimpleNamespace(access_token="access_tok", refresh_token="refresh_tok", expires_in=900)
 
         with (
+            patch("src.presentation.api.v1.two_factor.routes.AuthSessionIssuer") as mock_issuer_cls,
             patch("src.presentation.api.v1.two_factor.routes.TwoFactorUseCase") as mock_use_case_cls,
+            patch(
+                "src.presentation.api.v1.two_factor.routes.get_or_create_web_device_cookie_value",
+                return_value=("opaque-device-cookie", True),
+            ),
             patch("src.presentation.api.v1.two_factor.routes.generate_client_fingerprint", return_value="fp_123"),
         ):
+            mock_issuer = mock_issuer_cls.return_value
+            mock_issuer.issue_auth_session = AsyncMock(return_value=issued_session)
             mock_use_case = AsyncMock()
             mock_use_case.verify_code.return_value = True
             mock_use_case_cls.return_value = mock_use_case
@@ -82,10 +90,15 @@ class TestComplete2FALoginRoute:
 
         assert result.access_token == "access_tok"
         assert result.refresh_token == "refresh_tok"
-        assert db.add.call_count >= 1
+        issue_request = mock_issuer.issue_auth_session.await_args.args[0]
+        assert issue_request.device_key == "opaque-device-cookie"
+        assert issue_request.refresh_fingerprint == "fp_123"
+        assert issue_request.ip_source == "direct"
+        assert issue_request.proxy_peer == "127.0.0.1"
         set_cookie_headers = response.headers.getlist("set-cookie")
         assert any("access_token=access_tok" in header for header in set_cookie_headers)
         assert any("refresh_token=refresh_tok" in header for header in set_cookie_headers)
+        assert any("__Host-cvpn_device_id=opaque-device-cookie" in header for header in set_cookie_headers)
 
     @pytest.mark.unit
     async def test_complete_2fa_login_rejects_invalid_code(self):
