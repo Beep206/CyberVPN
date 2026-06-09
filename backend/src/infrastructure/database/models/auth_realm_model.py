@@ -12,6 +12,7 @@ from src.infrastructure.database.session import Base
 if TYPE_CHECKING:
     from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
     from src.infrastructure.database.models.storefront_model import StorefrontModel
+    from src.infrastructure.database.models.user_device_model import UserDeviceModel
 
 
 class AuthRealmModel(Base):
@@ -37,6 +38,10 @@ class AuthRealmModel(Base):
 
     storefronts: Mapped[list["StorefrontModel"]] = relationship(back_populates="auth_realm", lazy="raise")
     principal_sessions: Mapped[list["PrincipalSessionModel"]] = relationship(
+        back_populates="auth_realm",
+        lazy="raise",
+    )
+    user_devices: Mapped[list["UserDeviceModel"]] = relationship(
         back_populates="auth_realm",
         lazy="raise",
     )
