@@ -6,10 +6,9 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
-from src.config.settings import settings
+from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
-from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 
 
 class LoginUseCase:
@@ -30,13 +29,17 @@ class LoginUseCase:
         self._user_repo = user_repo
         self._auth_service = auth_service
         self._session = session
+        self._session_issuer = AuthSessionIssuer(auth_service=auth_service, session=session)
 
     async def execute(
         self,
         login_or_email: str,
         password: str,
         client_fingerprint: str | None = None,
+        client_device_key: str | None = None,
         client_ip: str | None = None,
+        client_ip_source: str | None = None,
+        proxy_peer: str | None = None,
         user_agent: str | None = None,
         auth_realm_id: UUID | None = None,
         auth_realm_key: str | None = None,
@@ -120,52 +123,29 @@ class LoginUseCase:
                 "is_first_username_only_login": is_first_username_only_login,
             }
 
-        # Create access and refresh tokens
-        # MED-003: Properly unpack token tuple (token, jti, expires_at)
-        access_token, access_jti, _access_expire = self._auth_service.create_access_token(
-            subject=str(user.id),
-            role=user.role,
-            audience=audience,
-            principal_type=principal_type,
-            realm_id=str(auth_realm_id) if auth_realm_id else None,
-            realm_key=auth_realm_key,
-            scope_family=scope_family,
-        )
-        # MED-002: Include client fingerprint in refresh token for device binding
-        refresh_token, _refresh_jti, refresh_expire = self._auth_service.create_refresh_token(
-            subject=str(user.id),
-            fingerprint=client_fingerprint,
-            audience=audience,
-            principal_type=principal_type,
-            realm_id=str(auth_realm_id) if auth_realm_id else None,
-            realm_key=auth_realm_key,
-            scope_family=scope_family,
-        )
-        await store_refresh_token(
-            self._session,
-            user_id=user.id,
-            refresh_token=refresh_token,
-            expires_at=refresh_expire,
-            device_id=client_fingerprint,
-            ip_address=client_ip,
-            user_agent=user_agent,
-            auth_realm_id=auth_realm_id,
-            principal_class=principal_type,
-            principal_subject=str(user.id),
-            audience=audience,
-            scope_family=scope_family,
-            access_token_jti=access_jti,
+        issued_session = await self._session_issuer.issue_auth_session(
+            AuthSessionIssueRequest(
+                user_id=user.id,
+                role=user.role,
+                device_key=client_device_key,
+                refresh_fingerprint=client_fingerprint,
+                ip_address=client_ip,
+                ip_source=client_ip_source,
+                proxy_peer=proxy_peer,
+                user_agent=user_agent,
+                auth_realm_id=auth_realm_id,
+                auth_realm_key=auth_realm_key,
+                audience=audience,
+                principal_class=principal_type,
+                principal_subject=str(user.id),
+                scope_family=scope_family,
+                platform="web",
+            )
         )
 
         return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-            "expires_in": settings.access_token_expire_minutes * 60,
+            **issued_session.as_token_dict(),
             "requires_2fa": False,
             "tfa_token": None,
             "is_first_username_only_login": is_first_username_only_login,
-            "auth_realm_id": str(auth_realm_id) if auth_realm_id else None,
-            "auth_realm_key": auth_realm_key,
-            "audience": audience,
         }

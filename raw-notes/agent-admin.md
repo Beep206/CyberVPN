@@ -1,5 +1,47 @@
 # Заметки ручного QA admin panel
 
+## CYBA-609 - admin security sessions browser QA после CYBA-604
+
+Дата: `2026-06-09`
+
+Область: scoped browser QA для [CYBA-609](/CYBA/issues/CYBA-609) / [CYBA-597](/CYBA/issues/CYBA-597): admin security sessions console после UI/backend alignment. Проверялись unauthorized direct URL, unique/current-device rendering, selected device revoke, logout-others и logout-all hard stop. Customer/partner surfaces и реальные finance/customer mutations не входили в этот heartbeat.
+
+Окружение:
+
+- Admin app: `http://127.0.0.1:9101`, локальный `Next.js` dev server из текущего checkout.
+- Paperclip execution workspace: `currentExecutionWorkspace=null`; Paperclip runtime service for issue отсутствовал.
+- Browser: Playwright Chromium headless, viewport `1440x1000`, locale `ru-RU`.
+- User role/state: anonymous for direct URL guard; synthetic dev admin via `DEV_BYPASS_AUTH=true` and `USER_ROLE=admin` for sessions console.
+- Data boundary: Playwright route stubs for `/api/v1/auth/*`; real backend sessions/cookies/tokens were not read or mutated.
+- No real credentials, cookies, storage state, JWTs, refresh tokens, passwords, `.env` values, payment data, production PII, Telegram `initData`, traces, videos, HAR files, or customer/payment records were stored.
+
+| Сценарий | Поток | Статус | Заметки |
+|---|---|---:|---|
+| `CYBA609-UNIT-001` | Targeted unit test `npm run test:run -- src/features/security/components/__tests__/security-sessions-console.test.tsx` | PASS | `1` file, `4` tests passed. |
+| `CYBA609-UNAUTH-001` | Fresh anonymous `/ru-RU/security/sessions`, stubbed `/api/v1/auth/session -> 401` | PASS | Redirected to `/ru-RU/login?redirect=%2Fru-RU%2Fsecurity%2Fsessions`; private console not exposed. |
+| `CYBA609-SESS-001` | Synthetic admin sessions page with `3` unique devices and duplicate backend `is_current=true` flags | PASS | Scoped table recheck: exactly one `Текущая` badge and one table `Текущее устройство` action chip. Metrics show `3` total, `2` remote, current IP `203.0.113.10`, limit `3/7`. |
+| `CYBA609-SESS-002` | `Завершить другие` dialog, double-click confirm | PASS | Stubbed `POST /api/v1/auth/devices/logout-others` called once; feedback showed `Завершено удалённых сессий: 2.` |
+| `CYBA609-SESS-003` | Selected remote `Завершить сессию`, double-click confirm | PASS | Stubbed `DELETE /api/v1/auth/devices/dev_second_flag_beta` called once; stable selected `device_id` was used. |
+| `CYBA609-SESS-004` | `Завершить все` hard stop, double-click confirm | PASS | Stubbed `POST /api/v1/auth/logout-all` called once; current console redirected to `/ru-RU/login`. |
+| `CYBA609-SESS-LAYOUT-001` | Desktop table action-column visibility | PRODUCT GAP | At `1440x1000`, table action buttons are outside initial viewport inside horizontal scroll container (`button left=1597.5`, viewport width `1440`). Functional flow still works, but discoverability is weak. |
+
+Доказательства:
+
+- Summary: `evidence/admin/cyba-609/notes/cyba-609-admin-sessions-browser-qa__20260609T190544Z.md`
+- Browser QA JSON: `evidence/admin/cyba-609/notes/cyba-609-admin-sessions-browser-qa__20260609T190544Z.json`
+- Scoped recheck JSON: `evidence/admin/cyba-609/notes/cyba-609-admin-sessions-scoped-recheck__20260609T190756Z.json`
+- Screenshots: `evidence/admin/cyba-609/screenshots/`
+
+Заметки:
+
+- First browser JSON has one broad text-count `failed` check; it is superseded by the scoped recheck because the broad locator counted the right-side current-device panel title in addition to the table chip.
+- Admin shell background analytics/action-queue requests produced expected local-dev noise (`403` analytics, `500 ECONNREFUSED 127.0.0.1:8000` for unrelated queues). No Playwright `pageerror` was captured.
+- No new functional bug was confirmed for scoped sessions behavior. One `P3 UX` product gap is tracked in `admin-findings.md`.
+
+Проверка sensitive data: PASS - text artifacts/screenshots contain only synthetic reserved IPs, synthetic device ids, local URLs and route-stub counts.
+
+Context7 docs checked: N/A - manual UI/business-flow QA and no source-code/config/library change in this heartbeat.
+
 ## CYBA-574 - admin panel manual/session recheck после CYBA-568
 
 Дата: `2026-06-06`

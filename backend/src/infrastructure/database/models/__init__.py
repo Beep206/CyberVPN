@@ -172,6 +172,7 @@ from src.infrastructure.database.models.support_ticket_model import (
     SupportTicketModel,
 )
 from src.infrastructure.database.models.system_config_model import SystemConfigModel
+from src.infrastructure.database.models.user_device_model import UserDeviceModel
 from src.infrastructure.database.models.wallet_model import WalletModel, WalletTransactionModel
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
 from src.infrastructure.database.models.withdrawal_request_model import WithdrawalRequestModel
@@ -306,6 +307,7 @@ __all__ = [
     "SupportTicketMessageModel",
     "SupportTicketModel",
     "SystemConfigModel",
+    "UserDeviceModel",
     "WalletModel",
     "WalletTransactionModel",
     "WebhookLog",

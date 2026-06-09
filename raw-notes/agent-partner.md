@@ -62,3 +62,95 @@ Context7 MCP проверен: quota exceeded. ctx7 fallback проверен: `
 - Local dev server started only for this smoke and stopped after evidence collection; `127.0.0.1:3002` no longer listening.
 
 Context7 MCP проверен: quota exceeded. ctx7 fallback проверен: `/microsoft/playwright` `page.goto`, route mocks, console capture, screenshot; `/amannn/next-intl` missing-message `IntlErrorCode.MISSING_MESSAGE`, `onError`, `getMessageFallback`.
+
+## CYBA-610 heartbeat snapshot
+
+- Issue: [CYBA-610](/CYBA/issues/CYBA-610)
+- Причина wake: `issue_blockers_resolved`; blocker [CYBA-604](/CYBA/issues/CYBA-604) был `done`.
+- Scope: partner security sessions browser QA для unique devices, current badge, selected-device revoke, `logout-others`, and realm-scoped `logout-all`.
+- Environment: local `partner` Next dev server `http://127.0.0.1:3002`, Chromium via Playwright, viewport `1440x1000`, locale `en-EN`.
+- User role/state: `partner_operator`, development bypass, synthetic safe device fixture.
+- Data safety: credentials, cookies, JWTs, refresh tokens, storageState, HAR, payment data, production PII и Telegram `initData` не сохранялись.
+- Targeted partner Vitest:
+  - `npm run test:run -- src/features/security/components/__tests__/security-sessions-console.test.tsx`
+  - Result: `1 passed`, `4 passed`.
+- Browser smoke result: `FAIL`.
+  - `GET /en-EN/security/sessions -> 404`.
+  - Route body rendered global not-found: `SIGNAL LOST / REQUESTED COORDINATES NOT FOUND IN NETWORK`.
+  - No `GET /api/v1/auth/devices` fired, `mutations=[]`, so selected-device revoke, `logout-others`, current badge, and `logout-all` browser behavior could not be exercised.
+- Route/source context:
+  - `SecuritySessionsConsole` is only wired through `partner/src/app/[locale]/(dashboard)/_legacy-admin-routes/security/sessions/page.tsx`.
+  - `/_legacy-admin-routes/security` is retired to `/settings`, and `/settings` only exposes a `reviewedActiveSessions` settings toggle rather than revoke/logout device controls.
+- Evidence:
+  - Summary: `evidence/partner/CYBA-610/playwright-security-sessions-summary.json`
+  - Log: `evidence/partner/CYBA-610/playwright-security-sessions.log`
+  - Screenshot: `evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__initial__fail__20260609.png`
+  - Targeted Vitest log: `evidence/partner/CYBA-610/targeted-vitest.log`
+  - Notes: `evidence/partner/CYBA-610/notes/cyba-610-partner-security-sessions.md`
+- Follow-up: [CYBA-619](/CYBA/issues/CYBA-619) assigned to Prism Admin Partner Frontend Engineer; [CYBA-610](/CYBA/issues/CYBA-610) remains blocked pending fix and retest.
+
+Context7 docs checked: MCP quota exceeded. ctx7 fallback checked `/microsoft/playwright` for route mocks/navigation/screenshot/response capture and `/vercel/next.js/v16.2.2` for App Router private folders; Next docs state underscore-prefixed folders opt the folder and all subfolders out of routing.
+
+## CYBA-610 post-CYBA-619 retest snapshot
+
+- Issue: [CYBA-610](/CYBA/issues/CYBA-610)
+- Wake reason: `issue_children_completed`; child [CYBA-619](/CYBA/issues/CYBA-619) was `done`.
+- Scope: retest partner security sessions after route fix.
+- Environment: local `partner` Next dev server `http://127.0.0.1:3002`, Chromium via Playwright, viewport `1440x1000`, locale `en-EN`.
+- User role/state: `partner_operator`, development bypass, synthetic safe device fixture.
+- Data safety: credentials, cookies, JWTs, refresh tokens, storageState, HAR, payment data, production PII и Telegram `initData` не сохранялись.
+- Route state after [CYBA-619](/CYBA/issues/CYBA-619):
+  - `GET /en-EN/security/sessions -> 200`.
+  - New focused route/unit tests passed.
+- Targeted partner Vitest rerun:
+  - `npm run test:run -- 'src/app/[locale]/(dashboard)/security/sessions/__tests__/page.test.tsx' src/features/security/components/__tests__/security-sessions-console.test.tsx`
+  - Result: `2 passed`, `6 passed`.
+- Browser smoke result: `BLOCKED/FAIL` due runtime hydration error.
+  - Final bounded run: `pageErrors=[Invalid or unexpected token]`, `pass=false`.
+  - Body remained around `AUTHENTICATING...`; device rows/actions were not reliably reachable.
+  - One earlier action run did execute the core mocked actions despite the same page error: current badge count `1`, remote logout buttons `2`, `DELETE /api/v1/auth/devices/dev_remote_android` once, `POST /api/v1/auth/devices/logout-others` once, `POST /api/v1/auth/logout-all` once, login redirect `true`.
+  - Because the same browser runtime error can block initial hydration, stable QA signoff is not possible yet.
+- Evidence:
+  - Canonical failed summary: `evidence/partner/CYBA-610/playwright-security-sessions-summary.json`
+  - Final failed log: `evidence/partner/CYBA-610/playwright-security-sessions-rerun-after-CYBA-619-final-second.log`
+  - Partial action log: `evidence/partner/CYBA-610/playwright-security-sessions-rerun-after-CYBA-619-final.log`
+  - Runtime probe log: `evidence/partner/CYBA-610/runtime-error-probe-after-CYBA-619-second.log`
+  - Targeted Vitest log: `evidence/partner/CYBA-610/targeted-vitest-rerun-after-CYBA-619.log`
+  - Screenshots: `evidence/partner/CYBA-610/screenshots/`
+- Follow-up: [CYBA-621](/CYBA/issues/CYBA-621) assigned to Prism Admin Partner Frontend Engineer; [CYBA-610](/CYBA/issues/CYBA-610) remains blocked pending stable hydration fix and retest.
+
+Context7 docs checked: MCP quota exceeded. ctx7 fallback from this QA packet remains `/microsoft/playwright` for route mocks/navigation/screenshot/response capture and `/vercel/next.js/v16.2.2` for App Router route behavior.
+
+## CYBA-610 post-CYBA-621 final retest snapshot
+
+- Issue: [CYBA-610](/CYBA/issues/CYBA-610)
+- Wake reason: `issue_children_completed`; child [CYBA-621](/CYBA/issues/CYBA-621) was `done`.
+- Scope: final partner security sessions browser retest after route and hydration fixes.
+- Environment: local `partner` Next dev server `http://127.0.0.1:3002`, Chromium via Playwright, viewport `1440x1000`, locale `en-EN`.
+- User role/state: `partner_operator`, development bypass, synthetic safe device fixture.
+- Data safety: credentials, cookies, JWTs, refresh tokens, storageState, HAR, payment data, production PII и Telegram `initData` не сохранялись.
+- Route status:
+  - `HEAD /en-EN/security/sessions -> 200`
+  - `HEAD /en-EN/login -> 200`
+- Targeted partner Vitest rerun:
+  - `npm run test:run -- 'src/app/[locale]/(dashboard)/security/sessions/__tests__/page.test.tsx' src/features/security/components/__tests__/security-sessions-console.test.tsx`
+  - Result: `2 passed`, `6 passed`.
+- Browser smoke final result: `PASS`.
+  - Summary `pass=true`.
+  - `pageErrors=[]`.
+  - `failedResponses=[]`.
+  - Initial render: current badge count `1`, remote logout buttons `2`, expected device labels/IPs present, device limit `3/5`.
+  - Selected-device revoke: `DELETE /api/v1/auth/devices/dev_remote_android` once; selected remote IP absent afterward; other remote IP still present.
+  - `logout-others`: `POST /api/v1/auth/devices/logout-others` once; remaining remote IP absent; current device still present.
+  - `logout-all`: `POST /api/v1/auth/logout-all` once; redirected to `/en-EN/login`.
+- Evidence:
+  - Summary: `evidence/partner/CYBA-610/playwright-security-sessions-summary.json`
+  - Final log: `evidence/partner/CYBA-610/playwright-security-sessions-rerun-after-CYBA-621-final.log`
+  - Targeted Vitest log: `evidence/partner/CYBA-610/targeted-vitest-rerun-after-CYBA-621.log`
+  - Screenshots:
+    - `evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__initial__pass__20260609.png`
+    - `evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__after-revoke-device__pass__20260609.png`
+    - `evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__after-logout-others__pass__20260609.png`
+    - `evidence/partner/CYBA-610/screenshots/CYBA-610__partner-security-sessions__safe-fixture__en-EN__desktop-1440__after-logout-all__pass__20260609.png`
+
+Context7 docs checked: MCP quota exceeded. ctx7 fallback evidence remains `/microsoft/playwright` for route mocks/navigation/screenshot/response capture and `/vercel/next.js/v16.2.2` for App Router route behavior. No external docs were newly required for this pure retest.

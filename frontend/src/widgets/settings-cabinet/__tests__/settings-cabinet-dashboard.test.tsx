@@ -19,6 +19,7 @@ const apiMocks = vi.hoisted(() => ({
   listDevices: vi.fn(),
   listPasskeys: vi.fn(),
   logoutDevice: vi.fn(),
+  logoutOtherDevices: vi.fn(),
   mapPasskeyErrorMessageKey: vi.fn(),
   markPerformance: vi.fn(),
   registerPasskey: vi.fn(),
@@ -115,6 +116,7 @@ vi.mock('@/lib/api', () => ({
   authApi: {
     listDevices: apiMocks.listDevices,
     logoutDevice: apiMocks.logoutDevice,
+    logoutOtherDevices: apiMocks.logoutOtherDevices,
     me: apiMocks.authMe,
   },
   entitlementsApi: {
@@ -212,6 +214,9 @@ const devices = {
     },
   ],
   total: 2,
+  total_devices: 2,
+  device_limit: 3,
+  remaining_devices: 1,
 };
 
 const entitlement = {
@@ -325,6 +330,9 @@ describe('SettingsCabinetDashboard', () => {
       },
     }));
     apiMocks.logoutDevice.mockResolvedValue({ data: { device_id: 'device-remote', message: 'ok' } });
+    apiMocks.logoutOtherDevices.mockResolvedValue({
+      data: { message: 'Other device sessions terminated', sessions_revoked: 1 },
+    });
   });
 
   it('renders backend profile, security, notification, identity, and device state', async () => {
@@ -344,6 +352,49 @@ describe('SettingsCabinetDashboard', () => {
       'href',
       '/subscriptions',
     );
+  });
+
+  it('uses backend-owned device totals and limit before entitlement fallbacks', async () => {
+    apiMocks.listDevices.mockResolvedValueOnce({
+      data: {
+        ...devices,
+        device_limit: 5,
+        remaining_devices: 1,
+        total_devices: 4,
+      },
+    });
+    apiMocks.getCurrentEntitlement.mockResolvedValueOnce({
+      data: {
+        ...entitlement,
+        effective_entitlements: {
+          device_limit: 9,
+        },
+      },
+    });
+
+    renderDashboard();
+
+    expect(await screen.findByText('devices.limitUsed {"limit":5,"used":4}')).toBeInTheDocument();
+    expect(screen.getByText('devices.limitHelp.near_limit {"count":1,"remaining":1}')).toBeInTheDocument();
+    expect(
+      screen.getByText('summary.devices').closest('article'),
+    ).toHaveTextContent('4/5');
+  });
+
+  it('renders a single current device badge when duplicate rows are flagged current', async () => {
+    apiMocks.listDevices.mockResolvedValueOnce({
+      data: {
+        ...devices,
+        devices: devices.devices.map((device) => ({
+          ...device,
+          is_current: true,
+        })),
+      },
+    });
+
+    renderDashboard();
+
+    expect(await screen.findAllByText('devices.current')).toHaveLength(1);
   });
 
   it('updates profile fields and records a performance mark', async () => {
@@ -528,8 +579,9 @@ describe('SettingsCabinetDashboard', () => {
     await user.click(screen.getByRole('button', { name: 'devices.revokeOthers' }));
 
     await waitFor(() => {
-      expect(apiMocks.logoutDevice).toHaveBeenCalledWith('device-remote');
+      expect(apiMocks.logoutOtherDevices).toHaveBeenCalledTimes(1);
     });
+    expect(apiMocks.logoutDevice).not.toHaveBeenCalled();
     expect(apiMocks.markPerformance).toHaveBeenCalledWith(
       'settings-device-revoke',
       expect.objectContaining({ count: 1, scope: 'others' }),
@@ -539,7 +591,7 @@ describe('SettingsCabinetDashboard', () => {
 
   it('shows failure feedback when bulk device revocation fails', async () => {
     const user = setupUser();
-    apiMocks.logoutDevice.mockRejectedValueOnce(new Error('bulk revoke failed'));
+    apiMocks.logoutOtherDevices.mockRejectedValueOnce(new Error('bulk revoke failed'));
 
     renderDashboard();
 
@@ -559,6 +611,13 @@ describe('SettingsCabinetDashboard', () => {
   });
 
   it('keeps device actions usable when the plan device limit is unavailable', async () => {
+    apiMocks.listDevices.mockResolvedValueOnce({
+      data: {
+        ...devices,
+        device_limit: null,
+        remaining_devices: null,
+      },
+    });
     apiMocks.getCurrentEntitlement.mockResolvedValueOnce({
       data: {
         ...entitlement,

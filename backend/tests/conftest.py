@@ -21,6 +21,7 @@ TEST_ENV_DEFAULTS = {
     "CRYPTOBOT_TOKEN": "pytest-cryptobot-token",
     "CORS_ORIGINS": "http://localhost:3000",
     "ENABLE_METRICS": "true",
+    "CYBERVPN_DEVICE_COOKIE_PEPPER": "pytest-device-cookie-pepper",
 }
 
 for env_key, env_value in TEST_ENV_DEFAULTS.items():
@@ -132,20 +133,12 @@ def ensure_repo_schema(test_settings) -> None:
         try:
             async with schema_engine.begin() as conn:
                 existing_tables = set(
-                    (
-                        await conn.execute(
-                            text(
-                                "select tablename from pg_tables where schemaname = 'public'"
-                            )
-                        )
-                    )
+                    (await conn.execute(text("select tablename from pg_tables where schemaname = 'public'")))
                     .scalars()
                     .all()
                 )
 
-                missing_tables_exist = any(
-                    table_name not in existing_tables for table_name in Base.metadata.tables
-                )
+                missing_tables_exist = any(table_name not in existing_tables for table_name in Base.metadata.tables)
                 if missing_tables_exist:
                     await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, checkfirst=True))
 
@@ -189,9 +182,7 @@ def ensure_repo_schema(test_settings) -> None:
                         )
                     )
                     if totp_secret_length is not None and int(totp_secret_length) < 255:
-                        await conn.execute(
-                            text("alter table admin_users alter column totp_secret type varchar(255)")
-                        )
+                        await conn.execute(text("alter table admin_users alter column totp_secret type varchar(255)"))
 
                 mobile_users_exists = "mobile_users" in existing_tables
                 if mobile_users_exists:
@@ -259,10 +250,205 @@ def ensure_repo_schema(test_settings) -> None:
                         await conn.execute(text("alter table mobile_users add column totp_secret varchar(255)"))
                     if "totp_enabled" not in mobile_user_columns:
                         await conn.execute(
-                            text(
-                                "alter table mobile_users add column totp_enabled boolean not null default false"
-                            )
+                            text("alter table mobile_users add column totp_enabled boolean not null default false")
                         )
+
+                refresh_tokens_exists = "refresh_tokens" in existing_tables
+                if refresh_tokens_exists:
+                    refresh_token_columns = {
+                        row[0]
+                        for row in (
+                            await conn.execute(
+                                text(
+                                    """
+                                    select column_name
+                                    from information_schema.columns
+                                    where table_schema = 'public'
+                                      and table_name = 'refresh_tokens'
+                                    """
+                                )
+                            )
+                        ).all()
+                    }
+                    await conn.execute(
+                        text(
+                            "alter table refresh_tokens drop constraint if exists fk_refresh_tokens_user_id_admin_users"
+                        )
+                    )
+                    if "auth_realm_id" not in refresh_token_columns:
+                        await conn.execute(text("alter table refresh_tokens add column auth_realm_id uuid"))
+                    if "principal_class" not in refresh_token_columns:
+                        await conn.execute(text("alter table refresh_tokens add column principal_class varchar(32)"))
+                    if "principal_subject" not in refresh_token_columns:
+                        await conn.execute(text("alter table refresh_tokens add column principal_subject varchar(255)"))
+                    if "audience" not in refresh_token_columns:
+                        await conn.execute(text("alter table refresh_tokens add column audience varchar(120)"))
+                    if "scope_family" not in refresh_token_columns:
+                        await conn.execute(text("alter table refresh_tokens add column scope_family varchar(50)"))
+
+                    await conn.execute(
+                        text(
+                            """
+                            insert into auth_realms (
+                                id,
+                                realm_key,
+                                realm_type,
+                                display_name,
+                                audience,
+                                cookie_namespace,
+                                status,
+                                is_default,
+                                created_at,
+                                updated_at
+                            )
+                            values (
+                                '2acd89fc-8e1d-5e93-9aa9-04e60428001a',
+                                'admin',
+                                'admin',
+                                'Admin Realm',
+                                'cybervpn:admin',
+                                'admin',
+                                'active',
+                                true,
+                                now(),
+                                now()
+                            )
+                            on conflict (realm_key) do nothing
+                            """
+                        )
+                    )
+                    await conn.execute(
+                        text(
+                            """
+                            update refresh_tokens rt
+                            set
+                                auth_realm_id = coalesce(ar.id, default_ar.id),
+                                principal_class = coalesce(rt.principal_class, 'admin'),
+                                principal_subject = coalesce(rt.principal_subject, rt.user_id::text),
+                                audience = coalesce(rt.audience, ar.audience, default_ar.audience),
+                                scope_family = coalesce(rt.scope_family, ar.realm_type, default_ar.realm_type)
+                            from admin_users au
+                            join auth_realms default_ar
+                              on default_ar.realm_key = 'admin'
+                            left join auth_realms ar
+                              on ar.id = au.auth_realm_id
+                            where rt.user_id = au.id
+                            """
+                        )
+                    )
+                    await conn.execute(
+                        text(
+                            """
+                            update refresh_tokens rt
+                            set
+                                auth_realm_id = coalesce(rt.auth_realm_id, ar.id),
+                                principal_class = coalesce(rt.principal_class, 'admin'),
+                                principal_subject = coalesce(rt.principal_subject, rt.user_id::text),
+                                audience = coalesce(rt.audience, ar.audience),
+                                scope_family = coalesce(rt.scope_family, ar.realm_type)
+                            from auth_realms ar
+                            where ar.realm_key = 'admin'
+                              and (
+                                rt.auth_realm_id is null
+                                or rt.principal_class is null
+                                or rt.principal_subject is null
+                                or rt.audience is null
+                                or rt.scope_family is null
+                              )
+                            """
+                        )
+                    )
+                    await conn.execute(text("alter table refresh_tokens alter column auth_realm_id set not null"))
+                    await conn.execute(text("alter table refresh_tokens alter column principal_class set not null"))
+                    await conn.execute(text("alter table refresh_tokens alter column principal_subject set not null"))
+                    await conn.execute(text("alter table refresh_tokens alter column audience set not null"))
+                    await conn.execute(text("alter table refresh_tokens alter column scope_family set not null"))
+                    await conn.execute(
+                        text(
+                            "create index if not exists ix_refresh_tokens_auth_realm_id "
+                            "on refresh_tokens (auth_realm_id)"
+                        )
+                    )
+                    await conn.execute(
+                        text(
+                            "create index if not exists ix_refresh_tokens_principal_class "
+                            "on refresh_tokens (principal_class)"
+                        )
+                    )
+                    await conn.execute(
+                        text(
+                            "create index if not exists ix_refresh_tokens_principal_subject "
+                            "on refresh_tokens (principal_subject)"
+                        )
+                    )
+                    await conn.execute(
+                        text("create index if not exists ix_refresh_tokens_audience on refresh_tokens (audience)")
+                    )
+                    await conn.execute(
+                        text(
+                            "create index if not exists ix_refresh_tokens_scope_family on refresh_tokens (scope_family)"
+                        )
+                    )
+                    await conn.execute(
+                        text(
+                            "create index if not exists ix_refresh_tokens_principal_owner "
+                            "on refresh_tokens (principal_class, principal_subject, auth_realm_id)"
+                        )
+                    )
+                    await conn.execute(
+                        text(
+                            """
+                            do $$
+                            begin
+                                if not exists (
+                                    select 1
+                                    from pg_constraint
+                                    where conname = 'ck_refresh_tokens_principal_class'
+                                ) then
+                                    alter table refresh_tokens
+                                    add constraint ck_refresh_tokens_principal_class
+                                    check (principal_class in ('admin', 'partner_operator', 'customer'));
+                                end if;
+                                if not exists (
+                                    select 1
+                                    from pg_constraint
+                                    where conname = 'ck_refresh_tokens_principal_subject_nonempty'
+                                ) then
+                                    alter table refresh_tokens
+                                    add constraint ck_refresh_tokens_principal_subject_nonempty
+                                    check (principal_subject <> '');
+                                end if;
+                                if not exists (
+                                    select 1
+                                    from pg_constraint
+                                    where conname = 'ck_refresh_tokens_audience_nonempty'
+                                ) then
+                                    alter table refresh_tokens
+                                    add constraint ck_refresh_tokens_audience_nonempty
+                                    check (audience <> '');
+                                end if;
+                                if not exists (
+                                    select 1
+                                    from pg_constraint
+                                    where conname = 'ck_refresh_tokens_scope_family_nonempty'
+                                ) then
+                                    alter table refresh_tokens
+                                    add constraint ck_refresh_tokens_scope_family_nonempty
+                                    check (scope_family <> '');
+                                end if;
+                                if not exists (
+                                    select 1
+                                    from pg_constraint
+                                    where conname = 'fk_refresh_tokens_auth_realm_id'
+                                ) then
+                                    alter table refresh_tokens
+                                    add constraint fk_refresh_tokens_auth_realm_id
+                                    foreign key (auth_realm_id) references auth_realms(id) on delete cascade;
+                                end if;
+                            end $$;
+                            """
+                        )
+                    )
 
                 subscription_plans_exists = "subscription_plans" in existing_tables
                 if subscription_plans_exists:
@@ -430,9 +616,7 @@ def ensure_repo_schema(test_settings) -> None:
                         ).all()
                     }
                     if "raw_code_encrypted" not in growth_code_issuance_columns:
-                        await conn.execute(
-                            text("alter table growth_code_issuances add column raw_code_encrypted text")
-                        )
+                        await conn.execute(text("alter table growth_code_issuances add column raw_code_encrypted text"))
         finally:
             await schema_engine.dispose()
 

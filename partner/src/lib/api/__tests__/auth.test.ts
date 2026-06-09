@@ -455,15 +455,17 @@ describe('authApi.deleteAccount', () => {
 // ===========================================================================
 
 describe('authApi.refresh', () => {
-  it('test_refresh_success_returns_new_tokens', async () => {
+  it('test_refresh_success_returns_cookie_session_response', async () => {
     // Act
     const response = await authApi.refresh();
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data.access_token).toBe('mock_refreshed_access_token');
-    expect(response.data.refresh_token).toBe('mock_refreshed_refresh_token');
-    expect(response.data.token_type).toBe('bearer');
+    expect(response.data).not.toHaveProperty('access_token');
+    expect(response.data).not.toHaveProperty('refresh_token');
+    expect(response.data).not.toHaveProperty('token_type');
+    expect(response.data).not.toHaveProperty('expires_in');
+    expect(response.data.auth_realm_key).toBe('customer');
   });
 
   it('test_refresh_expired_token_rejects', async () => {

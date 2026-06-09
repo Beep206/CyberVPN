@@ -9,19 +9,18 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.application.dto.mobile_auth import (
     AuthResponseDTO,
     LoginRequestDTO,
     SubscriptionInfoDTO,
     SubscriptionStatus,
-    TokenResponseDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.services.mobile_session import MobileSessionService
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
-from src.config.settings import settings
-from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.exceptions import InvalidCredentialsError
-from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
     MobileUserRepository,
@@ -43,6 +42,8 @@ class MobileLoginUseCase:
     device_repo: MobileDeviceRepository
     auth_service: AuthService
     subscription_client: CachedSubscriptionClient | None = None
+    session: AsyncSession | None = None
+    mobile_session_service: MobileSessionService | None = None
 
     async def execute(self, request: LoginRequestDTO) -> AuthResponseDTO:
         """Authenticate a mobile user.
@@ -62,7 +63,7 @@ class MobileLoginUseCase:
             raise InvalidCredentialsError()
 
         # Verify password
-        is_valid = await self.auth_service.verify_password(request.password, user.password_hash)
+        is_valid = await self.auth_service.verify_password_async(request.password, user.password_hash)
         if not is_valid:
             raise InvalidCredentialsError()
 
@@ -70,70 +71,14 @@ class MobileLoginUseCase:
         if not user.is_active:
             raise InvalidCredentialsError()
 
-        # Update or create device registration
-        device = await self.device_repo.get_by_device_id_and_user(
-            device_id=request.device.device_id,
-            user_id=user.id,
-        )
-
-        if device:
-            # Update existing device
-            device.platform = request.device.platform.value
-            device.platform_id = request.device.platform_id
-            device.os_version = request.device.os_version
-            device.app_version = request.device.app_version
-            device.device_model = request.device.device_model
-            device.push_token = request.device.push_token
-            device.last_active_at = datetime.now(UTC)
-            await self.device_repo.update(device)
-        else:
-            # Register new device
-            device = MobileDeviceModel(
-                device_id=request.device.device_id,
-                platform=request.device.platform.value,
-                platform_id=request.device.platform_id,
-                os_version=request.device.os_version,
-                app_version=request.device.app_version,
-                device_model=request.device.device_model,
-                push_token=request.device.push_token,
-                user_id=user.id,
-                last_active_at=datetime.now(UTC),
-            )
-            await self.device_repo.create(device)
-
         # Update last login timestamp
         user.last_login_at = datetime.now(UTC)
         await self.user_repo.update(user)
 
-        # Generate tokens
-        customer_realm = DEFAULT_AUTH_REALMS["customer"]
-        # MED-003: Properly unpack token tuple (token, jti, expires_at)
-        access_token, _access_jti, _access_expire = self.auth_service.create_access_token(
-            subject=str(user.id),
-            role="mobile_user",
-            extra={"device_id": request.device.device_id},
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
-        )
-
-        # Create refresh token with extended TTL if remember_me
-        refresh_token = self._create_refresh_token(
-            subject=str(user.id),
+        tokens = await self._mobile_sessions().issue_session(
+            user=user,
+            device=request.device,
             remember_me=request.remember_me,
-        )
-
-        # Calculate expires_in based on settings
-        expires_in = settings.access_token_expire_minutes * 60
-
-        # Build response
-        tokens = TokenResponseDTO(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="Bearer",
-            expires_in=expires_in,
         )
 
         # Fetch subscription from Remnawave (cached, with fallback to NONE).
@@ -150,25 +95,14 @@ class MobileLoginUseCase:
             is_new_user=False,
         )
 
-    def _create_refresh_token(self, subject: str, remember_me: bool) -> str:
-        """Create refresh token with optional extended TTL.
-
-        Args:
-            subject: User ID string.
-            remember_me: If True, use 30-day TTL; otherwise, use standard 7-day TTL.
-
-        Returns:
-            JWT refresh token string.
-        """
-        # MED-003: Properly unpack token tuple (token, jti, expires_at)
-        customer_realm = DEFAULT_AUTH_REALMS["customer"]
-        token, _jti, _expire = self.auth_service.create_refresh_token(
-            subject,
-            remember_me=remember_me,
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(stable_auth_realm_id(str(customer_realm["realm_key"]))),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
+    def _mobile_sessions(self) -> MobileSessionService:
+        if self.mobile_session_service is not None:
+            return self.mobile_session_service
+        if self.session is None:
+            raise RuntimeError("MobileLoginUseCase requires session-backed mobile sessions")
+        return MobileSessionService(
+            session=self.session,
+            auth_service=self.auth_service,
+            user_repo=self.user_repo,
+            device_repo=self.device_repo,
         )
-        return token

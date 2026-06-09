@@ -78,9 +78,7 @@ class TestCompleteAuthFlow:
             user_id = register_response["id"]
 
             # Get user from database to find OTP
-            user_result = await db.execute(
-                select(AdminUserModel).where(AdminUserModel.email == register_data["email"])
-            )
+            user_result = await db.execute(select(AdminUserModel).where(AdminUserModel.email == register_data["email"]))
             user = user_result.scalar_one()
 
             # Get OTP code from database (simulate receiving email)
@@ -135,10 +133,19 @@ class TestCompleteAuthFlow:
             )
             assert refresh_response.status_code == 200
             refresh_data = refresh_response.json()
-            assert "access_token" in refresh_data
-            assert "refresh_token" in refresh_data
+            assert "access_token" not in refresh_data
+            assert "refresh_token" not in refresh_data
+            assert "token_type" not in refresh_data
+            assert "expires_in" not in refresh_data
 
-            new_access_token = refresh_data["access_token"]
+            new_access_token = refresh_response.cookies.get("access_token") or refresh_response.cookies.get(
+                "customer_access_token"
+            )
+            new_refresh_token = refresh_response.cookies.get("refresh_token") or refresh_response.cookies.get(
+                "customer_refresh_token"
+            )
+            assert new_access_token
+            assert new_refresh_token
 
             # Verify new access token works
             me_response_2 = await async_client.get(
@@ -150,14 +157,14 @@ class TestCompleteAuthFlow:
             # Step 5: Logout
             logout_response = await async_client.post(
                 "/api/v1/auth/logout",
-                json={"refresh_token": refresh_data["refresh_token"]},
+                json={"refresh_token": new_refresh_token},
             )
             assert logout_response.status_code == 204
 
             # Verify refresh token is invalidated
             logout_refresh_response = await async_client.post(
                 "/api/v1/auth/refresh",
-                json={"refresh_token": refresh_data["refresh_token"]},
+                json={"refresh_token": new_refresh_token},
             )
             assert logout_refresh_response.status_code == 401
 
@@ -187,9 +194,7 @@ class TestCompleteAuthFlow:
                     await async_client.post("/api/v1/auth/register", json=register_data)
 
             # Get user and OTP
-            user_result = await db.execute(
-                select(AdminUserModel).where(AdminUserModel.email == register_data["email"])
-            )
+            user_result = await db.execute(select(AdminUserModel).where(AdminUserModel.email == register_data["email"]))
             user = user_result.scalar_one()
 
             otp_result = await db.execute(
@@ -436,6 +441,7 @@ class TestPasswordResetFlow:
         user_email = f"resettest{secrets.token_hex(4)}@example.com"
 
         from src.application.services.auth_service import AuthService
+
         auth_service = AuthService()
         password_hash = await auth_service.hash_password(old_password)
 
@@ -465,9 +471,7 @@ class TestPasswordResetFlow:
             assert "password reset code" in forgot_response.json()["message"]
 
         # Get OTP from database
-        user_result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.email == user_email)
-        )
+        user_result = await db.execute(select(AdminUserModel).where(AdminUserModel.email == user_email))
         user_record = user_result.scalar_one()
 
         otp_result = await db.execute(
@@ -585,6 +589,7 @@ class TestBruteForceProtection:
         correct_password = "CorrectP@ssw0rd123!"
 
         from src.application.services.auth_service import AuthService
+
         auth_service = AuthService()
         password_hash = await auth_service.hash_password(correct_password)
 
@@ -635,6 +640,7 @@ class TestBruteForceProtection:
         correct_password = "CorrectP@ssw0rd123!"
 
         from src.application.services.auth_service import AuthService
+
         auth_service = AuthService()
         password_hash = await auth_service.hash_password(correct_password)
 
@@ -704,6 +710,7 @@ class TestBruteForceProtection:
         password = "TestP@ssw0rd123!"
 
         from src.application.services.auth_service import AuthService
+
         auth_service = AuthService()
         password_hash = await auth_service.hash_password(password)
 
@@ -824,6 +831,7 @@ class TestLogoutAllDevices:
         password = "TestP@ssw0rd123!"
 
         from src.application.services.auth_service import AuthService
+
         auth_service = AuthService()
         password_hash = await auth_service.hash_password(password)
 

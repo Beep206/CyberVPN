@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.audit_log_model import AuditLog
+from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.middleware.request_id import get_request_id
 from src.shared.logging.sanitization import REDACTED, sanitize_email, sanitize_username
 
@@ -90,6 +91,7 @@ async def write_required_admin_audit_entry(
     details: Mapping[str, Any] | None = None,
     old_value: Mapping[str, Any] | None = None,
 ) -> AuditLog:
+    client_ip = resolve_client_ip(request)
     audit_entry = AuditLog(
         admin_id=actor.id,
         action=action,
@@ -97,7 +99,7 @@ async def write_required_admin_audit_entry(
         entity_id=str(resource_id) if resource_id is not None else None,
         old_value=build_admin_audit_details(old_value),
         new_value=build_admin_audit_details(details),
-        ip_address=request.client.host if request.client else None,
+        ip_address=client_ip.ip,
         user_agent=request.headers.get("user-agent"),
     )
     db.add(audit_entry)

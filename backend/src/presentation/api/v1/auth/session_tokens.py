@@ -29,8 +29,19 @@ async def store_refresh_token(
     access_token_jti: str | None = None,
 ) -> None:
     """Persist a refresh token so rotation/revocation and session metrics work."""
+    if auth_realm_id is None or audience is None:
+        raise ValueError("auth_realm_id and audience are required to persist refresh tokens")
+
+    owner_class = principal_class or "admin"
+    owner_subject = principal_subject or str(user_id)
+    owner_scope_family = scope_family or owner_class
     refresh_token_record = RefreshToken(
         user_id=user_id,
+        auth_realm_id=auth_realm_id,
+        principal_class=owner_class,
+        principal_subject=owner_subject,
+        audience=audience,
+        scope_family=owner_scope_family,
         token_hash=sha256(refresh_token.encode()).hexdigest(),
         expires_at=expires_at,
         device_id=device_id,
@@ -50,6 +61,7 @@ async def store_refresh_token(
                 scope_family=scope_family,
                 access_token_jti=access_token_jti,
                 refresh_token_id=refresh_token_record.id,
+                current_refresh_token_id=refresh_token_record.id,
                 expires_at=expires_at,
             )
         )

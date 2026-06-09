@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
 from src.application.services.pending_totp_service import PendingTOTPService
 from src.application.services.reauth_service import ReauthenticationRequired, ReauthService
 from src.application.use_cases.auth.two_factor import TwoFactorUseCase
@@ -32,15 +33,19 @@ from src.infrastructure.monitoring.instrumentation.partner_runtime import (
 )
 from src.infrastructure.monitoring.instrumentation.routes import track_2fa_operation
 from src.infrastructure.totp.totp_service import TOTPService
-from src.presentation.api.v1.auth.cookies import set_auth_cookies
+from src.presentation.api.v1.auth.cookies import (
+    get_or_create_web_device_cookie_value,
+    set_auth_cookies,
+    set_web_device_cookie,
+)
 from src.presentation.api.v1.auth.realm_context import (
     get_principal_type_for_realm,
     get_scope_family_for_realm,
 )
 from src.presentation.api.v1.auth.schemas import TokenResponse
-from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 from src.presentation.dependencies.auth import get_current_active_web_user, get_current_pending_2fa_user
 from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
+from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 from src.shared.security.fingerprint import generate_client_fingerprint
@@ -320,51 +325,44 @@ async def complete_2fa_login(
 
     principal_type = get_principal_type_for_realm(current_realm)
     scope_family = get_scope_family_for_realm(current_realm)
-    fingerprint = generate_client_fingerprint(http_request)
-
-    access_token, access_jti, access_exp = auth_service.create_access_token(
-        subject=str(user.id),
-        role=user.role if isinstance(user.role, str) else user.role.value,
-        audience=current_realm.audience,
-        principal_type=principal_type,
-        realm_id=str(current_realm.auth_realm.id),
-        realm_key=current_realm.realm_key,
-        scope_family=scope_family,
-    )
-    refresh_token, _, refresh_exp = auth_service.create_refresh_token(
-        subject=str(user.id),
-        fingerprint=fingerprint,
-        audience=current_realm.audience,
-        principal_type=principal_type,
-        realm_id=str(current_realm.auth_realm.id),
-        realm_key=current_realm.realm_key,
-        scope_family=scope_family,
-    )
-    await store_refresh_token(
-        db,
-        user_id=user.id,
-        refresh_token=refresh_token,
-        expires_at=refresh_exp,
-        device_id=fingerprint,
-        ip_address=http_request.client.host if http_request.client else None,
-        user_agent=http_request.headers.get("User-Agent"),
-        auth_realm_id=current_realm.auth_realm.id,
-        principal_class=principal_type,
-        principal_subject=str(user.id),
-        audience=current_realm.audience,
-        scope_family=scope_family,
-        access_token_jti=access_jti,
+    client_ip = resolve_client_ip(http_request)
+    device_key, set_device_cookie = get_or_create_web_device_cookie_value(http_request.cookies)
+    issued_session = await AuthSessionIssuer(auth_service=auth_service, session=db).issue_auth_session(
+        AuthSessionIssueRequest(
+            user_id=user.id,
+            role=user.role if isinstance(user.role, str) else user.role.value,
+            device_key=device_key,
+            refresh_fingerprint=generate_client_fingerprint(http_request),
+            ip_address=client_ip.ip,
+            ip_source=client_ip.ip_source,
+            proxy_peer=client_ip.proxy_peer,
+            user_agent=http_request.headers.get("User-Agent"),
+            auth_realm_id=current_realm.auth_realm.id,
+            auth_realm_key=current_realm.realm_key,
+            audience=current_realm.audience,
+            principal_class=principal_type,
+            principal_subject=str(user.id),
+            scope_family=scope_family,
+            platform="web",
+        )
     )
     user.last_login_at = datetime.now(UTC)
     await db.flush()
 
     set_auth_cookies(
         response,
-        access_token,
-        refresh_token,
+        issued_session.access_token,
+        issued_session.refresh_token,
         request=http_request,
         cookie_namespace=current_realm.cookie_namespace,
     )
+    if set_device_cookie:
+        set_web_device_cookie(
+            response,
+            device_key,
+            request=http_request,
+            cookie_namespace=current_realm.cookie_namespace,
+        )
     track_2fa_operation(operation="complete_login", success=True)
     observe_partner_mfa_challenge(result="completed", reason="login_completed")
     bind_partner_context_from_realm(
@@ -376,10 +374,10 @@ async def complete_2fa_login(
     log_partner_runtime_event("partner_auth.mfa_verification_succeeded")
 
     return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
+        access_token=issued_session.access_token,
+        refresh_token=issued_session.refresh_token,
         token_type=BEARER_SCHEME,
-        expires_in=int((access_exp - datetime.now(UTC)).total_seconds()),
+        expires_in=issued_session.expires_in,
         auth_realm_id=current_realm.auth_realm.id,
         auth_realm_key=current_realm.realm_key,
         audience=current_realm.audience,

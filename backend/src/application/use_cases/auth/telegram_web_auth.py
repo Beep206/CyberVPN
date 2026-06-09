@@ -8,11 +8,12 @@ import base64
 import json
 import logging
 import secrets
-from datetime import UTC, datetime
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.services.telegram_auth import (
     InvalidTelegramAuthError,
@@ -66,8 +67,24 @@ class TelegramWebAuthUseCase:
         self._telegram_service = telegram_service
         self._remnawave_gateway = remnawave_gateway
         self._allow_new_users = allow_new_users
+        self._session_issuer = AuthSessionIssuer(auth_service=auth_service, session=session)
 
-    async def execute(self, payload: dict) -> TelegramWebLoginResult:
+    async def execute(
+        self,
+        payload: dict,
+        *,
+        client_fingerprint: str | None = None,
+        client_device_key: str | None = None,
+        client_ip: str | None = None,
+        client_ip_source: str | None = None,
+        proxy_peer: str | None = None,
+        user_agent: str | None = None,
+        auth_realm_id: UUID | None = None,
+        auth_realm_key: str | None = None,
+        audience: str | None = None,
+        principal_type: str = "admin",
+        scope_family: str = "admin",
+    ) -> TelegramWebLoginResult:
         """Validate Telegram hash, extract user, auto-login or auto-register.
 
         Args:
@@ -115,6 +132,7 @@ class TelegramWebAuthUseCase:
             user = AdminUserModel(
                 login=login,
                 telegram_id=telegram_id,
+                auth_realm_id=auth_realm_id,
                 password_hash=password_hash,
                 role="viewer",
                 is_active=True,
@@ -147,23 +165,34 @@ class TelegramWebAuthUseCase:
                 extra={"user_id": str(user.id)},
             )
 
-        await self._session.commit()
+        await self._session.flush()
 
-        # Issue JWT tokens
-        access_token, _, access_exp = self._auth_service.create_access_token(
-            subject=str(user.id),
-            role=user.role if isinstance(user.role, str) else user.role.value,
+        issued_session = await self._session_issuer.issue_auth_session(
+            AuthSessionIssueRequest(
+                user_id=user.id,
+                role=user.role if isinstance(user.role, str) else user.role.value,
+                device_key=client_device_key,
+                refresh_fingerprint=client_fingerprint,
+                ip_address=client_ip,
+                ip_source=client_ip_source,
+                proxy_peer=proxy_peer,
+                user_agent=user_agent,
+                auth_realm_id=auth_realm_id,
+                auth_realm_key=auth_realm_key,
+                audience=audience,
+                principal_class=principal_type,
+                principal_subject=str(user.id),
+                scope_family=scope_family,
+                access_extra={"auth_method": "telegram_web"},
+                platform="web",
+            )
         )
-        refresh_token, _, _ = self._auth_service.create_refresh_token(
-            subject=str(user.id),
-        )
-        expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
 
         return TelegramWebLoginResult(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type=BEARER_SCHEME,
-            expires_in=expires_in,
+            access_token=issued_session.access_token,
+            refresh_token=issued_session.refresh_token,
+            token_type=issued_session.token_type,
+            expires_in=issued_session.expires_in,
             user=user,
             is_new_user=is_new_user,
         )

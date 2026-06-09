@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import secrets
+from datetime import UTC, datetime
 from hashlib import sha256
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
@@ -26,7 +28,12 @@ from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.remnawave.adapters import get_remnawave_adapter
 from src.infrastructure.tasks.email_task_dispatcher import get_email_dispatcher
 from src.main import app
-from src.presentation.api.v1.auth.cookies import clear_auth_cookies, set_auth_cookies
+from src.presentation.api.v1.auth.cookies import (
+    clear_auth_cookies,
+    get_or_create_web_device_cookie_value,
+    set_auth_cookies,
+    set_web_device_cookie,
+)
 
 
 class _ScalarResult:
@@ -35,6 +42,10 @@ class _ScalarResult:
 
     def scalar_one_or_none(self) -> Any:
         return self._value
+
+
+class _RowCountResult:
+    rowcount = 1
 
 
 class _FakeSession:
@@ -69,7 +80,12 @@ class _FakeSession:
         self.execute_count += 1
         if self.execute_count == 1:
             return _ScalarResult(self.token_record)
-        return _ScalarResult(self.principal_session)
+        if self.execute_count == 2:
+            return _ScalarResult(self.principal_session)
+        if self.token_record is not None and self.token_record.revoked_at is None:
+            self.token_record.revoked_at = datetime.now(UTC)
+            self.token_record.revoked_reason = "logout"
+        return _RowCountResult()
 
 
 class _FakeUserRepo:
@@ -243,25 +259,49 @@ async def test_stage1_verified_user_can_login_by_email_and_username_with_persist
 async def test_stage1_refresh_rotation_and_logout_revoke_refresh_tokens() -> None:
     user = await _stage1_user()
     auth_service = AuthService()
+    realm_id = uuid4()
+    user.auth_realm_id = realm_id
     old_refresh, _old_jti, old_expires_at = auth_service.create_refresh_token(
         subject=str(user.id),
         fingerprint="stage1-device",
         audience="cybervpn:admin",
         principal_type="admin",
-        realm_id=str(uuid4()),
+        realm_id=str(realm_id),
         realm_key="admin",
         scope_family="admin",
     )
     old_record = RefreshToken(
         id=uuid4(),
         user_id=user.id,
+        auth_realm_id=realm_id,
+        principal_class="admin",
+        principal_subject=str(user.id),
+        audience="cybervpn:admin",
+        scope_family="admin",
         token_hash=sha256(old_refresh.encode()).hexdigest(),
         expires_at=old_expires_at,
         device_id="stage1-device",
         ip_address="203.0.113.20",
         user_agent="stage1-auth-test",
     )
-    refresh_session = _FakeSession(user=user, token_record=old_record)
+    principal_session = SimpleNamespace(
+        id=uuid4(),
+        auth_realm_id=realm_id,
+        principal_subject=str(user.id),
+        principal_class="admin",
+        audience="cybervpn:admin",
+        scope_family="admin",
+        current_refresh_token_id=old_record.id,
+        refresh_token_id=old_record.id,
+        user_device_id=None,
+        access_token_jti="old-access-jti",
+        status="active",
+        expires_at=old_expires_at,
+        revoked_at=None,
+        last_seen_at=None,
+    )
+    old_record.principal_session_id = principal_session.id
+    refresh_session = _FakeSession(user=user, token_record=old_record, principal_session=principal_session)
     refresh_use_case = RefreshTokenUseCase(auth_service=auth_service, session=refresh_session)  # type: ignore[arg-type]
 
     result = await refresh_use_case.execute(
@@ -269,6 +309,8 @@ async def test_stage1_refresh_rotation_and_logout_revoke_refresh_tokens() -> Non
         client_fingerprint="stage1-device",
         client_ip="203.0.113.21",
         user_agent="stage1-auth-test-refresh",
+        auth_realm_id=realm_id,
+        auth_realm_key="admin",
         audience="cybervpn:admin",
         principal_type="admin",
         scope_family="admin",
@@ -280,12 +322,12 @@ async def test_stage1_refresh_rotation_and_logout_revoke_refresh_tokens() -> Non
     assert old_record.revoked_at is not None
 
     new_record = next(model for model in refresh_session.added if isinstance(model, RefreshToken))
-    logout_session = _FakeSession(token_record=new_record)
+    logout_session = _FakeSession(token_record=new_record, principal_session=principal_session)
     await LogoutUseCase(session=logout_session).execute(result["refresh_token"])  # type: ignore[arg-type]
 
     assert new_record.revoked_at is not None
 
-    replay_session = _FakeSession(user=user, token_record=old_record)
+    replay_session = _FakeSession(user=user, token_record=old_record, principal_session=principal_session)
     replay_use_case = RefreshTokenUseCase(auth_service=auth_service, session=replay_session)  # type: ignore[arg-type]
     with pytest.raises(InvalidCredentialsError):
         await replay_use_case.execute(
@@ -322,6 +364,29 @@ def test_stage1_auth_cookies_are_http_only_lax_secure_and_clearable(monkeypatch:
 
     assert any("access_token=" in header and "max-age=0" in header for header in clear_headers)
     assert any("refresh_token=" in header and "max-age=0" in header for header in clear_headers)
+
+
+def test_stage1_web_device_cookie_is_opaque_host_only_and_http_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "production")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", True)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "cyber-vpn.net")
+
+    response = Response()
+    request = _build_cookie_request(host="admin.cyber-vpn.net", scheme="https")
+    device_cookie, should_set = get_or_create_web_device_cookie_value(request.cookies)
+
+    assert should_set is True
+    assert len(device_cookie) >= 32
+
+    set_web_device_cookie(response, device_cookie, request=request)
+    headers = [header.lower() for header in _cookie_headers(response)]
+
+    assert any("__host-cvpn_device_id=" in header for header in headers)
+    assert any("httponly" in header for header in headers)
+    assert any("secure" in header for header in headers)
+    assert any("samesite=lax" in header for header in headers)
+    assert any("path=/" in header for header in headers)
+    assert not any("domain=" in header for header in headers)
 
 
 def test_stage1_auth_cookies_allow_insecure_only_for_local_http_loopback(
@@ -570,9 +635,7 @@ async def test_stage1_email_password_http_flow_register_verify_login_refresh_log
     )
     assert unverified_login.status_code == 401
 
-    user = (
-        await db.execute(select(AdminUserModel).where(AdminUserModel.email == register_data["email"]))
-    ).scalar_one()
+    user = (await db.execute(select(AdminUserModel).where(AdminUserModel.email == register_data["email"]))).scalar_one()
     otp_record = (
         await db.execute(
             select(OtpCodeModel)
@@ -617,7 +680,13 @@ async def test_stage1_email_password_http_flow_register_verify_login_refresh_log
     async_client.cookies.update(email_login.cookies)
     refresh_response = await async_client.post("/api/v1/auth/refresh", json={})
     assert refresh_response.status_code == 200
-    refreshed_token = refresh_response.json()["refresh_token"]
+    refresh_payload = refresh_response.json()
+    assert "access_token" not in refresh_payload
+    assert "refresh_token" not in refresh_payload
+    assert "token_type" not in refresh_payload
+    assert "expires_in" not in refresh_payload
+
+    refreshed_token = refresh_response.cookies.get("customer_refresh_token")
     assert refreshed_token
     assert refreshed_token != email_login.cookies["customer_refresh_token"]
 
@@ -665,13 +734,10 @@ async def test_stage1_register_existing_unverified_email_resends_code_without_du
         assert second_response.json()["is_active"] is False
         assert second_response.json()["is_email_verified"] is False
         assert (
-            second_response.json()["message"]
-            == "Verification code sent. Please check your email and enter the code."
+            second_response.json()["message"] == "Verification code sent. Please check your email and enter the code."
         )
 
-        users = (
-            await db.execute(select(AdminUserModel).where(AdminUserModel.email == email))
-        ).scalars().all()
+        users = (await db.execute(select(AdminUserModel).where(AdminUserModel.email == email))).scalars().all()
         assert len(users) == 1
         assert len(dispatcher.otp_emails) == 2
         assert dispatcher.otp_emails[0]["is_resend"] is False

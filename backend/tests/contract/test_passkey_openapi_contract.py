@@ -62,6 +62,28 @@ def test_passkey_authentication_verify_uses_tokenless_response_schema() -> None:
     }
 
 
+def test_web_refresh_uses_tokenless_response_schema() -> None:
+    schema = app.openapi()
+    operation = schema["paths"][f"{API_V1_PREFIX}/auth/refresh"]["post"]
+    components = schema["components"]["schemas"]
+
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/WebRefreshResponse"
+    }
+    properties = components["WebRefreshResponse"]["properties"]
+    assert "access_token" not in properties
+    assert "refresh_token" not in properties
+    assert "expires_in" not in properties
+    assert "token_type" not in properties
+    assert set(properties) == {
+        "auth_realm_id",
+        "auth_realm_key",
+        "audience",
+        "principal_type",
+        "scope_family",
+    }
+
+
 def test_partner_workspace_settings_update_contract_excludes_passkey_policy_fields() -> None:
     schema = app.openapi()
     properties = schema["components"]["schemas"]["UpdatePartnerWorkspaceSettingsRequest"]["properties"]

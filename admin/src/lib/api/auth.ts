@@ -14,6 +14,7 @@ export interface LoginRequest {
 }
 
 export type LoginResponse = components['schemas']['WebLoginResponse'];
+export type WebRefreshResponse = components['schemas']['WebRefreshResponse'];
 
 export interface RegisterRequest {
   login: string;
@@ -105,6 +106,8 @@ type RevokeDeviceResponse =
   operations['revoke_device_api_v1_auth_devices__device_id__delete']['responses'][200]['content']['application/json'];
 type LogoutAllDevicesResponse =
   operations['logout_all_devices_api_v1_auth_logout_all_post']['responses'][200]['content']['application/json'];
+type LogoutOtherDevicesResponse =
+  operations['logout_other_devices_api_v1_auth_devices_logout_others_post']['responses'][200]['content']['application/json'];
 
 function fetchSessionOnce(): Promise<AxiosResponse<User>> {
   if (!sessionRequest) {
@@ -301,7 +304,7 @@ export const authApi = {
    * POST /api/v1/auth/refresh
    */
   refresh: () =>
-    apiClient.post('/auth/refresh'),
+    apiClient.post<WebRefreshResponse>('/auth/refresh'),
 
   /**
    * Get current authenticated user
@@ -429,28 +432,35 @@ export const authApi = {
     apiClient.delete<DeleteAccountResponse>('/auth/me'),
 
   /**
-   * List all active devices/sessions for the authenticated user
-  * GET /api/v1/auth/devices
-  *
-  * Returns all active sessions with device info, IP, user agent, and is_current flag.
-  */
+   * List unique active devices for the authenticated user and current auth realm.
+   * GET /api/v1/auth/devices
+   *
+   * Returns one row per active stable device with backend totals and one current marker.
+   */
   listDevices: () =>
     apiClient.get<ListDevicesResponse>('/auth/devices'),
 
   /**
-   * Remote logout for a specific device
+   * Remote logout for a specific device.
    * DELETE /api/v1/auth/devices/{device_id}
    *
-   * Revokes the session for the specified device.
+   * Revokes access and refresh tokens associated with the selected device only.
    *
-  * @param deviceId - Device ID to logout
-  * @throws 404 - Device not found
-  */
+   * @param deviceId - Device ID to logout
+   * @throws 404 - Device not found
+   */
   logoutDevice: (deviceId: string) =>
     apiClient.delete<RevokeDeviceResponse>(`/auth/devices/${deviceId}`),
 
   /**
-   * Logout from all devices, including the current session.
+   * Logout every active device except the current device in the current auth realm.
+   * POST /api/v1/auth/devices/logout-others
+   */
+  logoutOtherDevices: () =>
+    apiClient.post<LogoutOtherDevicesResponse>('/auth/devices/logout-others'),
+
+  /**
+   * Logout from all devices in the current auth realm, including the current session.
    * POST /api/v1/auth/logout-all
    */
   logoutAllDevices: () =>

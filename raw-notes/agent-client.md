@@ -302,3 +302,56 @@ Security signoff:
 - Residual risk: sanitized local/mock evidence only; real production/staging credentials, real passkey ceremony, OAuth provider round-trip, payment, VPN delivery, and Telegram signed `initData` were not tested.
 
 Context7 docs checked: MCP Context7 quota exceeded; `ctx7 library Playwright` resolved `/microsoft/playwright`, but no new Playwright code was written. Manual UI/business-flow findings are `N/A - manual UI/business-flow finding`.
+
+## CYBA-608 Customer Device Browser QA - 2026-06-09T18:58:50Z
+
+Issue: [CYBA-608](/CYBA/issues/CYBA-608)
+Source: [CYBA-597](/CYBA/issues/CYBA-597), after [CYBA-603](/CYBA/issues/CYBA-603) customer device UI contract alignment.
+
+Setup:
+
+- `currentExecutionWorkspace` was `null`; no Paperclip-managed runtime URL was available.
+- Used local checkout frontend dev server at `http://127.0.0.1:9001` via `npm run dev -w frontend`; no production data, deploy, payment, or VPN data touched.
+- Browser: Chrome for Testing through global Playwright.
+- Viewports: desktop `1440x1000`, mobile `390x844`.
+- Locales: `en-EN`, `ru-RU`.
+- User role/state: synthetic `DEV_BYPASS_AUTH=true` customer `user`; no real cookies, JWTs, refresh tokens, passwords, payment secrets, VPN config secrets, or Telegram `initData` stored.
+- Context7 docs checked: MCP quota exceeded; fallback `ctx7` CLI checked `/microsoft/playwright` for `page.route`, `route.fulfill`, and `page.screenshot`.
+
+Scenarios executed:
+
+1. Repeated same-browser login UI contract:
+   - Synthetic backend response represented ten same-browser logins collapsed by backend into one stable device.
+   - Expected: one visible device row, one `Current` badge, backend counters `1 of 3`, active `1`, remaining slots `2`.
+   - Actual: PASS. Device panel rendered one row/current badge and backend counters from `total_devices/device_limit/remaining_devices`, not local row length fallback.
+
+2. Logout others:
+   - Synthetic backend response started with three unique devices: one current and two other devices.
+   - Expected: one `POST /api/v1/auth/devices/logout-others`, no per-device `DELETE /api/v1/auth/devices/{device_id}` loop, current badge appears once before and after.
+   - Actual: PASS. Network summary shows one logout-others POST, zero DELETE calls, current badge count `1`, and post-action panel returned to `1 of 3`.
+
+3. Mobile/locale smoke:
+   - Route: `/ru-RU/settings`.
+   - Expected: device panel renders in mobile viewport with Russian copy, visible `3 из 3` counter, one current badge by DOM assertion, no page errors.
+   - Actual: PASS.
+
+Evidence:
+
+- `evidence/client/cyba-608/network/settings-device-browser-qa-summary.json`
+- `evidence/client/cyba-608/network/no-secret-scan.txt`
+- `evidence/client/cyba-608/screenshots/settings-devices-deduped-en-desktop.png`
+- `evidence/client/cyba-608/screenshots/settings-devices-before-logout-others-en-desktop.png`
+- `evidence/client/cyba-608/screenshots/settings-devices-after-logout-others-en-desktop.png`
+- `evidence/client/cyba-608/screenshots/settings-devices-ru-mobile.png`
+- `evidence/client/cyba-608/device-browser-qa-runner.mjs`
+
+Result:
+
+- PASS: no new customer frontend device bugs found in this scoped browser QA.
+- PASS: JSON summary has `failures: []`, `consoleMessages: []`, `pageErrors: []`.
+- PASS: no-secret scan of JSON evidence returned no sensitive value hits; screenshots were visually checked.
+
+Not tested / limits:
+
+- Real backend repeated-login creation was not executed with live credentials in this frontend manual QA; the UI was verified against synthetic post-dedup backend contract responses.
+- Signed Telegram Mini App device entry was not tested because no approved sanitized `initData` was available in this heartbeat.

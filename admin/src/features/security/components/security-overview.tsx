@@ -19,6 +19,7 @@ import { SecurityStatusChip } from '@/features/security/components/security-stat
 import {
   calculateSecurityScore,
   formatDateTime,
+  getUniqueDeviceCount,
   getSecurityTier,
 } from '@/features/security/lib/formatting';
 
@@ -69,11 +70,11 @@ export function SecurityOverview() {
   });
 
   const session = sessionQuery.data;
-  const devices = devicesQuery.data?.devices ?? [];
+  const deviceCount = getUniqueDeviceCount(devicesQuery.data);
   const twoFactorEnabled = twoFactorQuery.data?.status === 'enabled';
   const hasAntiPhishing = Boolean(antiPhishingQuery.data?.code);
   const score = calculateSecurityScore({
-    deviceCount: devices.length,
+    deviceCount,
     hasAntiPhishing,
     isActive: Boolean(session?.is_active),
     isEmailVerified: Boolean(session?.is_email_verified),
@@ -123,9 +124,9 @@ export function SecurityOverview() {
         },
         {
           label: t('overview.metrics.sessions'),
-          value: String(devices.length),
+          value: String(deviceCount),
           hint: t('overview.metrics.sessionsHint'),
-          tone: devices.length > 3 ? 'warning' : 'info',
+          tone: deviceCount > 3 ? 'warning' : 'info',
         },
         {
           label: t('overview.metrics.twoFactor'),
@@ -231,7 +232,7 @@ export function SecurityOverview() {
                 {t('overview.sessionStats.total')}
               </p>
               <p className="mt-3 text-2xl font-display tracking-[0.12em] text-white">
-                {devices.length}
+                {deviceCount}
               </p>
             </div>
             <div className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4">

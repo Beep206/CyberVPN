@@ -19,6 +19,7 @@ import {
   calculateSecurityScore,
   formatDateTime,
   getErrorMessage,
+  getUniqueDeviceCount,
   getSecurityTier,
 } from '@/features/security/lib/formatting';
 
@@ -90,9 +91,9 @@ export function SecurityPostureConsole() {
   });
 
   const session = sessionQuery.data;
-  const devices = devicesQuery.data?.devices ?? [];
+  const deviceCount = getUniqueDeviceCount(devicesQuery.data);
   const score = calculateSecurityScore({
-    deviceCount: devices.length,
+    deviceCount,
     hasAntiPhishing: Boolean(antiPhishingQuery.data?.code),
     isActive: Boolean(session?.is_active),
     isEmailVerified: Boolean(session?.is_email_verified),
@@ -124,8 +125,8 @@ export function SecurityPostureConsole() {
     },
     {
       label: t('posture.signals.sessions'),
-      value: String(devices.length),
-      tone: devices.length > 3 ? 'warning' : 'info',
+      value: String(deviceCount),
+      tone: deviceCount > 3 ? 'warning' : 'info',
       hint: t('posture.signals.sessionsHint'),
     },
   ] as const;
@@ -157,9 +158,9 @@ export function SecurityPostureConsole() {
         },
         {
           label: t('posture.metrics.sessions'),
-          value: String(devices.length),
+          value: String(deviceCount),
           hint: t('posture.metrics.sessionsHint'),
-          tone: devices.length > 3 ? 'warning' : 'success',
+          tone: deviceCount > 3 ? 'warning' : 'success',
         },
       ]}
     >

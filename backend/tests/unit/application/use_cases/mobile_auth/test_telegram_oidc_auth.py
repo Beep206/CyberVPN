@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.application.dto.mobile_auth import TokenResponseDTO
 from src.application.services.telegram_oidc_auth import TelegramOIDCUserInfo
 from src.application.use_cases.mobile_auth.telegram_oidc_auth import MobileTelegramOIDCAuthUseCase
 
@@ -36,6 +37,17 @@ class TestMobileTelegramOIDCAuthUseCase:
         service.create_access_token.return_value = ("access_token_value", "jti_a", access_exp)
         service.create_refresh_token.return_value = ("refresh_token_value", "jti_r", refresh_exp)
         service.hash_password = AsyncMock(return_value="$argon2id$synthetic_hash")
+        return service
+
+    @pytest.fixture
+    def mock_mobile_session_service(self):
+        service = AsyncMock()
+        service.issue_session.return_value = TokenResponseDTO(
+            access_token="access_token_value",
+            refresh_token="refresh_token_value",
+            token_type="Bearer",
+            expires_in=900,
+        )
         return service
 
     @pytest.fixture
@@ -100,6 +112,7 @@ class TestMobileTelegramOIDCAuthUseCase:
         mock_device_repo,
         mock_auth_service,
         mock_telegram_service,
+        mock_mobile_session_service,
         request_dto,
         make_user,
     ):
@@ -111,6 +124,7 @@ class TestMobileTelegramOIDCAuthUseCase:
             device_repo=mock_device_repo,
             auth_service=mock_auth_service,
             telegram_oidc_service=mock_telegram_service,
+            mobile_session_service=mock_mobile_session_service,
         )
 
         result, is_new_user = await use_case.execute(request_dto)
@@ -127,6 +141,7 @@ class TestMobileTelegramOIDCAuthUseCase:
         mock_device_repo,
         mock_auth_service,
         mock_telegram_service,
+        mock_mobile_session_service,
         request_dto,
         make_user,
     ):
@@ -140,6 +155,7 @@ class TestMobileTelegramOIDCAuthUseCase:
             device_repo=mock_device_repo,
             auth_service=mock_auth_service,
             telegram_oidc_service=mock_telegram_service,
+            mobile_session_service=mock_mobile_session_service,
         )
 
         await use_case.execute(request_dto)
@@ -154,6 +170,7 @@ class TestMobileTelegramOIDCAuthUseCase:
         mock_device_repo,
         mock_auth_service,
         mock_telegram_service,
+        mock_mobile_session_service,
         request_dto,
         make_user,
     ):
@@ -166,6 +183,7 @@ class TestMobileTelegramOIDCAuthUseCase:
             device_repo=mock_device_repo,
             auth_service=mock_auth_service,
             telegram_oidc_service=mock_telegram_service,
+            mobile_session_service=mock_mobile_session_service,
         )
 
         result, is_new_user = await use_case.execute(request_dto)

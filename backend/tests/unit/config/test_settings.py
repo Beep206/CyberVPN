@@ -183,10 +183,7 @@ class TestS1CorsAndCookieSettings:
             remnawave_token=SecretStr(self.VALID_TOKEN),
             cryptobot_token=SecretStr(self.VALID_TOKEN),
             cors_origins=(
-                "http://localhost:13000/,"
-                "http://localhost:13001/,"
-                "http://127.0.0.1:13000/,"
-                "http://127.0.0.1:13001/"
+                "http://localhost:13000/,http://localhost:13001/,http://127.0.0.1:13000/,http://127.0.0.1:13001/"
             ),
             cookie_secure=False,
         )
@@ -205,11 +202,7 @@ class TestS1CorsAndCookieSettings:
                 jwt_secret=SecretStr(self.STRONG_SECRET),
                 remnawave_token=SecretStr(self.VALID_TOKEN),
                 cryptobot_token=SecretStr(self.VALID_TOKEN),
-                cors_origins=(
-                    "http://localhost:13000,"
-                    "http://localhost:13001,"
-                    "http://127.0.0.1:13000"
-                ),
+                cors_origins=("http://localhost:13000,http://localhost:13001,http://127.0.0.1:13000"),
                 cookie_secure=False,
             )
 
@@ -276,6 +269,25 @@ class TestS1CorsAndCookieSettings:
     def test_s1_production_rejects_cookie_secure_false(self) -> None:
         with pytest.raises(ValidationError, match="COOKIE_SECURE"):
             self._production_settings(cookie_secure=False)
+
+    def test_web_device_cookie_defaults_to_host_prefixed_name(self) -> None:
+        settings = self._production_settings()
+
+        assert settings.web_device_cookie_name == "__Host-cvpn_device_id"
+        assert settings.device_cookie_pepper_secret_name == "CYBERVPN_DEVICE_COOKIE_PEPPER"
+
+    def test_web_device_cookie_name_must_use_host_prefix(self) -> None:
+        with pytest.raises(ValidationError, match="__Host-"):
+            self._production_settings(web_device_cookie_name="cvpn_device_id")
+
+    def test_device_cookie_pepper_setting_names_secret_not_value(self) -> None:
+        settings = self._production_settings(device_cookie_pepper_secret_name="CUSTOM_DEVICE_COOKIE_PEPPER")
+
+        assert settings.device_cookie_pepper_secret_name == "CUSTOM_DEVICE_COOKIE_PEPPER"
+
+    def test_device_cookie_pepper_secret_name_rejects_non_env_name(self) -> None:
+        with pytest.raises(ValidationError, match="uppercase env-var"):
+            self._production_settings(device_cookie_pepper_secret_name="raw-secret-value")
 
     def test_s1_production_rejects_csrf_disabled(self) -> None:
         with pytest.raises(ValidationError, match="CSRF_PROTECTION_ENABLED"):

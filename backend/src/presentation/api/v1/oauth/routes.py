@@ -12,7 +12,6 @@ import json
 import logging
 import re
 import uuid
-from datetime import UTC, datetime
 from time import perf_counter
 from urllib.parse import urlparse
 
@@ -25,6 +24,7 @@ from src.application.services.oauth_state_service import OAuthStateService
 from src.application.services.public_registration_policy import PublicRegistrationDisabledError
 from src.application.use_cases.auth.account_linking import AccountLinkingUseCase
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
+from src.application.use_cases.auth_realms import RealmResolution
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -55,8 +55,12 @@ from src.infrastructure.oauth.microsoft import MicrosoftOAuthProvider
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 from src.infrastructure.oauth.twitter import TwitterOAuthProvider
 from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
-from src.presentation.api.v1.auth.cookies import set_auth_cookies
-from src.presentation.api.v1.auth.session_tokens import store_refresh_token
+from src.presentation.api.v1.auth.cookies import (
+    get_or_create_web_device_cookie_value,
+    set_auth_cookies,
+    set_web_device_cookie,
+)
+from src.presentation.api.v1.auth.realm_context import get_principal_type_for_realm, get_scope_family_for_realm
 from src.presentation.api.v1.oauth.schemas import (
     FacebookCallbackRequest,
     GitHubCallbackRequest,
@@ -73,6 +77,8 @@ from src.presentation.api.v1.oauth.schemas import (
     TelegramMagicLinkStatusResponse,
 )
 from src.presentation.dependencies.auth import get_current_active_user, optional_user
+from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
+from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 from src.shared.security.fingerprint import generate_client_fingerprint
@@ -97,11 +103,7 @@ _OAUTH_PROVIDERS: dict[str, tuple[type, bool]] = {
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract client IP from request, considering proxy headers."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    return resolve_client_ip(request).ip
 
 
 def _resolve_locale(user: AdminUserModel | None = None, fallback: str | None = None) -> str:
@@ -584,6 +586,7 @@ async def check_telegram_magic_link_status(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> TelegramMagicLinkStatusResponse:
     """Poll the status of the Magic Link login session."""
@@ -627,11 +630,22 @@ async def check_telegram_magic_link_status(
     )
 
     try:
+        device_key, set_device_cookie = get_or_create_web_device_cookie_value(request.cookies)
+        client_ip = resolve_client_ip(request)
         result = await use_case.execute(
             provider="telegram",
             user_info=user_info,
             client_fingerprint=generate_client_fingerprint(request),
-            client_ip=_get_client_ip(request),
+            client_device_key=device_key,
+            client_ip=client_ip.ip,
+            client_ip_source=client_ip.ip_source,
+            proxy_peer=client_ip.proxy_peer,
+            user_agent=request.headers.get("User-Agent"),
+            auth_realm_id=current_realm.auth_realm.id,
+            auth_realm_key=current_realm.realm_key,
+            audience=current_realm.audience,
+            principal_type=get_principal_type_for_realm(current_realm),
+            scope_family=get_scope_family_for_realm(current_realm),
         )
     except PublicRegistrationDisabledError as e:
         track_auth_attempt(method="telegram", success=False)
@@ -688,18 +702,20 @@ async def check_telegram_magic_link_status(
     )
 
     if result.access_token and result.refresh_token:
-        refresh_payload = auth_service.decode_token(result.refresh_token)
-        refresh_exp = datetime.fromtimestamp(refresh_payload["exp"], UTC)
-        await store_refresh_token(
-            db,
-            user_id=result.user.id,
-            refresh_token=result.refresh_token,
-            expires_at=refresh_exp,
-            device_id=generate_client_fingerprint(request),
-            ip_address=_get_client_ip(request),
-            user_agent=request.headers.get("User-Agent"),
+        set_auth_cookies(
+            response,
+            result.access_token,
+            result.refresh_token,
+            request=request,
+            cookie_namespace=current_realm.cookie_namespace,
         )
-        set_auth_cookies(response, result.access_token, result.refresh_token, request=request)
+        if set_device_cookie:
+            set_web_device_cookie(
+                response,
+                device_key,
+                request=request,
+                cookie_namespace=current_realm.cookie_namespace,
+            )
         await sync_active_sessions(db)
         await sync_auth_security_posture(db, redis_client)
 
@@ -875,6 +891,7 @@ async def oauth_login_callback(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> OAuthLoginResponse:
     """Process OAuth login callback and return JWT tokens (no authentication required).
@@ -998,11 +1015,22 @@ async def oauth_login_callback(
     )
 
     try:
+        device_key, set_device_cookie = get_or_create_web_device_cookie_value(request.cookies)
+        client_ip = resolve_client_ip(request)
         result = await use_case.execute(
             provider=provider.value,
             user_info=user_info,
             client_fingerprint=generate_client_fingerprint(request),
-            client_ip=_get_client_ip(request),
+            client_device_key=device_key,
+            client_ip=client_ip.ip,
+            client_ip_source=client_ip.ip_source,
+            proxy_peer=client_ip.proxy_peer,
+            user_agent=request.headers.get("User-Agent"),
+            auth_realm_id=current_realm.auth_realm.id,
+            auth_realm_key=current_realm.realm_key,
+            audience=current_realm.audience,
+            principal_type=get_principal_type_for_realm(current_realm),
+            scope_family=get_scope_family_for_realm(current_realm),
         )
     except PublicRegistrationDisabledError as e:
         track_oauth_attempt(provider=provider.value, success=False)
@@ -1067,18 +1095,20 @@ async def oauth_login_callback(
     )
 
     if result.access_token and result.refresh_token:
-        refresh_payload = auth_service.decode_token(result.refresh_token)
-        refresh_exp = datetime.fromtimestamp(refresh_payload["exp"], UTC)
-        await store_refresh_token(
-            db,
-            user_id=result.user.id,
-            refresh_token=result.refresh_token,
-            expires_at=refresh_exp,
-            device_id=generate_client_fingerprint(request),
-            ip_address=_get_client_ip(request),
-            user_agent=request.headers.get("User-Agent"),
+        set_auth_cookies(
+            response,
+            result.access_token,
+            result.refresh_token,
+            request=request,
+            cookie_namespace=current_realm.cookie_namespace,
         )
-        set_auth_cookies(response, result.access_token, result.refresh_token, request=request)
+        if set_device_cookie:
+            set_web_device_cookie(
+                response,
+                device_key,
+                request=request,
+                cookie_namespace=current_realm.cookie_namespace,
+            )
         await sync_active_sessions(db)
         await sync_auth_security_posture(db, redis_client)
 

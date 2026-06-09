@@ -136,7 +136,7 @@ Rate limiting tests use real Redis to verify:
 ```
 1. POST /auth/login → 200 (tokens)
 2. GET /auth/me → 200 (current user)
-3. POST /auth/refresh → 200 (new tokens)
+3. POST /auth/refresh → 200 (new httpOnly cookies, tokenless JSON body)
 4. POST /auth/logout → 204 (invalidate refresh token)
 ```
 
