@@ -17766,12 +17766,12 @@ export interface components {
             total_devices: number;
             /**
              * Device Limit
-             * @description Current realm device limit, if enforced
+             * @description Web session device limit, if enforced. VPN device quota is exposed by entitlement APIs.
              */
             device_limit: number | null;
             /**
              * Remaining Devices
-             * @description Remaining devices before the enforced limit
+             * @description Remaining web session devices before the enforced limit; null when not enforced.
              */
             remaining_devices: number | null;
         };
