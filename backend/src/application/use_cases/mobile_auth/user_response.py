@@ -20,6 +20,7 @@ def build_mobile_user_response(
 
     return UserResponseDTO(
         id=user.id,
+        public_uid=user.public_uid,
         email=user.email,
         username=user.username,
         status=user.status,

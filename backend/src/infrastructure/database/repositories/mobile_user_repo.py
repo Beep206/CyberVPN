@@ -38,6 +38,7 @@ class MobileUserRepository:
                     MobileUserModel.remnawave_uuid.ilike(like_pattern),
                     MobileUserModel.referral_code.ilike(like_pattern),
                     cast(MobileUserModel.id, String).ilike(like_pattern),
+                    cast(MobileUserModel.public_uid, String).ilike(like_pattern),
                     cast(MobileUserModel.telegram_id, String).ilike(like_pattern),
                 )
             )
@@ -73,6 +74,11 @@ class MobileUserRepository:
     async def get_by_email(self, email: str) -> MobileUserModel | None:
         """Get mobile user by email address."""
         result = await self._session.execute(select(MobileUserModel).where(MobileUserModel.email == email))
+        return result.scalar_one_or_none()
+
+    async def get_by_public_uid(self, public_uid: int) -> MobileUserModel | None:
+        """Get mobile user by public numeric UID."""
+        result = await self._session.execute(select(MobileUserModel).where(MobileUserModel.public_uid == public_uid))
         return result.scalar_one_or_none()
 
     async def get_by_username(self, username: str) -> MobileUserModel | None:

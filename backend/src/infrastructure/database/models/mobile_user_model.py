@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import JSON, BigInteger, Boolean, DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from src.domain.value_objects.public_uid import generate_public_uid_candidate
 from src.infrastructure.database.session import Base
 
 if TYPE_CHECKING:
@@ -32,6 +33,13 @@ class MobileUserModel(Base):
         Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
+    )
+    public_uid: Mapped[int] = mapped_column(
+        BigInteger,
+        unique=True,
+        nullable=False,
+        index=True,
+        default=generate_public_uid_candidate,
     )
     auth_realm_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("auth_realms.id", ondelete="SET NULL"),

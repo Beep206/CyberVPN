@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
+from src.application.services.public_uid_allocator import allocate_public_uid
 from src.application.services.stage1_plan_policy import (
     filter_stage1_public_addons,
     filter_stage1_public_paid_plans,
@@ -345,6 +346,7 @@ async def _ensure_mobile_user(
     if mobile_user is None:
         password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
         mobile_user = MobileUserModel(
+            public_uid=await allocate_public_uid(mobile_repo),
             email=_placeholder_mobile_email(telegram_id),
             password_hash=password_hash,
             username=_placeholder_mobile_username(

@@ -16,6 +16,7 @@ from src.application.dto.mobile_auth import (
 from src.application.services.auth_service import AuthService
 from src.application.services.mobile_session import MobileSessionService
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
+from src.application.services.public_uid_allocator import allocate_public_uid
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.domain.exceptions import DuplicateUsernameError
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
@@ -66,6 +67,7 @@ class MobileRegisterUseCase:
         password_hash = await self.auth_service.hash_password(request.password)
 
         user = MobileUserModel(
+            public_uid=await allocate_public_uid(self.user_repo),
             email=request.email,
             password_hash=password_hash,
             is_active=True,
