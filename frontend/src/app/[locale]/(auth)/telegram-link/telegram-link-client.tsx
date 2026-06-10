@@ -243,11 +243,10 @@ export function TelegramLinkClient() {
           return;
         }
       } finally {
-        if (!cancelled) {
-          pollInFlightRef.current = false;
-        }
+        pollInFlightRef.current = false;
       }
 
+      if (cancelled) return;
       scheduleNextPoll(attempt + 1);
     };
 

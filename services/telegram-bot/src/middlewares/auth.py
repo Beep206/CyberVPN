@@ -6,19 +6,25 @@ and injects user data into handler context for downstream handlers.
 
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject, User
 from aiogram.utils.deep_linking import decode_payload
 
-from src.services.api_client import APIError, CyberVPNAPIClient
-from src.services.cache_service import CacheService
+from src.services.api_client import APIError
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from src.services.api_client import CyberVPNAPIClient
+    from src.services.cache_service import CacheService
 
 logger = structlog.get_logger(__name__)
 
 USER_CACHE_TTL = 300  # 5 minutes
+AUTH_BOOTSTRAP_BYPASS_PREFIXES = ("auth_", "login_")
 
 
 class AuthMiddleware(BaseMiddleware):
@@ -236,4 +242,4 @@ class AuthMiddleware(BaseMiddleware):
         if not isinstance(event, Message):
             return False
         payload = cls._parse_start_payload(getattr(event, "text", None))
-        return bool(payload and payload.startswith("auth_"))
+        return bool(payload and payload.startswith(AUTH_BOOTSTRAP_BYPASS_PREFIXES))
