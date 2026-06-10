@@ -232,6 +232,11 @@ log() {
   printf '[remote-stage1-deploy] %s\n' "$*"
 }
 
+remote_fail() {
+  log "ERROR: $*"
+  exit 1
+}
+
 retry_curl() {
   label="$1"
   shift
@@ -257,6 +262,44 @@ is_requested() {
     *",$1,"*) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+remote_env_value() {
+  file="$1"
+  key="$2"
+  $REMOTE_SUDO awk -F= -v key="$key" '$1 == key {print substr($0, index($0, "=") + 1)}' "$file" | tail -1
+}
+
+ensure_backend_device_cookie_pepper() {
+  is_requested backend || return 0
+
+  secrets_dir="$(remote_env_value "$COMPOSE_DIR/.env" CYBERVPN_SECRETS_DIR || true)"
+  if [ -z "$secrets_dir" ]; then
+    secrets_dir="/srv/cybervpn-h/secrets"
+  fi
+  app_env="${secrets_dir%/}/app.env"
+
+  if ! $REMOTE_SUDO test -f "$app_env"; then
+    remote_fail "backend secret file is missing: ${app_env}"
+  fi
+  if ! $REMOTE_SUDO grep -q '^JWT_SECRET=.' "$app_env"; then
+    remote_fail "backend secret file ${app_env} is missing JWT_SECRET; refusing to create a partial app.env"
+  fi
+  if $REMOTE_SUDO grep -q '^CYBERVPN_DEVICE_COOKIE_PEPPER=.' "$app_env"; then
+    log "CYBERVPN_DEVICE_COOKIE_PEPPER is present in backend app.env"
+    return 0
+  fi
+
+  pepper="$(openssl rand -hex 32)"
+  backup="${app_env}.pre-device-cookie-pepper-$(date -u +%Y%m%dT%H%M%SZ)"
+  $REMOTE_SUDO cp -p "$app_env" "$backup"
+  if $REMOTE_SUDO grep -q '^CYBERVPN_DEVICE_COOKIE_PEPPER=' "$app_env"; then
+    $REMOTE_SUDO sed -i "s/^CYBERVPN_DEVICE_COOKIE_PEPPER=.*/CYBERVPN_DEVICE_COOKIE_PEPPER=${pepper}/" "$app_env"
+  else
+    printf '\nCYBERVPN_DEVICE_COOKIE_PEPPER=%s\n' "$pepper" | $REMOTE_SUDO tee -a "$app_env" >/dev/null
+  fi
+  $REMOTE_SUDO chmod 0600 "$app_env"
+  log "created CYBERVPN_DEVICE_COOKIE_PEPPER in backend app.env; backup: ${backup}"
 }
 
 image_for() {
@@ -381,6 +424,8 @@ is_requested telegram-bot && compose_services+=(cybervpn-telegram-bot)
 if is_requested task-worker; then
   compose_services+=(cybervpn-worker cybervpn-scheduler)
 fi
+
+ensure_backend_device_cookie_pepper
 
 log "recreating compose services: ${compose_services[*]}"
 $REMOTE_SUDO docker compose up -d "${compose_services[@]}"
