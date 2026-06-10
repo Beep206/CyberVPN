@@ -45,6 +45,7 @@ def _serialize_mobile_user_list_item(
 ) -> AdminMobileUserListItemResponse:
     return AdminMobileUserListItemResponse(
         id=user.id,
+        public_uid=user.public_uid,
         email=user.email,
         username=user.username,
         status=user.status,

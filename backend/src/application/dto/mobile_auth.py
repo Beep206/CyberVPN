@@ -177,6 +177,9 @@ class UserResponseDTO:
     id: UUID
     """User UUID."""
 
+    public_uid: int
+    """Public random numeric account UID displayed to customers."""
+
     email: str
     """User email address."""
 

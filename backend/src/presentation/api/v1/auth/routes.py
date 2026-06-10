@@ -29,6 +29,7 @@ from src.application.services.public_registration_policy import (
     PublicRegistrationDisabledError,
     ensure_public_registration_enabled,
 )
+from src.application.services.public_uid_allocator import allocate_public_uid
 from src.application.services.telegram_auth import TelegramAuthService
 from src.application.services.telegram_init_data_replay import TelegramInitDataReplayUnavailableError
 from src.application.use_cases.auth.change_password import ChangePasswordUseCase
@@ -448,6 +449,7 @@ async def _ensure_miniapp_mobile_user(
         password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
         mobile_user = MobileUserModel(
             auth_realm_id=customer_realm_id,
+            public_uid=await allocate_public_uid(repo),
             email=f"tg{telegram_id}@telegram.local",
             password_hash=password_hash,
             username=await _resolve_miniapp_mobile_login(
@@ -548,6 +550,7 @@ async def _ensure_customer_web_mobile_shadow(
     mobile_user = MobileUserModel(
         id=user.id,
         auth_realm_id=current_realm.auth_realm.id,
+        public_uid=await allocate_public_uid(repo),
         email=user.email,
         password_hash=user.password_hash,
         username=username,

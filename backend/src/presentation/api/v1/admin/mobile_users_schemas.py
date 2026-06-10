@@ -23,6 +23,7 @@ class AdminMobileDeviceResponse(BaseModel):
 
 class AdminMobileUserListItemResponse(BaseModel):
     id: UUID
+    public_uid: int
     email: str
     username: str | None
     status: str
