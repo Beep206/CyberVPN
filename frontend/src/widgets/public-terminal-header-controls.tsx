@@ -1,10 +1,11 @@
 'use client';
 
-import { Bell, CreditCard, Download, HelpCircle, Home, LayoutDashboard, Network, Sparkles } from 'lucide-react';
+import { CreditCard, Download, HelpCircle, Home, LayoutDashboard, Network, Sparkles } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { CurrencySelector } from '@/features/currency-selector';
 import { UserMenu } from '@/features/header/user-menu';
 import { LanguageSelector } from '@/features/language-selector';
+import { NotificationDropdown } from '@/features/notifications/notification-dropdown';
 import { ThemeToggle } from '@/features/theme-toggle';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
@@ -72,8 +73,6 @@ export function PublicTerminalHeaderControls({
         <CurrencySelector />
       </div>
 
-      <div className="mx-1 hidden h-6 w-px bg-grid-line/30 lg:block" />
-
       <Link
         href="/download"
         locale={locale}
@@ -89,16 +88,8 @@ export function PublicTerminalHeaderControls({
 
       {isAuthenticated ? (
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="Notifications are not available yet"
-            disabled
-            title="Notifications are not available yet"
-            className="touch-target inline-flex items-center justify-center rounded-lg border border-grid-line/30 bg-terminal-surface/30 px-3 text-muted-foreground opacity-60"
-          >
-            <Bell className="h-4 w-4" />
-          </button>
           <UserMenu />
+          <NotificationDropdown />
         </div>
       ) : (
         <div className="flex items-center gap-2">

@@ -136,15 +136,25 @@ async def test_site_notification_fanout_materializes_once(session_factory) -> No
         assert await _count(session, SiteNotificationModel) == 2
         assert await _count(session, SiteNotificationDeliveryModel) == 2
         assert await _count(session, MessagingOutboxConsumerReceiptModel) == 1
+        notifications = (
+            (await session.execute(select(SiteNotificationModel).order_by(SiteNotificationModel.created_at.asc())))
+            .scalars()
+            .all()
+        )
+        assert {notification.action_url for notification in notifications} == {"/messages?conversation=conv_test123"}
         publication = await session.get(MessagingOutboxPublicationModel, publication_id)
         assert publication is not None
         assert publication.publication_status == "published"
         assert publication.lease_owner is None
         delivery_rows = (
-            await session.execute(
-                select(SiteNotificationDeliveryModel).order_by(SiteNotificationDeliveryModel.created_at)
+            (
+                await session.execute(
+                    select(SiteNotificationDeliveryModel).order_by(SiteNotificationDeliveryModel.created_at)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert {row.recipient_id for row in delivery_rows} == {customer_id, admin_id}
 
 

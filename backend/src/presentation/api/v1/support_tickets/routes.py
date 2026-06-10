@@ -7,8 +7,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.events.outbox import EventOutboxService
+from src.application.services.messaging_service import MessagingService
 from src.application.services.support_ticket_service import AdminSupportTicketUpdate, SupportTicketService
 from src.application.use_cases.auth.permissions import Permission
+from src.domain.entities.messaging import MessagingPriority
 from src.domain.entities.partner_permission import PartnerPermission
 from src.domain.entities.support_ticket import (
     PUBLIC_EVENT_TYPES,
@@ -17,12 +20,15 @@ from src.domain.entities.support_ticket import (
     SupportMessageVisibility,
     SupportTicket,
     SupportTicketCategory,
+    SupportTicketMessage,
     SupportTicketNotFoundError,
+    SupportTicketOwnerType,
     SupportTicketPriority,
     SupportTicketSource,
     SupportTicketStatus,
 )
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.repositories.messaging_repository import SQLAlchemyMessagingRepository
 from src.infrastructure.database.repositories.support_ticket_repo import SQLAlchemySupportTicketRepository
 from src.presentation.dependencies.auth import get_current_active_user, get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
@@ -57,6 +63,10 @@ admin_router = APIRouter(prefix="/admin/support/tickets", tags=["admin", "suppor
 
 def _service(db: AsyncSession) -> SupportTicketService:
     return SupportTicketService(SQLAlchemySupportTicketRepository(db))
+
+
+def _messaging_service(db: AsyncSession) -> MessagingService:
+    return MessagingService(SQLAlchemyMessagingRepository(db), EventOutboxService(db))
 
 
 def _raise_http(exc: Exception) -> None:
@@ -132,6 +142,27 @@ def _public_actor_label(actor_type: SupportActorType) -> str:
     if actor_type == SupportActorType.ADMIN:
         return "support"
     return actor_type.value
+
+
+def _messaging_priority(priority: SupportTicketPriority) -> MessagingPriority:
+    if priority == SupportTicketPriority.LOW:
+        return MessagingPriority.LOW
+    if priority == SupportTicketPriority.HIGH:
+        return MessagingPriority.HIGH
+    if priority == SupportTicketPriority.URGENT:
+        return MessagingPriority.URGENT
+    return MessagingPriority.NORMAL
+
+
+def _latest_admin_public_message(ticket: SupportTicket) -> SupportTicketMessage | None:
+    messages = [
+        message
+        for message in ticket.messages
+        if message.author_type == SupportActorType.ADMIN and message.visibility == SupportMessageVisibility.PUBLIC
+    ]
+    if not messages:
+        return None
+    return max(messages, key=lambda message: (message.created_at, str(message.id)))
 
 
 def _public_summary_response(ticket: SupportTicket) -> PublicSupportTicketSummaryResponse:
@@ -472,6 +503,22 @@ async def add_admin_support_reply(
             admin_id=current_user.id,
             message=payload.message,
         )
+        latest_message = _latest_admin_public_message(ticket)
+        if (
+            ticket.owner_type == SupportTicketOwnerType.CUSTOMER
+            and ticket.customer_account_id is not None
+            and latest_message is not None
+        ):
+            await _messaging_service(db).add_admin_support_ticket_reply(
+                support_ticket_id=ticket.id,
+                support_ticket_public_id=ticket.public_id,
+                support_message_id=latest_message.id,
+                customer_account_id=ticket.customer_account_id,
+                admin_id=current_user.id,
+                subject=ticket.subject,
+                body=latest_message.body,
+                priority=_messaging_priority(ticket.priority),
+            )
     except Exception as exc:
         _raise_http(exc)
     return _detail_response(ticket, include_internal=True)

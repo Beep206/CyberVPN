@@ -24,6 +24,10 @@ vi.mock('@/features/header/user-menu', () => ({
   UserMenu: () => <div data-testid="user-menu" />,
 }));
 
+vi.mock('@/features/notifications/notification-dropdown', () => ({
+  NotificationDropdown: () => <div data-testid="notification-dropdown" />,
+}));
+
 let isAuthenticated = false;
 
 const navLinks: PublicHeaderNavLink[] = [
@@ -111,8 +115,8 @@ describe('PublicTerminalHeaderControls', () => {
 
     expect(screen.queryByRole('link', { name: 'Sign In' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Create Account' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /notifications are not available yet/i })).toBeDisabled();
     expect(screen.getByTestId('user-menu')).toBeInTheDocument();
+    expect(screen.getByTestId('notification-dropdown')).toBeInTheDocument();
   });
 });
 
