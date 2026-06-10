@@ -21,6 +21,10 @@ from src.application.use_cases.service_access.access_delivery_channels import (
     _default_provisioning_profile_key,
     _default_target_channel,
 )
+from src.application.use_cases.service_access.device_credentials import (
+    CreateDeviceCredentialUseCase,
+    TouchDeviceCredentialUseCase,
+)
 from src.application.use_cases.service_access.provisioning_profiles import CreateProvisioningProfileUseCase
 from src.application.use_cases.service_access.service_identities import CreateServiceIdentityUseCase
 from src.application.use_cases.subscriptions.generate_config import GenerateConfigUseCase
@@ -31,6 +35,7 @@ from src.application.use_cases.trial.stage1_trial_policy import (
     STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY,
 )
 from src.infrastructure.database.models.access_delivery_channel_model import AccessDeliveryChannelModel
+from src.infrastructure.database.models.device_credential_model import DeviceCredentialModel
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.provisioning_profile_model import ProvisioningProfileModel
@@ -49,6 +54,7 @@ class SelectedCustomerSubscriptionServiceState:
     active_entitlement_grant: EntitlementGrantModel | None
     service_identity: ServiceIdentityModel | None
     provisioning_profile: ProvisioningProfileModel | None
+    device_credential: DeviceCredentialModel | None
     access_delivery_channel: AccessDeliveryChannelModel | None
     resolved_provisioning_profile_key: str | None
     resolved_channel_subject_ref: str | None
@@ -73,9 +79,14 @@ class CustomerSubscriptionServiceAccessUseCase:
         channel_type: str | None = None,
         channel_subject_ref: str | None = None,
         provisioning_profile_key: str | None = None,
+        credential_type: str | None = None,
+        credential_subject_key: str | None = None,
         remnawave_client: RemnawaveClient | None = None,
         ensure_delivery: bool = True,
     ) -> SelectedCustomerSubscriptionServiceState:
+        if bool(credential_type) ^ bool(credential_subject_key):
+            raise ValueError("credential_type and credential_subject_key must be provided together")
+
         item = await self._get_subscription(
             customer_account_id=customer_account_id,
             auth_realm_id=auth_realm_id,
@@ -101,22 +112,37 @@ class CustomerSubscriptionServiceAccessUseCase:
                 channel_type=channel_type or "shared_client",
             )
 
+        device_credential = None
+        if service_identity is not None and credential_type and credential_subject_key:
+            device_credential = await self._ensure_device_credential(
+                service_identity=service_identity,
+                provisioning_profile=provisioning_profile,
+                credential_type=credential_type,
+                credential_subject_key=credential_subject_key,
+            )
+
         resolved_channel_subject_ref = None
         access_delivery_channel = None
         if ensure_delivery and service_identity is not None and channel_type is not None:
             resolved_channel_subject_ref = _default_channel_subject_ref(
                 channel_type=channel_type,
                 provided_subject_ref=channel_subject_ref,
-                credential_subject_key=None,
+                credential_subject_key=credential_subject_key,
                 service_identity_key=service_identity.service_key,
             )
             access_delivery_channel = await self._ensure_access_delivery_channel(
                 service_identity=service_identity,
                 provisioning_profile=provisioning_profile,
+                device_credential=device_credential,
                 channel_type=channel_type,
                 channel_subject_ref=resolved_channel_subject_ref,
                 entitlement_snapshot=snapshot,
             )
+            resolved_channel_subject_ref = access_delivery_channel.channel_subject_ref
+            if device_credential is None and access_delivery_channel.device_credential_id is not None:
+                device_credential = await self._repo.get_device_credential_by_id(
+                    access_delivery_channel.device_credential_id
+                )
 
         return SelectedCustomerSubscriptionServiceState(
             subscription=item,
@@ -124,6 +150,7 @@ class CustomerSubscriptionServiceAccessUseCase:
             active_entitlement_grant=grant if item.status in {"active", "trial"} else None,
             service_identity=service_identity,
             provisioning_profile=provisioning_profile,
+            device_credential=device_credential,
             access_delivery_channel=access_delivery_channel,
             resolved_provisioning_profile_key=resolved_profile_key,
             resolved_channel_subject_ref=resolved_channel_subject_ref,
@@ -428,11 +455,37 @@ class CustomerSubscriptionServiceAccessUseCase:
         )
         return result.provisioning_profile
 
+    async def _ensure_device_credential(
+        self,
+        *,
+        service_identity: ServiceIdentityModel,
+        provisioning_profile: ProvisioningProfileModel | None,
+        credential_type: str,
+        credential_subject_key: str,
+    ) -> DeviceCredentialModel:
+        result = await CreateDeviceCredentialUseCase(self._session).execute(
+            service_identity_id=service_identity.id,
+            provisioning_profile_id=provisioning_profile.id if provisioning_profile is not None else None,
+            credential_type=credential_type,
+            subject_key=credential_subject_key,
+            credential_context={
+                "resolved_from": "selected_customer_subscription",
+                "subscription_key": service_identity.subscription_key,
+                "provider_name": service_identity.provider_name,
+            },
+        )
+        credential = result.device_credential
+        if credential.credential_status != "active":
+            raise PermissionError("Selected subscription device credential is not active")
+        await TouchDeviceCredentialUseCase(self._session).execute(device_credential_id=credential.id)
+        return credential
+
     async def _ensure_access_delivery_channel(
         self,
         *,
         service_identity: ServiceIdentityModel,
         provisioning_profile: ProvisioningProfileModel | None,
+        device_credential: DeviceCredentialModel | None,
         channel_type: str,
         channel_subject_ref: str,
         entitlement_snapshot: dict[str, Any],
@@ -440,6 +493,7 @@ class CustomerSubscriptionServiceAccessUseCase:
         result = await CreateAccessDeliveryChannelUseCase(self._session).execute(
             service_identity_id=service_identity.id,
             provisioning_profile_id=provisioning_profile.id if provisioning_profile is not None else None,
+            device_credential_id=device_credential.id if device_credential is not None else None,
             channel_type=channel_type,
             channel_subject_ref=channel_subject_ref,
             delivery_context={
@@ -454,6 +508,10 @@ class CustomerSubscriptionServiceAccessUseCase:
             },
         )
         channel = result.access_delivery_channel
+        if provisioning_profile is not None and channel.provisioning_profile_id is None:
+            channel.provisioning_profile_id = provisioning_profile.id
+        if device_credential is not None and channel.device_credential_id is None:
+            channel.device_credential_id = device_credential.id
         channel.delivery_payload = {
             **dict(channel.delivery_payload or {}),
             "entitlement_status": entitlement_snapshot.get("status"),
