@@ -22,6 +22,10 @@ logger = structlog.get_logger(__name__)
 
 router = Router(name="start")
 
+AUTH_LINK_PREFIX = "auth_"
+LEGACY_LOGIN_LINK_PREFIX = "login_"
+AUTH_LINK_PAYLOAD_PREFIXES = (AUTH_LINK_PREFIX, LEGACY_LOGIN_LINK_PREFIX)
+
 
 def _get_start_payload(message: Message, command: CommandObject) -> str | None:
     """Extract the /start payload from CommandObject or raw message text."""
@@ -42,7 +46,7 @@ def _get_start_payload(message: Message, command: CommandObject) -> str | None:
 def _parse_subscription_offer_payload(start_payload: str | None) -> dict[str, Any] | None:
     """Decode signed subscription deep links created by utils.deep_links."""
 
-    if not start_payload or start_payload.startswith(("auth_", "ref_", "promo_")):
+    if not start_payload or start_payload.startswith((*AUTH_LINK_PAYLOAD_PREFIXES, "ref_", "promo_")):
         return None
 
     try:
@@ -68,6 +72,14 @@ def _parse_subscription_offer_payload(start_payload: str | None) -> dict[str, An
     return {"plan_id": plan_id, "duration_days": duration_days}
 
 
+def _is_auth_magic_link_payload(start_payload: str | None) -> bool:
+    return bool(start_payload and start_payload.startswith(AUTH_LINK_PREFIX))
+
+
+def _is_legacy_login_link_payload(start_payload: str | None) -> bool:
+    return bool(start_payload and start_payload.startswith(LEGACY_LOGIN_LINK_PREFIX))
+
+
 async def _handle_start(
     message: Message,
     command: CommandObject,
@@ -91,10 +103,13 @@ async def _handle_start(
     start_payload = _get_start_payload(message, command)
     direct_offer = _parse_subscription_offer_payload(start_payload)
 
-    # Check for magic link auth
-    magic_auth_success = False
-    if start_payload and start_payload.startswith("auth_"):
-        token = start_payload.removeprefix("auth_")
+    if _is_auth_magic_link_payload(start_payload):
+        token = (start_payload or "").removeprefix(AUTH_LINK_PREFIX).strip()
+        if not token:
+            await message.answer(i18n.get("telegram-auth-link-invalid"))
+            logger.warning("magic_link_auth_missing_token", user_id=user_id)
+            return
+
         try:
             await api_client.complete_telegram_magic_link(
                 token=token,
@@ -104,7 +119,6 @@ async def _handle_start(
                 username=username or None,
                 language_code=language_code,
             )
-            magic_auth_success = True
             logger.info("magic_link_auth_success", user_id=user_id, token_subset=token[:6])
         except APIError as exc:
             logger.warning(
@@ -113,13 +127,22 @@ async def _handle_start(
                 status_code=exc.status_code,
                 detail=exc.detail,
             )
-        if magic_auth_success:
             await message.answer(
-                "<b>Success!</b>\nYou can return to the browser - sign-in completed automatically.",
-                reply_markup=main_menu_keyboard(i18n),
+                i18n.get("telegram-auth-link-invalid"),
             )
-            logger.info("start_command_completed", user_id=user_id, flow="magic_link_auth")
             return
+
+        await message.answer(
+            i18n.get("telegram-auth-link-success"),
+            reply_markup=main_menu_keyboard(i18n),
+        )
+        logger.info("start_command_completed", user_id=user_id, flow="magic_link_auth")
+        return
+
+    if _is_legacy_login_link_payload(start_payload):
+        await message.answer(i18n.get("telegram-auth-link-legacy-unsupported"))
+        logger.info("start_command_completed", user_id=user_id, flow="legacy_login_link_unsupported")
+        return
 
     # Update user data on /start and ensure registration exists
     try:
@@ -163,11 +186,6 @@ async def _handle_start(
 
     if referrer_id:
         welcome_text += "\n\n" + i18n.get("welcome-referral-bonus")
-
-    if magic_auth_success:
-        welcome_text = (
-            "<b>Success!</b>\nYou can return to the browser - sign-in completed automatically.\n\n" + welcome_text
-        )
 
     await message.answer(
         text=welcome_text,

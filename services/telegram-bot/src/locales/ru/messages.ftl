@@ -31,6 +31,18 @@ welcome-referral-bonus = 🎁 За регистрацию по приглаше�
 
 promo-activated = ✅ Промокод <b>{ $code }</b> применён.
 
+telegram-auth-link-success = ✅ <b>Telegram подтверждён</b>
+
+    Вернитесь в браузер, чтобы завершить вход.
+
+telegram-auth-link-invalid = ⚠️ <b>Эта ссылка входа через Telegram недействительна или истекла.</b>
+
+    Запустите новый вход через Telegram на сайте.
+
+telegram-auth-link-legacy-unsupported = ⚠️ <b>Эта ссылка входа через Telegram больше не поддерживается.</b>
+
+    Запустите новый вход через Telegram на сайте.
+
 # ── Меню ─────────────────────────────────────────────────────────────────
 menu-main-title = 🏠 <b>Главное меню</b>
 growth-menu-title = 🎁 <b>Награды</b>

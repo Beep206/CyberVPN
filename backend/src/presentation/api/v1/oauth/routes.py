@@ -13,6 +13,7 @@ import logging
 import re
 import uuid
 from time import perf_counter
+from typing import Literal
 from urllib.parse import urlparse
 
 import redis.asyncio as redis
@@ -76,7 +77,7 @@ from src.presentation.api.v1.oauth.schemas import (
     TelegramMagicLinkResponse,
     TelegramMagicLinkStatusResponse,
 )
-from src.presentation.dependencies.auth import get_current_active_user, optional_user
+from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
@@ -88,6 +89,22 @@ router = APIRouter(prefix="/oauth", tags=["oauth"])
 
 _OAUTH_CALLBACK_PATH_RE = re.compile(r"^/(?:[a-z]{2,3}-[A-Z]{2}/)?oauth/callback/?$")
 _OAUTH_WEB_CALLBACK_PREFIX = "/api/oauth/callback"
+_MAGIC_LINK_PENDING_STATUS = "pending"
+_COMPLETE_MAGIC_LINK_SCRIPT = """
+local current = redis.call('GET', KEYS[1])
+if not current then
+    return 'missing'
+end
+if current ~= ARGV[1] then
+    return 'completed'
+end
+local ttl = redis.call('TTL', KEYS[1])
+if ttl <= 0 then
+    return 'missing'
+end
+redis.call('SET', KEYS[1], ARGV[2], 'EX', ttl)
+return 'stored'
+"""
 S1_OAUTH_LOGIN_PROVIDER_ALLOWLIST = frozenset({"google", "github"})
 
 # Provider class map: provider_name -> (ProviderClass, requires_pkce)
@@ -118,6 +135,31 @@ def _resolve_locale(user: AdminUserModel | None = None, fallback: str | None = N
 
 def _get_magic_link_key(token: str) -> str:
     return f"auth_magic_link:{token}"
+
+
+def _decode_redis_scalar(value: object) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    return str(value)
+
+
+async def _store_magic_link_completion(
+    redis_client: redis.Redis,
+    redis_key: str,
+    payload_json: str,
+) -> Literal["stored", "missing", "completed"]:
+    result = await redis_client.eval(
+        _COMPLETE_MAGIC_LINK_SCRIPT,
+        1,
+        redis_key,
+        _MAGIC_LINK_PENDING_STATUS,
+        payload_json,
+    )
+    decoded = _decode_redis_scalar(result)
+    if decoded in {"stored", "missing", "completed"}:
+        return decoded
+    logger.error("Unexpected Telegram Magic Link Redis script result", extra={"result": decoded})
+    return "missing"
 
 
 def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
@@ -510,7 +552,7 @@ async def create_telegram_magic_link(
             detail="Telegram bot is not configured.",
         )
 
-    await redis_client.setex(_get_magic_link_key(token), 300, "pending")
+    await redis_client.setex(_get_magic_link_key(token), 300, _MAGIC_LINK_PENDING_STATUS)
 
     bot_url = f"https://t.me/{bot_username}?start=auth_{token}"
     deep_link_url = f"tg://resolve?domain={bot_username}&start=auth_{token}"
@@ -526,48 +568,30 @@ async def create_telegram_magic_link(
 async def complete_telegram_magic_link(
     payload: TelegramMagicLinkCompleteRequest,
     redis_client: redis.Redis = Depends(get_redis),
-    authenticated_user: AdminUserModel | None = Depends(optional_user),
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
 ) -> TelegramMagicLinkCompleteResponse:
     """Accept trusted Telegram bot data for a pending magic-link session."""
-    if authenticated_user is None and not _is_valid_telegram_bot_secret(telegram_bot_secret):
+    if not _is_valid_telegram_bot_secret(telegram_bot_secret):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated.",
         )
 
     redis_key = _get_magic_link_key(payload.token)
-    current_status = await redis_client.get(redis_key)
-
-    if current_status is None:
+    store_result = await _store_magic_link_completion(
+        redis_client,
+        redis_key,
+        json.dumps(_build_magic_link_user_info(payload)),
+    )
+    if store_result == "missing":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Magic link session expired or not found.",
         )
-
-    if current_status != "pending":
+    if store_result == "completed":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Magic link session has already been completed.",
-        )
-
-    ttl_seconds = await redis_client.ttl(redis_key)
-    if ttl_seconds <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Magic link session expired or not found.",
-        )
-
-    stored = await redis_client.set(
-        redis_key,
-        json.dumps(_build_magic_link_user_info(payload)),
-        ex=ttl_seconds,
-        xx=True,
-    )
-    if not stored:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Magic link session expired or not found.",
         )
 
     logger.info(
@@ -601,7 +625,7 @@ async def check_telegram_magic_link_status(
         return TelegramMagicLinkStatusResponse(status="expired")
 
     status_str = raw_status.decode("utf-8") if isinstance(raw_status, bytes) else raw_status
-    if status_str == "pending":
+    if status_str == _MAGIC_LINK_PENDING_STATUS:
         return TelegramMagicLinkStatusResponse(status="pending")
 
     consumed_status = await redis_client.getdel(redis_key)
@@ -609,7 +633,7 @@ async def check_telegram_magic_link_status(
         return TelegramMagicLinkStatusResponse(status="expired")
 
     consumed_status_str = consumed_status.decode("utf-8") if isinstance(consumed_status, bytes) else consumed_status
-    if consumed_status_str == "pending":
+    if consumed_status_str == _MAGIC_LINK_PENDING_STATUS:
         return TelegramMagicLinkStatusResponse(status="pending")
 
     try:

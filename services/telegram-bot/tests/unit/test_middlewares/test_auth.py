@@ -9,14 +9,11 @@ import pytest
 from aiogram.types import CallbackQuery, Message, User
 
 from src.middlewares.auth import AuthMiddleware
-from src.services.api_client import APIError, NotFoundError
 
 if TYPE_CHECKING:
     import fakeredis.aioredis
 
-    from src.config import BotSettings
     from src.services.api_client import CyberVPNAPIClient
-    from src.services.cache_service import CacheService
 
 
 @pytest.mark.asyncio
@@ -32,9 +29,7 @@ class TestAuthMiddleware:
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
-        middleware = AuthMiddleware(
-            api_client=mock_api_client, cache=cache, default_language="ru"
-        )
+        middleware = AuthMiddleware(api_client=mock_api_client, cache=cache, default_language="ru")
 
         user_data = {"telegram_id": 123456, "username": "cached_user"}
         await cache.set_user(123456, user_data)
@@ -60,19 +55,18 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that cache miss triggers API load."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
-        middleware = AuthMiddleware(
-            api_client=mock_api_client, cache=cache
-        )
+        middleware = AuthMiddleware(api_client=mock_api_client, cache=cache)
 
         user_data = {"telegram_id": 123456, "username": "api_user"}
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/bot/user/123456"
-            ).mock(return_value=respx.MockResponse(200, json=user_data))
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123456").mock(
+                return_value=respx.MockResponse(200, json=user_data)
+            )
 
             user = User(id=123456, is_bot=False, first_name="Test")
             message = MagicMock(spec=Message)
@@ -97,29 +91,24 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that 404 from API triggers user registration."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
-        middleware = AuthMiddleware(
-            api_client=mock_api_client, cache=cache
-        )
+        middleware = AuthMiddleware(api_client=mock_api_client, cache=cache)
 
         new_user_data = {"telegram_id": 999999, "username": "newuser"}
 
         with respx.mock:
             # First call returns 404
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/bot/user/999999"
-            ).mock(
-                return_value=respx.MockResponse(
-                    404, json={"detail": "Not found"}
-                )
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/999999").mock(
+                return_value=respx.MockResponse(404, json={"detail": "Not found"})
             )
 
             # Registration succeeds
-            respx.post(
-                "https://api.test.cybervpn.local/telegram/bot/user"
-            ).mock(return_value=respx.MockResponse(200, json=new_user_data))
+            respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
+                return_value=respx.MockResponse(200, json=new_user_data)
+            )
 
             user = User(
                 id=999999,
@@ -146,6 +135,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that user language_code is used in registration."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -156,16 +146,12 @@ class TestAuthMiddleware:
         )
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/bot/user/555"
-            ).mock(return_value=respx.MockResponse(404))
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/555").mock(
+                return_value=respx.MockResponse(404)
+            )
 
-            registration_route = respx.post(
-                "https://api.test.cybervpn.local/telegram/bot/user"
-            ).mock(
-                return_value=respx.MockResponse(
-                    200, json={"telegram_id": 555}
-                )
+            registration_route = respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
+                return_value=respx.MockResponse(200, json={"telegram_id": 555})
             )
 
             user = User(
@@ -192,6 +178,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test default language used when user has no language_code."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -202,16 +189,12 @@ class TestAuthMiddleware:
         )
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/bot/user/666"
-            ).mock(return_value=respx.MockResponse(404))
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/666").mock(
+                return_value=respx.MockResponse(404)
+            )
 
-            respx.post(
-                "https://api.test.cybervpn.local/telegram/bot/user"
-            ).mock(
-                return_value=respx.MockResponse(
-                    200, json={"telegram_id": 666, "language": "ru"}
-                )
+            respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
+                return_value=respx.MockResponse(200, json={"telegram_id": 666, "language": "ru"})
             )
 
             user = User(
@@ -238,20 +221,15 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that non-404 API errors result in None user."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
-        middleware = AuthMiddleware(
-            api_client=mock_api_client, cache=cache
-        )
+        middleware = AuthMiddleware(api_client=mock_api_client, cache=cache)
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/bot/user/123"
-            ).mock(
-                return_value=respx.MockResponse(
-                    500, json={"detail": "Server error"}
-                )
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
+                return_value=respx.MockResponse(500, json={"detail": "Server error"})
             )
 
             user = User(id=123, is_bot=False, first_name="Test")
@@ -273,26 +251,21 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that registration failure results in None user."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
-        middleware = AuthMiddleware(
-            api_client=mock_api_client, cache=cache
-        )
+        middleware = AuthMiddleware(api_client=mock_api_client, cache=cache)
 
         with respx.mock:
             # Get returns 404
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/bot/user/777"
-            ).mock(return_value=respx.MockResponse(404))
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/777").mock(
+                return_value=respx.MockResponse(404)
+            )
 
             # Registration fails
-            respx.post(
-                "https://api.test.cybervpn.local/telegram/bot/user"
-            ).mock(
-                return_value=respx.MockResponse(
-                    500, json={"detail": "Registration failed"}
-                )
+            respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
+                return_value=respx.MockResponse(500, json={"detail": "Registration failed"})
             )
 
             user = User(id=777, is_bot=False, first_name="Test")
@@ -313,19 +286,18 @@ class TestAuthMiddleware:
     ) -> None:
         """Test user extraction from callback query."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
-        middleware = AuthMiddleware(
-            api_client=mock_api_client, cache=cache
-        )
+        middleware = AuthMiddleware(api_client=mock_api_client, cache=cache)
 
         user_data = {"telegram_id": 888, "username": "callback_user"}
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/bot/user/888"
-            ).mock(return_value=respx.MockResponse(200, json=user_data))
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/888").mock(
+                return_value=respx.MockResponse(200, json=user_data)
+            )
 
             user = User(id=888, is_bot=False, first_name="Test")
             callback = MagicMock(spec=CallbackQuery)
@@ -348,9 +320,7 @@ class TestAuthMiddleware:
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
-        middleware = AuthMiddleware(
-            api_client=mock_api_client, cache=cache
-        )
+        middleware = AuthMiddleware(api_client=mock_api_client, cache=cache)
 
         # Event with no user
         event = MagicMock()
@@ -371,19 +341,18 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that user is cached after API load."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
-        middleware = AuthMiddleware(
-            api_client=mock_api_client, cache=cache
-        )
+        middleware = AuthMiddleware(api_client=mock_api_client, cache=cache)
 
         user_data = {"telegram_id": 111, "username": "to_cache"}
 
         with respx.mock:
-            api_route = respx.get(
-                "https://api.test.cybervpn.local/telegram/bot/user/111"
-            ).mock(return_value=respx.MockResponse(200, json=user_data))
+            api_route = respx.get("https://api.test.cybervpn.local/telegram/bot/user/111").mock(
+                return_value=respx.MockResponse(200, json=user_data)
+            )
 
             user = User(id=111, is_bot=False, first_name="Test")
             message = MagicMock(spec=Message)
@@ -406,19 +375,18 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that cached user has TTL set."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis, key_prefix="test:")
-        middleware = AuthMiddleware(
-            api_client=mock_api_client, cache=cache
-        )
+        middleware = AuthMiddleware(api_client=mock_api_client, cache=cache)
 
         user_data = {"telegram_id": 222, "username": "ttl_test"}
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/bot/user/222"
-            ).mock(return_value=respx.MockResponse(200, json=user_data))
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/222").mock(
+                return_value=respx.MockResponse(200, json=user_data)
+            )
 
             user = User(id=222, is_bot=False, first_name="Test")
             message = MagicMock(spec=Message)
@@ -433,3 +401,38 @@ class TestAuthMiddleware:
             ttl = await fake_redis.ttl("test:user:222")
             assert ttl > 0
             assert ttl <= 300  # USER_CACHE_TTL
+
+    @pytest.mark.parametrize("payload", ["auth_magic_token_123", "login_legacy_token_123"])
+    async def test_auth_link_start_bypasses_user_bootstrap(
+        self,
+        payload: str,
+        mock_simple_api_client,
+        fake_redis: fakeredis.aioredis.FakeRedis,
+    ) -> None:
+        """Auth-link /start payloads inject user=None without registration side effects."""
+        from src.services.cache_service import CacheService
+
+        cache = CacheService(redis=fake_redis)
+        middleware = AuthMiddleware(api_client=mock_simple_api_client, cache=cache)
+
+        telegram_user = User(
+            id=424242,
+            is_bot=False,
+            first_name="Alice",
+            username="alice",
+            language_code="en",
+        )
+        message = MagicMock(spec=Message)
+        message.from_user = telegram_user
+        message.text = f"/start {payload}"
+
+        handler = AsyncMock(return_value=None)
+        data = {}
+
+        await middleware(handler, message, data)
+
+        assert data["user"] is None
+        assert data["telegram_user"] == telegram_user
+        handler.assert_awaited_once()
+        mock_simple_api_client.get_user.assert_not_awaited()
+        mock_simple_api_client.register_user.assert_not_awaited()

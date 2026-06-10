@@ -31,6 +31,18 @@ welcome-referral-bonus = 🎁 You'll get bonus days after your first purchase wi
 
 promo-activated = ✅ Promo code <b>{ $code }</b> applied.
 
+telegram-auth-link-success = ✅ <b>Telegram confirmed</b>
+
+    Return to the browser to finish sign-in.
+
+telegram-auth-link-invalid = ⚠️ <b>This Telegram sign-in link is invalid or expired.</b>
+
+    Start a new Telegram sign-in from the website.
+
+telegram-auth-link-legacy-unsupported = ⚠️ <b>This Telegram sign-in link is no longer supported.</b>
+
+    Start a new Telegram sign-in from the website.
+
 # ── Menu ─────────────────────────────────────────────────────────────────
 menu-main-title = 🏠 <b>Main menu</b>
 growth-menu-title = 🎁 <b>Rewards</b>
