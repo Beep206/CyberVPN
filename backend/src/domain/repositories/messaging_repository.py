@@ -89,6 +89,9 @@ class MessagingRepository:
     async def get_conversation(self, conversation_ref: str) -> MessagingConversation | None:
         raise NotImplementedError
 
+    async def get_conversation_by_support_ticket_id(self, support_ticket_id: UUID) -> MessagingConversation | None:
+        raise NotImplementedError
+
     async def list_for_customer(
         self,
         *,

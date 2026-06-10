@@ -395,7 +395,7 @@ describe('NotificationCenterDropdown', () => {
     const user = userEvent.setup();
     renderWithQuery(<NotificationCenterDropdown />);
 
-    await screen.findByText('1');
+    await screen.findByLabelText('Open notification center, 1 unread updates');
     await user.click(screen.getByLabelText('Open notification center, 1 unread updates'));
 
     expect(await screen.findByText('External alert')).toBeInTheDocument();
@@ -475,6 +475,103 @@ describe('NotificationCenterDropdown', () => {
       expect(actions?.className).toContain('opacity-100');
     },
   );
+
+  it('closes the notification panel on outside click', async () => {
+    server.use(
+      http.get(`${API_BASE}/me/conversations`, () =>
+        HttpResponse.json({
+          conversations: [],
+          nextCursor: null,
+        }),
+      ),
+      http.get(`${API_BASE}/me/notifications`, () =>
+        HttpResponse.json({
+          notifications: [
+            {
+              id: 'notification-outside-click',
+              delivery_id: 'delivery-outside-click',
+              notification_type: 'system',
+              severity: 'info',
+              title: 'Account update',
+              body: 'Review the latest account event.',
+              action_url: null,
+              aggregate_type: 'system_notice',
+              aggregate_id: 'notice-outside-click',
+              conversation_id: null,
+              message_id: null,
+              status: 'delivered',
+              created_at: '2026-05-31T11:00:00Z',
+              updated_at: '2026-05-31T11:00:00Z',
+              read_at: null,
+            },
+          ],
+          nextCursor: null,
+        }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderWithQuery(<NotificationCenterDropdown />);
+
+    await screen.findByLabelText('Open notification center, 1 unread updates');
+    await user.click(screen.getByLabelText('Open notification center, 1 unread updates'));
+    expect(await screen.findByRole('dialog', { name: 'Notification center' })).toBeInTheDocument();
+
+    await user.click(document.body);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Notification center' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows unread conversation fallback when notification delivery is missing', async () => {
+    server.use(
+      http.get(`${API_BASE}/me/conversations`, () =>
+        HttpResponse.json({
+          conversations: [
+            {
+              id: 'conversation-fallback',
+              public_id: 'msg_support_fallback',
+              status: 'open',
+              response_state: 'waiting_customer',
+              category: 'support',
+              priority: 'normal',
+              subject: 'Support thread without notification',
+              unread_count: 1,
+              created_at: '2026-05-31T10:00:00Z',
+              updated_at: '2026-05-31T10:05:00Z',
+              last_message_at: '2026-05-31T10:05:00Z',
+              closed_at: null,
+            },
+          ],
+          nextCursor: null,
+        }),
+      ),
+      http.get(`${API_BASE}/me/notifications`, () =>
+        HttpResponse.json({
+          notifications: [],
+          nextCursor: null,
+        }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderWithQuery(<NotificationCenterDropdown />);
+
+    await screen.findByLabelText('Open notification center, 1 unread updates');
+    await user.click(screen.getByLabelText('Open notification center, 1 unread updates'));
+
+    expect(screen.queryByText('No notifications')).not.toBeInTheDocument();
+    const subject = await screen.findByText('Support thread without notification');
+    const fallbackLink = subject.closest('a');
+    if (!fallbackLink) {
+      throw new Error('Expected unread conversation fallback to render as a link');
+    }
+    expect(fallbackLink).toHaveAttribute(
+      'href',
+      '/messages?conversation=msg_support_fallback',
+    );
+  });
 
   it('restores missed messages by refetching active details after custom SSE sync_required', async () => {
     let includeMissedDetailMessage = false;
@@ -605,8 +702,8 @@ describe('NotificationCenterDropdown', () => {
     );
     const user = userEvent.setup();
 
-    await screen.findByText('2');
-    await user.click(screen.getByLabelText('Open notification center, 2 unread updates'));
+    await screen.findByLabelText('Open notification center, 1 unread updates');
+    await user.click(screen.getByLabelText('Open notification center, 1 unread updates'));
     expect(await screen.findByText('Support replied')).toBeInTheDocument();
 
     await waitFor(() => expect(MockEventSource.instances[0]).toBeDefined());
