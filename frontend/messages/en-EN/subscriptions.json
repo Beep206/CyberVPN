@@ -30,6 +30,114 @@
     "active": "Code {code} will be applied to the next quote.",
     "empty": "Leave this empty when no discount or checkout code should be used."
   },
+  "switcher": {
+    "accountScoped": "VPN config is account-scoped for now; the selected subscription controls the commercial context.",
+    "empty": "No subscriptions found yet",
+    "label": "Subscription selector",
+    "loading": "Loading subscriptions",
+    "refresh": "Refresh",
+    "selected": "Selected",
+    "status": "Status"
+  },
+  "planCard": {
+    "badges": {
+      "plus": "Most Popular",
+      "max": "Flagship"
+    },
+    "chargedInBillingCurrency": "Billed by checkout in {currency}",
+    "connectionModes": {
+      "standard": "Standard",
+      "stealth": "Stealth",
+      "manualConfig": "Manual / Advanced",
+      "dedicatedIp": "Dedicated IP"
+    },
+    "currentAction": "Current Plan",
+    "currentBadge": "CURRENT PLAN",
+    "dedicatedIpAvailable": "Dedicated IP available as add-on",
+    "dedicatedIpIncluded": "{count} dedicated IP included",
+    "deviceCount": "{count} devices",
+    "devices": "Devices",
+    "durationDays": "{days} days",
+    "inviteBundle": "{count} invites for {days} days",
+    "localDisplayEstimate": "Display estimate: {price}",
+    "modes": "Modes",
+    "noInviteBundle": "No invite bundle",
+    "perDuration": "per {duration}",
+    "purchaseAction": "Purchase",
+    "serverPools": {
+      "shared": "Shared pool",
+      "sharedPlus": "Shared+ pool",
+      "premium": "Premium pool",
+      "exclusive": "Exclusive pool"
+    },
+    "support": {
+      "standard": "Standard support",
+      "priority": "Priority support",
+      "vip": "VIP support"
+    },
+    "unlimitedTraffic": "Unlimited"
+  },
+  "purchaseModal": {
+    "actions": {
+      "activateNow": "Activate Now",
+      "cancel": "Cancel",
+      "payWithCrypto": "Pay with Crypto",
+      "tryAgain": "Try Again"
+    },
+    "checkoutCode": {
+      "applied": "{code} applied",
+      "apply": "Apply Code",
+      "discountApplied": "{code} applied: {discount} off",
+      "label": "Checkout Code",
+      "quoteUpdated": "Quote Updated",
+      "title": "Have a Checkout Code?",
+      "updating": "Updating quote..."
+    },
+    "codeFeedback": {
+      "checkoutAccepted": "Checkout code accepted. Quote updated.",
+      "referralAccepted": "Referral friend discount accepted. Quote updated."
+    },
+    "errorTitle": "Payment Failed",
+    "errors": {
+      "checkoutCodeInvalid": "Checkout code not valid",
+      "commitCheckout": "Failed to commit checkout",
+      "createInvoice": "Failed to create payment invoice",
+      "enterCheckoutCode": "Please enter a checkout code",
+      "generic": "An error occurred. Please try again.",
+      "loadQuote": "Failed to load checkout quote"
+    },
+    "labels": {
+      "catalogPrice": "Catalog price: {price}",
+      "chargedInBillingCurrency": "Charged in {currency}",
+      "checkoutTotal": "Checkout total",
+      "connectionModes": "Connection modes",
+      "devices": "Devices",
+      "support": "Support",
+      "trafficPolicy": "Traffic policy"
+    },
+    "processing": "Creating payment invoice...",
+    "secureCheckout": {
+      "description": "The dashboard resolves checkout codes before payment and carries accepted backend quote pricing directly into checkout.",
+      "gatewayAmount": "Gateway amount: {amount}. Charged in {currency}.",
+      "title": "Secure checkout"
+    },
+    "success": {
+      "paymentPageOpened": {
+        "description": "Complete your payment in the new tab to activate your subscription.",
+        "title": "Payment page opened"
+      },
+      "subscriptionActivated": {
+        "description": "Your subscription is now active and the entitlement snapshot has been committed.",
+        "title": "Subscription activated"
+      }
+    },
+    "titles": {
+      "confirm": "CONFIRM_PURCHASE",
+      "error": "PAYMENT_ERROR",
+      "processing": "PROCESSING_PAYMENT",
+      "success": "PAYMENT_READY"
+    }
+  },
   "subscriptionHistory": "Subscription History",
   "actions": {
     "cancel": "Cancel renewal",
@@ -114,7 +222,23 @@
   "plans": {
     "description": "Public plans are loaded from the canonical web catalog. Current plan is locked; other plans are quoted before purchase or upgrade.",
     "empty": "No public plans are available right now.",
+    "emptyFilter": "No public plans match this filter.",
     "eyebrow": "Plan catalog",
+    "filteredCount": "{count}/{total} visible plans",
+    "filters": {
+      "all": "All",
+      "change": "Changes",
+      "current": "Current",
+      "label": "Filter subscription catalog",
+      "purchase": "New",
+      "upgrade": "Upgrades"
+    },
+    "groups": {
+      "change": "Plan changes",
+      "current": "Current plan",
+      "purchase": "New subscriptions",
+      "upgrade": "Upgrade path"
+    },
     "perCycle": "per {duration}",
     "publicCount": "{count} public plans",
     "title": "Choose the next access tier"
@@ -150,15 +274,5 @@
     "error": "Trial activation failed. Retry or contact support.",
     "eyebrow": "Trial access",
     "success": "Trial activated. Access state is refreshing."
-  },
-  "checkoutQuote": {
-    "chargedIn": "Charged in {currency}",
-    "expiredTitle": "Quote expired",
-    "expiredBody": "Refresh the quote before checkout so backend totals, country and currency are current.",
-    "gatewayAmount": "Gateway amount: {amount}. Charged in {currency}.",
-    "loadError": "Failed to load checkout quote",
-    "refreshCta": "Refresh quote",
-    "refreshing": "Refreshing quote...",
-    "refreshError": "Failed to refresh checkout quote"
   }
 }

@@ -6,5 +6,27 @@
     "netUplink": "СЕТЬ_АПЛИНК",
     "fps": "FPS",
     "ping": "PING",
-    "language": "ЯЗЫК"
+    "language": "ЯЗЫК",
+    "mobileMenu": {
+        "close": "Закрыть меню навигации",
+        "open": "Открыть меню навигации",
+        "primary": "Основная навигация"
+    },
+    "notificationsUnavailable": "Уведомления пока недоступны",
+    "userMenu": {
+        "billing": "Оплата",
+        "billingDescription": "Подписка и платежи",
+        "dashboard": "Кабинет",
+        "dashboardDescription": "Обзор и состояние доступа",
+        "open": "Открыть меню аккаунта",
+        "profile": "Профиль",
+        "profileDescription": "Данные аккаунта",
+        "security": "Безопасность",
+        "securityDescription": "2FA и пароль",
+        "settings": "Настройки",
+        "settingsDescription": "Параметры приложения",
+        "signOut": "Выйти",
+        "subscriptionBadge": "PRO",
+        "userIdPrefix": "ID"
+    }
 }

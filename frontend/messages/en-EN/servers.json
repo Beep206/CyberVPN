@@ -27,6 +27,8 @@
     "eyebrow": "Import kit",
     "openSubscription": "Open link",
     "rawConfig": "Raw config",
+    "showFullValue": "Show full value",
+    "hideFullValue": "Hide full value",
     "status": {
       "missing_config": "Config pending",
       "missing_profile": "Profile missing",

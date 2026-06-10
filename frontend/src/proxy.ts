@@ -17,6 +17,7 @@ const CABINET_PRIMARY_HOST = 'my.cyber-vpn.net';
 const CABINET_ROUTE_SEGMENTS = new Set([
   'analytics',
   'dashboard',
+  'delete-account',
   'monitoring',
   'partner',
   'payment-history',
@@ -46,7 +47,6 @@ const PUBLIC_ROUTE_SEGMENTS = new Set([
   'compare',
   'contact',
   'cookie-policy',
-  'delete-account',
   'devices',
   'docs',
   'download',

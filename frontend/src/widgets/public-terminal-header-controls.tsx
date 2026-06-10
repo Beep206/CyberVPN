@@ -27,6 +27,7 @@ interface PublicTerminalHeaderControlsProps {
   loginLabel: string;
   locale?: string;
   navLinks: PublicHeaderNavLink[];
+  primaryNavLabel: string;
   registerLabel: string;
 }
 
@@ -35,6 +36,7 @@ export function PublicTerminalHeaderControls({
   loginLabel,
   locale: providedLocale,
   navLinks,
+  primaryNavLabel,
   registerLabel,
 }: PublicTerminalHeaderControlsProps) {
   const activeLocale = useLocale();
@@ -43,7 +45,7 @@ export function PublicTerminalHeaderControls({
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-      <nav aria-label="Primary" className="hidden items-center gap-1 xl:flex">
+      <nav aria-label={primaryNavLabel} className="hidden items-center gap-1 xl:flex">
         {navLinks
           .filter((link) => link.href !== '/' && link.href !== '/features')
           .map((link) => {
@@ -58,7 +60,7 @@ export function PublicTerminalHeaderControls({
                 data-seo-cta={link.icon}
                 data-seo-zone="public_header_nav"
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" aria-hidden="true" />
                 <span>{link.label}</span>
               </Link>
             );
@@ -80,7 +82,7 @@ export function PublicTerminalHeaderControls({
         data-seo-cta="download"
         data-seo-zone="public_header"
       >
-        <Download className="h-4 w-4" />
+        <Download className="h-4 w-4" aria-hidden="true" />
         {downloadLabel}
       </Link>
 

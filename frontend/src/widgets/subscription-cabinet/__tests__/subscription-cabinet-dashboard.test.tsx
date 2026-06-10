@@ -445,6 +445,12 @@ describe('SubscriptionCabinetDashboard', () => {
 
     expect((await screen.findAllByText('Pro Plan')).length).toBeGreaterThan(0);
     expect(screen.getByText('Max Plan')).toBeInTheDocument();
+    expect(screen.getByText(/plans\.groups\.current/i)).toBeInTheDocument();
+    expect(screen.getByText(/plans\.groups\.upgrade/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /plans\.filters\.upgrade/i })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     expect(await screen.findByText('Extra device')).toBeInTheDocument();
     expect(screen.getByText('remnawave')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /actions\.getConfig/i })).toHaveAttribute(
@@ -457,6 +463,38 @@ describe('SubscriptionCabinetDashboard', () => {
     );
     expect(getPlansMock).toHaveBeenCalledWith({ channel: 'web' });
     expect(getAddonsMock).toHaveBeenCalledWith({ channel: 'web' });
+  });
+
+  it('keeps subscription metric values wrapping inside narrow cards', async () => {
+    renderWithQueryClient(<SubscriptionCabinetDashboard />);
+
+    const usageMetricValue = await screen.findByText('Sync pending');
+    const usageMetricCard = usageMetricValue.closest('div');
+    const currentMetricsGrid = usageMetricCard?.parentElement;
+
+    expect(usageMetricCard).toHaveClass('min-w-0');
+    expect(usageMetricValue).toHaveClass('max-w-full');
+    expect(usageMetricValue).toHaveClass('break-normal');
+    expect(usageMetricValue).not.toHaveClass('break-words');
+    expect(currentMetricsGrid).toHaveClass('lg:grid-cols-3');
+    expect(currentMetricsGrid).not.toHaveClass('lg:grid-cols-5');
+  });
+
+  it('filters the plan catalog without changing backend requests', async () => {
+    renderWithQueryClient(<SubscriptionCabinetDashboard />);
+
+    await screen.findByText('Max Plan');
+    fireEvent.click(screen.getByRole('button', { name: /plans\.filters\.upgrade/i }));
+
+    expect(screen.getByRole('button', { name: /plans\.filters\.upgrade/i })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByText(/plans\.groups\.upgrade/i)).toBeInTheDocument();
+    expect(screen.queryByText(/plans\.groups\.current/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Max Plan')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /planActions\.current/i })).not.toBeInTheDocument();
+    expect(getPlansMock).toHaveBeenCalledWith({ channel: 'web' });
   });
 
   it('quotes and commits a plan upgrade through backend subscription endpoints', async () => {

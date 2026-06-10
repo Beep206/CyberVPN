@@ -686,12 +686,12 @@ export function SettingsCabinetDashboard() {
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
                 {t('actions.refresh')}
               </button>
-              <a
-                href={`${publicSiteBaseUrl}/${locale}/delete-account`}
+              <Link
+                href="/delete-account"
                 className="inline-flex min-h-11 items-center justify-center rounded-xl border border-neon-pink/35 bg-neon-pink/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-pink transition hover:bg-neon-pink/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
               >
                 {t('actions.privacy')}
-              </a>
+              </Link>
             </div>
           </div>
 

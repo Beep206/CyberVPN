@@ -7,6 +7,7 @@ const {
   getConfigMock,
   getDpiScoreMock,
   getProfileMock,
+  getSelectedSubscriptionKeyMock,
   getServerStatsMock,
   getServersMock,
   getServiceStateMock,
@@ -18,6 +19,7 @@ const {
   getConfigMock: vi.fn(),
   getDpiScoreMock: vi.fn(),
   getProfileMock: vi.fn(),
+  getSelectedSubscriptionKeyMock: vi.fn(),
   getServerStatsMock: vi.fn(),
   getServersMock: vi.fn(),
   getServiceStateMock: vi.fn(),
@@ -83,22 +85,26 @@ vi.mock('@/lib/api', () => ({
 }));
 
 vi.mock('@/features/customer-subscriptions/customer-subscription-context', () => ({
-  useCustomerSubscriptions: () => ({
-    defaultSubscriptionKey: 'grant:test-grant',
-    isError: false,
-    isLoading: false,
-    limitations: [],
-    refetch: vi.fn(),
-    selectedSubscription: {
-      can_deliver_config: true,
-      can_manage: true,
-      display_name: 'Pro Plan',
-      subscription_key: 'grant:test-grant',
-    },
-    selectedSubscriptionKey: 'grant:test-grant',
-    setSelectedSubscriptionKey: vi.fn(),
-    subscriptions: [],
-  }),
+  useCustomerSubscriptions: () => {
+    const selectedSubscriptionKey = getSelectedSubscriptionKeyMock();
+
+    return {
+      defaultSubscriptionKey: selectedSubscriptionKey,
+      isError: false,
+      isLoading: false,
+      limitations: [],
+      refetch: vi.fn(),
+      selectedSubscription: {
+        can_deliver_config: true,
+        can_manage: true,
+        display_name: 'Pro Plan',
+        subscription_key: selectedSubscriptionKey,
+      },
+      selectedSubscriptionKey,
+      setSelectedSubscriptionKey: vi.fn(),
+      subscriptions: [],
+    };
+  },
 }));
 
 vi.mock('next/dynamic', () => ({
@@ -118,9 +124,17 @@ function renderWithQueryClient(ui: ReactElement) {
     },
   });
 
-  return render(
+  const renderResult = render(
     <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
   );
+
+  return {
+    ...renderResult,
+    rerender: (nextUi: ReactElement) =>
+      renderResult.rerender(
+        <QueryClientProvider client={queryClient}>{nextUi}</QueryClientProvider>,
+      ),
+  };
 }
 
 function mockSuccessfulResponses() {
@@ -231,6 +245,7 @@ function mockSuccessfulResponses() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getSelectedSubscriptionKeyMock.mockReturnValue('grant:test-grant');
   createObjectURLMock.mockReturnValue('blob:cybervpn-config');
   Object.defineProperty(URL, 'createObjectURL', {
     configurable: true,
@@ -293,10 +308,25 @@ describe('ServerAccessDashboard', () => {
     });
   });
 
-  it('copies, opens, and downloads delivery values without rendering the full secret', async () => {
+  it('copies, opens, downloads, and explicitly reveals delivery values', async () => {
     const { container } = renderWithQueryClient(<ServerAccessDashboard />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /config\.copySubscription/i }));
+    const revealButton = await screen.findByRole('button', { name: /config\.showFullValue/i });
+    expect(revealButton).toHaveAttribute('aria-pressed', 'false');
+    expect(container.textContent).not.toContain('https://vpn.example/sub/user-1');
+    expect(container.textContent).not.toContain('vless://raw-config-value-for-user-1');
+
+    fireEvent.click(revealButton);
+    expect(
+      screen.getByRole('button', { name: /config\.hideFullValue/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('https://vpn.example/sub/user-1')).toBeInTheDocument();
+    expect(container.textContent).not.toContain('vless://raw-config-value-for-user-1');
+
+    fireEvent.click(screen.getByRole('button', { name: /config\.hideFullValue/i }));
+    expect(container.textContent).not.toContain('https://vpn.example/sub/user-1');
+
+    fireEvent.click(screen.getByRole('button', { name: /config\.copySubscription/i }));
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledWith('https://vpn.example/sub/user-1');
     });
@@ -327,6 +357,46 @@ describe('ServerAccessDashboard', () => {
 
     expect(container.textContent).not.toContain('https://vpn.example/sub/user-1');
     expect(container.textContent).not.toContain('vless://raw-config-value-for-user-1');
+  });
+
+  it('masks the delivery value again when the selected subscription changes', async () => {
+    getConfigMock.mockImplementation(async (subscriptionKey: string) => ({
+      data:
+        subscriptionKey === 'grant:next-grant'
+          ? {
+              config: 'vless://raw-config-value-for-user-2',
+              isFound: true,
+              links: ['vless://connection-link-2'],
+              ssConfLinks: {},
+              subscriptionUrl: 'https://vpn.example/sub/user-2',
+            }
+          : {
+              config: 'vless://raw-config-value-for-user-1',
+              isFound: true,
+              links: ['vless://connection-link'],
+              ssConfLinks: {},
+              subscriptionUrl: 'https://vpn.example/sub/user-1',
+            },
+    }));
+
+    const { container, rerender } = renderWithQueryClient(<ServerAccessDashboard />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /config\.showFullValue/i }));
+    expect(screen.getByText('https://vpn.example/sub/user-1')).toBeInTheDocument();
+
+    getSelectedSubscriptionKeyMock.mockReturnValue('grant:next-grant');
+    rerender(<ServerAccessDashboard />);
+
+    await waitFor(() => {
+      expect(getConfigMock).toHaveBeenCalledWith('grant:next-grant');
+    });
+
+    expect(
+      await screen.findByRole('button', { name: /config\.showFullValue/i }),
+    ).toHaveAttribute('aria-pressed', 'false');
+    expect(container.textContent).not.toContain('https://vpn.example/sub/user-1');
+    expect(container.textContent).not.toContain('https://vpn.example/sub/user-2');
+    expect(container.textContent).not.toContain('vless://raw-config-value-for-user-2');
   });
 
   it('shows plan and settings recovery links when provisioning is incomplete', async () => {

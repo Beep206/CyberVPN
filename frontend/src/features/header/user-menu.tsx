@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { useAuthStore } from '@/stores/auth-store';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
@@ -19,12 +20,15 @@ import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
+type UserMenuItemId = 'billing' | 'dashboard' | 'profile' | 'security' | 'settings';
+
 export function UserMenu() {
+    const t = useTranslations('Header');
     const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
     const queryClient = useQueryClient();
     const { user, logout } = useAuthStore();
-    const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+    const [hoveredItem, setHoveredItem] = useState<UserMenuItemId | null>(null);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -54,39 +58,44 @@ export function UserMenu() {
 
     const menuItems = [
         {
+            id: 'dashboard' as const,
             icon: LayoutDashboard,
-            label: 'Dashboard',
+            label: t('userMenu.dashboard'),
             href: '/dashboard',
             color: 'text-neon-cyan',
-            desc: 'Overview & Stats'
+            desc: t('userMenu.dashboardDescription')
         },
         {
+            id: 'profile' as const,
             icon: UserCircle,
-            label: 'Profile',
+            label: t('userMenu.profile'),
             href: '/settings',
             color: 'text-neon-purple',
-            desc: 'Account Details'
+            desc: t('userMenu.profileDescription')
         },
         {
+            id: 'security' as const,
             icon: Shield,
-            label: 'Security',
+            label: t('userMenu.security'),
             href: '/settings',
             color: 'text-matrix-green',
-            desc: '2FA & Password'
+            desc: t('userMenu.securityDescription')
         },
         {
+            id: 'billing' as const,
             icon: CreditCard,
-            label: 'Billing',
+            label: t('userMenu.billing'),
             href: '/subscriptions',
             color: 'text-neon-yellow',
-            desc: 'Manage Plan'
+            desc: t('userMenu.billingDescription')
         },
         {
+            id: 'settings' as const,
             icon: Settings,
-            label: 'Settings',
+            label: t('userMenu.settings'),
             href: '/settings',
             color: 'text-muted-foreground',
-            desc: 'App Preferences'
+            desc: t('userMenu.settingsDescription')
         },
     ];
 
@@ -94,6 +103,11 @@ export function UserMenu() {
         <div className="relative z-50" ref={dropdownRef}>
             <MagneticButton strength={10}>
                 <button
+                    type="button"
+                    aria-label={t('userMenu.open')}
+                    aria-expanded={isOpen}
+                    aria-controls="user-menu-panel"
+                    aria-haspopup="menu"
                     onClick={() => setIsOpen(!isOpen)}
                     className={cn(
                         "flex items-center gap-2 p-1 pl-2 pr-1 rounded-full border transition-all duration-300 group relative overflow-hidden",
@@ -107,7 +121,7 @@ export function UserMenu() {
                     </span>
 
                     {/* Status Dot */}
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-matrix-green shadow-[0_0_8px_theme(colors.matrix-green.DEFAULT)] animate-pulse" />
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-matrix-green shadow-[0_0_8px_theme(colors.matrix-green.DEFAULT)] animate-pulse" aria-hidden="true" />
 
                     <div className="relative group-hover:scale-105 transition-transform duration-300">
                         <Avatar className="h-8 w-8 border border-white/10 group-hover:border-neon-cyan/50 transition-colors">
@@ -128,6 +142,7 @@ export function UserMenu() {
                             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
                             exit={{ opacity: 0, y: 10, scale: 0.95, filter: 'blur(10px)' }}
                             transition={{ duration: 0.2, ease: "circOut" }}
+                            id="user-menu-panel"
                             className="absolute right-0 top-full mt-3 z-50 w-72 bg-background/95 dark:bg-terminal-surface/80 border border-border/50 dark:border-white/10 rounded-2xl shadow-xl dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)] backdrop-blur-3xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5"
                         >
                             {/* Cyber Header - Kept distinctive for profile identity, but with adjusted opacity for light mode */}
@@ -149,22 +164,22 @@ export function UserMenu() {
                                                 {initials}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-matrix-green border-2 border-background dark:border-black rounded-full shadow-[0_0_8px_theme(colors.matrix-green.DEFAULT)]" />
+                                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-matrix-green border-2 border-background dark:border-black rounded-full shadow-[0_0_8px_theme(colors.matrix-green.DEFAULT)]" aria-hidden="true" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-sm text-foreground truncate flex items-center gap-2">
                                             {user?.login}
-                                            <Sparkles className="w-3 h-3 text-neon-yellow animate-pulse" />
+                                            <Sparkles className="w-3 h-3 text-neon-yellow animate-pulse" aria-hidden="true" />
                                         </h4>
                                         <p className="text-xs text-muted-foreground truncate font-mono opacity-80">
                                             {user?.email}
                                         </p>
                                         <div className="mt-1.5 flex items-center gap-2">
                                             <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20">
-                                                PRO
+                                                {t('userMenu.subscriptionBadge')}
                                             </span>
                                             <span className="text-[10px] text-muted-foreground/50 font-mono">
-                                                ID: {user?.id?.substring(0, 4)}...
+                                                {t('userMenu.userIdPrefix')}: {user?.id?.substring(0, 4)}...
                                             </span>
                                         </div>
                                     </div>
@@ -174,16 +189,16 @@ export function UserMenu() {
                             {/* Menu Items */}
                             <div className="p-2 space-y-0.5 relative">
                                 {menuItems.map((item, index) => (
-                                    <div key={item.href}>
+                                    <div key={item.id}>
                                         <Link
                                             href={item.href}
                                             onClick={() => setIsOpen(false)}
                                             prefetch={false}
-                                            onMouseEnter={() => setHoveredItem(item.href)}
+                                            onMouseEnter={() => setHoveredItem(item.id)}
                                             onMouseLeave={() => setHoveredItem(null)}
                                             className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group/item overflow-hidden"
                                         >
-                                            {hoveredItem === item.href && (
+                                            {hoveredItem === item.id && (
                                                 <motion.div
                                                     layoutId="menuHover"
                                                     className="absolute inset-0 bg-gradient-to-r from-accent/80 via-accent/40 to-transparent dark:from-white/10 dark:via-white/5 dark:to-transparent"
@@ -201,15 +216,15 @@ export function UserMenu() {
                                                 "group-hover/item:scale-110 group-hover/item:rotate-3 group-hover/item:shadow-[0_0_15px_-5px_currentColor]",
                                                 item.color.replace('text-', 'text-opacity-80 ')
                                             )}>
-                                                <item.icon className={cn("w-4 h-4 transition-transform duration-300", item.color)} />
+                                                <item.icon className={cn("w-4 h-4 transition-transform duration-300", item.color)} aria-hidden="true" />
                                             </div>
 
                                             <div className="flex-1 relative z-10">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-sm font-medium text-muted-foreground group-hover/item:text-foreground group-hover/item:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                                        <CypherText text={item.label} trigger={hoveredItem === item.href} speed={40} />
+                                                        <CypherText text={item.label} trigger={hoveredItem === item.id} speed={40} />
                                                     </span>
-                                                    <ChevronRight className="w-3 h-3 text-primary dark:text-neon-cyan opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all duration-300 ease-out" />
+                                                    <ChevronRight className="w-3 h-3 text-primary dark:text-neon-cyan opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all duration-300 ease-out" aria-hidden="true" />
                                                 </div>
                                                 <p className="text-[10px] text-muted-foreground/50 font-mono group-hover/item:text-muted-foreground/80 transition-colors delay-75">
                                                     {item.desc}
@@ -226,11 +241,12 @@ export function UserMenu() {
                             {/* Footer */}
                             <div className="p-2 border-t border-border/50 dark:border-white/5 mt-1 bg-muted/30 dark:bg-black/20">
                                 <button
+                                    type="button"
                                     onClick={handleLogout}
                                     className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300 transition-all group"
                                 >
-                                    <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                                    <span>Sign Out</span>
+                                    <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" aria-hidden="true" />
+                                    <span>{t('userMenu.signOut')}</span>
                                 </button>
                             </div>
                         </motion.div>

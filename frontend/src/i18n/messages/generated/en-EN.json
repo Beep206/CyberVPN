@@ -1211,9 +1211,31 @@
     "fps": "FPS",
     "integrity": "INTEGRITY CHECK PASSED",
     "language": "LANG",
+    "mobileMenu": {
+      "close": "Close navigation menu",
+      "open": "Open navigation menu",
+      "primary": "Primary navigation"
+    },
     "netUplink": "NET_UPLINK",
+    "notificationsUnavailable": "Notifications are not available yet",
     "ping": "PING",
-    "systemLabel": "SYSTEM"
+    "systemLabel": "SYSTEM",
+    "userMenu": {
+      "billing": "Billing",
+      "billingDescription": "Subscription and payments",
+      "dashboard": "Dashboard",
+      "dashboardDescription": "Overview and access status",
+      "open": "Open account menu",
+      "profile": "Profile",
+      "profileDescription": "Account details",
+      "security": "Security",
+      "securityDescription": "2FA and password",
+      "settings": "Settings",
+      "settingsDescription": "App preferences",
+      "signOut": "Sign Out",
+      "subscriptionBadge": "PRO",
+      "userIdPrefix": "ID"
+    }
   },
   "HelpCenter": {
     "categories_intro": "Pick a verified module and jump straight to the relevant answers.",
@@ -3090,10 +3112,12 @@
         "ready": "Config is ready."
       },
       "eyebrow": "Import kit",
+      "hideFullValue": "Hide full value",
       "openSubscription": "Open link",
       "qrCode": "QR code",
       "rawConfig": "Raw config",
       "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device.",
+      "showFullValue": "Show full value",
       "status": {
         "missing_config": "Config pending",
         "missing_profile": "Profile missing",
@@ -3741,16 +3765,6 @@
     },
     "checkoutCodesDescription": "Promo codes belong in checkout. Invite redemption stays in the rewards hub so pricing and access do not diverge across surfaces.",
     "checkoutCodesTitle": "Checkout codes",
-    "checkoutQuote": {
-      "chargedIn": "Charged in {currency}",
-      "expiredBody": "Refresh the quote before checkout so backend totals, country and currency are current.",
-      "expiredTitle": "Quote expired",
-      "gatewayAmount": "Gateway amount: {amount}. Charged in {currency}.",
-      "loadError": "Failed to load checkout quote",
-      "refreshCta": "Refresh quote",
-      "refreshError": "Failed to refresh checkout quote",
-      "refreshing": "Refreshing quote..."
-    },
     "choosePlanBelow": "Choose a plan below to get started",
     "codesAndRewards": "Codes & Rewards",
     "current": {
@@ -3819,13 +3833,128 @@
       "quoteReady": "Quote ready: {amount}",
       "upgrade": "Upgrade"
     },
+    "planCard": {
+      "badges": {
+        "max": "Flagship",
+        "plus": "Most Popular"
+      },
+      "chargedInBillingCurrency": "Billed by checkout in {currency}",
+      "connectionModes": {
+        "dedicatedIp": "Dedicated IP",
+        "manualConfig": "Manual / Advanced",
+        "standard": "Standard",
+        "stealth": "Stealth"
+      },
+      "currentAction": "Current Plan",
+      "currentBadge": "CURRENT PLAN",
+      "dedicatedIpAvailable": "Dedicated IP available as add-on",
+      "dedicatedIpIncluded": "{count} dedicated IP included",
+      "deviceCount": "{count} devices",
+      "devices": "Devices",
+      "durationDays": "{days} days",
+      "inviteBundle": "{count} invites for {days} days",
+      "localDisplayEstimate": "Display estimate: {price}",
+      "modes": "Modes",
+      "noInviteBundle": "No invite bundle",
+      "perDuration": "per {duration}",
+      "purchaseAction": "Purchase",
+      "serverPools": {
+        "exclusive": "Exclusive pool",
+        "premium": "Premium pool",
+        "shared": "Shared pool",
+        "sharedPlus": "Shared+ pool"
+      },
+      "support": {
+        "priority": "Priority support",
+        "standard": "Standard support",
+        "vip": "VIP support"
+      },
+      "unlimitedTraffic": "Unlimited"
+    },
     "plans": {
       "description": "Public plans are loaded from the canonical web catalog. Current plan is locked; other plans are quoted before purchase or upgrade.",
       "empty": "No public plans are available right now.",
+      "emptyFilter": "No public plans match this filter.",
       "eyebrow": "Plan catalog",
+      "filteredCount": "{count}/{total} visible plans",
+      "filters": {
+        "all": "All",
+        "change": "Changes",
+        "current": "Current",
+        "label": "Filter subscription catalog",
+        "purchase": "New",
+        "upgrade": "Upgrades"
+      },
+      "groups": {
+        "change": "Plan changes",
+        "current": "Current plan",
+        "purchase": "New subscriptions",
+        "upgrade": "Upgrade path"
+      },
       "perCycle": "per {duration}",
       "publicCount": "{count} public plans",
       "title": "Choose the next access tier"
+    },
+    "purchaseModal": {
+      "actions": {
+        "activateNow": "Activate Now",
+        "cancel": "Cancel",
+        "payWithCrypto": "Pay with Crypto",
+        "tryAgain": "Try Again"
+      },
+      "checkoutCode": {
+        "applied": "{code} applied",
+        "apply": "Apply Code",
+        "discountApplied": "{code} applied: {discount} off",
+        "label": "Checkout Code",
+        "quoteUpdated": "Quote Updated",
+        "title": "Have a Checkout Code?",
+        "updating": "Updating quote..."
+      },
+      "codeFeedback": {
+        "checkoutAccepted": "Checkout code accepted. Quote updated.",
+        "referralAccepted": "Referral friend discount accepted. Quote updated."
+      },
+      "errors": {
+        "checkoutCodeInvalid": "Checkout code not valid",
+        "commitCheckout": "Failed to commit checkout",
+        "createInvoice": "Failed to create payment invoice",
+        "enterCheckoutCode": "Please enter a checkout code",
+        "generic": "An error occurred. Please try again.",
+        "loadQuote": "Failed to load checkout quote"
+      },
+      "errorTitle": "Payment Failed",
+      "labels": {
+        "catalogPrice": "Catalog price: {price}",
+        "chargedInBillingCurrency": "Charged in {currency}",
+        "checkoutTotal": "Checkout total",
+        "connectionModes": "Connection modes",
+        "devices": "Devices",
+        "support": "Support",
+        "trafficPolicy": "Traffic policy"
+      },
+      "processing": "Creating payment invoice...",
+      "secureCheckout": {
+        "description": "The dashboard resolves checkout codes before payment and carries accepted backend quote pricing directly into checkout.",
+        "gatewayAmount": "Gateway amount: {amount}. Charged in {currency}.",
+        "title": "Secure checkout"
+      },
+      "success": {
+        "paymentPageOpened": {
+          "description": "Complete your payment in the new tab to activate your subscription.",
+          "title": "Payment page opened"
+        },
+        "subscriptionActivated": {
+          "description": "Your subscription is now active and the entitlement snapshot has been committed.",
+          "title": "Subscription activated"
+        }
+      },
+      "titles": {
+        "confirm": "CONFIRM_PURCHASE",
+        "error": "PAYMENT_ERROR",
+        "processing": "PROCESSING_PAYMENT",
+        "success": "PAYMENT_READY"
+      }
     },
     "rewardsHubCta": "Open rewards hub",
     "rewardsHubDescription": "Manage invite codes, referral sharing, and invite redemption from one place instead of splitting the flow across subscription screens.",
@@ -3848,6 +3977,15 @@
       "days": "{count}d",
       "expires": "Time left",
       "plan": "Plan"
+    },
+    "switcher": {
+      "accountScoped": "VPN config is account-scoped for now; the selected subscription controls the commercial context.",
+      "empty": "No subscriptions found yet",
+      "label": "Subscription selector",
+      "loading": "Loading subscriptions",
+      "refresh": "Refresh",
+      "selected": "Selected",
+      "status": "Status"
     },
     "sync": {
       "degraded": "Degraded",

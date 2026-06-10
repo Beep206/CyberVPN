@@ -69,6 +69,7 @@ describe('PublicTerminalHeaderControls', () => {
         downloadLabel="Download"
         loginLabel="Sign In"
         navLinks={navLinks}
+        primaryNavLabel="Primary navigation"
         registerLabel="Create Account"
       />,
     );
@@ -109,6 +110,7 @@ describe('PublicTerminalHeaderControls', () => {
         downloadLabel="Download"
         loginLabel="Sign In"
         navLinks={navLinks}
+        primaryNavLabel="Primary navigation"
         registerLabel="Create Account"
       />,
     );

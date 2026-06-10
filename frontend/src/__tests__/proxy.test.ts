@@ -78,6 +78,21 @@ describe('proxy routing', () => {
     expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net:9001/en-EN/dashboard?tab=ops');
   });
 
+  it('redirects public delete-account route to cabinet host', () => {
+    const req = createRequest('/ru-RU/delete-account', undefined, 'https://cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/ru-RU/delete-account');
+  });
+
+  it('passes delete-account route through on cabinet host', () => {
+    const req = createRequest('/ru-RU/delete-account', undefined, 'https://my.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(200);
+  });
+
   it('passes register route through', () => {
     const req = createRequest('/en-EN/register');
     const res = proxy(req);
