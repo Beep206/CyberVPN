@@ -431,6 +431,75 @@ async def test_repeated_admin_login_reuses_browser_device_and_replaces_session()
 
 
 @pytest.mark.integration
+async def test_customer_devices_do_not_expose_vpn_entitlement_device_quota(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fail_on_entitlement_snapshot(*args, **kwargs):
+        raise AssertionError("web session device listing must not read VPN entitlement device quotas")
+
+    monkeypatch.setattr(
+        "src.application.services.entitlements_service.EntitlementsService.get_current_snapshot",
+        fail_on_entitlement_snapshot,
+    )
+
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            with sessionmaker() as db:
+                realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
+                customer_realm = await realm_repo.get_or_create_default_realm("customer")
+
+                user = AdminUserModel(
+                    login="realm_customer_devices_user",
+                    email="customer-devices@example.com",
+                    auth_realm_id=customer_realm.id,
+                    password_hash=await auth_service.hash_password("RealmCustomerDevicesP@ssword123!"),
+                    role="viewer",
+                    is_active=True,
+                    is_email_verified=True,
+                )
+                db.add(user)
+                db.commit()
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="http://127.0.0.1:13000",
+                headers={"User-Agent": "CyberVPNCustomerDeviceList/1.0"},
+            ) as client:
+                login_response = await client.post(
+                    "/api/v1/auth/login",
+                    headers={"Origin": "http://127.0.0.1:13000"},
+                    json={
+                        "login_or_email": "customer-devices@example.com",
+                        "password": "RealmCustomerDevicesP@ssword123!",
+                    },
+                )
+                assert login_response.status_code == 200
+
+                devices_response = await client.get("/api/v1/auth/devices")
+                assert devices_response.status_code == 200
+                payload = devices_response.json()
+                assert payload["total"] == 1
+                assert payload["total_devices"] == 1
+                assert payload["device_limit"] is None
+                assert payload["remaining_devices"] is None
+                assert payload["devices"][0]["user_agent"] == "CyberVPNCustomerDeviceList/1.0"
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.integration
 async def test_admin_devices_list_returns_unique_devices_after_refresh_rotation() -> None:
     auth_service = AuthService()
     fake_redis = FakeRedis()

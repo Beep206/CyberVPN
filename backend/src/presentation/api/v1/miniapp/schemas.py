@@ -21,6 +21,7 @@ from src.presentation.api.v1.trial.schemas import TrialActivateResponse, TrialSt
 class MiniAppBootstrapSessionResponse(BaseModel):
     authenticated: bool
     user_id: str | None = Field(None, alias="userId")
+    public_uid: int | None = Field(None, alias="publicUid")
     telegram_user_id: str | None = Field(None, alias="telegramUserId")
     auth_realm: Literal["customer", "partner_customer"] = Field(..., alias="authRealm")
 
@@ -65,6 +66,7 @@ class MiniAppBootstrapRuntimeResponse(BaseModel):
 
 
 class MiniAppBootstrapUserResponse(BaseModel):
+    public_uid: int | None = Field(None, alias="publicUid")
     first_name: str | None = Field(None, alias="firstName")
     username: str | None = None
     photo_url: str | None = Field(None, alias="photoUrl")

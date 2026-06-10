@@ -37,7 +37,15 @@ export async function PublicTerminalHeader({
     <header className="sticky top-0 z-30 border-b border-grid-line/50 bg-terminal-surface/95 backdrop-blur-xl shadow-sm transition-all dark:shadow-none">
       <div className="flex h-16 w-full items-center gap-3 px-4 sm:px-5 md:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-4">
-          <PublicTerminalMobileMenu locale={resolvedLocale} links={navLinks} />
+          <PublicTerminalMobileMenu
+            labels={{
+              close: headerT('mobileMenu.close'),
+              open: headerT('mobileMenu.open'),
+              primary: headerT('mobileMenu.primary'),
+            }}
+            locale={resolvedLocale}
+            links={navLinks}
+          />
 
           <TerminalHeaderPerformance
             mode={performanceMode}
@@ -56,6 +64,7 @@ export async function PublicTerminalHeader({
           loginLabel={loginT('submitButton')}
           locale={resolvedLocale}
           navLinks={navLinks}
+          primaryNavLabel={headerT('mobileMenu.primary')}
           registerLabel={registerT('submitButton')}
         />
       </div>

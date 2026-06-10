@@ -243,18 +243,18 @@ export function DeleteAccountClient() {
             <label htmlFor="confirmation" className="text-gray-300">{t('form.fields.confirmation.label')}</label>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <button
               type="submit"
               disabled={isPending || !isConfirmTextValid || !confirmed}
-              className="flex-1 px-6 py-3 bg-red-600 text-white font-semibold rounded-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex min-h-12 w-full items-center justify-center px-4 py-3 text-center bg-red-600 text-white font-semibold rounded-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:flex-1 sm:px-6"
               aria-label={t('form.submit')}
             >
               {isPending ? t('form.submitting') : t('form.submit')}
             </button>
             <Link
               href="/"
-              className="flex-1 px-6 py-3 bg-gray-700 text-white font-semibold rounded-sm hover:bg-gray-600 transition-colors text-center"
+              className="inline-flex min-h-12 w-full items-center justify-center px-4 py-3 text-center bg-gray-700 text-white font-semibold rounded-sm hover:bg-gray-600 transition-colors sm:flex-1 sm:px-6"
               aria-label={t('form.cancel')}
             >
               {t('form.cancel')}

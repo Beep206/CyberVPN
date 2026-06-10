@@ -28,11 +28,20 @@ const iconMap: Record<PublicHeaderNavLink['icon'], typeof Home> = {
 };
 
 interface PublicTerminalMobileMenuProps {
+  labels: {
+    close: string;
+    open: string;
+    primary: string;
+  };
   links: PublicHeaderNavLink[];
   locale: string;
 }
 
-export function PublicTerminalMobileMenu({ links, locale }: PublicTerminalMobileMenuProps) {
+export function PublicTerminalMobileMenu({
+  labels,
+  links,
+  locale,
+}: PublicTerminalMobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -66,9 +75,10 @@ export function PublicTerminalMobileMenu({ links, locale }: PublicTerminalMobile
     <div ref={menuRef} className="relative lg:hidden">
       <button
         type="button"
-        aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        aria-label={isOpen ? labels.close : labels.open}
         aria-expanded={isOpen}
         aria-controls="public-mobile-navigation"
+        aria-haspopup="menu"
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
           'touch-target inline-flex items-center justify-center rounded-lg border px-3',
@@ -78,13 +88,18 @@ export function PublicTerminalMobileMenu({ links, locale }: PublicTerminalMobile
           'dark:border-white/10 dark:bg-black/40',
         )}
       >
-        {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        {isOpen ? (
+          <X className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <Menu className="h-4 w-4" aria-hidden="true" />
+        )}
       </button>
 
       <AnimatePresence>
         {isOpen ? (
           <motion.nav
             id="public-mobile-navigation"
+            aria-label={labels.primary}
             initial={{ opacity: 0, y: -6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
@@ -111,7 +126,7 @@ export function PublicTerminalMobileMenu({ links, locale }: PublicTerminalMobile
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan/50',
                     )}
                   >
-                    <Icon className="h-4 w-4 text-neon-cyan" />
+                    <Icon className="h-4 w-4 text-neon-cyan" aria-hidden="true" />
                     <span>{link.label}</span>
                   </Link>
                 );

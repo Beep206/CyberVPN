@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Modal } from '@/shared/ui/modal';
 import { CyberInput } from '@/features/auth/components/CyberInput';
 import { twofaApi } from '@/lib/api/twofa';
 import { motion } from 'motion/react';
 import { ShieldCheck, Key, Copy, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
-import { AxiosError } from 'axios';
 import { RateLimitError } from '@/lib/api/client';
+import { getApiErrorDetail } from './security-modal-utils';
 
 interface TwoFactorModalProps {
   isOpen: boolean;
@@ -20,6 +21,9 @@ type EnableStep = 'reauth' | 'setup' | 'verify' | 'success';
 type DisableStep = 'confirm' | 'success';
 
 export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFactorModalProps) {
+  const t = useTranslations('Settings.cabinet.securityFlows.twoFactor');
+  const commonT = useTranslations('Settings.cabinet.securityFlows.common');
+
   // Enable flow state
   const [enableStep, setEnableStep] = useState<EnableStep>('reauth');
   const [password, setPassword] = useState('');
@@ -78,7 +82,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
   // Enable flow: Step 1 - Reauth
   const handleReauth = async () => {
     if (!password) {
-      setError('Password is required');
+      setError(t('validation.passwordRequired'));
       return;
     }
 
@@ -94,10 +98,8 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
       if (err instanceof RateLimitError) {
         setError(err.message);
         startRateLimitCountdown(err.retryAfter);
-      } else if (err instanceof AxiosError) {
-        setError(err.response?.data?.detail || 'Invalid password');
       } else {
-        setError('An error occurred. Please try again.');
+        setError(getApiErrorDetail(err) ?? t('errors.invalidPassword'));
       }
     } finally {
       setLoading(false);
@@ -115,7 +117,12 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
 
       setSecret(data.secret);
       setQrCodeUri(data.qr_uri);
-      setBackupCodes((data as Record<string, unknown>).backup_codes as string[] ?? []);
+      const backupCodesValue = (data as { backup_codes?: unknown }).backup_codes;
+      setBackupCodes(
+        Array.isArray(backupCodesValue) && backupCodesValue.every((code) => typeof code === 'string')
+          ? backupCodesValue
+          : [],
+      );
 
       // Generate QR code data URL dynamically
       const QRCode = (await import('qrcode')).default;
@@ -131,11 +138,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
 
       setEnableStep('verify');
     } catch (err) {
-      if (err instanceof AxiosError) {
-        setError(err.response?.data?.detail || 'Failed to generate 2FA secret');
-      } else {
-        setError('An error occurred. Please try again.');
-      }
+      setError(getApiErrorDetail(err) ?? t('errors.setupFailed'));
       setEnableStep('reauth');
     } finally {
       setLoading(false);
@@ -145,7 +148,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
   // Enable flow: Step 3 - Verify
   const handleVerify = async () => {
     if (!totpCode || totpCode.length !== 6) {
-      setError('Please enter a valid 6-digit code');
+      setError(t('validation.codeRequired'));
       return;
     }
 
@@ -159,10 +162,8 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
       if (err instanceof RateLimitError) {
         setError(err.message);
         startRateLimitCountdown(err.retryAfter);
-      } else if (err instanceof AxiosError) {
-        setError(err.response?.data?.detail || 'Invalid verification code');
       } else {
-        setError('An error occurred. Please try again.');
+        setError(getApiErrorDetail(err) ?? t('errors.invalidVerificationCode'));
       }
     } finally {
       setLoading(false);
@@ -172,11 +173,11 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
   // Disable flow
   const handleDisable = async () => {
     if (!disablePassword) {
-      setError('Password is required');
+      setError(t('validation.passwordRequired'));
       return;
     }
     if (!disableTotpCode || disableTotpCode.length !== 6) {
-      setError('Please enter a valid 6-digit code');
+      setError(t('validation.codeRequired'));
       return;
     }
 
@@ -190,10 +191,8 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
       if (err instanceof RateLimitError) {
         setError(err.message);
         startRateLimitCountdown(err.retryAfter);
-      } else if (err instanceof AxiosError) {
-        setError(err.response?.data?.detail || 'Invalid credentials');
       } else {
-        setError('An error occurred. Please try again.');
+        setError(getApiErrorDetail(err) ?? t('errors.invalidCredentials'));
       }
     } finally {
       setLoading(false);
@@ -207,7 +206,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError('Failed to copy to clipboard');
+      setError(commonT('errors.copyFailed'));
     }
   };
 
@@ -229,19 +228,19 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
             <div className="text-center space-y-2">
               <ShieldCheck className="h-16 w-16 text-neon-cyan mx-auto" />
               <h3 className="text-lg font-display text-neon-cyan">
-                Enable Two-Factor Authentication
+                {t('reauth.title')}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Re-authenticate with your password to continue
+                {t('reauth.description')}
               </p>
             </div>
 
             <CyberInput
-              label="Password"
+              label={t('password.label')}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder={t('password.placeholder')}
               prefix="2fa"
               error={error}
               disabled={loading || rateLimitSeconds !== null}
@@ -255,7 +254,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
                 className="flex items-center gap-2 text-yellow-500 text-sm font-mono"
               >
                 <AlertCircle className="h-4 w-4" />
-                <span>Retry in {rateLimitSeconds}s</span>
+                <span>{commonT('retryIn', { seconds: rateLimitSeconds })}</span>
               </motion.div>
             )}
 
@@ -264,7 +263,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
               disabled={loading || rateLimitSeconds !== null}
               className="w-full px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Verifying...' : 'Continue'}
+              {loading ? t('actions.verifying') : t('actions.continue')}
             </button>
           </div>
         );
@@ -278,7 +277,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
               className="space-y-2"
             >
               <Key className="h-8 w-8 text-neon-cyan mx-auto animate-pulse" />
-              <p className="text-sm text-muted-foreground">Generating secure secret...</p>
+              <p className="text-sm text-muted-foreground">{t('setup.generating')}</p>
             </motion.div>
           </div>
         );
@@ -289,10 +288,10 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
             <div className="text-center space-y-4">
               <Smartphone className="h-12 w-12 text-neon-cyan mx-auto" />
               <h3 className="text-lg font-display text-neon-cyan">
-                Scan QR Code
+                {t('verify.title')}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+                {t('verify.description')}
               </p>
             </div>
 
@@ -301,7 +300,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
               <div className="flex justify-center">
                 <div className="p-4 bg-white rounded-lg">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qrCodeDataUrl} alt="2FA QR Code" className="w-64 h-64" />
+                  <img src={qrCodeDataUrl} alt={t('verify.qrAlt')} className="w-64 h-64" />
                 </div>
               </div>
             )}
@@ -309,7 +308,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
             {/* Manual Secret */}
             <div className="space-y-2">
               <label className="block text-sm font-mono text-muted-foreground">
-                Or enter this secret manually:
+                {t('verify.manualSecret')}
               </label>
               <div className="flex items-center gap-2">
                 <code className="flex-1 px-4 py-2 bg-terminal-bg border border-grid-line/50 rounded font-mono text-sm text-matrix-green break-all">
@@ -318,7 +317,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
                 <button
                   onClick={copySecret}
                   className="px-3 py-2 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan rounded transition-colors"
-                  aria-label="Copy secret"
+                  aria-label={t('actions.copySecret')}
                 >
                   {copiedSecret ? <CheckCircle className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
                 </button>
@@ -328,7 +327,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
             {/* Verify Code Input */}
             <div className="space-y-4">
               <CyberInput
-                label="Verification Code"
+                label={t('code.label')}
                 type="text"
                 value={totpCode}
                 onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -347,7 +346,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
                   className="flex items-center gap-2 text-yellow-500 text-sm font-mono"
                 >
                   <AlertCircle className="h-4 w-4" />
-                  <span>Retry in {rateLimitSeconds}s</span>
+                  <span>{commonT('retryIn', { seconds: rateLimitSeconds })}</span>
                 </motion.div>
               )}
 
@@ -356,7 +355,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
                 disabled={loading || totpCode.length !== 6 || rateLimitSeconds !== null}
                 className="w-full px-4 py-3 bg-matrix-green/20 hover:bg-matrix-green/30 border border-matrix-green/50 text-matrix-green font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Verifying...' : 'Verify & Enable'}
+                {loading ? t('actions.verifying') : t('actions.verifyAndEnable')}
               </button>
             </div>
           </div>
@@ -372,10 +371,10 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
             >
               <CheckCircle className="h-16 w-16 text-matrix-green mx-auto" />
               <h3 className="text-lg font-display text-matrix-green">
-                2FA Enabled Successfully!
+                {t('success.enabledTitle')}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Your account is now protected with two-factor authentication
+                {t('success.enabledDescription')}
               </p>
             </motion.div>
 
@@ -383,21 +382,21 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-mono text-neon-cyan">
-                  Backup Recovery Codes
+                  {t('backup.title')}
                 </label>
                 <button
                   onClick={copyBackupCodes}
                   className="px-3 py-1 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan rounded text-xs font-mono transition-colors flex items-center gap-2"
                 >
                   {copiedBackupCodes ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  {copiedBackupCodes ? 'Copied!' : 'Copy All'}
+                  {copiedBackupCodes ? commonT('actions.copied') : t('actions.copyBackupCodes')}
                 </button>
               </div>
 
               <div className="p-4 bg-terminal-bg border border-yellow-500/50 rounded space-y-2">
                 <p className="text-xs text-yellow-500 font-mono flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
-                  Save these codes securely! Each can only be used once.
+                  {t('backup.warning')}
                 </p>
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   {backupCodes.map((code, i) => (
@@ -413,7 +412,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
               onClick={handleFinalSuccess}
               className="w-full px-4 py-3 bg-matrix-green/20 hover:bg-matrix-green/30 border border-matrix-green/50 text-matrix-green font-mono text-sm rounded transition-colors"
             >
-              Done
+              {commonT('actions.done')}
             </button>
           </div>
         );
@@ -429,26 +428,26 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
             <div className="text-center space-y-2">
               <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
               <h3 className="text-lg font-display text-red-500">
-                Disable Two-Factor Authentication
+                {t('disable.title')}
               </h3>
               <p className="text-sm text-muted-foreground">
-                This will reduce the security of your account. Enter your password and current 2FA code to confirm.
+                {t('disable.description')}
               </p>
             </div>
 
             <div className="space-y-4">
               <CyberInput
-                label="Password"
+                label={t('password.label')}
                 type="password"
                 value={disablePassword}
                 onChange={(e) => setDisablePassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={t('password.placeholder')}
                 prefix="2fa"
                 disabled={loading || rateLimitSeconds !== null}
               />
 
               <CyberInput
-                label="2FA Code"
+                label={t('code.disableLabel')}
                 type="text"
                 value={disableTotpCode}
                 onChange={(e) => setDisableTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -467,7 +466,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
                   className="flex items-center gap-2 text-yellow-500 text-sm font-mono"
                 >
                   <AlertCircle className="h-4 w-4" />
-                  <span>Retry in {rateLimitSeconds}s</span>
+                  <span>{commonT('retryIn', { seconds: rateLimitSeconds })}</span>
                 </motion.div>
               )}
 
@@ -476,7 +475,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
                 disabled={loading || !disablePassword || disableTotpCode.length !== 6 || rateLimitSeconds !== null}
                 className="w-full px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Disabling...' : 'Disable 2FA'}
+                {loading ? t('actions.disabling') : t('actions.disable')}
               </button>
             </div>
           </div>
@@ -492,10 +491,10 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
             <CheckCircle className="h-16 w-16 text-matrix-green mx-auto" />
             <div className="space-y-2">
               <h3 className="text-lg font-display text-matrix-green">
-                2FA Disabled
+                {t('success.disabledTitle')}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Two-factor authentication has been disabled for your account
+                {t('success.disabledDescription')}
               </p>
             </div>
 
@@ -503,7 +502,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
               onClick={handleFinalSuccess}
               className="w-full px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors"
             >
-              Done
+              {commonT('actions.done')}
             </button>
           </motion.div>
         );
@@ -514,7 +513,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={isEnabled ? '2FA_DISABLE' : '2FA_ENABLE'}
+      title={isEnabled ? t('modalTitleDisable') : t('modalTitleEnable')}
     >
       {isEnabled ? renderDisableFlow() : renderEnableFlow()}
     </Modal>

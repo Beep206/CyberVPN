@@ -237,6 +237,182 @@
       "notAvailable": "n/a",
       "notSet": "Not set",
       "synced": "Synced"
+    },
+    "sectionNav": {
+      "ariaLabel": "Settings sections",
+      "profile": "Profile",
+      "security": "Security",
+      "notifications": "Notifications",
+      "devices": "Devices",
+      "identity": "Identity",
+      "privacy": "Privacy"
+    },
+    "securityFlows": {
+      "common": {
+        "actions": {
+          "cancel": "Cancel",
+          "copied": "Copied",
+          "done": "Done",
+          "saving": "Saving..."
+        },
+        "errors": {
+          "copyFailed": "Clipboard is unavailable.",
+          "generic": "An error occurred. Please try again."
+        },
+        "rateLimit": {
+          "title": "Rate limit active"
+        },
+        "retryIn": "Retry in {seconds}s",
+        "successTitle": "Success"
+      },
+      "twoFactor": {
+        "modalTitleEnable": "Enable 2FA",
+        "modalTitleDisable": "Disable 2FA",
+        "reauth": {
+          "title": "Enable two-factor authentication",
+          "description": "Re-authenticate with your password to continue."
+        },
+        "password": {
+          "label": "Password",
+          "placeholder": "Enter your password"
+        },
+        "code": {
+          "label": "Verification code",
+          "disableLabel": "2FA code"
+        },
+        "validation": {
+          "passwordRequired": "Password is required.",
+          "codeRequired": "Enter a valid 6-digit code."
+        },
+        "errors": {
+          "invalidPassword": "Invalid password.",
+          "setupFailed": "Could not generate a 2FA secret.",
+          "invalidVerificationCode": "Invalid verification code.",
+          "invalidCredentials": "Invalid password or 2FA code."
+        },
+        "setup": {
+          "generating": "Generating secure secret..."
+        },
+        "verify": {
+          "title": "Scan QR code",
+          "description": "Scan this QR code with your authenticator app.",
+          "qrAlt": "Two-factor authentication QR code",
+          "manualSecret": "Or enter this secret manually:"
+        },
+        "actions": {
+          "continue": "Continue",
+          "verifying": "Verifying...",
+          "verifyAndEnable": "Verify and enable",
+          "copySecret": "Copy secret",
+          "copyBackupCodes": "Copy all",
+          "enable": "Enable",
+          "disable": "Disable 2FA",
+          "disabling": "Disabling..."
+        },
+        "success": {
+          "enabledTitle": "2FA enabled successfully",
+          "enabledDescription": "Your account is now protected with two-factor authentication.",
+          "disabledTitle": "2FA disabled",
+          "disabledDescription": "Two-factor authentication has been disabled for your account."
+        },
+        "backup": {
+          "title": "Backup recovery codes",
+          "warning": "Save these codes securely. Each can only be used once."
+        },
+        "disable": {
+          "title": "Disable two-factor authentication",
+          "description": "This will reduce account protection. Enter your password and current 2FA code to confirm."
+        }
+      },
+      "password": {
+        "modalTitle": "Change password",
+        "title": "Update your password",
+        "description": "Enter your current password and choose a new one.",
+        "current": {
+          "label": "Current password",
+          "placeholder": "Enter current password"
+        },
+        "new": {
+          "label": "New password",
+          "placeholder": "Enter new password"
+        },
+        "confirm": {
+          "label": "Confirm new password",
+          "placeholder": "Confirm new password"
+        },
+        "validation": {
+          "currentPasswordRequired": "Current password is required.",
+          "newPasswordRequired": "New password is required.",
+          "passwordMismatch": "Passwords do not match.",
+          "passwordMustChange": "New password must be different from current password."
+        },
+        "errors": {
+          "currentPasswordIncorrect": "Current password is incorrect.",
+          "validationFailed": "Password validation failed."
+        },
+        "success": {
+          "title": "Password changed successfully",
+          "description": "Your password has been updated."
+        },
+        "actions": {
+          "change": "Change password",
+          "changing": "Changing password..."
+        },
+        "rateLimitInfo": "Rate limited to 3 attempts per hour."
+      },
+      "antiphishing": {
+        "modalTitle": "Anti-phishing code",
+        "loading": "Loading anti-phishing code...",
+        "view": {
+          "title": "Anti-phishing code",
+          "description": "This code appears in emails from us to verify authenticity.",
+          "currentCode": "Current code:"
+        },
+        "actions": {
+          "showCode": "Show code",
+          "hideCode": "Hide code",
+          "edit": "Edit code",
+          "delete": "Delete",
+          "create": "Create code",
+          "save": "Save code",
+          "deleting": "Deleting...",
+          "deleteCode": "Delete code"
+        },
+        "empty": {
+          "title": "No anti-phishing code set."
+        },
+        "edit": {
+          "title": "Edit code",
+          "description": "Choose a memorable code that will appear in our emails."
+        },
+        "create": {
+          "title": "Create code"
+        },
+        "input": {
+          "label": "Anti-phishing code",
+          "placeholder": "Enter code (1-50 characters)",
+          "length": "Length: {count}/50"
+        },
+        "validation": {
+          "required": "Anti-phishing code is required.",
+          "length": "Code must be between 1 and 50 characters.",
+          "tooShort": "Too short"
+        },
+        "errors": {
+          "loadFailed": "Could not load anti-phishing code.",
+          "saveFailed": "Could not save anti-phishing code.",
+          "deleteFailed": "Could not delete anti-phishing code."
+        },
+        "success": {
+          "created": "Code created successfully.",
+          "updated": "Code updated successfully.",
+          "deleted": "Code deleted successfully."
+        },
+        "deleteConfirm": {
+          "title": "Delete anti-phishing code?",
+          "description": "This will remove your anti-phishing code. Future emails will not include it."
+        }
+      }
     }
   },
   "title": "SETTINGS",

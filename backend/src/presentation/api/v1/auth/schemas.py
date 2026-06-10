@@ -410,8 +410,14 @@ class DeviceSessionListResponse(BaseModel):
     devices: list[DeviceSessionResponse] = Field(..., description="List of active sessions")
     total: int = Field(..., description="Backward-compatible total number of active devices")
     total_devices: int = Field(..., description="Total number of active unique devices")
-    device_limit: int | None = Field(..., description="Current realm device limit, if enforced")
-    remaining_devices: int | None = Field(..., description="Remaining devices before the enforced limit")
+    device_limit: int | None = Field(
+        ...,
+        description="Web session device limit, if enforced. VPN device quota is exposed by entitlement APIs.",
+    )
+    remaining_devices: int | None = Field(
+        ...,
+        description="Remaining web session devices before the enforced limit; null when not enforced.",
+    )
 
 
 class RevokeDeviceResponse(BaseModel):

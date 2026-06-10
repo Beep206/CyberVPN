@@ -27,6 +27,8 @@
     "eyebrow": "Набор импорта",
     "openSubscription": "Открыть ссылку",
     "rawConfig": "Raw config",
+    "showFullValue": "Показать полностью",
+    "hideFullValue": "Скрыть полностью",
     "status": {
       "missing_config": "Конфиг ожидается",
       "missing_profile": "Нет профиля",

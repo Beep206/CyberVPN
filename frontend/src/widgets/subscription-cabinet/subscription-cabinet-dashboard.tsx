@@ -87,11 +87,32 @@ type AsyncActionState = {
   quote?: CheckoutQuote;
   status: 'error' | 'idle' | 'loading' | 'quoted' | 'success';
 };
+type PlanCatalogFilter = 'all' | 'change' | 'current' | 'purchase' | 'upgrade';
+type PlanCatalogEntry = {
+  action: PlanAction;
+  plan: PlanRecord;
+};
 
 const LIVE_STALE_MS = 30_000;
 const CATALOG_STALE_MS = 5 * 60_000;
 const LIVE_REFETCH_MS = 45_000;
 const WEB_ADDON_BILLING_CURRENCY = 'USD';
+const PLAN_CATALOG_FILTERS: PlanCatalogFilter[] = [
+  'all',
+  'current',
+  'upgrade',
+  'change',
+  'purchase',
+];
+const PLAN_CATALOG_GROUPS: Array<{
+  actions: PlanAction[];
+  key: Exclude<PlanCatalogFilter, 'all'>;
+}> = [
+  { actions: ['current'], key: 'current' },
+  { actions: ['upgrade'], key: 'upgrade' },
+  { actions: ['downgrade'], key: 'change' },
+  { actions: ['purchase'], key: 'purchase' },
+];
 
 const toneClasses: Record<
   StatusTone,
@@ -172,6 +193,18 @@ function getPlanActionTone(action: PlanAction): StatusTone {
   }
 
   return 'purple';
+}
+
+function planEntryMatchesFilter(entry: PlanCatalogEntry, filter: PlanCatalogFilter): boolean {
+  if (filter === 'all') {
+    return true;
+  }
+
+  if (filter === 'change') {
+    return entry.action === 'downgrade';
+  }
+
+  return entry.action === filter;
 }
 
 function StatusPill({ label, tone }: { label: string; tone: StatusTone }) {
@@ -294,6 +327,7 @@ export function SubscriptionCabinetDashboard() {
     message: '',
     status: 'idle',
   });
+  const [planCatalogFilter, setPlanCatalogFilter] = useState<PlanCatalogFilter>('all');
   const [checkoutCode, setCheckoutCode] = useState('');
   const [trialState, setTrialState] = useState<'error' | 'idle' | 'loading' | 'success'>('idle');
 
@@ -446,6 +480,17 @@ export function SubscriptionCabinetDashboard() {
   const checkoutCodeForRequest =
     checkoutCodeDiscountsEnabled ? checkoutCode.trim().toUpperCase() || null : null;
   const currentPlanPrice = currentPlan ? getPlanPrice(currentPlan, locale) : null;
+  const planCatalogEntries = publicPlans.map((plan) => ({
+    action: getPlanAction({ currentPlan, entitlement, targetPlan: plan }),
+    plan,
+  }));
+  const filteredPlanCatalogEntries = planCatalogEntries.filter((entry) =>
+    planEntryMatchesFilter(entry, planCatalogFilter),
+  );
+  const planCatalogGroups = PLAN_CATALOG_GROUPS.map((group) => ({
+    ...group,
+    entries: filteredPlanCatalogEntries.filter((entry) => group.actions.includes(entry.action)),
+  })).filter((group) => group.entries.length > 0);
   const hasAnyError =
     capabilitiesQuery.isError ||
     entitlementQuery.isError ||
@@ -848,7 +893,7 @@ export function SubscriptionCabinetDashboard() {
             <LoadingBlock className="mt-6 min-h-56" />
           ) : (
             <div className="mt-6 space-y-5">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Metric label={t('current.devices')} value={deviceLimit ?? t('labels.notAvailable')} />
                 <Metric label={t('current.traffic')} value={trafficLabel} />
                 <Metric
@@ -1006,7 +1051,38 @@ export function SubscriptionCabinetDashboard() {
               {t('plans.description')}
             </p>
           </div>
-          <StatusPill label={t('plans.publicCount', { count: publicPlans.length })} tone="cyan" />
+          <StatusPill
+            label={t('plans.filteredCount', {
+              count: filteredPlanCatalogEntries.length,
+              total: publicPlans.length,
+            })}
+            tone="cyan"
+          />
+        </div>
+
+        <div
+          className="mt-6 flex flex-wrap gap-2"
+          aria-label={t('plans.filters.label')}
+        >
+          {PLAN_CATALOG_FILTERS.map((filter) => {
+            const isActiveFilter = planCatalogFilter === filter;
+
+            return (
+              <button
+                key={filter}
+                type="button"
+                aria-pressed={isActiveFilter}
+                onClick={() => setPlanCatalogFilter(filter)}
+                className={`inline-flex min-h-10 items-center rounded-xl border px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg ${
+                  isActiveFilter
+                    ? 'border-neon-cyan/50 bg-neon-cyan/15 text-neon-cyan'
+                    : 'border-grid-line/30 bg-black/20 text-muted-foreground hover:border-neon-cyan/35 hover:text-neon-cyan'
+                }`}
+              >
+                {t(`plans.filters.${filter}`)}
+              </button>
+            );
+          })}
         </div>
 
         {plansQuery.isPending ? (
@@ -1015,69 +1091,86 @@ export function SubscriptionCabinetDashboard() {
             <LoadingBlock />
             <LoadingBlock />
           </div>
-        ) : publicPlans.length > 0 ? (
-          <div className="mt-6 grid gap-4 lg:grid-cols-3">
-            {publicPlans.map((plan) => {
-              const action = getPlanAction({ currentPlan, entitlement, targetPlan: plan });
-              const price = getPlanPrice(plan, locale);
-              const stateForPlan = upgradeState.id === plan.uuid ? upgradeState : null;
+        ) : publicPlans.length > 0 && planCatalogGroups.length > 0 ? (
+          <div className="mt-6 space-y-6">
+            {planCatalogGroups.map((group) => (
+              <div key={group.key} className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-grid-line/30" aria-hidden="true" />
+                  <h3 className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                    {t(`plans.groups.${group.key}`)}
+                  </h3>
+                  <div className="h-px flex-1 bg-grid-line/30" aria-hidden="true" />
+                </div>
 
-              return (
-                <article
-                  key={plan.uuid}
-                  className={`rounded-3xl border bg-black/20 p-5 ${
-                    action === 'current' ? 'border-matrix-green/45' : 'border-grid-line/30'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                        {plan.plan_code}
-                      </p>
-                      <h3 className="mt-2 text-2xl font-display text-white">{plan.display_name}</h3>
-                    </div>
-                    <StatusPill label={t(`planActions.${action}`)} tone={getPlanActionTone(action)} />
-                  </div>
+                <div className="grid gap-4 lg:grid-cols-3">
+                  {group.entries.map(({ action, plan }) => {
+                    const price = getPlanPrice(plan, locale);
+                    const stateForPlan = upgradeState.id === plan.uuid ? upgradeState : null;
 
-                  <p className="mt-5 text-3xl font-display text-white">{price.formatted}</p>
-                  <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                    {t('plans.perCycle', { duration: formatDuration(plan.duration_days) })}
-                  </p>
+                    return (
+                      <article
+                        key={plan.uuid}
+                        className={`rounded-3xl border bg-black/20 p-5 ${
+                          action === 'current' ? 'border-matrix-green/45' : 'border-grid-line/30'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                              {plan.plan_code}
+                            </p>
+                            <h3 className="mt-2 text-2xl font-display text-white">{plan.display_name}</h3>
+                          </div>
+                          <StatusPill label={t(`planActions.${action}`)} tone={getPlanActionTone(action)} />
+                        </div>
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <Metric label={t('current.devices')} value={plan.devices_included} />
-                    <Metric label={t('current.traffic')} value={getTrafficLabel(plan, locale)} />
-                  </div>
+                        <p className="mt-5 text-3xl font-display text-white">{price.formatted}</p>
+                        <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                          {t('plans.perCycle', { duration: formatDuration(plan.duration_days, locale) })}
+                        </p>
 
-                  <p className="mt-4 font-mono text-sm leading-6 text-muted-foreground">
-                    {plan.connection_modes.map((mode) => formatLabel(mode, mode)).join(' + ')}
-                  </p>
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                          <Metric label={t('current.devices')} value={plan.devices_included} />
+                          <Metric label={t('current.traffic')} value={getTrafficLabel(plan, locale)} />
+                        </div>
 
-                  {stateForPlan?.message && (
-                    <p
-                      className={`mt-4 font-mono text-sm ${
-                        stateForPlan.status === 'error' ? 'text-amber-300' : 'text-matrix-green'
-                      }`}
-                      role="status"
-                    >
-                      {stateForPlan.message}
-                    </p>
-                  )}
+                        <p className="mt-4 font-mono text-sm leading-6 text-muted-foreground">
+                          {plan.connection_modes.map((mode) => formatLabel(mode, mode)).join(' + ')}
+                        </p>
 
-                  <PlanActionButton
-                    action={action}
-                    disabled={!canUsePlanWriteContract}
-                    loading={stateForPlan?.status === 'loading'}
-                    quoteReady={stateForPlan?.status === 'quoted'}
-                    onCommit={() => handleCommitUpgrade(plan)}
-                    onPurchase={() => setPurchasePlan(plan)}
-                    onQuote={() => handleQuoteUpgrade(plan)}
-                    t={t}
-                  />
-                </article>
-              );
-            })}
+                        {stateForPlan?.message && (
+                          <p
+                            className={`mt-4 font-mono text-sm ${
+                              stateForPlan.status === 'error' ? 'text-amber-300' : 'text-matrix-green'
+                            }`}
+                            role="status"
+                          >
+                            {stateForPlan.message}
+                          </p>
+                        )}
+
+                        <PlanActionButton
+                          action={action}
+                          disabled={!canUsePlanWriteContract}
+                          loading={stateForPlan?.status === 'loading'}
+                          quoteReady={stateForPlan?.status === 'quoted'}
+                          onCommit={() => handleCommitUpgrade(plan)}
+                          onPurchase={() => setPurchasePlan(plan)}
+                          onQuote={() => handleQuoteUpgrade(plan)}
+                          t={t}
+                        />
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
+        ) : publicPlans.length > 0 ? (
+          <p className="mt-6 rounded-2xl border border-grid-line/30 bg-black/20 p-5 font-mono text-sm text-muted-foreground">
+            {t('plans.emptyFilter')}
+          </p>
         ) : (
           <p className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 font-mono text-sm text-amber-100">
             {t('plans.empty')}
@@ -1294,11 +1387,11 @@ export function SubscriptionCabinetDashboard() {
 
 function Metric({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-grid-line/30 bg-black/20 p-4">
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="min-w-0 rounded-2xl border border-grid-line/30 bg-black/20 p-4">
+      <p className="whitespace-normal break-normal font-mono text-[11px] uppercase leading-5 tracking-[0.18em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-2 break-words font-display text-lg text-white">{value}</p>
+      <p className="mt-2 max-w-full whitespace-normal break-normal font-display text-lg leading-6 text-white">{value}</p>
     </div>
   );
 }

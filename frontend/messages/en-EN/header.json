@@ -6,5 +6,27 @@
     "netUplink": "NET_UPLINK",
     "fps": "FPS",
     "ping": "PING",
-    "language": "LANG"
+    "language": "LANG",
+    "mobileMenu": {
+        "close": "Close navigation menu",
+        "open": "Open navigation menu",
+        "primary": "Primary navigation"
+    },
+    "notificationsUnavailable": "Notifications are not available yet",
+    "userMenu": {
+        "billing": "Billing",
+        "billingDescription": "Subscription and payments",
+        "dashboard": "Dashboard",
+        "dashboardDescription": "Overview and access status",
+        "open": "Open account menu",
+        "profile": "Profile",
+        "profileDescription": "Account details",
+        "security": "Security",
+        "securityDescription": "2FA and password",
+        "settings": "Settings",
+        "settingsDescription": "App preferences",
+        "signOut": "Sign Out",
+        "subscriptionBadge": "PRO",
+        "userIdPrefix": "ID"
+    }
 }

@@ -1,7 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CyberInput } from '../CyberInput';
+
+vi.mock('next-intl', () => ({
+  useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
+}));
 
 describe('CyberInput', () => {
   it('keeps password controls mobile-safe and keyboard reachable', async () => {
@@ -17,7 +21,7 @@ describe('CyberInput', () => {
     );
 
     const input = screen.getByLabelText('Password');
-    const revealButton = screen.getByRole('button', { name: 'Show password' });
+    const revealButton = screen.getByRole('button', { name: 'A11y.showPassword' });
     const inputWrapper = input.parentElement;
 
     expect(inputWrapper?.className).toContain('min-w-0');
@@ -33,7 +37,7 @@ describe('CyberInput', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'text');
-      expect(screen.getByRole('button', { name: 'Hide password' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'A11y.hidePassword' })).toBeInTheDocument();
     });
   });
 });

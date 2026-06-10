@@ -253,6 +253,8 @@ The mobile app defines auth endpoints under `/api/v1/auth/*` but the backend als
 
 **Recommended fix:** Mobile app should use `/api/v1/mobile/auth/*` endpoints for register, login, refresh, logout, and me. The mobile auth module has device-aware session management, subscription info in responses, and mobile-specific rate limiting that the admin auth routes lack.
 
+**Identity display contract:** Customer-facing screens must display `public_uid` from mobile auth responses as the account ID. UUID values such as `id` remain internal API/session identifiers for compatibility and must not be shown next to the public UID in customer UI.
+
 ---
 
 ## Aligned Endpoints (Working)

@@ -344,7 +344,11 @@ function readNumericDelta(value: unknown): number {
   return 0;
 }
 
-export function formatDuration(days: number): string {
+export function formatDuration(days: number, locale = 'en-EN'): string {
+  if (locale.startsWith('ru')) {
+    return `${days} ${days === 1 ? 'день' : 'дн.'}`;
+  }
+
   if (days === 1) {
     return '1 day';
   }

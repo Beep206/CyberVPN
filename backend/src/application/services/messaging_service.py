@@ -366,6 +366,51 @@ class MessagingService:
             )
         return result
 
+    async def add_admin_support_ticket_reply(
+        self,
+        *,
+        support_ticket_id: UUID,
+        support_ticket_public_id: str,
+        support_message_id: UUID,
+        customer_account_id: UUID,
+        admin_id: UUID,
+        subject: str,
+        body: str,
+        priority: MessagingPriority = MessagingPriority.NORMAL,
+    ) -> MessagingMessageWriteResult:
+        client_message_id = f"support-ticket-message:{support_message_id}"
+        conversation = await self._repository.get_conversation_by_support_ticket_id(support_ticket_id)
+        if conversation is None:
+            conversation = await self.create_admin_conversation(
+                admin_id=admin_id,
+                customer_account_id=customer_account_id,
+                subject=subject or support_ticket_public_id,
+                category=MessagingConversationCategory.SUPPORT,
+                priority=priority,
+                assigned_admin_id=admin_id,
+                related_support_ticket_id=support_ticket_id,
+                initial_message_body=body,
+                initial_message_client_id=client_message_id,
+                header_idempotency_key=None,
+            )
+            message = next(
+                (item for item in conversation.messages if item.client_message_id == client_message_id),
+                conversation.messages[-1],
+            )
+            return MessagingMessageWriteResult(conversation=conversation, message=message, created=True)
+
+        if conversation.status != MessagingConversationStatus.OPEN:
+            conversation = await self.reopen_admin_conversation(conversation_ref=conversation.public_id)
+
+        return await self.add_admin_message(
+            conversation_ref=conversation.public_id,
+            admin_id=admin_id,
+            body=body,
+            client_message_id=client_message_id,
+            header_idempotency_key=None,
+            visibility=MessagingMessageVisibility.PUBLIC,
+        )
+
     async def update_admin_conversation(
         self,
         *,

@@ -20,7 +20,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
-from src.application.services.entitlements_service import EntitlementsService
 from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
@@ -29,6 +28,7 @@ from src.application.services.public_registration_policy import (
     PublicRegistrationDisabledError,
     ensure_public_registration_enabled,
 )
+from src.application.services.public_uid_allocator import allocate_public_uid
 from src.application.services.telegram_auth import TelegramAuthService
 from src.application.services.telegram_init_data_replay import TelegramInitDataReplayUnavailableError
 from src.application.use_cases.auth.change_password import ChangePasswordUseCase
@@ -391,28 +391,6 @@ async def _resolve_current_session_user_device_id(
     return result.scalar_one_or_none()
 
 
-async def _resolve_customer_device_limit(
-    *,
-    current_user: AdminUserModel,
-    current_realm: RealmResolution,
-    db: AsyncSession,
-) -> int | None:
-    if current_realm.realm_type != "customer":
-        return None
-
-    snapshot = await EntitlementsService(db).get_current_snapshot(
-        current_user.id,
-        auth_realm_id=current_realm.auth_realm.id,
-    )
-    raw_device_limit = (snapshot.get("effective_entitlements") or {}).get("device_limit")
-    if raw_device_limit is None:
-        return None
-    try:
-        return max(0, int(raw_device_limit))
-    except (TypeError, ValueError):
-        return None
-
-
 async def _resolve_miniapp_mobile_login(
     repo: MobileUserRepository,
     *,
@@ -448,6 +426,7 @@ async def _ensure_miniapp_mobile_user(
         password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
         mobile_user = MobileUserModel(
             auth_realm_id=customer_realm_id,
+            public_uid=await allocate_public_uid(repo),
             email=f"tg{telegram_id}@telegram.local",
             password_hash=password_hash,
             username=await _resolve_miniapp_mobile_login(
@@ -548,6 +527,7 @@ async def _ensure_customer_web_mobile_shadow(
     mobile_user = MobileUserModel(
         id=user.id,
         auth_realm_id=current_realm.auth_realm.id,
+        public_uid=await allocate_public_uid(repo),
         email=user.email,
         password_hash=user.password_hash,
         username=username,
@@ -3246,9 +3226,7 @@ async def list_devices(
             )
         )
 
-    device_limit = await _resolve_customer_device_limit(current_user=current_user, current_realm=current_realm, db=db)
     total_devices = len(devices)
-    remaining_devices = max(device_limit - total_devices, 0) if device_limit is not None else None
 
     logger.info(
         "Device list requested",
@@ -3263,8 +3241,8 @@ async def list_devices(
         devices=devices,
         total=total_devices,
         total_devices=total_devices,
-        device_limit=device_limit,
-        remaining_devices=remaining_devices,
+        device_limit=None,
+        remaining_devices=None,
     )
 
 

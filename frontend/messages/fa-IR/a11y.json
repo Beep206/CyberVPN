@@ -3,5 +3,7 @@
     "closeModal": "Close modal",
     "mainContent": "Main content",
     "closeDeveloperTools": "Close developer tools",
-    "openDeveloperTools": "Open developer tools"
+    "openDeveloperTools": "Open developer tools",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
 }

@@ -166,8 +166,12 @@ describe('subscription cabinet model', () => {
         serviceState,
         trial: {
           days_remaining: 3,
+          device_limit: 1,
+          duration_days: 7,
           is_eligible: false,
           is_trial_active: true,
+          one_trial_per_account: true,
+          traffic_limit_bytes: 0,
           trial_end: '2026-04-27T00:00:00Z',
           trial_start: '2026-04-24T00:00:00Z',
         },
@@ -439,6 +443,7 @@ describe('subscription cabinet model', () => {
     expect(fallbackUsdPrice.formatted.replace(/\u00a0/g, ' ')).toBe('19,99 $');
     expect(formatDuration(1)).toBe('1 day');
     expect(formatDuration(30)).toBe('30 days');
+    expect(formatDuration(30, 'ru-RU')).toBe('30 дн.');
     expect(formatLabel('manual_review-required', 'Fallback')).toBe('Manual Review Required');
     expect(formatLabel('   ', 'Fallback')).toBe('Fallback');
     expect(getTrafficLabel(labeledPlan)).toBe('2 TB fair-use');

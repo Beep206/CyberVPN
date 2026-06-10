@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   Bell,
@@ -81,6 +81,7 @@ export function NotificationCenterDropdown() {
   const t = useTranslations('Messaging.notifications');
   const realtimeT = useTranslations('Messaging.realtime');
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsQuery = useCustomerNotifications({ limit: 10 });
   const conversationsQuery = useCustomerConversationList({ limit: 50 });
   const markRead = useMarkCustomerNotificationsRead();
@@ -91,14 +92,43 @@ export function NotificationCenterDropdown() {
     (notification) => notification.status !== 'dismissed',
   );
   const unreadNotifications = notifications.filter(isUnreadSiteNotification);
-  const unreadConversationCount = (conversationsQuery.data?.conversations ?? [])
-    .filter((conversation) => conversation.unread_count > 0).length;
-  const unreadTotal = unreadNotifications.length + unreadConversationCount;
+  const notificationConversationIds = new Set(
+    notifications
+      .map((notification) => notification.conversation_id)
+      .filter((conversationId): conversationId is string => Boolean(conversationId)),
+  );
+  const unreadConversationFallbacks = (conversationsQuery.data?.conversations ?? []).filter(
+    (conversation) =>
+      conversation.unread_count > 0 && !notificationConversationIds.has(conversation.id),
+  );
+  const unreadTotal = unreadNotifications.length + unreadConversationFallbacks.length;
   const isBusy =
     notificationsQuery.isFetching ||
     conversationsQuery.isFetching ||
     markRead.isPending ||
     dismissNotifications.isPending;
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (target instanceof Node && dropdownRef.current?.contains(target)) {
+        return;
+      }
+
+      setIsOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [isOpen]);
 
   const markAllRead = () => {
     if (unreadNotifications.length === 0) {
@@ -109,7 +139,7 @@ export function NotificationCenterDropdown() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         type="button"
         aria-label={t('triggerLabel', { count: unreadTotal })}
@@ -183,7 +213,7 @@ export function NotificationCenterDropdown() {
                 <TriangleAlert className="mb-2 h-4 w-4" aria-hidden="true" />
                 {t('error')}
               </div>
-            ) : notifications.length === 0 ? (
+            ) : notifications.length === 0 && unreadConversationFallbacks.length === 0 ? (
               <div className="rounded-md border border-grid-line/30 bg-terminal-bg/60 p-4 text-center">
                 <Bell className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
                 <p className="mt-2 font-display text-sm text-white">{t('emptyTitle')}</p>
@@ -191,6 +221,48 @@ export function NotificationCenterDropdown() {
               </div>
             ) : (
               <div className="space-y-2">
+                {unreadConversationFallbacks.map((conversation) => (
+                  <Link
+                    key={`conversation-${conversation.id}`}
+                    href={`/messages?conversation=${encodeURIComponent(conversation.public_id)}`}
+                    onClick={() => setIsOpen(false)}
+                    className="block focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan"
+                  >
+                    <article className="rounded-md border border-neon-cyan/40 bg-neon-cyan/10 p-3 transition">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={cn(
+                                'rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase',
+                                SEVERITY_CLASSES.info,
+                              )}
+                            >
+                              {t('severity.info')}
+                            </span>
+                            <span className="h-2 w-2 rounded-full bg-neon-pink shadow-[0_0_8px_var(--color-neon-pink)]" />
+                          </div>
+                          <h3 className="mt-2 line-clamp-2 font-display text-sm text-white">
+                            {conversation.subject}
+                          </h3>
+                          <time
+                            dateTime={conversation.last_message_at ?? conversation.updated_at}
+                            className="mt-2 block font-mono text-[11px] text-muted-foreground"
+                          >
+                            {formatTimestamp(
+                              locale,
+                              conversation.last_message_at ?? conversation.updated_at,
+                            )}
+                          </time>
+                        </div>
+                        <MessageSquare
+                          className="mt-1 h-4 w-4 shrink-0 text-neon-cyan"
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </article>
+                  </Link>
+                ))}
                 {notifications.map((notification) => {
                   const href = getSafeNotificationHref(notification);
                   const isUnread = isUnreadSiteNotification(notification);
