@@ -20,7 +20,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
-from src.application.services.entitlements_service import EntitlementsService
 from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
@@ -389,28 +388,6 @@ async def _resolve_current_session_user_device_id(
         )
     )
     return result.scalar_one_or_none()
-
-
-async def _resolve_customer_device_limit(
-    *,
-    current_user: AdminUserModel,
-    current_realm: RealmResolution,
-    db: AsyncSession,
-) -> int | None:
-    if current_realm.realm_type != "customer":
-        return None
-
-    snapshot = await EntitlementsService(db).get_current_snapshot(
-        current_user.id,
-        auth_realm_id=current_realm.auth_realm.id,
-    )
-    raw_device_limit = (snapshot.get("effective_entitlements") or {}).get("device_limit")
-    if raw_device_limit is None:
-        return None
-    try:
-        return max(0, int(raw_device_limit))
-    except (TypeError, ValueError):
-        return None
 
 
 async def _resolve_miniapp_mobile_login(
@@ -3246,9 +3223,7 @@ async def list_devices(
             )
         )
 
-    device_limit = await _resolve_customer_device_limit(current_user=current_user, current_realm=current_realm, db=db)
     total_devices = len(devices)
-    remaining_devices = max(device_limit - total_devices, 0) if device_limit is not None else None
 
     logger.info(
         "Device list requested",
@@ -3263,8 +3238,8 @@ async def list_devices(
         devices=devices,
         total=total_devices,
         total_devices=total_devices,
-        device_limit=device_limit,
-        remaining_devices=remaining_devices,
+        device_limit=None,
+        remaining_devices=None,
     )
 
 
