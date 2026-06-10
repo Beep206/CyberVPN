@@ -564,9 +564,11 @@ describe('NotificationCenterDropdown', () => {
     expect(screen.queryByText('No notifications')).not.toBeInTheDocument();
     const subject = await screen.findByText('Support thread without notification');
     const fallbackLink = subject.closest('a');
+
     if (!fallbackLink) {
       throw new Error('Expected unread conversation fallback to render as a link');
     }
+
     expect(fallbackLink).toHaveAttribute(
       'href',
       '/messages?conversation=msg_support_fallback',

@@ -98,7 +98,8 @@ export function NotificationCenterDropdown() {
       .filter((conversationId): conversationId is string => Boolean(conversationId)),
   );
   const unreadConversationFallbacks = (conversationsQuery.data?.conversations ?? []).filter(
-    (conversation) => conversation.unread_count > 0 && !notificationConversationIds.has(conversation.id),
+    (conversation) =>
+      conversation.unread_count > 0 && !notificationConversationIds.has(conversation.id),
   );
   const unreadTotal = unreadNotifications.length + unreadConversationFallbacks.length;
   const isBusy =
@@ -113,7 +114,9 @@ export function NotificationCenterDropdown() {
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (dropdownRef.current?.contains(event.target as Node)) {
+      const target = event.target;
+
+      if (target instanceof Node && dropdownRef.current?.contains(target)) {
         return;
       }
 
@@ -229,7 +232,12 @@ export function NotificationCenterDropdown() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className={cn('rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase', SEVERITY_CLASSES.info)}>
+                            <span
+                              className={cn(
+                                'rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase',
+                                SEVERITY_CLASSES.info,
+                              )}
+                            >
                               {t('severity.info')}
                             </span>
                             <span className="h-2 w-2 rounded-full bg-neon-pink shadow-[0_0_8px_var(--color-neon-pink)]" />
@@ -241,10 +249,16 @@ export function NotificationCenterDropdown() {
                             dateTime={conversation.last_message_at ?? conversation.updated_at}
                             className="mt-2 block font-mono text-[11px] text-muted-foreground"
                           >
-                            {formatTimestamp(locale, conversation.last_message_at ?? conversation.updated_at)}
+                            {formatTimestamp(
+                              locale,
+                              conversation.last_message_at ?? conversation.updated_at,
+                            )}
                           </time>
                         </div>
-                        <MessageSquare className="mt-1 h-4 w-4 shrink-0 text-neon-cyan" aria-hidden="true" />
+                        <MessageSquare
+                          className="mt-1 h-4 w-4 shrink-0 text-neon-cyan"
+                          aria-hidden="true"
+                        />
                       </div>
                     </article>
                   </Link>
