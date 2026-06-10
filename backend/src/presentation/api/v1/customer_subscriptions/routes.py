@@ -140,6 +140,8 @@ async def get_customer_subscription_service_state(
             channel_type=payload.channel_type.value if payload.channel_type else None,
             channel_subject_ref=payload.channel_subject_ref,
             provisioning_profile_key=payload.provisioning_profile_key,
+            credential_type=payload.credential_type.value if payload.credential_type else None,
+            credential_subject_key=payload.credential_subject_key,
             remnawave_client=remnawave_client,
         )
     except LookupError as exc:
