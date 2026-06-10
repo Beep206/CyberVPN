@@ -8,7 +8,7 @@ import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { AntiphishingModal } from '../components/AntiphishingModal';
 
 export function SecuritySection() {
-  const t = useTranslations('Settings');
+  const t = useTranslations('Settings.cabinet');
   const { data: tfaStatus, isLoading, refetch } = useTwoFactorStatus();
 
   // Modal states
@@ -28,7 +28,7 @@ export function SecuritySection() {
   return (
     <section>
       <h2 className="text-xl font-display text-neon-purple mb-4 pl-2 border-l-4 border-neon-purple">
-        {t('security') || 'Security'}
+        {t('security.title')}
       </h2>
 
       <div className="space-y-4">
@@ -36,11 +36,11 @@ export function SecuritySection() {
         <div className="cyber-card p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-display text-lg text-neon-cyan">{t('twoFactor') || 'Two-Factor Authentication'}</h3>
+              <h3 className="font-display text-lg text-neon-cyan">{t('security.twoFactor.title')}</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {tfaStatus?.status === 'enabled'
-                  ? t('tfaEnabled') || 'Your account is protected with 2FA'
-                  : t('tfaDisabled') || 'Add an extra layer of security'}
+                  ? t('security.twoFactor.enabled')
+                  : t('security.twoFactor.disabled')}
               </p>
             </div>
             <button
@@ -51,7 +51,9 @@ export function SecuritySection() {
                   : 'bg-matrix-green/20 hover:bg-matrix-green/30 border-matrix-green/50 text-matrix-green'
               }`}
             >
-              {tfaStatus?.status === 'enabled' ? t('disable') || 'Disable' : t('enable') || 'Enable'}
+              {tfaStatus?.status === 'enabled'
+                ? t('securityFlows.twoFactor.actions.disable')
+                : t('securityFlows.twoFactor.actions.enable')}
             </button>
           </div>
         </div>
@@ -60,34 +62,33 @@ export function SecuritySection() {
         <div className="cyber-card p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-display text-lg text-neon-cyan">{t('password') || 'Password'}</h3>
+              <h3 className="font-display text-lg text-neon-cyan">{t('security.password.title')}</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {t('passwordDesc') || 'Change your account password'}
+                {t('security.password.description')}
               </p>
             </div>
             <button
               onClick={() => setShowPasswordModal(true)}
               className="px-4 py-2 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors"
             >
-              {t('change') || 'Change'}
+              {t('securityFlows.password.actions.change')}
             </button>
           </div>
         </div>
 
-        {/* Antiphishing Code */}
         <div className="cyber-card p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-display text-lg text-neon-cyan">{t('antiphishing') || 'Antiphishing Code'}</h3>
+              <h3 className="font-display text-lg text-neon-cyan">{t('security.antiphishing.title')}</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {t('antiphishingDesc') || 'Protect yourself from phishing emails'}
+                {t('security.antiphishing.disabled')}
               </p>
             </div>
             <button
               onClick={() => setShowAntiphishingModal(true)}
               className="px-4 py-2 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors"
             >
-              {t('manage') || 'Manage'}
+              {t('actions.manage')}
             </button>
           </div>
         </div>

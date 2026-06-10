@@ -2,8 +2,10 @@
   "A11y": {
     "closeDeveloperTools": "Close developer tools",
     "closeModal": "Close modal",
+    "hidePassword": "Hide password",
     "mainContent": "Main content",
     "openDeveloperTools": "Open developer tools",
+    "showPassword": "Show password",
     "skipToMainContent": "Skip to main content"
   },
   "AcceptableUse": {

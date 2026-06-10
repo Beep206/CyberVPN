@@ -3,6 +3,7 @@
 import { useState, forwardRef, useId } from 'react';
 import { motion } from 'motion/react';
 import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 interface CyberInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -14,6 +15,7 @@ interface CyberInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
     ({ label, error, success, prefix = 'input', type = 'text', className, id: propId, onFocus, onBlur, ...props }, ref) => {
+        const t = useTranslations('A11y');
         const generatedId = useId();
         const id = propId ?? generatedId;
         const errorId = `${id}-error`;
@@ -105,7 +107,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neon-cyan"
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                aria-label={showPassword ? t('hidePassword') : t('showPassword')}
                                 aria-pressed={showPassword}
                             >
                                 {showPassword ? (

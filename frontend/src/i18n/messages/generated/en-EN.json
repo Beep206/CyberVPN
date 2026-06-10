@@ -2,8 +2,10 @@
   "A11y": {
     "closeDeveloperTools": "Close developer tools",
     "closeModal": "Close modal",
+    "hidePassword": "Hide password",
     "mainContent": "Main content",
     "openDeveloperTools": "Open developer tools",
+    "showPassword": "Show password",
     "skipToMainContent": "Skip to main content"
   },
   "AcceptableUse": {
@@ -322,6 +324,7 @@
       "verifyingIdentity": "Verifying your identity"
     },
     "passwordStrength": {
+      "excellent": "Excellent",
       "fair": "Fair",
       "good": "Good",
       "label": "password_strength:",
@@ -3414,6 +3417,15 @@
         "title": "Account profile",
         "updatedAt": "Updated {date}"
       },
+      "sectionNav": {
+        "ariaLabel": "Settings sections",
+        "devices": "Devices",
+        "identity": "Identity",
+        "notifications": "Notifications",
+        "privacy": "Privacy",
+        "profile": "Profile",
+        "security": "Security"
+      },
       "security": {
         "antiphishing": {
           "disabled": "Set a private code that appears in legitimate emails.",
@@ -3467,6 +3479,173 @@
           "disabled": "Enable TOTP before increasing payment or device trust.",
           "enabled": "TOTP is active for this account.",
           "title": "Two-factor authentication"
+        }
+      },
+      "securityFlows": {
+        "antiphishing": {
+          "actions": {
+            "create": "Create code",
+            "delete": "Delete",
+            "deleteCode": "Delete code",
+            "deleting": "Deleting...",
+            "edit": "Edit code",
+            "hideCode": "Hide code",
+            "save": "Save code",
+            "showCode": "Show code"
+          },
+          "create": {
+            "title": "Create code"
+          },
+          "deleteConfirm": {
+            "description": "This will remove your anti-phishing code. Future emails will not include it.",
+            "title": "Delete anti-phishing code?"
+          },
+          "edit": {
+            "description": "Choose a memorable code that will appear in our emails.",
+            "title": "Edit code"
+          },
+          "empty": {
+            "title": "No anti-phishing code set."
+          },
+          "errors": {
+            "deleteFailed": "Could not delete anti-phishing code.",
+            "loadFailed": "Could not load anti-phishing code.",
+            "saveFailed": "Could not save anti-phishing code."
+          },
+          "input": {
+            "label": "Anti-phishing code",
+            "length": "Length: {count}/50",
+            "placeholder": "Enter code (1-50 characters)"
+          },
+          "loading": "Loading anti-phishing code...",
+          "modalTitle": "Anti-phishing code",
+          "success": {
+            "created": "Code created successfully.",
+            "deleted": "Code deleted successfully.",
+            "updated": "Code updated successfully."
+          },
+          "validation": {
+            "length": "Code must be between 1 and 50 characters.",
+            "required": "Anti-phishing code is required.",
+            "tooShort": "Too short"
+          },
+          "view": {
+            "currentCode": "Current code:",
+            "description": "This code appears in emails from us to verify authenticity.",
+            "title": "Anti-phishing code"
+          }
+        },
+        "common": {
+          "actions": {
+            "cancel": "Cancel",
+            "copied": "Copied",
+            "done": "Done",
+            "saving": "Saving..."
+          },
+          "errors": {
+            "copyFailed": "Clipboard is unavailable.",
+            "generic": "An error occurred. Please try again."
+          },
+          "rateLimit": {
+            "title": "Rate limit active"
+          },
+          "retryIn": "Retry in {seconds}s",
+          "successTitle": "Success"
+        },
+        "password": {
+          "actions": {
+            "change": "Change password",
+            "changing": "Changing password..."
+          },
+          "confirm": {
+            "label": "Confirm new password",
+            "placeholder": "Confirm new password"
+          },
+          "current": {
+            "label": "Current password",
+            "placeholder": "Enter current password"
+          },
+          "description": "Enter your current password and choose a new one.",
+          "errors": {
+            "currentPasswordIncorrect": "Current password is incorrect.",
+            "validationFailed": "Password validation failed."
+          },
+          "modalTitle": "Change password",
+          "new": {
+            "label": "New password",
+            "placeholder": "Enter new password"
+          },
+          "rateLimitInfo": "Rate limited to 3 attempts per hour.",
+          "success": {
+            "description": "Your password has been updated.",
+            "title": "Password changed successfully"
+          },
+          "title": "Update your password",
+          "validation": {
+            "currentPasswordRequired": "Current password is required.",
+            "newPasswordRequired": "New password is required.",
+            "passwordMismatch": "Passwords do not match.",
+            "passwordMustChange": "New password must be different from current password."
+          }
+        },
+        "twoFactor": {
+          "actions": {
+            "continue": "Continue",
+            "copyBackupCodes": "Copy all",
+            "copySecret": "Copy secret",
+            "disable": "Disable 2FA",
+            "disabling": "Disabling...",
+            "enable": "Enable",
+            "verifyAndEnable": "Verify and enable",
+            "verifying": "Verifying..."
+          },
+          "backup": {
+            "title": "Backup recovery codes",
+            "warning": "Save these codes securely. Each can only be used once."
+          },
+          "code": {
+            "disableLabel": "2FA code",
+            "label": "Verification code"
+          },
+          "disable": {
+            "description": "This will reduce account protection. Enter your password and current 2FA code to confirm.",
+            "title": "Disable two-factor authentication"
+          },
+          "errors": {
+            "invalidCredentials": "Invalid password or 2FA code.",
+            "invalidPassword": "Invalid password.",
+            "invalidVerificationCode": "Invalid verification code.",
+            "setupFailed": "Could not generate a 2FA secret."
+          },
+          "modalTitleDisable": "Disable 2FA",
+          "modalTitleEnable": "Enable 2FA",
+          "password": {
+            "label": "Password",
+            "placeholder": "Enter your password"
+          },
+          "reauth": {
+            "description": "Re-authenticate with your password to continue.",
+            "title": "Enable two-factor authentication"
+          },
+          "setup": {
+            "generating": "Generating secure secret..."
+          },
+          "success": {
+            "disabledDescription": "Two-factor authentication has been disabled for your account.",
+            "disabledTitle": "2FA disabled",
+            "enabledDescription": "Your account is now protected with two-factor authentication.",
+            "enabledTitle": "2FA enabled successfully"
+          },
+          "validation": {
+            "codeRequired": "Enter a valid 6-digit code.",
+            "passwordRequired": "Password is required."
+          },
+          "verify": {
+            "description": "Scan this QR code with your authenticator app.",
+            "manualSecret": "Or enter this secret manually:",
+            "qrAlt": "Two-factor authentication QR code",
+            "title": "Scan QR code"
+          }
         }
       },
       "subtitle": "Profile, security, notification routing, active sessions, and privacy controls backed by live account APIs.",

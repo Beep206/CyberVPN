@@ -3,5 +3,7 @@
     "closeModal": "Закрыть модальное окно",
     "mainContent": "Основное содержимое",
     "closeDeveloperTools": "Закрыть инструменты разработчика",
-    "openDeveloperTools": "Открыть инструменты разработчика"
+    "openDeveloperTools": "Открыть инструменты разработчика",
+    "showPassword": "Показать пароль",
+    "hidePassword": "Скрыть пароль"
 }

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Modal } from '@/shared/ui/modal';
 import { CyberInput } from '@/features/auth/components/CyberInput';
 import { securityApi } from '@/lib/api/security';
 import { motion } from 'motion/react';
 import { Shield, Eye, EyeOff, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
-import { AxiosError } from 'axios';
+import { getApiErrorDetail } from './security-modal-utils';
 
 interface AntiphishingModalProps {
   isOpen: boolean;
@@ -17,6 +18,9 @@ interface AntiphishingModalProps {
 type ModalView = 'view' | 'edit' | 'delete-confirm' | 'success';
 
 export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingModalProps) {
+  const t = useTranslations('Settings.cabinet.securityFlows.antiphishing');
+  const commonT = useTranslations('Settings.cabinet.securityFlows.common');
+
   const [view, setView] = useState<ModalView>('view');
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [newCode, setNewCode] = useState('');
@@ -27,31 +31,40 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Fetch current code on open
   useEffect(() => {
-    if (isOpen) {
-      fetchCurrentCode();
+    if (!isOpen) {
+      return;
     }
-  }, [isOpen]);
 
-  const fetchCurrentCode = async () => {
-    setLoadingData(true);
-    setError('');
+    let isActive = true;
 
-    try {
-      const response = await securityApi.getAntiphishingCode();
-      setCurrentCode(response.data.code);
-      setView('view');
-    } catch (err) {
-      if (err instanceof AxiosError) {
-        setError(err.response?.data?.detail || 'Failed to load antiphishing code');
-      } else {
-        setError('An error occurred. Please try again.');
+    const fetchCurrentCode = async () => {
+      setLoadingData(true);
+      setError('');
+
+      try {
+        const response = await securityApi.getAntiphishingCode();
+        if (isActive) {
+          setCurrentCode(response.data.code);
+          setView('view');
+        }
+      } catch (err) {
+        if (isActive) {
+          setError(getApiErrorDetail(err) ?? t('errors.loadFailed'));
+        }
+      } finally {
+        if (isActive) {
+          setLoadingData(false);
+        }
       }
-    } finally {
-      setLoadingData(false);
-    }
-  };
+    };
+
+    void fetchCurrentCode();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isOpen, t]);
 
   // Mask code for display (show first 2 and last 2 characters)
   const maskCode = (code: string): string => {
@@ -78,11 +91,11 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
   // Set or update code
   const handleSetCode = async () => {
     if (!newCode) {
-      setError('Antiphishing code is required');
+      setError(t('validation.required'));
       return;
     }
     if (newCode.length < 1 || newCode.length > 50) {
-      setError('Code must be between 1 and 50 characters');
+      setError(t('validation.length'));
       return;
     }
 
@@ -91,7 +104,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
 
     try {
       await securityApi.setAntiphishingCode({ code: newCode });
-      setSuccessMessage(currentCode ? 'Code updated successfully' : 'Code created successfully');
+      setSuccessMessage(currentCode ? t('success.updated') : t('success.created'));
       setView('success');
 
       // Auto-close after 2 seconds
@@ -100,11 +113,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
         handleClose();
       }, 2000);
     } catch (err) {
-      if (err instanceof AxiosError) {
-        setError(err.response?.data?.detail || 'Failed to set antiphishing code');
-      } else {
-        setError('An error occurred. Please try again.');
-      }
+      setError(getApiErrorDetail(err) ?? t('errors.saveFailed'));
     } finally {
       setLoading(false);
     }
@@ -117,7 +126,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
 
     try {
       await securityApi.deleteAntiphishingCode();
-      setSuccessMessage('Code deleted successfully');
+      setSuccessMessage(t('success.deleted'));
       setView('success');
 
       // Auto-close after 2 seconds
@@ -126,11 +135,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
         handleClose();
       }, 2000);
     } catch (err) {
-      if (err instanceof AxiosError) {
-        setError(err.response?.data?.detail || 'Failed to delete antiphishing code');
-      } else {
-        setError('An error occurred. Please try again.');
-      }
+      setError(getApiErrorDetail(err) ?? t('errors.deleteFailed'));
     } finally {
       setLoading(false);
     }
@@ -139,7 +144,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
   // Render loading state
   if (loadingData) {
     return (
-      <Modal isOpen={isOpen} onClose={handleClose} title="ANTIPHISHING">
+      <Modal isOpen={isOpen} onClose={handleClose} title={t('modalTitle')}>
         <div className="text-center py-8">
           <motion.div
             initial={{ opacity: 0 }}
@@ -147,7 +152,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
             className="space-y-4"
           >
             <Shield className="h-12 w-12 text-neon-cyan mx-auto animate-pulse" />
-            <p className="text-sm text-muted-foreground">Loading antiphishing code...</p>
+            <p className="text-sm text-muted-foreground">{t('loading')}</p>
           </motion.div>
         </div>
       </Modal>
@@ -157,15 +162,15 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
   // Render view state (show current code)
   if (view === 'view') {
     return (
-      <Modal isOpen={isOpen} onClose={handleClose} title="ANTIPHISHING">
+      <Modal isOpen={isOpen} onClose={handleClose} title={t('modalTitle')}>
         <div className="space-y-6">
           <div className="text-center space-y-2">
             <Shield className="h-12 w-12 text-neon-cyan mx-auto" />
             <h3 className="text-lg font-display text-neon-cyan">
-              Antiphishing Code
+              {t('view.title')}
             </h3>
             <p className="text-sm text-muted-foreground">
-              This code appears in emails from us to verify authenticity
+              {t('view.description')}
             </p>
           </div>
 
@@ -174,7 +179,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="block text-sm font-mono text-muted-foreground">
-                  Current Code:
+                  {t('view.currentCode')}
                 </label>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 px-4 py-3 bg-terminal-bg border border-grid-line/50 rounded font-mono text-sm text-matrix-green">
@@ -183,7 +188,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
                   <button
                     onClick={() => setShowCode(!showCode)}
                     className="px-3 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan rounded transition-colors"
-                    aria-label={showCode ? 'Hide code' : 'Show code'}
+                    aria-label={showCode ? t('actions.hideCode') : t('actions.showCode')}
                   >
                     {showCode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -199,14 +204,14 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
                   }}
                   className="flex-1 px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors"
                 >
-                  Edit Code
+                  {t('actions.edit')}
                 </button>
                 <button
                   onClick={() => setView('delete-confirm')}
                   className="flex-1 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 font-mono text-sm rounded transition-colors flex items-center justify-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete
+                  {t('actions.delete')}
                 </button>
               </div>
             </div>
@@ -215,7 +220,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
               <div className="p-4 bg-terminal-bg border border-yellow-500/50 rounded">
                 <p className="text-sm text-yellow-500 font-mono flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
-                  No antiphishing code set
+                  {t('empty.title')}
                 </p>
               </div>
 
@@ -223,7 +228,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
                 onClick={() => setView('edit')}
                 className="w-full px-4 py-3 bg-matrix-green/20 hover:bg-matrix-green/30 border border-matrix-green/50 text-matrix-green font-mono text-sm rounded transition-colors"
               >
-                Create Code
+                {t('actions.create')}
               </button>
             </div>
           )}
@@ -235,24 +240,24 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
   // Render edit state (set/update code)
   if (view === 'edit') {
     return (
-      <Modal isOpen={isOpen} onClose={handleClose} title="ANTIPHISHING">
+      <Modal isOpen={isOpen} onClose={handleClose} title={t('modalTitle')}>
         <div className="space-y-6">
           <div className="text-center space-y-2">
             <Shield className="h-12 w-12 text-neon-cyan mx-auto" />
             <h3 className="text-lg font-display text-neon-cyan">
-              {currentCode ? 'Edit Code' : 'Create Code'}
+              {currentCode ? t('edit.title') : t('create.title')}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Choose a memorable code that will appear in our emails
+              {t('edit.description')}
             </p>
           </div>
 
           <CyberInput
-            label="Antiphishing Code"
+            label={t('input.label')}
             type="text"
             value={newCode}
             onChange={(e) => setNewCode(e.target.value.slice(0, 50))}
-            placeholder="Enter code (1-50 characters)"
+            placeholder={t('input.placeholder')}
             prefix="security"
             error={error}
             disabled={loading}
@@ -261,9 +266,9 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
           />
 
           <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-            <span>Length: {newCode.length}/50</span>
+            <span>{t('input.length', { count: newCode.length })}</span>
             {newCode.length > 0 && newCode.length < 1 && (
-              <span className="text-red-500">Too short</span>
+              <span className="text-red-500">{t('validation.tooShort')}</span>
             )}
           </div>
 
@@ -275,14 +280,14 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
               }}
               className="flex-1 px-4 py-3 bg-terminal-bg hover:bg-terminal-surface border border-grid-line/50 text-muted-foreground font-mono text-sm rounded transition-colors"
             >
-              Cancel
+              {commonT('actions.cancel')}
             </button>
             <button
               onClick={handleSetCode}
               disabled={loading || !newCode || newCode.length < 1 || newCode.length > 50}
               className="flex-1 px-4 py-3 bg-matrix-green/20 hover:bg-matrix-green/30 border border-matrix-green/50 text-matrix-green font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : 'Save Code'}
+              {loading ? commonT('actions.saving') : t('actions.save')}
             </button>
           </div>
         </div>
@@ -293,15 +298,15 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
   // Render delete confirmation
   if (view === 'delete-confirm') {
     return (
-      <Modal isOpen={isOpen} onClose={handleClose} title="ANTIPHISHING">
+      <Modal isOpen={isOpen} onClose={handleClose} title={t('modalTitle')}>
         <div className="space-y-6">
           <div className="text-center space-y-2">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
             <h3 className="text-lg font-display text-red-500">
-              Delete Antiphishing Code?
+              {t('deleteConfirm.title')}
             </h3>
             <p className="text-sm text-muted-foreground">
-              This will remove your antiphishing code. Future emails will not include it.
+              {t('deleteConfirm.description')}
             </p>
           </div>
 
@@ -322,14 +327,14 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
               disabled={loading}
               className="flex-1 px-4 py-3 bg-terminal-bg hover:bg-terminal-surface border border-grid-line/50 text-muted-foreground font-mono text-sm rounded transition-colors disabled:opacity-50"
             >
-              Cancel
+              {commonT('actions.cancel')}
             </button>
             <button
               onClick={handleDeleteCode}
               disabled={loading}
               className="flex-1 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-400 font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Deleting...' : 'Delete Code'}
+              {loading ? t('actions.deleting') : t('actions.deleteCode')}
             </button>
           </div>
         </div>
@@ -340,7 +345,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
   // Render success state
   if (view === 'success') {
     return (
-      <Modal isOpen={isOpen} onClose={handleClose} title="ANTIPHISHING">
+      <Modal isOpen={isOpen} onClose={handleClose} title={t('modalTitle')}>
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -349,7 +354,7 @@ export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingMo
           <CheckCircle className="h-16 w-16 text-matrix-green mx-auto" />
           <div className="space-y-2">
             <h3 className="text-lg font-display text-matrix-green">
-              Success!
+              {commonT('successTitle')}
             </h3>
             <p className="text-sm text-muted-foreground">
               {successMessage}
