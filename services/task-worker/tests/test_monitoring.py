@@ -1,16 +1,17 @@
 """Unit tests for monitoring tasks."""
 
 import os
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Set required environment variables before importing modules
 os.environ.setdefault("REMNAWAVE_API_TOKEN", "test-token")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "123:test-bot")
 os.environ.setdefault("CRYPTOBOT_TOKEN", "test-crypto")
 
-from src.tasks.monitoring.health_check import check_server_health
 from src.tasks.monitoring.bandwidth import collect_bandwidth_snapshot
+from src.tasks.monitoring.health_check import check_server_health
 from src.tasks.monitoring.services_health import check_external_services
 
 

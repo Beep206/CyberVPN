@@ -195,7 +195,16 @@ class UserResponse(BaseModel):
 
     id: UUID = Field(
         ...,
-        description="User UUID",
+        description=(
+            "Internal user UUID retained for backward-compatible authenticated API flows; "
+            "clients display public_uid."
+        ),
+    )
+    public_uid: int = Field(
+        ...,
+        ge=10_000_000,
+        le=99_999_999,
+        description="Public random numeric account UID displayed to customers",
     )
     email: str = Field(
         ...,

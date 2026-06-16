@@ -1,10 +1,40 @@
 {
-  "systemLabel": "系统",
-  "integrity": "完整性校验通过",
-  "encryptionLabel": "加密",
-  "encryptionValue": "已激活 - AES-256",
-  "netUplink": "网络上行",
-  "fps": "帧率",
-  "ping": "延迟",
-  "language": "语言"
+    "systemLabel": "系统",
+    "integrity": "完整性校验通过",
+    "encryptionLabel": "加密",
+    "encryptionValue": "已激活 - AES-256",
+    "netUplink": "网络上行",
+    "fps": "帧率",
+    "ping": "延迟",
+    "language": "语言",
+    "userMenu": {
+        "triggerLabel": "Open account menu for {name}",
+        "fallbackName": "User",
+        "fallbackInitials": "U",
+        "accountBadge": "ACCOUNT",
+        "accountId": "ID: {id}",
+        "signOut": "Sign out",
+        "items": {
+            "dashboard": {
+                "label": "Dashboard",
+                "description": "Overview and stats"
+            },
+            "profile": {
+                "label": "Profile",
+                "description": "Account details"
+            },
+            "security": {
+                "label": "Security",
+                "description": "2FA and password"
+            },
+            "billing": {
+                "label": "Billing",
+                "description": "Manage plan"
+            },
+            "settings": {
+                "label": "Settings",
+                "description": "App preferences"
+            }
+        }
+    }
 }

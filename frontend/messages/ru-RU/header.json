@@ -6,5 +6,35 @@
     "netUplink": "СЕТЬ_АПЛИНК",
     "fps": "FPS",
     "ping": "PING",
-    "language": "ЯЗЫК"
+    "language": "ЯЗЫК",
+    "userMenu": {
+        "triggerLabel": "Открыть меню аккаунта: {name}",
+        "fallbackName": "Пользователь",
+        "fallbackInitials": "П",
+        "accountBadge": "АККАУНТ",
+        "accountId": "ID: {id}",
+        "signOut": "Выйти",
+        "items": {
+            "dashboard": {
+                "label": "Панель",
+                "description": "Обзор и статистика"
+            },
+            "profile": {
+                "label": "Профиль",
+                "description": "Данные аккаунта"
+            },
+            "security": {
+                "label": "Безопасность",
+                "description": "2FA и пароль"
+            },
+            "billing": {
+                "label": "Оплата",
+                "description": "Управление тарифом"
+            },
+            "settings": {
+                "label": "Настройки",
+                "description": "Параметры приложения"
+            }
+        }
+    }
 }

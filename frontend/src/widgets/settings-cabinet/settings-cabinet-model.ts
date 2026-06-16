@@ -1,5 +1,5 @@
 import type { components } from '@/lib/api/generated/types';
-import { locales } from '@/i18n/config';
+import { LANGUAGES } from '@/i18n/languages';
 import type {
   GrowthNotificationPreferences,
   UpdateGrowthNotificationPreferencesRequest,
@@ -56,12 +56,40 @@ const FALLBACK_TIMEZONES = [
   'America/Los_Angeles',
 ] as const;
 
-export const PROFILE_LANGUAGE_OPTIONS: ProfileSelectOption[] = locales.map((locale) => ({
-  label: locale,
-  value: locale,
+function formatLanguageLabel(language: (typeof LANGUAGES)[number]): string {
+  const displayName =
+    language.nativeName === language.name
+      ? language.nativeName
+      : `${language.nativeName} (${language.name})`;
+
+  return `${language.flag} ${displayName}`;
+}
+
+export const PROFILE_LANGUAGE_OPTIONS: ProfileSelectOption[] = LANGUAGES.map((language) => ({
+  label: formatLanguageLabel(language),
+  value: language.code,
 }));
 
-export function getProfileTimezoneOptions(): ProfileSelectOption[] {
+export function formatTimezoneOffset(timezone: string, referenceDate: Date): string {
+  if (!Number.isFinite(referenceDate.getTime())) {
+    return 'UTC+00:00';
+  }
+
+  try {
+    const offset = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'longOffset',
+    })
+      .formatToParts(referenceDate)
+      .find((part) => part.type === 'timeZoneName')?.value;
+
+    return offset?.replace(/^GMT/, 'UTC') ?? 'UTC+00:00';
+  } catch {
+    return 'UTC+00:00';
+  }
+}
+
+export function getProfileTimezoneOptions(referenceDate: Date): ProfileSelectOption[] {
   const supportedValuesOf = (
     Intl as typeof Intl & {
       supportedValuesOf?: (key: 'timeZone') => string[];
@@ -73,7 +101,7 @@ export function getProfileTimezoneOptions(): ProfileSelectOption[] {
       : [...FALLBACK_TIMEZONES];
 
   return Array.from(new Set(['UTC', ...supportedTimezones])).map((timezone) => ({
-    label: timezone,
+    label: `${timezone} (${formatTimezoneOffset(timezone, referenceDate)})`,
     value: timezone,
   }));
 }
@@ -272,15 +300,15 @@ export function readDeviceListTotal(
 export function readDeviceListLimit(
   deviceList: DeviceSessionList | null | undefined,
 ): number | null {
-  const contractLimit = readNumericValue(deviceList?.device_limit);
-  return contractLimit !== null && contractLimit >= 0 ? Math.floor(contractLimit) : null;
+  void deviceList;
+  return null;
 }
 
 export function readDeviceListRemaining(
   deviceList: DeviceSessionList | null | undefined,
 ): number | null {
-  const contractRemaining = readNumericValue(deviceList?.remaining_devices);
-  return contractRemaining !== null ? Math.floor(contractRemaining) : null;
+  void deviceList;
+  return null;
 }
 
 export function getDeviceLimitSummary({

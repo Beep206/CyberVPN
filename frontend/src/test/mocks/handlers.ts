@@ -20,6 +20,7 @@ const API_BASE = '*/api/v1';
 /** Reusable mock user returned by /auth/me and embedded in token responses. */
 export const MOCK_USER = {
   id: 'usr_test_001',
+  public_uid: 14677650,
   email: 'testuser@cybervpn.io',
   login: 'testuser',
   telegram_id: null,
@@ -447,6 +448,7 @@ export const authHandlers = [
       ...MOCK_TOKENS,
       user: {
         id: MOCK_USER.id,
+        public_uid: MOCK_USER.public_uid,
         login: MOCK_USER.login,
         email: MOCK_USER.email,
         is_active: true,
@@ -482,6 +484,7 @@ export const authHandlers = [
       ...MOCK_TOKENS,
       user: {
         id: MOCK_USER.id,
+        public_uid: MOCK_USER.public_uid,
         login: MOCK_USER.login,
         email: MOCK_USER.email,
         is_active: true,
@@ -517,9 +520,9 @@ export const authHandlers = [
     return HttpResponse.json({
       status: 'completed',
       login_result: {
-        ...MOCK_TOKENS,
         user: {
           id: MOCK_USER.id,
+          public_uid: MOCK_USER.public_uid,
           login: MOCK_USER.login,
           email: MOCK_USER.email,
           is_active: true,
@@ -598,6 +601,7 @@ export const authHandlers = [
       ...MOCK_TOKENS,
       user: {
         id: MOCK_USER.id,
+        public_uid: MOCK_USER.public_uid,
         login: MOCK_USER.login,
         email: MOCK_USER.email,
         is_active: true,

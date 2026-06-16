@@ -1,8 +1,7 @@
 """Tests for cleanup task modules."""
 
-import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -150,7 +149,7 @@ async def test_cleanup_cache_scan_and_delete_by_date():
         mock_redis.unlink.return_value = 1
         mock_redis_fn.return_value = mock_redis
 
-        cutoff = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        cutoff = datetime(2024, 1, 1, tzinfo=UTC)
         result = await _scan_and_delete_by_date(mock_redis, "cybervpn:stats:daily:*", cutoff)
 
         assert result == 1

@@ -323,7 +323,18 @@ function mockSuccessfulResponses() {
       access_delivery_channel: {
         channel_status: 'active',
         channel_type: 'shared_client',
+        delivery_payload: {
+          subscription_url: 'https://vpn.example.test/subscriptions/ready',
+        },
+        device_credential_id: 'credential-ready-1',
+        last_delivered_at: '2026-04-24T00:00:00Z',
         provider_name: 'remnawave',
+      },
+      device_credential: {
+        credential_status: 'active',
+        credential_type: 'desktop_client',
+        id: 'credential-ready-1',
+        subject_key: 'official-web-dashboard',
       },
       provisioning_profile: {
         profile_key: 'default',
@@ -447,6 +458,8 @@ describe('SubscriptionCabinetDashboard', () => {
     expect(screen.getByText('Max Plan')).toBeInTheDocument();
     expect(await screen.findByText('Extra device')).toBeInTheDocument();
     expect(screen.getByText('remnawave')).toBeInTheDocument();
+    expect(screen.getByText('service.provisioned')).toBeInTheDocument();
+    expect(screen.queryByText('service.pending')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /actions\.getConfig/i })).toHaveAttribute(
       'href',
       '/servers',
@@ -457,6 +470,53 @@ describe('SubscriptionCabinetDashboard', () => {
     );
     expect(getPlansMock).toHaveBeenCalledWith({ channel: 'web' });
     expect(getAddonsMock).toHaveBeenCalledWith({ channel: 'web' });
+    expect(getServiceStateMock).toHaveBeenCalledWith('grant:test-grant', {
+      channel_type: 'shared_client',
+      credential_subject_key: 'official-web-dashboard',
+      credential_type: 'desktop_client',
+      provider_name: 'remnawave',
+    });
+  });
+
+  it('filters and groups the public plan catalog by duration, devices, and traffic', async () => {
+    renderWithQueryClient(<SubscriptionCabinetDashboard />);
+
+    expect(await screen.findByTestId('plan-card-plan-pro')).toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-plan-max')).toBeInTheDocument();
+    expect(screen.getByText('plans.groups.monthly')).toBeInTheDocument();
+    expect(screen.getByText('plans.groups.quarterly')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /plans\.filters\.duration\.options\.quarterly/i,
+      }),
+    );
+
+    expect(screen.queryByTestId('plan-card-plan-pro')).not.toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-plan-max')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /plans\.filters\.devices\.options\.sixToTen/i,
+      }),
+    );
+
+    expect(screen.queryByTestId('plan-card-plan-pro')).not.toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-plan-max')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /plans\.filters\.traffic\.options\.limited/i,
+      }),
+    );
+
+    expect(screen.queryByTestId('plan-card-plan-pro')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('plan-card-plan-max')).not.toBeInTheDocument();
+    expect(screen.getByText('plans.noFilterResults')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /plans\.filters\.reset/i }));
+    expect(screen.getByTestId('plan-card-plan-pro')).toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-plan-max')).toBeInTheDocument();
   });
 
   it('quotes and commits a plan upgrade through backend subscription endpoints', async () => {

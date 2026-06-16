@@ -5,7 +5,12 @@ import { useLocale } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { authAnalytics } from '@/lib/analytics';
 import { authApi } from '@/lib/api/auth';
-import { consumePendingPasswordLoginSuccess, useAuthStore } from '@/stores/auth-store';
+import {
+    consumePendingPasswordLoginSuccess,
+    createAuthSessionRestoreToken,
+    shouldApplyAuthSessionRestore,
+    useAuthStore,
+} from '@/stores/auth-store';
 import { buildInternalLoginHref } from '@/features/auth/lib/session';
 import { Loader2 } from 'lucide-react';
 
@@ -55,9 +60,16 @@ export function AuthGuard({ children }: AuthGuardProps) {
                 }
             }
 
+            const restoreToken = createAuthSessionRestoreToken();
+
             try {
                 const { data } = await authApi.session();
                 if (!isMounted) return;
+
+                if (!shouldApplyAuthSessionRestore(restoreToken)) {
+                    setIsAuthorized(false);
+                    return;
+                }
 
                 useAuthStore.setState({
                     user: data,
@@ -83,7 +95,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
                 setIsAuthorized(false);
 
                 const status = (error as { response?: { status?: number } }).response?.status;
-                if (status !== 401 && status !== 403) {
+                if (
+                    status !== 401
+                    && status !== 403
+                    && shouldApplyAuthSessionRestore(restoreToken)
+                ) {
                     if (currentState.isAuthenticated && currentState.user) {
                         useAuthStore.setState({
                             user: currentState.user,

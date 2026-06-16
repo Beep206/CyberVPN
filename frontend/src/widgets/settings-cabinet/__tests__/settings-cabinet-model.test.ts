@@ -8,10 +8,12 @@ import {
   getDeviceLimitSummary,
   getDeviceKind,
   getEnabledCount,
+  getProfileTimezoneOptions,
   GROWTH_NOTIFICATION_PREFERENCES,
   getSecurityPosture,
   maskAntiphishingCode,
   parseDeviceLabel,
+  PROFILE_LANGUAGE_OPTIONS,
   readDeviceListLimit,
   readDeviceListRemaining,
   readDeviceListTotal,
@@ -84,7 +86,25 @@ describe('settings-cabinet-model', () => {
     expect(maskAntiphishingCode('   ')).toBe('not-set');
   });
 
-  it('reads and summarizes plan device limits from entitlements', () => {
+  it('builds profile selectors with human language labels and timezone offsets', () => {
+    expect(PROFILE_LANGUAGE_OPTIONS.find((option) => option.value === 'ru-RU')).toMatchObject({
+      label: '🇷🇺 Русский (Russian)',
+      value: 'ru-RU',
+    });
+    expect(PROFILE_LANGUAGE_OPTIONS.find((option) => option.value === 'en-EN')).toMatchObject({
+      label: '🇺🇸 English',
+      value: 'en-EN',
+    });
+
+    expect(getProfileTimezoneOptions(new Date('2026-06-10T12:00:00Z'))).toEqual(
+      expect.arrayContaining([
+        { label: 'UTC (UTC+00:00)', value: 'UTC' },
+        { label: 'Europe/Moscow (UTC+03:00)', value: 'Europe/Moscow' },
+      ]),
+    );
+  });
+
+  it('reads backend-owned session totals and device quota contract', () => {
     expect(
       readDeviceListTotal({
         devices: [
@@ -111,7 +131,7 @@ describe('settings-cabinet-model', () => {
         total: 0,
         total_devices: 0,
       }),
-    ).toBe(5);
+    ).toBeNull();
     expect(
       readDeviceListRemaining({
         devices: [],
@@ -120,7 +140,7 @@ describe('settings-cabinet-model', () => {
         total: 0,
         total_devices: 6,
       }),
-    ).toBe(-1);
+    ).toBeNull();
     expect(readDeviceListTotal(null)).toBe(0);
     expect(readDeviceListLimit(null)).toBeNull();
     expect(readDeviceListRemaining(null)).toBeNull();

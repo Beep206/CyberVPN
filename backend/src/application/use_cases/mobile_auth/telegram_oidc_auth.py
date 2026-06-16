@@ -22,6 +22,7 @@ from src.application.dto.mobile_auth import (
 from src.application.services.auth_service import AuthService
 from src.application.services.mobile_session import MobileSessionService
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
+from src.application.services.public_uid_allocator import allocate_public_uid
 from src.application.services.telegram_oidc_auth import TelegramOIDCAuthService, TelegramOIDCUserInfo
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
@@ -152,6 +153,7 @@ class MobileTelegramOIDCAuthUseCase:
         username = self._generate_username(telegram_user)
 
         user = MobileUserModel(
+            public_uid=await allocate_public_uid(self.user_repo),
             auth_realm_id=stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"])),
             email=placeholder_email,
             password_hash=password_hash,

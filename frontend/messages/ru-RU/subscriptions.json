@@ -117,6 +117,46 @@
     "description": "Публичные планы загружаются из canonical web catalog. Текущий план заблокирован; остальные планы сначала проходят quote перед покупкой или сменой тарифа.",
     "empty": "Сейчас нет публичных планов.",
     "eyebrow": "Каталог планов",
+    "filteredCount": "{count}/{total} планов",
+    "filters": {
+      "description": "Сузьте каталог по сроку оплаты, числу устройств и модели трафика.",
+      "devices": {
+        "label": "Устройства",
+        "options": {
+          "all": "Все",
+          "elevenPlus": "11+",
+          "sixToTen": "6-10",
+          "upToFive": "До 5"
+        }
+      },
+      "duration": {
+        "label": "Срок",
+        "options": {
+          "all": "Все",
+          "long": "100+ дней",
+          "monthly": "До 31д",
+          "quarterly": "32-100д"
+        }
+      },
+      "eyebrow": "Фильтры каталога",
+      "reset": "Сбросить",
+      "traffic": {
+        "label": "Трафик",
+        "options": {
+          "all": "Весь",
+          "limited": "С лимитом",
+          "unlimited": "Безлимит"
+        }
+      }
+    },
+    "groupCount": "{count} планов",
+    "groups": {
+      "long": "Долгий доступ",
+      "monthly": "Месячный доступ",
+      "other": "Другие сроки",
+      "quarterly": "Квартальный доступ"
+    },
+    "noFilterResults": "Под выбранные фильтры нет тарифов.",
     "perCycle": "за {duration}",
     "publicCount": "{count} публичных планов",
     "title": "Выберите следующий уровень доступа"

@@ -17,6 +17,7 @@ const {
   mockRequestMagicLink,
   mockVerifyMagicLink,
   mockDeleteAccount,
+  mockClearSessionRequestCache,
   mockSetTokens,
   mockClearTokens,
   MockRateLimitError,
@@ -63,6 +64,7 @@ const {
     mockRequestMagicLink: vi.fn(),
     mockVerifyMagicLink: vi.fn(),
     mockDeleteAccount: vi.fn(),
+    mockClearSessionRequestCache: vi.fn(),
     mockSetTokens: vi.fn(),
     mockClearTokens: vi.fn(),
     MockRateLimitError: _RateLimitError,
@@ -106,6 +108,7 @@ vi.mock('@/lib/api/auth', () => ({
     requestMagicLink: (...args: unknown[]) => mockRequestMagicLink(...args),
     verifyMagicLink: (...args: unknown[]) => mockVerifyMagicLink(...args),
     deleteAccount: (...args: unknown[]) => mockDeleteAccount(...args),
+    clearSessionRequestCache: () => mockClearSessionRequestCache(),
   },
 }));
 
@@ -804,6 +807,54 @@ describe('Auth Store', () => {
 
       // Assert
       expect(mockAnalyticsLogout).toHaveBeenCalledOnce();
+    });
+
+    it('test_logout_clears_local_state_before_revoke_attempt_finishes', async () => {
+      useAuthStore.setState({ user: createMockUser(), isAuthenticated: true });
+      let resolveLogout: (value: unknown) => void;
+      const deferred = new Promise((resolve) => {
+        resolveLogout = resolve;
+      });
+      mockLogout.mockReturnValue(deferred);
+
+      const promise = useAuthStore.getState().logout();
+
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      expect(useAuthStore.getState().user).toBe(null);
+      expect(useAuthStore.getState().error).toBe(null);
+      expect(mockClearTokens).toHaveBeenCalledOnce();
+      expect(mockAnalyticsLogout).toHaveBeenCalledOnce();
+      expect(mockClearSessionRequestCache).toHaveBeenCalledTimes(1);
+
+      resolveLogout!({ data: {} });
+      await promise;
+
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      expect(useAuthStore.getState().user).toBe(null);
+      expect(mockClearTokens).toHaveBeenCalledOnce();
+      expect(mockClearSessionRequestCache).toHaveBeenCalledTimes(2);
+    });
+
+    it('test_logout_blocks_stale_pending_session_restore', async () => {
+      useAuthStore.setState({ user: createMockUser(), isAuthenticated: true });
+      let resolveSession: (value: unknown) => void;
+      const deferredSession = new Promise((resolve) => {
+        resolveSession = resolve;
+      });
+      mockMe.mockReturnValue(deferredSession);
+      mockLogout.mockResolvedValue({ data: {} });
+
+      const fetchPromise = useAuthStore.getState().fetchUser();
+      const logoutPromise = useAuthStore.getState().logout();
+
+      await logoutPromise;
+      resolveSession!({ data: createMockUser({ id: 'usr_stale_session' }) });
+      await fetchPromise;
+
+      const state = useAuthStore.getState();
+      expect(state.isAuthenticated).toBe(false);
+      expect(state.user).toBe(null);
+      expect(mockSessionRestored).not.toHaveBeenCalledWith('usr_stale_session');
     });
 
     it('test_logout_clears_state_even_when_api_fails', async () => {

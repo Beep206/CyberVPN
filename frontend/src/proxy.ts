@@ -24,6 +24,7 @@ const CABINET_ROUTE_SEGMENTS = new Set([
   'servers',
   'settings',
   'subscriptions',
+  'support',
   'users',
   'wallet',
 ]);

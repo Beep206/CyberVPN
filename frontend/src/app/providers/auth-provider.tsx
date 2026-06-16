@@ -4,7 +4,11 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { authAnalytics } from '@/lib/analytics';
 import type { User } from '@/lib/api/auth';
-import { useAuthStore } from '@/stores/auth-store';
+import {
+  createAuthSessionRestoreToken,
+  shouldApplyAuthSessionRestore,
+  useAuthStore,
+} from '@/stores/auth-store';
 import {
   consumeOAuthResultCookie,
   shouldBootstrapAuthSession,
@@ -44,9 +48,10 @@ export function AuthSessionBootstrap() {
     }
 
     let cancelled = false;
+    const restoreToken = createAuthSessionRestoreToken();
 
     void fetchOptionalSession().then((user) => {
-      if (cancelled) {
+      if (cancelled || !shouldApplyAuthSessionRestore(restoreToken)) {
         return;
       }
 

@@ -217,6 +217,13 @@ class SQLAlchemyMessagingRepository(MessagingRepository):
         model = result.scalar_one_or_none()
         return self._to_conversation_domain(model) if model is not None else None
 
+    async def get_conversation_by_support_ticket_id(self, support_ticket_id: UUID) -> MessagingConversation | None:
+        result = await self._session.execute(
+            self._detail_select().where(MessagingConversationModel.related_support_ticket_id == support_ticket_id)
+        )
+        model = result.scalar_one_or_none()
+        return self._to_conversation_domain(model) if model is not None else None
+
     async def list_for_customer(
         self,
         *,

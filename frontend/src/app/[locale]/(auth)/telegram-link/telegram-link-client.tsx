@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 import { AlertCircle, Copy, Loader2, RotateCcw, Send, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { authAnalytics } from '@/lib/analytics';
-import { authApi, type OAuthLoginResponse } from '@/lib/api/auth';
+import { authApi, type TelegramMagicLinkLoginResult } from '@/lib/api/auth';
 import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
 import {
   clearTelegramMagicLinkSession,
@@ -21,7 +21,12 @@ const MAGIC_LINK_TTL_MS = 5 * 60 * 1000;
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 150;
 
-function applyTelegramLoginResult(result: OAuthLoginResponse): void {
+function readRouteSearchParam(name: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+function applyTelegramLoginResult(result: TelegramMagicLinkLoginResult): void {
   useAuthStore.setState({
     user: {
       id: result.user.id,
@@ -59,7 +64,8 @@ function openTelegram(session: TelegramMagicLinkSession, allowRedirectFallback: 
 export function TelegramLinkClient() {
   const searchParams = useSearchParams();
   const legacyBotToken = searchParams.get('token');
-  const magicToken = searchParams.get('magic');
+  const magicTokenFromSearchParams = searchParams.get('magic');
+  const magicTokenFromRoute = magicTokenFromSearchParams ?? readRouteSearchParam('magic');
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('Auth.telegram');
@@ -72,11 +78,19 @@ export function TelegramLinkClient() {
   const [magicLinkSession, setMagicLinkSession] = useState<TelegramMagicLinkSession | null>(null);
   const [isStartingNewLink, setIsStartingNewLink] = useState(false);
   const processedRouteTokenRef = useRef<string | null>(null);
+  const processedMagicRouteTokenRef = useRef<string | null>(null);
+  const capturedMagicRouteTokenRef = useRef<string | null>(null);
   const activePollingTokenRef = useRef<string | null>(null);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef = useRef(0);
   const pollInFlightRef = useRef(false);
   const resumePollingRef = useRef<(() => void) | null>(null);
+
+  if (magicTokenFromRoute && capturedMagicRouteTokenRef.current !== magicTokenFromRoute) {
+    capturedMagicRouteTokenRef.current = magicTokenFromRoute;
+  }
+
+  const magicToken = capturedMagicRouteTokenRef.current;
 
   useEffect(() => {
     return () => {
@@ -147,6 +161,11 @@ export function TelegramLinkClient() {
 
     const session = magicLinkSession ?? readTelegramMagicLinkSession();
     const currentMagicToken = magicToken ?? session?.token ?? null;
+
+    if (magicToken && processedMagicRouteTokenRef.current !== magicToken) {
+      processedMagicRouteTokenRef.current = magicToken;
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
     if (!currentMagicToken) {
       activePollingTokenRef.current = null;
@@ -281,8 +300,10 @@ export function TelegramLinkClient() {
 
   const startNewTelegramLink = async () => {
     clearTelegramMagicLinkSession();
+    capturedMagicRouteTokenRef.current = null;
     activePollingTokenRef.current = null;
     processedRouteTokenRef.current = null;
+    processedMagicRouteTokenRef.current = null;
     setMagicLinkSession(null);
     setError(null);
     setIsStartingNewLink(true);

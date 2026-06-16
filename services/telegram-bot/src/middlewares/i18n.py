@@ -7,8 +7,9 @@ into handler data for localized message formatting.
 from __future__ import annotations
 
 import os
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 import structlog
 from aiogram import BaseMiddleware
@@ -207,7 +208,7 @@ _i18n_manager: I18nManager | None = None
 
 def get_i18n_manager() -> I18nManager:
     """Get or create the singleton I18nManager."""
-    global _i18n_manager  # noqa: PLW0603
+    global _i18n_manager
     if _i18n_manager is None:
         locales_dir = os.environ.get("I18N_LOCALES_DIR")
         _i18n_manager = I18nManager(locales_dir)
@@ -279,9 +280,7 @@ class I18nMiddleware(BaseMiddleware):
 
         # 2. Check Telegram language_code
         tg_user = None
-        if isinstance(event, Message) and event.from_user:
-            tg_user = event.from_user
-        elif isinstance(event, CallbackQuery) and event.from_user:
+        if (isinstance(event, Message) and event.from_user) or (isinstance(event, CallbackQuery) and event.from_user):
             tg_user = event.from_user
 
         if tg_user and tg_user.language_code:

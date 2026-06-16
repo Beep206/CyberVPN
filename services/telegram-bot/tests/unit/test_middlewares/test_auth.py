@@ -9,14 +9,11 @@ import pytest
 from aiogram.types import CallbackQuery, Message, User
 
 from src.middlewares.auth import AuthMiddleware
-from src.services.api_client import APIError, NotFoundError
 
 if TYPE_CHECKING:
     import fakeredis.aioredis
 
-    from src.config import BotSettings
     from src.services.api_client import CyberVPNAPIClient
-    from src.services.cache_service import CacheService
 
 
 @pytest.mark.asyncio
@@ -60,6 +57,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that cache miss triggers API load."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -97,6 +95,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that 404 from API triggers user registration."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -146,6 +145,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that user language_code is used in registration."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -192,6 +192,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test default language used when user has no language_code."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -238,6 +239,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that non-404 API errors result in None user."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -273,6 +275,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that registration failure results in None user."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -313,6 +316,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test user extraction from callback query."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -371,6 +375,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that user is cached after API load."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis)
@@ -406,6 +411,7 @@ class TestAuthMiddleware:
     ) -> None:
         """Test that cached user has TTL set."""
         import respx
+
         from src.services.cache_service import CacheService
 
         cache = CacheService(redis=fake_redis, key_prefix="test:")

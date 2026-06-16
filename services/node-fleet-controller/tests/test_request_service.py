@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 import os
 import tempfile
 import unittest
-
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.audit_service import AuditTrailService
 from src.application.services.request_service import FleetRequestService

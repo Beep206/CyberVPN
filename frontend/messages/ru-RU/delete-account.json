@@ -1,98 +1,109 @@
 {
     "meta": {
-        "title": "Delete Account - CyberVPN",
-        "description": "Request permanent deletion of your CyberVPN account and all associated data."
+        "title": "Удаление аккаунта - CyberVPN",
+        "description": "Запросите ручную privacy-проверку для постоянного удаления аккаунта CyberVPN и связанных данных."
     },
-    "title": "Delete Account",
-    "subtitle": "Permanently delete your CyberVPN account",
+    "title": "Запрос на удаление аккаунта",
+    "subtitle": "Отправьте запрос на ручную privacy-проверку перед постоянным удалением аккаунта",
     "warning": {
-        "title": "Warning: This action is permanent",
-        "message": "Deleting your account will permanently remove all your data and cannot be undone."
+        "title": "Ручная проверка перед удалением",
+        "message": "CyberVPN проверяет запросы на удаление перед финальной обработкой. Подтверждённые удаления планируются в течение 30 дней, кроме записей, которые нужно сохранить для платежей, безопасности, юридических требований, fraud, backup или abuse handling."
     },
     "sections": {
         "consequences": {
-            "title": "What will be deleted",
+            "title": "Что будет удалено",
             "items": {
-                "accountData": "Your account information and profile",
-                "subscriptions": "Active subscription handling, including any refund request, follows the Refund Policy and provider rules.",
-                "configs": "VPN configurations and connection history",
-                "referrals": "Referral data and earned rewards",
-                "support": "Support tickets and communication history"
+                "accountData": "Информация аккаунта и профиль после проверки и обработки запроса",
+                "subscriptions": "Обработка активных подписок, включая запросы на возврат, следует Refund Policy и правилам провайдера.",
+                "configs": "VPN-конфигурации и история подключений, покрытые запросом на удаление",
+                "referrals": "Реферальные данные и заработанные награды, если их хранение не требуется законом или операционными правилами",
+                "support": "Тикеты поддержки и история коммуникаций, если хранение не требуется для privacy, legal, fraud или abuse handling"
             }
         },
         "beforeDelete": {
-            "title": "Before you delete",
+            "title": "Перед запросом удаления",
             "items": {
-                "exportData": "Export your data if needed (GDPR right to data portability)",
-                "cancelSubscriptions": "Cancel any active subscriptions",
-                "useReferrals": "Use any pending referral rewards",
-                "saveConfigs": "Save any custom VPN configurations"
+                "exportData": "Запросите экспорт данных, если он нужен до финализации удаления",
+                "cancelSubscriptions": "Отмените активные подписки и проверьте правила возврата провайдера",
+                "useReferrals": "Используйте ожидающие реферальные награды, на которые может повлиять удаление",
+                "saveConfigs": "Сохраните пользовательские VPN-конфигурации, которые ещё нужны"
             }
         },
         "alternativeOptions": {
-            "title": "Alternative options",
-            "description": "If you're experiencing issues, consider these alternatives:",
+            "title": "Альтернативные варианты",
+            "description": "Если у вас возникли проблемы, рассмотрите эти варианты перед запросом удаления:",
             "items": {
-                "pauseSubscription": "Pause your subscription temporarily",
-                "contactSupport": "Contact support for assistance",
-                "changeSettings": "Adjust your account or privacy settings"
+                "pauseSubscription": "Временно приостановить или изменить подписку",
+                "contactSupport": "Обратиться в поддержку для troubleshooting или помощи с оплатой",
+                "changeSettings": "Изменить настройки аккаунта, безопасности или приватности"
             }
         }
     },
     "form": {
-        "title": "Delete account request",
-        "description": "To proceed with account deletion, please confirm your identity and reason.",
+        "title": "Подтвердите запрос на удаление аккаунта",
+        "description": "Чтобы отправить запрос на ручную privacy-проверку, введите DELETE ниже и подтвердите, что понимаете последствия.",
         "fields": {
             "email": {
-                "label": "Email address",
-                "placeholder": "Enter your account email",
-                "error": "Valid email is required"
+                "label": "Email аккаунта",
+                "placeholder": "Введите email аккаунта",
+                "error": "Нужен корректный email"
             },
             "password": {
-                "label": "Password",
-                "placeholder": "Enter your password",
-                "error": "Password is required"
+                "label": "Пароль",
+                "placeholder": "Введите пароль",
+                "error": "Пароль обязателен"
             },
             "reason": {
-                "label": "Reason for deletion (optional)",
-                "placeholder": "Help us improve by sharing why you're leaving",
+                "label": "Причина удаления (необязательно)",
+                "placeholder": "Помогите нам стать лучше: расскажите, почему уходите",
                 "options": {
-                    "notUsing": "Not using the service",
-                    "tooExpensive": "Too expensive",
-                    "technicalIssues": "Technical issues",
-                    "privacyConcerns": "Privacy concerns",
-                    "foundAlternative": "Found an alternative",
-                    "other": "Other"
+                    "notUsing": "Не пользуюсь сервисом",
+                    "tooExpensive": "Слишком дорого",
+                    "technicalIssues": "Технические проблемы",
+                    "privacyConcerns": "Вопросы приватности",
+                    "foundAlternative": "Нашёл альтернативу",
+                    "other": "Другое"
                 }
             },
             "feedback": {
-                "label": "Additional feedback (optional)",
-                "placeholder": "Any additional comments..."
+                "label": "Дополнительный комментарий (необязательно)",
+                "placeholder": "Любые дополнительные комментарии для privacy support..."
+            },
+            "confirmInput": {
+                "label": "Введите DELETE для подтверждения",
+                "placeholder": "DELETE",
+                "error": "Чтобы продолжить, нужно ввести DELETE",
+                "keyword": "DELETE"
             },
             "confirmation": {
-                "label": "I understand this action is permanent and cannot be undone",
-                "error": "You must confirm to proceed"
+                "label": "Я понимаю, что этот запрос запускает проверку постоянного удаления и может повлиять на подписки, награды и историю поддержки",
+                "error": "Чтобы продолжить, нужно подтвердить понимание"
             }
         },
-        "submit": "Delete My Account",
-        "submitting": "Processing...",
-        "cancel": "Cancel"
+        "submit": "Отправить запрос на удаление",
+        "submitting": "Отправляем...",
+        "cancel": "Отмена",
+        "cancelToSettings": "Вернуться в настройки"
     },
     "success": {
-        "title": "Account deletion requested",
-        "message": "Your account deletion request has been submitted. You will receive a confirmation email shortly.",
-        "details": "Your account will be permanently deleted within 30 days. You can cancel this request by contacting support before the deletion is finalized."
+        "title": "Запрос на удаление отправлен",
+        "message": "Ваш запрос на удаление аккаунта поставлен в очередь на ручную privacy-проверку.",
+        "details": "Целевой срок выполнения - до {days} дней после проверки. До финализации удаления можно обратиться в поддержку с reference.",
+        "reference": "Reference: {reference}",
+        "returnHome": "Вернуться на главную",
+        "returnSettings": "Вернуться в настройки"
     },
     "error": {
-        "title": "Deletion failed",
-        "message": "We couldn't process your deletion request. Please try again or contact support.",
-        "invalidCredentials": "Invalid email or password",
-        "networkError": "Network error. Please check your connection.",
-        "serverError": "Server error. Please try again later."
+        "title": "Не удалось отправить запрос на удаление",
+        "message": "Мы не смогли отправить запрос на удаление. Попробуйте ещё раз или обратитесь в поддержку.",
+        "invalidCredentials": "Неверный email или пароль",
+        "networkError": "Ошибка сети. Проверьте подключение.",
+        "serverError": "Ошибка сервера. Попробуйте позже.",
+        "unauthenticated": "Чтобы запросить удаление аккаунта, нужно войти."
     },
     "contact": {
-        "title": "Need help?",
-        "description": "If you have questions about account deletion or data privacy:",
+        "title": "Нужна помощь?",
+        "description": "Если есть вопросы про удаление аккаунта или privacy:",
         "email": "Email",
         "emailAddress": "privacy@cyber-vpn.net"
     }

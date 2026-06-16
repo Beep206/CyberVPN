@@ -7,6 +7,8 @@ import {
   Clipboard,
   Copy,
   Download,
+  Eye,
+  EyeOff,
   ExternalLink,
   Gauge,
   Globe2,
@@ -207,6 +209,34 @@ function getCopyText(state: CopyState, t: ReturnType<typeof useTranslations>) {
   return t(`copy.${state}`);
 }
 
+function fingerprintDeliveryValue(value: string): string {
+  let hash = 0x811c9dc5;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(36);
+}
+
+function getPrimaryDeliveryRevealKey(
+  selectedSubscriptionKey: string | null | undefined,
+  link: ConfigLink | null,
+): string | null {
+  if (!link) {
+    return null;
+  }
+
+  return [
+    selectedSubscriptionKey ?? 'current',
+    link.id,
+    link.kind,
+    link.value.length,
+    fingerprintDeliveryValue(link.value),
+  ].join(':');
+}
+
 function RouteCard({
   server,
   t,
@@ -238,6 +268,9 @@ export function ServerAccessDashboard() {
   const t = useTranslations('Servers');
   const locale = useLocale();
   const [copyState, setCopyState] = useState<CopyState>(null);
+  const [revealedPrimaryDeliveryKey, setRevealedPrimaryDeliveryKey] = useState<string | null>(
+    null,
+  );
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
 
   const profileQuery = useQuery({
@@ -315,6 +348,16 @@ export function ServerAccessDashboard() {
   const subscriptionLink = deliveryBundle.subscriptionLink;
   const configFileLink = deliveryBundle.configFile;
   const primaryDeliveryLink = subscriptionLink ?? deliveryBundle.configFile;
+  const primaryDeliveryRevealKey = getPrimaryDeliveryRevealKey(
+    selectedSubscriptionKey,
+    primaryDeliveryLink,
+  );
+  const primaryDeliveryIsSubscription = primaryDeliveryLink?.kind === 'subscription';
+  const canTogglePrimaryDeliveryValue =
+    !primaryDeliveryIsSubscription && primaryDeliveryRevealKey !== null;
+  const showFullPrimaryDeliveryValue =
+    primaryDeliveryIsSubscription ||
+    (primaryDeliveryRevealKey !== null && revealedPrimaryDeliveryKey === primaryDeliveryRevealKey);
   const rawConfigLink = deliveryBundle.rawConfigLink;
   const availability = getConfigAvailability({
     config: configQuery.data,
@@ -583,11 +626,45 @@ export function ServerAccessDashboard() {
                       {primaryDeliveryLink.kind === 'config' ? t('config.rawConfig') : t('config.subscriptionUrl')}
                     </p>
                     <p className="mt-3 break-all rounded-xl border border-grid-line/20 bg-black/30 p-3 font-mono text-sm text-foreground">
-                      {maskConfigValue(primaryDeliveryLink.value)}
+                      {showFullPrimaryDeliveryValue
+                        ? primaryDeliveryLink.value
+                        : maskConfigValue(primaryDeliveryLink.value)}
                     </p>
-                    <p className="mt-3 font-mono text-xs leading-6 text-muted-foreground">
-                      {t('config.safeDelivery')}
-                    </p>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="font-mono text-xs leading-6 text-muted-foreground">
+                        {primaryDeliveryIsSubscription
+                          ? t('config.visibleSubscription')
+                          : t('config.safeDelivery')}
+                      </p>
+                      {canTogglePrimaryDeliveryValue ? (
+                        <button
+                          type="button"
+                          aria-label={t(
+                            showFullPrimaryDeliveryValue
+                              ? 'config.hideFullValue'
+                              : 'config.showFullValue',
+                          )}
+                          aria-pressed={showFullPrimaryDeliveryValue}
+                          onClick={() =>
+                            setRevealedPrimaryDeliveryKey((current) =>
+                              current === primaryDeliveryRevealKey ? null : primaryDeliveryRevealKey,
+                            )
+                          }
+                          className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-grid-line/40 bg-white/[0.03] px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground transition hover:border-neon-cyan/40 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+                        >
+                          {showFullPrimaryDeliveryValue ? (
+                            <EyeOff className="h-4 w-4" aria-hidden="true" />
+                          ) : (
+                            <Eye className="h-4 w-4" aria-hidden="true" />
+                          )}
+                          {t(
+                            showFullPrimaryDeliveryValue
+                              ? 'config.hideFullValue'
+                              : 'config.showFullValue',
+                          )}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="rounded-2xl border border-grid-line/30 bg-black/20 p-4">

@@ -1,9 +1,12 @@
 {
-  "dashboard": "DASHBOARD",
-  "servers": "MGA SERVER",
-  "users": "MGA KLIYENTE",
-  "billing": "PAGSINGIL",
-  "analytics": "NET OP",
-  "security": "SEGURIDAD",
-  "settings": "CONFIG"
+    "dashboard": "DASHBOARD",
+    "servers": "MGA SERVER",
+    "users": "MGA KLIYENTE",
+    "billing": "PAGSINGIL",
+    "analytics": "NET OP",
+    "security": "SEGURIDAD",
+    "settings": "CONFIG",
+    "items": {
+        "security": "SECURITY"
+    }
 }

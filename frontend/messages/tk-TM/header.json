@@ -1,10 +1,40 @@
 {
-  "systemLabel": "ULGAM",
-  "integrity": "BITEWILIK BARLAGY GECDI",
-  "encryptionLabel": "SIFRLEMEK",
-  "encryptionValue": "ISJEŇ - AES-256",
-  "netUplink": "TOR_BAGLANYSYK",
-  "fps": "FPS",
-  "ping": "PING",
-  "language": "DIL"
+    "systemLabel": "ULGAM",
+    "integrity": "BITEWILIK BARLAGY GECDI",
+    "encryptionLabel": "SIFRLEMEK",
+    "encryptionValue": "ISJEŇ - AES-256",
+    "netUplink": "TOR_BAGLANYSYK",
+    "fps": "FPS",
+    "ping": "PING",
+    "language": "DIL",
+    "userMenu": {
+        "triggerLabel": "Open account menu for {name}",
+        "fallbackName": "User",
+        "fallbackInitials": "U",
+        "accountBadge": "ACCOUNT",
+        "accountId": "ID: {id}",
+        "signOut": "Sign out",
+        "items": {
+            "dashboard": {
+                "label": "Dashboard",
+                "description": "Overview and stats"
+            },
+            "profile": {
+                "label": "Profile",
+                "description": "Account details"
+            },
+            "security": {
+                "label": "Security",
+                "description": "2FA and password"
+            },
+            "billing": {
+                "label": "Billing",
+                "description": "Manage plan"
+            },
+            "settings": {
+                "label": "Settings",
+                "description": "App preferences"
+            }
+        }
+    }
 }

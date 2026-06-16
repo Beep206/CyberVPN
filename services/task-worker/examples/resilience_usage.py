@@ -11,7 +11,6 @@ import asyncio
 
 import structlog
 
-from src.config import get_settings
 from src.security import log_masked_config, run_security_checks
 from src.services.circuit_breaker import CircuitBreaker, CircuitBreakerError
 from src.services.remnawave_client import RemnawaveClient

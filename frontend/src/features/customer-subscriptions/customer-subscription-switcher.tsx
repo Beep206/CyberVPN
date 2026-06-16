@@ -70,7 +70,7 @@ export function CustomerSubscriptionSwitcher() {
 
   if (isLoading) {
     return (
-      <div className="border-b border-grid-line/40 bg-terminal-bg/80 px-4 py-3 md:px-6">
+      <div className="relative z-20 border-b border-grid-line/40 bg-terminal-bg/80 px-4 py-3 md:px-6">
         <div className="flex min-h-11 items-center gap-3 rounded-2xl border border-grid-line/30 bg-terminal-surface/55 px-4 font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">
           <RefreshCw className="h-4 w-4 animate-spin text-neon-cyan" aria-hidden="true" />
           {copy.loading}
@@ -81,7 +81,7 @@ export function CustomerSubscriptionSwitcher() {
 
   if (isError || subscriptions.length === 0) {
     return (
-      <div className="border-b border-grid-line/40 bg-terminal-bg/80 px-4 py-3 md:px-6">
+      <div className="relative z-20 border-b border-grid-line/40 bg-terminal-bg/80 px-4 py-3 md:px-6">
         <div className="flex min-h-11 flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 text-amber-200">
           <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.16em]">
             <AlertTriangle className="h-4 w-4" aria-hidden="true" />
@@ -101,7 +101,7 @@ export function CustomerSubscriptionSwitcher() {
   }
 
   return (
-    <section className="border-b border-grid-line/40 bg-terminal-bg/80 px-4 py-3 md:px-6" aria-label={copy.label}>
+    <section className="relative z-20 border-b border-grid-line/40 bg-terminal-bg/80 px-4 py-3 md:px-6" aria-label={copy.label}>
       <div className="flex flex-col gap-3 rounded-2xl border border-neon-cyan/20 bg-terminal-surface/55 px-4 py-3 backdrop-blur lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan">

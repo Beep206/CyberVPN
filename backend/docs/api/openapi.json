@@ -3017,11 +3017,6 @@
         "summary": "Complete Telegram Magic Link",
         "description": "Accept trusted Telegram bot data for a pending magic-link session.",
         "operationId": "complete_telegram_magic_link_api_v1_oauth_telegram_magic_link_complete_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "X-Telegram-Bot-Secret",
@@ -45352,6 +45347,10 @@
             "format": "uuid",
             "title": "Id"
           },
+          "public_uid": {
+            "type": "integer",
+            "title": "Public Uid"
+          },
           "email": {
             "type": "string",
             "title": "Email"
@@ -45507,6 +45506,7 @@
         "type": "object",
         "required": [
           "id",
+          "public_uid",
           "email",
           "username",
           "status",
@@ -45534,6 +45534,10 @@
             "type": "string",
             "format": "uuid",
             "title": "Id"
+          },
+          "public_uid": {
+            "type": "integer",
+            "title": "Public Uid"
           },
           "email": {
             "type": "string",
@@ -45667,6 +45671,7 @@
         "type": "object",
         "required": [
           "id",
+          "public_uid",
           "email",
           "username",
           "status",
@@ -55396,7 +55401,7 @@
               }
             ],
             "title": "Device Limit",
-            "description": "Current realm device limit, if enforced"
+            "description": "Web session device limit, if enforced. VPN device quota is exposed by entitlement APIs."
           },
           "remaining_devices": {
             "anyOf": [
@@ -55408,7 +55413,7 @@
               }
             ],
             "title": "Remaining Devices",
-            "description": "Remaining devices before the enforced limit"
+            "description": "Remaining web session devices before the enforced limit; null when not enforced."
           }
         },
         "type": "object",
@@ -61499,6 +61504,17 @@
             ],
             "title": "Userid"
           },
+          "publicUid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publicuid"
+          },
           "telegramUserId": {
             "anyOf": [
               {
@@ -61758,6 +61774,17 @@
       },
       "MiniAppBootstrapUserResponse": {
         "properties": {
+          "publicUid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publicuid"
+          },
           "firstName": {
             "anyOf": [
               {
@@ -82088,6 +82115,41 @@
         "title": "TelegramMagicLinkCompleteResponse",
         "description": "Response returned after the bot confirms a magic-link session."
       },
+      "TelegramMagicLinkLoginResultResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/OAuthLoginUserResponse"
+          },
+          "is_new_user": {
+            "type": "boolean",
+            "title": "Is New User",
+            "default": false
+          },
+          "requires_2fa": {
+            "type": "boolean",
+            "title": "Requires 2Fa",
+            "default": false
+          },
+          "tfa_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tfa Token",
+            "description": "Short-lived pending 2FA token returned only when requires_2fa is true"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "title": "TelegramMagicLinkLoginResultResponse",
+        "description": "Tokenless login result for cookie-only Telegram Magic Link web polling."
+      },
       "TelegramMagicLinkResponse": {
         "properties": {
           "token": {
@@ -82136,13 +82198,13 @@
           "login_result": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/OAuthLoginResponse"
+                "$ref": "#/components/schemas/TelegramMagicLinkLoginResultResponse"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Populated with login tokens if status is completed"
+            "description": "Populated with tokenless login metadata if status is completed"
           }
         },
         "type": "object",
@@ -87206,7 +87268,14 @@
             "type": "string",
             "format": "uuid",
             "title": "Id",
-            "description": "User UUID"
+            "description": "Internal user UUID retained for backward-compatible authenticated API flows; clients display public_uid."
+          },
+          "public_uid": {
+            "type": "integer",
+            "maximum": 99999999.0,
+            "minimum": 10000000.0,
+            "title": "Public Uid",
+            "description": "Public random numeric account UID displayed to customers"
           },
           "email": {
             "type": "string",
@@ -87316,6 +87385,7 @@
         "type": "object",
         "required": [
           "id",
+          "public_uid",
           "email"
         ],
         "title": "UserResponse",

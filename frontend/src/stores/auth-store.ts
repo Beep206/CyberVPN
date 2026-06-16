@@ -21,6 +21,8 @@ import { getDefaultPostLoginPath, getSafeRedirectPath } from '@/features/auth/li
 
 let fetchUserInFlight: Promise<void> | null = null;
 let pendingPasswordLoginSuccess = false;
+let authSessionRestoreVersion = 0;
+let logoutInFlight = false;
 
 export function consumePendingPasswordLoginSuccess(): boolean {
   const pending = pendingPasswordLoginSuccess;
@@ -70,6 +72,27 @@ interface AuthState {
   deleteAccount: () => Promise<void>;
   clearError: () => void;
   clearRateLimit: () => void;
+}
+
+export function createAuthSessionRestoreToken(): number {
+  return authSessionRestoreVersion;
+}
+
+export function shouldApplyAuthSessionRestore(restoreToken: number): boolean {
+  return restoreToken === authSessionRestoreVersion && !logoutInFlight;
+}
+
+function getLoggedOutAuthState(): Pick<
+  AuthState,
+  'error' | 'isAuthenticated' | 'isLoading' | 'isNewTelegramUser' | 'user'
+> {
+  return {
+    error: null,
+    isAuthenticated: false,
+    isLoading: false,
+    isNewTelegramUser: false,
+    user: null,
+  };
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -210,6 +233,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             user: {
               id: data.user.id,
+              public_uid: data.user.public_uid,
               email: data.user.email,
               login: data.user.login,
               is_active: data.user.is_active,
@@ -247,16 +271,18 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         fetchUserInFlight = null;
         pendingPasswordLoginSuccess = false;
-        const logoutRequest = authApi.logout();
-        // Clear browser-visible state immediately; the server-side cookie
-        // revocation may finish later or fail transiently.
+        authSessionRestoreVersion += 1;
+        logoutInFlight = true;
+        authApi.clearSessionRequestCache();
         tokenStorage.clearTokens();
-        set({ user: null, isAuthenticated: false, isLoading: false, error: null, isNewTelegramUser: false });
+        set(getLoggedOutAuthState());
         authAnalytics.logout();
         try {
-          await logoutRequest;
-        } catch (error) {
-          throw error;
+          await authApi.logout();
+        } finally {
+          authApi.clearSessionRequestCache();
+          logoutInFlight = false;
+          authSessionRestoreVersion += 1;
         }
       },
 
@@ -266,13 +292,19 @@ export const useAuthStore = create<AuthState>()(
           return;
         }
 
+        const restoreToken = createAuthSessionRestoreToken();
         fetchUserInFlight = (async () => {
           try {
             const { data } = await authApi.session();
+            if (!shouldApplyAuthSessionRestore(restoreToken)) {
+              return;
+            }
             set({ user: data, isAuthenticated: true, isLoading: false });
             authAnalytics.sessionRestored(data.id);
           } catch {
-            set({ user: null, isAuthenticated: false, isLoading: false });
+            if (shouldApplyAuthSessionRestore(restoreToken)) {
+              set({ user: null, isAuthenticated: false, isLoading: false });
+            }
           } finally {
             fetchUserInFlight = null;
           }
@@ -330,6 +362,7 @@ export const useAuthStore = create<AuthState>()(
             set({
               user: {
                 id: data.user.id,
+                public_uid: data.user.public_uid,
                 email: data.user.email || '',
                 login: data.user.login,
                 is_active: data.user.is_active,
@@ -399,6 +432,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             user: {
               id: data.user.id,
+              public_uid: data.user.public_uid,
               email: data.user.email || '',
               login: data.user.login,
               is_active: data.user.is_active,
@@ -479,6 +513,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             user: {
               id: data.user.id,
+              public_uid: data.user.public_uid,
               email: data.user.email || '',
               login: data.user.login,
               is_active: data.user.is_active,
@@ -513,6 +548,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             user: {
               id: data.user.id,
+              public_uid: data.user.public_uid,
               email: data.user.email || '',
               login: data.user.login,
               is_active: data.user.is_active,

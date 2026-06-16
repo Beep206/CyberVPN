@@ -5,6 +5,7 @@ export {
   CURRENCY_COOKIE_NAME,
   CURRENCY_LABELS,
   CURRENCY_STORAGE_KEY,
+  CURRENCY_SYMBOLS,
   SUPPORTED_CURRENCIES,
   getDefaultCurrencyForLocale,
   isSupportedCurrency,

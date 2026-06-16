@@ -3,6 +3,9 @@ import type { operations } from './generated/types';
 
 // Extract types from OpenAPI operations
 type GetProfileResponse = operations['get_profile_api_v1_users_me_profile_get']['responses'][200]['content']['application/json'];
+type GetProfileResponseWithPublicUid = GetProfileResponse & {
+  public_uid?: number | null;
+};
 type UpdateProfileRequest = operations['update_profile_api_v1_users_me_profile_patch']['requestBody']['content']['application/json'];
 type UpdateProfileResponse = operations['update_profile_api_v1_users_me_profile_patch']['responses'][200]['content']['application/json'];
 type GetNotificationPreferencesResponse = operations['get_notification_preferences_api_v1_users_me_notifications_get']['responses'][200]['content']['application/json'];
@@ -22,7 +25,7 @@ export const profileApi = {
    * Note: Currently returns placeholder data from AdminUserModel.
    */
   getProfile: () =>
-    apiClient.get<GetProfileResponse>('/users/me/profile'),
+    apiClient.get<GetProfileResponseWithPublicUid>('/users/me/profile'),
 
   /**
    * Update current authenticated user's profile

@@ -1,7 +1,7 @@
 import base64
 from typing import Literal
 
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
 HAPP_PUBLIC_KEY_V3 = b"""

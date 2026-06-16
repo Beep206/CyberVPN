@@ -43,6 +43,8 @@ vi.mock('@/lib/analytics', () => ({
 }));
 
 vi.mock('@/stores/auth-store', () => ({
+  createAuthSessionRestoreToken: () => 0,
+  shouldApplyAuthSessionRestore: () => true,
   useAuthStore: Object.assign(() => ({}), {
     setState: (...args: unknown[]) => {
       mockSetState(...args);

@@ -500,22 +500,13 @@ class CyberVPNAPIClient:
             payload["language_code"] = language_code
 
         if self._auth_backend_client is None:
-            return await self._request_dict("POST", "/oauth/telegram/magic-link/complete", json=payload)
+            raise APIError(
+                "Auth backend is required for Telegram magic-link completion",
+                status_code=503,
+                detail="AUTH_BACKEND_API_URL and AUTH_BACKEND_INTERNAL_SECRET must be configured",
+            )
 
-        response = await self._auth_backend_client.request(
-            method="POST",
-            url="/oauth/telegram/magic-link/complete",
-            json=payload,
-        )
-        self._handle_response(response)
-        data = response.json()
-        if isinstance(data, dict):
-            return data
-        raise APIError(
-            message="Unexpected response format",
-            status_code=500,
-            detail="Expected object for Telegram magic-link completion",
-        )
+        return await self._request_auth_backend_dict("POST", "/oauth/telegram/magic-link/complete", json=payload)
 
     # ── Subscriptions ────────────────────────────────────────────────
 

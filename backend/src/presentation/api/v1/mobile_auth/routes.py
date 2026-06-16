@@ -193,6 +193,7 @@ def _user_response_from_dto(dto) -> UserResponse:
 
     return UserResponse(
         id=dto.id,
+        public_uid=dto.public_uid,
         email=dto.email,
         username=dto.username,
         status=dto.status,

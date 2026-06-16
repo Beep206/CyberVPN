@@ -13809,6 +13809,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Public Uid */
+            public_uid: number;
             /** Email */
             email: string;
             /** Username */
@@ -13859,6 +13861,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Public Uid */
+            public_uid: number;
             /** Email */
             email: string;
             /** Username */
@@ -17766,12 +17770,12 @@ export interface components {
             total_devices: number;
             /**
              * Device Limit
-             * @description Current realm device limit, if enforced
+             * @description Web session device limit, if enforced. VPN device quota is exposed by entitlement APIs.
              */
             device_limit: number | null;
             /**
              * Remaining Devices
-             * @description Remaining devices before the enforced limit
+             * @description Remaining web session devices before the enforced limit; null when not enforced.
              */
             remaining_devices: number | null;
         };
@@ -20316,6 +20320,8 @@ export interface components {
             authenticated: boolean;
             /** Userid */
             userId?: string | null;
+            /** Publicuid */
+            publicUid?: number | null;
             /** Telegramuserid */
             telegramUserId?: string | null;
             /**
@@ -20396,6 +20402,8 @@ export interface components {
         };
         /** MiniAppBootstrapUserResponse */
         MiniAppBootstrapUserResponse: {
+            /** Publicuid */
+            publicUid?: number | null;
             /** Firstname */
             firstName?: string | null;
             /** Username */
@@ -28862,6 +28870,28 @@ export interface components {
             status: "accepted";
         };
         /**
+         * TelegramMagicLinkLoginResultResponse
+         * @description Tokenless login result for cookie-only Telegram Magic Link web polling.
+         */
+        TelegramMagicLinkLoginResultResponse: {
+            user: components["schemas"]["OAuthLoginUserResponse"];
+            /**
+             * Is New User
+             * @default false
+             */
+            is_new_user: boolean;
+            /**
+             * Requires 2Fa
+             * @default false
+             */
+            requires_2fa: boolean;
+            /**
+             * Tfa Token
+             * @description Short-lived pending 2FA token returned only when requires_2fa is true
+             */
+            tfa_token?: string | null;
+        };
+        /**
          * TelegramMagicLinkResponse
          * @description Response when requesting a Magic Link for Telegram Login.
          */
@@ -28893,8 +28923,8 @@ export interface components {
              * @enum {string}
              */
             status: "pending" | "completed" | "expired";
-            /** @description Populated with login tokens if status is completed */
-            login_result?: components["schemas"]["OAuthLoginResponse"] | null;
+            /** @description Populated with tokenless login metadata if status is completed */
+            login_result?: components["schemas"]["TelegramMagicLinkLoginResultResponse"] | null;
         };
         /**
          * TelegramMiniAppRequest
@@ -30922,9 +30952,14 @@ export interface components {
             /**
              * Id
              * Format: uuid
-             * @description User UUID
+             * @description Internal user UUID retained for backward-compatible authenticated API flows; clients display public_uid.
              */
             id: string;
+            /**
+             * Public Uid
+             * @description Public random numeric account UID displayed to customers
+             */
+            public_uid: number;
             /**
              * Email
              * @description User email address

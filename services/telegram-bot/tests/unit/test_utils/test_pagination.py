@@ -189,7 +189,7 @@ class TestCreatePaginationKeyboard:
 
         # Prev should work, next should be disabled
         assert "test:1" in bottom_row[0].callback_data  # Prev button
-        assert "noop" == bottom_row[2].callback_data  # Disabled next
+        assert bottom_row[2].callback_data == "noop"  # Disabled next
 
     def test_keyboard_without_page_numbers(self) -> None:
         """Test keyboard without page counter."""

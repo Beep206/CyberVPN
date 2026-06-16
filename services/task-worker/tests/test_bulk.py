@@ -1,6 +1,5 @@
 """Tests for bulk operations task modules."""
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

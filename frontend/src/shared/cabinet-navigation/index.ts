@@ -51,6 +51,7 @@ export type CabinetNavigationItemId =
   | 'web.rewards.invites'
   | 'web.rewards.notifications'
   | 'web.rewards.referral'
+  | 'web.security'
   | 'web.servers'
   | 'web.settings'
   | 'web.subscriptions'
@@ -72,6 +73,7 @@ export type DashboardNavigationLabelKey =
   | 'paymentHistory'
   | 'referral'
   | 'servers'
+  | 'security'
   | 'settings'
   | 'support'
   | 'wallet';
@@ -137,6 +139,7 @@ interface CabinetNavigationItemDefinition {
   id: CabinetNavigationItemId;
   labelKey: string;
   legacyHrefs?: readonly string[];
+  matchNested?: boolean;
   requirement?: CapabilityRequirement;
   surface?: DashboardCompatibilitySurface;
 }
@@ -153,6 +156,7 @@ interface DashboardNavigationItemDefinition {
   href: string;
   icon: LucideIcon;
   labelKey: DashboardNavigationLabelKey;
+  matchNested?: boolean;
   requirement?: CapabilityRequirement;
   surface: DashboardCompatibilitySurface;
 }
@@ -317,6 +321,14 @@ const WEB_CABINET_SECTION_DEFINITIONS: readonly CabinetNavigationSectionDefiniti
         href: '/settings',
         icon: Settings,
         labelKey: 'items.profileSecurity',
+        matchNested: false,
+      },
+      {
+        id: 'web.security',
+        href: '/settings/security',
+        icon: ShieldCheck,
+        labelKey: 'items.security',
+        surface: 'settings',
       },
     ],
   },
@@ -459,9 +471,16 @@ const DASHBOARD_COMPATIBILITY_ITEM_DEFINITIONS: readonly DashboardNavigationItem
     surface: 'support',
   },
   {
+    icon: ShieldCheck,
+    labelKey: 'security',
+    href: '/settings/security',
+    surface: 'settings',
+  },
+  {
     icon: Settings,
     labelKey: 'settings',
     href: '/settings',
+    matchNested: false,
     surface: 'settings',
   },
 ] as const;
@@ -476,6 +495,7 @@ export const DASHBOARD_NAV_LABEL_FALLBACKS = {
   paymentHistory: 'Payment history',
   referral: 'Referral rewards',
   servers: 'VPN servers',
+  security: 'Security',
   settings: 'Settings',
   sidebar: 'Sidebar',
   support: 'Support',
@@ -494,6 +514,7 @@ export const CABINET_NAV_LABEL_FALLBACKS = {
   'items.referral': 'REFERRAL',
   'items.rewardNotifications': 'ALERTS',
   'items.rewards': 'REWARDS HUB',
+  'items.security': 'SECURITY',
   'items.subscription': 'SUBSCRIPTION',
   'items.support': 'SUPPORT',
   'items.vpnAccess': 'NETWORK',
@@ -572,6 +593,7 @@ function resolveItem(
     match: (pathname) =>
       isCabinetRouteActive(pathname, item.href, {
         aliases: item.legacyHrefs,
+        includeNested: item.matchNested !== false,
       }),
   };
 }
@@ -605,13 +627,17 @@ function normalizeCabinetPath(pathname: string): string {
   return normalized;
 }
 
-function isPathActiveForHref(pathname: string, href: string): boolean {
+function isPathActiveForHref(
+  pathname: string,
+  href: string,
+  includeNested = true,
+): boolean {
   const normalizedPath = normalizeCabinetPath(pathname);
   const normalizedHref = normalizeCabinetPath(href);
 
   return (
     normalizedPath === normalizedHref ||
-    normalizedPath.startsWith(`${normalizedHref}/`)
+    (includeNested && normalizedPath.startsWith(`${normalizedHref}/`))
   );
 }
 
@@ -633,13 +659,13 @@ export function hasAnyGrowthCapability(
 export function isCabinetRouteActive(
   pathname: string | null | undefined,
   href: string,
-  options: { aliases?: readonly string[] } = {},
+  options: { aliases?: readonly string[]; includeNested?: boolean } = {},
 ): boolean {
   if (!pathname) {
     return false;
   }
 
-  if (isPathActiveForHref(pathname, href)) {
+  if (isPathActiveForHref(pathname, href, options.includeNested ?? true)) {
     return true;
   }
 
@@ -721,7 +747,10 @@ export function getDashboardNavItems({
         href: item.href,
         icon: item.icon,
         labelKey: item.labelKey,
-        match: (pathname) => isCabinetRouteActive(pathname, item.href),
+        match: (pathname) =>
+          isCabinetRouteActive(pathname, item.href, {
+            includeNested: item.matchNested !== false,
+          }),
         surface: item.surface,
       },
     ];

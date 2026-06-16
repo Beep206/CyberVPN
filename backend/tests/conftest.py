@@ -211,6 +211,32 @@ def ensure_repo_schema(test_settings) -> None:
                                 """
                             )
                         )
+                    if "public_uid" not in mobile_user_columns:
+                        await conn.execute(text("alter table mobile_users add column public_uid bigint"))
+                        await conn.execute(
+                            text(
+                                """
+                                with numbered as (
+                                    select id, row_number() over (order by created_at, id) as rn
+                                    from mobile_users
+                                    where public_uid is null
+                                )
+                                update mobile_users
+                                set public_uid = 10000000 + ((numbered.rn * 7919 + 31415926) % 90000000)
+                                from numbered
+                                where mobile_users.id = numbered.id
+                                """
+                            )
+                        )
+                        await conn.execute(text("alter table mobile_users alter column public_uid set not null"))
+                        await conn.execute(
+                            text(
+                                """
+                                create unique index if not exists ix_mobile_users_public_uid
+                                on mobile_users (public_uid)
+                                """
+                            )
+                        )
                     if "telegram_subject" not in mobile_user_columns:
                         await conn.execute(text("alter table mobile_users add column telegram_subject varchar(255)"))
                         await conn.execute(

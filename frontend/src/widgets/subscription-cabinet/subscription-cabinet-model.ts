@@ -10,6 +10,19 @@ export type TrialStatus = components['schemas']['TrialStatusResponse'];
 export type SubscriptionHealth = 'attention' | 'critical' | 'healthy';
 export type PlanAction = 'current' | 'downgrade' | 'purchase' | 'upgrade';
 export type StatusTone = 'amber' | 'cyan' | 'green' | 'pink' | 'purple';
+export type PlanDurationFilter = 'all' | 'long' | 'monthly' | 'quarterly';
+export type PlanDeviceFilter = 'all' | 'sixToTen' | 'upToFive' | 'elevenPlus';
+export type PlanTrafficFilter = 'all' | 'limited' | 'unlimited';
+export type PlanDurationGroup = 'long' | 'monthly' | 'other' | 'quarterly';
+export type PlanCatalogFilters = {
+  devices: PlanDeviceFilter;
+  duration: PlanDurationFilter;
+  traffic: PlanTrafficFilter;
+};
+export type PlanDurationGroupSection = {
+  key: PlanDurationGroup;
+  plans: PlanRecord[];
+};
 
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'] as const;
 const INACTIVE_ENTITLEMENT_STATUSES = new Set([
@@ -25,6 +38,14 @@ const PAID_ORDER_STATUSES = new Set(['paid', 'settled', 'completed']);
 const PENDING_ORDER_STATUSES = new Set(['pending', 'pending_payment', 'awaiting_payment']);
 const NON_UPGRADABLE_PLAN_CODES = new Set(['invite', 'invite_access', 'trial']);
 const RU_PLAN_PREFIX = 'ru_';
+const MONTHLY_MAX_DAYS = 31;
+const QUARTERLY_MAX_DAYS = 100;
+
+export const DEFAULT_PLAN_CATALOG_FILTERS: PlanCatalogFilters = {
+  devices: 'all',
+  duration: 'all',
+  traffic: 'all',
+};
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -210,6 +231,69 @@ export function getPublicPlans(plans: PlanRecord[]): PlanRecord[] {
   return [...plans]
     .filter((plan) => plan.is_active && plan.catalog_visibility === 'public')
     .sort((first, second) => first.sort_order - second.sort_order);
+}
+
+export function getPlanDurationGroup(plan: PlanRecord): PlanDurationGroup {
+  if (plan.duration_days <= MONTHLY_MAX_DAYS) {
+    return 'monthly';
+  }
+
+  if (plan.duration_days <= QUARTERLY_MAX_DAYS) {
+    return 'quarterly';
+  }
+
+  if (plan.duration_days > QUARTERLY_MAX_DAYS) {
+    return 'long';
+  }
+
+  return 'other';
+}
+
+function getPlanDeviceFilter(plan: PlanRecord): PlanDeviceFilter {
+  if (plan.devices_included <= 5) {
+    return 'upToFive';
+  }
+
+  if (plan.devices_included <= 10) {
+    return 'sixToTen';
+  }
+
+  return 'elevenPlus';
+}
+
+function getPlanTrafficFilter(plan: PlanRecord): PlanTrafficFilter {
+  return plan.traffic_limit_bytes && plan.traffic_limit_bytes > 0 ? 'limited' : 'unlimited';
+}
+
+export function planMatchesCatalogFilters(
+  plan: PlanRecord,
+  filters: PlanCatalogFilters,
+): boolean {
+  const durationMatches =
+    filters.duration === 'all' || getPlanDurationGroup(plan) === filters.duration;
+  const deviceMatches = filters.devices === 'all' || getPlanDeviceFilter(plan) === filters.devices;
+  const trafficMatches =
+    filters.traffic === 'all' || getPlanTrafficFilter(plan) === filters.traffic;
+
+  return durationMatches && deviceMatches && trafficMatches;
+}
+
+export function getFilteredPublicPlans(
+  plans: PlanRecord[],
+  filters: PlanCatalogFilters,
+): PlanRecord[] {
+  return plans.filter((plan) => planMatchesCatalogFilters(plan, filters));
+}
+
+export function getPlansGroupedByDuration(plans: PlanRecord[]): PlanDurationGroupSection[] {
+  const groups: PlanDurationGroup[] = ['monthly', 'quarterly', 'long', 'other'];
+
+  return groups
+    .map((key) => ({
+      key,
+      plans: plans.filter((plan) => getPlanDurationGroup(plan) === key),
+    }))
+    .filter((group) => group.plans.length > 0);
 }
 
 export function getCurrentPlan(

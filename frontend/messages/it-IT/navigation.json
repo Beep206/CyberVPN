@@ -1,9 +1,12 @@
 {
-  "dashboard": "PANNELLO",
-  "servers": "SERVER",
-  "users": "CLIENTI",
-  "billing": "FATTURAZIONE",
-  "analytics": "OP RETE",
-  "security": "SICUREZZA",
-  "settings": "CONFIG"
+    "dashboard": "PANNELLO",
+    "servers": "SERVER",
+    "users": "CLIENTI",
+    "billing": "FATTURAZIONE",
+    "analytics": "OP RETE",
+    "security": "SICUREZZA",
+    "settings": "CONFIG",
+    "items": {
+        "security": "SECURITY"
+    }
 }

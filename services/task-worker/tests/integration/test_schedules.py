@@ -111,7 +111,7 @@ class TestScheduleRegistration:
 
     def test_broker_and_scheduler_exist(self):
         """Verify broker and scheduler are properly initialized."""
-        from src.broker import broker, scheduler, schedule_source
+        from src.broker import broker, schedule_source, scheduler
 
         assert broker is not None, "Broker should be initialized"
         assert scheduler is not None, "Scheduler should be initialized"

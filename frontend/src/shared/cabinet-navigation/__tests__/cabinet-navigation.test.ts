@@ -50,6 +50,10 @@ describe('cabinet navigation foundation', () => {
     expect(sections.find((section) => section.id === 'growth')?.items).toHaveLength(
       6,
     );
+    expect(sections.find((section) => section.id === 'account')?.items.map((item) => item.href)).toEqual([
+      '/settings',
+      '/settings/security',
+    ]);
   });
 
   it('keeps unavailable groups inspectable as hidden and disabled when requested', () => {
@@ -142,6 +146,12 @@ describe('cabinet navigation foundation', () => {
     expect(isCabinetRouteActive('/servers/eu-west', '/servers')).toBe(true);
     expect(isCabinetRouteActive('/server-status', '/servers')).toBe(false);
     expect(
+      isCabinetRouteActive('/ru-RU/settings/security', '/settings', {
+        includeNested: false,
+      }),
+    ).toBe(false);
+    expect(isCabinetRouteActive('/ru-RU/settings/security', '/settings/security')).toBe(true);
+    expect(
       isCabinetRouteActive('/en-EN/miniapp/rewards/gifts', '/miniapp/rewards'),
     ).toBe(true);
     expect(
@@ -173,6 +183,7 @@ describe('cabinet navigation foundation', () => {
       '/wallet',
       '/payment-history',
       ...supportRoutes,
+      '/settings/security',
       '/settings',
     ]);
     expect(growthItems.map((item) => item.href)).toEqual([
@@ -183,6 +194,7 @@ describe('cabinet navigation foundation', () => {
       '/payment-history',
       '/referral',
       ...supportRoutes,
+      '/settings/security',
       '/settings',
     ]);
     expect(growthItems.map((item) => item.href)).not.toContain('/rewards');

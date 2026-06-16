@@ -115,6 +115,46 @@
     "description": "Public plans are loaded from the canonical web catalog. Current plan is locked; other plans are quoted before purchase or upgrade.",
     "empty": "No public plans are available right now.",
     "eyebrow": "Plan catalog",
+    "filteredCount": "{count}/{total} plans",
+    "filters": {
+      "description": "Narrow the catalog by billing term, device capacity, and traffic model.",
+      "devices": {
+        "label": "Devices",
+        "options": {
+          "all": "All",
+          "elevenPlus": "11+",
+          "sixToTen": "6-10",
+          "upToFive": "Up to 5"
+        }
+      },
+      "duration": {
+        "label": "Term",
+        "options": {
+          "all": "All",
+          "long": "100+ days",
+          "monthly": "Up to 31d",
+          "quarterly": "32-100d"
+        }
+      },
+      "eyebrow": "Catalog filters",
+      "reset": "Reset",
+      "traffic": {
+        "label": "Traffic",
+        "options": {
+          "all": "All",
+          "limited": "Metered",
+          "unlimited": "Unlimited"
+        }
+      }
+    },
+    "groupCount": "{count} plans",
+    "groups": {
+      "long": "Long access",
+      "monthly": "Monthly access",
+      "other": "Other terms",
+      "quarterly": "Quarterly access"
+    },
+    "noFilterResults": "No plans match the selected filters.",
     "perCycle": "per {duration}",
     "publicCount": "{count} public plans",
     "title": "Choose the next access tier"

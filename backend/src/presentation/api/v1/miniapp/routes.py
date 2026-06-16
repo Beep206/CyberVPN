@@ -737,6 +737,7 @@ async def get_miniapp_bootstrap(
             session=MiniAppBootstrapSessionResponse(
                 authenticated=True,
                 userId=str(mobile_user.id),
+                publicUid=mobile_user.public_uid,
                 telegramUserId=str(mobile_user.telegram_id) if mobile_user.telegram_id is not None else None,
                 authRealm="customer",
             ),
@@ -760,6 +761,7 @@ async def get_miniapp_bootstrap(
                 ),
             ),
             user=MiniAppBootstrapUserResponse(
+                publicUid=mobile_user.public_uid,
                 firstName=mobile_user.telegram_username or mobile_user.username,
                 username=mobile_user.telegram_username or mobile_user.username,
                 locale=locale,

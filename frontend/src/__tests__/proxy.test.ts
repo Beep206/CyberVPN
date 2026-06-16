@@ -50,6 +50,13 @@ describe('proxy routing', () => {
     expect(res.status).toBe(200);
   });
 
+  it('passes support route through on cabinet host', () => {
+    const req = createRequest('/ru-RU/support', undefined, 'https://my.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(200);
+  });
+
   it('passes public login route through', () => {
     const req = createRequest('/en-EN/login');
     const res = proxy(req);
@@ -63,6 +70,14 @@ describe('proxy routing', () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/ru-RU/dashboard/analytics');
+  });
+
+  it('redirects public support route to cabinet host', () => {
+    const req = createRequest('/ru-RU/support', undefined, 'https://cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/ru-RU/support');
   });
 
   it('redirects public dashboard route by Host header when runtime URL is local', () => {

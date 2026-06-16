@@ -8,7 +8,6 @@ import json
 import os
 import secrets
 import subprocess
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -244,7 +243,7 @@ def render_exporter_env(node: Node) -> str:
 
 
 def render_install_script(node: Node) -> str:
-    return f"""#!/usr/bin/env bash
+    return """#!/usr/bin/env bash
 set -euo pipefail
 
 bundle_dir="$$(cd "$$(dirname "$0")" && pwd)"

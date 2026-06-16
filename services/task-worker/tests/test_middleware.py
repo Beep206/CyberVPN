@@ -71,7 +71,7 @@ async def test_logging_middleware_on_error():
 @pytest.mark.asyncio
 async def test_metrics_middleware_pre_execute():
     """Test metrics middleware increments in_progress gauge."""
-    from src.middleware.metrics_middleware import MetricsMiddleware, TASKS_IN_PROGRESS
+    from src.middleware.metrics_middleware import TASKS_IN_PROGRESS, MetricsMiddleware
 
     middleware = MetricsMiddleware()
     message = TaskiqMessage(
@@ -95,7 +95,7 @@ async def test_metrics_middleware_pre_execute():
 @pytest.mark.asyncio
 async def test_metrics_middleware_post_execute():
     """Test metrics middleware records completion metrics."""
-    from src.middleware.metrics_middleware import MetricsMiddleware, TASK_TOTAL, TASK_DURATION, TASKS_IN_PROGRESS
+    from src.middleware.metrics_middleware import TASK_DURATION, TASK_TOTAL, TASKS_IN_PROGRESS, MetricsMiddleware
 
     middleware = MetricsMiddleware()
     message = TaskiqMessage(
@@ -129,7 +129,7 @@ async def test_metrics_middleware_post_execute():
 @pytest.mark.asyncio
 async def test_metrics_middleware_on_error():
     """Test metrics middleware records error metrics."""
-    from src.middleware.metrics_middleware import MetricsMiddleware, TASK_ERRORS
+    from src.middleware.metrics_middleware import TASK_ERRORS, MetricsMiddleware
 
     middleware = MetricsMiddleware()
     message = TaskiqMessage(

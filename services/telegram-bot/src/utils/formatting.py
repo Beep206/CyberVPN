@@ -230,8 +230,7 @@ def format_money(
 
     if position == "before":
         return f"{symbol}{formatted_amount}"
-    else:
-        return f"{formatted_amount} {symbol}"
+    return f"{formatted_amount} {symbol}"
 
 
 def format_datetime(

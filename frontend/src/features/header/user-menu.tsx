@@ -1,16 +1,17 @@
-import { useState, useRef, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    LayoutDashboard,
-    Settings,
-    UserCircle,
-    LogOut,
-    ChevronRight,
-    Sparkles,
-    CreditCard,
-    Shield
+  ChevronRight,
+  CreditCard,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  Shield,
+  Sparkles,
+  UserCircle,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { useAuthStore } from '@/stores/auth-store';
@@ -18,15 +19,53 @@ import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { profileApi } from '@/lib/api';
+import { formatCustomerPublicUid } from '@/shared/lib/public-account-id';
+
+const USER_MENU_PROFILE_STALE_MS = 5 * 60_000;
+
+function getAccountFallbackName(user: ReturnType<typeof useAuthStore.getState>['user']) {
+  const login = user?.login?.trim();
+  if (login) {
+    return login;
+  }
+
+  const emailLocalPart = user?.email?.split('@')[0]?.trim();
+  return emailLocalPart || null;
+}
+
+function getInitials(value: string, fallback: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  const [first = '', second = ''] = normalized.split(/\s+/);
+  const initials = `${first[0] ?? ''}${second[0] ?? ''}` || normalized.slice(0, 2);
+  return initials.toUpperCase();
+}
 
 export function UserMenu() {
     const [isOpen, setIsOpen] = useState(false);
+    const t = useTranslations('Header.userMenu');
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user, logout } = useAuthStore();
+    const user = useAuthStore((state) => state.user);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const logout = useAuthStore((state) => state.logout);
     const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const profileQuery = useQuery({
+        queryKey: ['settings', 'profile'],
+        queryFn: async () => {
+            const response = await profileApi.getProfile();
+            return response.data;
+        },
+        enabled: isAuthenticated,
+        refetchOnWindowFocus: false,
+        staleTime: USER_MENU_PROFILE_STALE_MS,
+    });
 
     // Close on click outside
     useEffect(() => {
@@ -41,52 +80,61 @@ export function UserMenu() {
 
     const handleLogout = () => {
         setIsOpen(false);
+        const logoutAttempt = logout();
         queryClient.clear();
-        void logout().catch(() => {});
         router.replace('/');
         router.refresh();
+        void logoutAttempt.catch(() => {
+            // Local auth state is cleared by the store even if revoke fails.
+        });
     };
 
-    // User initials for avatar fallback
-    const initials = user?.email
-        ? user.email.substring(0, 2).toUpperCase()
-        : user?.login?.substring(0, 2).toUpperCase() || 'U';
+    const profileDisplayName = profileQuery.data?.display_name?.trim();
+    const accountName =
+        profileDisplayName || getAccountFallbackName(user) || t('fallbackName');
+    const initials = getInitials(accountName, t('fallbackInitials'));
+    const publicAccountId = formatCustomerPublicUid(user?.public_uid);
 
     const menuItems = [
         {
+            id: 'dashboard',
             icon: LayoutDashboard,
-            label: 'Dashboard',
+            label: t('items.dashboard.label'),
             href: '/dashboard',
             color: 'text-neon-cyan',
-            desc: 'Overview & Stats'
+            desc: t('items.dashboard.description')
         },
         {
+            id: 'profile',
             icon: UserCircle,
-            label: 'Profile',
+            label: t('items.profile.label'),
             href: '/settings',
             color: 'text-neon-purple',
-            desc: 'Account Details'
+            desc: t('items.profile.description')
         },
         {
+            id: 'security',
             icon: Shield,
-            label: 'Security',
-            href: '/settings',
+            label: t('items.security.label'),
+            href: '/settings/security',
             color: 'text-matrix-green',
-            desc: '2FA & Password'
+            desc: t('items.security.description')
         },
         {
+            id: 'billing',
             icon: CreditCard,
-            label: 'Billing',
+            label: t('items.billing.label'),
             href: '/subscriptions',
             color: 'text-neon-yellow',
-            desc: 'Manage Plan'
+            desc: t('items.billing.description')
         },
         {
+            id: 'settings',
             icon: Settings,
-            label: 'Settings',
+            label: t('items.settings.label'),
             href: '/settings',
             color: 'text-muted-foreground',
-            desc: 'App Preferences'
+            desc: t('items.settings.description')
         },
     ];
 
@@ -95,6 +143,9 @@ export function UserMenu() {
             <MagneticButton strength={10}>
                 <button
                     onClick={() => setIsOpen(!isOpen)}
+                    aria-expanded={isOpen}
+                    aria-haspopup="menu"
+                    aria-label={t('triggerLabel', { name: accountName })}
                     className={cn(
                         "flex items-center gap-2 p-1 pl-2 pr-1 rounded-full border transition-all duration-300 group relative overflow-hidden",
                         isOpen
@@ -103,7 +154,7 @@ export function UserMenu() {
                     )}
                 >
                     <span className="text-xs font-medium max-w-[100px] truncate hidden md:block z-10 relative">
-                        {user?.login || user?.email?.split('@')[0]}
+                        {accountName}
                     </span>
 
                     {/* Status Dot */}
@@ -153,7 +204,7 @@ export function UserMenu() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-sm text-foreground truncate flex items-center gap-2">
-                                            {user?.login}
+                                            {accountName}
                                             <Sparkles className="w-3 h-3 text-neon-yellow animate-pulse" />
                                         </h4>
                                         <p className="text-xs text-muted-foreground truncate font-mono opacity-80">
@@ -161,29 +212,32 @@ export function UserMenu() {
                                         </p>
                                         <div className="mt-1.5 flex items-center gap-2">
                                             <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20">
-                                                PRO
+                                                {t('accountBadge')}
                                             </span>
-                                            <span className="text-[10px] text-muted-foreground/50 font-mono">
-                                                ID: {user?.id?.substring(0, 4)}...
-                                            </span>
+                                            {publicAccountId ? (
+                                                <span className="text-[10px] text-muted-foreground/50 font-mono">
+                                                    {t('accountId', { id: publicAccountId })}
+                                                </span>
+                                            ) : null}
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Menu Items */}
-                            <div className="p-2 space-y-0.5 relative">
+                            <div className="p-2 space-y-0.5 relative" role="menu">
                                 {menuItems.map((item, index) => (
-                                    <div key={item.href}>
+                                    <div key={item.id}>
                                         <Link
                                             href={item.href}
+                                            role="menuitem"
                                             onClick={() => setIsOpen(false)}
                                             prefetch={false}
-                                            onMouseEnter={() => setHoveredItem(item.href)}
+                                            onMouseEnter={() => setHoveredItem(item.id)}
                                             onMouseLeave={() => setHoveredItem(null)}
                                             className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group/item overflow-hidden"
                                         >
-                                            {hoveredItem === item.href && (
+                                            {hoveredItem === item.id && (
                                                 <motion.div
                                                     layoutId="menuHover"
                                                     className="absolute inset-0 bg-gradient-to-r from-accent/80 via-accent/40 to-transparent dark:from-white/10 dark:via-white/5 dark:to-transparent"
@@ -207,7 +261,7 @@ export function UserMenu() {
                                             <div className="flex-1 relative z-10">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-sm font-medium text-muted-foreground group-hover/item:text-foreground group-hover/item:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                                        <CypherText text={item.label} trigger={hoveredItem === item.href} speed={40} />
+                                                        <CypherText text={item.label} trigger={hoveredItem === item.id} speed={40} />
                                                     </span>
                                                     <ChevronRight className="w-3 h-3 text-primary dark:text-neon-cyan opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all duration-300 ease-out" />
                                                 </div>
@@ -230,7 +284,7 @@ export function UserMenu() {
                                     className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300 transition-all group"
                                 >
                                     <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                                    <span>Sign Out</span>
+                                    <span>{t('signOut')}</span>
                                 </button>
                             </div>
                         </motion.div>

@@ -605,7 +605,7 @@ def _conversation_action_url(payload: dict[str, Any]) -> str | None:
     public_id = str(payload.get("conversation_public_id") or "").strip()
     if not public_id:
         return None
-    return f"/support/conversations/{public_id}"
+    return f"/messages?conversation={public_id}"
 
 
 def _build_subject(consumer_key: str, event_name: str, schema_version: int) -> str:

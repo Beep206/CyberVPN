@@ -46,6 +46,7 @@ def _auth_result(*, is_new_user: bool) -> AuthResponseDTO:
         ),
         user=UserResponseDTO(
             id=uuid4(),
+            public_uid=14_677_650,
             email="tg123456789@telegram.local",
             username="telegram_route_user",
             status="active",
@@ -81,6 +82,7 @@ class TestTelegramOIDCRoute:
             )
 
         assert response.is_new_user is True
+        assert response.user.public_uid == 14_677_650
         assert response.user.telegram_id == 123456789
         assert response.tokens.access_token == "access-token"
         db.commit.assert_awaited_once()

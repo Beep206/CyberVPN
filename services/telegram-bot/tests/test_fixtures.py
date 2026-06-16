@@ -6,7 +6,7 @@ can be imported, instantiated, and used properly.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 import respx
@@ -125,8 +125,8 @@ class TestMockAPIClient:
                     "username": "test_user",
                     "language": "en",
                     "status": "active",
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "created_at": datetime.now(UTC).isoformat(),
+                    "updated_at": datetime.now(UTC).isoformat(),
                 },
             ),
         )

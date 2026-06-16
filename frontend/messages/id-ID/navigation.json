@@ -1,9 +1,12 @@
 {
-  "dashboard": "DASBOR",
-  "servers": "SERVER",
-  "users": "KLIEN",
-  "billing": "TAGIHAN",
-  "analytics": "OP JARINGAN",
-  "security": "KEAMANAN",
-  "settings": "KONFIGURASI"
+    "dashboard": "DASBOR",
+    "servers": "SERVER",
+    "users": "KLIEN",
+    "billing": "TAGIHAN",
+    "analytics": "OP JARINGAN",
+    "security": "KEAMANAN",
+    "settings": "KONFIGURASI",
+    "items": {
+        "security": "SECURITY"
+    }
 }

@@ -950,19 +950,20 @@
     },
     "error": {
       "invalidCredentials": "Invalid email or password",
-      "message": "We couldn't process your deletion request. Please try again or contact support.",
+      "message": "We couldn't submit your deletion request. Please try again or contact support.",
       "networkError": "Network error. Please check your connection.",
       "serverError": "Server error. Please try again later.",
-      "title": "Deletion failed",
-      "unauthenticated": "You must be logged in to delete your account."
+      "title": "Deletion request failed",
+      "unauthenticated": "You must be logged in to request account deletion."
     },
     "form": {
       "cancel": "Cancel",
-      "description": "To proceed with account deletion, type DELETE below and confirm.",
+      "cancelToSettings": "Back to settings",
+      "description": "To submit a manual privacy review request, type DELETE below and confirm that you understand the impact.",
       "fields": {
         "confirmation": {
           "error": "You must confirm to proceed",
-          "label": "I understand this action is permanent and cannot be undone"
+          "label": "I understand this request starts a permanent deletion review and may affect subscriptions, rewards and support history"
         },
         "confirmInput": {
           "error": "You must type DELETE to proceed",
@@ -977,7 +978,7 @@
         },
         "feedback": {
           "label": "Additional feedback (optional)",
-          "placeholder": "Any additional comments..."
+          "placeholder": "Any additional comments for privacy support..."
         },
         "password": {
           "error": "Password is required",
@@ -997,55 +998,57 @@
           "placeholder": "Help us improve by sharing why you're leaving"
         }
       },
-      "submit": "Delete My Account",
-      "submitting": "Deleting...",
-      "title": "Confirm account deletion"
+      "submit": "Submit Deletion Request",
+      "submitting": "Submitting...",
+      "title": "Confirm account deletion request"
     },
     "meta": {
-      "description": "Request permanent deletion of your CyberVPN account and all associated data.",
+      "description": "Request manual privacy review for permanent deletion of your CyberVPN account and associated data.",
       "title": "Delete Account - CyberVPN"
     },
     "sections": {
       "alternativeOptions": {
-        "description": "If you're experiencing issues, consider these alternatives:",
+        "description": "If you're experiencing issues, consider these alternatives before requesting deletion:",
         "items": {
-          "changeSettings": "Adjust your account or privacy settings",
-          "contactSupport": "Contact support for assistance",
-          "pauseSubscription": "Pause your subscription temporarily"
+          "changeSettings": "Adjust your account, security or privacy settings",
+          "contactSupport": "Contact support for troubleshooting or billing help",
+          "pauseSubscription": "Pause or change your subscription temporarily"
         },
         "title": "Alternative options"
       },
       "beforeDelete": {
         "items": {
-          "cancelSubscriptions": "Cancel any active subscriptions",
-          "exportData": "Export your data if needed (GDPR right to data portability)",
-          "saveConfigs": "Save any custom VPN configurations",
-          "useReferrals": "Use any pending referral rewards"
+          "cancelSubscriptions": "Cancel any active subscriptions and review provider refund rules",
+          "exportData": "Request a data export if needed before deletion is finalized",
+          "saveConfigs": "Save any custom VPN configurations you still need",
+          "useReferrals": "Use any pending referral rewards that may be affected"
         },
-        "title": "Before you delete"
+        "title": "Before you request deletion"
       },
       "consequences": {
         "items": {
-          "accountData": "Your account information and profile",
-          "configs": "VPN configurations and connection history",
-          "referrals": "Referral data and earned rewards",
+          "accountData": "Your account information and profile after the request is verified and processed",
+          "configs": "VPN configurations and connection history covered by the deletion request",
+          "referrals": "Referral data and earned rewards where retention is not legally or operationally required",
           "subscriptions": "Active subscription handling, including any refund request, follows the Refund Policy and provider rules.",
-          "support": "Support tickets and communication history"
+          "support": "Support tickets and communication history unless retention is required for privacy, legal, fraud or abuse handling"
         },
         "title": "What will be deleted"
       }
     },
-    "subtitle": "Permanently delete your CyberVPN account",
+    "subtitle": "Submit a manual privacy review request for permanent account deletion",
     "success": {
-      "details": "All your data has been removed. You will be redirected to the home page.",
-      "message": "Your account has been permanently deleted.",
+      "details": "Target fulfillment is within {days} days after verification. You can contact support with your reference before deletion is finalized.",
+      "message": "Your account deletion request is queued for manual privacy review.",
+      "reference": "Reference: {reference}",
       "returnHome": "Return to Home",
-      "title": "Account deleted"
+      "returnSettings": "Return to settings",
+      "title": "Deletion request submitted"
     },
-    "title": "Delete Account",
+    "title": "Delete account request",
     "warning": {
-      "message": "Deleting your account will permanently remove all your data and cannot be undone.",
-      "title": "Warning: This action is permanent"
+      "message": "CyberVPN reviews deletion requests before final processing. Verified deletions are targeted within 30 days, except records we must retain for payment, security, legal, fraud, backup or abuse handling.",
+      "title": "Manual review before deletion"
     }
   },
   "Devices": {
@@ -1210,7 +1213,37 @@
     "language": "LANG",
     "netUplink": "NET_UPLINK",
     "ping": "PING",
-    "systemLabel": "SYSTEM"
+    "systemLabel": "SYSTEM",
+    "userMenu": {
+      "accountBadge": "ACCOUNT",
+      "accountId": "ID: {id}",
+      "fallbackInitials": "U",
+      "fallbackName": "User",
+      "items": {
+        "billing": {
+          "description": "Manage plan",
+          "label": "Billing"
+        },
+        "dashboard": {
+          "description": "Overview and stats",
+          "label": "Dashboard"
+        },
+        "profile": {
+          "description": "Account details",
+          "label": "Profile"
+        },
+        "security": {
+          "description": "2FA and password",
+          "label": "Security"
+        },
+        "settings": {
+          "description": "App preferences",
+          "label": "Settings"
+        }
+      },
+      "signOut": "Sign out",
+      "triggerLabel": "Open account menu for {name}"
+    }
   },
   "HelpCenter": {
     "categories_intro": "Pick a verified module and jump straight to the relevant answers.",
@@ -2121,10 +2154,11 @@
       "messages": "MESSAGES",
       "overview": "Overview",
       "paymentHistory": "PAYMENTS",
-      "profileSecurity": "Security settings",
+      "profileSecurity": "Profile settings",
       "referral": "REFERRAL",
       "rewardNotifications": "Notifications",
       "rewards": "REWARDS HUB",
+      "security": "SECURITY",
       "subscription": "SUBSCRIPTION",
       "support": "SUPPORT",
       "vpnAccess": "VPN access",
@@ -3087,10 +3121,12 @@
         "ready": "Config is ready."
       },
       "eyebrow": "Import kit",
+      "hideFullValue": "Hide full value",
       "openSubscription": "Open link",
       "qrCode": "QR code",
       "rawConfig": "Raw config",
       "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device.",
+      "showFullValue": "Show full value",
       "status": {
         "missing_config": "Config pending",
         "missing_profile": "Profile missing",
@@ -3099,7 +3135,8 @@
         "ready": "Ready to import"
       },
       "subscriptionUrl": "Subscription URL",
-      "title": "One-tap VPN import"
+      "title": "One-tap VPN import",
+      "visibleSubscription": "Subscription links are shown in full so they can be inspected before import."
     },
     "copy": {
       "config": "Raw config copied.",
@@ -3243,8 +3280,11 @@
       "actions": {
         "copied": "Copied",
         "copyId": "Copy ID",
+        "deleteAccount": "Delete account",
         "manage": "Manage",
+        "openSecurity": "Open security",
         "privacy": "Privacy flow",
+        "profileSettings": "Profile settings",
         "refresh": "Refresh",
         "revoking": "Revoking...",
         "saveProfile": "Save profile",
@@ -3384,8 +3424,8 @@
         "eyebrow": "Privacy guardrails",
         "items": {
           "accountDeletion": {
-            "description": "Account deletion remains isolated in the dedicated privacy flow.",
-            "title": "Deletion path"
+            "description": "Account deletion opens inside the customer cabinet and starts a manual review request.",
+            "title": "Account deletion"
           },
           "noSecretTelemetry": {
             "description": "Metrics mark actions only, never passwords, TOTP codes, IPs, or anti-phishing values.",
@@ -3644,6 +3684,46 @@
       "description": "Public plans are loaded from the canonical web catalog. Current plan is locked; other plans are quoted before purchase or upgrade.",
       "empty": "No public plans are available right now.",
       "eyebrow": "Plan catalog",
+      "filteredCount": "{count}/{total} plans",
+      "filters": {
+        "description": "Narrow the catalog by billing term, device capacity, and traffic model.",
+        "devices": {
+          "label": "Devices",
+          "options": {
+            "all": "All",
+            "elevenPlus": "11+",
+            "sixToTen": "6-10",
+            "upToFive": "Up to 5"
+          }
+        },
+        "duration": {
+          "label": "Term",
+          "options": {
+            "all": "All",
+            "long": "100+ days",
+            "monthly": "Up to 31d",
+            "quarterly": "32-100d"
+          }
+        },
+        "eyebrow": "Catalog filters",
+        "reset": "Reset",
+        "traffic": {
+          "label": "Traffic",
+          "options": {
+            "all": "All",
+            "limited": "Metered",
+            "unlimited": "Unlimited"
+          }
+        }
+      },
+      "groupCount": "{count} plans",
+      "groups": {
+        "long": "Long access",
+        "monthly": "Monthly access",
+        "other": "Other terms",
+        "quarterly": "Quarterly access"
+      },
+      "noFilterResults": "No plans match the selected filters.",
       "perCycle": "per {duration}",
       "publicCount": "{count} public plans",
       "title": "Choose the next access tier"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -44,12 +44,12 @@ class TestFormatTrafficBytes:
     def test_locale_russian(self) -> None:
         """Test Russian locale with comma decimal separator."""
         result = format_traffic_bytes(1536, locale="ru")
-        assert "1,50 KB" == result
+        assert result == "1,50 KB"
 
     def test_locale_german(self) -> None:
         """Test German locale formatting."""
         result = format_traffic_bytes(2048, locale="de")
-        assert "2,00 KB" == result
+        assert result == "2,00 KB"
 
     def test_custom_decimal_places(self) -> None:
         """Test custom decimal places."""
@@ -163,12 +163,12 @@ class TestFormatMoney:
     def test_german_locale_eur(self) -> None:
         """Test German locale with EUR."""
         result = format_money(1234.56, "EUR", "de")
-        assert "1.234,56 €" == result
+        assert result == "1.234,56 €"
 
     def test_spanish_locale_eur(self) -> None:
         """Test Spanish locale with EUR."""
         result = format_money(999.99, "EUR", "es")
-        assert "€999,99" == result
+        assert result == "€999,99"
 
 
 class TestFormatDatetime:
@@ -176,55 +176,55 @@ class TestFormatDatetime:
 
     def test_format_english_locale(self) -> None:
         """Test English locale datetime formatting."""
-        dt = datetime(2024, 1, 15, 14, 30, tzinfo=timezone.utc)
+        dt = datetime(2024, 1, 15, 14, 30, tzinfo=UTC)
         result = format_datetime(dt, "en")
         assert result == "2024-01-15 14:30"
 
     def test_format_russian_locale(self) -> None:
         """Test Russian locale datetime formatting."""
-        dt = datetime(2024, 1, 15, 14, 30, tzinfo=timezone.utc)
+        dt = datetime(2024, 1, 15, 14, 30, tzinfo=UTC)
         result = format_datetime(dt, "ru")
         assert result == "15.01.2024 14:30"
 
     def test_format_german_locale(self) -> None:
         """Test German locale datetime formatting."""
-        dt = datetime(2024, 3, 5, 9, 15, tzinfo=timezone.utc)
+        dt = datetime(2024, 3, 5, 9, 15, tzinfo=UTC)
         result = format_datetime(dt, "de")
         assert result == "05.03.2024 09:15"
 
     def test_format_without_time(self) -> None:
         """Test date-only formatting."""
-        dt = datetime(2024, 1, 15, 14, 30, tzinfo=timezone.utc)
+        dt = datetime(2024, 1, 15, 14, 30, tzinfo=UTC)
         result = format_datetime(dt, "en", include_time=False)
         assert result == "2024-01-15"
 
     def test_format_russian_without_time(self) -> None:
         """Test Russian date-only formatting."""
-        dt = datetime(2024, 1, 15, 14, 30, tzinfo=timezone.utc)
+        dt = datetime(2024, 1, 15, 14, 30, tzinfo=UTC)
         result = format_datetime(dt, "ru", include_time=False)
         assert result == "15.01.2024"
 
     def test_relative_just_now(self) -> None:
         """Test relative time 'just now'."""
-        dt = datetime.now(timezone.utc)
+        dt = datetime.now(UTC)
         result = format_datetime(dt, "en", relative=True)
         assert result == "just now"
 
     def test_relative_minutes_ago(self) -> None:
         """Test relative time in minutes."""
-        dt = datetime.now(timezone.utc) - timedelta(minutes=5)
+        dt = datetime.now(UTC) - timedelta(minutes=5)
         result = format_datetime(dt, "en", relative=True)
-        assert "5 minutes ago" == result
+        assert result == "5 minutes ago"
 
     def test_relative_hours_ago(self) -> None:
         """Test relative time in hours."""
-        dt = datetime.now(timezone.utc) - timedelta(hours=2)
+        dt = datetime.now(UTC) - timedelta(hours=2)
         result = format_datetime(dt, "en", relative=True)
-        assert "2 hours ago" == result
+        assert result == "2 hours ago"
 
     def test_relative_over_24_hours(self) -> None:
         """Test that relative=True falls back to absolute for old dates."""
-        dt = datetime.now(timezone.utc) - timedelta(days=2)
+        dt = datetime.now(UTC) - timedelta(days=2)
         result = format_datetime(dt, "en", relative=True)
         # Should fall back to absolute formatting
         assert "ago" not in result

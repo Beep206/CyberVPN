@@ -1,10 +1,40 @@
 {
-  "systemLabel": "ሲስተም",
-  "integrity": "የንፅህና ምርመራ አልፏል",
-  "encryptionLabel": "ምስጠራ",
-  "encryptionValue": "ንቁ - AES-256",
-  "netUplink": "መረብ_አገናኝ",
-  "fps": "FPS",
-  "ping": "ፒንግ",
-  "language": "ቋንቋ"
+    "systemLabel": "ሲስተም",
+    "integrity": "የንፅህና ምርመራ አልፏል",
+    "encryptionLabel": "ምስጠራ",
+    "encryptionValue": "ንቁ - AES-256",
+    "netUplink": "መረብ_አገናኝ",
+    "fps": "FPS",
+    "ping": "ፒንግ",
+    "language": "ቋንቋ",
+    "userMenu": {
+        "triggerLabel": "Open account menu for {name}",
+        "fallbackName": "User",
+        "fallbackInitials": "U",
+        "accountBadge": "ACCOUNT",
+        "accountId": "ID: {id}",
+        "signOut": "Sign out",
+        "items": {
+            "dashboard": {
+                "label": "Dashboard",
+                "description": "Overview and stats"
+            },
+            "profile": {
+                "label": "Profile",
+                "description": "Account details"
+            },
+            "security": {
+                "label": "Security",
+                "description": "2FA and password"
+            },
+            "billing": {
+                "label": "Billing",
+                "description": "Manage plan"
+            },
+            "settings": {
+                "label": "Settings",
+                "description": "App preferences"
+            }
+        }
+    }
 }

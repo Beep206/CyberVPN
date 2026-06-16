@@ -8,7 +8,6 @@ from remnawave.models import (
     DeleteNodeResponseDto,
     GetAllNodesResponseDto,
     NodeResponseDto,
-    NodesResponseDto,
     ReorderNodeRequestDto,
     ReorderNodeResponseDto,
     UpdateNodeRequestDto,

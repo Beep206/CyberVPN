@@ -1,9 +1,12 @@
 {
-  "dashboard": "TABLEAU DE BORD",
-  "servers": "SERVEURS",
-  "users": "CLIENTS",
-  "billing": "FACTURATION",
-  "analytics": "OPS RÉSEAU",
-  "security": "SÉCURITÉ",
-  "settings": "CONFIG"
+    "dashboard": "TABLEAU DE BORD",
+    "servers": "SERVEURS",
+    "users": "CLIENTS",
+    "billing": "FACTURATION",
+    "analytics": "OPS RÉSEAU",
+    "security": "SÉCURITÉ",
+    "settings": "CONFIG",
+    "items": {
+        "security": "SECURITY"
+    }
 }

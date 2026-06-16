@@ -73,10 +73,11 @@ from src.presentation.api.v1.oauth.schemas import (
     TelegramCallbackRequest,
     TelegramMagicLinkCompleteRequest,
     TelegramMagicLinkCompleteResponse,
+    TelegramMagicLinkLoginResultResponse,
     TelegramMagicLinkResponse,
     TelegramMagicLinkStatusResponse,
 )
-from src.presentation.dependencies.auth import get_current_active_user, optional_user
+from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
@@ -118,6 +119,116 @@ def _resolve_locale(user: AdminUserModel | None = None, fallback: str | None = N
 
 def _get_magic_link_key(token: str) -> str:
     return f"auth_magic_link:{token}"
+
+
+_TELEGRAM_MAGIC_LINK_COMPLETE_SCRIPT = """
+local current = redis.call("GET", KEYS[1])
+if not current then
+    return 0
+end
+if current ~= ARGV[1] then
+    return 1
+end
+local ttl = redis.call("TTL", KEYS[1])
+if ttl <= 0 then
+    return 0
+end
+redis.call("SET", KEYS[1], ARGV[2], "EX", ttl)
+return 2
+"""
+
+_TELEGRAM_MAGIC_LINK_PROCESSING_PREFIX = "processing:"
+
+_TELEGRAM_MAGIC_LINK_CLAIM_COMPLETED_SCRIPT = """
+local current = redis.call("GET", KEYS[1])
+if not current then
+    return {0, ""}
+end
+if current == ARGV[1] then
+    return {1, ""}
+end
+if string.sub(current, 1, string.len(ARGV[2])) == ARGV[2] then
+    return {2, ""}
+end
+local ttl = redis.call("TTL", KEYS[1])
+if ttl <= 0 then
+    return {0, ""}
+end
+redis.call("SET", KEYS[1], ARGV[3] .. current, "EX", ttl)
+return {3, current}
+"""
+
+_TELEGRAM_MAGIC_LINK_RESTORE_COMPLETED_SCRIPT = """
+local current = redis.call("GET", KEYS[1])
+if current ~= ARGV[1] then
+    return 0
+end
+local ttl = redis.call("TTL", KEYS[1])
+if ttl <= 0 then
+    return 0
+end
+redis.call("SET", KEYS[1], ARGV[2], "EX", ttl)
+return 1
+"""
+
+_TELEGRAM_MAGIC_LINK_RELEASE_COMPLETED_SCRIPT = """
+local current = redis.call("GET", KEYS[1])
+if current ~= ARGV[1] then
+    return 0
+end
+return redis.call("DEL", KEYS[1])
+"""
+
+
+def _decode_redis_string(value: object) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    return str(value)
+
+
+def _parse_magic_link_claim_result(result: object) -> tuple[int, str | None]:
+    if not isinstance(result, (list, tuple)) or not result:
+        return 0, None
+
+    claim_status = int(result[0])
+    if len(result) < 2 or result[1] in (None, b"", ""):
+        return claim_status, None
+
+    return claim_status, _decode_redis_string(result[1])
+
+
+async def _restore_magic_link_completed_payload(
+    redis_client: redis.Redis,
+    redis_key: str,
+    processing_value: str,
+    payload: str,
+) -> None:
+    try:
+        await redis_client.eval(
+            _TELEGRAM_MAGIC_LINK_RESTORE_COMPLETED_SCRIPT,
+            1,
+            redis_key,
+            processing_value,
+            payload,
+        )
+    except Exception:
+        logger.exception("Failed to restore Telegram Magic Link payload after processing error")
+
+
+async def _release_magic_link_completed_payload(
+    redis_client: redis.Redis,
+    redis_key: str,
+    processing_value: str,
+) -> None:
+    try:
+        await redis_client.eval(
+            _TELEGRAM_MAGIC_LINK_RELEASE_COMPLETED_SCRIPT,
+            1,
+            redis_key,
+            processing_value,
+        )
+    except Exception:
+        logger.exception("Failed to release Telegram Magic Link payload after successful processing")
 
 
 def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
@@ -526,48 +637,36 @@ async def create_telegram_magic_link(
 async def complete_telegram_magic_link(
     payload: TelegramMagicLinkCompleteRequest,
     redis_client: redis.Redis = Depends(get_redis),
-    authenticated_user: AdminUserModel | None = Depends(optional_user),
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
 ) -> TelegramMagicLinkCompleteResponse:
     """Accept trusted Telegram bot data for a pending magic-link session."""
-    if authenticated_user is None and not _is_valid_telegram_bot_secret(telegram_bot_secret):
+    if not _is_valid_telegram_bot_secret(telegram_bot_secret):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated.",
         )
 
     redis_key = _get_magic_link_key(payload.token)
-    current_status = await redis_client.get(redis_key)
+    completion_status = int(
+        await redis_client.eval(
+            _TELEGRAM_MAGIC_LINK_COMPLETE_SCRIPT,
+            1,
+            redis_key,
+            "pending",
+            json.dumps(_build_magic_link_user_info(payload)),
+        )
+    )
 
-    if current_status is None:
+    if completion_status == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Magic link session expired or not found.",
         )
 
-    if current_status != "pending":
+    if completion_status == 1:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Magic link session has already been completed.",
-        )
-
-    ttl_seconds = await redis_client.ttl(redis_key)
-    if ttl_seconds <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Magic link session expired or not found.",
-        )
-
-    stored = await redis_client.set(
-        redis_key,
-        json.dumps(_build_magic_link_user_info(payload)),
-        ex=ttl_seconds,
-        xx=True,
-    )
-    if not stored:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Magic link session expired or not found.",
         )
 
     logger.info(
@@ -596,25 +695,30 @@ async def check_telegram_magic_link_status(
         request.headers.get("sec-ch-ua-mobile"),
     )
     redis_key = _get_magic_link_key(token)
-    raw_status = await redis_client.get(redis_key)
-    if not raw_status:
+    processing_token = f"{_TELEGRAM_MAGIC_LINK_PROCESSING_PREFIX}{uuid.uuid4().hex}:"
+    claim_status, claimed_payload = _parse_magic_link_claim_result(
+        await redis_client.eval(
+            _TELEGRAM_MAGIC_LINK_CLAIM_COMPLETED_SCRIPT,
+            1,
+            redis_key,
+            "pending",
+            _TELEGRAM_MAGIC_LINK_PROCESSING_PREFIX,
+            processing_token,
+        )
+    )
+    if claim_status == 0:
+        return TelegramMagicLinkStatusResponse(status="expired")
+    if claim_status in (1, 2):
+        return TelegramMagicLinkStatusResponse(status="pending")
+    if claimed_payload is None:
         return TelegramMagicLinkStatusResponse(status="expired")
 
-    status_str = raw_status.decode("utf-8") if isinstance(raw_status, bytes) else raw_status
-    if status_str == "pending":
-        return TelegramMagicLinkStatusResponse(status="pending")
-
-    consumed_status = await redis_client.getdel(redis_key)
-    if not consumed_status:
-        return TelegramMagicLinkStatusResponse(status="expired")
-
-    consumed_status_str = consumed_status.decode("utf-8") if isinstance(consumed_status, bytes) else consumed_status
-    if consumed_status_str == "pending":
-        return TelegramMagicLinkStatusResponse(status="pending")
+    processing_value = f"{processing_token}{claimed_payload}"
 
     try:
-        user_info = json.loads(consumed_status_str)
+        user_info = json.loads(claimed_payload)
     except json.JSONDecodeError:
+        await _release_magic_link_completed_payload(redis_client, redis_key, processing_value)
         logger.exception("Failed to parse Telegram Magic Link payload")
         return TelegramMagicLinkStatusResponse(status="expired")
 
@@ -648,6 +752,7 @@ async def check_telegram_magic_link_status(
             scope_family=get_scope_family_for_realm(current_realm),
         )
     except PublicRegistrationDisabledError as e:
+        await _restore_magic_link_completed_payload(redis_client, redis_key, processing_value, claimed_payload)
         track_auth_attempt(method="telegram", success=False)
         track_auth_error("registration_disabled")
         track_auth_flow_event(
@@ -665,6 +770,7 @@ async def check_telegram_magic_link_status(
             detail=e.public_detail(),
         ) from e
     except ValueError as e:
+        await _restore_magic_link_completed_payload(redis_client, redis_key, processing_value, claimed_payload)
         track_auth_attempt(method="telegram", success=False)
         track_auth_error("invalid_credentials")
         track_auth_flow_event(
@@ -681,6 +787,9 @@ async def check_telegram_magic_link_status(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
         )
+    except Exception:
+        await _restore_magic_link_completed_payload(redis_client, redis_key, processing_value, claimed_payload)
+        raise
 
     logger.info(
         "Telegram Magic Link login completed",
@@ -690,15 +799,11 @@ async def check_telegram_magic_link_status(
         },
     )
 
-    login_result = OAuthLoginResponse(
-        access_token=result.access_token,
-        refresh_token=result.refresh_token,
-        token_type=result.token_type,
-        expires_in=result.expires_in,
+    login_result = TelegramMagicLinkLoginResultResponse(
         user=OAuthLoginUserResponse.model_validate(result.user),
         is_new_user=result.is_new_user,
         requires_2fa=result.requires_2fa,
-        tfa_token=result.tfa_token,
+        tfa_token=result.tfa_token if result.requires_2fa else None,
     )
 
     if result.access_token and result.refresh_token:
@@ -768,6 +873,7 @@ async def check_telegram_magic_link_status(
         )
     await sync_auth_security_posture(db, redis_client)
     observe_auth_request_duration("telegram", started_at)
+    await _release_magic_link_completed_payload(redis_client, redis_key, processing_value)
 
     return TelegramMagicLinkStatusResponse(status="completed", login_result=login_result)
 

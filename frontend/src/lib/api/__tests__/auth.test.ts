@@ -1679,6 +1679,9 @@ describe('authApi.pollTelegramMagicLinkStatus', () => {
     expect(response.status).toBe(200);
     expect(response.data.status).toBe('completed');
     expect(response.data.login_result?.user.id).toBe(MOCK_USER.id);
+    expect(response.data.login_result).not.toHaveProperty('access_token');
+    expect(response.data.login_result).not.toHaveProperty('refresh_token');
+    expect(response.data.login_result).not.toHaveProperty('token_type');
   });
 
   it('test_poll_telegram_magic_link_status_returns_expired_status', async () => {

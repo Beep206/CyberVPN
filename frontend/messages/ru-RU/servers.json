@@ -27,6 +27,8 @@
     "eyebrow": "Набор импорта",
     "openSubscription": "Открыть ссылку",
     "rawConfig": "Raw config",
+    "showFullValue": "Показать полностью",
+    "hideFullValue": "Скрыть полностью",
     "status": {
       "missing_config": "Конфиг ожидается",
       "missing_profile": "Нет профиля",
@@ -40,7 +42,8 @@
     "downloadFile": "Файл конфигурации",
     "downloadNote": "Файл создаётся только в вашем браузере из активного delivery payload.",
     "qrCode": "QR-код",
-    "safeDelivery": "Полные значения скрыты на экране. Используйте copy, QR или download только на доверенном устройстве."
+    "safeDelivery": "Полные значения скрыты на экране. Используйте copy, QR или download только на доверенном устройстве.",
+    "visibleSubscription": "Ссылки подписки показываются полностью, чтобы их можно было проверить перед импортом."
   },
   "copy": {
     "config": "Raw config скопирован.",

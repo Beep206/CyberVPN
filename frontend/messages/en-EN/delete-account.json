@@ -1,47 +1,47 @@
 {
     "meta": {
         "title": "Delete Account - CyberVPN",
-        "description": "Request permanent deletion of your CyberVPN account and all associated data."
+        "description": "Request manual privacy review for permanent deletion of your CyberVPN account and associated data."
     },
-    "title": "Delete Account",
-    "subtitle": "Permanently delete your CyberVPN account",
+    "title": "Delete account request",
+    "subtitle": "Submit a manual privacy review request for permanent account deletion",
     "warning": {
-        "title": "Warning: This action is permanent",
-        "message": "Deleting your account will permanently remove all your data and cannot be undone."
+        "title": "Manual review before deletion",
+        "message": "CyberVPN reviews deletion requests before final processing. Verified deletions are targeted within 30 days, except records we must retain for payment, security, legal, fraud, backup or abuse handling."
     },
     "sections": {
         "consequences": {
             "title": "What will be deleted",
             "items": {
-                "accountData": "Your account information and profile",
+                "accountData": "Your account information and profile after the request is verified and processed",
                 "subscriptions": "Active subscription handling, including any refund request, follows the Refund Policy and provider rules.",
-                "configs": "VPN configurations and connection history",
-                "referrals": "Referral data and earned rewards",
-                "support": "Support tickets and communication history"
+                "configs": "VPN configurations and connection history covered by the deletion request",
+                "referrals": "Referral data and earned rewards where retention is not legally or operationally required",
+                "support": "Support tickets and communication history unless retention is required for privacy, legal, fraud or abuse handling"
             }
         },
         "beforeDelete": {
-            "title": "Before you delete",
+            "title": "Before you request deletion",
             "items": {
-                "exportData": "Export your data if needed (GDPR right to data portability)",
-                "cancelSubscriptions": "Cancel any active subscriptions",
-                "useReferrals": "Use any pending referral rewards",
-                "saveConfigs": "Save any custom VPN configurations"
+                "exportData": "Request a data export if needed before deletion is finalized",
+                "cancelSubscriptions": "Cancel any active subscriptions and review provider refund rules",
+                "useReferrals": "Use any pending referral rewards that may be affected",
+                "saveConfigs": "Save any custom VPN configurations you still need"
             }
         },
         "alternativeOptions": {
             "title": "Alternative options",
-            "description": "If you're experiencing issues, consider these alternatives:",
+            "description": "If you're experiencing issues, consider these alternatives before requesting deletion:",
             "items": {
-                "pauseSubscription": "Pause your subscription temporarily",
-                "contactSupport": "Contact support for assistance",
-                "changeSettings": "Adjust your account or privacy settings"
+                "pauseSubscription": "Pause or change your subscription temporarily",
+                "contactSupport": "Contact support for troubleshooting or billing help",
+                "changeSettings": "Adjust your account, security or privacy settings"
             }
         }
     },
     "form": {
-        "title": "Confirm account deletion",
-        "description": "To proceed with account deletion, type DELETE below and confirm.",
+        "title": "Confirm account deletion request",
+        "description": "To submit a manual privacy review request, type DELETE below and confirm that you understand the impact.",
         "fields": {
             "email": {
                 "label": "Email address",
@@ -67,7 +67,7 @@
             },
             "feedback": {
                 "label": "Additional feedback (optional)",
-                "placeholder": "Any additional comments..."
+                "placeholder": "Any additional comments for privacy support..."
             },
             "confirmInput": {
                 "label": "Type DELETE to confirm",
@@ -76,27 +76,30 @@
                 "keyword": "DELETE"
             },
             "confirmation": {
-                "label": "I understand this action is permanent and cannot be undone",
+                "label": "I understand this request starts a permanent deletion review and may affect subscriptions, rewards and support history",
                 "error": "You must confirm to proceed"
             }
         },
-        "submit": "Delete My Account",
-        "submitting": "Deleting...",
-        "cancel": "Cancel"
+        "submit": "Submit Deletion Request",
+        "submitting": "Submitting...",
+        "cancel": "Cancel",
+        "cancelToSettings": "Back to settings"
     },
     "success": {
-        "title": "Account deleted",
-        "message": "Your account has been permanently deleted.",
-        "details": "All your data has been removed. You will be redirected to the home page.",
-        "returnHome": "Return to Home"
+        "title": "Deletion request submitted",
+        "message": "Your account deletion request is queued for manual privacy review.",
+        "details": "Target fulfillment is within {days} days after verification. You can contact support with your reference before deletion is finalized.",
+        "reference": "Reference: {reference}",
+        "returnHome": "Return to Home",
+        "returnSettings": "Return to settings"
     },
     "error": {
-        "title": "Deletion failed",
-        "message": "We couldn't process your deletion request. Please try again or contact support.",
+        "title": "Deletion request failed",
+        "message": "We couldn't submit your deletion request. Please try again or contact support.",
         "invalidCredentials": "Invalid email or password",
         "networkError": "Network error. Please check your connection.",
         "serverError": "Server error. Please try again later.",
-        "unauthenticated": "You must be logged in to delete your account."
+        "unauthenticated": "You must be logged in to request account deletion."
     },
     "contact": {
         "title": "Need help?",

@@ -1,10 +1,40 @@
 {
-  "systemLabel": "RENDSZER",
-  "integrity": "INTEGRITÁS ELLENŐRZÉS SIKERES",
-  "encryptionLabel": "TITKOSÍTÁS",
-  "encryptionValue": "AKTÍV - AES-256",
-  "netUplink": "HÁLÓZAT_UPLINK",
-  "fps": "FPS",
-  "ping": "PING",
-  "language": "NYELV"
+    "systemLabel": "RENDSZER",
+    "integrity": "INTEGRITÁS ELLENŐRZÉS SIKERES",
+    "encryptionLabel": "TITKOSÍTÁS",
+    "encryptionValue": "AKTÍV - AES-256",
+    "netUplink": "HÁLÓZAT_UPLINK",
+    "fps": "FPS",
+    "ping": "PING",
+    "language": "NYELV",
+    "userMenu": {
+        "triggerLabel": "Open account menu for {name}",
+        "fallbackName": "User",
+        "fallbackInitials": "U",
+        "accountBadge": "ACCOUNT",
+        "accountId": "ID: {id}",
+        "signOut": "Sign out",
+        "items": {
+            "dashboard": {
+                "label": "Dashboard",
+                "description": "Overview and stats"
+            },
+            "profile": {
+                "label": "Profile",
+                "description": "Account details"
+            },
+            "security": {
+                "label": "Security",
+                "description": "2FA and password"
+            },
+            "billing": {
+                "label": "Billing",
+                "description": "Manage plan"
+            },
+            "settings": {
+                "label": "Settings",
+                "description": "App preferences"
+            }
+        }
+    }
 }
