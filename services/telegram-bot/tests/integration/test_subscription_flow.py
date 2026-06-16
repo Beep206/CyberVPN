@@ -6,18 +6,15 @@ payment gateway selection, payment processing, and config delivery.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import respx
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import CallbackQuery, Message, User
+from aiogram.types import User
 
-from tests.conftest import create_fsm_context
 from src.models.subscription import (
     PlanAvailability,
     PlanDuration,
@@ -25,8 +22,8 @@ from src.models.subscription import (
     ResetStrategy,
     SubscriptionPlan,
 )
-from src.models.user import UserDTO, UserStatus
 from src.states.subscription import SubscriptionStates
+from tests.conftest import create_fsm_context
 
 if TYPE_CHECKING:
     from src.config import BotSettings
@@ -130,8 +127,8 @@ async def test_full_subscription_flow_success(
                     "next_purchase_discount": 0.0,
                     "referrer_id": None,
                     "points": 0,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "created_at": datetime.now(UTC).isoformat(),
+                    "updated_at": datetime.now(UTC).isoformat(),
                 },
             )
         )
@@ -156,7 +153,7 @@ async def test_full_subscription_flow_success(
                     "currency": "RUB",
                     "status": "pending",
                     "payment_method": "stars",
-                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "created_at": datetime.now(UTC).isoformat(),
                 },
             )
         )

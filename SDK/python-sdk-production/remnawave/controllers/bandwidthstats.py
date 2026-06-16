@@ -6,8 +6,6 @@ from remnawave.models.bandwidthstats import (
     GetLegacyStatsNodesUsersUsageResponseDto,
     GetLegacyStatsUserUsageResponseDto,
     GetNodeUserUsageByRangeResponseDto,
-    GetNodesRealtimeUsageResponseDto,
-    GetNodesUsageByRangeResponseDto,
     GetStatsNodesRealtimeUsageResponseDto,
     GetStatsNodesUsageResponseDto,
     GetStatsNodeUsersUsageResponseDto,

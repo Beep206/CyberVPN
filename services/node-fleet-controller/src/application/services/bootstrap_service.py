@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.domain.entities import BootstrapTokenRecord, NodeRecord
+from src.domain.entities import NodeRecord
 from src.domain.enums import BootstrapState, LifecycleState
 from src.domain.exceptions import NodeNotFoundError
 from src.infra.database.repositories import FleetRequestRepository

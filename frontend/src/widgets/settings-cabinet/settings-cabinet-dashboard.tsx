@@ -23,12 +23,9 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@/i18n/navigation';
-import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   authApi,
-  customerSubscriptionsApi,
-  entitlementsApi,
   growthNotificationsApi,
   passkeysApi,
   profileApi,
@@ -37,6 +34,7 @@ import {
   type PasskeyCredential,
 } from '@/lib/api';
 import { markPerformance } from '@/shared/lib/web-vitals';
+import { formatCustomerPublicUid } from '@/shared/lib/public-account-id';
 import { AntiphishingModal } from '@/app/[locale]/(dashboard)/settings/components/AntiphishingModal';
 import { ChangePasswordModal } from '@/app/[locale]/(dashboard)/settings/components/ChangePasswordModal';
 import { TwoFactorModal } from '@/app/[locale]/(dashboard)/settings/components/TwoFactorModal';
@@ -51,7 +49,6 @@ import {
   CORE_NOTIFICATION_PREFERENCES,
   formatDateTime,
   formatShortId,
-  getDeviceLimitSummary,
   getDeviceKind,
   getEnabledCount,
   getSecurityPosture,
@@ -59,13 +56,9 @@ import {
   getProfileTimezoneOptions,
   maskAntiphishingCode,
   parseDeviceLabel,
-  readDeviceListLimit,
-  readDeviceListRemaining,
   readDeviceListTotal,
   PROFILE_LANGUAGE_OPTIONS,
-  readDeviceLimit,
   type CoreNotificationPreferenceKey,
-  type DeviceLimitState,
   type GrowthNotificationPreferenceKey,
   type ProfileUpdate,
   type StatusTone,
@@ -113,6 +106,8 @@ type PasskeyRenameDraft = {
   id: string;
   label: string;
 } | null;
+
+type SettingsCabinetView = 'overview' | 'security';
 
 function StatusPill({ children, tone }: { children: ReactNode; tone: StatusTone }) {
   const classes = toneClasses[tone];
@@ -169,10 +164,6 @@ function getDeviceIcon(kind: 'desktop' | 'mobile' | 'tablet') {
   return Laptop;
 }
 
-function getLimitHelpKey(state: DeviceLimitState) {
-  return `devices.limitHelp.${state}` as const;
-}
-
 function getPasskeyRenameAction(credentialId: string): string {
   return `passkey.credential.rename:${credentialId}`;
 }
@@ -181,12 +172,15 @@ function getPasskeyRevokeAction(credentialId: string): string {
   return `passkey.credential.revoke:${credentialId}`;
 }
 
-export function SettingsCabinetDashboard() {
+export function SettingsCabinetDashboard({
+  view = 'overview',
+}: {
+  view?: SettingsCabinetView;
+} = {}) {
   const t = useTranslations('Settings.cabinet');
   const authT = useTranslations('Auth.login');
   const locale = useLocale();
   const queryClient = useQueryClient();
-  const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const telegramMagicLinkAuth = useAuthStore((state) => state.telegramMagicLinkAuth);
   const authLoading = useAuthStore((state) => state.isLoading);
   const [activeModal, setActiveModal] = useState<SensitiveModal>(null);
@@ -195,7 +189,8 @@ export function SettingsCabinetDashboard() {
   const [newPasskeyLabel, setNewPasskeyLabel] = useState('');
   const [passkeyRenameDraft, setPasskeyRenameDraft] = useState<PasskeyRenameDraft>(null);
   const [isStartingTelegramLink, setIsStartingTelegramLink] = useState(false);
-  const publicSiteBaseUrl = 'https://cyber-vpn.net';
+  const [timezoneReferenceDate] = useState(() => new Date());
+  const isSecurityView = view === 'security';
 
   const profileQuery = useQuery({
     queryKey: ['settings', 'profile'],
@@ -288,21 +283,6 @@ export function SettingsCabinetDashboard() {
     staleTime: SECURITY_STALE_MS,
   });
 
-  const entitlementQuery = useQuery({
-    queryKey: ['settings', 'entitlement', selectedSubscriptionKey],
-    queryFn: async () => {
-      if (selectedSubscriptionKey) {
-        const response = await customerSubscriptionsApi.getEntitlements(selectedSubscriptionKey);
-        return response.data;
-      }
-
-      const response = await entitlementsApi.getCurrent();
-      return response.data;
-    },
-    refetchOnWindowFocus: false,
-    staleTime: PROFILE_STALE_MS,
-  });
-
   const profile = profileQuery.data ?? null;
   const user = userQuery.data ?? null;
   const twoFactorStatus = twoFactorQuery.data ?? null;
@@ -316,8 +296,7 @@ export function SettingsCabinetDashboard() {
   const growthNotifications = growthNotificationsQuery.data ?? null;
   const deviceList = devicesQuery.data ?? null;
   const devices = deviceList?.devices ?? [];
-  const entitlement = entitlementQuery.data ?? null;
-  const timezoneOptions = getProfileTimezoneOptions();
+  const timezoneOptions = getProfileTimezoneOptions(timezoneReferenceDate);
   const selectedLanguage = PROFILE_LANGUAGE_OPTIONS.some(
     (option) => option.value === profile?.language,
   )
@@ -328,35 +307,11 @@ export function SettingsCabinetDashboard() {
   )
     ? profile?.timezone ?? ''
     : '';
+  const publicAccountId = formatCustomerPublicUid(user?.public_uid ?? profile?.public_uid);
   const currentDeviceIndex = devices.findIndex((device) => device.is_current);
   const currentDevice = currentDeviceIndex >= 0 ? devices[currentDeviceIndex] : null;
   const activeDeviceCount = readDeviceListTotal(deviceList);
   const otherDeviceCount = Math.max(0, activeDeviceCount - (currentDevice ? 1 : 0));
-  const backendDeviceLimit = readDeviceListLimit(deviceList);
-  const isDeviceLimitPending =
-    devicesQuery.isPending || (backendDeviceLimit === null && entitlementQuery.isPending);
-  const deviceLimitSummary = getDeviceLimitSummary({
-    active: activeDeviceCount,
-    limit: backendDeviceLimit ?? readDeviceLimit(entitlement),
-    remaining: readDeviceListRemaining(deviceList),
-  });
-  const deviceLimitText =
-    isDeviceLimitPending
-      ? t('labels.loading')
-      : deviceLimitSummary.limit === null
-        ? t('devices.limitUnknown', { used: deviceLimitSummary.active })
-        : t('devices.limitUsed', {
-            limit: deviceLimitSummary.limit,
-            used: deviceLimitSummary.active,
-          });
-  const deviceRemainingText =
-    isDeviceLimitPending || deviceLimitSummary.remaining === null
-      ? t('labels.notAvailable')
-      : String(Math.max(0, deviceLimitSummary.remaining));
-  const deviceLimitHelp = t(getLimitHelpKey(deviceLimitSummary.state), {
-    count: Math.abs(deviceLimitSummary.remaining ?? 0),
-    remaining: Math.max(0, deviceLimitSummary.remaining ?? 0),
-  });
   const posture = getSecurityPosture({
     antiPhishingCode: antiphishingCode,
     devices,
@@ -372,7 +327,6 @@ export function SettingsCabinetDashboard() {
     passkeysQuery.isError ||
     coreNotificationsQuery.isError ||
     growthNotificationsQuery.isError ||
-    entitlementQuery.isError ||
     devicesQuery.isError;
 
   const updateProfileMutation = useMutation({
@@ -599,18 +553,17 @@ export function SettingsCabinetDashboard() {
       ...(passkeyPolicy?.enabled ? [passkeysQuery.refetch()] : []),
       coreNotificationsQuery.refetch(),
       growthNotificationsQuery.refetch(),
-      entitlementQuery.refetch(),
       devicesQuery.refetch(),
     ]);
 
   const copyAccountId = async () => {
     const clipboard = typeof navigator === 'undefined' ? undefined : navigator.clipboard;
-    if (!profile?.id || typeof clipboard?.writeText !== 'function') {
+    if (!publicAccountId || typeof clipboard?.writeText !== 'function') {
       return;
     }
 
     try {
-      await clipboard.writeText(profile.id);
+      await clipboard.writeText(publicAccountId);
       markPerformance('settings-account-id-copy');
       setCopyState('account');
       window.setTimeout(() => setCopyState('idle'), 1600);
@@ -669,13 +622,13 @@ export function SettingsCabinetDashboard() {
         <div className="relative grid gap-6 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.34em] text-neon-cyan">
-              {t('hero.eyebrow')}
+              {isSecurityView ? t('security.eyebrow') : t('hero.eyebrow')}
             </p>
             <h1 className="mt-4 max-w-4xl text-4xl font-display tracking-[0.08em] text-white md:text-5xl">
-              {t('title')}
+              {isSecurityView ? t('security.title') : t('title')}
             </h1>
             <p className="mt-4 max-w-3xl font-mono text-sm leading-7 text-muted-foreground">
-              {t('subtitle')}
+              {isSecurityView ? t('security.description') : t('subtitle')}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <button
@@ -686,11 +639,27 @@ export function SettingsCabinetDashboard() {
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
                 {t('actions.refresh')}
               </button>
+              {isSecurityView ? (
+                <Link
+                  href="/settings"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-neon-cyan/35 bg-neon-cyan/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-cyan transition hover:bg-neon-cyan/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+                >
+                  {t('actions.profileSettings')}
+                </Link>
+              ) : (
+                <Link
+                  href="/settings/security"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-matrix-green/35 bg-matrix-green/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-matrix-green transition hover:bg-matrix-green/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-matrix-green focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+                >
+                  {t('actions.openSecurity')}
+                </Link>
+              )}
               <Link
-                href="/delete-account"
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-neon-pink/35 bg-neon-pink/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-pink transition hover:bg-neon-pink/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+                href="/settings/delete-account"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neon-pink/35 bg-neon-pink/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-pink transition hover:bg-neon-pink/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
               >
-                {t('actions.privacy')}
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                {t('actions.deleteAccount')}
               </Link>
             </div>
           </div>
@@ -740,40 +709,41 @@ export function SettingsCabinetDashboard() {
         </section>
       )}
 
-      <section className="grid gap-4 md:grid-cols-4" aria-label={t('summary.ariaLabel')}>
-        <MetricCard
-          icon={<Fingerprint className="h-5 w-5" aria-hidden="true" />}
-          label={t('summary.twoFactor')}
-          tone={twoFactorStatus?.status === 'enabled' ? 'green' : 'amber'}
-          value={twoFactorStatus?.status === 'enabled' ? t('labels.enabled') : t('labels.disabled')}
-        />
-        <MetricCard
-          icon={<KeyRound className="h-5 w-5" aria-hidden="true" />}
-          label={t('summary.antiphishing')}
-          tone={antiphishingCode?.code ? 'green' : 'amber'}
-          value={antiphishingCode?.code ? maskAntiphishingCode(antiphishingCode.code) : t('labels.notSet')}
-        />
-        <MetricCard
-          icon={<Bell className="h-5 w-5" aria-hidden="true" />}
-          label={t('summary.notifications')}
-          tone="cyan"
-          value={String(
-            getEnabledCount(coreNotifications) + getEnabledCount(growthNotifications),
-          )}
-        />
-        <MetricCard
-          icon={<Laptop className="h-5 w-5" aria-hidden="true" />}
-          label={t('summary.devices')}
-          tone={deviceLimitSummary.tone === 'muted' ? 'purple' : deviceLimitSummary.tone}
-          value={
-            deviceLimitSummary.limit === null
-              ? String(activeDeviceCount)
-              : `${activeDeviceCount}/${deviceLimitSummary.limit}`
-          }
-        />
-      </section>
+      {isSecurityView && (
+        <section className="grid gap-4 md:grid-cols-4" aria-label={t('summary.ariaLabel')}>
+          <MetricCard
+            icon={<Fingerprint className="h-5 w-5" aria-hidden="true" />}
+            label={t('summary.twoFactor')}
+            tone={twoFactorStatus?.status === 'enabled' ? 'green' : 'amber'}
+            value={twoFactorStatus?.status === 'enabled' ? t('labels.enabled') : t('labels.disabled')}
+          />
+          <MetricCard
+            icon={<KeyRound className="h-5 w-5" aria-hidden="true" />}
+            label={t('summary.antiphishing')}
+            tone={antiphishingCode?.code ? 'green' : 'amber'}
+            value={antiphishingCode?.code ? maskAntiphishingCode(antiphishingCode.code) : t('labels.notSet')}
+          />
+          <MetricCard
+            icon={<Bell className="h-5 w-5" aria-hidden="true" />}
+            label={t('summary.notifications')}
+            tone="cyan"
+            value={String(
+              getEnabledCount(coreNotifications) + getEnabledCount(growthNotifications),
+            )}
+          />
+          <MetricCard
+            icon={<Laptop className="h-5 w-5" aria-hidden="true" />}
+            label={t('summary.devices')}
+            tone="cyan"
+            value={String(activeDeviceCount)}
+          />
+        </section>
+      )}
 
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <section
+        className={`grid gap-6 ${isSecurityView ? '' : 'xl:grid-cols-[0.95fr_1.05fr]'}`}
+      >
+        {!isSecurityView && (
         <article className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
@@ -861,7 +831,9 @@ export function SettingsCabinetDashboard() {
                   <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     {t('profile.accountId')}
                   </p>
-                  <p className="mt-1 break-all font-mono text-sm text-white">{profile?.id}</p>
+                  <p className="mt-1 break-all font-mono text-sm text-white">
+                    {publicAccountId ?? t('labels.notAvailable')}
+                  </p>
                   <p className="mt-1 font-mono text-xs text-muted-foreground">
                     {t('profile.updatedAt', {
                       date: formatDateTime(profile?.updated_at, locale),
@@ -871,7 +843,7 @@ export function SettingsCabinetDashboard() {
                 <button
                   type="button"
                   onClick={() => void copyAccountId()}
-                  disabled={!profile?.id}
+                  disabled={!publicAccountId}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-grid-line/40 bg-terminal-bg/60 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground transition hover:border-neon-cyan/40 hover:text-neon-cyan disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Copy className="h-4 w-4" aria-hidden="true" />
@@ -889,7 +861,9 @@ export function SettingsCabinetDashboard() {
             </form>
           )}
         </article>
+        )}
 
+        {isSecurityView && (
         <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-purple">
             {t('security.eyebrow')}
@@ -1164,19 +1138,23 @@ export function SettingsCabinetDashboard() {
                 <p className="mt-1 font-mono text-xs leading-6 text-muted-foreground">
                   {t('security.recovery.description')}
                 </p>
-                <a
-                  href={`${publicSiteBaseUrl}/${locale}/help`}
+                <Link
+                  href="/support"
                   className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-amber-400/35 bg-amber-400/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-400/15"
                 >
                   {t('security.recovery.cta')}
-                </a>
+                </Link>
               </div>
             </div>
           </div>
         </article>
+        )}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+      <section
+        className={`grid gap-6 ${isSecurityView ? '' : 'xl:grid-cols-[1.05fr_0.95fr]'}`}
+      >
+        {!isSecurityView && (
         <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-matrix-green">
             {t('notifications.eyebrow')}
@@ -1238,7 +1216,9 @@ export function SettingsCabinetDashboard() {
             </div>
           </div>
         </article>
+        )}
 
+        {isSecurityView && (
         <article
           id="devices"
           className="scroll-mt-24 rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur"
@@ -1265,30 +1245,7 @@ export function SettingsCabinetDashboard() {
           </div>
 
           <div className="mt-6 rounded-3xl border border-grid-line/30 bg-black/20 p-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  {t('devices.limitTitle')}
-                </p>
-                <p className="mt-2 text-3xl font-display text-white">{deviceLimitText}</p>
-                <p className="mt-2 font-mono text-xs leading-6 text-muted-foreground">
-                  {t('devices.limitDescription')}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusPill tone={deviceLimitSummary.tone}>
-                  {t(`devices.limitStates.${deviceLimitSummary.state}`)}
-                </StatusPill>
-                <Link
-                  href="/subscriptions"
-                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-neon-cyan/35 bg-neon-cyan/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-cyan transition hover:bg-neon-cyan/15"
-                >
-                  {t('devices.managePlan')}
-                </Link>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   {t('devices.activeCount')}
@@ -1297,37 +1254,19 @@ export function SettingsCabinetDashboard() {
               </div>
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {t('devices.planLimit')}
+                  {t('devices.current')}
                 </p>
-                <p className="mt-2 font-mono text-xl text-white">
-                  {isDeviceLimitPending
-                    ? t('labels.loading')
-                    : deviceLimitSummary.limit ?? t('labels.notAvailable')}
+                <p className="mt-2 min-w-0 truncate font-mono text-xl text-white">
+                  {currentDevice ? parseDeviceLabel(currentDevice.user_agent) : t('labels.notAvailable')}
                 </p>
               </div>
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {t('devices.remainingSlots')}
+                  {t('devices.otherSessions')}
                 </p>
-                <p className="mt-2 font-mono text-xl text-white">{deviceRemainingText}</p>
+                <p className="mt-2 font-mono text-xl text-white">{otherDeviceCount}</p>
               </div>
             </div>
-
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-grid-line/30">
-              <div
-                className={`h-full rounded-full ${
-                  deviceLimitSummary.tone === 'pink'
-                    ? 'bg-neon-pink'
-                    : deviceLimitSummary.tone === 'amber'
-                      ? 'bg-amber-300'
-                      : 'bg-matrix-green'
-                }`}
-                style={{ width: `${deviceLimitSummary.percent}%` }}
-              />
-            </div>
-            <p className="mt-3 font-mono text-xs leading-6 text-muted-foreground">
-              {deviceLimitHelp}
-            </p>
           </div>
 
           {devicesQuery.isPending ? (
@@ -1402,8 +1341,10 @@ export function SettingsCabinetDashboard() {
             </div>
           )}
         </article>
+        )}
       </section>
 
+      {!isSecurityView && (
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <article className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 backdrop-blur">
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-cyan">
@@ -1455,8 +1396,16 @@ export function SettingsCabinetDashboard() {
               </div>
             ))}
           </div>
+          <Link
+            href="/settings/delete-account"
+            className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neon-pink/35 bg-neon-pink/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-pink transition hover:bg-neon-pink/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            {t('actions.deleteAccount')}
+          </Link>
         </article>
       </section>
+      )}
 
       <TwoFactorModal
         isOpen={activeModal === 'twoFactor'}

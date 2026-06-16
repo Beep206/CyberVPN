@@ -1,5 +1,5 @@
-import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { act, render, renderHook, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CURRENCY_CHANGE_EVENT,
   CURRENCY_COOKIE_NAME,
@@ -7,7 +7,13 @@ import {
   getDefaultCurrencyForLocale,
   isSupportedCurrency,
 } from '../currency-config';
+import { CurrencySelector } from '../currency-selector';
 import { useCurrencyPreference } from '../use-currency-preference';
+
+vi.mock('next-intl', () => ({
+  useLocale: () => 'ru-RU',
+  useTranslations: () => (key: string) => key,
+}));
 
 describe('currency preference', () => {
   beforeEach(() => {
@@ -70,5 +76,15 @@ describe('currency preference', () => {
       );
     });
     expect(result.current.currency).toBe('USD');
+  });
+
+  it('renders a visual currency trigger instead of a raw ISO code', () => {
+    render(<CurrencySelector />);
+
+    const trigger = screen.getByRole('button', { name: 'Выбрать валюту: Russian Ruble' });
+
+    expect(trigger).toHaveTextContent('₽');
+    expect(trigger).not.toHaveTextContent('RUB');
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
   });
 });

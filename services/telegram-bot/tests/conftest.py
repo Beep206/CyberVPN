@@ -11,13 +11,13 @@ This module provides comprehensive test fixtures for:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock
 
 import fakeredis.aioredis
 import pytest
-import respx
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.base import StorageKey
@@ -134,7 +134,7 @@ def create_fsm_context(storage: MemoryStorage, bot_id: int, user_id: int, chat_i
 
 
 @pytest.fixture
-async def fake_redis() -> AsyncGenerator[fakeredis.aioredis.FakeRedis, None]:
+async def fake_redis() -> AsyncGenerator[fakeredis.aioredis.FakeRedis]:
     """Create a fakeredis instance for testing cache operations.
 
     Provides an in-memory Redis-compatible store that resets between tests.
@@ -277,13 +277,12 @@ class MockCyberVPNAPIClient:
 
     async def close(self) -> None:
         """Close client (no-op for mock)."""
-        pass
 
 
 @pytest.fixture
 async def mock_api_client(
     mock_settings: BotSettings,
-) -> AsyncGenerator[CyberVPNAPIClient, None]:
+) -> AsyncGenerator[CyberVPNAPIClient]:
     """Create a real CyberVPNAPIClient for testing with respx.
 
     Args:
@@ -300,7 +299,7 @@ async def mock_api_client(
 @pytest.fixture
 async def mock_simple_api_client(
     mock_settings: BotSettings,
-) -> AsyncGenerator[MockCyberVPNAPIClient, None]:
+) -> AsyncGenerator[MockCyberVPNAPIClient]:
     """Create a MockCyberVPNAPIClient for integration tests.
 
     This fixture is useful for integration tests that need a simple
@@ -361,8 +360,8 @@ def sample_user() -> UserDTO:
             "next_purchase_discount": 0.0,
             "referrer_id": None,
             "points": 0,
-            "created_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
         }
         defaults.update(kwargs)
         return UserDTO(**defaults)
@@ -493,19 +492,18 @@ def setup_respx_base_url() -> None:
     """
     # Note: Individual tests should use the respx_mock fixture
     # to define specific endpoint behaviors
-    pass
 
 
 # ── Cleanup and Teardown ─────────────────────────────────────────────────────
 
 
 @pytest.fixture(autouse=True)
-async def cleanup_between_tests() -> AsyncGenerator[None, None]:
+async def cleanup_between_tests() -> AsyncGenerator[None]:
     """Automatic cleanup between test runs.
 
     Ensures each test starts with a clean state.
     """
     # Setup (before test)
-    yield
+    return
     # Teardown (after test)
     # Add any global cleanup logic here if needed

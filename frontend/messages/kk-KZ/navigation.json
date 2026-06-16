@@ -1,9 +1,12 @@
 {
-  "dashboard": "БАСҚАРУ ТАҚТАСЫ",
-  "servers": "СЕРВЕРЛЕР",
-  "users": "КЛИЕНТТЕР",
-  "billing": "БИЛЛИНГ",
-  "analytics": "ЖЕЛІ ОП",
-  "security": "ҚАУІПСІЗДІК",
-  "settings": "КОНФИГ"
+    "dashboard": "БАСҚАРУ ТАҚТАСЫ",
+    "servers": "СЕРВЕРЛЕР",
+    "users": "КЛИЕНТТЕР",
+    "billing": "БИЛЛИНГ",
+    "analytics": "ЖЕЛІ ОП",
+    "security": "ҚАУІПСІЗДІК",
+    "settings": "КОНФИГ",
+    "items": {
+        "security": "SECURITY"
+    }
 }

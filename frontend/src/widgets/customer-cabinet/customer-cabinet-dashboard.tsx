@@ -33,6 +33,7 @@ import {
 } from '@/features/client-capabilities/useClientCapabilities';
 import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import {
+  DEFAULT_SERVICE_STATE_REQUEST,
   customerSubscriptionsApi,
   entitlementsApi,
   growthNotificationsApi,
@@ -556,7 +557,18 @@ export function CustomerCabinetDashboard() {
   });
 
   const serviceStateQuery = useQuery({
-    queryFn: async () => (await serviceAccessApi.getCurrentServiceState()).data,
+    queryFn: async () => {
+      if (selectedSubscriptionKey) {
+        return (
+          await customerSubscriptionsApi.getServiceState(
+            selectedSubscriptionKey,
+            DEFAULT_SERVICE_STATE_REQUEST,
+          )
+        ).data;
+      }
+
+      return (await serviceAccessApi.getCurrentServiceState()).data;
+    },
     queryKey: ['customer-cabinet', 'service-state', selectedSubscriptionKey],
     refetchInterval: visiblePolling(LIVE_REFETCH_MS),
     staleTime: LIVE_REFETCH_MS,

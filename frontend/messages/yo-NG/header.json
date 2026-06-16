@@ -1,10 +1,45 @@
 {
-  "systemLabel": "ỆRỌ",
-  "integrity": "ÀYẸWÒ ÌṢỌKAN TI KỌJÁ",
-  "encryptionLabel": "ÌPAMỌ́",
-  "encryptionValue": "ŃṢIṢẸ́ - AES-256",
-  "netUplink": "ÀSOPỌ̀_AYÉLUJÁRA",
-  "fps": "FPS",
-  "ping": "PING",
-  "language": "ÈDÈ"
+    "systemLabel": "ỆRỌ",
+    "integrity": "ÀYẸWÒ ÌṢỌKAN TI KỌJÁ",
+    "encryptionLabel": "ÌPAMỌ́",
+    "encryptionValue": "ŃṢIṢẸ́ - AES-256",
+    "netUplink": "ÀSOPỌ̀_AYÉLUJÁRA",
+    "fps": "FPS",
+    "ping": "PING",
+    "language": "ÈDÈ",
+    "mobileMenu": {
+        "close": "Close menu",
+        "open": "Open menu",
+        "primary": "Primary navigation"
+    },
+    "userMenu": {
+        "triggerLabel": "Open account menu for {name}",
+        "fallbackName": "User",
+        "fallbackInitials": "U",
+        "accountBadge": "ACCOUNT",
+        "accountId": "ID: {id}",
+        "signOut": "Sign out",
+        "items": {
+            "dashboard": {
+                "label": "Dashboard",
+                "description": "Overview and stats"
+            },
+            "profile": {
+                "label": "Profile",
+                "description": "Account details"
+            },
+            "security": {
+                "label": "Security",
+                "description": "2FA and password"
+            },
+            "billing": {
+                "label": "Billing",
+                "description": "Manage plan"
+            },
+            "settings": {
+                "label": "Settings",
+                "description": "App preferences"
+            }
+        }
+    }
 }

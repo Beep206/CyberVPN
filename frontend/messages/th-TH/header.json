@@ -1,10 +1,45 @@
 {
-  "systemLabel": "ระบบ",
-  "integrity": "ผ่านการตรวจสอบความสมบูรณ์",
-  "encryptionLabel": "การเข้ารหัส",
-  "encryptionValue": "ใช้งาน - AES-256",
-  "netUplink": "เครือข่าย_อัปลิงก์",
-  "fps": "FPS",
-  "ping": "ปิง",
-  "language": "ภาษา"
+    "systemLabel": "ระบบ",
+    "integrity": "ผ่านการตรวจสอบความสมบูรณ์",
+    "encryptionLabel": "การเข้ารหัส",
+    "encryptionValue": "ใช้งาน - AES-256",
+    "netUplink": "เครือข่าย_อัปลิงก์",
+    "fps": "FPS",
+    "ping": "ปิง",
+    "language": "ภาษา",
+    "mobileMenu": {
+        "close": "Close menu",
+        "open": "Open menu",
+        "primary": "Primary navigation"
+    },
+    "userMenu": {
+        "triggerLabel": "Open account menu for {name}",
+        "fallbackName": "User",
+        "fallbackInitials": "U",
+        "accountBadge": "ACCOUNT",
+        "accountId": "ID: {id}",
+        "signOut": "Sign out",
+        "items": {
+            "dashboard": {
+                "label": "Dashboard",
+                "description": "Overview and stats"
+            },
+            "profile": {
+                "label": "Profile",
+                "description": "Account details"
+            },
+            "security": {
+                "label": "Security",
+                "description": "2FA and password"
+            },
+            "billing": {
+                "label": "Billing",
+                "description": "Manage plan"
+            },
+            "settings": {
+                "label": "Settings",
+                "description": "App preferences"
+            }
+        }
+    }
 }

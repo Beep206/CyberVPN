@@ -20,8 +20,8 @@ from src.domain.entities import (
     NodeObservedStateRecord,
     NodePoolRecord,
     NodeRecord,
-    OperatorCommandResult,
     OperationRunRecord,
+    OperatorCommandResult,
     RateLimitPolicyRecord,
     ReconcileExecutionResult,
     ReconcileWorkItem,
@@ -106,7 +106,7 @@ class FleetRequestResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_entity(cls, record: FleetRequestRecord) -> "FleetRequestResponse":
+    def from_entity(cls, record: FleetRequestRecord) -> FleetRequestResponse:
         return cls.model_validate(record)
 
 
@@ -122,7 +122,7 @@ class OperationRunResponse(BaseModel):
     finished_at: datetime | None = None
 
     @classmethod
-    def from_entity(cls, record: OperationRunRecord) -> "OperationRunResponse":
+    def from_entity(cls, record: OperationRunRecord) -> OperationRunResponse:
         return cls.model_validate(record)
 
 
@@ -138,7 +138,7 @@ class AuditEntryResponse(BaseModel):
     created_at: datetime
 
     @classmethod
-    def from_entity(cls, record: AuditEntryRecord) -> "AuditEntryResponse":
+    def from_entity(cls, record: AuditEntryRecord) -> AuditEntryResponse:
         return cls.model_validate(record)
 
 
@@ -153,7 +153,7 @@ class ReconcilePreviewItemResponse(BaseModel):
     planned_steps: list[str]
 
     @classmethod
-    def from_entity(cls, item: ReconcileWorkItem) -> "ReconcilePreviewItemResponse":
+    def from_entity(cls, item: ReconcileWorkItem) -> ReconcilePreviewItemResponse:
         return cls(
             request=FleetRequestResponse.from_entity(item.request),
             operation_run=(
@@ -176,7 +176,7 @@ class ReconcileRunResultResponse(BaseModel):
     blocked_on_external_dependency: bool
 
     @classmethod
-    def from_entity(cls, item: ReconcileExecutionResult) -> "ReconcileRunResultResponse":
+    def from_entity(cls, item: ReconcileExecutionResult) -> ReconcileRunResultResponse:
         return cls(
             request=FleetRequestResponse.from_entity(item.request),
             operation_run=(
@@ -226,7 +226,7 @@ class NodeResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_entity(cls, record: NodeRecord) -> "NodeResponse":
+    def from_entity(cls, record: NodeRecord) -> NodeResponse:
         return cls.model_validate(record)
 
 
@@ -249,7 +249,7 @@ class ExecutorPreviewResponse(BaseModel):
     command_preview: list[str]
 
     @classmethod
-    def from_entity(cls, preview: ExecutionPreview) -> "ExecutorPreviewResponse":
+    def from_entity(cls, preview: ExecutionPreview) -> ExecutorPreviewResponse:
         return cls(
             operation_run_id=preview.operation_run_id,
             mode=preview.mode,
@@ -282,7 +282,7 @@ class BootstrapTokenResponse(BaseModel):
     created_at: datetime
 
     @classmethod
-    def from_entity(cls, record: BootstrapTokenRecord) -> "BootstrapTokenResponse":
+    def from_entity(cls, record: BootstrapTokenRecord) -> BootstrapTokenResponse:
         return cls.model_validate(record)
 
 
@@ -307,7 +307,7 @@ class NodeCertificateResponse(BaseModel):
     revoked_at: datetime | None = None
 
     @classmethod
-    def from_entity(cls, record: NodeCertificateRecord) -> "NodeCertificateResponse":
+    def from_entity(cls, record: NodeCertificateRecord) -> NodeCertificateResponse:
         return cls.model_validate(record)
 
 
@@ -353,7 +353,7 @@ class NodePoolResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_entity(cls, record: NodePoolRecord) -> "NodePoolResponse":
+    def from_entity(cls, record: NodePoolRecord) -> NodePoolResponse:
         return cls.model_validate(record)
 
 
@@ -450,7 +450,7 @@ class FailoverBudgetPolicyResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_entity(cls, record: BudgetPolicyRecord) -> "FailoverBudgetPolicyResponse":
+    def from_entity(cls, record: BudgetPolicyRecord) -> FailoverBudgetPolicyResponse:
         return cls.model_validate(record)
 
 
@@ -470,7 +470,7 @@ class FailoverRateLimitPolicyResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_entity(cls, record: RateLimitPolicyRecord) -> "FailoverRateLimitPolicyResponse":
+    def from_entity(cls, record: RateLimitPolicyRecord) -> FailoverRateLimitPolicyResponse:
         return cls.model_validate(record)
 
 
@@ -490,7 +490,7 @@ class FailoverApprovalPolicyResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_entity(cls, record: ApprovalPolicyRecord) -> "FailoverApprovalPolicyResponse":
+    def from_entity(cls, record: ApprovalPolicyRecord) -> FailoverApprovalPolicyResponse:
         return cls.model_validate(record)
 
 
@@ -513,7 +513,7 @@ class FailoverGuardrailPolicyResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_entity(cls, record: FailoverGuardrailPolicyRecord) -> "FailoverGuardrailPolicyResponse":
+    def from_entity(cls, record: FailoverGuardrailPolicyRecord) -> FailoverGuardrailPolicyResponse:
         return cls(
             failover_policy_id=record.failover_policy_id,
             scope_id=record.scope_id,
@@ -540,7 +540,7 @@ class FailoverPolicyBundleResponse(BaseModel):
     guardrail_policy: FailoverGuardrailPolicyResponse
 
     @classmethod
-    def from_entity(cls, bundle: FailoverPolicyBundleRecord) -> "FailoverPolicyBundleResponse":
+    def from_entity(cls, bundle: FailoverPolicyBundleRecord) -> FailoverPolicyBundleResponse:
         return cls(
             scope_id=bundle.scope_id,
             budget_policy=FailoverBudgetPolicyResponse.from_entity(bundle.budget_policy),
@@ -585,7 +585,7 @@ class FailoverEvaluationResponse(BaseModel):
     canary_required: bool
 
     @classmethod
-    def from_entity(cls, record: FailoverEvaluationRecord) -> "FailoverEvaluationResponse":
+    def from_entity(cls, record: FailoverEvaluationRecord) -> FailoverEvaluationResponse:
         return cls(
             scope_id=record.scope_id,
             decision_status=record.decision_status,
@@ -619,7 +619,7 @@ class OperatorCommandResponse(BaseModel):
     no_op_reason: str | None = None
 
     @classmethod
-    def from_entity(cls, result: OperatorCommandResult) -> "OperatorCommandResponse":
+    def from_entity(cls, result: OperatorCommandResult) -> OperatorCommandResponse:
         return cls(
             command_name=result.command_name,
             request=FleetRequestResponse.from_entity(result.request) if result.request is not None else None,
@@ -643,7 +643,7 @@ class BaselineProfileResponse(BaseModel):
     synthetic_probe: str
 
     @classmethod
-    def from_entity(cls, profile: BaselineProfile) -> "BaselineProfileResponse":
+    def from_entity(cls, profile: BaselineProfile) -> BaselineProfileResponse:
         return cls(
             node_id=profile.node_id,
             role=profile.role,
@@ -676,7 +676,7 @@ class NodeObservedStateResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_entity(cls, observed: NodeObservedStateRecord) -> "NodeObservedStateResponse":
+    def from_entity(cls, observed: NodeObservedStateRecord) -> NodeObservedStateResponse:
         return cls(
             node_id=observed.node_id,
             observed_lifecycle_state=observed.observed_lifecycle_state,
@@ -713,7 +713,7 @@ class HealthSignalResponse(BaseModel):
     details: dict[str, object]
 
     @classmethod
-    def from_entity(cls, signal: HealthSignalRecord) -> "HealthSignalResponse":
+    def from_entity(cls, signal: HealthSignalRecord) -> HealthSignalResponse:
         return cls(
             signal_id=signal.signal_id,
             node_id=signal.node_id,
@@ -748,7 +748,7 @@ class SyntheticCheckResponse(BaseModel):
     details: dict[str, object]
 
     @classmethod
-    def from_entity(cls, check: SyntheticCheckRecord) -> "SyntheticCheckResponse":
+    def from_entity(cls, check: SyntheticCheckRecord) -> SyntheticCheckResponse:
         return cls(
             synthetic_check_id=check.synthetic_check_id,
             node_id=check.node_id,
@@ -780,7 +780,7 @@ class RuntimeReadinessResponse(BaseModel):
     details: dict[str, object]
 
     @classmethod
-    def from_entity(cls, readiness: RuntimeReadinessRecord) -> "RuntimeReadinessResponse":
+    def from_entity(cls, readiness: RuntimeReadinessRecord) -> RuntimeReadinessResponse:
         return cls(
             readiness_id=readiness.readiness_id,
             node_id=readiness.node_id,
@@ -805,7 +805,7 @@ class TrafficEligibilityResponse(BaseModel):
     last_evaluated_at: datetime
 
     @classmethod
-    def from_entity(cls, record: TrafficEligibilityRecord) -> "TrafficEligibilityResponse":
+    def from_entity(cls, record: TrafficEligibilityRecord) -> TrafficEligibilityResponse:
         return cls(
             node_id=record.node_id,
             eligibility_state=record.eligibility_state,
@@ -823,7 +823,7 @@ class TrafficEligibilityEvaluationResponse(BaseModel):
     baseline_profile: BaselineProfileResponse
 
     @classmethod
-    def from_entity(cls, evaluation: TrafficEligibilityEvaluation) -> "TrafficEligibilityEvaluationResponse":
+    def from_entity(cls, evaluation: TrafficEligibilityEvaluation) -> TrafficEligibilityEvaluationResponse:
         return cls(
             node=NodeResponse.from_entity(evaluation.node),
             observed_state=NodeObservedStateResponse.from_entity(evaluation.observed_state),

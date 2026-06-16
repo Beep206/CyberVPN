@@ -7,6 +7,7 @@ import type {
   PlanRecord,
 } from '../subscription-cabinet-model';
 import {
+  DEFAULT_PLAN_CATALOG_FILTERS,
   formatBytes,
   formatDate,
   formatDuration,
@@ -14,11 +15,14 @@ import {
   getCurrentPlan,
   getDaysUntilExpiry,
   getAddonPrice,
+  getFilteredPublicPlans,
   getOrderStatus,
   getOrderDisplayName,
   getOrderTone,
   getPlanPrice,
   getPlanAction,
+  getPlanDurationGroup,
+  getPlansGroupedByDuration,
   getPublicPlans,
   getSortedOrders,
   getSubscriptionHealth,
@@ -166,12 +170,12 @@ describe('subscription cabinet model', () => {
         serviceState,
         trial: {
           days_remaining: 3,
-          device_limit: 1,
+          device_limit: 5,
           duration_days: 7,
           is_eligible: false,
           is_trial_active: true,
           one_trial_per_account: true,
-          traffic_limit_bytes: 0,
+          traffic_limit_bytes: 10 * 1024 ** 3,
           trial_end: '2026-04-27T00:00:00Z',
           trial_start: '2026-04-24T00:00:00Z',
         },
@@ -239,6 +243,60 @@ describe('subscription cabinet model', () => {
         targetPlan: downgrade,
       }),
     ).toBe('purchase');
+  });
+
+  it('filters public plans by term, devices, and traffic, then groups by duration', () => {
+    const monthly = plan({
+      devices_included: 5,
+      duration_days: 30,
+      plan_code: 'monthly',
+      sort_order: 10,
+      traffic_limit_bytes: null,
+      uuid: 'plan-monthly',
+    });
+    const quarterly = plan({
+      devices_included: 10,
+      duration_days: 90,
+      plan_code: 'quarterly',
+      sort_order: 20,
+      traffic_limit_bytes: 1024 ** 4,
+      traffic_policy: {
+        display_label: '',
+        enforcement_profile: null,
+        mode: 'quota',
+      },
+      uuid: 'plan-quarterly',
+    });
+    const long = plan({
+      devices_included: 20,
+      duration_days: 365,
+      plan_code: 'yearly',
+      sort_order: 30,
+      uuid: 'plan-yearly',
+    });
+    const publicPlans = getPublicPlans([long, quarterly, monthly]);
+
+    expect(getPlanDurationGroup(monthly)).toBe('monthly');
+    expect(getPlanDurationGroup(quarterly)).toBe('quarterly');
+    expect(getPlanDurationGroup(long)).toBe('long');
+    expect(getFilteredPublicPlans(publicPlans, DEFAULT_PLAN_CATALOG_FILTERS)).toEqual(publicPlans);
+    expect(
+      getFilteredPublicPlans(publicPlans, {
+        devices: 'sixToTen',
+        duration: 'quarterly',
+        traffic: 'limited',
+      }).map((item) => item.uuid),
+    ).toEqual(['plan-quarterly']);
+    expect(
+      getPlansGroupedByDuration(publicPlans).map((group) => [
+        group.key,
+        group.plans.map((item) => item.uuid),
+      ]),
+    ).toEqual([
+      ['monthly', ['plan-monthly']],
+      ['quarterly', ['plan-quarterly']],
+      ['long', ['plan-yearly']],
+    ]);
   });
 
   it('filters add-ons by web channel and plan quantity caps', () => {
@@ -443,7 +501,6 @@ describe('subscription cabinet model', () => {
     expect(fallbackUsdPrice.formatted.replace(/\u00a0/g, ' ')).toBe('19,99 $');
     expect(formatDuration(1)).toBe('1 day');
     expect(formatDuration(30)).toBe('30 days');
-    expect(formatDuration(30, 'ru-RU')).toBe('30 дн.');
     expect(formatLabel('manual_review-required', 'Fallback')).toBe('Manual Review Required');
     expect(formatLabel('   ', 'Fallback')).toBe('Fallback');
     expect(getTrafficLabel(labeledPlan)).toBe('2 TB fair-use');

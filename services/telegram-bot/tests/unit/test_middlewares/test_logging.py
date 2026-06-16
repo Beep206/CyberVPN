@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -10,9 +9,6 @@ import structlog
 from aiogram.types import CallbackQuery, Message, Update, User
 
 from src.middlewares.logging import LoggingMiddleware
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 
 @pytest.mark.asyncio
@@ -129,9 +125,8 @@ class TestLoggingMiddleware:
 
         data = {}
 
-        with pytest.raises(ValueError):
-            with structlog.testing.capture_logs() as cap_logs:
-                await middleware(failing_handler, update, data)
+        with pytest.raises(ValueError), structlog.testing.capture_logs() as cap_logs:
+            await middleware(failing_handler, update, data)
 
         # Should have logged the exception
         assert len(cap_logs) > 0

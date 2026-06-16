@@ -1,9 +1,12 @@
 {
-  "dashboard": "BABBAN ALLO",
-  "servers": "SABOBIN",
-  "users": "ABOKAN CINIKI",
-  "billing": "BIYAN KUƊI",
-  "analytics": "NAZARIN CIBIYA",
-  "security": "TSARO",
-  "settings": "SAITUNA"
+    "dashboard": "BABBAN ALLO",
+    "servers": "SABOBIN",
+    "users": "ABOKAN CINIKI",
+    "billing": "BIYAN KUƊI",
+    "analytics": "NAZARIN CIBIYA",
+    "security": "TSARO",
+    "settings": "SAITUNA",
+    "items": {
+        "security": "SECURITY"
+    }
 }

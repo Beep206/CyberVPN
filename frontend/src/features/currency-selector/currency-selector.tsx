@@ -8,6 +8,7 @@ import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { Modal } from '@/shared/ui/modal';
 import {
   CURRENCY_LABELS,
+  CURRENCY_SYMBOLS,
   SUPPORTED_CURRENCIES,
   isSupportedCurrency,
   type SupportedCurrency,
@@ -55,6 +56,8 @@ export function CurrencySelector({
   const supportedCurrencies = availableCurrencies
     ? availableCurrencies.filter(isSupportedCurrency)
     : SUPPORTED_CURRENCIES;
+  const activeCurrencyLabel = CURRENCY_LABELS[currency];
+  const activeCurrencySymbol = CURRENCY_SYMBOLS[currency];
   const query = searchQuery.trim().toLowerCase();
   const currencies = supportedCurrencies.filter((code) =>
     getCurrencySearchText(code).includes(query),
@@ -73,13 +76,18 @@ export function CurrencySelector({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
-          aria-label={`${copy.aria}: ${currency}`}
+          aria-label={`${copy.aria}: ${activeCurrencyLabel}`}
           aria-haspopup="dialog"
           aria-expanded={isOpen}
-          className="touch-target inline-flex items-center justify-center gap-2 rounded-lg border border-grid-line/30 bg-terminal-surface/30 px-3 font-mono text-sm font-semibold uppercase tracking-wider text-muted-foreground transition-colors duration-300 hover:border-neon-cyan/50 hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+          className="touch-target group inline-flex items-center justify-center gap-2 rounded-lg border border-grid-line/30 bg-terminal-surface/30 px-2.5 font-mono text-sm font-semibold text-muted-foreground transition-colors duration-300 hover:border-neon-cyan/50 hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg sm:px-3"
         >
-          <Coins className="h-4 w-4" />
-          {currency}
+          <Coins className="h-4 w-4" aria-hidden="true" />
+          <span className="flex h-6 min-w-6 items-center justify-center rounded-md border border-grid-line/25 bg-background/60 px-1.5 text-center text-sm leading-none text-foreground transition-colors group-hover:border-neon-cyan/45 group-hover:text-neon-cyan">
+            {activeCurrencySymbol}
+          </span>
+          <span className="hidden max-w-24 truncate text-xs uppercase tracking-[0.12em] xl:inline">
+            {activeCurrencyLabel}
+          </span>
         </motion.button>
       </MagneticButton>
 
@@ -120,15 +128,15 @@ export function CurrencySelector({
                       : 'border-grid-line/10 bg-terminal-surface/30 hover:border-neon-pink/50 hover:bg-terminal-surface/60'
                   }`}
                 >
-                  <div className="flex h-9 w-12 shrink-0 items-center justify-center rounded border border-grid-line/20 bg-background/55 font-mono text-xs font-bold text-foreground">
-                    {code}
+                  <div className="flex h-9 w-12 shrink-0 items-center justify-center rounded border border-grid-line/20 bg-background/55 px-1 font-mono text-sm font-bold text-foreground">
+                    {CURRENCY_SYMBOLS[code]}
                   </div>
                   <div className="flex min-w-0 flex-col">
                     <span className={`truncate font-display text-sm tracking-wide ${isActive ? 'text-neon-cyan' : 'text-foreground'}`}>
-                      {code}
+                      {CURRENCY_LABELS[code]}
                     </span>
                     <span className="truncate font-mono text-xs text-muted-foreground">
-                      {CURRENCY_LABELS[code]}
+                      {code}
                     </span>
                   </div>
                   {isActive ? <Check className="ml-auto h-4 w-4 shrink-0 text-neon-cyan" /> : null}

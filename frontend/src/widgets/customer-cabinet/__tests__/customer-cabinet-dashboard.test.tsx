@@ -17,6 +17,7 @@ const {
   getCurrentServiceStateMock,
   getProfileMock,
   getReferralStatsMock,
+  getSelectedSubscriptionKeyMock,
   getTrialStatusMock,
   getUsageMock,
   listNotificationsMock,
@@ -71,6 +72,7 @@ const {
   getCurrentServiceStateMock: vi.fn(),
   getProfileMock: vi.fn(),
   getReferralStatsMock: vi.fn(),
+  getSelectedSubscriptionKeyMock: vi.fn(),
   getTrialStatusMock: vi.fn(),
   getUsageMock: vi.fn(),
   listNotificationsMock: vi.fn(),
@@ -105,6 +107,16 @@ vi.mock('@/i18n/navigation', () => ({
 }));
 
 vi.mock('@/lib/api', () => ({
+  DEFAULT_SERVICE_STATE_REQUEST: {
+    channel_type: 'shared_client',
+    credential_subject_key: 'official-web-dashboard',
+    credential_type: 'desktop_client',
+    provider_name: 'remnawave',
+  },
+  customerSubscriptionsApi: {
+    getEntitlements: getCurrentEntitlementMock,
+    getServiceState: getCurrentServiceStateMock,
+  },
   entitlementsApi: {
     getCurrent: getCurrentEntitlementMock,
   },
@@ -130,6 +142,20 @@ vi.mock('@/lib/api', () => ({
   walletApi: {
     getBalance: getBalanceMock,
   },
+}));
+
+vi.mock('@/features/customer-subscriptions/customer-subscription-context', () => ({
+  useCustomerSubscriptions: () => ({
+    defaultSubscriptionKey: getSelectedSubscriptionKeyMock(),
+    isError: false,
+    isLoading: false,
+    limitations: [],
+    refetch: vi.fn(),
+    selectedSubscription: null,
+    selectedSubscriptionKey: getSelectedSubscriptionKeyMock(),
+    setSelectedSubscriptionKey: vi.fn(),
+    subscriptions: [],
+  }),
 }));
 
 vi.mock(
@@ -226,6 +252,7 @@ const rewardNotification = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getSelectedSubscriptionKeyMock.mockReturnValue('grant:test-grant');
   clientCapabilitiesMock.data.growth.checkout_code_discounts = false;
   clientCapabilitiesMock.data.growth.gift_codes = false;
   clientCapabilitiesMock.data.growth.growth_hub = false;
@@ -331,6 +358,13 @@ describe('CustomerCabinetDashboard', () => {
     ).not.toBeInTheDocument();
     expect(getReferralStatsMock).not.toHaveBeenCalled();
     expect(listNotificationsMock).toHaveBeenCalledWith(false);
+    expect(getCurrentEntitlementMock).toHaveBeenCalledWith('grant:test-grant');
+    expect(getCurrentServiceStateMock).toHaveBeenCalledWith('grant:test-grant', {
+      channel_type: 'shared_client',
+      credential_subject_key: 'official-web-dashboard',
+      credential_type: 'desktop_client',
+      provider_name: 'remnawave',
+    });
   });
 
   it('renders S1 grace, payment pending, and provisioning retry states', async () => {

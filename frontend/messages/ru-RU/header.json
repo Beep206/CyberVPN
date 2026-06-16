@@ -8,25 +8,38 @@
     "ping": "PING",
     "language": "ЯЗЫК",
     "mobileMenu": {
-        "close": "Закрыть меню навигации",
-        "open": "Открыть меню навигации",
+        "close": "Закрыть меню",
+        "open": "Открыть меню",
         "primary": "Основная навигация"
     },
-    "notificationsUnavailable": "Уведомления пока недоступны",
     "userMenu": {
-        "billing": "Оплата",
-        "billingDescription": "Подписка и платежи",
-        "dashboard": "Кабинет",
-        "dashboardDescription": "Обзор и состояние доступа",
-        "open": "Открыть меню аккаунта",
-        "profile": "Профиль",
-        "profileDescription": "Данные аккаунта",
-        "security": "Безопасность",
-        "securityDescription": "2FA и пароль",
-        "settings": "Настройки",
-        "settingsDescription": "Параметры приложения",
+        "triggerLabel": "Открыть меню аккаунта: {name}",
+        "fallbackName": "Пользователь",
+        "fallbackInitials": "П",
+        "accountBadge": "АККАУНТ",
+        "accountId": "ID: {id}",
         "signOut": "Выйти",
-        "subscriptionBadge": "PRO",
-        "userIdPrefix": "ID"
+        "items": {
+            "dashboard": {
+                "label": "Панель",
+                "description": "Обзор и статистика"
+            },
+            "profile": {
+                "label": "Профиль",
+                "description": "Данные аккаунта"
+            },
+            "security": {
+                "label": "Безопасность",
+                "description": "2FA и пароль"
+            },
+            "billing": {
+                "label": "Оплата",
+                "description": "Управление тарифом"
+            },
+            "settings": {
+                "label": "Настройки",
+                "description": "Параметры приложения"
+            }
+        }
     }
 }

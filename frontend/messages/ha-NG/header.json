@@ -1,10 +1,45 @@
 {
-  "systemLabel": "TSARIN",
-  "integrity": "AN TABBATAR DA INGANCI",
-  "encryptionLabel": "ƁOYEWA",
-  "encryptionValue": "AIKI - AES-256",
-  "netUplink": "HAƊIN_YANAR_GIZO",
-  "fps": "FPS",
-  "ping": "PING",
-  "language": "HARSHE"
+    "systemLabel": "TSARIN",
+    "integrity": "AN TABBATAR DA INGANCI",
+    "encryptionLabel": "ƁOYEWA",
+    "encryptionValue": "AIKI - AES-256",
+    "netUplink": "HAƊIN_YANAR_GIZO",
+    "fps": "FPS",
+    "ping": "PING",
+    "language": "HARSHE",
+    "mobileMenu": {
+        "close": "Close menu",
+        "open": "Open menu",
+        "primary": "Primary navigation"
+    },
+    "userMenu": {
+        "triggerLabel": "Open account menu for {name}",
+        "fallbackName": "User",
+        "fallbackInitials": "U",
+        "accountBadge": "ACCOUNT",
+        "accountId": "ID: {id}",
+        "signOut": "Sign out",
+        "items": {
+            "dashboard": {
+                "label": "Dashboard",
+                "description": "Overview and stats"
+            },
+            "profile": {
+                "label": "Profile",
+                "description": "Account details"
+            },
+            "security": {
+                "label": "Security",
+                "description": "2FA and password"
+            },
+            "billing": {
+                "label": "Billing",
+                "description": "Manage plan"
+            },
+            "settings": {
+                "label": "Settings",
+                "description": "App preferences"
+            }
+        }
+    }
 }

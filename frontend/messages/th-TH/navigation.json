@@ -1,9 +1,12 @@
 {
-  "dashboard": "แดชบอร์ด",
-  "servers": "เซิร์ฟเวอร์",
-  "users": "ไคลเอนต์",
-  "billing": "การเรียกเก็บเงิน",
-  "analytics": "ปฏิบัติการเครือข่าย",
-  "security": "ความปลอดภัย",
-  "settings": "การตั้งค่า"
+    "dashboard": "แดชบอร์ด",
+    "servers": "เซิร์ฟเวอร์",
+    "users": "ไคลเอนต์",
+    "billing": "การเรียกเก็บเงิน",
+    "analytics": "ปฏิบัติการเครือข่าย",
+    "security": "ความปลอดภัย",
+    "settings": "การตั้งค่า",
+    "items": {
+        "security": "SECURITY"
+    }
 }

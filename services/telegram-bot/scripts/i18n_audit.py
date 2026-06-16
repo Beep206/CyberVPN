@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from fluent.runtime import FluentBundle, FluentResource
-from fluent.syntax import FluentParser, ast as fluent_ast
+from fluent.syntax import FluentParser
+from fluent.syntax import ast as fluent_ast
 
 from src.config import BotSettings
 from src.middlewares.i18n import SUPPORTED_LOCALES

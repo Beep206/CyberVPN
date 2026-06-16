@@ -8,25 +8,38 @@
     "ping": "PING",
     "language": "LANG",
     "mobileMenu": {
-        "close": "Close navigation menu",
-        "open": "Open navigation menu",
+        "close": "Close menu",
+        "open": "Open menu",
         "primary": "Primary navigation"
     },
-    "notificationsUnavailable": "Notifications are not available yet",
     "userMenu": {
-        "billing": "Billing",
-        "billingDescription": "Subscription and payments",
-        "dashboard": "Dashboard",
-        "dashboardDescription": "Overview and access status",
-        "open": "Open account menu",
-        "profile": "Profile",
-        "profileDescription": "Account details",
-        "security": "Security",
-        "securityDescription": "2FA and password",
-        "settings": "Settings",
-        "settingsDescription": "App preferences",
-        "signOut": "Sign Out",
-        "subscriptionBadge": "PRO",
-        "userIdPrefix": "ID"
+        "triggerLabel": "Open account menu for {name}",
+        "fallbackName": "User",
+        "fallbackInitials": "U",
+        "accountBadge": "ACCOUNT",
+        "accountId": "ID: {id}",
+        "signOut": "Sign out",
+        "items": {
+            "dashboard": {
+                "label": "Dashboard",
+                "description": "Overview and stats"
+            },
+            "profile": {
+                "label": "Profile",
+                "description": "Account details"
+            },
+            "security": {
+                "label": "Security",
+                "description": "2FA and password"
+            },
+            "billing": {
+                "label": "Billing",
+                "description": "Manage plan"
+            },
+            "settings": {
+                "label": "Settings",
+                "description": "App preferences"
+            }
+        }
     }
 }

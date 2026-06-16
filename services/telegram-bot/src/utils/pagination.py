@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Generic, Sequence, TypeVar
+from collections.abc import Callable, Sequence
+from typing import Any, Generic, TypeVar
 
 import structlog
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup

@@ -1,36 +1,71 @@
-import { useState, useRef, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    LayoutDashboard,
-    Settings,
-    UserCircle,
-    LogOut,
-    ChevronRight,
-    Sparkles,
-    CreditCard,
-    Shield
+  ChevronRight,
+  CreditCard,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  Shield,
+  Sparkles,
+  UserCircle,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { useAuthStore } from '@/stores/auth-store';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { profileApi } from '@/lib/api';
+import { formatCustomerPublicUid } from '@/shared/lib/public-account-id';
 
-type UserMenuItemId = 'billing' | 'dashboard' | 'profile' | 'security' | 'settings';
+const USER_MENU_PROFILE_STALE_MS = 5 * 60_000;
+
+function getAccountFallbackName(user: ReturnType<typeof useAuthStore.getState>['user']) {
+  const login = user?.login?.trim();
+  if (login) {
+    return login;
+  }
+
+  const emailLocalPart = user?.email?.split('@')[0]?.trim();
+  return emailLocalPart || null;
+}
+
+function getInitials(value: string, fallback: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  const [first = '', second = ''] = normalized.split(/\s+/);
+  const initials = `${first[0] ?? ''}${second[0] ?? ''}` || normalized.slice(0, 2);
+  return initials.toUpperCase();
+}
 
 export function UserMenu() {
-    const t = useTranslations('Header');
     const [isOpen, setIsOpen] = useState(false);
+    const t = useTranslations('Header.userMenu');
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { user, logout } = useAuthStore();
-    const [hoveredItem, setHoveredItem] = useState<UserMenuItemId | null>(null);
+    const user = useAuthStore((state) => state.user);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const logout = useAuthStore((state) => state.logout);
+    const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const profileQuery = useQuery({
+        queryKey: ['settings', 'profile'],
+        queryFn: async () => {
+            const response = await profileApi.getProfile();
+            return response.data;
+        },
+        enabled: isAuthenticated,
+        refetchOnWindowFocus: false,
+        staleTime: USER_MENU_PROFILE_STALE_MS,
+    });
 
     // Close on click outside
     useEffect(() => {
@@ -45,57 +80,61 @@ export function UserMenu() {
 
     const handleLogout = () => {
         setIsOpen(false);
+        const logoutAttempt = logout();
         queryClient.clear();
-        void logout().catch(() => {});
         router.replace('/');
         router.refresh();
+        void logoutAttempt.catch(() => {
+            // Local auth state is cleared by the store even if revoke fails.
+        });
     };
 
-    // User initials for avatar fallback
-    const initials = user?.email
-        ? user.email.substring(0, 2).toUpperCase()
-        : user?.login?.substring(0, 2).toUpperCase() || 'U';
+    const profileDisplayName = profileQuery.data?.display_name?.trim();
+    const accountName =
+        profileDisplayName || getAccountFallbackName(user) || t('fallbackName');
+    const initials = getInitials(accountName, t('fallbackInitials'));
+    const publicAccountId = formatCustomerPublicUid(user?.public_uid);
 
     const menuItems = [
         {
-            id: 'dashboard' as const,
+            id: 'dashboard',
             icon: LayoutDashboard,
-            label: t('userMenu.dashboard'),
+            label: t('items.dashboard.label'),
             href: '/dashboard',
             color: 'text-neon-cyan',
-            desc: t('userMenu.dashboardDescription')
+            desc: t('items.dashboard.description')
         },
         {
-            id: 'profile' as const,
+            id: 'profile',
             icon: UserCircle,
-            label: t('userMenu.profile'),
+            label: t('items.profile.label'),
             href: '/settings',
             color: 'text-neon-purple',
-            desc: t('userMenu.profileDescription')
+            desc: t('items.profile.description')
         },
         {
-            id: 'security' as const,
+            id: 'security',
             icon: Shield,
-            label: t('userMenu.security'),
-            href: '/settings',
+            label: t('items.security.label'),
+            href: '/settings/security',
             color: 'text-matrix-green',
-            desc: t('userMenu.securityDescription')
+            desc: t('items.security.description')
         },
         {
-            id: 'billing' as const,
+            id: 'billing',
             icon: CreditCard,
-            label: t('userMenu.billing'),
+            label: t('items.billing.label'),
             href: '/subscriptions',
             color: 'text-neon-yellow',
-            desc: t('userMenu.billingDescription')
+            desc: t('items.billing.description')
         },
         {
-            id: 'settings' as const,
+            id: 'settings',
             icon: Settings,
-            label: t('userMenu.settings'),
+            label: t('items.settings.label'),
             href: '/settings',
             color: 'text-muted-foreground',
-            desc: t('userMenu.settingsDescription')
+            desc: t('items.settings.description')
         },
     ];
 
@@ -103,12 +142,10 @@ export function UserMenu() {
         <div className="relative z-50" ref={dropdownRef}>
             <MagneticButton strength={10}>
                 <button
-                    type="button"
-                    aria-label={t('userMenu.open')}
-                    aria-expanded={isOpen}
-                    aria-controls="user-menu-panel"
-                    aria-haspopup="menu"
                     onClick={() => setIsOpen(!isOpen)}
+                    aria-expanded={isOpen}
+                    aria-haspopup="menu"
+                    aria-label={t('triggerLabel', { name: accountName })}
                     className={cn(
                         "flex items-center gap-2 p-1 pl-2 pr-1 rounded-full border transition-all duration-300 group relative overflow-hidden",
                         isOpen
@@ -117,11 +154,11 @@ export function UserMenu() {
                     )}
                 >
                     <span className="text-xs font-medium max-w-[100px] truncate hidden md:block z-10 relative">
-                        {user?.login || user?.email?.split('@')[0]}
+                        {accountName}
                     </span>
 
                     {/* Status Dot */}
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-matrix-green shadow-[0_0_8px_theme(colors.matrix-green.DEFAULT)] animate-pulse" aria-hidden="true" />
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-matrix-green shadow-[0_0_8px_theme(colors.matrix-green.DEFAULT)] animate-pulse" />
 
                     <div className="relative group-hover:scale-105 transition-transform duration-300">
                         <Avatar className="h-8 w-8 border border-white/10 group-hover:border-neon-cyan/50 transition-colors">
@@ -142,7 +179,6 @@ export function UserMenu() {
                             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
                             exit={{ opacity: 0, y: 10, scale: 0.95, filter: 'blur(10px)' }}
                             transition={{ duration: 0.2, ease: "circOut" }}
-                            id="user-menu-panel"
                             className="absolute right-0 top-full mt-3 z-50 w-72 bg-background/95 dark:bg-terminal-surface/80 border border-border/50 dark:border-white/10 rounded-2xl shadow-xl dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)] backdrop-blur-3xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5"
                         >
                             {/* Cyber Header - Kept distinctive for profile identity, but with adjusted opacity for light mode */}
@@ -164,34 +200,37 @@ export function UserMenu() {
                                                 {initials}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-matrix-green border-2 border-background dark:border-black rounded-full shadow-[0_0_8px_theme(colors.matrix-green.DEFAULT)]" aria-hidden="true" />
+                                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-matrix-green border-2 border-background dark:border-black rounded-full shadow-[0_0_8px_theme(colors.matrix-green.DEFAULT)]" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-sm text-foreground truncate flex items-center gap-2">
-                                            {user?.login}
-                                            <Sparkles className="w-3 h-3 text-neon-yellow animate-pulse" aria-hidden="true" />
+                                            {accountName}
+                                            <Sparkles className="w-3 h-3 text-neon-yellow animate-pulse" />
                                         </h4>
                                         <p className="text-xs text-muted-foreground truncate font-mono opacity-80">
                                             {user?.email}
                                         </p>
                                         <div className="mt-1.5 flex items-center gap-2">
                                             <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20">
-                                                {t('userMenu.subscriptionBadge')}
+                                                {t('accountBadge')}
                                             </span>
-                                            <span className="text-[10px] text-muted-foreground/50 font-mono">
-                                                {t('userMenu.userIdPrefix')}: {user?.id?.substring(0, 4)}...
-                                            </span>
+                                            {publicAccountId ? (
+                                                <span className="text-[10px] text-muted-foreground/50 font-mono">
+                                                    {t('accountId', { id: publicAccountId })}
+                                                </span>
+                                            ) : null}
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Menu Items */}
-                            <div className="p-2 space-y-0.5 relative">
+                            <div className="p-2 space-y-0.5 relative" role="menu">
                                 {menuItems.map((item, index) => (
                                     <div key={item.id}>
                                         <Link
                                             href={item.href}
+                                            role="menuitem"
                                             onClick={() => setIsOpen(false)}
                                             prefetch={false}
                                             onMouseEnter={() => setHoveredItem(item.id)}
@@ -216,7 +255,7 @@ export function UserMenu() {
                                                 "group-hover/item:scale-110 group-hover/item:rotate-3 group-hover/item:shadow-[0_0_15px_-5px_currentColor]",
                                                 item.color.replace('text-', 'text-opacity-80 ')
                                             )}>
-                                                <item.icon className={cn("w-4 h-4 transition-transform duration-300", item.color)} aria-hidden="true" />
+                                                <item.icon className={cn("w-4 h-4 transition-transform duration-300", item.color)} />
                                             </div>
 
                                             <div className="flex-1 relative z-10">
@@ -224,7 +263,7 @@ export function UserMenu() {
                                                     <span className="text-sm font-medium text-muted-foreground group-hover/item:text-foreground group-hover/item:translate-x-1 transition-all duration-300 flex items-center gap-2">
                                                         <CypherText text={item.label} trigger={hoveredItem === item.id} speed={40} />
                                                     </span>
-                                                    <ChevronRight className="w-3 h-3 text-primary dark:text-neon-cyan opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all duration-300 ease-out" aria-hidden="true" />
+                                                    <ChevronRight className="w-3 h-3 text-primary dark:text-neon-cyan opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all duration-300 ease-out" />
                                                 </div>
                                                 <p className="text-[10px] text-muted-foreground/50 font-mono group-hover/item:text-muted-foreground/80 transition-colors delay-75">
                                                     {item.desc}
@@ -241,12 +280,11 @@ export function UserMenu() {
                             {/* Footer */}
                             <div className="p-2 border-t border-border/50 dark:border-white/5 mt-1 bg-muted/30 dark:bg-black/20">
                                 <button
-                                    type="button"
                                     onClick={handleLogout}
                                     className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300 transition-all group"
                                 >
-                                    <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" aria-hidden="true" />
-                                    <span>{t('userMenu.signOut')}</span>
+                                    <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                                    <span>{t('signOut')}</span>
                                 </button>
                             </div>
                         </motion.div>

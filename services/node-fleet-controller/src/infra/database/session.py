@@ -51,7 +51,7 @@ async def dispose_database(settings: Settings) -> None:
         await engine.dispose()
 
 
-async def get_db_session(settings: Settings) -> AsyncGenerator[AsyncSession, None]:
+async def get_db_session(settings: Settings) -> AsyncGenerator[AsyncSession]:
     session_factory = get_session_factory(settings)
     async with session_factory() as session:
         try:

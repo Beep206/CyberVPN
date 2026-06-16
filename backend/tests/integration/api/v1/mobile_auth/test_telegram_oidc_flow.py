@@ -796,6 +796,7 @@ async def test_mobile_me_exposes_profile_contract(async_client, db):
     auth_service = AuthService()
     user = MobileUserModel(
         id=uuid4(),
+        public_uid=14_677_650,
         auth_realm_id=stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"])),
         email=f"mobile-me-{uuid4().hex[:8]}@example.com",
         password_hash=await auth_service.hash_password("MobileMe123!"),
@@ -839,6 +840,7 @@ async def test_mobile_me_exposes_profile_contract(async_client, db):
         assert response.status_code == 200
         body = response.json()
         assert body["id"] == str(user.id)
+        assert body["public_uid"] == 14_677_650
         assert body["email"] == user.email
         assert body["telegram_id"] == user.telegram_id
         assert body["telegram_username"] == user.telegram_username

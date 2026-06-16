@@ -953,19 +953,20 @@
     },
     "error": {
       "invalidCredentials": "Invalid email or password",
-      "message": "We couldn't process your deletion request. Please try again or contact support.",
+      "message": "We couldn't submit your deletion request. Please try again or contact support.",
       "networkError": "Network error. Please check your connection.",
       "serverError": "Server error. Please try again later.",
-      "title": "Deletion failed",
-      "unauthenticated": "You must be logged in to delete your account."
+      "title": "Deletion request failed",
+      "unauthenticated": "You must be logged in to request account deletion."
     },
     "form": {
       "cancel": "Cancel",
-      "description": "To proceed with account deletion, type DELETE below and confirm.",
+      "cancelToSettings": "Back to settings",
+      "description": "To submit a manual privacy review request, type DELETE below and confirm that you understand the impact.",
       "fields": {
         "confirmation": {
           "error": "You must confirm to proceed",
-          "label": "I understand this action is permanent and cannot be undone"
+          "label": "I understand this request starts a permanent deletion review and may affect subscriptions, rewards and support history"
         },
         "confirmInput": {
           "error": "You must type DELETE to proceed",
@@ -980,7 +981,7 @@
         },
         "feedback": {
           "label": "Additional feedback (optional)",
-          "placeholder": "Any additional comments..."
+          "placeholder": "Any additional comments for privacy support..."
         },
         "password": {
           "error": "Password is required",
@@ -1000,55 +1001,57 @@
           "placeholder": "Help us improve by sharing why you're leaving"
         }
       },
-      "submit": "Delete My Account",
-      "submitting": "Deleting...",
-      "title": "Confirm account deletion"
+      "submit": "Submit Deletion Request",
+      "submitting": "Submitting...",
+      "title": "Confirm account deletion request"
     },
     "meta": {
-      "description": "Request permanent deletion of your CyberVPN account and all associated data.",
+      "description": "Request manual privacy review for permanent deletion of your CyberVPN account and associated data.",
       "title": "Delete Account - CyberVPN"
     },
     "sections": {
       "alternativeOptions": {
-        "description": "If you're experiencing issues, consider these alternatives:",
+        "description": "If you're experiencing issues, consider these alternatives before requesting deletion:",
         "items": {
-          "changeSettings": "Adjust your account or privacy settings",
-          "contactSupport": "Contact support for assistance",
-          "pauseSubscription": "Pause your subscription temporarily"
+          "changeSettings": "Adjust your account, security or privacy settings",
+          "contactSupport": "Contact support for troubleshooting or billing help",
+          "pauseSubscription": "Pause or change your subscription temporarily"
         },
         "title": "Alternative options"
       },
       "beforeDelete": {
         "items": {
-          "cancelSubscriptions": "Cancel any active subscriptions",
-          "exportData": "Export your data if needed (GDPR right to data portability)",
-          "saveConfigs": "Save any custom VPN configurations",
-          "useReferrals": "Use any pending referral rewards"
+          "cancelSubscriptions": "Cancel any active subscriptions and review provider refund rules",
+          "exportData": "Request a data export if needed before deletion is finalized",
+          "saveConfigs": "Save any custom VPN configurations you still need",
+          "useReferrals": "Use any pending referral rewards that may be affected"
         },
-        "title": "Before you delete"
+        "title": "Before you request deletion"
       },
       "consequences": {
         "items": {
-          "accountData": "Your account information and profile",
-          "configs": "VPN configurations and connection history",
-          "referrals": "Referral data and earned rewards",
+          "accountData": "Your account information and profile after the request is verified and processed",
+          "configs": "VPN configurations and connection history covered by the deletion request",
+          "referrals": "Referral data and earned rewards where retention is not legally or operationally required",
           "subscriptions": "Active subscription handling, including any refund request, follows the Refund Policy and provider rules.",
-          "support": "Support tickets and communication history"
+          "support": "Support tickets and communication history unless retention is required for privacy, legal, fraud or abuse handling"
         },
         "title": "What will be deleted"
       }
     },
-    "subtitle": "Permanently delete your CyberVPN account",
+    "subtitle": "Submit a manual privacy review request for permanent account deletion",
     "success": {
-      "details": "All your data has been removed. You will be redirected to the home page.",
-      "message": "Your account has been permanently deleted.",
+      "details": "Target fulfillment is within {days} days after verification. You can contact support with your reference before deletion is finalized.",
+      "message": "Your account deletion request is queued for manual privacy review.",
+      "reference": "Reference: {reference}",
       "returnHome": "Return to Home",
-      "title": "Account deleted"
+      "returnSettings": "Return to settings",
+      "title": "Deletion request submitted"
     },
-    "title": "Delete Account",
+    "title": "Delete account request",
     "warning": {
-      "message": "Deleting your account will permanently remove all your data and cannot be undone.",
-      "title": "Warning: This action is permanent"
+      "message": "CyberVPN reviews deletion requests before final processing. Verified deletions are targeted within 30 days, except records we must retain for payment, security, legal, fraud, backup or abuse handling.",
+      "title": "Manual review before deletion"
     }
   },
   "Devices": {
@@ -1212,29 +1215,42 @@
     "integrity": "INTEGRITY CHECK PASSED",
     "language": "LANG",
     "mobileMenu": {
-      "close": "Close navigation menu",
-      "open": "Open navigation menu",
+      "close": "Close menu",
+      "open": "Open menu",
       "primary": "Primary navigation"
     },
     "netUplink": "NET_UPLINK",
-    "notificationsUnavailable": "Notifications are not available yet",
     "ping": "PING",
     "systemLabel": "SYSTEM",
     "userMenu": {
-      "billing": "Billing",
-      "billingDescription": "Subscription and payments",
-      "dashboard": "Dashboard",
-      "dashboardDescription": "Overview and access status",
-      "open": "Open account menu",
-      "profile": "Profile",
-      "profileDescription": "Account details",
-      "security": "Security",
-      "securityDescription": "2FA and password",
-      "settings": "Settings",
-      "settingsDescription": "App preferences",
-      "signOut": "Sign Out",
-      "subscriptionBadge": "PRO",
-      "userIdPrefix": "ID"
+      "accountBadge": "ACCOUNT",
+      "accountId": "ID: {id}",
+      "fallbackInitials": "U",
+      "fallbackName": "User",
+      "items": {
+        "billing": {
+          "description": "Manage plan",
+          "label": "Billing"
+        },
+        "dashboard": {
+          "description": "Overview and stats",
+          "label": "Dashboard"
+        },
+        "profile": {
+          "description": "Account details",
+          "label": "Profile"
+        },
+        "security": {
+          "description": "2FA and password",
+          "label": "Security"
+        },
+        "settings": {
+          "description": "App preferences",
+          "label": "Settings"
+        }
+      },
+      "signOut": "Sign out",
+      "triggerLabel": "Open account menu for {name}"
     }
   },
   "HelpCenter": {
@@ -2146,10 +2162,11 @@
       "messages": "MESSAGES",
       "overview": "Overview",
       "paymentHistory": "PAYMENTS",
-      "profileSecurity": "Security settings",
+      "profileSecurity": "Profile settings",
       "referral": "REFERRAL",
       "rewardNotifications": "Notifications",
       "rewards": "REWARDS HUB",
+      "security": "SECURITY",
       "subscription": "SUBSCRIPTION",
       "support": "SUPPORT",
       "vpnAccess": "VPN access",
@@ -3126,7 +3143,8 @@
         "ready": "Ready to import"
       },
       "subscriptionUrl": "Subscription URL",
-      "title": "One-tap VPN import"
+      "title": "One-tap VPN import",
+      "visibleSubscription": "Subscription links are shown in full so they can be inspected before import."
     },
     "copy": {
       "config": "Raw config copied.",
@@ -3270,8 +3288,11 @@
       "actions": {
         "copied": "Copied",
         "copyId": "Copy ID",
+        "deleteAccount": "Delete account",
         "manage": "Manage",
+        "openSecurity": "Open security",
         "privacy": "Privacy flow",
+        "profileSettings": "Profile settings",
         "refresh": "Refresh",
         "revoking": "Revoking...",
         "saveProfile": "Save profile",
@@ -3305,6 +3326,7 @@
         "limitUsed": "{used} of {limit}",
         "managePlan": "Manage plan",
         "meta": "IP {ip} / last active {date} / id {id}",
+        "otherSessions": "Other sessions",
         "planLimit": "Plan limit",
         "remainingSlots": "Available slots",
         "revoke": "Revoke",
@@ -3411,8 +3433,8 @@
         "eyebrow": "Privacy guardrails",
         "items": {
           "accountDeletion": {
-            "description": "Account deletion remains isolated in the dedicated privacy flow.",
-            "title": "Deletion path"
+            "description": "Account deletion opens inside the customer cabinet and starts a manual review request.",
+            "title": "Account deletion"
           },
           "noSecretTelemetry": {
             "description": "Metrics mark actions only, never passwords, TOTP codes, IPs, or anti-phishing values.",
@@ -3765,6 +3787,16 @@
     },
     "checkoutCodesDescription": "Promo codes belong in checkout. Invite redemption stays in the rewards hub so pricing and access do not diverge across surfaces.",
     "checkoutCodesTitle": "Checkout codes",
+    "checkoutQuote": {
+      "chargedIn": "Charged in {currency}",
+      "expiredBody": "Refresh the quote before checkout so backend totals, country and currency are current.",
+      "expiredTitle": "Quote expired",
+      "gatewayAmount": "Gateway amount: {amount}. Charged in {currency}.",
+      "loadError": "Failed to load checkout quote",
+      "refreshCta": "Refresh quote",
+      "refreshError": "Failed to refresh checkout quote",
+      "refreshing": "Refreshing quote..."
+    },
     "choosePlanBelow": "Choose a plan below to get started",
     "codesAndRewards": "Codes & Rewards",
     "current": {
@@ -3833,128 +3865,53 @@
       "quoteReady": "Quote ready: {amount}",
       "upgrade": "Upgrade"
     },
-    "planCard": {
-      "badges": {
-        "max": "Flagship",
-        "plus": "Most Popular"
-      },
-      "chargedInBillingCurrency": "Billed by checkout in {currency}",
-      "connectionModes": {
-        "dedicatedIp": "Dedicated IP",
-        "manualConfig": "Manual / Advanced",
-        "standard": "Standard",
-        "stealth": "Stealth"
-      },
-      "currentAction": "Current Plan",
-      "currentBadge": "CURRENT PLAN",
-      "dedicatedIpAvailable": "Dedicated IP available as add-on",
-      "dedicatedIpIncluded": "{count} dedicated IP included",
-      "deviceCount": "{count} devices",
-      "devices": "Devices",
-      "durationDays": "{days} days",
-      "inviteBundle": "{count} invites for {days} days",
-      "localDisplayEstimate": "Display estimate: {price}",
-      "modes": "Modes",
-      "noInviteBundle": "No invite bundle",
-      "perDuration": "per {duration}",
-      "purchaseAction": "Purchase",
-      "serverPools": {
-        "exclusive": "Exclusive pool",
-        "premium": "Premium pool",
-        "shared": "Shared pool",
-        "sharedPlus": "Shared+ pool"
-      },
-      "support": {
-        "priority": "Priority support",
-        "standard": "Standard support",
-        "vip": "VIP support"
-      },
-      "unlimitedTraffic": "Unlimited"
-    },
     "plans": {
       "description": "Public plans are loaded from the canonical web catalog. Current plan is locked; other plans are quoted before purchase or upgrade.",
       "empty": "No public plans are available right now.",
-      "emptyFilter": "No public plans match this filter.",
       "eyebrow": "Plan catalog",
-      "filteredCount": "{count}/{total} visible plans",
+      "filteredCount": "{count}/{total} plans",
       "filters": {
-        "all": "All",
-        "change": "Changes",
-        "current": "Current",
-        "label": "Filter subscription catalog",
-        "purchase": "New",
-        "upgrade": "Upgrades"
+        "description": "Narrow the catalog by billing term, device capacity, and traffic model.",
+        "devices": {
+          "label": "Devices",
+          "options": {
+            "all": "All",
+            "elevenPlus": "11+",
+            "sixToTen": "6-10",
+            "upToFive": "Up to 5"
+          }
+        },
+        "duration": {
+          "label": "Term",
+          "options": {
+            "all": "All",
+            "long": "100+ days",
+            "monthly": "Up to 31d",
+            "quarterly": "32-100d"
+          }
+        },
+        "eyebrow": "Catalog filters",
+        "reset": "Reset",
+        "traffic": {
+          "label": "Traffic",
+          "options": {
+            "all": "All",
+            "limited": "Metered",
+            "unlimited": "Unlimited"
+          }
+        }
       },
+      "groupCount": "{count} plans",
       "groups": {
-        "change": "Plan changes",
-        "current": "Current plan",
-        "purchase": "New subscriptions",
-        "upgrade": "Upgrade path"
+        "long": "Long access",
+        "monthly": "Monthly access",
+        "other": "Other terms",
+        "quarterly": "Quarterly access"
       },
+      "noFilterResults": "No plans match the selected filters.",
       "perCycle": "per {duration}",
       "publicCount": "{count} public plans",
       "title": "Choose the next access tier"
-    },
-    "purchaseModal": {
-      "actions": {
-        "activateNow": "Activate Now",
-        "cancel": "Cancel",
-        "payWithCrypto": "Pay with Crypto",
-        "tryAgain": "Try Again"
-      },
-      "checkoutCode": {
-        "applied": "{code} applied",
-        "apply": "Apply Code",
-        "discountApplied": "{code} applied: {discount} off",
-        "label": "Checkout Code",
-        "quoteUpdated": "Quote Updated",
-        "title": "Have a Checkout Code?",
-        "updating": "Updating quote..."
-      },
-      "codeFeedback": {
-        "checkoutAccepted": "Checkout code accepted. Quote updated.",
-        "referralAccepted": "Referral friend discount accepted. Quote updated."
-      },
-      "errors": {
-        "checkoutCodeInvalid": "Checkout code not valid",
-        "commitCheckout": "Failed to commit checkout",
-        "createInvoice": "Failed to create payment invoice",
-        "enterCheckoutCode": "Please enter a checkout code",
-        "generic": "An error occurred. Please try again.",
-        "loadQuote": "Failed to load checkout quote"
-      },
-      "errorTitle": "Payment Failed",
-      "labels": {
-        "catalogPrice": "Catalog price: {price}",
-        "chargedInBillingCurrency": "Charged in {currency}",
-        "checkoutTotal": "Checkout total",
-        "connectionModes": "Connection modes",
-        "devices": "Devices",
-        "support": "Support",
-        "trafficPolicy": "Traffic policy"
-      },
-      "processing": "Creating payment invoice...",
-      "secureCheckout": {
-        "description": "The dashboard resolves checkout codes before payment and carries accepted backend quote pricing directly into checkout.",
-        "gatewayAmount": "Gateway amount: {amount}. Charged in {currency}.",
-        "title": "Secure checkout"
-      },
-      "success": {
-        "paymentPageOpened": {
-          "description": "Complete your payment in the new tab to activate your subscription.",
-          "title": "Payment page opened"
-        },
-        "subscriptionActivated": {
-          "description": "Your subscription is now active and the entitlement snapshot has been committed.",
-          "title": "Subscription activated"
-        }
-      },
-      "titles": {
-        "confirm": "CONFIRM_PURCHASE",
-        "error": "PAYMENT_ERROR",
-        "processing": "PROCESSING_PAYMENT",
-        "success": "PAYMENT_READY"
-      }
     },
     "rewardsHubCta": "Open rewards hub",
     "rewardsHubDescription": "Manage invite codes, referral sharing, and invite redemption from one place instead of splitting the flow across subscription screens.",
@@ -3977,15 +3934,6 @@
       "days": "{count}d",
       "expires": "Time left",
       "plan": "Plan"
-    },
-    "switcher": {
-      "accountScoped": "VPN config is account-scoped for now; the selected subscription controls the commercial context.",
-      "empty": "No subscriptions found yet",
-      "label": "Subscription selector",
-      "loading": "Loading subscriptions",
-      "refresh": "Refresh",
-      "selected": "Selected",
-      "status": "Status"
     },
     "sync": {
       "degraded": "Degraded",

@@ -6,7 +6,6 @@ import structlog
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 

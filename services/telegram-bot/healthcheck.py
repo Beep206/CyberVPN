@@ -36,7 +36,7 @@ async def check_health() -> bool:
         try:
             import urllib.request
 
-            req = urllib.request.Request(  # noqa: S310
+            req = urllib.request.Request(
                 f"http://localhost:{prometheus_port}/metrics",
                 method="GET",
             )

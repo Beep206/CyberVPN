@@ -28,7 +28,7 @@ def get_app_settings(request: Request) -> Settings:
     return request.app.state.settings
 
 
-async def get_session(settings: Settings = Depends(get_app_settings)) -> AsyncGenerator[AsyncSession, None]:
+async def get_session(settings: Settings = Depends(get_app_settings)) -> AsyncGenerator[AsyncSession]:
     async for session in get_db_session(settings):
         yield session
 

@@ -1,10 +1,45 @@
 {
-  "systemLabel": "SISTEMA",
-  "integrity": "VERIFICAÇÃO DE INTEGRIDADE APROVADA",
-  "encryptionLabel": "ENCRIPTAÇÃO",
-  "encryptionValue": "ATIVA - AES-256",
-  "netUplink": "LIGAÇÃO_REDE",
-  "fps": "FPS",
-  "ping": "PING",
-  "language": "IDIOMA"
+    "systemLabel": "SISTEMA",
+    "integrity": "VERIFICAÇÃO DE INTEGRIDADE APROVADA",
+    "encryptionLabel": "ENCRIPTAÇÃO",
+    "encryptionValue": "ATIVA - AES-256",
+    "netUplink": "LIGAÇÃO_REDE",
+    "fps": "FPS",
+    "ping": "PING",
+    "language": "IDIOMA",
+    "mobileMenu": {
+        "close": "Close menu",
+        "open": "Open menu",
+        "primary": "Primary navigation"
+    },
+    "userMenu": {
+        "triggerLabel": "Open account menu for {name}",
+        "fallbackName": "User",
+        "fallbackInitials": "U",
+        "accountBadge": "ACCOUNT",
+        "accountId": "ID: {id}",
+        "signOut": "Sign out",
+        "items": {
+            "dashboard": {
+                "label": "Dashboard",
+                "description": "Overview and stats"
+            },
+            "profile": {
+                "label": "Profile",
+                "description": "Account details"
+            },
+            "security": {
+                "label": "Security",
+                "description": "2FA and password"
+            },
+            "billing": {
+                "label": "Billing",
+                "description": "Manage plan"
+            },
+            "settings": {
+                "label": "Settings",
+                "description": "App preferences"
+            }
+        }
+    }
 }

@@ -1,9 +1,12 @@
 {
-  "dashboard": "DASHBOARD",
-  "servers": "SERVERS",
-  "users": "CLIËNTEN",
-  "billing": "FACTURATIE",
-  "analytics": "NETWERK OP",
-  "security": "BEVEILIGING",
-  "settings": "CONFIG"
+    "dashboard": "DASHBOARD",
+    "servers": "SERVERS",
+    "users": "CLIËNTEN",
+    "billing": "FACTURATIE",
+    "analytics": "NETWERK OP",
+    "security": "BEVEILIGING",
+    "settings": "CONFIG",
+    "items": {
+        "security": "SECURITY"
+    }
 }

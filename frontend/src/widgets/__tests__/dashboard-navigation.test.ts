@@ -16,6 +16,7 @@ describe('dashboard navigation', () => {
       '/payment-history',
       '/support',
       '/messages',
+      '/settings/security',
       '/settings',
     ]);
   });
@@ -40,6 +41,7 @@ describe('dashboard navigation', () => {
       paymentHistory: 'Payment history',
       referral: 'Referral rewards',
       servers: 'VPN servers',
+      security: 'Security',
       settings: 'Settings',
     });
 

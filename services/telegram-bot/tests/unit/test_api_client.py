@@ -416,10 +416,18 @@ class TestAPIClientCompleteTelegramMagicLink:
     """Test Telegram magic-link completion API method."""
 
     async def test_complete_telegram_magic_link_success(self, mock_settings: BotSettings) -> None:
-        client = CyberVPNAPIClient(settings=mock_settings.backend)
+        from pydantic import SecretStr
+
+        from src.config import AuthBackendSettings
+
+        auth_backend = AuthBackendSettings(
+            api_url="https://auth.test.cybervpn.local",
+            internal_secret=SecretStr("bot-secret"),
+        )
+        client = CyberVPNAPIClient(settings=mock_settings.backend, auth_backend=auth_backend)
 
         with respx.mock:
-            route = respx.post("https://api.test.cybervpn.local/oauth/telegram/magic-link/complete").mock(
+            route = respx.post("https://auth.test.cybervpn.local/oauth/telegram/magic-link/complete").mock(
                 return_value=httpx.Response(200, json={"status": "accepted"})
             )
 
@@ -434,22 +442,33 @@ class TestAPIClientCompleteTelegramMagicLink:
 
             assert result == {"status": "accepted"}
             assert route.called
+            assert route.calls[0].request.headers["X-Telegram-Bot-Secret"] == "bot-secret"
 
         await client.close()
 
     async def test_complete_telegram_magic_link_sends_expected_payload(self, mock_settings: BotSettings) -> None:
-        client = CyberVPNAPIClient(settings=mock_settings.backend)
+        from pydantic import SecretStr
+
+        from src.config import AuthBackendSettings
+
+        auth_backend = AuthBackendSettings(
+            api_url="https://auth.test.cybervpn.local",
+            internal_secret=SecretStr("bot-secret"),
+        )
+        client = CyberVPNAPIClient(settings=mock_settings.backend, auth_backend=auth_backend)
 
         captured_payload: str | None = None
+        captured_secret: str | None = None
 
         with respx.mock:
 
             def _handler(request: httpx.Request) -> httpx.Response:
-                nonlocal captured_payload
+                nonlocal captured_payload, captured_secret
                 captured_payload = request.read().decode("utf-8")
+                captured_secret = request.headers.get("X-Telegram-Bot-Secret")
                 return httpx.Response(200, json={"status": "accepted"})
 
-            respx.post("https://api.test.cybervpn.local/oauth/telegram/magic-link/complete").mock(side_effect=_handler)
+            respx.post("https://auth.test.cybervpn.local/oauth/telegram/magic-link/complete").mock(side_effect=_handler)
 
             await client.complete_telegram_magic_link(
                 token="magic_token_123",
@@ -464,6 +483,23 @@ class TestAPIClientCompleteTelegramMagicLink:
         assert payload["id"] == "777"
         assert payload["first_name"] == "Bob"
         assert payload["username"] == "bob"
+        assert captured_secret == "bot-secret"
+
+        await client.close()
+
+    async def test_complete_telegram_magic_link_requires_auth_backend(self, mock_settings: BotSettings) -> None:
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+
+        with pytest.raises(APIError) as exc_info:
+            await client.complete_telegram_magic_link(
+                token="magic_token_123",
+                telegram_id=777,
+                first_name="Bob",
+                username="bob",
+            )
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.detail == "AUTH_BACKEND_API_URL and AUTH_BACKEND_INTERNAL_SECRET must be configured"
 
         await client.close()
 

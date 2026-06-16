@@ -42,6 +42,7 @@ export interface ResendOtpRequest {
 // Response interfaces
 export interface User {
   id: string;
+  public_uid?: number | null;
   email: string | null;
   login?: string;
   telegram_id?: number;
@@ -110,14 +111,21 @@ let sessionRequest: Promise<AxiosResponse<User>> | null = null;
 
 function fetchSessionOnce(): Promise<AxiosResponse<User>> {
   if (!sessionRequest) {
-    sessionRequest = apiClient
+    const request = apiClient
       .get<User>('/auth/session')
       .finally(() => {
-        sessionRequest = null;
+        if (sessionRequest === request) {
+          sessionRequest = null;
+        }
       });
+    sessionRequest = request;
   }
 
   return sessionRequest;
+}
+
+function clearSessionRequestCache(): void {
+  sessionRequest = null;
 }
 
 export type OAuthProvider = 'google' | 'github' | 'discord' | 'facebook' | 'apple' | 'microsoft' | 'twitter' | 'telegram';
@@ -129,6 +137,7 @@ export interface OAuthAuthorizeResponse {
 
 export interface OAuthLoginUser {
   id: string;
+  public_uid?: number | null;
   login: string;
   email: string | null;
   is_active: boolean;
@@ -170,9 +179,16 @@ export interface TelegramMagicLinkResponse {
   deep_link_url?: string;
 }
 
+export interface TelegramMagicLinkLoginResult {
+  user: OAuthLoginUser;
+  is_new_user: boolean;
+  requires_2fa: boolean;
+  tfa_token: string | null;
+}
+
 export interface TelegramMagicLinkStatusResponse {
   status: 'pending' | 'completed' | 'expired';
-  login_result?: OAuthLoginResponse;
+  login_result?: TelegramMagicLinkLoginResult | null;
 }
 
 export interface BotLinkRequest {
@@ -338,6 +354,10 @@ export const authApi = {
    */
   session: () =>
     fetchSessionOnce(),
+
+  clearSessionRequestCache: () => {
+    clearSessionRequestCache();
+  },
 
   /**
    * Authenticate via Telegram Login Widget

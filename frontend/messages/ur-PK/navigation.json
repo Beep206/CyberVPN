@@ -1,9 +1,12 @@
 {
-  "dashboard": "ڈیش بورڈ",
-  "servers": "سرورز",
-  "users": "کلائنٹس",
-  "billing": "بلنگ",
-  "analytics": "نیٹ آپریشنز",
-  "security": "سیکیورٹی",
-  "settings": "ترتیبات"
+    "dashboard": "ڈیش بورڈ",
+    "servers": "سرورز",
+    "users": "کلائنٹس",
+    "billing": "بلنگ",
+    "analytics": "نیٹ آپریشنز",
+    "security": "سیکیورٹی",
+    "settings": "ترتیبات",
+    "items": {
+        "security": "SECURITY"
+    }
 }

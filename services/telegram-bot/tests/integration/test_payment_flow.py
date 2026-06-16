@@ -8,22 +8,20 @@ Tests payment creation, verification, and webhook processing for:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
 import pytest
 from aiogram import Bot
-from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import User
 
-from tests.conftest import create_fsm_context
 from src.states.subscription import SubscriptionStates
+from tests.conftest import create_fsm_context
 
 if TYPE_CHECKING:
     from src.config import BotSettings
-    from src.services.api_client import CyberVPNAPIClient
 
 
 @pytest.fixture
@@ -69,7 +67,7 @@ async def test_telegram_stars_payment_flow_success(
         "status": "pending",
         "payment_method": "stars",
         "invoice_payload": "payment_stars_payment_123",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
     # Mock payment verification after Stars payment
@@ -77,7 +75,7 @@ async def test_telegram_stars_payment_flow_success(
         "id": "stars_payment_123",
         "status": "completed",
         "subscription_id": "sub_stars_123",
-        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "verified_at": datetime.now(UTC).isoformat(),
     }
 
     # Mock subscription activation
@@ -170,7 +168,7 @@ async def test_cryptobot_payment_flow_success(
         "status": "pending",
         "payment_method": "cryptobot",
         "payment_url": "https://crypto.bot/pay/abc123xyz",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
     # Mock webhook callback verification
@@ -266,7 +264,7 @@ async def test_yookassa_payment_flow_success(
         "status": "pending",
         "payment_method": "yookassa",
         "payment_url": "https://yookassa.ru/payments/xyz789",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
     # Mock YooKassa webhook

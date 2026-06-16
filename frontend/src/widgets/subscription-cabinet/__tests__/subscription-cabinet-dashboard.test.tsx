@@ -323,7 +323,18 @@ function mockSuccessfulResponses() {
       access_delivery_channel: {
         channel_status: 'active',
         channel_type: 'shared_client',
+        delivery_payload: {
+          subscription_url: 'https://vpn.example.test/subscriptions/ready',
+        },
+        device_credential_id: 'credential-ready-1',
+        last_delivered_at: '2026-04-24T00:00:00Z',
         provider_name: 'remnawave',
+      },
+      device_credential: {
+        credential_status: 'active',
+        credential_type: 'desktop_client',
+        id: 'credential-ready-1',
+        subject_key: 'official-web-dashboard',
       },
       provisioning_profile: {
         profile_key: 'default',
@@ -445,14 +456,16 @@ describe('SubscriptionCabinetDashboard', () => {
 
     expect((await screen.findAllByText('Pro Plan')).length).toBeGreaterThan(0);
     expect(screen.getByText('Max Plan')).toBeInTheDocument();
-    expect(screen.getByText(/plans\.groups\.current/i)).toBeInTheDocument();
-    expect(screen.getByText(/plans\.groups\.upgrade/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /plans\.filters\.upgrade/i })).toHaveAttribute(
+    expect(screen.getByText(/plans\.groups\.monthly/i)).toBeInTheDocument();
+    expect(screen.getByText(/plans\.groups\.quarterly/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /plans\.filters\.duration\.options\.all/i })).toHaveAttribute(
       'aria-pressed',
-      'false',
+      'true',
     );
     expect(await screen.findByText('Extra device')).toBeInTheDocument();
     expect(screen.getByText('remnawave')).toBeInTheDocument();
+    expect(screen.getByText('service.provisioned')).toBeInTheDocument();
+    expect(screen.queryByText('service.pending')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /actions\.getConfig/i })).toHaveAttribute(
       'href',
       '/servers',
@@ -463,6 +476,53 @@ describe('SubscriptionCabinetDashboard', () => {
     );
     expect(getPlansMock).toHaveBeenCalledWith({ channel: 'web' });
     expect(getAddonsMock).toHaveBeenCalledWith({ channel: 'web' });
+    expect(getServiceStateMock).toHaveBeenCalledWith('grant:test-grant', {
+      channel_type: 'shared_client',
+      credential_subject_key: 'official-web-dashboard',
+      credential_type: 'desktop_client',
+      provider_name: 'remnawave',
+    });
+  });
+
+  it('filters and groups the public plan catalog by duration, devices, and traffic', async () => {
+    renderWithQueryClient(<SubscriptionCabinetDashboard />);
+
+    expect(await screen.findByTestId('plan-card-plan-pro')).toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-plan-max')).toBeInTheDocument();
+    expect(screen.getByText('plans.groups.monthly')).toBeInTheDocument();
+    expect(screen.getByText('plans.groups.quarterly')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /plans\.filters\.duration\.options\.quarterly/i,
+      }),
+    );
+
+    expect(screen.queryByTestId('plan-card-plan-pro')).not.toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-plan-max')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /plans\.filters\.devices\.options\.sixToTen/i,
+      }),
+    );
+
+    expect(screen.queryByTestId('plan-card-plan-pro')).not.toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-plan-max')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /plans\.filters\.traffic\.options\.limited/i,
+      }),
+    );
+
+    expect(screen.queryByTestId('plan-card-plan-pro')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('plan-card-plan-max')).not.toBeInTheDocument();
+    expect(screen.getByText('plans.noFilterResults')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /plans\.filters\.reset/i }));
+    expect(screen.getByTestId('plan-card-plan-pro')).toBeInTheDocument();
+    expect(screen.getByTestId('plan-card-plan-max')).toBeInTheDocument();
   });
 
   it('keeps subscription metric values wrapping inside narrow cards', async () => {
@@ -472,28 +532,30 @@ describe('SubscriptionCabinetDashboard', () => {
     const usageMetricCard = usageMetricValue.closest('div');
     const currentMetricsGrid = usageMetricCard?.parentElement;
 
-    expect(usageMetricCard).toHaveClass('min-w-0');
-    expect(usageMetricValue).toHaveClass('max-w-full');
-    expect(usageMetricValue).toHaveClass('break-normal');
-    expect(usageMetricValue).not.toHaveClass('break-words');
-    expect(currentMetricsGrid).toHaveClass('lg:grid-cols-3');
-    expect(currentMetricsGrid).not.toHaveClass('lg:grid-cols-5');
+    expect(usageMetricCard).toHaveClass('rounded-2xl');
+    expect(usageMetricValue).toHaveClass('break-words');
+    expect(currentMetricsGrid).toHaveClass('lg:grid-cols-5');
   });
 
   it('filters the plan catalog without changing backend requests', async () => {
     renderWithQueryClient(<SubscriptionCabinetDashboard />);
 
     await screen.findByText('Max Plan');
-    fireEvent.click(screen.getByRole('button', { name: /plans\.filters\.upgrade/i }));
-
-    expect(screen.getByRole('button', { name: /plans\.filters\.upgrade/i })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /plans\.filters\.duration\.options\.quarterly/i,
+      }),
     );
-    expect(screen.getByText(/plans\.groups\.upgrade/i)).toBeInTheDocument();
-    expect(screen.queryByText(/plans\.groups\.current/i)).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', {
+        name: /plans\.filters\.duration\.options\.quarterly/i,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/plans\.groups\.quarterly/i)).toBeInTheDocument();
+    expect(screen.queryByText(/plans\.groups\.monthly/i)).not.toBeInTheDocument();
     expect(screen.getByText('Max Plan')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /planActions\.current/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('plan-card-plan-pro')).not.toBeInTheDocument();
     expect(getPlansMock).toHaveBeenCalledWith({ channel: 'web' });
   });
 

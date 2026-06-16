@@ -110,6 +110,18 @@ class OAuthLoginResponse(BaseModel):
     tfa_token: str | None = None
 
 
+class TelegramMagicLinkLoginResultResponse(BaseModel):
+    """Tokenless login result for cookie-only Telegram Magic Link web polling."""
+
+    user: OAuthLoginUserResponse
+    is_new_user: bool = False
+    requires_2fa: bool = False
+    tfa_token: str | None = Field(
+        default=None,
+        description="Short-lived pending 2FA token returned only when requires_2fa is true",
+    )
+
+
 class TelegramMagicLinkResponse(BaseModel):
     """Response when requesting a Magic Link for Telegram Login."""
 
@@ -144,6 +156,6 @@ class TelegramMagicLinkStatusResponse(BaseModel):
     status: Literal["pending", "completed", "expired"] = Field(
         ..., description="Current status of the magic link session"
     )
-    login_result: OAuthLoginResponse | None = Field(
-        default=None, description="Populated with login tokens if status is completed"
+    login_result: TelegramMagicLinkLoginResultResponse | None = Field(
+        default=None, description="Populated with tokenless login metadata if status is completed"
     )

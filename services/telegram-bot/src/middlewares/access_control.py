@@ -10,7 +10,8 @@ Uses data['user'] from AuthMiddleware and data['settings'] from dispatcher.
 
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 import structlog
 from aiogram import BaseMiddleware, Bot

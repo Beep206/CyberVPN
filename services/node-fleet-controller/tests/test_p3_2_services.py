@@ -4,6 +4,7 @@ import os
 import tempfile
 import unittest
 
+from src.application.services.audit_service import AuditTrailService
 from src.application.services.bootstrap_service import BootstrapService
 from src.application.services.enrollment_service import EnrollmentService
 from src.application.services.identity_service import IdentityService
@@ -22,7 +23,6 @@ from src.infra.database.repositories import FleetRequestRepository
 from src.infra.database.session import dispose_database, get_session_factory, initialize_database
 from src.infra.messaging.nats_adapter import NatsJetStreamAdapter
 from src.infra.secrets.openbao_manager import OpenBaoBootstrapManager
-from src.application.services.audit_service import AuditTrailService
 
 
 class P32ServicesTests(unittest.IsolatedAsyncioTestCase):

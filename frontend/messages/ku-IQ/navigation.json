@@ -1,9 +1,12 @@
 {
-  "dashboard": "داشبۆرد",
-  "servers": "سێرڤەرەکان",
-  "users": "کلاینتەکان",
-  "billing": "پارەدان",
-  "analytics": "کارەکانی تۆڕ",
-  "security": "ئاسایش",
-  "settings": "ڕێکخستن"
+    "dashboard": "داشبۆرد",
+    "servers": "سێرڤەرەکان",
+    "users": "کلاینتەکان",
+    "billing": "پارەدان",
+    "analytics": "کارەکانی تۆڕ",
+    "security": "ئاسایش",
+    "settings": "ڕێکخستن",
+    "items": {
+        "security": "SECURITY"
+    }
 }

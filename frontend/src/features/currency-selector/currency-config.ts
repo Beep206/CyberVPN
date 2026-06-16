@@ -120,6 +120,42 @@ export const CURRENCY_LABELS: Record<SupportedCurrency, string> = {
   SEK: 'Swedish Krona',
 };
 
+export const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
+  USD: '$',
+  RUB: '₽',
+  EUR: '€',
+  CNY: '¥',
+  INR: '₹',
+  IDR: 'Rp',
+  VND: '₫',
+  THB: '฿',
+  JPY: '¥',
+  KRW: '₩',
+  SAR: '﷼',
+  IRR: '﷼',
+  TRY: '₺',
+  PKR: '₨',
+  BDT: '৳',
+  MYR: 'RM',
+  KZT: '₸',
+  BYN: 'Br',
+  MMK: 'K',
+  UZS: "so'm",
+  NGN: '₦',
+  IQD: 'د.ع',
+  ETB: 'Br',
+  TMT: 'm',
+  TWD: 'NT$',
+  ILS: '₪',
+  PLN: 'zł',
+  PHP: '₱',
+  UAH: '₴',
+  CZK: 'Kč',
+  RON: 'lei',
+  HUF: 'Ft',
+  SEK: 'kr',
+};
+
 export function isSupportedCurrency(value: unknown): value is SupportedCurrency {
   return typeof value === 'string' && SUPPORTED_CURRENCIES.includes(value as SupportedCurrency);
 }

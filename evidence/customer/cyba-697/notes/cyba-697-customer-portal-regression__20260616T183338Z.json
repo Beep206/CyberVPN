@@ -1,0 +1,2977 @@
+{
+  "baseUrl": "http://127.0.0.1:9001",
+  "checks": [
+    {
+      "id": "settings-account-public-uid-full",
+      "status": "PASS",
+      "actual": "visible account id contains 14677650",
+      "expected": "full approved public UID is visible"
+    },
+    {
+      "id": "settings-no-uuid4-customer-display",
+      "status": "PASS",
+      "actual": "no UUID4 found in visible body text",
+      "expected": "customer-visible ID should not be UUID4"
+    },
+    {
+      "id": "settings-language-human-name-flag",
+      "status": "PASS",
+      "actual": "language select text includes Russian human label and no raw ru-RU visible",
+      "expected": "language displays human name + flag option instead of raw locale code"
+    },
+    {
+      "id": "settings-timezone-offset",
+      "status": "PASS",
+      "actual": "timezone select text includes Europe/Moscow (UTC+03:00)",
+      "expected": "timezone displays UTC offset"
+    },
+    {
+      "id": "settings-security-controls-separated",
+      "status": "PASS",
+      "actual": "overview does not expose passkey/password management form controls",
+      "expected": "profile settings are not overloaded with security controls"
+    },
+    {
+      "id": "settings-delete-account-cabinet-link",
+      "status": "PASS",
+      "actual": "cabinet settings contains delete-account action",
+      "expected": "delete-account flow is inside cabinet"
+    },
+    {
+      "id": "account-nav-security-item",
+      "status": "PASS",
+      "actual": "user menu contains Безопасность",
+      "expected": "account nav has security item"
+    },
+    {
+      "id": "header-currency-symbol-not-raw-code",
+      "status": "PASS",
+      "actual": "header shows ₽ and no visible RUB code in closed selector",
+      "expected": "currency selector uses visual representation instead of raw code"
+    },
+    {
+      "id": "security-route-controls-present",
+      "status": "PASS",
+      "actual": "security route exposes dedicated security controls",
+      "expected": "security controls live under /settings/security"
+    },
+    {
+      "id": "delete-account-localized-cabinet-no-port",
+      "status": "PASS",
+      "actual": "cabinet delete account text is localized and contains no :3000 URL",
+      "expected": "localized cabinet delete-account flow without localhost port leak"
+    },
+    {
+      "id": "delete-account-request-success",
+      "status": "PASS",
+      "actual": "privacy request reference PRIV-CYBA697 shown",
+      "expected": "delete account request succeeds via cabinet synthetic data"
+    },
+    {
+      "id": "dashboard-subscription-switcher-not-dimmed",
+      "status": "PASS",
+      "actual": "active subscription name visible in dashboard",
+      "expected": "dashboard subscription switcher is visually available"
+    },
+    {
+      "id": "dashboard-provisioning-warning-consistent",
+      "status": "PASS",
+      "actual": "active credentials/service state show no provisioning warning",
+      "expected": "provisioning warning matches active credentials/access state"
+    },
+    {
+      "id": "servers-full-subscription-link",
+      "status": "PASS",
+      "actual": "full synthetic subscription URL is visible",
+      "expected": "servers subscription link displays fully"
+    },
+    {
+      "id": "servers-active-service-no-false-warning",
+      "status": "PASS",
+      "actual": "server access has active server/config data",
+      "expected": "active credentials state should not show blocking warning"
+    },
+    {
+      "id": "subscriptions-catalog-filters-visible",
+      "status": "PASS",
+      "actual": "duration/devices/traffic filter labels visible",
+      "expected": "catalog can be filtered/grouped by duration/devices/traffic"
+    },
+    {
+      "id": "subscriptions-filtered-result",
+      "status": "PASS",
+      "actual": "filtered catalog includes Pro Quarterly after duration/devices/traffic filters",
+      "expected": "filters apply to catalog results"
+    },
+    {
+      "id": "telegram-fresh-synthetic-link-succeeds",
+      "status": "PASS",
+      "actual": "final URL /ru-RU/dashboard",
+      "expected": "fresh synthetic Telegram link redirects to dashboard"
+    },
+    {
+      "id": "telegram-expired-synthetic-link-fails",
+      "status": "PASS",
+      "actual": "expired-link copy matches Auth.telegram.botLinkExpired",
+      "expected": "expired synthetic Telegram link shows Auth.telegram.botLinkExpired localized copy"
+    },
+    {
+      "id": "header-signout-removes-protected-access",
+      "status": "PASS",
+      "actual": "final URL /ru-RU/login?<redacted-query>",
+      "expected": "header sign out removes access to cabinet/protected route"
+    }
+  ],
+  "console": [
+    {
+      "type": "warning",
+      "text": "%c%s%c Route /[locale]/settings/security is rendering with server caches disabled. For this navigation, Component Metadata in React DevTools will not accurately reflect what is statically prerenderable and runtime prefetchable. See more info here: https://nextjs.org/docs/messages/cache-bypass-in-dev background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Prerender  "
+    },
+    {
+      "type": "warning",
+      "text": "%c%s%c Route /[locale]/settings/delete-account is rendering with server caches disabled. For this navigation, Component Metadata in React DevTools will not accurately reflect what is statically prerenderable and runtime prefetchable. See more info here: https://nextjs.org/docs/messages/cache-bypass-in-dev background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Prerender  "
+    },
+    {
+      "type": "warning",
+      "text": "%c%s%c Route /[locale]/dashboard is rendering with server caches disabled. For this navigation, Component Metadata in React DevTools will not accurately reflect what is statically prerenderable and runtime prefetchable. See more info here: https://nextjs.org/docs/messages/cache-bypass-in-dev background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Prerender  "
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0xc7406e89c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0xc7411de2400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0xc7411de2400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0xc7411de2400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+    },
+    {
+      "type": "warning",
+      "text": "%c%s%c Route /[locale]/servers is rendering with server caches disabled. For this navigation, Component Metadata in React DevTools will not accurately reflect what is statically prerenderable and runtime prefetchable. See more info here: https://nextjs.org/docs/messages/cache-bypass-in-dev background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Prerender  "
+    },
+    {
+      "type": "warning",
+      "text": "%c%s%c Route /[locale]/subscriptions is rendering with server caches disabled. For this navigation, Component Metadata in React DevTools will not accurately reflect what is statically prerenderable and runtime prefetchable. See more info here: https://nextjs.org/docs/messages/cache-bypass-in-dev background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Prerender  "
+    },
+    {
+      "type": "warning",
+      "text": "%c%s%c Route /[locale]/telegram-link is rendering with server caches disabled. For this navigation, Component Metadata in React DevTools will not accurately reflect what is statically prerenderable and runtime prefetchable. See more info here: https://nextjs.org/docs/messages/cache-bypass-in-dev background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Prerender  "
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "type": "warning",
+      "text": "%c%s%c Route /[locale]/login is rendering with server caches disabled. For this navigation, Component Metadata in React DevTools will not accurately reflect what is statically prerenderable and runtime prefetchable. See more info here: https://nextjs.org/docs/messages/cache-bypass-in-dev background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Prerender  "
+    }
+  ],
+  "docs": "Context7 MCP quota exceeded; ctx7 fallback checked /microsoft/playwright.dev and /microsoft/playwright for locator.innerText, page.on, page.goto, page.screenshot, route APIs.",
+  "environment": {
+    "browser": "chromium",
+    "locale": "ru-RU",
+    "viewport": "1440x1000",
+    "userRoleState": "synthetic authenticated customer, viewer role, local mocked /api/v1 responses"
+  },
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "routeKey": "/api/v1/client/capabilities",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "routeKey": "/api/v1/auth/me",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/2fa/status",
+      "routeKey": "/api/v1/2fa/status",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/security/antiphishing",
+      "routeKey": "/api/v1/security/antiphishing",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/passkeys/policy",
+      "routeKey": "/api/v1/auth/passkeys/policy",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/notifications",
+      "routeKey": "/api/v1/users/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications/preferences",
+      "routeKey": "/api/v1/growth-notifications/preferences",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices",
+      "routeKey": "/api/v1/auth/devices",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entitlements/current",
+      "routeKey": "/api/v1/entitlements/current",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "routeKey": "/api/v1/customer-subscriptions",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/passkeys",
+      "routeKey": "/api/v1/auth/passkeys",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "routeKey": "/api/v1/client/capabilities",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "routeKey": "/api/v1/auth/me",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/2fa/status",
+      "routeKey": "/api/v1/2fa/status",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/security/antiphishing",
+      "routeKey": "/api/v1/security/antiphishing",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/passkeys/policy",
+      "routeKey": "/api/v1/auth/passkeys/policy",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/notifications",
+      "routeKey": "/api/v1/users/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications/preferences",
+      "routeKey": "/api/v1/growth-notifications/preferences",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/devices",
+      "routeKey": "/api/v1/auth/devices",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entitlements/current",
+      "routeKey": "/api/v1/entitlements/current",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "routeKey": "/api/v1/customer-subscriptions",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/passkeys",
+      "routeKey": "/api/v1/auth/passkeys",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "routeKey": "/api/v1/client/capabilities",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "routeKey": "/api/v1/customer-subscriptions",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/me/privacy-requests",
+      "routeKey": "/api/v1/auth/me/privacy-requests",
+      "status": 201,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "routeKey": "/api/v1/client/capabilities",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entitlements/current",
+      "routeKey": "/api/v1/entitlements/current",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/usage",
+      "routeKey": "/api/v1/users/me/usage",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wallet",
+      "routeKey": "/api/v1/wallet",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications/counters",
+      "routeKey": "/api/v1/growth-notifications/counters",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications",
+      "routeKey": "/api/v1/growth-notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/access-delivery-channels/current/service-state",
+      "routeKey": "/api/v1/access-delivery-channels/current/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trial/status",
+      "routeKey": "/api/v1/trial/status",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "routeKey": "/api/v1/customer-subscriptions",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/referral/stats",
+      "routeKey": "/api/v1/referral/stats",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "routeKey": "/api/v1/client/capabilities",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/servers/",
+      "routeKey": "/api/v1/servers",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/access-delivery-channels/current/service-state",
+      "routeKey": "/api/v1/access-delivery-channels/current/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/network/dpi-score",
+      "routeKey": "/api/v1/public/network/dpi-score",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "routeKey": "/api/v1/customer-subscriptions",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/config",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/config",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "routeKey": "/api/v1/client/capabilities",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entitlements/current",
+      "routeKey": "/api/v1/entitlements/current",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/access-delivery-channels/current/service-state",
+      "routeKey": "/api/v1/access-delivery-channels/current/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trial/status",
+      "routeKey": "/api/v1/trial/status",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plans/?<redacted-query>",
+      "routeKey": "/api/v1/plans",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/orders/?<redacted-query>",
+      "routeKey": "/api/v1/orders",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "routeKey": "/api/v1/customer-subscriptions",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/addons/catalog?<redacted-query>",
+      "routeKey": "/api/v1/addons/catalog",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/oauth/telegram/magic-link/fresh-magic-cyba697/status",
+      "routeKey": "/api/v1/oauth/telegram/magic-link/fresh-magic-cyba697/status",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/traffic",
+      "routeKey": "/api/analytics/traffic",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "routeKey": "/api/v1/client/capabilities",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entitlements/current",
+      "routeKey": "/api/v1/entitlements/current",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/usage",
+      "routeKey": "/api/v1/users/me/usage",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wallet",
+      "routeKey": "/api/v1/wallet",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications/counters",
+      "routeKey": "/api/v1/growth-notifications/counters",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications",
+      "routeKey": "/api/v1/growth-notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/access-delivery-channels/current/service-state",
+      "routeKey": "/api/v1/access-delivery-channels/current/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trial/status",
+      "routeKey": "/api/v1/trial/status",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "routeKey": "/api/v1/customer-subscriptions",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/referral/stats",
+      "routeKey": "/api/v1/referral/stats",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "path": "/pmndrs/drei-assets/456060a26bbeb8fdf79326f224b6d99b8bcce736/hdri/potsdamer_platz_1k.hdr",
+      "routeKey": "/pmndrs/drei-assets/456060a26bbeb8fdf79326f224b6d99b8bcce736/hdri/potsdamer_platz_1k.hdr",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/oauth/telegram/magic-link/expired-magic-cyba697/status",
+      "routeKey": "/api/v1/oauth/telegram/magic-link/expired-magic-cyba697/status",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/traffic",
+      "routeKey": "/api/analytics/traffic",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/client/capabilities",
+      "routeKey": "/api/v1/client/capabilities",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/profile",
+      "routeKey": "/api/v1/users/me/profile",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/entitlements/current",
+      "routeKey": "/api/v1/entitlements/current",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/me/usage",
+      "routeKey": "/api/v1/users/me/usage",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wallet",
+      "routeKey": "/api/v1/wallet",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications/counters",
+      "routeKey": "/api/v1/growth-notifications/counters",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/growth-notifications",
+      "routeKey": "/api/v1/growth-notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/access-delivery-channels/current/service-state",
+      "routeKey": "/api/v1/access-delivery-channels/current/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trial/status",
+      "routeKey": "/api/v1/trial/status",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/",
+      "routeKey": "/api/v1/customer-subscriptions",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/referral/stats",
+      "routeKey": "/api/v1/referral/stats",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/entitlements",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "routeKey": "/api/v1/customer-subscriptions/grant_cyba697_active/service-state",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/conversations?<redacted-query>",
+      "routeKey": "/api/v1/me/conversations",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications?<redacted-query>",
+      "routeKey": "/api/v1/me/notifications",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "routeKey": "/api/v1/auth/logout",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sse",
+      "routeKey": "/api/v1/me/realtime/sse",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/realtime/sync?<redacted-query>",
+      "routeKey": "/api/v1/me/realtime/sync",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 401,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/traffic",
+      "routeKey": "/api/analytics/traffic",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": "requestfailed",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/optional-session",
+      "routeKey": "/api/auth/optional-session",
+      "status": 401,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/web-vitals",
+      "routeKey": "/api/analytics/web-vitals",
+      "status": 202,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 401,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "routeKey": "/api/v1/auth/refresh",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "routeKey": "/api/v1/auth/session",
+      "status": 401,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/passkeys/policy",
+      "routeKey": "/api/v1/auth/passkeys/policy",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/passkeys/policy",
+      "routeKey": "/api/v1/auth/passkeys/policy",
+      "status": 200,
+      "mocked": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/analytics/traffic",
+      "routeKey": "/api/analytics/traffic",
+      "status": 202,
+      "mocked": true
+    }
+  ],
+  "screenshots": [
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__settings-overview__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__settings-user-menu-open__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__settings-security-route__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__settings-delete-account-form__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__settings-delete-account-success__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__dashboard__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__servers__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__subscriptions-default__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__subscriptions-filtered-quarterly-devices-traffic__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__telegram-fresh-synthetic-link-dashboard__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__telegram-expired-synthetic-link-error__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__header-sign-out-after-click__20260616T183338Z.png",
+    "evidence/customer/cyba-697/screenshots/CYBA-697__customer-portal__synthetic__ru-RU__desktop-1440__protected-dashboard-after-sign-out-login__20260616T183338Z.png"
+  ],
+  "telegramNetwork": [
+    {
+      "method": "GET",
+      "path": "/api/v1/oauth/telegram/magic-link/fresh-magic-cyba697/status",
+      "routeKey": "/api/v1/oauth/telegram/magic-link/fresh-magic-cyba697/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/oauth/telegram/magic-link/expired-magic-cyba697/status",
+      "routeKey": "/api/v1/oauth/telegram/magic-link/expired-magic-cyba697/status",
+      "status": 200
+    }
+  ],
+  "timestamp": "20260616T183338Z"
+}

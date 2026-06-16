@@ -2,7 +2,6 @@ from typing import Annotated
 
 from rapid_api_client import Path, Query
 
-from remnawave.enums import ClientType
 from remnawave.models.subscription import GetRawSubscriptionByShortUuidResponseDto
 from remnawave.rapid import BaseController, get
 from remnawave.models import GetAllSubscriptionsResponseDto, GetSubscriptionByUsernameResponseDto, GetSubscriptionByShortUUIDResponseDto, GetSubscriptionByUUIDResponseDto

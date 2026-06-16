@@ -308,23 +308,15 @@ describe('ServerAccessDashboard', () => {
     });
   });
 
-  it('copies, opens, downloads, and explicitly reveals delivery values', async () => {
+  it('renders the full subscription link while keeping raw config hidden', async () => {
     const { container } = renderWithQueryClient(<ServerAccessDashboard />);
 
-    const revealButton = await screen.findByRole('button', { name: /config\.showFullValue/i });
-    expect(revealButton).toHaveAttribute('aria-pressed', 'false');
-    expect(container.textContent).not.toContain('https://vpn.example/sub/user-1');
-    expect(container.textContent).not.toContain('vless://raw-config-value-for-user-1');
-
-    fireEvent.click(revealButton);
+    expect(await screen.findByText('https://vpn.example/sub/user-1')).toBeInTheDocument();
+    expect(screen.getByText('config.visibleSubscription')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /config\.hideFullValue/i }),
-    ).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText('https://vpn.example/sub/user-1')).toBeInTheDocument();
+      screen.queryByRole('button', { name: /config\.showFullValue/i }),
+    ).not.toBeInTheDocument();
     expect(container.textContent).not.toContain('vless://raw-config-value-for-user-1');
-
-    fireEvent.click(screen.getByRole('button', { name: /config\.hideFullValue/i }));
-    expect(container.textContent).not.toContain('https://vpn.example/sub/user-1');
 
     fireEvent.click(screen.getByRole('button', { name: /config\.copySubscription/i }));
     await waitFor(() => {
@@ -355,11 +347,11 @@ describe('ServerAccessDashboard', () => {
     expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:cybervpn-config');
     expect(await screen.findByText('copy.download')).toBeInTheDocument();
 
-    expect(container.textContent).not.toContain('https://vpn.example/sub/user-1');
+    expect(container.textContent).toContain('https://vpn.example/sub/user-1');
     expect(container.textContent).not.toContain('vless://raw-config-value-for-user-1');
   });
 
-  it('masks the delivery value again when the selected subscription changes', async () => {
+  it('updates the visible subscription link when the selected subscription changes', async () => {
     getConfigMock.mockImplementation(async (subscriptionKey: string) => ({
       data:
         subscriptionKey === 'grant:next-grant'
@@ -381,8 +373,7 @@ describe('ServerAccessDashboard', () => {
 
     const { container, rerender } = renderWithQueryClient(<ServerAccessDashboard />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /config\.showFullValue/i }));
-    expect(screen.getByText('https://vpn.example/sub/user-1')).toBeInTheDocument();
+    expect(await screen.findByText('https://vpn.example/sub/user-1')).toBeInTheDocument();
 
     getSelectedSubscriptionKeyMock.mockReturnValue('grant:next-grant');
     rerender(<ServerAccessDashboard />);
@@ -391,11 +382,8 @@ describe('ServerAccessDashboard', () => {
       expect(getConfigMock).toHaveBeenCalledWith('grant:next-grant');
     });
 
-    expect(
-      await screen.findByRole('button', { name: /config\.showFullValue/i }),
-    ).toHaveAttribute('aria-pressed', 'false');
     expect(container.textContent).not.toContain('https://vpn.example/sub/user-1');
-    expect(container.textContent).not.toContain('https://vpn.example/sub/user-2');
+    expect(await screen.findByText('https://vpn.example/sub/user-2')).toBeInTheDocument();
     expect(container.textContent).not.toContain('vless://raw-config-value-for-user-2');
   });
 

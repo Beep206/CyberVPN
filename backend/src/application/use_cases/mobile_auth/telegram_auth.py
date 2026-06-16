@@ -127,8 +127,8 @@ class MobileTelegramAuthUseCase:
                 username = f"{username} {telegram_data.last_name}"
 
         user = MobileUserModel(
-            auth_realm_id=stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"])),
             public_uid=await allocate_public_uid(self.user_repo),
+            auth_realm_id=stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"])),
             email=placeholder_email,
             password_hash=password_hash,
             username=username,

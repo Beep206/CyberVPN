@@ -1,9 +1,12 @@
 {
-  "dashboard": "داشبورد",
-  "servers": "سرورها",
-  "users": "کاربران",
-  "billing": "صورتحساب",
-  "analytics": "عملیات شبکه",
-  "security": "امنیت",
-  "settings": "پیکربندی"
+    "dashboard": "داشبورد",
+    "servers": "سرورها",
+    "users": "کاربران",
+    "billing": "صورتحساب",
+    "analytics": "عملیات شبکه",
+    "security": "امنیت",
+    "settings": "پیکربندی",
+    "items": {
+        "security": "SECURITY"
+    }
 }

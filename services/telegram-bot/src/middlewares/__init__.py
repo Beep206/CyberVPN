@@ -40,7 +40,7 @@ def register_middlewares(
     """
     from src.middlewares.access_control import AccessControlMiddleware
     from src.middlewares.auth import AuthMiddleware
-    from src.middlewares.i18n import I18nMiddleware, I18nManager
+    from src.middlewares.i18n import I18nManager, I18nMiddleware
     from src.middlewares.logging import LoggingMiddleware
     from src.middlewares.metrics import MetricsMiddleware
     from src.middlewares.throttling import ThrottlingMiddleware

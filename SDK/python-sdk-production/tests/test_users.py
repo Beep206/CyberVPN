@@ -15,9 +15,7 @@ from remnawave.models import (
     UpdateUserRequestDto,
     UserResponseDto,
     UsersResponseDto,
-    TagsResponseDto,
-    RevokeUserRequestDto,
-    GetSubscriptionRequestsResponseDto
+    TagsResponseDto
 )
 from remnawave.models.users import GetUserSubscriptionRequestHistoryResponseDto
 from tests.utils import generate_email, generate_random_string

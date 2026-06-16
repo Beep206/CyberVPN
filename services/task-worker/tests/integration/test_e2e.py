@@ -14,19 +14,8 @@ that validates the codebase structure and configuration.
 
 import importlib
 import inspect
-import pytest
 
-from src.utils.constants import (
-    QUEUE_ANALYTICS,
-    QUEUE_BULK,
-    QUEUE_CLEANUP,
-    QUEUE_MONITORING,
-    QUEUE_NOTIFICATIONS,
-    QUEUE_PAYMENTS,
-    QUEUE_REPORTS,
-    QUEUE_SUBSCRIPTIONS,
-    QUEUE_SYNC,
-)
+import pytest
 
 
 @pytest.mark.integration
@@ -95,14 +84,14 @@ class TestE2EIntegration:
     def test_all_task_functions_are_decorated(self):
         """Verify all task functions are properly decorated with @broker.task."""
         # Import a sample of key task functions directly
-        from src.tasks.notifications.process_queue import process_notification_queue
-        from src.tasks.monitoring.health_check import check_server_health
-        from src.tasks.subscriptions.check_expiring import check_expiring_subscriptions
         from src.tasks.analytics.daily_stats import aggregate_daily_stats
-        from src.tasks.payments.verify_pending import verify_pending_payments
         from src.tasks.cleanup.cleanup_old_records import cleanup_old_records
-        from src.tasks.sync.sync_nodes import sync_node_configs
+        from src.tasks.monitoring.health_check import check_server_health
+        from src.tasks.notifications.process_queue import process_notification_queue
+        from src.tasks.payments.verify_pending import verify_pending_payments
         from src.tasks.reports.daily_report import send_daily_report
+        from src.tasks.subscriptions.check_expiring import check_expiring_subscriptions
+        from src.tasks.sync.sync_nodes import sync_node_configs
 
         # List of task functions
         task_funcs = [
@@ -125,7 +114,7 @@ class TestE2EIntegration:
 
     def test_broker_configuration_is_complete(self):
         """Verify broker has all required configuration."""
-        from src.broker import broker, scheduler, result_backend, schedule_source
+        from src.broker import broker, result_backend, schedule_source, scheduler
 
         # Broker should be configured
         assert broker is not None
@@ -289,8 +278,9 @@ class TestE2EIntegration:
 
     def test_logging_is_configured(self):
         """Verify logging is properly configured."""
-        from src.logging_config import configure_logging
         import structlog
+
+        from src.logging_config import configure_logging
 
         # Should not raise any errors
         configure_logging()
@@ -301,7 +291,7 @@ class TestE2EIntegration:
 
     def test_types_module_exists(self):
         """Verify types module with type aliases exists."""
-        from src.types import TaskResult, UserId, NodeId, PaymentId
+        from src.types import NodeId, PaymentId, TaskResult, UserId
 
         # Verify type aliases are defined
         assert TaskResult is not None
@@ -311,7 +301,6 @@ class TestE2EIntegration:
 
     def test_py_typed_marker_exists(self):
         """Verify py.typed marker file exists for PEP 561 compliance."""
-        import os
         from pathlib import Path
 
         src_dir = Path(__file__).parent.parent.parent / "src"

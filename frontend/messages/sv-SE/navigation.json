@@ -1,9 +1,12 @@
 {
-  "dashboard": "KONTROLLPANEL",
-  "servers": "SERVRAR",
-  "users": "KLIENTER",
-  "billing": "FAKTURERING",
-  "analytics": "NÄTANALYS",
-  "security": "SÄKERHET",
-  "settings": "KONFIG"
+    "dashboard": "KONTROLLPANEL",
+    "servers": "SERVRAR",
+    "users": "KLIENTER",
+    "billing": "FAKTURERING",
+    "analytics": "NÄTANALYS",
+    "security": "SÄKERHET",
+    "settings": "KONFIG",
+    "items": {
+        "security": "SECURITY"
+    }
 }

@@ -3,8 +3,6 @@ from uuid import UUID
 
 from remnawave.models import (
     # Legacy models (deprecated)
-    GetNodesUsageByRangeResponseDto,
-    GetNodesRealtimeUsageResponseDto,
     GetNodeUserUsageByRangeResponseDto,
     GetUserUsageByRangeResponseDto,
     

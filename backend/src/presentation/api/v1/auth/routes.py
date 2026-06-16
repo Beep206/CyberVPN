@@ -425,8 +425,8 @@ async def _ensure_miniapp_mobile_user(
     if mobile_user is None:
         password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
         mobile_user = MobileUserModel(
-            auth_realm_id=customer_realm_id,
             public_uid=await allocate_public_uid(repo),
+            auth_realm_id=customer_realm_id,
             email=f"tg{telegram_id}@telegram.local",
             password_hash=password_hash,
             username=await _resolve_miniapp_mobile_login(
@@ -526,8 +526,8 @@ async def _ensure_customer_web_mobile_shadow(
 
     mobile_user = MobileUserModel(
         id=user.id,
-        auth_realm_id=current_realm.auth_realm.id,
         public_uid=await allocate_public_uid(repo),
+        auth_realm_id=current_realm.auth_realm.id,
         email=user.email,
         password_hash=user.password_hash,
         username=username,

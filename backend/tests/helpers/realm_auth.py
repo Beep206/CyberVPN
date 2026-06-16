@@ -699,6 +699,7 @@ async def initialize_realm_test_database(engine) -> None:
             """
             CREATE TABLE mobile_users (
                 id TEXT PRIMARY KEY,
+                public_uid INTEGER NOT NULL,
                 auth_realm_id TEXT,
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
@@ -731,6 +732,7 @@ async def initialize_realm_test_database(engine) -> None:
             )
             """
         )
+        conn.exec_driver_sql("CREATE UNIQUE INDEX ix_mobile_users_public_uid ON mobile_users(public_uid)")
         conn.exec_driver_sql("CREATE INDEX ix_mobile_users_auth_realm_id ON mobile_users(auth_realm_id)")
         conn.exec_driver_sql("CREATE INDEX ix_mobile_users_partner_account_id ON mobile_users(partner_account_id)")
         conn.exec_driver_sql(

@@ -5,17 +5,16 @@ Tests admin dashboard navigation, broadcast creation, and user management operat
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import pytest
 from aiogram import Bot
-from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import User
 
-from tests.conftest import create_fsm_context
 from src.states.admin import BroadcastStates, UserManagementStates
+from tests.conftest import create_fsm_context
 
 if TYPE_CHECKING:
     from src.config import BotSettings
@@ -131,7 +130,7 @@ async def test_admin_broadcast_creation_flow(
         "audience": "active",
         "message": "Important update about our service",
         "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
     mock_simple_api_client.send_broadcast.return_value = {

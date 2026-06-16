@@ -1,7 +1,7 @@
 """Unit tests for subscription tasks."""
 
-from datetime import UTC, datetime, timedelta
 import os
+from datetime import UTC, datetime, timedelta
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
@@ -11,10 +11,10 @@ os.environ.setdefault("REMNAWAVE_API_TOKEN", "test-token")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "123:test-bot")
 os.environ.setdefault("CRYPTOBOT_TOKEN", "test-crypto")
 
+from src.tasks.subscriptions.auto_renew import auto_renew_subscriptions
 from src.tasks.subscriptions.check_expiring import check_expiring_subscriptions
 from src.tasks.subscriptions.disable_expired import disable_expired_users
 from src.tasks.subscriptions.reset_traffic import reset_monthly_traffic
-from src.tasks.subscriptions.auto_renew import auto_renew_subscriptions
 
 
 @pytest.mark.asyncio

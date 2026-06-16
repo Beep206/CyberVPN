@@ -3,14 +3,43 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
-import { Link, useRouter } from '@/i18n/navigation';
-import { useAuthStore, useIsAuthenticated } from '@/stores/auth-store';
+import { Link } from '@/i18n/navigation';
+import { authApi } from '@/lib/api';
+import { useIsAuthenticated } from '@/stores/auth-store';
 
-export function DeleteAccountClient() {
+const DEFAULT_DELETION_FULFILLMENT_DAYS = 30;
+
+type DeleteAccountOutcome = {
+  fulfillmentDays: number;
+  reference: string | null;
+};
+
+type DeleteAccountClientSurface = 'cabinet' | 'marketing';
+
+type DeleteAccountClientProps = {
+  cancelHref?: string;
+  returnHref?: string;
+  surface?: DeleteAccountClientSurface;
+};
+
+function buildDeletionNotes(reason: string, feedback: string): string | null {
+  const normalizedReason = reason.trim();
+  const normalizedFeedback = feedback.trim();
+  const notes = [
+    normalizedReason ? `reason=${normalizedReason}` : null,
+    normalizedFeedback ? `feedback=${normalizedFeedback}` : null,
+  ].filter((item): item is string => item !== null);
+
+  return notes.length > 0 ? notes.join('\n') : null;
+}
+
+export function DeleteAccountClient({
+  cancelHref = '/',
+  returnHref = '/',
+  surface = 'marketing',
+}: DeleteAccountClientProps = {}) {
   const t = useTranslations('DeleteAccount');
-  const router = useRouter();
   const isAuthenticated = useIsAuthenticated();
-  const deleteAccount = useAuthStore((s) => s.deleteAccount);
 
   const [confirmText, setConfirmText] = useState('');
   const [reason, setReason] = useState('');
@@ -18,10 +47,13 @@ export function DeleteAccountClient() {
   const [confirmed, setConfirmed] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<DeleteAccountOutcome | null>(null);
 
   const confirmKeyword = t('form.fields.confirmInput.keyword');
   const isConfirmTextValid = confirmText === confirmKeyword;
+  const cancelLabel = surface === 'cabinet' ? t('form.cancelToSettings') : t('form.cancel');
+  const returnLabel =
+    surface === 'cabinet' ? t('success.returnSettings') : t('success.returnHome');
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -44,11 +76,15 @@ export function DeleteAccountClient() {
 
     startTransition(async () => {
       try {
-        await deleteAccount();
-        setSuccess(true);
-        setTimeout(() => {
-          router.push('/');
-        }, 3000);
+        const response = await authApi.requestPrivacyAction({
+          notes: buildDeletionNotes(reason, feedback),
+          request_type: 'account_deletion',
+        });
+        setSuccess({
+          fulfillmentDays:
+            response.data.manual_fulfillment_target_days ?? DEFAULT_DELETION_FULFILLMENT_DAYS,
+          reference: response.data.ticket_reference,
+        });
       } catch {
         setError(t('error.message'));
       }
@@ -69,13 +105,20 @@ export function DeleteAccountClient() {
               {t('success.title')}
             </h1>
             <p className="text-gray-300 mb-6">{t('success.message')}</p>
-            <p className="text-sm text-gray-400 mb-6">{t('success.details')}</p>
+            <p className="text-sm text-gray-400 mb-3">
+              {t('success.details', { days: success.fulfillmentDays })}
+            </p>
+            {success.reference ? (
+              <p className="mb-6 font-mono text-xs text-matrix-green">
+                {t('success.reference', { reference: success.reference })}
+              </p>
+            ) : null}
             <Link
-              href="/"
+              href={returnHref}
               className="inline-block px-6 py-3 bg-neon-cyan text-black font-semibold rounded-sm hover:bg-neon-cyan/80 transition-colors"
-              aria-label={t('success.returnHome')}
+              aria-label={returnLabel}
             >
-              {t('success.returnHome')}
+              {returnLabel}
             </Link>
           </div>
         </motion.div>
@@ -243,21 +286,21 @@ export function DeleteAccountClient() {
             <label htmlFor="confirmation" className="text-gray-300">{t('form.fields.confirmation.label')}</label>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <button
               type="submit"
               disabled={isPending || !isConfirmTextValid || !confirmed}
-              className="inline-flex min-h-12 w-full items-center justify-center px-4 py-3 text-center bg-red-600 text-white font-semibold rounded-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:flex-1 sm:px-6"
+              className="min-h-12 w-full px-6 py-3 bg-red-600 text-white font-semibold rounded-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:flex-1"
               aria-label={t('form.submit')}
             >
               {isPending ? t('form.submitting') : t('form.submit')}
             </button>
             <Link
-              href="/"
-              className="inline-flex min-h-12 w-full items-center justify-center px-4 py-3 text-center bg-gray-700 text-white font-semibold rounded-sm hover:bg-gray-600 transition-colors sm:flex-1 sm:px-6"
-              aria-label={t('form.cancel')}
+              href={cancelHref}
+              className="min-h-12 w-full px-6 py-3 bg-gray-700 text-white font-semibold rounded-sm hover:bg-gray-600 transition-colors text-center sm:flex-1"
+              aria-label={cancelLabel}
             >
-              {t('form.cancel')}
+              {cancelLabel}
             </Link>
           </div>
         </form>

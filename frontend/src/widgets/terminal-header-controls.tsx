@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from 'react';
 import { useLocale } from 'next-intl';
+import { CurrencySelector } from '@/features/currency-selector';
 import { LanguageSelector } from '@/features/language-selector';
 import { QRCodeDropdown } from '@/features/header/qr-code-dropdown';
 import { UserMenu } from '@/features/header/user-menu';
@@ -33,6 +34,7 @@ export function TerminalHeaderControls({
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <LanguageSelector />
+        <CurrencySelector />
       </div>
 
       <div className="mx-1 hidden h-6 w-px bg-grid-line/30 lg:block" />

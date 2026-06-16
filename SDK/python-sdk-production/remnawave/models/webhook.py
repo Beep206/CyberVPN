@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional, Literal, Union
+from typing import List, Optional, Union
 from uuid import UUID
 from pydantic import BaseModel, Field
 from pydantic.alias_generators import to_camel

@@ -1,7 +1,5 @@
 import pytest
 
-from remnawave.enums import ClientType
-from remnawave.exceptions.general import ApiError
 from remnawave.models import (
     GetSubscriptionInfoResponseDto,
     GetRawSubscriptionByShortUuidResponseDto,

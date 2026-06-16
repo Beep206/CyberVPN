@@ -352,8 +352,12 @@ export function ServerAccessDashboard() {
     selectedSubscriptionKey,
     primaryDeliveryLink,
   );
+  const primaryDeliveryIsSubscription = primaryDeliveryLink?.kind === 'subscription';
+  const canTogglePrimaryDeliveryValue =
+    !primaryDeliveryIsSubscription && primaryDeliveryRevealKey !== null;
   const showFullPrimaryDeliveryValue =
-    primaryDeliveryRevealKey !== null && revealedPrimaryDeliveryKey === primaryDeliveryRevealKey;
+    primaryDeliveryIsSubscription ||
+    (primaryDeliveryRevealKey !== null && revealedPrimaryDeliveryKey === primaryDeliveryRevealKey);
   const rawConfigLink = deliveryBundle.rawConfigLink;
   const availability = getConfigAvailability({
     config: configQuery.data,
@@ -628,34 +632,38 @@ export function ServerAccessDashboard() {
                     </p>
                     <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <p className="font-mono text-xs leading-6 text-muted-foreground">
-                        {t('config.safeDelivery')}
+                        {primaryDeliveryIsSubscription
+                          ? t('config.visibleSubscription')
+                          : t('config.safeDelivery')}
                       </p>
-                      <button
-                        type="button"
-                        aria-label={t(
-                          showFullPrimaryDeliveryValue
-                            ? 'config.hideFullValue'
-                            : 'config.showFullValue',
-                        )}
-                        aria-pressed={showFullPrimaryDeliveryValue}
-                        onClick={() =>
-                          setRevealedPrimaryDeliveryKey((current) =>
-                            current === primaryDeliveryRevealKey ? null : primaryDeliveryRevealKey,
-                          )
-                        }
-                        className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-grid-line/40 bg-white/[0.03] px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground transition hover:border-neon-cyan/40 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
-                      >
-                        {showFullPrimaryDeliveryValue ? (
-                          <EyeOff className="h-4 w-4" aria-hidden="true" />
-                        ) : (
-                          <Eye className="h-4 w-4" aria-hidden="true" />
-                        )}
-                        {t(
-                          showFullPrimaryDeliveryValue
-                            ? 'config.hideFullValue'
-                            : 'config.showFullValue',
-                        )}
-                      </button>
+                      {canTogglePrimaryDeliveryValue ? (
+                        <button
+                          type="button"
+                          aria-label={t(
+                            showFullPrimaryDeliveryValue
+                              ? 'config.hideFullValue'
+                              : 'config.showFullValue',
+                          )}
+                          aria-pressed={showFullPrimaryDeliveryValue}
+                          onClick={() =>
+                            setRevealedPrimaryDeliveryKey((current) =>
+                              current === primaryDeliveryRevealKey ? null : primaryDeliveryRevealKey,
+                            )
+                          }
+                          className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-grid-line/40 bg-white/[0.03] px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground transition hover:border-neon-cyan/40 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+                        >
+                          {showFullPrimaryDeliveryValue ? (
+                            <EyeOff className="h-4 w-4" aria-hidden="true" />
+                          ) : (
+                            <Eye className="h-4 w-4" aria-hidden="true" />
+                          )}
+                          {t(
+                            showFullPrimaryDeliveryValue
+                              ? 'config.hideFullValue'
+                              : 'config.showFullValue',
+                          )}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
 

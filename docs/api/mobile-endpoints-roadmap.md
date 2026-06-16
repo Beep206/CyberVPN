@@ -253,7 +253,9 @@ The mobile app defines auth endpoints under `/api/v1/auth/*` but the backend als
 
 **Recommended fix:** Mobile app should use `/api/v1/mobile/auth/*` endpoints for register, login, refresh, logout, and me. The mobile auth module has device-aware session management, subscription info in responses, and mobile-specific rate limiting that the admin auth routes lack.
 
-**Identity display contract:** Customer-facing screens must display `public_uid` from mobile auth responses as the account ID. UUID values such as `id` remain internal API/session identifiers for compatibility and must not be shown next to the public UID in customer UI.
+**Identity display contract:** Customer-facing account screens must display `public_uid` from `/api/v1/mobile/auth/register`, `/api/v1/mobile/auth/login`, `/api/v1/mobile/auth/telegram/*`, and `/api/v1/mobile/auth/me`. `public_uid` is an immutable random eight-digit numeric UID such as `14677650`; UUID values remain internal API/session identifiers and must not be used as customer-visible account IDs.
+
+**Public UID migration safety:** `backend/alembic/versions/20260610_mobile_user_public_uid.py` adds and backfills `mobile_users.public_uid` with unique random eight-digit values before enforcing `NOT NULL` and a unique index. Assigning `14677650` to a specific existing customer requires a non-production-safe identifier lookup and conflict check in the target environment; production customer lookup/backfill was not performed in this recovery task.
 
 ---
 

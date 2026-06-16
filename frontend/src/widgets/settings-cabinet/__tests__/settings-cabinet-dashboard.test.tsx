@@ -146,7 +146,7 @@ vi.mock('@/lib/api', () => ({
   },
 }));
 
-function renderDashboard() {
+function renderDashboard(view: 'overview' | 'security' = 'overview') {
   const queryClient = new QueryClient({
     defaultOptions: {
       mutations: { retry: false },
@@ -156,7 +156,7 @@ function renderDashboard() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <SettingsCabinetDashboard />
+      <SettingsCabinetDashboard view={view} />
     </QueryClientProvider>,
   );
 }
@@ -165,7 +165,7 @@ const profile = {
   avatar_url: null,
   display_name: 'Cipher Ops',
   email: 'operator@example.com',
-  id: 'account-1234567890abcdef',
+  id: '7d871bc5-af6c-49b2-a3e6-e77eec938021',
   language: 'en-EN',
   timezone: 'UTC',
   updated_at: '2026-04-24T10:00:00Z',
@@ -279,7 +279,8 @@ describe('SettingsCabinetDashboard', () => {
       data: {
         created_at: '2026-04-20T10:00:00Z',
         email: 'operator@example.com',
-        id: 'user-1',
+        id: '7d871bc5-af6c-49b2-a3e6-e77eec938021',
+        public_uid: 14677650,
         is_active: true,
         is_email_verified: true,
         role: 'user',
@@ -335,26 +336,44 @@ describe('SettingsCabinetDashboard', () => {
     });
   });
 
-  it('renders backend profile, security, notification, identity, and device state', async () => {
+  it('renders backend profile, language, timezone, notifications, identity, and cabinet links', async () => {
     renderDashboard();
 
     expect(await screen.findByDisplayValue('operator@example.com')).toBeInTheDocument();
-    expect(screen.getByText('CY*******HA')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '🇺🇸 English' })).toHaveValue('en-EN');
+    expect(screen.getByRole('option', { name: 'UTC (UTC+00:00)' })).toHaveValue('UTC');
+    expect(screen.getByText('14677650')).toBeInTheDocument();
+    expect(screen.queryByText('7d871bc5-af6c-49b2-a3e6-e77eec938021')).not.toBeInTheDocument();
     expect(screen.getByText(/identity.telegramLinked/)).toBeInTheDocument();
-    expect(await screen.findByText('Work laptop')).toBeInTheDocument();
-    expect(screen.getByText(/Chrome \/ Windows NT 10.0/)).toBeInTheDocument();
-    expect(screen.getByText(/Safari \/ Unknown OS/)).toBeInTheDocument();
-    expect(await screen.findByText(/devices\.limitUsed/)).toHaveTextContent('"used":2');
-    expect(screen.getByText(/devices\.limitHelp\.available/)).toHaveTextContent(
-      '"remaining":1',
-    );
-    expect(screen.getByRole('link', { name: 'devices.managePlan' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'actions.openSecurity' })).toHaveAttribute(
       'href',
-      '/subscriptions',
+      '/settings/security',
+    );
+    expect(screen.getAllByRole('link', { name: 'actions.deleteAccount' })[0]).toHaveAttribute(
+      'href',
+      '/settings/delete-account',
+    );
+    expect(screen.queryByText('security.twoFactor.title')).not.toBeInTheDocument();
+  });
+
+  it('renders sensitive security controls and device state in the security view', async () => {
+    renderDashboard('security');
+
+    expect(await screen.findByText('security.twoFactor.title')).toBeInTheDocument();
+    expect(await screen.findByText('CY*******HA')).toBeInTheDocument();
+    expect(await screen.findByText('Work laptop')).toBeInTheDocument();
+    expect(screen.getAllByText(/Chrome \/ Windows NT 10.0/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Safari \/ Unknown OS/)).toBeInTheDocument();
+    expect(screen.getByText('summary.devices').closest('article')).toHaveTextContent('2');
+    expect(screen.queryByText('devices.limitTitle')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'devices.managePlan' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'actions.profileSettings' })).toHaveAttribute(
+      'href',
+      '/settings',
     );
   });
 
-  it('uses backend-owned device totals and limit before entitlement fallbacks', async () => {
+  it('uses backend-owned session totals without VPN entitlement quota fallback', async () => {
     apiMocks.listDevices.mockResolvedValueOnce({
       data: {
         ...devices,
@@ -372,13 +391,14 @@ describe('SettingsCabinetDashboard', () => {
       },
     });
 
-    renderDashboard();
+    renderDashboard('security');
 
-    expect(await screen.findByText('devices.limitUsed {"limit":5,"used":4}')).toBeInTheDocument();
-    expect(screen.getByText('devices.limitHelp.near_limit {"count":1,"remaining":1}')).toBeInTheDocument();
+    await screen.findByText('Work laptop');
     expect(
       screen.getByText('summary.devices').closest('article'),
-    ).toHaveTextContent('4/5');
+    ).toHaveTextContent('4');
+    expect(screen.queryByText('devices.limitTitle')).not.toBeInTheDocument();
+    expect(apiMocks.getCurrentEntitlement).not.toHaveBeenCalled();
   });
 
   it('renders a single current device badge when duplicate rows are flagged current', async () => {
@@ -392,7 +412,7 @@ describe('SettingsCabinetDashboard', () => {
       },
     });
 
-    renderDashboard();
+    renderDashboard('security');
 
     expect(await screen.findAllByText('devices.current')).toHaveLength(1);
   });
@@ -427,8 +447,8 @@ describe('SettingsCabinetDashboard', () => {
 
     const displayNameInput = await screen.findByDisplayValue('Cipher Ops');
     await user.clear(displayNameInput);
-    await user.selectOptions(screen.getByDisplayValue('en-EN'), '');
-    await user.selectOptions(screen.getByDisplayValue('UTC'), '');
+    await user.selectOptions(screen.getByLabelText('profile.language'), '');
+    await user.selectOptions(screen.getByLabelText('profile.timezone'), '');
     await user.click(screen.getByRole('button', { name: 'actions.saveProfile' }));
 
     await waitFor(() => {
@@ -455,7 +475,7 @@ describe('SettingsCabinetDashboard', () => {
       expect(apiMocks.getAntiphishingCode).toHaveBeenCalledTimes(2);
       expect(apiMocks.getNotificationPreferences).toHaveBeenCalledTimes(2);
       expect(apiMocks.getGrowthPreferences).toHaveBeenCalledTimes(2);
-      expect(apiMocks.getCurrentEntitlement).toHaveBeenCalledTimes(2);
+      expect(apiMocks.getCurrentEntitlement).not.toHaveBeenCalled();
       expect(apiMocks.listDevices).toHaveBeenCalledTimes(2);
     });
   });
@@ -538,7 +558,7 @@ describe('SettingsCabinetDashboard', () => {
         }),
     );
 
-    renderDashboard();
+    renderDashboard('security');
 
     const revokeButtons = await screen.findAllByRole('button', {
       name: 'devices.revokeDevice',
@@ -561,7 +581,7 @@ describe('SettingsCabinetDashboard', () => {
     const user = setupUser();
     apiMocks.logoutDevice.mockRejectedValueOnce(new Error('revoke failed'));
 
-    renderDashboard();
+    renderDashboard('security');
 
     const revokeButtons = await screen.findAllByRole('button', {
       name: 'devices.revokeDevice',
@@ -573,9 +593,10 @@ describe('SettingsCabinetDashboard', () => {
 
   it('revokes all non-current devices through the backend API', async () => {
     const user = setupUser();
-    renderDashboard();
+    renderDashboard('security');
 
-    await screen.findByDisplayValue('operator@example.com');
+    await screen.findByText('Work laptop');
+    expect(screen.getByText('devices.otherSessions')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'devices.revokeOthers' }));
 
     await waitFor(() => {
@@ -593,9 +614,10 @@ describe('SettingsCabinetDashboard', () => {
     const user = setupUser();
     apiMocks.logoutOtherDevices.mockRejectedValueOnce(new Error('bulk revoke failed'));
 
-    renderDashboard();
+    renderDashboard('security');
 
-    await screen.findByDisplayValue('operator@example.com');
+    await screen.findByText('Work laptop');
+    expect(screen.getByText('devices.otherSessions')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'devices.revokeOthers' }));
 
     expect(await screen.findByText('feedback.deviceFailed')).toBeInTheDocument();
@@ -604,13 +626,13 @@ describe('SettingsCabinetDashboard', () => {
   it('renders an empty device state and disables bulk revocation', async () => {
     apiMocks.listDevices.mockResolvedValueOnce({ data: { devices: [], total: 0 } });
 
-    renderDashboard();
+    renderDashboard('security');
 
     expect(await screen.findByText('devices.empty')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.revokeOthers' })).toBeDisabled();
   });
 
-  it('keeps device actions usable when the plan device limit is unavailable', async () => {
+  it('keeps device actions usable without VPN entitlement quota data', async () => {
     apiMocks.listDevices.mockResolvedValueOnce({
       data: {
         ...devices,
@@ -618,17 +640,12 @@ describe('SettingsCabinetDashboard', () => {
         remaining_devices: null,
       },
     });
-    apiMocks.getCurrentEntitlement.mockResolvedValueOnce({
-      data: {
-        ...entitlement,
-        effective_entitlements: {},
-      },
-    });
+    renderDashboard('security');
 
-    renderDashboard();
-
-    expect(await screen.findByText('devices.limitUnknown {"used":2}')).toBeInTheDocument();
-    expect(screen.getByText('devices.limitStates.unknown')).toBeInTheDocument();
+    await screen.findByText('Work laptop');
+    expect(screen.getByText('devices.otherSessions')).toBeInTheDocument();
+    expect(screen.queryByText('devices.limitTitle')).not.toBeInTheDocument();
+    expect(apiMocks.getCurrentEntitlement).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'devices.revokeOthers' })).toBeEnabled();
   });
 
@@ -640,7 +657,7 @@ describe('SettingsCabinetDashboard', () => {
     await user.click(screen.getByRole('button', { name: 'actions.copyId' }));
 
     await waitFor(() => {
-      expect(apiMocks.clipboardWriteText).toHaveBeenCalledWith('account-1234567890abcdef');
+      expect(apiMocks.clipboardWriteText).toHaveBeenCalledWith('14677650');
     });
     expect(apiMocks.markPerformance).toHaveBeenCalledWith('settings-account-id-copy');
     expect(screen.getByRole('button', { name: 'actions.copied' })).toBeInTheDocument();
@@ -654,7 +671,7 @@ describe('SettingsCabinetDashboard', () => {
     await user.click(screen.getByRole('button', { name: 'actions.copyId' }));
 
     await waitFor(() => {
-      expect(apiMocks.clipboardWriteText).toHaveBeenCalledWith('account-1234567890abcdef');
+      expect(apiMocks.clipboardWriteText).toHaveBeenCalledWith('14677650');
     });
     expect(screen.getByRole('button', { name: 'actions.copied' })).toBeInTheDocument();
     await waitFor(() => {
@@ -690,7 +707,8 @@ describe('SettingsCabinetDashboard', () => {
       data: {
         created_at: '2026-04-20T10:00:00Z',
         email: 'operator@example.com',
-        id: 'user-1',
+        id: '7d871bc5-af6c-49b2-a3e6-e77eec938021',
+        public_uid: null,
         is_active: true,
         is_email_verified: false,
         role: 'user',
@@ -762,20 +780,15 @@ describe('SettingsCabinetDashboard', () => {
     expect(await screen.findByDisplayValue('labels.notAvailable')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'actions.copyId' })).toBeDisabled();
     expect(screen.getByText('posture.exposed')).toBeInTheDocument();
-    expect(screen.getAllByText('labels.disabled').length).toBeGreaterThan(0);
     expect(screen.getAllByText('labels.notSet').length).toBeGreaterThan(0);
     expect(screen.getByText('identity.telegramMissing')).toBeInTheDocument();
-    expect(screen.getByText(/Safari \/ CPU OS 17.0/)).toBeInTheDocument();
-    expect(screen.getByText(/Unknown device/)).toBeInTheDocument();
-    expect(screen.getAllByText(/labels.notAvailable/).length).toBeGreaterThan(0);
   });
 
-  it('opens sensitive security flows and renders the account id copy action', async () => {
+  it('opens sensitive security flows from the security view', async () => {
     const user = setupUser();
-    renderDashboard();
+    renderDashboard('security');
 
-    await screen.findByDisplayValue('operator@example.com');
-    expect(screen.getByRole('button', { name: 'actions.copyId' })).toBeEnabled();
+    await screen.findByText('security.twoFactor.title');
 
     await user.click(screen.getByText('security.twoFactor.title'));
     expect(screen.getByText('mock-two-factor-modal')).toBeInTheDocument();
@@ -787,9 +800,9 @@ describe('SettingsCabinetDashboard', () => {
 
   it('refetches security status after two factor and antiphishing modal completion', async () => {
     const user = setupUser();
-    renderDashboard();
+    renderDashboard('security');
 
-    await screen.findByDisplayValue('operator@example.com');
+    await screen.findByText('security.twoFactor.title');
 
     await user.click(screen.getByText('security.twoFactor.title'));
     await user.click(screen.getByText('mock-two-factor-modal'));
@@ -813,9 +826,9 @@ describe('SettingsCabinetDashboard', () => {
 
   it('shows success feedback after sensitive security modal completion', async () => {
     const user = setupUser();
-    renderDashboard();
+    renderDashboard('security');
 
-    await screen.findByDisplayValue('operator@example.com');
+    await screen.findByText('security.password.title');
     await user.click(screen.getByText('security.password.title'));
     await user.click(screen.getByText('mock-password-modal'));
 
@@ -825,7 +838,7 @@ describe('SettingsCabinetDashboard', () => {
   it('reauthenticates before renaming a passkey and sends the fresh-auth grant', async () => {
     const user = setupUser();
     apiMocks.requestPasskeyFreshAuthGrant.mockResolvedValueOnce('fresh-rename-grant');
-    renderDashboard();
+    renderDashboard('security');
 
     await screen.findByText('Work laptop');
     await user.click(screen.getByRole('button', { name: 'security.passkeys.renameAction' }));
@@ -854,7 +867,7 @@ describe('SettingsCabinetDashboard', () => {
       new DOMException('Cancelled', 'AbortError'),
     );
     apiMocks.mapPasskeyErrorMessageKey.mockReturnValueOnce('passkeyCancelled');
-    renderDashboard();
+    renderDashboard('security');
 
     await screen.findByText('Work laptop');
     await user.click(screen.getByRole('button', { name: 'security.passkeys.renameAction' }));
@@ -872,7 +885,7 @@ describe('SettingsCabinetDashboard', () => {
     const unsupportedError = new DOMException('Unsupported', 'NotSupportedError');
     apiMocks.requestPasskeyFreshAuthGrant.mockRejectedValueOnce(unsupportedError);
     apiMocks.mapPasskeyErrorMessageKey.mockReturnValueOnce('passkeyUnsupported');
-    renderDashboard();
+    renderDashboard('security');
 
     await screen.findByText('Work laptop');
     await user.click(screen.getByRole('button', { name: 'security.passkeys.renameAction' }));
@@ -895,7 +908,7 @@ describe('SettingsCabinetDashboard', () => {
     apiMocks.renamePasskey.mockRejectedValueOnce(
       new Error('Fresh passkey reauthentication required'),
     );
-    renderDashboard();
+    renderDashboard('security');
 
     await screen.findByText('Work laptop');
     await user.click(screen.getByRole('button', { name: 'security.passkeys.renameAction' }));
@@ -911,7 +924,7 @@ describe('SettingsCabinetDashboard', () => {
   it('reauthenticates before deleting a passkey and sends the fresh-auth grant', async () => {
     const user = setupUser();
     apiMocks.requestPasskeyFreshAuthGrant.mockResolvedValueOnce('fresh-delete-grant');
-    renderDashboard();
+    renderDashboard('security');
 
     await screen.findByText('Work laptop');
     await user.click(screen.getByRole('button', { name: 'security.passkeys.deleteAction' }));
@@ -936,7 +949,7 @@ describe('SettingsCabinetDashboard', () => {
       new DOMException('Cancelled', 'AbortError'),
     );
     apiMocks.mapPasskeyErrorMessageKey.mockReturnValueOnce('passkeyCancelled');
-    renderDashboard();
+    renderDashboard('security');
 
     await screen.findByText('Work laptop');
     await user.click(screen.getByRole('button', { name: 'security.passkeys.deleteAction' }));
@@ -951,7 +964,7 @@ describe('SettingsCabinetDashboard', () => {
     const unsupportedError = new DOMException('Unsupported', 'NotSupportedError');
     apiMocks.requestPasskeyFreshAuthGrant.mockRejectedValueOnce(unsupportedError);
     apiMocks.mapPasskeyErrorMessageKey.mockReturnValueOnce('passkeyUnsupported');
-    renderDashboard();
+    renderDashboard('security');
 
     await screen.findByText('Work laptop');
     await user.click(screen.getByRole('button', { name: 'security.passkeys.deleteAction' }));
@@ -971,7 +984,7 @@ describe('SettingsCabinetDashboard', () => {
     apiMocks.deletePasskey.mockRejectedValueOnce(
       new Error('Fresh passkey reauthentication required'),
     );
-    renderDashboard();
+    renderDashboard('security');
 
     await screen.findByText('Work laptop');
     await user.click(screen.getByRole('button', { name: 'security.passkeys.deleteAction' }));

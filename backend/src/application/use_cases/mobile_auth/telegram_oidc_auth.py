@@ -153,8 +153,8 @@ class MobileTelegramOIDCAuthUseCase:
         username = self._generate_username(telegram_user)
 
         user = MobileUserModel(
-            auth_realm_id=stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"])),
             public_uid=await allocate_public_uid(self.user_repo),
+            auth_realm_id=stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"])),
             email=placeholder_email,
             password_hash=password_hash,
             username=username,
