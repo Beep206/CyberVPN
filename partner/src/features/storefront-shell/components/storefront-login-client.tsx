@@ -10,6 +10,7 @@ import { Link, useRouter } from '@/i18n/navigation';
 import {
   AuthFormCard,
   CyberInput,
+  CyberOtpInput,
   RateLimitCountdown,
   useIsRateLimited,
 } from '@/features/auth/components';
@@ -108,6 +109,10 @@ export function StorefrontLoginClient({
 
   const handleTwoFactorSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (twoFactorCode.length !== 6) {
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -153,18 +158,20 @@ export function StorefrontLoginClient({
       </div>
       {isTwoFactorFlow ? (
         <form onSubmit={handleTwoFactorSubmit} className="space-y-5" aria-busy={isLoading}>
-          <CyberInput
-            label="2FA code"
-            type="text"
-            prefix="2fa"
-            placeholder="123456"
-            value={twoFactorCode}
-            onChange={(event) => setTwoFactorCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-            required
-            autoComplete="one-time-code"
-            disabled={isLoading}
-            className="mobile-form-input"
-          />
+          <div className="space-y-2">
+            <label className="block text-sm font-mono text-muted-foreground">
+              2FA code
+            </label>
+            <CyberOtpInput
+              value={twoFactorCode}
+              onChange={setTwoFactorCode}
+              maxLength={6}
+              error={Boolean(error)}
+              disabled={isLoading}
+              autoFocus
+              ariaLabel="2FA code"
+            />
+          </div>
           <Button
             type="submit"
             disabled={isLoading || twoFactorCode.length !== 6}

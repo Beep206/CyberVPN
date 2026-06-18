@@ -1,8 +1,8 @@
 'use client';
 
-import { OTPInput } from 'input-otp';
+import { OTPInput, REGEXP_ONLY_DIGITS, type SlotProps } from 'input-otp';
 import { motion } from 'motion/react';
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CyberOtpInputProps {
@@ -11,6 +11,14 @@ interface CyberOtpInputProps {
     onComplete?: (value: string) => void;
     maxLength?: number;
     error?: boolean;
+    autoFocus?: boolean;
+    disabled?: boolean;
+    ariaLabel: string;
+    onEnter?: () => void;
+}
+
+export function normalizeOtpValue(nextValue: string, maxLength = 6): string {
+    return nextValue.replace(/\D/gu, '').slice(0, maxLength);
 }
 
 export function CyberOtpInput({
@@ -19,8 +27,29 @@ export function CyberOtpInput({
     onComplete,
     maxLength = 6,
     error,
+    autoFocus = false,
+    disabled = false,
+    ariaLabel,
+    onEnter,
 }: CyberOtpInputProps) {
     const [isFocused, setIsFocused] = useState(false);
+    const lastCompletedValueRef = useRef<string | null>(null);
+    const normalizedValue = normalizeOtpValue(value, maxLength);
+
+    const commitValue = (nextValue: string) => {
+        const cleanValue = normalizeOtpValue(nextValue, maxLength);
+        onChange(cleanValue);
+
+        if (cleanValue.length < maxLength) {
+            lastCompletedValueRef.current = null;
+            return;
+        }
+
+        if (cleanValue !== lastCompletedValueRef.current) {
+            lastCompletedValueRef.current = cleanValue;
+            onComplete?.(cleanValue);
+        }
+    };
 
     return (
         <motion.div
@@ -39,15 +68,26 @@ export function CyberOtpInput({
 
             <OTPInput
                 maxLength={maxLength}
-                value={value}
-                onChange={onChange}
-                onComplete={onComplete}
+                value={normalizedValue}
+                onChange={commitValue}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
-                containerClassName="group flex items-center gap-3 has-[:disabled]:opacity-30"
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                        onEnter?.();
+                    }
+                }}
+                disabled={disabled}
+                autoFocus={autoFocus}
+                aria-label={ariaLabel}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                pattern={REGEXP_ONLY_DIGITS}
+                pasteTransformer={(pasted) => normalizeOtpValue(pasted, maxLength)}
+                containerClassName="group/otp flex max-w-full items-center justify-center gap-2 sm:gap-3 has-[:disabled]:opacity-40"
                 render={({ slots }) => (
                     <Fragment>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2 sm:gap-3">
                             {slots.slice(0, 3).map((slot, idx) => (
                                 <Slot key={idx} {...slot} error={error} />
                             ))}
@@ -59,13 +99,13 @@ export function CyberOtpInput({
                                 animate={{ opacity: [0.5, 1, 0.5] }}
                                 transition={{ duration: 2, repeat: Infinity }}
                                 className={cn(
-                                    "w-3 h-1 rounded-full",
+                                    "h-1 w-2 rounded-full sm:w-3",
                                     error ? "bg-red-500" : "bg-neon-cyan"
                                 )}
                             />
                         </div>
 
-                        <div className="flex gap-3">
+                        <div className="flex gap-2 sm:gap-3">
                             {slots.slice(3).map((slot, idx) => (
                                 <Slot key={idx + 3} {...slot} error={error} />
                             ))}
@@ -77,17 +117,17 @@ export function CyberOtpInput({
     );
 }
 
-function Slot(props: { char: string | null; isActive: boolean; hasFakeCaret: boolean; error?: boolean }) {
+function Slot(props: SlotProps & { error?: boolean }) {
     return (
         <div
             className={cn(
-                "relative flex h-14 w-12 items-center justify-center rounded-lg border text-xl transition-all duration-300",
+                "relative flex size-10 items-center justify-center rounded-lg border text-lg transition-all duration-300 sm:size-12 sm:text-xl",
                 "bg-terminal-bg/80 backdrop-blur-sm",
                 "font-mono text-neon-cyan font-bold",
                 // Default Border
                 "border-grid-line/50",
                 // Hover
-                "group-hover/slot:border-neon-cyan/50",
+                "group-hover/otp:border-neon-cyan/50",
                 // Active State
                 props.isActive && "z-10 border-neon-cyan ring-2 ring-neon-cyan/30 shadow-[0_0_15px_rgba(0,255,255,0.3)]",
                 // Error State
@@ -120,7 +160,7 @@ function Slot(props: { char: string | null; isActive: boolean; hasFakeCaret: boo
                         props.error ? "text-red-500" : "text-neon-cyan"
                     )}
                 >
-                    <div className="h-1 w-6 bg-current rounded-sm shadow-[0_0_5px_currentColor]" />
+                    <div className="h-1 w-5 rounded-sm bg-current shadow-[0_0_5px_currentColor]" />
                 </motion.div>
             )}
         </div>

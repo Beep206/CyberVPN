@@ -366,6 +366,24 @@ export function ReferralCabinetDashboard({
   const capabilities = capabilitiesReady ? capabilitiesQuery.data : undefined;
   const growthVisibility = getGrowthVisibility(capabilities);
   const viewFlags = getReferralCabinetViewFlags(view);
+  const isGiftOnlyView = view === 'gifts';
+  const codesGiftsLayoutClassName = isGiftOnlyView
+    ? 'contents'
+    : `grid gap-6 xl:col-span-2 ${
+        viewFlags.codes && viewFlags.gifts
+          ? 'xl:grid-cols-[0.95fr_1.05fr]'
+          : 'xl:grid-cols-1'
+      }`;
+  const invitesGiftsLayoutClassName = isGiftOnlyView
+    ? 'contents'
+    : `grid gap-6 xl:col-span-2 ${
+        viewFlags.invites && viewFlags.gifts ? 'xl:grid-cols-2' : 'xl:grid-cols-1'
+      }`;
+  const referralNotificationsLayoutClassName = `grid gap-6 xl:col-span-2 ${
+    viewFlags.referral && viewFlags.notifications
+      ? 'xl:grid-cols-[1.1fr_0.9fr]'
+      : 'xl:grid-cols-1'
+  }`;
 
   const statusQuery = useQuery({
     queryKey: ['growth', 'referral', 'status'],
@@ -658,8 +676,8 @@ export function ReferralCabinetDashboard({
   }
 
   return (
-    <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 shadow-[0_0_70px_rgba(157,0,255,0.08)] backdrop-blur md:p-8">
+    <div className="grid gap-8 xl:grid-cols-2">
+      <section className="relative overflow-hidden rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 shadow-[0_0_70px_rgba(157,0,255,0.08)] backdrop-blur md:p-8 xl:col-span-2">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(157,0,255,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(0,255,136,0.12),transparent_30%)]" />
         <div className="relative grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
           <div>
@@ -716,7 +734,7 @@ export function ReferralCabinetDashboard({
 
       {hasAnyError && (
         <section
-          className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 font-mono text-sm text-amber-200"
+          className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 font-mono text-sm text-amber-200 xl:col-span-2"
           role="status"
         >
           <div className="flex items-start gap-3">
@@ -737,7 +755,7 @@ export function ReferralCabinetDashboard({
       {viewFlags.referral && growthVisibility.referral && (
         <>
           <section
-            className="grid gap-4 md:grid-cols-4"
+            className="grid gap-4 md:grid-cols-4 xl:col-span-2"
             aria-label={t('summary.ariaLabel')}
           >
             <MetricCard
@@ -778,7 +796,7 @@ export function ReferralCabinetDashboard({
             />
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <section className="grid gap-6 xl:col-span-2 xl:grid-cols-[1.05fr_0.95fr]">
             <article className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 shadow-[0_0_42px_rgba(0,255,255,0.07)] backdrop-blur">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
@@ -913,7 +931,7 @@ export function ReferralCabinetDashboard({
 
       {(viewFlags.codes || viewFlags.gifts) &&
         (growthVisibility.invites || growthVisibility.giftCodes) && (
-        <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <section className={codesGiftsLayoutClassName}>
           {viewFlags.codes &&
             (growthVisibility.invites || growthVisibility.giftCodes) && (
             <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
@@ -1114,7 +1132,7 @@ export function ReferralCabinetDashboard({
 
       {((viewFlags.invites && growthVisibility.invites) ||
         (viewFlags.gifts && growthVisibility.giftCodes)) && (
-        <section className="grid gap-6 xl:grid-cols-2">
+        <section className={invitesGiftsLayoutClassName}>
           {viewFlags.invites && growthVisibility.invites && (
             <article className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 backdrop-blur">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -1325,7 +1343,7 @@ export function ReferralCabinetDashboard({
       )}
 
       {viewFlags.referral && growthVisibility.referral && (
-        <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <section className="grid gap-6 xl:col-span-2 xl:grid-cols-[0.9fr_1.1fr]">
           <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-purple">
               {t('caps.eyebrow')}
@@ -1447,7 +1465,7 @@ export function ReferralCabinetDashboard({
 
       {((viewFlags.referral && growthVisibility.referral) ||
         (viewFlags.notifications && growthVisibility.surface)) && (
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <section className={referralNotificationsLayoutClassName}>
           {viewFlags.referral && growthVisibility.referral && (
             <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-matrix-green">

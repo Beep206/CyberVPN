@@ -13,6 +13,46 @@ import { useAuthStore } from '@/stores/auth-store';
 // Module-level guard: survives React Strict Mode unmount/remount cycles
 // (useRef is re-initialized on remount, so it can't prevent double-fire)
 const PROCESSED_TOKENS = new Set<string>();
+const MAGIC_LINK_TOKEN_PARAM = 'token';
+let activeMagicLinkToken: string | null = null;
+
+function getTokenFromWindowSearch(): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get(MAGIC_LINK_TOKEN_PARAM);
+}
+
+function getFragmentSearchParams(): URLSearchParams {
+  if (typeof window === 'undefined' || !window.location.hash) {
+    return new URLSearchParams();
+  }
+
+  const fragment = window.location.hash.startsWith('#')
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+  const queryLikeFragment = fragment.startsWith('?')
+    ? fragment.slice(1)
+    : fragment.includes('?')
+      ? fragment.slice(fragment.indexOf('?') + 1)
+      : fragment;
+
+  return new URLSearchParams(queryLikeFragment);
+}
+
+function scrubMagicLinkTokenFromHistory(hasQueryToken: boolean, hasFragmentToken: boolean): void {
+  if (typeof window === 'undefined' || (!hasQueryToken && !hasFragmentToken)) {
+    return;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  searchParams.delete(MAGIC_LINK_TOKEN_PARAM);
+  const cleanSearchString = searchParams.toString();
+
+  const cleanSearch = cleanSearchString ? `?${cleanSearchString}` : '';
+  const cleanHash = hasFragmentToken ? '' : window.location.hash;
+  const cleanUrl = `${window.location.pathname || '/'}${cleanSearch}${cleanHash}`;
+
+  window.history.replaceState({}, document.title, cleanUrl);
+}
 
 export function MagicLinkVerifyClient() {
   const t = useTranslations('Auth.magicLink.verify');
@@ -25,7 +65,13 @@ export function MagicLinkVerifyClient() {
   const [verified, setVerified] = useState(false);
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const fragmentParams = getFragmentSearchParams();
+    const fragmentToken = fragmentParams.get(MAGIC_LINK_TOKEN_PARAM);
+    const queryToken = searchParams.get(MAGIC_LINK_TOKEN_PARAM) ?? getTokenFromWindowSearch();
+    const hasFragmentToken = fragmentParams.has(MAGIC_LINK_TOKEN_PARAM);
+    const hasQueryToken = searchParams.has(MAGIC_LINK_TOKEN_PARAM) || getTokenFromWindowSearch() !== null;
+    const tokenFromUrl = fragmentToken || queryToken;
+    const token = tokenFromUrl || activeMagicLinkToken;
 
     if (!token) {
       startTransition(() => {
@@ -37,10 +83,14 @@ export function MagicLinkVerifyClient() {
 
     if (PROCESSED_TOKENS.has(token)) return;
     PROCESSED_TOKENS.add(token);
+    activeMagicLinkToken = token;
+
+    scrubMagicLinkTokenFromHistory(hasQueryToken, hasFragmentToken);
 
     const verify = async () => {
       try {
         const result = await verifyMagicLink(token);
+        activeMagicLinkToken = null;
         if (result.requires_2fa && result.tfa_token) {
           await stagePendingTwoFactorSession({
             token: result.tfa_token,
@@ -54,11 +104,13 @@ export function MagicLinkVerifyClient() {
         setVerified(true);
       } catch (err: unknown) {
         if (useAuthStore.getState().isAuthenticated) {
+          activeMagicLinkToken = null;
           setVerifying(false);
           setVerified(true);
           return;
         }
 
+        activeMagicLinkToken = null;
         const axiosError = err as { response?: { data?: { detail?: string } } };
         setError(axiosError.response?.data?.detail || t('invalidOrExpired'));
         setVerifying(false);

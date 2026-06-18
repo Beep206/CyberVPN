@@ -23,8 +23,10 @@ const apiMocks = vi.hoisted(() => ({
   mapPasskeyErrorMessageKey: vi.fn(),
   markPerformance: vi.fn(),
   registerPasskey: vi.fn(),
+  requestTelegramAccountLink: vi.fn(),
   requestPasskeyFreshAuthGrant: vi.fn(),
   renamePasskey: vi.fn(),
+  pollTelegramAccountLinkStatus: vi.fn(),
   deletePasskey: vi.fn(),
   updateGrowthPreferences: vi.fn(),
   updateNotificationPreferences: vi.fn(),
@@ -118,6 +120,8 @@ vi.mock('@/lib/api', () => ({
     logoutDevice: apiMocks.logoutDevice,
     logoutOtherDevices: apiMocks.logoutOtherDevices,
     me: apiMocks.authMe,
+    pollTelegramAccountLinkStatus: apiMocks.pollTelegramAccountLinkStatus,
+    requestTelegramAccountLink: apiMocks.requestTelegramAccountLink,
   },
   entitlementsApi: {
     getCurrent: apiMocks.getCurrentEntitlement,
@@ -334,6 +338,21 @@ describe('SettingsCabinetDashboard', () => {
     apiMocks.logoutOtherDevices.mockResolvedValue({
       data: { message: 'Other device sessions terminated', sessions_revoked: 1 },
     });
+    apiMocks.requestTelegramAccountLink.mockResolvedValue({
+      data: {
+        token: 'account_link_token_123',
+        bot_url: 'https://t.me/CyberVPNBot?start=link_account_link_token_123',
+        deep_link_url: 'tg://resolve?domain=CyberVPNBot&start=link_account_link_token_123',
+        expires_in: 300,
+      },
+    });
+    apiMocks.pollTelegramAccountLinkStatus.mockResolvedValue({
+      data: {
+        status: 'linked',
+        provider: 'telegram',
+        provider_user_id: '424242',
+      },
+    });
   });
 
   it('renders backend profile, language, timezone, notifications, identity, and cabinet links', async () => {
@@ -354,6 +373,12 @@ describe('SettingsCabinetDashboard', () => {
       '/settings/delete-account',
     );
     expect(screen.queryByText('security.twoFactor.title')).not.toBeInTheDocument();
+    expect(screen.getByText('profile.title').closest('article')?.parentElement).toHaveClass(
+      'contents',
+    );
+    expect(screen.getByText('notifications.title').closest('article')?.parentElement).toHaveClass(
+      'contents',
+    );
   });
 
   it('renders sensitive security controls and device state in the security view', async () => {
@@ -484,9 +509,24 @@ describe('SettingsCabinetDashboard', () => {
     const user = setupUser();
     renderDashboard();
 
-    await screen.findByText('notifications.core.emailMarketing.title');
-    await user.click(screen.getByText('notifications.core.emailMarketing.title'));
-    await user.click(screen.getByText('notifications.growth.emailRewards.title'));
+    const coreSwitch = await screen.findByRole('switch', {
+      name: /notifications\.core\.emailMarketing\.title/,
+    });
+    const growthSwitch = screen.getByRole('switch', {
+      name: /notifications\.growth\.emailRewards\.title/,
+    });
+    const coreThumb = coreSwitch.querySelector('span span');
+    const growthThumb = growthSwitch.querySelector('span span');
+
+    expect(coreSwitch).toHaveAttribute('aria-checked', 'false');
+    expect(coreThumb).not.toBeNull();
+    expect(coreThumb!).toHaveClass('translate-x-0', 'bg-white');
+    expect(growthSwitch).toHaveAttribute('aria-checked', 'true');
+    expect(growthThumb).not.toBeNull();
+    expect(growthThumb!).toHaveClass('translate-x-5', 'bg-matrix-green');
+
+    await user.click(coreSwitch);
+    await user.click(growthSwitch);
 
     await waitFor(() => {
       expect(apiMocks.updateNotificationPreferences).toHaveBeenCalledWith({
@@ -689,6 +729,53 @@ describe('SettingsCabinetDashboard', () => {
     await user.click(screen.getByRole('button', { name: 'actions.copyId' }));
 
     expect(await screen.findByText('feedback.copyFailed')).toBeInTheDocument();
+  });
+
+  it('starts Telegram account linking with a link deep link and refreshes the current user', async () => {
+    const user = setupUser();
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    apiMocks.authMe
+      .mockResolvedValueOnce({
+        data: {
+          created_at: '2026-04-20T10:00:00Z',
+          email: 'operator@example.com',
+          id: 'user-1',
+          is_active: true,
+          is_email_verified: true,
+          role: 'user',
+          telegram_id: null,
+        },
+      })
+      .mockResolvedValue({
+        data: {
+          created_at: '2026-04-20T10:00:00Z',
+          email: 'operator@example.com',
+          id: 'user-1',
+          is_active: true,
+          is_email_verified: true,
+          role: 'user',
+          telegram_id: 424242,
+        },
+      });
+
+    renderDashboard();
+
+    expect(await screen.findByText('identity.telegramMissing')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'actions.manage' }));
+
+    await waitFor(() => {
+      expect(apiMocks.requestTelegramAccountLink).toHaveBeenCalledTimes(1);
+      expect(apiMocks.pollTelegramAccountLinkStatus).toHaveBeenCalledWith('account_link_token_123');
+    });
+    expect(openSpy).toHaveBeenCalledWith(
+      'tg://resolve?domain=CyberVPNBot&start=link_account_link_token_123',
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(await screen.findByText('feedback.securityUpdated')).toBeInTheDocument();
+
+    openSpy.mockRestore();
   });
 
   it('renders exposed fallback posture, missing identity, and resilient device metadata', async () => {

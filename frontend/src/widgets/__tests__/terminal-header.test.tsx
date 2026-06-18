@@ -92,4 +92,12 @@ describe('TerminalHeader', () => {
 
     expect(screen.getByText('netUplink')).toBeInTheDocument();
   });
+
+  it('does not render a standalone notification trigger outside header controls', async () => {
+    await renderHeader();
+
+    expect(
+      screen.queryByRole('button', { name: 'notifications' }),
+    ).not.toBeInTheDocument();
+  });
 });

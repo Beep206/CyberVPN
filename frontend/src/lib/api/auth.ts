@@ -191,6 +191,19 @@ export interface TelegramMagicLinkStatusResponse {
   login_result?: TelegramMagicLinkLoginResult | null;
 }
 
+export interface TelegramAccountLinkResponse {
+  token: string;
+  bot_url: string;
+  deep_link_url?: string | null;
+  expires_in: number;
+}
+
+export interface TelegramAccountLinkStatusResponse {
+  status: 'pending' | 'linked' | 'expired' | 'conflict';
+  provider: 'telegram';
+  provider_user_id?: string | null;
+}
+
 export interface BotLinkRequest {
   token: string;
 }
@@ -535,4 +548,20 @@ export const authApi = {
    */
   pollTelegramMagicLinkStatus: (token: string) =>
     apiClient.get<TelegramMagicLinkStatusResponse>(`/oauth/telegram/magic-link/${token}/status`),
+
+  /**
+   * Request a Telegram account-linking session for the current authenticated user
+   * POST /api/v1/oauth/telegram/account-link/magic-link
+   */
+  requestTelegramAccountLink: () =>
+    apiClient.post<TelegramAccountLinkResponse>('/oauth/telegram/account-link/magic-link'),
+
+  /**
+   * Poll and finalize Telegram account-linking status
+   * GET /api/v1/oauth/telegram/account-link/magic-link/{token}/status
+   */
+  pollTelegramAccountLinkStatus: (token: string) =>
+    apiClient.get<TelegramAccountLinkStatusResponse>(
+      `/oauth/telegram/account-link/magic-link/${token}/status`,
+    ),
 };

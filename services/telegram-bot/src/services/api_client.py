@@ -508,6 +508,42 @@ class CyberVPNAPIClient:
 
         return await self._request_auth_backend_dict("POST", "/oauth/telegram/magic-link/complete", json=payload)
 
+    async def complete_telegram_account_link(
+        self,
+        *,
+        token: str,
+        telegram_id: int,
+        first_name: str,
+        last_name: str | None = None,
+        username: str | None = None,
+        language_code: str | None = None,
+    ) -> dict[str, Any]:
+        """Complete a pending Telegram account-linking session in the backend."""
+        payload: dict[str, Any] = {
+            "token": token,
+            "id": str(telegram_id),
+            "first_name": first_name,
+        }
+        if last_name is not None:
+            payload["last_name"] = last_name
+        if username is not None:
+            payload["username"] = username
+        if language_code is not None:
+            payload["language_code"] = language_code
+
+        if self._auth_backend_client is None:
+            raise APIError(
+                "Auth backend is required for Telegram account-link completion",
+                status_code=503,
+                detail="AUTH_BACKEND_API_URL and AUTH_BACKEND_INTERNAL_SECRET must be configured",
+            )
+
+        return await self._request_auth_backend_dict(
+            "POST",
+            "/oauth/telegram/account-link/magic-link/complete",
+            json=payload,
+        )
+
     # ── Subscriptions ────────────────────────────────────────────────
 
     async def get_user_config(self, telegram_id: int, subscription_key: str | None = None) -> dict[str, Any]:

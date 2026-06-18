@@ -6,6 +6,7 @@ Settings are cached as a singleton using lru_cache for performance.
 
 from functools import lru_cache
 from typing import Annotated, ClassVar, Literal
+from urllib.parse import urlparse
 
 from pydantic import SecretStr, field_validator, model_validator
 
@@ -124,11 +125,11 @@ class Settings(BaseSettings):
     sentry_release: str = ""  # Canonical Sentry release name (optional, empty = auto/disabled)
 
     # Email Provider Configuration (OTP)
-    # Primary: Resend.com (initial OTP)
+    # Optional fallback: Resend.com
     resend_api_key: SecretStr | None = None
     resend_from_email: str = "CyberVPN <verify@email.cyber-vpn.net>"
 
-    # Secondary: Brevo (resend OTP)
+    # Optional legacy API provider configuration
     brevo_api_key: SecretStr | None = None
     brevo_from_email: str = "CyberVPN <noreply@email.cyber-vpn.net>"
 
@@ -138,6 +139,21 @@ class Settings(BaseSettings):
     # Dev/Test environment: Use Mailpit cluster for email testing
     # Set EMAIL_DEV_MODE=true to use SMTP instead of API providers
     email_dev_mode: bool = False
+    email_resend_fallback_enabled: bool = False
+    email_task_payload_ttl_seconds: int = 14400
+    email_verified_sender_domains: Annotated[list[str], NoDecode] = []
+
+    # Production SMTP primary route. Credentials must be supplied by runtime
+    # secret storage; never commit mailbox passwords to source.
+    smtp_host: str = "mail.cyber-vpn.net"
+    smtp_port: int = 587
+    smtp_starttls: bool = True
+    smtp_use_ssl: bool = False
+    smtp_auth_username: str = ""
+    smtp_auth_password: SecretStr | None = None
+    smtp_system_from_email: str = "CyberVPN <noreply@cyber-vpn.net>"
+    smtp_billing_from_email: str = "CyberVPN Billing <billing@cyber-vpn.net>"
+    smtp_support_from_email: str = "CyberVPN Support <support@cyber-vpn.net>"
 
     # Mailpit SMTP servers (round-robin for provider rotation testing)
     # Format: host:port,host:port,host:port
@@ -180,6 +196,55 @@ class Settings(BaseSettings):
             return ["localhost:1025", "localhost:1026", "localhost:1027"]
         return [s.strip() for s in v.split(",") if s.strip()]
 
+    @field_validator("email_verified_sender_domains", mode="before")
+    @classmethod
+    def parse_email_verified_sender_domains(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, list):
+            return v
+        if not isinstance(v, str) or not v.strip():
+            return []
+        return [domain.strip().lower().lstrip(".") for domain in v.split(",") if domain.strip()]
+
+    @field_validator("email_task_payload_ttl_seconds", mode="after")
+    @classmethod
+    def validate_email_task_payload_ttl_seconds(cls, v: int) -> int:
+        if v < 300 or v > 86400:
+            msg = "EMAIL_TASK_PAYLOAD_TTL_SECONDS must be between 300 and 86400 seconds"
+            raise ValueError(msg)
+        return v
+
+    @staticmethod
+    def _secret_value(secret: SecretStr | None) -> str:
+        if secret is None:
+            return ""
+        return secret.get_secret_value().strip()
+
+    @staticmethod
+    def _sender_domain(from_email: str) -> str:
+        value = from_email.strip()
+        if "<" in value and ">" in value:
+            value = value.split("<", 1)[1].split(">", 1)[0].strip()
+        if "@" not in value:
+            return ""
+        return value.rsplit("@", 1)[1].lower().lstrip(".")
+
+    @classmethod
+    def _reject_placeholder_provider_secret(cls, *, field_name: str, secret: str) -> None:
+        if len(secret) < 16:
+            msg = f"{field_name} must be a real provider token in production"
+            raise ValueError(msg)
+        lowered = secret.lower()
+        if any(marker in lowered for marker in cls.PROVIDER_SECRET_PLACEHOLDER_PATTERNS):
+            msg = f"{field_name} must not be a placeholder/test value in production"
+            raise ValueError(msg)
+
+    @classmethod
+    def _reject_placeholder_config_value(cls, *, field_name: str, value: str) -> None:
+        lowered = value.strip().lower()
+        if any(marker in lowered for marker in cls.PROVIDER_SECRET_PLACEHOLDER_PATTERNS):
+            msg = f"{field_name} must not be a placeholder/test value in production"
+            raise ValueError(msg)
+
     @model_validator(mode="after")
     def validate_metrics_settings(self) -> "Settings":
         has_backend_url = self.backend_api_url is not None and bool(str(self.backend_api_url).strip())
@@ -197,6 +262,74 @@ class Settings(BaseSettings):
             token_lower = cryptobot_token.lower()
             if any(marker in token_lower for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS):
                 msg = "CRYPTOBOT_TOKEN must not be a placeholder/test value in production"
+                raise ValueError(msg)
+        if self.environment.lower() == "production":
+            if self.email_dev_mode:
+                msg = "EMAIL_DEV_MODE=true is not allowed in production"
+                raise ValueError(msg)
+
+            parsed_magic_base = urlparse(self.magic_link_base_url.strip())
+            if parsed_magic_base.scheme != "https" or not parsed_magic_base.netloc:
+                msg = "MAGIC_LINK_BASE_URL must be a canonical https origin in production"
+                raise ValueError(msg)
+            if parsed_magic_base.path not in {"", "/"} or parsed_magic_base.params or parsed_magic_base.query:
+                msg = "MAGIC_LINK_BASE_URL must not include path, params, or query in production"
+                raise ValueError(msg)
+            if parsed_magic_base.fragment:
+                msg = "MAGIC_LINK_BASE_URL must not include a fragment in production"
+                raise ValueError(msg)
+
+            resend_secret = self._secret_value(self.resend_api_key)
+            if self.email_resend_fallback_enabled:
+                if not resend_secret:
+                    msg = "RESEND_API_KEY is required when EMAIL_RESEND_FALLBACK_ENABLED=true in production"
+                    raise ValueError(msg)
+                self._reject_placeholder_provider_secret(field_name="RESEND_API_KEY", secret=resend_secret)
+            elif resend_secret:
+                self._reject_placeholder_provider_secret(field_name="RESEND_API_KEY", secret=resend_secret)
+
+            brevo_secret = self._secret_value(self.brevo_api_key)
+            if brevo_secret:
+                self._reject_placeholder_provider_secret(field_name="BREVO_API_KEY", secret=brevo_secret)
+
+            if not self.smtp_host.strip() or "://" in self.smtp_host or "/" in self.smtp_host:
+                msg = "SMTP_HOST must be a bare SMTP hostname in production"
+                raise ValueError(msg)
+            self._reject_placeholder_config_value(field_name="SMTP_HOST", value=self.smtp_host)
+            if not 1 <= int(self.smtp_port) <= 65535:
+                msg = "SMTP_PORT must be between 1 and 65535"
+                raise ValueError(msg)
+            if self.smtp_starttls and self.smtp_use_ssl:
+                msg = "SMTP_STARTTLS and SMTP_USE_SSL cannot both be true"
+                raise ValueError(msg)
+            if not self.smtp_starttls and not self.smtp_use_ssl:
+                msg = "SMTP_STARTTLS or SMTP_USE_SSL must be enabled in production"
+                raise ValueError(msg)
+            if not self.smtp_auth_username.strip():
+                msg = "SMTP_AUTH_USERNAME is required for production SMTP delivery"
+                raise ValueError(msg)
+            self._reject_placeholder_config_value(field_name="SMTP_AUTH_USERNAME", value=self.smtp_auth_username)
+            smtp_password = self._secret_value(self.smtp_auth_password)
+            if not smtp_password:
+                msg = "SMTP_AUTH_PASSWORD is required for production SMTP delivery"
+                raise ValueError(msg)
+            self._reject_placeholder_config_value(field_name="SMTP_AUTH_PASSWORD", value=smtp_password)
+
+            verified_domains = set(self.email_verified_sender_domains)
+            required_domains = {
+                self._sender_domain(self.smtp_system_from_email),
+                self._sender_domain(self.smtp_billing_from_email),
+                self._sender_domain(self.smtp_support_from_email),
+            }
+            if resend_secret:
+                required_domains.add(self._sender_domain(self.resend_from_email))
+            if brevo_secret:
+                required_domains.add(self._sender_domain(self.brevo_from_email))
+            missing_domains = sorted(domain for domain in required_domains if domain and domain not in verified_domains)
+            if missing_domains:
+                msg = "EMAIL_VERIFIED_SENDER_DOMAINS must include configured sender domains: " + ", ".join(
+                    missing_domains
+                )
                 raise ValueError(msg)
         if has_backend_url != has_backend_secret:
             msg = "BACKEND_API_URL and BACKEND_INTERNAL_SECRET must be configured together"

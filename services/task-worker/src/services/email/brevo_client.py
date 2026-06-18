@@ -6,6 +6,7 @@ import httpx
 import structlog
 
 from src.config import get_settings
+from src.services.email.privacy import recipient_log_fields
 from src.services.email.templates import (
     render_growth_notification_template,
     render_magic_link_template,
@@ -93,7 +94,7 @@ class BrevoClient:
             raise BrevoError("Client not initialized. Use async context manager.")
 
         if not self._api_key:
-            logger.warning("brevo_skipped_no_api_key", email=email)
+            logger.warning("brevo_skipped_no_api_key", **recipient_log_fields(email))
             return {"messageId": "mock_no_key", "status": "skipped"}
 
         html_content = self._render_otp_template(code, expires_in, locale, activation_url=activation_url)
@@ -130,13 +131,13 @@ class BrevoClient:
             logger.info(
                 "otp_email_sent",
                 provider="brevo",
-                email=email,
                 message_id=result.get("messageId"),
+                **recipient_log_fields(email),
             )
             return result
 
         except httpx.RequestError as e:
-            logger.error("brevo_request_error", error=str(e), email=email)
+            logger.error("brevo_request_error", error=str(e), **recipient_log_fields(email))
             raise BrevoError(f"Request failed: {e}") from e
 
     async def send_magic_link(
@@ -167,7 +168,7 @@ class BrevoClient:
             raise BrevoError("Client not initialized. Use async context manager.")
 
         if not self._api_key:
-            logger.warning("brevo_skipped_no_api_key", email=email)
+            logger.warning("brevo_skipped_no_api_key", **recipient_log_fields(email))
             return {"messageId": "mock_no_key", "status": "skipped"}
 
         html_content = self._render_magic_link_template(magic_link_url, expires_in, locale, otp_code)
@@ -201,13 +202,13 @@ class BrevoClient:
             logger.info(
                 "magic_link_email_sent",
                 provider="brevo",
-                email=email,
                 message_id=result.get("messageId"),
+                **recipient_log_fields(email),
             )
             return result
 
         except httpx.RequestError as e:
-            logger.error("brevo_request_error", error=str(e), email=email)
+            logger.error("brevo_request_error", error=str(e), **recipient_log_fields(email))
             raise BrevoError(f"Request failed: {e}") from e
 
     async def send_password_reset(
@@ -222,7 +223,7 @@ class BrevoClient:
             raise BrevoError("Client not initialized. Use async context manager.")
 
         if not self._api_key:
-            logger.warning("brevo_skipped_no_api_key", email=email)
+            logger.warning("brevo_skipped_no_api_key", **recipient_log_fields(email))
             return {"id": "mock_no_key", "status": "skipped"}
 
         name, from_email = self._parse_from_email(self._from_email)
@@ -248,13 +249,13 @@ class BrevoClient:
             logger.info(
                 "password_reset_email_sent",
                 provider="brevo",
-                email=email,
                 message_id=result.get("messageId"),
+                **recipient_log_fields(email),
             )
             return result
 
         except httpx.RequestError as e:
-            logger.error("brevo_request_error", error=str(e), email=email)
+            logger.error("brevo_request_error", error=str(e), **recipient_log_fields(email))
             raise BrevoError(f"Request failed: {e}") from e
 
     async def send_growth_notification(
@@ -273,7 +274,7 @@ class BrevoClient:
             raise BrevoError("Client not initialized. Use async context manager.")
 
         if not self._api_key:
-            logger.warning("brevo_skipped_no_api_key", email=email)
+            logger.warning("brevo_skipped_no_api_key", **recipient_log_fields(email))
             return {"messageId": "mock_no_key", "status": "skipped"}
 
         sender_name, sender_email = self._parse_from_email(self._from_email)
@@ -307,7 +308,7 @@ class BrevoClient:
             return response.json() if response.content else {"messageId": None}
 
         except httpx.RequestError as e:
-            logger.error("brevo_request_error", error=str(e), email=email)
+            logger.error("brevo_request_error", error=str(e), **recipient_log_fields(email))
             raise BrevoError(f"Request failed: {e}") from e
 
     def _get_magic_link_subject(self, locale: str) -> str:

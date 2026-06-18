@@ -130,6 +130,32 @@ describe('CyberSidebar', () => {
     expect(screen.getByLabelText('item.support: 4')).toHaveTextContent('4');
   });
 
+  it.each([
+    ['/growth/notifications', 'item.notifications'],
+    ['/security/posture', 'item.posture'],
+  ])(
+    'presents %s menu item labels in uppercase without changing link labels',
+    (pathname, label) => {
+      mockUsePathname.mockReturnValue(pathname);
+
+      render(<CyberSidebar />);
+
+      expect(screen.getByRole('link', { name: label })).toHaveAttribute(
+        'href',
+        pathname,
+      );
+      const renderedLabel = screen
+        .getAllByTestId('cypher-text')
+        .find((element) => element.textContent === label);
+
+      if (!renderedLabel) {
+        throw new Error(`Missing rendered sidebar label: ${label}`);
+      }
+
+      expect(renderedLabel).toHaveClass('uppercase');
+    },
+  );
+
   it('stays hidden on mobile and fixed on desktop', () => {
     render(<CyberSidebar />);
 

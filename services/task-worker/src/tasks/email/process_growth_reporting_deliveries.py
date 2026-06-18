@@ -25,7 +25,8 @@ from src.metrics import (
     GROWTH_REPORTING_DELIVERY_RUNS_TOTAL,
 )
 from src.services.backend_api_client import BackendAPIClient
-from src.services.email import BrevoClient, ResendClient, SmtpClient
+from src.services.email import SmtpClient
+from src.services.email.routing import select_system_email_route
 
 logger = structlog.get_logger(__name__)
 
@@ -54,19 +55,11 @@ def _normalize_locale(locale: str | None) -> str:
     return normalized or "unknown"
 
 
-def _select_email_client() -> tuple[type[SmtpClient] | type[ResendClient] | type[BrevoClient], str]:
+def _select_email_client() -> tuple[type[SmtpClient], str]:
     settings = get_settings()
-    if settings.email_dev_mode:
+    route = select_system_email_route(settings=settings)
+    if route.provider == "smtp":
         return SmtpClient, "smtp"
-
-    resend_key = settings.resend_api_key.get_secret_value().strip() if settings.resend_api_key else ""
-    if resend_key:
-        return ResendClient, "resend"
-
-    brevo_key = settings.brevo_api_key.get_secret_value().strip() if settings.brevo_api_key else ""
-    if brevo_key:
-        return BrevoClient, "brevo"
-
     raise RuntimeError("provider_unavailable")
 
 

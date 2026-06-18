@@ -9,6 +9,7 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from src.application.use_cases.auth.telegram_account_linking import TelegramAccountLinkConflictError
 from src.infrastructure.cache.redis_client import get_redis
 from src.main import app
 from src.presentation.dependencies.auth import get_current_active_user
@@ -100,7 +101,7 @@ async def test_telegram_callback_links_account_on_success():
             new=AsyncMock(return_value={"id": "424242", "username": "alice"}),
         ),
         patch(
-            "src.presentation.api.v1.oauth.routes.AccountLinkingUseCase.link_account",
+            "src.presentation.api.v1.oauth.routes.TelegramAccountLinkingUseCase.link_account",
             new=AsyncMock(return_value=SimpleNamespace()),
         ) as mock_link,
     ):
@@ -134,8 +135,12 @@ async def test_telegram_callback_returns_409_when_identity_is_linked_elsewhere()
             new=AsyncMock(return_value={"id": "424242", "username": "alice"}),
         ),
         patch(
-            "src.presentation.api.v1.oauth.routes.AccountLinkingUseCase.link_account",
-            new=AsyncMock(side_effect=ValueError("Provider account is already linked to another user.")),
+            "src.presentation.api.v1.oauth.routes.TelegramAccountLinkingUseCase.link_account",
+            new=AsyncMock(
+                side_effect=TelegramAccountLinkConflictError(
+                    "Provider account is already linked to another user."
+                )
+            ),
         ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

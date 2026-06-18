@@ -20,10 +20,14 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@/i18n/navigation';
 import { useAuthStore } from '@/stores/auth-store';
+import {
+  clearTelegramAccountLinkSession,
+  saveTelegramAccountLinkSession,
+} from '@/features/auth/lib/telegram-account-link-session';
 import {
   authApi,
   growthNotificationsApi,
@@ -66,6 +70,8 @@ import {
 
 const PROFILE_STALE_MS = 5 * 60_000;
 const SECURITY_STALE_MS = 45_000;
+const TELEGRAM_ACCOUNT_LINK_POLL_INTERVAL_MS = 2_000;
+const TELEGRAM_ACCOUNT_LINK_MAX_POLLS = 150;
 
 const toneClasses: Record<StatusTone, { border: string; fill: string; text: string }> = {
   amber: {
@@ -172,6 +178,15 @@ function getPasskeyRevokeAction(credentialId: string): string {
   return `passkey.credential.revoke:${credentialId}`;
 }
 
+function getHttpStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object') {
+    return null;
+  }
+
+  const response = (error as { response?: { status?: unknown } }).response;
+  return typeof response?.status === 'number' ? response.status : null;
+}
+
 export function SettingsCabinetDashboard({
   view = 'overview',
 }: {
@@ -181,8 +196,9 @@ export function SettingsCabinetDashboard({
   const authT = useTranslations('Auth.login');
   const locale = useLocale();
   const queryClient = useQueryClient();
-  const telegramMagicLinkAuth = useAuthStore((state) => state.telegramMagicLinkAuth);
   const authLoading = useAuthStore((state) => state.isLoading);
+  const telegramLinkPollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const telegramLinkPollAttemptRef = useRef(0);
   const [activeModal, setActiveModal] = useState<SensitiveModal>(null);
   const [banner, setBanner] = useState<{ tone: StatusTone; text: string } | null>(null);
   const [copyState, setCopyState] = useState<'account' | 'idle'>('idle');
@@ -191,6 +207,9 @@ export function SettingsCabinetDashboard({
   const [isStartingTelegramLink, setIsStartingTelegramLink] = useState(false);
   const [timezoneReferenceDate] = useState(() => new Date());
   const isSecurityView = view === 'security';
+  const primaryPanelLayoutClassName = isSecurityView
+    ? 'grid gap-6 xl:col-span-2'
+    : 'contents';
 
   const profileQuery = useQuery({
     queryKey: ['settings', 'profile'],
@@ -556,6 +575,83 @@ export function SettingsCabinetDashboard({
       devicesQuery.refetch(),
     ]);
 
+  const clearTelegramLinkPoll = useCallback(() => {
+    if (telegramLinkPollTimeoutRef.current) {
+      clearTimeout(telegramLinkPollTimeoutRef.current);
+      telegramLinkPollTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearTelegramLinkPoll, [clearTelegramLinkPoll]);
+
+  const failTelegramAccountLink = useCallback(() => {
+    clearTelegramLinkPoll();
+    clearTelegramAccountLinkSession();
+    setIsStartingTelegramLink(false);
+    setBanner({ tone: 'pink', text: t('feedback.telegramLinkFailed') });
+  }, [clearTelegramLinkPoll, t]);
+
+  const pollTelegramAccountLink = useCallback(
+    (token: string, originalUserId: string | null) => {
+      clearTelegramLinkPoll();
+
+      const poll = async () => {
+        telegramLinkPollAttemptRef.current += 1;
+        if (telegramLinkPollAttemptRef.current > TELEGRAM_ACCOUNT_LINK_MAX_POLLS) {
+          failTelegramAccountLink();
+          return;
+        }
+
+        try {
+          const response = await authApi.pollTelegramAccountLinkStatus(token);
+          const status = response.data.status;
+
+          if (status === 'pending') {
+            telegramLinkPollTimeoutRef.current = setTimeout(
+              () => {
+                void poll();
+              },
+              TELEGRAM_ACCOUNT_LINK_POLL_INTERVAL_MS,
+            );
+            return;
+          }
+
+          if (status === 'linked') {
+            clearTelegramLinkPoll();
+            clearTelegramAccountLinkSession();
+            await queryClient.invalidateQueries({ queryKey: ['settings', 'auth-user'] });
+            const refreshedUser = await userQuery.refetch();
+            if (originalUserId && refreshedUser.data?.id !== originalUserId) {
+              setBanner({ tone: 'pink', text: t('feedback.telegramLinkFailed') });
+            } else {
+              setBanner({ tone: 'green', text: t('feedback.securityUpdated') });
+            }
+            setIsStartingTelegramLink(false);
+            return;
+          }
+
+          failTelegramAccountLink();
+        } catch (error) {
+          if (getHttpStatus(error) === 409) {
+            failTelegramAccountLink();
+            return;
+          }
+
+          failTelegramAccountLink();
+        }
+      };
+
+      void poll();
+    },
+    [
+      clearTelegramLinkPoll,
+      failTelegramAccountLink,
+      queryClient,
+      t,
+      userQuery,
+    ],
+  );
+
   const copyAccountId = async () => {
     const clipboard = typeof navigator === 'undefined' ? undefined : navigator.clipboard;
     if (!publicAccountId || typeof clipboard?.writeText !== 'function') {
@@ -573,12 +669,30 @@ export function SettingsCabinetDashboard({
   };
 
   const startTelegramLink = async () => {
+    if (isStartingTelegramLink) {
+      return;
+    }
+
     setIsStartingTelegramLink(true);
     try {
-      await telegramMagicLinkAuth();
+      const originalUserId = user?.id ?? null;
+      const response = await authApi.requestTelegramAccountLink();
+      const session = {
+        token: response.data.token,
+        botUrl: response.data.bot_url,
+        deepLinkUrl: response.data.deep_link_url ?? undefined,
+        requestedAt: Date.now(),
+      };
+      saveTelegramAccountLinkSession(session);
+      telegramLinkPollAttemptRef.current = 0;
+
+      if (typeof window !== 'undefined') {
+        window.open(session.deepLinkUrl ?? session.botUrl, '_blank', 'noopener,noreferrer');
+      }
+
+      pollTelegramAccountLink(session.token, originalUserId);
     } catch {
-      setBanner({ tone: 'pink', text: t('feedback.telegramLinkFailed') });
-      setIsStartingTelegramLink(false);
+      failTelegramAccountLink();
     }
   };
 
@@ -616,8 +730,8 @@ export function SettingsCabinetDashboard({
   };
 
   return (
-    <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 shadow-[0_0_70px_rgba(0,255,255,0.08)] backdrop-blur md:p-8">
+    <div className="grid gap-8 xl:grid-cols-2">
+      <section className="relative overflow-hidden rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 shadow-[0_0_70px_rgba(0,255,255,0.08)] backdrop-blur md:p-8 xl:col-span-2">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(0,255,255,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(255,0,255,0.13),transparent_32%)]" />
         <div className="relative grid gap-6 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
           <div>
@@ -687,7 +801,7 @@ export function SettingsCabinetDashboard({
 
       {hasAnyError && (
         <section
-          className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 font-mono text-sm text-amber-200"
+          className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 font-mono text-sm text-amber-200 xl:col-span-2"
           role="status"
         >
           <div className="flex items-start gap-3">
@@ -702,7 +816,7 @@ export function SettingsCabinetDashboard({
 
       {banner && (
         <section
-          className={`rounded-2xl border p-4 font-mono text-sm ${toneClasses[banner.tone].border} ${toneClasses[banner.tone].fill} ${toneClasses[banner.tone].text}`}
+          className={`rounded-2xl border p-4 font-mono text-sm xl:col-span-2 ${toneClasses[banner.tone].border} ${toneClasses[banner.tone].fill} ${toneClasses[banner.tone].text}`}
           role="status"
         >
           {banner.text}
@@ -710,7 +824,7 @@ export function SettingsCabinetDashboard({
       )}
 
       {isSecurityView && (
-        <section className="grid gap-4 md:grid-cols-4" aria-label={t('summary.ariaLabel')}>
+        <section className="grid gap-4 md:grid-cols-4 xl:col-span-2" aria-label={t('summary.ariaLabel')}>
           <MetricCard
             icon={<Fingerprint className="h-5 w-5" aria-hidden="true" />}
             label={t('summary.twoFactor')}
@@ -740,9 +854,7 @@ export function SettingsCabinetDashboard({
         </section>
       )}
 
-      <section
-        className={`grid gap-6 ${isSecurityView ? '' : 'xl:grid-cols-[0.95fr_1.05fr]'}`}
-      >
+      <section className={primaryPanelLayoutClassName}>
         {!isSecurityView && (
         <article className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -1151,9 +1263,7 @@ export function SettingsCabinetDashboard({
         )}
       </section>
 
-      <section
-        className={`grid gap-6 ${isSecurityView ? '' : 'xl:grid-cols-[1.05fr_0.95fr]'}`}
-      >
+      <section className={primaryPanelLayoutClassName}>
         {!isSecurityView && (
         <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-matrix-green">
@@ -1345,7 +1455,7 @@ export function SettingsCabinetDashboard({
       </section>
 
       {!isSecurityView && (
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <section className="grid gap-6 xl:col-span-2 xl:grid-cols-[0.95fr_1.05fr]">
         <article className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 backdrop-blur">
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-cyan">
             {t('identity.eyebrow')}
@@ -1456,8 +1566,9 @@ function PreferenceToggle({
       type="button"
       onClick={() => onToggle(!checked)}
       disabled={disabled}
-      aria-pressed={checked}
-      className="w-full rounded-2xl border border-grid-line/30 bg-black/20 p-4 text-left transition hover:border-neon-cyan/30 disabled:cursor-not-allowed disabled:opacity-60"
+      role="switch"
+      aria-checked={checked}
+      className="w-full rounded-2xl border border-grid-line/30 bg-black/20 p-4 text-left transition hover:border-neon-cyan/30 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg disabled:cursor-not-allowed disabled:opacity-60"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -1468,12 +1579,14 @@ function PreferenceToggle({
           className={`mt-1 inline-flex h-6 w-11 shrink-0 items-center rounded-full border p-1 transition ${
             checked
               ? 'border-matrix-green/40 bg-matrix-green/20'
-              : 'border-grid-line/40 bg-terminal-bg'
+              : 'border-grid-line/70 bg-black/40'
           }`}
         >
           <span
-            className={`h-4 w-4 rounded-full transition ${
-              checked ? 'translate-x-5 bg-matrix-green' : 'translate-x-0 bg-muted-foreground'
+            className={`h-4 w-4 rounded-full shadow-sm transition ${
+              checked
+                ? 'translate-x-5 bg-matrix-green shadow-[0_0_10px_rgba(0,255,136,0.45)]'
+                : 'translate-x-0 bg-white shadow-[0_0_0_1px_rgba(148,163,184,0.55)]'
             }`}
           />
         </span>

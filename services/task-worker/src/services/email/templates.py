@@ -174,7 +174,7 @@ def _activation_section_html(activation_url: str) -> str:
                                     <![endif]-->
                                     <!--[if !mso]><!-->
                                     <td align="center" bgcolor="{_GREEN}" style="background-color: {_GREEN}; padding-top: 14px; padding-right: 36px; padding-bottom: 14px; padding-left: 36px;">
-                                        <a href="{escaped_url}" style="color: {_BG_BODY}; font-size: 16px; font-weight: bold; mso-line-height-rule: exactly; line-height: 16px; text-decoration: none; font-family: {_FONT};">
+                                        <a href="{escaped_url}" rel="noreferrer" style="color: {_BG_BODY}; font-size: 16px; font-weight: bold; mso-line-height-rule: exactly; line-height: 16px; text-decoration: none; font-family: {_FONT};">
                                             VERIFY ACCOUNT
                                         </a>
                                     </td>
@@ -202,6 +202,7 @@ def render_magic_link_template(
     """Render email-compatible magic link email."""
     banner = _dev_banner_html() if dev_banner else ""
     otp_section = _otp_section_html(otp_code) if otp_code else ""
+    escaped_magic_link_url = escape(magic_link_url, quote=True)
     return f"""\
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -255,7 +256,7 @@ def render_magic_link_template(
                                 <tr>
                                     <!--[if mso]>
                                     <td align="center" bgcolor="{_GREEN}" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;">
-                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{magic_link_url}" style="height:52px;v-text-anchor:middle;width:240px;" fillcolor="{_GREEN}" stroke="f">
+                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{escaped_magic_link_url}" style="height:52px;v-text-anchor:middle;width:240px;" fillcolor="{_GREEN}" stroke="f">
                                         <w:anchorlock/>
                                         <center style="color:{_BG_BODY};font-family:{_FONT};font-size:18px;font-weight:bold;line-height:18px;">SIGN IN</center>
                                         </v:roundrect>
@@ -263,7 +264,7 @@ def render_magic_link_template(
                                     <![endif]-->
                                     <!--[if !mso]><!-->
                                     <td align="center" bgcolor="{_GREEN}" style="background-color: {_GREEN}; padding-top: 16px; padding-right: 48px; padding-bottom: 16px; padding-left: 48px;">
-                                        <a href="{magic_link_url}" style="color: {_BG_BODY}; font-size: 18px; font-weight: bold; mso-line-height-rule: exactly; line-height: 18px; text-decoration: none; font-family: {_FONT};">
+                                        <a href="{escaped_magic_link_url}" rel="noreferrer" style="color: {_BG_BODY}; font-size: 18px; font-weight: bold; mso-line-height-rule: exactly; line-height: 18px; text-decoration: none; font-family: {_FONT};">
                                             SIGN IN
                                         </a>
                                     </td>
@@ -296,7 +297,7 @@ def render_magic_link_template(
                     <!-- Fallback URL -->
                     <tr>
                         <td align="center" style="padding-top: 6px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 12px; mso-line-height-rule: exactly; line-height: 18px; color: {_GREEN}; word-wrap: break-word;">
-                            {magic_link_url}
+                            {escaped_magic_link_url}
                         </td>
                     </tr>
 

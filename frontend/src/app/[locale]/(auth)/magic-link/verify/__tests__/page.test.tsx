@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import MagicLinkVerifyPage from '../page';
 
@@ -97,6 +97,13 @@ describe('MagicLinkVerifyPage', () => {
     vi.clearAllMocks();
     mockSearchParams = new URLSearchParams();
     mockIsAuthenticated = false;
+    window.location.pathname = '/ru-RU/magic-link/verify';
+    window.location.search = '';
+    window.location.hash = '';
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('shows verifying state when token is present', () => {
@@ -111,6 +118,7 @@ describe('MagicLinkVerifyPage', () => {
 
   it('calls verifyMagicLink with token from URL', async () => {
     mockSearchParams = new URLSearchParams('token=magic_abc_123');
+    window.location.search = '?token=magic_abc_123';
     mockVerifyMagicLink.mockResolvedValue(successfulMagicLinkResponse);
 
     render(<MagicLinkVerifyPage />);
@@ -118,6 +126,35 @@ describe('MagicLinkVerifyPage', () => {
     await waitFor(() => {
       expect(mockVerifyMagicLink).toHaveBeenCalledWith('magic_abc_123');
     });
+  });
+
+  it('calls verifyMagicLink with token from URL fragment and scrubs fragment from history', async () => {
+    window.location.hash = '#token=fragment_magic_740';
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => undefined);
+    mockVerifyMagicLink.mockResolvedValue(successfulMagicLinkResponse);
+
+    render(<MagicLinkVerifyPage />);
+
+    await waitFor(() => {
+      expect(mockVerifyMagicLink).toHaveBeenCalledWith('fragment_magic_740');
+    });
+
+    expect(replaceStateSpy).toHaveBeenCalledWith({}, document.title, '/ru-RU/magic-link/verify');
+  });
+
+  it('preserves legacy query token verification while removing token from URL history', async () => {
+    mockSearchParams = new URLSearchParams('token=legacy_magic_740&utm=mail');
+    window.location.search = '?token=legacy_magic_740&utm=mail';
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => undefined);
+    mockVerifyMagicLink.mockResolvedValue(successfulMagicLinkResponse);
+
+    render(<MagicLinkVerifyPage />);
+
+    await waitFor(() => {
+      expect(mockVerifyMagicLink).toHaveBeenCalledWith('legacy_magic_740');
+    });
+
+    expect(replaceStateSpy).toHaveBeenCalledWith({}, document.title, '/ru-RU/magic-link/verify?utm=mail');
   });
 
   it('shows error when token is missing from URL', () => {

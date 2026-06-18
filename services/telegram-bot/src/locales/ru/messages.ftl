@@ -151,6 +151,25 @@ trial-unavailable = ⚠️ Пробный период временно недо
 
 subscription-hidden-plan-unavailable = ⚠️ Это предложение сейчас недоступно.
 
+# ── Привязка Telegram ───────────────────────────────────────────────────
+telegram-account-link-success = ✅ <b>Telegram подтверждён.</b>
+
+    Вернитесь в браузер, чтобы завершить привязку к аккаунту.
+
+telegram-account-link-expired = ⚠️ Эта ссылка Telegram недействительна или истекла.
+
+    Создайте новую ссылку в настройках аккаунта.
+
+telegram-account-link-already-used = ⚠️ Эта ссылка Telegram уже использована.
+
+    Создайте новую ссылку в настройках аккаунта.
+
+telegram-account-link-conflict = ⚠️ Этот Telegram уже привязан к другому аккаунту CyberVPN.
+
+telegram-account-link-rate-limited = ⏳ Слишком много попыток привязки Telegram. Подождите и попробуйте снова.
+
+telegram-account-link-service-unavailable = ⚠️ Привязка Telegram временно недоступна. Попробуйте позже.
+
 # ── Подписка и планы ─────────────────────────────────────────────────────
 subscription-select-plan = 💳 <b>Выберите тариф</b>
 

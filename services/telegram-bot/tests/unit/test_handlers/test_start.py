@@ -216,6 +216,115 @@ class TestStartHandler:
         mock_simple_api_client.update_user.assert_not_awaited()
         message.answer.assert_awaited_once_with("telegram-auth-link-invalid")
 
+    async def test_start_with_account_link_completes_backend_session(self, mock_simple_api_client) -> None:
+        """Test /start link_ deep link completes account-linking without registering a bot user."""
+        telegram_user = User(
+            id=424242,
+            is_bot=False,
+            first_name="Alice",
+            last_name="Doe",
+            username="alice",
+            language_code="en",
+        )
+
+        message = MagicMock(spec=Message)
+        message.from_user = telegram_user
+        message.answer = AsyncMock()
+
+        command = MagicMock()
+        command.args = "link_link_token_123"
+
+        i18n = MagicMock()
+        i18n.get.side_effect = lambda key, **kwargs: key
+
+        await start_handler(
+            message=message,
+            command=command,
+            i18n=i18n,
+            api_client=mock_simple_api_client,
+            user=None,
+        )
+
+        mock_simple_api_client.complete_telegram_account_link.assert_awaited_once_with(
+            token="link_token_123",
+            telegram_id=424242,
+            first_name="Alice",
+            last_name="Doe",
+            username="alice",
+            language_code="en",
+        )
+        mock_simple_api_client.complete_telegram_magic_link.assert_not_awaited()
+        mock_simple_api_client.register_user.assert_not_awaited()
+        message.answer.assert_awaited_once()
+        assert message.answer.await_args.args[0] == "telegram-account-link-success"
+
+    @pytest.mark.parametrize(
+        ("status_code", "message_key"),
+        [
+            (404, "telegram-account-link-expired"),
+            (409, "telegram-account-link-conflict"),
+            (429, "telegram-account-link-rate-limited"),
+            (503, "telegram-account-link-service-unavailable"),
+        ],
+    )
+    async def test_start_with_account_link_maps_backend_errors(
+        self,
+        mock_simple_api_client,
+        status_code: int,
+        message_key: str,
+    ) -> None:
+        """Account-linking errors should not fall through into registration."""
+        telegram_user = User(id=424242, is_bot=False, first_name="Alice", username="alice")
+        message = MagicMock(spec=Message)
+        message.from_user = telegram_user
+        message.answer = AsyncMock()
+
+        command = MagicMock()
+        command.args = "link_link_token_123"
+
+        i18n = MagicMock()
+        i18n.get.side_effect = lambda key, **kwargs: key
+        mock_simple_api_client.complete_telegram_account_link.side_effect = APIError(
+            "account link failed",
+            status_code=status_code,
+            detail="safe backend detail",
+        )
+
+        await start_handler(
+            message=message,
+            command=command,
+            i18n=i18n,
+            api_client=mock_simple_api_client,
+            user=None,
+        )
+
+        mock_simple_api_client.register_user.assert_not_awaited()
+        message.answer.assert_awaited_once_with(message_key)
+
+    async def test_start_with_empty_account_link_token_returns_expired(self, mock_simple_api_client) -> None:
+        telegram_user = User(id=424242, is_bot=False, first_name="Alice", username="alice")
+        message = MagicMock(spec=Message)
+        message.from_user = telegram_user
+        message.answer = AsyncMock()
+
+        command = MagicMock()
+        command.args = "link_"
+
+        i18n = MagicMock()
+        i18n.get.side_effect = lambda key, **kwargs: key
+
+        await start_handler(
+            message=message,
+            command=command,
+            i18n=i18n,
+            api_client=mock_simple_api_client,
+            user=None,
+        )
+
+        mock_simple_api_client.complete_telegram_account_link.assert_not_awaited()
+        mock_simple_api_client.register_user.assert_not_awaited()
+        message.answer.assert_awaited_once_with("telegram-account-link-expired")
+
     async def test_start_with_legacy_login_link_stops_without_magic_exchange_or_registration(
         self,
         mock_simple_api_client,
@@ -290,6 +399,9 @@ class TestStartHandler:
     async def test_parse_subscription_offer_ignores_legacy_login_payload(self) -> None:
         """Legacy login links are handled as auth links, not subscription offers."""
         assert _parse_subscription_offer_payload("login_legacy_token_123") is None
+
+    async def test_parse_subscription_offer_payload_ignores_account_link(self) -> None:
+        assert _parse_subscription_offer_payload("link_token_123") is None
 
     async def test_start_with_subscription_offer_opens_direct_plan_flow(self, mock_simple_api_client) -> None:
         """Encoded subscribe deep links should open a scoped duration selector."""

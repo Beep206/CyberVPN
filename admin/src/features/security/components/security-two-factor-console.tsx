@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { twofaApi } from '@/lib/api/twofa';
+import { CyberOtpInput } from '@/features/auth/components';
 import { SecurityEmptyState } from '@/features/security/components/security-empty-state';
 import { SecurityPageShell } from '@/features/security/components/security-page-shell';
 import { SecurityStatusChip } from '@/features/security/components/security-status-chip';
@@ -238,11 +239,12 @@ export function SecurityTwoFactorConsole() {
                   <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
                     {t('common.totpCode')}
                   </span>
-                  <Input
-                    inputMode="numeric"
+                  <CyberOtpInput
                     value={validateCode}
-                    onChange={(event) => setValidateCode(event.target.value)}
-                    placeholder="123456"
+                    onChange={setValidateCode}
+                    maxLength={6}
+                    disabled={validateMutation.isPending}
+                    ariaLabel={t('common.totpCode')}
                   />
                 </label>
                 <Button
@@ -324,11 +326,12 @@ export function SecurityTwoFactorConsole() {
                     <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
                       {t('common.totpCode')}
                     </span>
-                    <Input
-                      inputMode="numeric"
+                    <CyberOtpInput
                       value={setupCode}
-                      onChange={(event) => setSetupCode(event.target.value)}
-                      placeholder="123456"
+                      onChange={setSetupCode}
+                      maxLength={6}
+                      disabled={verifyMutation.isPending}
+                      ariaLabel={t('common.totpCode')}
                     />
                   </label>
                   <Button
@@ -395,11 +398,12 @@ export function SecurityTwoFactorConsole() {
                   <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
                     {t('common.totpCode')}
                   </span>
-                  <Input
-                    inputMode="numeric"
+                  <CyberOtpInput
                     value={disableCode}
-                    onChange={(event) => setDisableCode(event.target.value)}
-                    placeholder="123456"
+                    onChange={setDisableCode}
+                    maxLength={6}
+                    disabled={disableMutation.isPending}
+                    ariaLabel={t('common.totpCode')}
                   />
                 </label>
                 <Button

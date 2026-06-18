@@ -150,6 +150,28 @@ class TelegramMagicLinkCompleteResponse(BaseModel):
     status: Literal["accepted"] = Field(..., description="Magic link completion status")
 
 
+class TelegramAccountLinkSessionResponse(BaseModel):
+    """Authenticated account-linking session for Telegram bot deep links."""
+
+    token: str = Field(..., description="Unique account-linking session token")
+    bot_url: str = Field(..., description="URL to open Telegram bot with the account-link start parameter")
+    deep_link_url: str | None = Field(
+        default=None,
+        description="Native Telegram deep link for devices with the Telegram app installed",
+    )
+    expires_in: int = Field(..., description="Session TTL in seconds")
+
+
+class TelegramAccountLinkStatusResponse(BaseModel):
+    """Status polling response for Telegram account linking."""
+
+    status: Literal["pending", "linked", "expired", "conflict"] = Field(
+        ..., description="Current status of the account-linking session"
+    )
+    provider: Literal["telegram"] = "telegram"
+    provider_user_id: str | None = Field(default=None, description="Telegram user ID after confirmation")
+
+
 class TelegramMagicLinkStatusResponse(BaseModel):
     """Status polling response for Telegram Magic Link."""
 

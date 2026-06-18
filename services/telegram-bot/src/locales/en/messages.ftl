@@ -149,6 +149,25 @@ trial-unavailable = ⚠️ Free trial is temporarily unavailable.
 
 subscription-hidden-plan-unavailable = ⚠️ This offer is unavailable right now.
 
+# ── Telegram account linking ─────────────────────────────────────────────
+telegram-account-link-success = ✅ <b>Telegram confirmed.</b>
+
+    Return to your browser to finish linking it to your account.
+
+telegram-account-link-expired = ⚠️ This Telegram link is expired or invalid.
+
+    Start a new Telegram link from your account settings.
+
+telegram-account-link-already-used = ⚠️ This Telegram link has already been used.
+
+    Start a new Telegram link from your account settings.
+
+telegram-account-link-conflict = ⚠️ This Telegram account is already linked to another CyberVPN account.
+
+telegram-account-link-rate-limited = ⏳ Too many Telegram link attempts. Please wait and try again.
+
+telegram-account-link-service-unavailable = ⚠️ Telegram linking is temporarily unavailable. Please try again later.
+
 # ── Subscription and Plans ───────────────────────────────────────────────
 subscription-select-plan = 💳 <b>Choose a plan</b>
 

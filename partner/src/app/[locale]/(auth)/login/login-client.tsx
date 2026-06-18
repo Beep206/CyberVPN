@@ -10,6 +10,7 @@ import { Link, useRouter } from '@/i18n/navigation';
 import {
   AuthFormCard,
   CyberInput,
+  CyberOtpInput,
   RateLimitCountdown,
   useIsRateLimited,
 } from '@/features/auth/components';
@@ -150,9 +151,9 @@ export function LoginClient() {
 
   const handleTwoFactorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!twoFactorCode) {
+    if (twoFactorCode.length !== 6) {
       reportFrontendFormValidationError('partner_portal', {
-        errorCode: 'missing_two_factor_code',
+        errorCode: 'invalid_two_factor_code',
         formName: 'login_two_factor',
         path: window.location.pathname,
       });
@@ -203,18 +204,20 @@ export function LoginClient() {
           <p className="text-center text-sm font-mono text-muted-foreground">
             {t('twoFactorInfo')}
           </p>
-          <CyberInput
-            label={t('twoFactorCodeLabel')}
-            type="text"
-            prefix="2fa"
-            placeholder={t('twoFactorCodePlaceholder')}
-            value={twoFactorCode}
-            onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            required
-            autoComplete="one-time-code"
-            disabled={isCompletingTwoFactor}
-            className="mobile-form-input"
-          />
+          <div className="space-y-2">
+            <label className="block text-sm font-mono text-muted-foreground">
+              {t('twoFactorCodeLabel')}
+            </label>
+            <CyberOtpInput
+              value={twoFactorCode}
+              onChange={setTwoFactorCode}
+              maxLength={6}
+              error={Boolean(twoFactorError)}
+              disabled={isCompletingTwoFactor}
+              autoFocus
+              ariaLabel={t('twoFactorCodeLabel')}
+            />
+          </div>
           <motion.div
             whileHover={{ scale: isCompletingTwoFactor ? 1 : 1.01 }}
             whileTap={{ scale: isCompletingTwoFactor ? 1 : 0.99 }}
@@ -222,7 +225,7 @@ export function LoginClient() {
           >
             <Button
               type="submit"
-              disabled={isCompletingTwoFactor}
+              disabled={isCompletingTwoFactor || twoFactorCode.length !== 6}
               touchTarget="comfortable"
               className="min-w-[200px] h-12 bg-neon-cyan hover:bg-neon-cyan/90 text-black font-bold font-mono tracking-wider shadow-lg shadow-neon-cyan/20 hover:shadow-neon-cyan/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label={isCompletingTwoFactor ? t('twoFactorSubmitting') : t('twoFactorSubmitButton')}

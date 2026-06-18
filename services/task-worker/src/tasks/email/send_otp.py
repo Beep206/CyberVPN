@@ -1,7 +1,6 @@
-"""Send OTP verification email via Resend, Brevo, or SMTP (dev mode)."""
+"""Send OTP verification email through safe SMTP primary routing."""
 
 from time import perf_counter
-from urllib.parse import urlencode
 
 import structlog
 
@@ -16,7 +15,16 @@ from src.metrics import (
     OTP_EMAIL_ERRORS,
     OTP_EMAILS_SENT,
 )
-from src.services.email import BrevoClient, ResendClient, SmtpClient
+from src.services.email import ResendClient, SmtpClient
+from src.services.email.privacy import recipient_log_fields
+from src.services.email.routing import select_auth_email_route
+from src.tasks.email.payloads import (
+    claim_email_task_payload,
+    consume_email_task_payload,
+    legacy_email_task_payload,
+    release_email_task_payload,
+    resolve_email_task_payload,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -40,27 +48,17 @@ def _normalize_locale(locale: str | None) -> str:
     return normalized or "unknown"
 
 
-def _has_secret(secret: object) -> bool:
-    get_secret_value = getattr(secret, "get_secret_value", None)
-    if get_secret_value is None:
-        return bool(str(secret or "").strip())
-    return bool(str(get_secret_value()).strip())
-
-
-def _select_api_provider(*, is_resend: bool, settings: object) -> str:
-    if not is_resend:
-        return "resend"
-    if _has_secret(getattr(settings, "brevo_api_key", None)):
-        return "brevo"
-    logger.warning("brevo_api_key_not_configured_falling_back_to_resend", is_resend=is_resend)
-    return "resend"
-
-
-def _build_activation_url(*, base_url: str, email: str, otp_code: str, locale: str) -> str:
+def _build_activation_url(
+    *,
+    base_url: str,
+    locale: str,
+    email: str | None = None,
+    otp_code: str | None = None,
+) -> str:
+    del email, otp_code
     normalized_base = (base_url or "http://localhost:9001").rstrip("/")
     normalized_locale = (locale or "en-EN").strip() or "en-EN"
-    query = urlencode({"email": email, "code": otp_code})
-    return f"{normalized_base}/{normalized_locale}/verify?{query}"
+    return f"{normalized_base}/{normalized_locale}/verify"
 
 
 @broker.task(
@@ -69,8 +67,9 @@ def _build_activation_url(*, base_url: str, email: str, otp_code: str, locale: s
     retry_policy="email_delivery",
 )
 async def send_otp_email(
-    email: str,
-    otp_code: str,
+    payload_ref: str = "",
+    email: str = "",
+    otp_code: str = "",
     locale: str = "en-EN",
     is_resend: bool = False,
     channel: str = "web",
@@ -79,42 +78,66 @@ async def send_otp_email(
     Send OTP verification email.
 
     In dev mode (EMAIL_DEV_MODE=true): Uses Mailpit SMTP with round-robin rotation.
-    In production:
-        - Initial: Resend.com (primary provider)
-        - Resend: Brevo (secondary provider, different IP reputation)
+    Outside dev mode: Uses cyber-vpn.net SMTP primary. Resend is only selected
+    when a resend/fallback task is explicit and EMAIL_RESEND_FALLBACK_ENABLED=true.
 
     Args:
         email: Recipient email address
         otp_code: 6-digit OTP code
         locale: User's locale for email template
-        is_resend: If True and not in dev mode, use Brevo
+        is_resend: Explicit resend/fallback signal; does not by itself bypass SMTP primary
 
     Returns:
         API response with message ID and provider info
     """
     settings = get_settings()
-    action = "resend" if is_resend else "initial"
     started_at = perf_counter()
-    activation_url = _build_activation_url(
-        base_url=getattr(settings, "magic_link_base_url", ""),
-        email=email,
-        otp_code=otp_code,
-        locale=locale,
-    )
+    payload_claimed = False
 
-    # Dev mode: Use SMTP (Mailpit) with round-robin
-    if settings.email_dev_mode:
-        provider = "smtp"
-        logger.info(
-            "sending_otp_email",
+    if payload_ref:
+        await claim_email_task_payload(payload_ref)
+        payload_claimed = True
+        try:
+            payload = await resolve_email_task_payload(payload_ref, expected_kind="otp")
+        except Exception:
+            await release_email_task_payload(payload_ref)
+            raise
+    else:
+        payload = legacy_email_task_payload(
+            kind="otp",
             email=email,
+            otp_code=otp_code,
             locale=locale,
             is_resend=is_resend,
-            provider=provider,
-            dev_mode=True,
+            channel=channel,
         )
 
-        try:
+    email = payload.email
+    otp_code = payload.otp_code
+    locale = payload.locale
+    is_resend = payload.is_resend
+    channel = payload.channel
+    action = "resend" if is_resend else "initial"
+    recipient_fields = recipient_log_fields(email)
+    activation_url = _build_activation_url(
+        base_url=getattr(settings, "magic_link_base_url", ""),
+        locale=locale,
+    )
+    provider = "unknown"
+
+    try:
+        # Dev mode: Use SMTP (Mailpit) with round-robin
+        if settings.email_dev_mode:
+            provider = "smtp"
+            logger.info(
+                "sending_otp_email",
+                locale=locale,
+                is_resend=is_resend,
+                provider=provider,
+                dev_mode=True,
+                **recipient_fields,
+            )
+
             async with SmtpClient() as client:
                 result = await client.send_otp(
                     email=email,
@@ -125,10 +148,10 @@ async def send_otp_email(
 
             logger.info(
                 "otp_email_sent",
-                email=email,
                 provider=provider,
                 server=result.get("server"),
                 message_id=result.get("id"),
+                **recipient_fields,
             )
             EMAIL_SEND_TOTAL.labels(provider=provider, email_type="otp", status="success").inc()
             EMAIL_SEND_CONTEXT_TOTAL.labels(
@@ -146,6 +169,16 @@ async def send_otp_email(
                 email_type="otp",
                 locale=_normalize_locale(locale),
             ).observe(perf_counter() - started_at)
+            if payload_ref:
+                try:
+                    await consume_email_task_payload(payload_ref)
+                except Exception as cleanup_error:
+                    logger.error(
+                        "email_task_payload_consume_failed_after_send",
+                        provider=provider,
+                        error=str(cleanup_error),
+                        **recipient_fields,
+                    )
             return {
                 "success": True,
                 "provider": provider,
@@ -153,49 +186,19 @@ async def send_otp_email(
                 "message_id": result.get("id"),
             }
 
-        except Exception as e:
-            error_type = _classify_email_error(e)
-            EMAIL_SEND_TOTAL.labels(provider=provider, email_type="otp", status="failed").inc()
-            EMAIL_SEND_CONTEXT_TOTAL.labels(
-                channel=channel,
-                provider=provider,
-                email_type="otp",
-                locale=_normalize_locale(locale),
-                status="failed",
-            ).inc()
-            EMAIL_SEND_ERRORS.labels(provider=provider, error_type=error_type).inc()
-            OTP_EMAILS_SENT.labels(provider=provider, action=action, status="failed").inc()
-            OTP_EMAIL_ERRORS.labels(provider=provider, error_type=error_type).inc()
-            EMAIL_SEND_DURATION.labels(provider=provider, email_type="otp").observe(perf_counter() - started_at)
-            EMAIL_SEND_CONTEXT_DURATION.labels(
-                channel=channel,
-                provider=provider,
-                email_type="otp",
-                locale=_normalize_locale(locale),
-            ).observe(perf_counter() - started_at)
-            logger.error(
-                "otp_email_failed",
-                email=email,
-                provider=provider,
-                error=str(e),
-            )
-            raise
+        route = select_auth_email_route(settings=settings, is_resend=is_resend)
+        provider = route.provider
 
-    # Production mode: use Brevo for resend only when it is configured.
-    # During S2, Resend is the confirmed production provider; Brevo remains optional.
-    provider = _select_api_provider(is_resend=is_resend, settings=settings)
-
-    logger.info(
-        "sending_otp_email",
-        email=email,
-        locale=locale,
-        is_resend=is_resend,
-        provider=provider,
-    )
-
-    try:
-        if provider == "brevo":
-            async with BrevoClient() as client:
+        logger.info(
+            "sending_otp_email",
+            locale=locale,
+            is_resend=is_resend,
+            provider=provider,
+            route_reason=route.reason,
+            **recipient_fields,
+        )
+        if provider == "resend":
+            async with ResendClient() as client:
                 result = await client.send_otp(
                     email=email,
                     code=otp_code,
@@ -203,7 +206,7 @@ async def send_otp_email(
                     activation_url=activation_url,
                 )
         else:
-            async with ResendClient() as client:
+            async with SmtpClient() as client:
                 result = await client.send_otp(
                     email=email,
                     code=otp_code,
@@ -213,9 +216,9 @@ async def send_otp_email(
 
         logger.info(
             "otp_email_sent",
-            email=email,
             provider=provider,
             message_id=result.get("id"),
+            **recipient_fields,
         )
         EMAIL_SEND_TOTAL.labels(provider=provider, email_type="otp", status="success").inc()
         EMAIL_SEND_CONTEXT_TOTAL.labels(
@@ -233,6 +236,16 @@ async def send_otp_email(
             email_type="otp",
             locale=_normalize_locale(locale),
         ).observe(perf_counter() - started_at)
+        if payload_ref:
+            try:
+                await consume_email_task_payload(payload_ref)
+            except Exception as cleanup_error:
+                logger.error(
+                    "email_task_payload_consume_failed_after_send",
+                    provider=provider,
+                    error=str(cleanup_error),
+                    **recipient_fields,
+                )
         return {
             "success": True,
             "provider": provider,
@@ -240,6 +253,8 @@ async def send_otp_email(
         }
 
     except Exception as e:
+        if payload_ref and payload_claimed:
+            await release_email_task_payload(payload_ref)
         error_type = _classify_email_error(e)
         EMAIL_SEND_TOTAL.labels(provider=provider, email_type="otp", status="failed").inc()
         EMAIL_SEND_CONTEXT_TOTAL.labels(
@@ -261,8 +276,8 @@ async def send_otp_email(
         ).observe(perf_counter() - started_at)
         logger.error(
             "otp_email_failed",
-            email=email,
             provider=provider,
             error=str(e),
+            **recipient_fields,
         )
         raise

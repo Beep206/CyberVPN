@@ -85,6 +85,22 @@ def mock_settings_for_imports():
     settings.environment = os.environ.get("ENVIRONMENT", "test")
     settings.sentry_dsn = os.environ.get("SENTRY_DSN", "")
     settings.sentry_release = os.environ.get("SENTRY_RELEASE", "")
+    settings.email_dev_mode = True
+    settings.email_resend_fallback_enabled = False
+    settings.email_task_payload_ttl_seconds = 14400
+    settings.email_verified_sender_domains = ["email.cyber-vpn.net"]
+    settings.magic_link_base_url = "http://localhost:9001"
+    settings.smtp_host = "mail.cyber-vpn.net"
+    settings.smtp_port = 587
+    settings.smtp_starttls = True
+    settings.smtp_use_ssl = False
+    settings.smtp_auth_username = "noreply@cyber-vpn.net"
+    settings.smtp_auth_password.get_secret_value.return_value = "test-smtp-password"
+    settings.smtp_system_from_email = "CyberVPN <noreply@cyber-vpn.net>"
+    settings.smtp_billing_from_email = "CyberVPN Billing <billing@cyber-vpn.net>"
+    settings.smtp_support_from_email = "CyberVPN Support <support@cyber-vpn.net>"
+    settings.smtp_servers = ["localhost:1025", "localhost:1026", "localhost:1027"]
+    settings.smtp_from_email = "CyberVPN <verify@cybervpn.local>"
 
     with patch("src.config.get_settings", return_value=settings):
         yield settings
@@ -161,6 +177,22 @@ def mock_settings():
     settings.environment = os.environ.get("ENVIRONMENT", "test")
     settings.sentry_dsn = os.environ.get("SENTRY_DSN", "")
     settings.sentry_release = os.environ.get("SENTRY_RELEASE", "")
+    settings.email_dev_mode = True
+    settings.email_resend_fallback_enabled = False
+    settings.email_task_payload_ttl_seconds = 14400
+    settings.email_verified_sender_domains = ["email.cyber-vpn.net"]
+    settings.magic_link_base_url = "http://localhost:9001"
+    settings.smtp_host = "mail.cyber-vpn.net"
+    settings.smtp_port = 587
+    settings.smtp_starttls = True
+    settings.smtp_use_ssl = False
+    settings.smtp_auth_username = "noreply@cyber-vpn.net"
+    settings.smtp_auth_password.get_secret_value.return_value = "test-smtp-password"
+    settings.smtp_system_from_email = "CyberVPN <noreply@cyber-vpn.net>"
+    settings.smtp_billing_from_email = "CyberVPN Billing <billing@cyber-vpn.net>"
+    settings.smtp_support_from_email = "CyberVPN Support <support@cyber-vpn.net>"
+    settings.smtp_servers = ["localhost:1025", "localhost:1026", "localhost:1027"]
+    settings.smtp_from_email = "CyberVPN <verify@cybervpn.local>"
 
     return settings
 

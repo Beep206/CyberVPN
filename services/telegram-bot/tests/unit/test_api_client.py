@@ -505,6 +505,59 @@ class TestAPIClientCompleteTelegramMagicLink:
 
 
 @pytest.mark.asyncio
+class TestAPIClientCompleteTelegramAccountLink:
+    """Test Telegram account-link completion API method."""
+
+    async def test_complete_telegram_account_link_success(self, mock_settings: BotSettings) -> None:
+        from pydantic import SecretStr
+
+        from src.config import AuthBackendSettings
+
+        auth_backend = AuthBackendSettings(
+            api_url="https://auth.test.cybervpn.local",
+            internal_secret=SecretStr("bot-secret"),
+        )
+        client = CyberVPNAPIClient(settings=mock_settings.backend, auth_backend=auth_backend)
+
+        with respx.mock:
+            route = respx.post(
+                "https://auth.test.cybervpn.local/oauth/telegram/account-link/magic-link/complete"
+            ).mock(return_value=httpx.Response(200, json={"status": "accepted"}))
+
+            result = await client.complete_telegram_account_link(
+                token="link_token_123",
+                telegram_id=777,
+                first_name="Bob",
+                username="bob",
+                language_code="en",
+            )
+
+            assert result == {"status": "accepted"}
+            assert route.called
+            request = route.calls[0].request
+            assert request.headers["X-Telegram-Bot-Secret"] == "bot-secret"
+            assert json.loads(request.content.decode("utf-8"))["token"] == "link_token_123"
+
+        await client.close()
+
+    async def test_complete_telegram_account_link_requires_auth_backend(self, mock_settings: BotSettings) -> None:
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+
+        with pytest.raises(APIError) as exc_info:
+            await client.complete_telegram_account_link(
+                token="link_token_123",
+                telegram_id=777,
+                first_name="Bob",
+                username="bob",
+            )
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.detail == "AUTH_BACKEND_API_URL and AUTH_BACKEND_INTERNAL_SECRET must be configured"
+
+        await client.close()
+
+
+@pytest.mark.asyncio
 class TestAPIClientGetAvailablePlans:
     """Test get_available_plans API method."""
 

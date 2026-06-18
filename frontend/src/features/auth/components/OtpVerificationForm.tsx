@@ -201,6 +201,7 @@ export function OtpVerificationForm() {
                         onComplete={(value) => void handleVerify(value)}
                         error={!!error}
                         autoFocus
+                        ariaLabel="One-time verification code"
                     />
 
                     <AnimatePresence>

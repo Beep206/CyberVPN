@@ -537,6 +537,44 @@ export const authHandlers = [
   }),
 
   /**
+   * POST /oauth/telegram/account-link/magic-link
+   * Creates an authenticated Telegram account-linking session.
+   */
+  http.post(`${API_BASE}/oauth/telegram/account-link/magic-link`, () => {
+    return HttpResponse.json({
+      token: 'account_link_token_123',
+      bot_url: 'https://t.me/CyberVPNBot?start=link_account_link_token_123',
+      deep_link_url: 'tg://resolve?domain=CyberVPNBot&start=link_account_link_token_123',
+      expires_in: 300,
+    });
+  }),
+
+  /**
+   * GET /oauth/telegram/account-link/magic-link/:token/status
+   * Polls Telegram account-linking session status.
+   */
+  http.get(`${API_BASE}/oauth/telegram/account-link/magic-link/:token/status`, ({ params }) => {
+    const token = params.token as string;
+
+    if (token === 'expired_account_link_token') {
+      return HttpResponse.json({ status: 'expired', provider: 'telegram' });
+    }
+
+    if (token === 'conflict_account_link_token') {
+      return HttpResponse.json(
+        { status: 'conflict', provider: 'telegram', provider_user_id: '424242' },
+        { status: 409 },
+      );
+    }
+
+    return HttpResponse.json({
+      status: 'linked',
+      provider: 'telegram',
+      provider_user_id: '424242',
+    });
+  }),
+
+  /**
    * GET /oauth/:provider/login
    * Get OAuth authorization URL for a provider.
    */

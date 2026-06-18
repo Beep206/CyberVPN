@@ -17,6 +17,7 @@ class TestMobileTelegramOIDCAuthUseCase:
         repo = AsyncMock()
         repo.get_by_telegram_subject.return_value = None
         repo.get_by_telegram_id.return_value = None
+        repo.get_by_public_uid.return_value = None
         repo.create = AsyncMock()
         repo.update = AsyncMock()
         return repo
@@ -190,7 +191,10 @@ class TestMobileTelegramOIDCAuthUseCase:
 
         assert is_new_user is True
         created_model = mock_user_repo.create.await_args.args[0]
+        checked_public_uid = mock_user_repo.get_by_public_uid.await_args.args[0]
         assert created_model.password_hash == "$argon2id$synthetic_hash"
+        assert created_model.public_uid == checked_public_uid
+        assert 10_000_000 <= created_model.public_uid <= 99_999_999
         assert created_model.telegram_subject == "telegram-subject"
         assert created_model.email == "tg123456789@telegram.local"
         assert result.is_new_user is True

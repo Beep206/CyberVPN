@@ -1694,6 +1694,53 @@ describe('authApi.pollTelegramMagicLinkStatus', () => {
 });
 
 // ===========================================================================
+// authApi.requestTelegramAccountLink
+// ===========================================================================
+
+describe('authApi.requestTelegramAccountLink', () => {
+  it('test_request_telegram_account_link_uses_link_deep_link_payload', async () => {
+    const response = await authApi.requestTelegramAccountLink();
+
+    expect(response.status).toBe(200);
+    expect(response.data.token).toBe('account_link_token_123');
+    expect(response.data.bot_url).toContain('start=link_');
+    expect(response.data.deep_link_url).toContain('start=link_');
+    expect(response.data.expires_in).toBe(300);
+  });
+});
+
+// ===========================================================================
+// authApi.pollTelegramAccountLinkStatus
+// ===========================================================================
+
+describe('authApi.pollTelegramAccountLinkStatus', () => {
+  it('test_poll_telegram_account_link_status_returns_linked_status', async () => {
+    const response = await authApi.pollTelegramAccountLinkStatus('account_link_token_123');
+
+    expect(response.status).toBe(200);
+    expect(response.data).toEqual({
+      status: 'linked',
+      provider: 'telegram',
+      provider_user_id: '424242',
+    });
+  });
+
+  it('test_poll_telegram_account_link_status_returns_expired_status', async () => {
+    const response = await authApi.pollTelegramAccountLinkStatus('expired_account_link_token');
+
+    expect(response.status).toBe(200);
+    expect(response.data.status).toBe('expired');
+    expect(response.data.provider).toBe('telegram');
+  });
+
+  it('test_poll_telegram_account_link_status_conflict_rejects_with_409', async () => {
+    await expect(
+      authApi.pollTelegramAccountLinkStatus('conflict_account_link_token'),
+    ).rejects.toThrow('Request failed with status code 409');
+  });
+});
+
+// ===========================================================================
 // authApi.unlinkProvider
 // ===========================================================================
 

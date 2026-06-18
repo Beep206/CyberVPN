@@ -42,6 +42,82 @@ def test_task_worker_production_accepts_non_placeholder_provider_shaped_token() 
     settings = _settings(
         environment="production",
         cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+        magic_link_base_url="https://cyber-vpn.net",
+        smtp_auth_username="noreply@cyber-vpn.net",
+        smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+        email_verified_sender_domains=["cyber-vpn.net"],
     )
 
     assert settings.cryptobot_token.get_secret_value() == "ValidProviderTokenValueForChecksOnly"
+
+
+def _production_mail_settings(**overrides: object) -> Settings:
+    values = {
+        "environment": "production",
+        "cryptobot_token": SecretStr("ValidCryptoBotProviderTokenForMailChecks"),
+        "magic_link_base_url": "https://cyber-vpn.net",
+        "email_dev_mode": False,
+        "smtp_auth_username": "noreply@cyber-vpn.net",
+        "smtp_auth_password": SecretStr("ValidSmtpMailboxPasswordForMailChecks"),
+        "email_verified_sender_domains": ["cyber-vpn.net"],
+    }
+    values.update(overrides)
+    return _settings(**values)
+
+
+def test_task_worker_production_rejects_mail_dev_mode() -> None:
+    with pytest.raises(ValidationError, match="EMAIL_DEV_MODE=true is not allowed in production"):
+        _production_mail_settings(email_dev_mode=True)
+
+
+def test_task_worker_production_rejects_non_https_magic_link_base_url() -> None:
+    with pytest.raises(ValidationError, match="MAGIC_LINK_BASE_URL must be a canonical https origin"):
+        _production_mail_settings(magic_link_base_url="http://cyber-vpn.net")
+
+
+def test_task_worker_production_rejects_magic_link_base_url_with_query() -> None:
+    with pytest.raises(ValidationError, match="MAGIC_LINK_BASE_URL must not include path, params, or query"):
+        _production_mail_settings(magic_link_base_url="https://cyber-vpn.net/login?next=/dashboard")
+
+
+def test_task_worker_production_rejects_resend_placeholder_token() -> None:
+    with pytest.raises(ValidationError, match="RESEND_API_KEY must not be a placeholder/test value"):
+        _production_mail_settings(
+            email_resend_fallback_enabled=True,
+            resend_api_key=SecretStr("your_resend_api_key_here"),
+        )
+
+
+def test_task_worker_production_requires_smtp_credentials() -> None:
+    with pytest.raises(ValidationError, match="SMTP_AUTH_PASSWORD is required"):
+        _production_mail_settings(smtp_auth_password=None)
+
+
+def test_task_worker_production_requires_resend_key_when_fallback_enabled() -> None:
+    with pytest.raises(ValidationError, match="RESEND_API_KEY is required"):
+        _production_mail_settings(email_resend_fallback_enabled=True, resend_api_key=None)
+
+
+def test_task_worker_production_requires_verified_sender_domain_evidence() -> None:
+    with pytest.raises(ValidationError, match="EMAIL_VERIFIED_SENDER_DOMAINS"):
+        _production_mail_settings(email_verified_sender_domains=["example.test"])
+
+
+def test_task_worker_production_accepts_verified_brevo_sender_domain() -> None:
+    settings = _production_mail_settings(
+        brevo_api_key=SecretStr("ValidBrevoProviderTokenForMailChecks"),
+        brevo_from_email="CyberVPN <noreply@email.cyber-vpn.net>",
+        email_verified_sender_domains="cyber-vpn.net,email.cyber-vpn.net",
+    )
+
+    assert settings.brevo_api_key is not None
+
+
+def test_task_worker_production_accepts_explicit_resend_fallback() -> None:
+    settings = _production_mail_settings(
+        email_resend_fallback_enabled=True,
+        resend_api_key=SecretStr("ValidResendProviderTokenForMailChecks"),
+        email_verified_sender_domains="cyber-vpn.net,email.cyber-vpn.net",
+    )
+
+    assert settings.email_resend_fallback_enabled is True

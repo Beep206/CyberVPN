@@ -1,4 +1,4 @@
-"""Resend.com email client for primary OTP delivery."""
+"""Resend.com email client for explicit fallback delivery."""
 
 from typing import Any
 
@@ -6,6 +6,7 @@ import httpx
 import structlog
 
 from src.config import get_settings
+from src.services.email.privacy import recipient_log_fields
 from src.services.email.templates import (
     render_growth_notification_template,
     render_magic_link_template,
@@ -25,10 +26,7 @@ class ResendError(Exception):
 
 class ResendClient:
     """
-    Resend.com API client for sending OTP emails.
-
-    Used as the primary email provider for initial OTP delivery.
-    Free tier: 100 emails/day, 3000 emails/month.
+    Resend.com API client for sending fallback email deliveries.
 
     Usage:
         async with ResendClient() as client:
@@ -119,13 +117,13 @@ class ResendClient:
             logger.info(
                 "otp_email_sent",
                 provider="resend",
-                email=email,
                 message_id=result.get("id"),
+                **recipient_log_fields(email),
             )
             return result
 
         except httpx.RequestError as e:
-            logger.error("resend_request_error", error=str(e), email=email)
+            logger.error("resend_request_error", error=str(e), **recipient_log_fields(email))
             raise ResendError(f"Request failed: {e}") from e
 
     async def send_magic_link(
@@ -184,13 +182,13 @@ class ResendClient:
             logger.info(
                 "magic_link_email_sent",
                 provider="resend",
-                email=email,
                 message_id=result.get("id"),
+                **recipient_log_fields(email),
             )
             return result
 
         except httpx.RequestError as e:
-            logger.error("resend_request_error", error=str(e), email=email)
+            logger.error("resend_request_error", error=str(e), **recipient_log_fields(email))
             raise ResendError(f"Request failed: {e}") from e
 
     async def send_password_reset(
@@ -229,13 +227,13 @@ class ResendClient:
             logger.info(
                 "password_reset_email_sent",
                 provider="resend",
-                email=email,
                 message_id=result.get("id"),
+                **recipient_log_fields(email),
             )
             return result
 
         except httpx.RequestError as e:
-            logger.error("resend_request_error", error=str(e), email=email)
+            logger.error("resend_request_error", error=str(e), **recipient_log_fields(email))
             raise ResendError(f"Request failed: {e}") from e
 
     async def send_growth_notification(
@@ -283,7 +281,7 @@ class ResendClient:
             return response.json()
 
         except httpx.RequestError as e:
-            logger.error("resend_request_error", error=str(e), email=email)
+            logger.error("resend_request_error", error=str(e), **recipient_log_fields(email))
             raise ResendError(f"Request failed: {e}") from e
 
     def _get_magic_link_subject(self, locale: str) -> str:
@@ -300,9 +298,9 @@ class ResendClient:
     def _handle_missing_api_key(self, email: str) -> dict[str, Any]:
         """Fail production delivery when Resend credentials are absent."""
         if self._environment.lower() == "production":
-            logger.error("resend_api_key_missing_production", email=email)
+            logger.error("resend_api_key_missing_production", **recipient_log_fields(email))
             raise ResendError("RESEND_API_KEY is required for production email delivery.")
-        logger.warning("resend_skipped_no_api_key", email=email)
+        logger.warning("resend_skipped_no_api_key", **recipient_log_fields(email))
         return {"id": "mock_no_key", "status": "skipped"}
 
     def _render_magic_link_template(self, magic_link_url: str, expires_in: str, locale: str, otp_code: str = "") -> str:

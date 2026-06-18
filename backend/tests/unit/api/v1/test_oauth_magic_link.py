@@ -6,12 +6,13 @@ import json
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
 
+from src.application.use_cases.auth.telegram_account_linking import TelegramAccountLinkConflictError
 from src.application.use_cases.auth_realms import RealmResolution
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
@@ -21,6 +22,8 @@ from src.presentation.dependencies.auth import get_current_active_user, optional
 from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
+
+_DEFAULT_AUTH_USER_ID = uuid4()
 
 
 class _FakeRedis:
@@ -63,6 +66,88 @@ class _FakeRedis:
     async def eval(self, script: str, numkeys: int, key: str, *args: str) -> int | list[object]:
         assert numkeys == 1
         current_status = self.values.get(key)
+
+        if 'data["telegram"] = cjson.decode(ARGV[2])' in script:
+            flow, telegram_payload = args
+            if current_status is None:
+                return 0
+            data = json.loads(current_status)
+            if data.get("flow") != flow:
+                return 0
+            if data.get("status") != "pending":
+                return 1
+            ttl_seconds = await self.ttl(key)
+            if ttl_seconds <= 0:
+                return 0
+            data["status"] = "confirmed"
+            data["telegram"] = json.loads(telegram_payload)
+            self.values[key] = json.dumps(data)
+            self.ttls[key] = ttl_seconds
+            return 2
+
+        if "return {5, current}" in script:
+            flow, processing_token = args
+            if current_status is None:
+                return [0, ""]
+            data = json.loads(current_status)
+            if data.get("flow") != flow:
+                return [0, ""]
+            status_value = data.get("status")
+            if status_value == "pending":
+                return [1, current_status]
+            if status_value == "processing":
+                return [2, current_status]
+            if status_value == "confirmed":
+                ttl_seconds = await self.ttl(key)
+                if ttl_seconds <= 0:
+                    return [0, ""]
+                data["status"] = "processing"
+                data["processing_token"] = processing_token
+                self.values[key] = json.dumps(data)
+                self.ttls[key] = ttl_seconds
+                return [3, current_status]
+            if status_value == "linked":
+                return [4, current_status]
+            if status_value == "conflict":
+                return [5, current_status]
+            return [0, ""]
+
+        if 'data["status"] = "confirmed"' in script and "processing_token" in script:
+            flow, processing_token = args
+            if current_status is None:
+                return 0
+            data = json.loads(current_status)
+            if data.get("flow") != flow:
+                return 0
+            if data.get("status") != "processing" or data.get("processing_token") != processing_token:
+                return 0
+            ttl_seconds = await self.ttl(key)
+            if ttl_seconds <= 0:
+                return 0
+            data["status"] = "confirmed"
+            data.pop("processing_token", None)
+            self.values[key] = json.dumps(data)
+            self.ttls[key] = ttl_seconds
+            return 1
+
+        if 'data["status"] = ARGV[3]' in script:
+            flow, processing_token, status_value, provider_user_id = args
+            if current_status is None:
+                return 0
+            data = json.loads(current_status)
+            if data.get("flow") != flow:
+                return 0
+            if data.get("status") == "processing" and data.get("processing_token") != processing_token:
+                return 0
+            ttl_seconds = await self.ttl(key)
+            if ttl_seconds <= 0:
+                return 0
+            data["status"] = status_value
+            data["provider_user_id"] = provider_user_id
+            data.pop("processing_token", None)
+            self.values[key] = json.dumps(data)
+            self.ttls[key] = ttl_seconds
+            return 1
 
         if "string.sub(current, 1, string.len(ARGV[2]))" in script:
             expected_status, processing_prefix, processing_token = args
@@ -112,9 +197,22 @@ class _FakeRedis:
 
 
 class _MockAuthUser:
-    id = uuid4()
-    login = "bot-service"
-    is_active = True
+    def __init__(self, user_id: UUID | None = None) -> None:
+        self.id = user_id or _DEFAULT_AUTH_USER_ID
+        self.login = "bot-service"
+        self.is_active = True
+
+
+class _FakeDb:
+    def __init__(self) -> None:
+        self.commits = 0
+        self.rollbacks = 0
+
+    async def commit(self) -> None:
+        self.commits += 1
+
+    async def rollback(self) -> None:
+        self.rollbacks += 1
 
 
 @pytest.fixture(autouse=True)
@@ -123,15 +221,20 @@ def _clean_overrides():
     app.dependency_overrides.clear()
 
 
-def _override_dependencies(fake_redis: _FakeRedis) -> None:
+def _override_dependencies(
+    fake_redis: _FakeRedis,
+    *,
+    auth_user: _MockAuthUser | None = None,
+    db: object | None = None,
+) -> None:
     async def _redis_override():
         yield fake_redis
 
     async def _db_override():
-        yield object()
+        yield db or object()
 
     def _auth_override() -> _MockAuthUser:
-        return _MockAuthUser()
+        return auth_user or _MockAuthUser()
 
     auth_service = SimpleNamespace(
         decode_token=lambda _token: {
@@ -285,6 +388,180 @@ async def test_complete_telegram_magic_link_repeated_completion_keeps_first_payl
     assert stored_payload["id"] == "424242"
     assert stored_payload["username"] == "alice"
     assert fake_redis.ttls[redis_key] == 240
+
+
+@pytest.mark.asyncio
+async def test_create_telegram_account_link_magic_link_stores_owner_session(monkeypatch: pytest.MonkeyPatch):
+    fake_redis = _FakeRedis()
+    auth_user = _MockAuthUser(_DEFAULT_AUTH_USER_ID)
+    _override_dependencies(fake_redis, auth_user=auth_user)
+    monkeypatch.setattr(settings, "telegram_bot_username", "CyberVPNBot")
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/api/v1/oauth/telegram/account-link/magic-link")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["token"]
+    assert "start=link_" in body["bot_url"]
+    assert "start=link_" in body["deep_link_url"]
+    assert body["expires_in"] == 300
+
+    redis_key = f"telegram_account_link:{body['token']}"
+    stored_payload = json.loads(fake_redis.values[redis_key])
+    assert stored_payload["flow"] == "telegram_account_link"
+    assert stored_payload["status"] == "pending"
+    assert stored_payload["user_id"] == str(auth_user.id)
+    assert fake_redis.ttls[redis_key] == 300
+
+
+@pytest.mark.asyncio
+async def test_complete_telegram_account_link_accepts_pending_session_from_bot_secret(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_redis = _FakeRedis()
+    redis_key = "telegram_account_link:link_token_123"
+    fake_redis.values[redis_key] = json.dumps(
+        {
+            "flow": "telegram_account_link",
+            "status": "pending",
+            "user_id": str(_DEFAULT_AUTH_USER_ID),
+            "auth_realm_id": None,
+            "created_at": "2026-06-18T00:00:00+00:00",
+        }
+    )
+    fake_redis.ttls[redis_key] = 240
+    _override_dependencies(fake_redis)
+    monkeypatch.setattr(settings, "telegram_bot_internal_secret", SecretStr("test-bot-secret"))
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/oauth/telegram/account-link/magic-link/complete",
+            headers={"X-Telegram-Bot-Secret": "test-bot-secret"},
+            json={
+                "token": "link_token_123",
+                "id": "424242",
+                "first_name": "Alice",
+                "last_name": "Doe",
+                "username": "alice",
+                "language_code": "en",
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"status": "accepted"}
+    stored_payload = json.loads(fake_redis.values[redis_key])
+    assert stored_payload["status"] == "confirmed"
+    assert stored_payload["telegram"]["id"] == "424242"
+    assert stored_payload["telegram"]["username"] == "alice"
+    assert fake_redis.ttls[redis_key] == 240
+
+
+@pytest.mark.asyncio
+async def test_check_telegram_account_link_status_rejects_wrong_owner():
+    fake_redis = _FakeRedis()
+    token = "wrong_owner_link_token"
+    redis_key = f"telegram_account_link:{token}"
+    fake_redis.values[redis_key] = json.dumps(
+        {
+            "flow": "telegram_account_link",
+            "status": "confirmed",
+            "user_id": str(uuid4()),
+            "auth_realm_id": None,
+            "created_at": "2026-06-18T00:00:00+00:00",
+            "telegram": {"id": "424242", "username": "alice"},
+        }
+    )
+    fake_redis.ttls[redis_key] = 180
+    _override_dependencies(fake_redis, auth_user=_MockAuthUser(_DEFAULT_AUTH_USER_ID), db=_FakeDb())
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get(f"/api/v1/oauth/telegram/account-link/magic-link/{token}/status")
+
+    assert response.status_code == 403
+    stored_payload = json.loads(fake_redis.values[redis_key])
+    assert stored_payload["status"] == "confirmed"
+    assert "processing_token" not in stored_payload
+
+
+@pytest.mark.asyncio
+async def test_check_telegram_account_link_status_links_without_login_cookies():
+    fake_redis = _FakeRedis()
+    token = "confirmed_link_token"
+    redis_key = f"telegram_account_link:{token}"
+    fake_redis.values[redis_key] = json.dumps(
+        {
+            "flow": "telegram_account_link",
+            "status": "confirmed",
+            "user_id": str(_DEFAULT_AUTH_USER_ID),
+            "auth_realm_id": None,
+            "created_at": "2026-06-18T00:00:00+00:00",
+            "telegram": {
+                "id": "424242",
+                "first_name": "Alice",
+                "username": "alice",
+                "language_code": "en",
+            },
+        }
+    )
+    fake_redis.ttls[redis_key] = 180
+    fake_db = _FakeDb()
+    _override_dependencies(fake_redis, auth_user=_MockAuthUser(_DEFAULT_AUTH_USER_ID), db=fake_db)
+
+    with patch(
+        "src.presentation.api.v1.oauth.routes.TelegramAccountLinkingUseCase.link_account",
+        new=AsyncMock(return_value=SimpleNamespace()),
+    ) as mock_link:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get(f"/api/v1/oauth/telegram/account-link/magic-link/{token}/status")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "status": "linked",
+        "provider": "telegram",
+        "provider_user_id": "424242",
+    }
+    mock_link.assert_awaited_once()
+    assert fake_db.commits == 1
+    assert "set-cookie" not in response.headers
+    stored_payload = json.loads(fake_redis.values[redis_key])
+    assert stored_payload["status"] == "linked"
+    assert stored_payload["provider_user_id"] == "424242"
+
+
+@pytest.mark.asyncio
+async def test_check_telegram_account_link_status_returns_conflict_without_losing_payload():
+    fake_redis = _FakeRedis()
+    token = "conflict_link_token"
+    redis_key = f"telegram_account_link:{token}"
+    fake_redis.values[redis_key] = json.dumps(
+        {
+            "flow": "telegram_account_link",
+            "status": "confirmed",
+            "user_id": str(_DEFAULT_AUTH_USER_ID),
+            "auth_realm_id": None,
+            "created_at": "2026-06-18T00:00:00+00:00",
+            "telegram": {"id": "424242", "username": "alice"},
+        }
+    )
+    fake_redis.ttls[redis_key] = 180
+    fake_db = _FakeDb()
+    _override_dependencies(fake_redis, auth_user=_MockAuthUser(_DEFAULT_AUTH_USER_ID), db=fake_db)
+
+    with patch(
+        "src.presentation.api.v1.oauth.routes.TelegramAccountLinkingUseCase.link_account",
+        new=AsyncMock(
+            side_effect=TelegramAccountLinkConflictError("Telegram account is already linked to another user.")
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get(f"/api/v1/oauth/telegram/account-link/magic-link/{token}/status")
+
+    assert response.status_code == 409
+    assert fake_db.rollbacks == 1
+    stored_payload = json.loads(fake_redis.values[redis_key])
+    assert stored_payload["status"] == "conflict"
+    assert stored_payload["provider_user_id"] == "424242"
 
 
 @pytest.mark.asyncio

@@ -12,6 +12,7 @@ import { passkeysApi, type PasskeyPolicyResponse } from '@/lib/api';
 import {
   AuthFormCard,
   CyberInput,
+  CyberOtpInput,
   SocialAuthButtons,
   AuthDivider,
   RateLimitCountdown,
@@ -86,7 +87,6 @@ export function LoginClient() {
   );
   const errorRef = useRef<HTMLDivElement>(null);
   const loginIdentifierInputRef = useRef<HTMLInputElement>(null);
-  const twoFactorInputRef = useRef<HTMLInputElement>(null);
   const trackedOAuthEventRef = useRef<string | null>(null);
   const conditionalPasskeyStartedRef = useRef(false);
   const loginIdentifierValidation = validateLoginIdentifierInput(email);
@@ -197,12 +197,6 @@ export function LoginClient() {
       cancelled = true;
     };
   }, [isTwoFactorFlow, t]);
-
-  useEffect(() => {
-    if (twoFactorSessionState === 'ready') {
-      twoFactorInputRef.current?.focus();
-    }
-  }, [twoFactorSessionState]);
 
   useEffect(() => {
     const activeError = twoFactorError || passkeyError || oauthErrorMessage || error;
@@ -386,6 +380,9 @@ export function LoginClient() {
       setTwoFactorError(t('twoFactorSessionExpired'));
       return;
     }
+    if (twoFactorCode.length !== 6) {
+      return;
+    }
 
     setIsCompletingTwoFactor(true);
     setTwoFactorError(null);
@@ -497,20 +494,20 @@ export function LoginClient() {
               <p className="text-center text-sm font-mono text-muted-foreground">
                 {t('twoFactorInfo')}
               </p>
-              <CyberInput
-                ref={twoFactorInputRef}
-                label={t('twoFactorCodeLabel')}
-                type="text"
-                inputMode="numeric"
-                prefix="2fa"
-                placeholder={t('twoFactorCodePlaceholder')}
-                value={twoFactorCode}
-                onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                required
-                autoComplete="one-time-code"
-                disabled={isCompletingTwoFactor}
-                className="mobile-form-input"
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-mono text-muted-foreground">
+                  {t('twoFactorCodeLabel')}
+                </label>
+                <CyberOtpInput
+                  value={twoFactorCode}
+                  onChange={setTwoFactorCode}
+                  maxLength={6}
+                  error={Boolean(twoFactorError)}
+                  disabled={isCompletingTwoFactor}
+                  autoFocus
+                  ariaLabel={t('twoFactorCodeLabel')}
+                />
+              </div>
               <motion.div
                 whileHover={{ scale: isCompletingTwoFactor ? 1 : 1.01 }}
                 whileTap={{ scale: isCompletingTwoFactor ? 1 : 0.99 }}

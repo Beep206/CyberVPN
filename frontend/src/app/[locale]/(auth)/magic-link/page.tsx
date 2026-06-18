@@ -196,6 +196,8 @@ export default function MagicLinkPage() {
                                 }}
                                 onComplete={handleVerifyCode}
                                 error={!!otpError}
+                                disabled={isVerifyingCode || isRateLimited}
+                                ariaLabel={t('orEnterCode')}
                             />
 
                             <AnimatePresence>

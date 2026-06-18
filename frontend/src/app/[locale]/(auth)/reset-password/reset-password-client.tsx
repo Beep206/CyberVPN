@@ -160,7 +160,14 @@ export function ResetPasswordClient() {
         />
         <div className="space-y-2">
           <label className="block text-sm font-mono text-muted-foreground">{t('codeLabel')}</label>
-          <CyberOtpInput value={code} onChange={setCode} maxLength={6} error={!!error} />
+          <CyberOtpInput
+            value={code}
+            onChange={setCode}
+            maxLength={6}
+            error={!!error}
+            disabled={isLoading || isRateLimited}
+            ariaLabel={t('codeLabel')}
+          />
         </div>
         <CyberInput
           label={t('newPasswordLabel')}

@@ -254,6 +254,46 @@ describe('ReferralCabinetDashboard', () => {
     expect(screen.queryByText('giftsTitle')).not.toBeInTheDocument();
   });
 
+  it('pairs gift checkout and gift list panels in the gifts route layout', () => {
+    clientCapabilitiesMock.data.growth.gift_codes = true;
+
+    render(<ReferralCabinetDashboard view="gifts" />);
+
+    const giftPurchasePanel = screen
+      .getAllByText('giftPurchase.action')[0]
+      .closest('article');
+    const giftListPanel = screen.getByText('giftsTitle').closest('article');
+
+    expect(giftPurchasePanel?.parentElement).toHaveClass('contents');
+    expect(giftListPanel?.parentElement).toHaveClass('contents');
+  });
+
+  it('uses full-width single-column layouts for focused code, invite, and notification routes', () => {
+    clientCapabilitiesMock.data.growth.gift_codes = true;
+    clientCapabilitiesMock.data.growth.invites = true;
+
+    const { unmount: unmountCodes } = render(
+      <ReferralCabinetDashboard view="codes" />,
+    );
+    expect(screen.getByText('redeemTitle').closest('section')).toHaveClass(
+      'xl:grid-cols-1',
+    );
+    unmountCodes();
+
+    const { unmount: unmountInvites } = render(
+      <ReferralCabinetDashboard view="invites" />,
+    );
+    expect(screen.getByText('invitesTitle').closest('section')).toHaveClass(
+      'xl:grid-cols-1',
+    );
+    unmountInvites();
+
+    render(<ReferralCabinetDashboard view="notifications" />);
+    expect(screen.getByText('notifications.title').closest('section')).toHaveClass(
+      'xl:grid-cols-1',
+    );
+  });
+
   it('copies referral code through the Clipboard API', async () => {
     render(<ReferralCabinetDashboard />);
 

@@ -103,10 +103,10 @@ export function CyberSidebar() {
                     />
 
                     <span className="relative min-w-0 flex-1">
-                        <span className="relative block tracking-wide">
+                        <span className="relative block uppercase tracking-wide">
                             <CypherText
                                 text={label}
-                                className="transition-colors duration-300 group-hover:text-neon-cyan"
+                                className="uppercase transition-colors duration-300 group-hover:text-neon-cyan"
                                 speed={30}
                             />
                             {!isDisabled ? (

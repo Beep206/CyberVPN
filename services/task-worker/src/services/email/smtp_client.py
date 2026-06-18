@@ -1,14 +1,17 @@
 """SMTP email client for development/testing with Mailpit cluster."""
 
 import smtplib
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import parseaddr
 from typing import Any
 
 import redis.asyncio as aioredis
 import structlog
 
 from src.config import get_settings
+from src.services.email.privacy import recipient_log_fields
 from src.services.email.templates import (
     render_growth_notification_template,
     render_magic_link_template,
@@ -31,7 +34,8 @@ class SmtpClientError(Exception):
 
 class SmtpClient:
     """
-    SMTP client for sending emails via Mailpit in dev/test mode.
+    SMTP client for sending emails via Mailpit in dev/test mode or the
+    configured cyber-vpn.net SMTP primary route outside dev mode.
 
     Supports round-robin server rotation for testing email provider failover.
     Each call to send_otp uses the next server in the rotation.
@@ -44,14 +48,24 @@ class SmtpClient:
 
     def __init__(self) -> None:
         settings = get_settings()
+        self._email_dev_mode = settings.email_dev_mode
         self._servers = settings.smtp_servers
-        self._from_email = settings.smtp_from_email
+        self._host = settings.smtp_host
+        self._port = int(settings.smtp_port)
+        self._starttls = False if self._email_dev_mode else bool(settings.smtp_starttls)
+        self._use_ssl = False if self._email_dev_mode else bool(settings.smtp_use_ssl)
+        self._auth_username = "" if self._email_dev_mode else settings.smtp_auth_username.strip()
+        self._auth_password = ""
+        if not self._email_dev_mode and settings.smtp_auth_password is not None:
+            self._auth_password = settings.smtp_auth_password.get_secret_value()
+        self._from_email = settings.smtp_from_email if self._email_dev_mode else settings.smtp_system_from_email
         self._redis_url = settings.redis_url
         self._redis: aioredis.Redis | None = None
 
     async def __aenter__(self) -> "SmtpClient":
-        # Connect to Redis for persistent counter
-        self._redis = await aioredis.from_url(self._redis_url)
+        # Connect to Redis only for dev Mailpit round-robin state.
+        if self._email_dev_mode:
+            self._redis = aioredis.from_url(self._redis_url)
         return self
 
     async def __aexit__(self, *args: Any) -> None:
@@ -68,6 +82,9 @@ class SmtpClient:
         Returns:
             Tuple of (host, port, index) where index is the 0-based server index.
         """
+        if not self._email_dev_mode:
+            return (self._host, self._port, 0)
+
         if not self._servers:
             return ("localhost", 1025, 0)
 
@@ -95,6 +112,30 @@ class SmtpClient:
 
         return (host, port, index)
 
+    def _server_id(self, index: int) -> str:
+        if self._email_dev_mode:
+            return f"mailpit-{index + 1}"
+        return "smtp-primary"
+
+    def _envelope_sender(self) -> str:
+        parsed_sender = parseaddr(self._from_email)[1]
+        return parsed_sender or self._from_email
+
+    def _send_message(self, *, host: str, port: int, recipient: str, message: MIMEMultipart) -> None:
+        context = ssl.create_default_context()
+        smtp_cls = smtplib.SMTP_SSL if self._use_ssl else smtplib.SMTP
+        smtp_kwargs: dict[str, Any] = {"timeout": 10}
+        if self._use_ssl:
+            smtp_kwargs["context"] = context
+
+        with smtp_cls(host, port, **smtp_kwargs) as server:
+            if self._starttls and not self._use_ssl:
+                server.starttls(context=context)
+                server.ehlo()
+            if self._auth_username or self._auth_password:
+                server.login(self._auth_username, self._auth_password)
+            server.sendmail(self._envelope_sender(), [recipient], message.as_string())
+
     async def send_otp(
         self,
         email: str,
@@ -119,14 +160,15 @@ class SmtpClient:
             SmtpClientError: If SMTP send fails
         """
         host, port, index = await self._get_next_server()
-        server_id = f"mailpit-{index + 1}"
+        server_id = self._server_id(index)
+        recipient_fields = recipient_log_fields(email)
 
         logger.info(
             "smtp_sending_otp",
-            email=email,
             server=f"{host}:{port}",
             server_id=server_id,
             server_index=index,
+            **recipient_fields,
         )
 
         html_content = self._render_otp_template(code, expires_in, locale, activation_url=activation_url)
@@ -138,7 +180,6 @@ class SmtpClient:
         msg["From"] = self._from_email
         msg["To"] = email
         msg["X-Mailpit-Server"] = server_id
-        msg["X-OTP-Code"] = code  # For easy filtering in Mailpit UI
 
         # Plain text version
         text_part = MIMEText(
@@ -152,14 +193,13 @@ class SmtpClient:
         msg.attach(html_part)
 
         try:
-            with smtplib.SMTP(host, port, timeout=10) as server:
-                server.sendmail(self._from_email, [email], msg.as_string())
+            self._send_message(host=host, port=port, recipient=email, message=msg)
 
             logger.info(
                 "smtp_otp_sent",
-                email=email,
                 server=f"{host}:{port}",
                 server_id=server_id,
+                **recipient_fields,
             )
 
             return {
@@ -173,9 +213,9 @@ class SmtpClient:
         except Exception as e:
             logger.error(
                 "smtp_send_failed",
-                email=email,
                 server=f"{host}:{port}",
                 error=str(e),
+                **recipient_fields,
             )
             raise SmtpClientError(f"SMTP send failed: {e}", server=f"{host}:{port}") from e
 
@@ -204,13 +244,14 @@ class SmtpClient:
             SmtpClientError: If SMTP send fails
         """
         host, port, index = await self._get_next_server()
-        server_id = f"mailpit-{index + 1}"
+        server_id = self._server_id(index)
+        recipient_fields = recipient_log_fields(email)
 
         logger.info(
             "smtp_sending_magic_link",
-            email=email,
             server=f"{host}:{port}",
             server_id=server_id,
+            **recipient_fields,
         )
 
         html_content = self._render_magic_link_template(magic_link_url, expires_in, locale, otp_code)
@@ -222,8 +263,6 @@ class SmtpClient:
         msg["To"] = email
         msg["X-Mailpit-Server"] = server_id
         msg["X-Magic-Link"] = "true"
-        if otp_code:
-            msg["X-OTP-Code"] = otp_code
 
         otp_text = f"\n\nOr enter this code: {otp_code}" if otp_code else ""
         text_part = MIMEText(
@@ -236,14 +275,13 @@ class SmtpClient:
         msg.attach(html_part)
 
         try:
-            with smtplib.SMTP(host, port, timeout=10) as server:
-                server.sendmail(self._from_email, [email], msg.as_string())
+            self._send_message(host=host, port=port, recipient=email, message=msg)
 
             logger.info(
                 "smtp_magic_link_sent",
-                email=email,
                 server=f"{host}:{port}",
                 server_id=server_id,
+                **recipient_fields,
             )
 
             return {
@@ -257,9 +295,9 @@ class SmtpClient:
         except Exception as e:
             logger.error(
                 "smtp_magic_link_failed",
-                email=email,
                 server=f"{host}:{port}",
                 error=str(e),
+                **recipient_fields,
             )
             raise SmtpClientError(f"SMTP send failed: {e}", server=f"{host}:{port}") from e
 
@@ -272,13 +310,14 @@ class SmtpClient:
     ) -> dict[str, Any]:
         """Send password reset OTP email via SMTP."""
         host, port, index = await self._get_next_server()
-        server_id = f"mailpit-{index + 1}"
+        server_id = self._server_id(index)
+        recipient_fields = recipient_log_fields(email)
 
         logger.info(
             "smtp_sending_password_reset",
-            email=email,
             server=f"{host}:{port}",
             server_id=server_id,
+            **recipient_fields,
         )
 
         html_content = self._render_password_reset_template(code, expires_in, locale)
@@ -290,7 +329,6 @@ class SmtpClient:
         msg["To"] = email
         msg["X-Mailpit-Server"] = server_id
         msg["X-Password-Reset"] = "true"
-        msg["X-OTP-Code"] = code
 
         text_part = MIMEText(
             f"Use this CyberVPN password reset code: {code}\n\nThis code expires in {expires_in}.",
@@ -300,14 +338,13 @@ class SmtpClient:
         msg.attach(MIMEText(html_content, "html"))
 
         try:
-            with smtplib.SMTP(host, port, timeout=10) as server:
-                server.sendmail(self._from_email, [email], msg.as_string())
+            self._send_message(host=host, port=port, recipient=email, message=msg)
 
             logger.info(
                 "smtp_password_reset_sent",
-                email=email,
                 server=f"{host}:{port}",
                 server_id=server_id,
+                **recipient_fields,
             )
             return {
                 "id": f"smtp_{server_id}_{index}",
@@ -319,9 +356,9 @@ class SmtpClient:
         except Exception as e:
             logger.error(
                 "smtp_password_reset_failed",
-                email=email,
                 server=f"{host}:{port}",
                 error=str(e),
+                **recipient_fields,
             )
             raise SmtpClientError(f"SMTP send failed: {e}", server=f"{host}:{port}") from e
 
@@ -338,13 +375,14 @@ class SmtpClient:
     ) -> dict[str, Any]:
         """Send a growth-notification email via SMTP."""
         host, port, index = await self._get_next_server()
-        server_id = f"mailpit-{index + 1}"
+        server_id = self._server_id(index)
+        recipient_fields = recipient_log_fields(email)
 
         logger.info(
             "smtp_sending_growth_notification",
-            email=email,
             server=f"{host}:{port}",
             server_id=server_id,
+            **recipient_fields,
         )
 
         msg = MIMEMultipart("alternative")
@@ -375,14 +413,13 @@ class SmtpClient:
         )
 
         try:
-            with smtplib.SMTP(host, port, timeout=10) as server:
-                server.sendmail(self._from_email, [email], msg.as_string())
+            self._send_message(host=host, port=port, recipient=email, message=msg)
 
             logger.info(
                 "smtp_growth_notification_sent",
-                email=email,
                 server=f"{host}:{port}",
                 server_id=server_id,
+                **recipient_fields,
             )
 
             return {
@@ -396,9 +433,9 @@ class SmtpClient:
         except Exception as e:
             logger.error(
                 "smtp_growth_notification_failed",
-                email=email,
                 server=f"{host}:{port}",
                 error=str(e),
+                **recipient_fields,
             )
             raise SmtpClientError(f"SMTP send failed: {e}", server=f"{host}:{port}") from e
 

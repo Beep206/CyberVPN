@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Modal } from '@/shared/ui/modal';
 import { CyberInput } from '@/features/auth/components/CyberInput';
+import { CyberOtpInput } from '@/features/auth/components/CyberOtpInput';
 import { twofaApi } from '@/lib/api/twofa';
 import { motion } from 'motion/react';
 import { ShieldCheck, Key, Copy, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
@@ -326,18 +327,21 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
 
             {/* Verify Code Input */}
             <div className="space-y-4">
-              <CyberInput
-                label={t('code.label')}
-                type="text"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
-                prefix="2fa"
-                error={error}
-                disabled={loading || rateLimitSeconds !== null}
-                maxLength={6}
-                onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-mono text-muted-foreground">
+                  {t('code.label')}
+                </label>
+                <CyberOtpInput
+                  value={totpCode}
+                  onChange={setTotpCode}
+                  maxLength={6}
+                  error={Boolean(error)}
+                  disabled={loading || rateLimitSeconds !== null}
+                  autoFocus
+                  ariaLabel={t('code.label')}
+                  onEnter={handleVerify}
+                />
+              </div>
 
               {rateLimitSeconds !== null && (
                 <motion.div
@@ -446,18 +450,20 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
                 disabled={loading || rateLimitSeconds !== null}
               />
 
-              <CyberInput
-                label={t('code.disableLabel')}
-                type="text"
-                value={disableTotpCode}
-                onChange={(e) => setDisableTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
-                prefix="2fa"
-                error={error}
-                disabled={loading || rateLimitSeconds !== null}
-                maxLength={6}
-                onKeyDown={(e) => e.key === 'Enter' && handleDisable()}
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-mono text-muted-foreground">
+                  {t('code.disableLabel')}
+                </label>
+                <CyberOtpInput
+                  value={disableTotpCode}
+                  onChange={setDisableTotpCode}
+                  maxLength={6}
+                  error={Boolean(error)}
+                  disabled={loading || rateLimitSeconds !== null}
+                  ariaLabel={t('code.disableLabel')}
+                  onEnter={handleDisable}
+                />
+              </div>
 
               {rateLimitSeconds !== null && (
                 <motion.div

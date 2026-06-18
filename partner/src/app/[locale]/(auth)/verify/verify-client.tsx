@@ -160,7 +160,14 @@ export function VerifyClient() {
           <label className="block text-sm font-mono text-muted-foreground">
             {t('codeLabel')}
           </label>
-          <CyberOtpInput value={code} onChange={setCode} maxLength={6} error={Boolean(localError || error)} />
+          <CyberOtpInput
+            value={code}
+            onChange={setCode}
+            maxLength={6}
+            error={Boolean(localError || error)}
+            disabled={isLoading}
+            ariaLabel={t('codeLabel')}
+          />
           {attemptsRemaining !== null ? (
             <p className="text-center text-xs font-mono text-yellow-400">
               {t('attemptsRemaining', { count: attemptsRemaining })}

@@ -1,11 +1,13 @@
 """Unit tests for auth email delivery metrics emitted by worker tasks."""
 
+import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.metrics import EMAIL_SEND_CONTEXT_TOTAL, EMAIL_SEND_ERRORS, EMAIL_SEND_TOTAL, OTP_EMAILS_SENT
-from src.tasks.email.send_magic_link import send_magic_link_email
+from src.tasks.email.payloads import EMAIL_TASK_PAYLOAD_KEY_PREFIX, EmailTaskPayload
+from src.tasks.email.send_magic_link import _build_magic_link_url, send_magic_link_email
 from src.tasks.email.send_otp import _build_activation_url, send_otp_email
 from src.tasks.email.send_password_reset import send_password_reset_email
 
@@ -22,7 +24,21 @@ def test_build_activation_url_targets_locale_verify_page():
         locale="ru-RU",
     )
 
-    assert url == "https://cyber-vpn.net/ru-RU/verify?email=new.user%40example.com&code=123456"
+    assert url == "https://cyber-vpn.net/ru-RU/verify"
+    assert "new.user@example.com" not in url
+    assert "123456" not in url
+    assert "?" not in url
+
+
+def test_build_magic_link_url_uses_fragment_token_not_query_string():
+    url = _build_magic_link_url(
+        base_url="https://cyber-vpn.net/",
+        locale="en-EN",
+        token="magic/token+value",  # noqa: S106 - synthetic test token
+    )
+
+    assert url == "https://cyber-vpn.net/en-EN/magic-link/verify#token=magic%2Ftoken%2Bvalue"
+    assert "magic-link/verify?token" not in url
 
 
 class _SuccessfulSmtpClient:
@@ -53,7 +69,7 @@ class _FailingSmtpClient:
         raise TimeoutError("smtp timed out")
 
 
-class _SuccessfulApiClient:
+class _SuccessfulResendClient:
     async def __aenter__(self):
         return self
 
@@ -144,16 +160,18 @@ async def test_send_otp_email_emits_success_metrics():
 
 
 @pytest.mark.asyncio
-async def test_send_otp_resend_falls_back_to_resend_when_brevo_is_not_configured():
-    """A resend request must still deliver during S2 when Brevo credentials are absent."""
+async def test_send_otp_uses_resend_only_for_explicit_fallback_policy():
+    """A resend request may use Resend only when fallback policy is explicitly enabled."""
     settings = MagicMock()
     settings.email_dev_mode = False
-    settings.brevo_api_key = None
+    settings.email_resend_fallback_enabled = True
+    settings.resend_api_key.get_secret_value.return_value = "ValidResendProviderToken"
+    settings.magic_link_base_url = "https://cyber-vpn.net"
 
     with patch("src.tasks.email.send_otp.get_settings", return_value=settings), patch(
         "src.tasks.email.send_otp.ResendClient",
-        _SuccessfulApiClient,
-    ), patch("src.tasks.email.send_otp.BrevoClient", _UnexpectedApiClient):
+        _SuccessfulResendClient,
+    ), patch("src.tasks.email.send_otp.SmtpClient", _UnexpectedApiClient):
         result = await send_otp_email.original_func(
             email="metrics@example.com",
             otp_code="123456",
@@ -165,6 +183,92 @@ async def test_send_otp_resend_falls_back_to_resend_when_brevo_is_not_configured
     assert result["success"] is True
     assert result["provider"] == "resend"
     assert result["message_id"] == "msg-resend-fallback-1"
+
+
+@pytest.mark.asyncio
+async def test_send_otp_resend_request_stays_on_smtp_without_fallback_policy():
+    """A resend-code user action is not enough to route through Resend by itself."""
+    settings = MagicMock()
+    settings.email_dev_mode = False
+    settings.email_resend_fallback_enabled = False
+    settings.magic_link_base_url = "https://cyber-vpn.net"
+
+    with patch("src.tasks.email.send_otp.get_settings", return_value=settings), patch(
+        "src.tasks.email.send_otp.SmtpClient",
+        _SuccessfulSmtpClient,
+    ), patch("src.tasks.email.send_otp.ResendClient", _UnexpectedApiClient):
+        result = await send_otp_email.original_func(
+            email="metrics@example.com",
+            otp_code="123456",
+            locale="en-EN",
+            is_resend=True,
+            channel="web",
+        )
+
+    assert result["success"] is True
+    assert result["provider"] == "smtp"
+    assert result["message_id"] == "msg-otp-1"
+
+
+@pytest.mark.asyncio
+async def test_send_otp_email_consumes_payload_ref_after_success():
+    settings = MagicMock()
+    settings.email_dev_mode = True
+    settings.magic_link_base_url = "https://cyber-vpn.net"
+    payload_ref = f"{EMAIL_TASK_PAYLOAD_KEY_PREFIX}{uuid.uuid4()}"
+    payload = EmailTaskPayload(
+        kind="otp",
+        email="metrics@example.com",
+        otp_code="123456",
+        locale="en-EN",
+        channel="web",
+    )
+
+    with (
+        patch("src.tasks.email.send_otp.get_settings", return_value=settings),
+        patch("src.tasks.email.send_otp.SmtpClient", _SuccessfulSmtpClient),
+        patch("src.tasks.email.send_otp.claim_email_task_payload") as claim_payload,
+        patch("src.tasks.email.send_otp.resolve_email_task_payload", return_value=payload) as resolve_payload,
+        patch("src.tasks.email.send_otp.consume_email_task_payload") as consume_payload,
+        patch("src.tasks.email.send_otp.release_email_task_payload") as release_payload,
+    ):
+        result = await send_otp_email.original_func(payload_ref=payload_ref)
+
+    assert result["success"] is True
+    claim_payload.assert_awaited_once_with(payload_ref)
+    resolve_payload.assert_awaited_once_with(payload_ref, expected_kind="otp")
+    consume_payload.assert_awaited_once_with(payload_ref)
+    release_payload.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_send_otp_email_releases_payload_ref_after_provider_failure():
+    settings = MagicMock()
+    settings.email_dev_mode = True
+    settings.magic_link_base_url = "https://cyber-vpn.net"
+    payload_ref = f"{EMAIL_TASK_PAYLOAD_KEY_PREFIX}{uuid.uuid4()}"
+    payload = EmailTaskPayload(
+        kind="otp",
+        email="metrics@example.com",
+        otp_code="123456",
+        locale="en-EN",
+        channel="web",
+    )
+
+    with (
+        patch("src.tasks.email.send_otp.get_settings", return_value=settings),
+        patch("src.tasks.email.send_otp.SmtpClient", _FailingSmtpClient),
+        patch("src.tasks.email.send_otp.claim_email_task_payload") as claim_payload,
+        patch("src.tasks.email.send_otp.resolve_email_task_payload", return_value=payload),
+        patch("src.tasks.email.send_otp.consume_email_task_payload") as consume_payload,
+        patch("src.tasks.email.send_otp.release_email_task_payload") as release_payload,
+        pytest.raises(TimeoutError),
+    ):
+        await send_otp_email.original_func(payload_ref=payload_ref)
+
+    claim_payload.assert_awaited_once_with(payload_ref)
+    consume_payload.assert_not_awaited()
+    release_payload.assert_awaited_once_with(payload_ref)
 
 
 @pytest.mark.asyncio
@@ -363,3 +467,23 @@ async def test_send_password_reset_email_emits_success_metrics():
         )
         == before_context_total + 1
     )
+
+
+@pytest.mark.asyncio
+async def test_send_password_reset_email_uses_smtp_primary_outside_dev():
+    settings = MagicMock()
+    settings.email_dev_mode = False
+
+    with patch("src.tasks.email.send_password_reset.get_settings", return_value=settings), patch(
+        "src.tasks.email.send_password_reset.SmtpClient",
+        _SuccessfulSmtpClient,
+    ):
+        result = await send_password_reset_email.original_func(
+            email="metrics@example.com",
+            otp_code="123456",
+            locale="en-EN",
+            channel="web",
+        )
+
+    assert result["success"] is True
+    assert result["provider"] == "smtp"

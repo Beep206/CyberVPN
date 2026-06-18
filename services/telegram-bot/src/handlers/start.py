@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -23,8 +24,25 @@ logger = structlog.get_logger(__name__)
 router = Router(name="start")
 
 AUTH_LINK_PREFIX = "auth_"
+ACCOUNT_LINK_PREFIX = "link_"
 LEGACY_LOGIN_LINK_PREFIX = "login_"
-AUTH_LINK_PAYLOAD_PREFIXES = (AUTH_LINK_PREFIX, LEGACY_LOGIN_LINK_PREFIX)
+AUTH_LINK_PAYLOAD_PREFIXES = (AUTH_LINK_PREFIX, ACCOUNT_LINK_PREFIX, LEGACY_LOGIN_LINK_PREFIX)
+
+
+def _token_fingerprint(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()[:12]
+
+
+def _account_link_message_key_for_error(exc: APIError) -> str:
+    if exc.status_code == 404:
+        return "telegram-account-link-expired"
+    if exc.status_code == 409:
+        return "telegram-account-link-conflict"
+    if exc.status_code == 429:
+        return "telegram-account-link-rate-limited"
+    if exc.status_code in {401, 403}:
+        return "telegram-account-link-service-unavailable"
+    return "telegram-account-link-service-unavailable"
 
 
 def _get_start_payload(message: Message, command: CommandObject) -> str | None:
@@ -76,6 +94,10 @@ def _is_auth_magic_link_payload(start_payload: str | None) -> bool:
     return bool(start_payload and start_payload.startswith(AUTH_LINK_PREFIX))
 
 
+def _is_account_link_payload(start_payload: str | None) -> bool:
+    return bool(start_payload and start_payload.startswith(ACCOUNT_LINK_PREFIX))
+
+
 def _is_legacy_login_link_payload(start_payload: str | None) -> bool:
     return bool(start_payload and start_payload.startswith(LEGACY_LOGIN_LINK_PREFIX))
 
@@ -103,6 +125,43 @@ async def _handle_start(
     start_payload = _get_start_payload(message, command)
     direct_offer = _parse_subscription_offer_payload(start_payload)
 
+    if _is_account_link_payload(start_payload):
+        token = (start_payload or "").removeprefix(ACCOUNT_LINK_PREFIX).strip()
+        if not token:
+            await message.answer(i18n.get("telegram-account-link-expired"))
+            logger.warning("account_link_empty_token", user_id=user_id)
+            return
+
+        try:
+            await api_client.complete_telegram_account_link(
+                token=token,
+                telegram_id=user_id,
+                first_name=first_name,
+                last_name=last_name or None,
+                username=username or None,
+                language_code=language_code,
+            )
+        except APIError as exc:
+            logger.warning(
+                "account_link_failed",
+                user_id=user_id,
+                status_code=exc.status_code,
+                detail=exc.detail,
+                token_fingerprint=_token_fingerprint(token),
+            )
+            await message.answer(i18n.get(_account_link_message_key_for_error(exc)))
+            logger.info("start_command_completed", user_id=user_id, flow="account_link", status="failed")
+            return
+
+        await message.answer(i18n.get("telegram-account-link-success"))
+        logger.info(
+            "account_link_success",
+            user_id=user_id,
+            token_fingerprint=_token_fingerprint(token),
+        )
+        logger.info("start_command_completed", user_id=user_id, flow="account_link")
+        return
+
     if _is_auth_magic_link_payload(start_payload):
         token = (start_payload or "").removeprefix(AUTH_LINK_PREFIX).strip()
         if not token:
@@ -126,6 +185,7 @@ async def _handle_start(
                 user_id=user_id,
                 status_code=exc.status_code,
                 detail=exc.detail,
+                token_fingerprint=_token_fingerprint(token),
             )
             await message.answer(
                 i18n.get("telegram-auth-link-invalid"),
