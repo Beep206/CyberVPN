@@ -8,11 +8,32 @@ type ReferralStatsResponse = operations['get_referral_stats_api_v1_referral_stat
 type ReferralCommissionResponse = operations['get_recent_commissions_api_v1_referral_recent_get']['responses'][200]['content']['application/json'];
 type ReferralRewardsResponse = operations['get_referral_rewards_api_v1_referral_rewards_get']['responses'][200]['content']['application/json'];
 
+export type ReferralClaimStatus = 'already_claimed' | 'claimed' | 'no_pending';
+
+export type ReferralClaimResponse = {
+  referral_code: string | null;
+  referrer_user_id: string | null;
+  status: ReferralClaimStatus;
+};
+
 /**
  * Referral Program API client
  * Manages user referral codes, earnings, and commission tracking
  */
 export const referralApi = {
+  /**
+   * Claim a pending first-touch referral after authentication.
+   * POST /api/v1/referral/claim
+   *
+   * The backend prefers its HttpOnly attribution cookie and treats the
+   * optional body value only as a localStorage recovery fallback.
+   */
+  claimAttribution: (referralCode?: string | null) =>
+    apiClient.post<ReferralClaimResponse>(
+      '/referral/claim',
+      referralCode ? { referral_code: referralCode } : {},
+    ),
+
   /**
    * Get referral program status
    * GET /api/v1/referral/status
