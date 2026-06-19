@@ -3361,7 +3361,7 @@
       "identity": {
         "description": "Telegram remains the primary support and commerce identity where available.",
         "eyebrow": "Linked identity",
-        "telegramLinked": "Telegram linked: {id}",
+        "telegramLinked": "Telegram linked: {telegram}",
         "telegramMissing": "Telegram is not linked to this account.",
         "title": "External accounts"
       },

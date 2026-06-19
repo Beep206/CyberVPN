@@ -288,6 +288,7 @@ describe('SettingsCabinetDashboard', () => {
         is_email_verified: true,
         status: 'active',
         telegram_id: 777,
+        telegram_username: 'Sasha_Beep',
       },
     });
     apiMocks.getTwoFactorStatus.mockResolvedValue({ data: { status: 'enabled' } });
@@ -362,7 +363,9 @@ describe('SettingsCabinetDashboard', () => {
     expect(screen.getByRole('option', { name: 'UTC (UTC+00:00)' })).toHaveValue('UTC');
     expect(screen.getByText('14677650')).toBeInTheDocument();
     expect(screen.queryByText('7d871bc5-af6c-49b2-a3e6-e77eec938021')).not.toBeInTheDocument();
-    expect(screen.getByText(/identity.telegramLinked/)).toBeInTheDocument();
+    expect(
+      screen.getByText('identity.telegramLinked {"telegram":"@Sasha_Beep / ID 777"}'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'actions.openSecurity' })).toHaveAttribute(
       'href',
       '/settings/security',
@@ -753,6 +756,7 @@ describe('SettingsCabinetDashboard', () => {
           is_email_verified: true,
           status: 'active',
           telegram_id: 424242,
+          telegram_username: 'Linked_User',
         },
       });
 

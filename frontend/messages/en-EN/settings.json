@@ -180,7 +180,7 @@
             "eyebrow": "Linked identity",
             "title": "External accounts",
             "description": "Telegram remains the primary support and commerce identity where available.",
-            "telegramLinked": "Telegram linked: {id}",
+            "telegramLinked": "Telegram linked: {telegram}",
             "telegramMissing": "Telegram is not linked to this account."
         },
         "privacy": {

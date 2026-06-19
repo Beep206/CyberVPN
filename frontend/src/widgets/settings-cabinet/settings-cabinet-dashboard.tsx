@@ -73,6 +73,19 @@ const SECURITY_STALE_MS = 45_000;
 const TELEGRAM_ACCOUNT_LINK_POLL_INTERVAL_MS = 2_000;
 const TELEGRAM_ACCOUNT_LINK_MAX_POLLS = 150;
 
+function formatTelegramIdentity(telegramId?: number | null, telegramUsername?: string | null) {
+  if (!telegramId) {
+    return null;
+  }
+
+  const normalizedUsername = telegramUsername?.trim().replace(/^@+/, '');
+  if (!normalizedUsername) {
+    return `ID ${telegramId}`;
+  }
+
+  return `@${normalizedUsername} / ID ${telegramId}`;
+}
+
 const toneClasses: Record<StatusTone, { border: string; fill: string; text: string }> = {
   amber: {
     border: 'border-amber-400/30',
@@ -304,6 +317,7 @@ export function SettingsCabinetDashboard({
 
   const profile = profileQuery.data ?? null;
   const user = userQuery.data ?? null;
+  const telegramIdentity = formatTelegramIdentity(user?.telegram_id, user?.telegram_username);
   const twoFactorStatus = twoFactorQuery.data ?? null;
   const antiphishingCode = antiphishingQuery.data ?? null;
   const passkeyPolicy = passkeyPolicyQuery.data ?? null;
@@ -1472,8 +1486,8 @@ export function SettingsCabinetDashboard({
                 <div>
                   <p className="font-mono text-sm text-white">Telegram</p>
                   <p className="mt-1 font-mono text-xs leading-6 text-muted-foreground">
-                    {user?.telegram_id
-                      ? t('identity.telegramLinked', { id: String(user.telegram_id) })
+                    {telegramIdentity
+                      ? t('identity.telegramLinked', { telegram: telegramIdentity })
                       : t('identity.telegramMissing')}
                   </p>
                 </div>

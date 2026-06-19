@@ -180,7 +180,7 @@
             "eyebrow": "Связанная идентичность",
             "title": "Внешние аккаунты",
             "description": "Telegram остаётся основным support и commerce identity там, где доступен.",
-            "telegramLinked": "Telegram привязан: {id}",
+            "telegramLinked": "Telegram привязан: {telegram}",
             "telegramMissing": "Telegram не привязан к этому аккаунту."
         },
         "privacy": {
