@@ -48,18 +48,18 @@ const commission = (overrides: Partial<ReferralCommission>): ReferralCommission 
 });
 
 describe('referral-cabinet-model', () => {
-  it('builds referral links and share text without guessing backend eligibility', () => {
+  it('builds onboarding referral links and share text without guessing backend eligibility', () => {
     const link = buildReferralLink({
       code: 'ABC 123',
       origin: 'https://cybervpn.example/',
     });
 
-    expect(link).toBe('https://cybervpn.example/referral?code=ABC%20123');
+    expect(link).toBe('https://cybervpn.example/register?ref=ABC%20123');
     expect(buildShareText('Use {code}: {link}', 'ABC123', link)).toBe(
-      'Use ABC123: https://cybervpn.example/referral?code=ABC%20123',
+      'Use ABC123: https://cybervpn.example/register?ref=ABC%20123',
     );
     expect(buildReferralLink({ code: '  CODE+PLUS  ' })).toBe(
-      'https://cybervpn.example/referral?code=CODE%2BPLUS',
+      'https://cybervpn.example/register?ref=CODE%2BPLUS',
     );
     expect(
       buildReferralLink({
@@ -67,7 +67,7 @@ describe('referral-cabinet-model', () => {
         fallbackOrigin: 'https://fallback.example/',
         origin: '',
       }),
-    ).toBe('/referral?code=VIP');
+    ).toBe('/register?ref=VIP');
   });
 
   it('normalizes reward lifecycle statuses and tones', () => {
