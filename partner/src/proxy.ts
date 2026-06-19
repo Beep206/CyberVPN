@@ -6,9 +6,12 @@ import {
   isPortalWorkspacePath,
   isRetiredGenericPortalSectionPath,
   isStorefrontPublicPath,
+  getCanonicalPartnerSurfaceHost,
+  type PartnerSurfaceContext,
   resolvePartnerSurfaceContext,
 } from '@/features/storefront-shell/lib/runtime';
 import { getRetiredLegacyAdminRouteTarget } from '@/features/partner-shell/lib/legacy-route-retirement';
+import { buildExternalRequestRedirectUrl } from '@/shared/lib/redirect-url';
 import { canPartnerSurfaceAccess } from '@/shared/lib/surface-policy';
 
 const intlMiddleware = createMiddleware({
@@ -16,6 +19,43 @@ const intlMiddleware = createMiddleware({
   defaultLocale,
   localePrefix: 'always',
 });
+
+const LOCAL_SURFACE_HOSTS = [
+  'localhost',
+  '127.0.0.1',
+  'portal.localhost',
+  'storefront.localhost',
+] as const;
+
+function getHostname(host: string): string {
+  try {
+    return new URL(`http://${host}`).hostname.toLowerCase().replace(/\.$/, '');
+  } catch {
+    return host.replace(/:\d+$/, '').toLowerCase().replace(/\.$/, '');
+  }
+}
+
+function isLocalSurfaceHost(host: string): boolean {
+  const hostname = getHostname(host);
+  return LOCAL_SURFACE_HOSTS.includes(hostname as (typeof LOCAL_SURFACE_HOSTS)[number]);
+}
+
+function getSurfaceRedirectUrl(
+  request: NextRequest,
+  surfaceContext: PartnerSurfaceContext,
+  pathname: string,
+  options: { preserveSearch?: boolean } = {},
+): URL {
+  const canonicalHost = getCanonicalPartnerSurfaceHost(surfaceContext);
+  const fallbackOrigin = `${isLocalSurfaceHost(canonicalHost) ? 'http' : 'https'}://${canonicalHost}`;
+  const allowedHosts = new Set<string>([canonicalHost, ...LOCAL_SURFACE_HOSTS]);
+
+  return buildExternalRequestRedirectUrl(request, fallbackOrigin, {
+    pathname,
+    preserveSearch: options.preserveSearch,
+    allowedHosts,
+  });
+}
 
 /**
  * Next.js 16 proxy function for routing.
@@ -36,11 +76,16 @@ export function proxy(request: NextRequest) {
   const locale = localeLikePathMatch?.[1];
 
   if (locale && !locales.includes(locale as (typeof locales)[number])) {
-    const normalizedUrl = request.nextUrl.clone();
     const remainder = localeLikePathMatch?.[2] ?? '';
-    normalizedUrl.pathname = remainder ? `/${defaultLocale}${remainder}` : `/${defaultLocale}/login`;
 
-    return NextResponse.redirect(normalizedUrl);
+    return NextResponse.redirect(
+      getSurfaceRedirectUrl(
+        request,
+        surfaceContext,
+        remainder ? `/${defaultLocale}${remainder}` : `/${defaultLocale}/login`,
+        { preserveSearch: true },
+      ),
+    );
   }
 
   const retiredLegacyAdminTarget = locale
@@ -48,13 +93,16 @@ export function proxy(request: NextRequest) {
     : null;
 
   if (retiredLegacyAdminTarget) {
-    const retirementUrl = request.nextUrl.clone();
-    retirementUrl.pathname = canPartnerSurfaceAccess(surfaceContext.family, 'workspace_navigation')
-      ? `/${locale}${retiredLegacyAdminTarget}`
-      : `/${locale}`;
-    retirementUrl.search = '';
-
-    return NextResponse.redirect(retirementUrl);
+    return NextResponse.redirect(
+      getSurfaceRedirectUrl(
+        request,
+        surfaceContext,
+        canPartnerSurfaceAccess(surfaceContext.family, 'workspace_navigation')
+          ? `/${locale}${retiredLegacyAdminTarget}`
+          : `/${locale}`,
+        { preserveSearch: false },
+      ),
+    );
   }
 
   if (
@@ -73,11 +121,11 @@ export function proxy(request: NextRequest) {
     && locale
     && locales.includes(locale as (typeof locales)[number])
   ) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = `/${locale}/login`;
-    loginUrl.search = '';
-
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(
+      getSurfaceRedirectUrl(request, surfaceContext, `/${locale}/login`, {
+        preserveSearch: false,
+      }),
+    );
   }
 
   if (
@@ -85,11 +133,11 @@ export function proxy(request: NextRequest) {
     && isPortalWorkspacePath(request.nextUrl.pathname)
     && locale
   ) {
-    const storefrontUrl = request.nextUrl.clone();
-    storefrontUrl.pathname = `/${locale}`;
-    storefrontUrl.search = '';
-
-    return NextResponse.redirect(storefrontUrl);
+    return NextResponse.redirect(
+      getSurfaceRedirectUrl(request, surfaceContext, `/${locale}`, {
+        preserveSearch: false,
+      }),
+    );
   }
 
   if (
@@ -97,11 +145,11 @@ export function proxy(request: NextRequest) {
     && isStorefrontPublicPath(request.nextUrl.pathname)
     && locale
   ) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = `/${locale}/login`;
-    loginUrl.search = '';
-
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(
+      getSurfaceRedirectUrl(request, surfaceContext, `/${locale}/login`, {
+        preserveSearch: false,
+      }),
+    );
   }
 
   return intlMiddleware(request);

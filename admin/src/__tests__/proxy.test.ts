@@ -14,15 +14,28 @@ vi.mock('@/i18n/config', () => ({
 // Import after mocks
 const { proxy } = await import('../proxy');
 
-function createRequest(path: string, cookies?: Record<string, string>): NextRequest {
-  const url = new URL(path, 'http://localhost:3001');
-  const req = new NextRequest(url);
+function createRequest(
+  path: string,
+  cookies?: Record<string, string>,
+  baseUrl = 'http://localhost:3001',
+  headers?: HeadersInit,
+): NextRequest {
+  const url = new URL(path, baseUrl);
+  const req = new NextRequest(url, { headers });
   if (cookies) {
     for (const [name, value] of Object.entries(cookies)) {
       req.cookies.set(name, value);
     }
   }
   return req;
+}
+
+function createProxiedRequest(path: string, forwardedHost: string): NextRequest {
+  return createRequest(path, undefined, 'http://cybervpn-admin:3001', {
+    host: 'cybervpn-admin:3001',
+    'x-forwarded-host': forwardedHost,
+    'x-forwarded-proto': 'https',
+  });
 }
 
 describe('proxy routing', () => {
@@ -32,6 +45,14 @@ describe('proxy routing', () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('http://localhost:3001/en-EN/login');
+  });
+
+  it('redirects production proxied localized root without leaking the app port', () => {
+    const req = createProxiedRequest('/en-EN', 'admin.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://admin.cyber-vpn.net/en-EN/login');
   });
 
   it('passes dashboard route through to intlMiddleware (auth handled by AuthGuard)', () => {
@@ -72,5 +93,21 @@ describe('proxy routing', () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('http://localhost:3001/ru-RU/login');
+  });
+
+  it('normalizes production proxied unsupported locale prefixes without leaking the app port', () => {
+    const req = createProxiedRequest('/zh-CN/login?next=%2Fen-EN', 'admin.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://admin.cyber-vpn.net/ru-RU/login?next=%2Fen-EN');
+  });
+
+  it('falls back to canonical admin origin for untrusted forwarded hosts', () => {
+    const req = createProxiedRequest('/zh-CN/login', 'evil.example');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://admin.cyber-vpn.net/ru-RU/login');
   });
 });

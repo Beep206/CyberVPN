@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { QueryProvider } from '@/app/providers/query-provider';
 import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
@@ -7,6 +6,7 @@ import { getCachedTranslations } from '@/i18n/server';
 import { AuthSceneLoader } from '@/features/auth/components/AuthSceneLoader';
 import { MiniAppNavGuard } from '@/features/auth/components/MiniAppNavGuard';
 import { TelegramMiniAppAuthProvider } from '@/features/auth/components/TelegramMiniAppAuthProvider';
+import { getPublicHomeHref } from '@/features/auth/lib/public-home-url';
 import { LanguageSelector } from '@/features/language-selector';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 import { ThemeToggle } from '@/features/theme-toggle';
@@ -36,6 +36,7 @@ export default async function AuthLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const publicHomeHref = getPublicHomeHref(locale);
 
   return (
     <ScopedIntlProvider locale={locale} namespaces={AUTH_CLIENT_NAMESPACES}>
@@ -47,23 +48,23 @@ export default async function AuthLayout({
 
         <MiniAppNavGuard>
           <nav className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between pt-[calc(var(--safe-area-top)+1rem)] pr-[calc(var(--mobile-page-gutter)+var(--safe-area-right))] pb-4 pl-[calc(var(--mobile-page-gutter)+var(--safe-area-left))] md:px-6 md:pb-6">
-            <Link
-              href="/"
+            <a
+              href={publicHomeHref}
               aria-label="Back to home"
               className="touch-target inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-mono text-sm group rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
             >
               <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
               <span className="hidden sm:inline">back_to_home</span>
-            </Link>
+            </a>
 
-            <Link href="/" aria-label="CyberVPN home" className="touch-target absolute left-1/2 -translate-x-1/2 inline-flex items-center gap-2 group rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]">
+            <a href={publicHomeHref} aria-label="CyberVPN home" className="touch-target absolute left-1/2 -translate-x-1/2 inline-flex items-center gap-2 group rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]">
               <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 group-hover:border-neon-cyan/60 transition-colors">
                 <Shield className="h-4 w-4 text-neon-cyan" />
               </div>
               <span className="font-display text-lg font-bold tracking-tight text-foreground hidden sm:inline">
                 Cyber<span className="text-neon-cyan">VPN</span>
               </span>
-            </Link>
+            </a>
 
             <div className="flex items-center gap-3">
               <ThemeToggle />

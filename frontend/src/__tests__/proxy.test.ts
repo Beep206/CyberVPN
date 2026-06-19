@@ -32,6 +32,14 @@ function createRequest(
   return req;
 }
 
+function createProxiedRequest(path: string, forwardedHost: string): NextRequest {
+  return createRequest(path, undefined, 'http://cybervpn-frontend:3000', {
+    host: 'cybervpn-frontend:3000',
+    'x-forwarded-host': forwardedHost,
+    'x-forwarded-proto': 'https',
+  });
+}
+
 describe('proxy routing', () => {
   it('passes dashboard route through on cabinet host (auth handled by AuthGuard)', () => {
     const req = createRequest('/en-EN/dashboard/servers', undefined, 'https://my.cyber-vpn.net');
@@ -90,7 +98,15 @@ describe('proxy routing', () => {
     const res = proxy(req);
 
     expect(res.status).toBe(307);
-    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net:9001/en-EN/dashboard?tab=ops');
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/en-EN/dashboard?tab=ops');
+  });
+
+  it('redirects production proxied public dashboard routes without leaking the app port', () => {
+    const req = createProxiedRequest('/en-EN/dashboard?tab=ops', 'cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/en-EN/dashboard?tab=ops');
   });
 
   it('redirects public delete-account route to cabinet host', () => {
@@ -141,7 +157,15 @@ describe('proxy routing', () => {
     const res = proxy(req);
 
     expect(res.status).toBe(307);
-    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net:9001/en-EN/dashboard');
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/en-EN/dashboard');
+  });
+
+  it('redirects production proxied cabinet root without leaking the app port', () => {
+    const req = createProxiedRequest('/', 'my.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/en-EN/dashboard');
   });
 
   it('keeps public marketing routes canonical on public host', () => {
@@ -157,5 +181,21 @@ describe('proxy routing', () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('https://cyber-vpn.net/ru-RU/pricing');
+  });
+
+  it('redirects production proxied cabinet marketing routes to public origin without leaking the app port', () => {
+    const req = createProxiedRequest('/ru-RU/pricing?currency=RUB', 'my.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://cyber-vpn.net/ru-RU/pricing?currency=RUB');
+  });
+
+  it('does not reflect an untrusted forwarded host into redirect locations', () => {
+    const req = createProxiedRequest('/ru-RU/dashboard', 'evil.example');
+    const res = proxy(req);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
   });
 });

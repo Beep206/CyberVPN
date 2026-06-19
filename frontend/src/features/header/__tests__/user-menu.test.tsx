@@ -72,6 +72,7 @@ function readMessage(path: string) {
 }
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'ru-RU',
   useTranslations: (namespace: string) => (key: string, params?: Record<string, string>) => {
     const value = readMessage(`${namespace}.${key}`);
     const template = typeof value === 'string' ? value : key;
@@ -196,7 +197,7 @@ describe('UserMenu', () => {
     expect(screen.queryByText(/7d871bc5/)).not.toBeInTheDocument();
   });
 
-  it('redirects away from authenticated UI before logout attempt finishes', async () => {
+  it('redirects to localized login after logout attempt finishes', async () => {
     const user = userEvent.setup();
     let resolveLogout: () => void;
     apiMocks.logout.mockReturnValueOnce(
@@ -213,14 +214,14 @@ describe('UserMenu', () => {
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
 
     expect(apiMocks.logout).toHaveBeenCalledTimes(1);
-    expect(apiMocks.push).toHaveBeenCalledWith('/');
-    expect(apiMocks.refresh).toHaveBeenCalledTimes(1);
+    expect(window.location.replace).not.toHaveBeenCalled();
 
     resolveLogout!();
 
     await waitFor(() => {
-      expect(apiMocks.push).toHaveBeenCalledWith('/');
+      expect(window.location.replace).toHaveBeenCalledWith('/ru-RU/login');
     });
-    expect(apiMocks.refresh).toHaveBeenCalledTimes(1);
+    expect(apiMocks.push).not.toHaveBeenCalled();
+    expect(apiMocks.refresh).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getCanonicalPartnerSurfaceHost,
   isPortalWorkspacePath,
   isRetiredGenericPortalSectionPath,
   isStorefrontPublicPath,
@@ -42,6 +43,18 @@ describe('storefront runtime resolution', () => {
 
   it('normalizes mixed-case request hosts', () => {
     expect(normalizeRequestHost('HTTPS://Storefront.Localhost:3002/checkout')).toBe('storefront.localhost:3002');
+  });
+
+  it('normalizes the first proxy host and rejects unsafe authority input', () => {
+    expect(normalizeRequestHost('Partner.Cyber-VPN.Net, cybervpn-partner:3002')).toBe('partner.cyber-vpn.net');
+    expect(normalizeRequestHost('evil.example@partner.cyber-vpn.net')).toBe('localhost:3002');
+  });
+
+  it('uses the default canonical storefront host for unknown aliases', () => {
+    const context = resolvePartnerSurfaceContext('evil.example');
+
+    expect(context.family).toBe('storefront');
+    expect(getCanonicalPartnerSurfaceHost(context)).toBe('storefront.cyber-vpn.net');
   });
 });
 

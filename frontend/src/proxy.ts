@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { locales, defaultLocale } from '@/i18n/config';
+import {
+  buildCanonicalRedirectUrl,
+  buildExternalRequestRedirectUrl,
+} from '@/shared/lib/redirect-url';
+import { SITE_URL } from '@/shared/lib/seo-route-policy';
 
 const intlMiddleware = createMiddleware({
   locales,
@@ -13,6 +18,14 @@ const ADMIN_REDIRECT_ONLY_HOST = 'admin.cyber-vpn.org';
 const PUBLIC_PRIMARY_HOST = 'cyber-vpn.net';
 const PUBLIC_WWW_HOST = 'www.cyber-vpn.net';
 const CABINET_PRIMARY_HOST = 'my.cyber-vpn.net';
+const ADMIN_ORIGIN = `https://${ADMIN_PRIMARY_HOST}`;
+const PUBLIC_ORIGIN = SITE_URL;
+const CABINET_ORIGIN = `https://${CABINET_PRIMARY_HOST}`;
+const CABINET_REDIRECT_ALLOWED_HOSTS = new Set([
+  CABINET_PRIMARY_HOST,
+  'localhost',
+  '127.0.0.1',
+]);
 
 const CABINET_ROUTE_SEGMENTS = new Set([
   'analytics',
@@ -82,10 +95,10 @@ function normalizeHostnameCandidate(candidate?: string | null): string | null {
 
 function normalizedHostname(request: NextRequest): string {
   return (
-    // In local/runtime proxy requests, nextUrl can point at the listener while
-    // Host carries the externally requested authority that isolation depends on.
-    normalizeHostnameCandidate(request.headers.get('host'))
-    ?? normalizeHostnameCandidate(request.headers.get('x-forwarded-host'))
+    // In production proxy requests, nextUrl/Host can point at the internal
+    // listener while X-Forwarded-Host carries the external authority.
+    normalizeHostnameCandidate(request.headers.get('x-forwarded-host'))
+    ?? normalizeHostnameCandidate(request.headers.get('host'))
     ?? normalizeHostnameCandidate(request.nextUrl.host)
     ?? request.nextUrl.hostname.toLowerCase()
   );
@@ -114,10 +127,7 @@ export function proxy(request: NextRequest) {
   const hostname = normalizedHostname(request);
 
   if (hostname === ADMIN_REDIRECT_ONLY_HOST) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.protocol = 'https:';
-    redirectUrl.hostname = ADMIN_PRIMARY_HOST;
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(buildCanonicalRedirectUrl(request, ADMIN_ORIGIN));
   }
 
   const routeSegment = getRouteSegment(request.nextUrl.pathname);
@@ -126,19 +136,17 @@ export function proxy(request: NextRequest) {
     (hostname === PUBLIC_PRIMARY_HOST || hostname === PUBLIC_WWW_HOST)
     && CABINET_ROUTE_SEGMENTS.has(routeSegment)
   ) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.protocol = 'https:';
-    redirectUrl.hostname = CABINET_PRIMARY_HOST;
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(buildCanonicalRedirectUrl(request, CABINET_ORIGIN));
   }
 
   if (hostname === CABINET_PRIMARY_HOST) {
     if (!routeSegment) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.protocol = 'https:';
-      redirectUrl.hostname = CABINET_PRIMARY_HOST;
-      redirectUrl.pathname = `/${defaultLocale}/dashboard`;
-      return NextResponse.redirect(redirectUrl);
+      return NextResponse.redirect(
+        buildExternalRequestRedirectUrl(request, CABINET_ORIGIN, {
+          pathname: `/${defaultLocale}/dashboard`,
+          allowedHosts: CABINET_REDIRECT_ALLOWED_HOSTS,
+        }),
+      );
     }
 
     if (
@@ -146,10 +154,7 @@ export function proxy(request: NextRequest) {
       && !AUTH_ROUTE_SEGMENTS.has(routeSegment)
       && !CABINET_ROUTE_SEGMENTS.has(routeSegment)
     ) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.protocol = 'https:';
-      redirectUrl.hostname = PUBLIC_PRIMARY_HOST;
-      return NextResponse.redirect(redirectUrl);
+      return NextResponse.redirect(buildCanonicalRedirectUrl(request, PUBLIC_ORIGIN));
     }
   }
 

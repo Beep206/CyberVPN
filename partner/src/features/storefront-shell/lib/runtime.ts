@@ -158,11 +158,28 @@ export function normalizeRequestHost(rawHost: string | null | undefined): string
     return PARTNER_PORTAL_LOCAL_HOSTS[0];
   }
 
-  return rawHost
-    .trim()
+  const authority = rawHost
+    .split(',')[0]
+    ?.trim()
     .toLowerCase()
     .replace(/^https?:\/\//, '')
     .replace(/\/.*$/, '');
+
+  if (!authority || /[\r\n]/.test(authority) || authority.includes('\\') || authority.includes('@')) {
+    return PARTNER_PORTAL_LOCAL_HOSTS[0];
+  }
+
+  try {
+    const parsed = new URL(`http://${authority}`);
+    const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
+
+    return parsed.port ? `${hostname}:${parsed.port}` : hostname;
+  } catch {
+    return authority
+      .trim()
+      .toLowerCase()
+      .replace(/\.$/, '');
+  }
 }
 
 function isLocalizedPathSegment(pathname: string): boolean {
@@ -251,6 +268,10 @@ export function resolvePartnerSurfaceContext(rawHost: string | null | undefined)
   }
 
   return buildStorefrontContext(host, DEFAULT_STOREFRONT_PUBLIC_HOST);
+}
+
+export function getCanonicalPartnerSurfaceHost(context: PartnerSurfaceContext): string {
+  return context.family === 'storefront' ? context.canonicalHost : context.host;
 }
 
 export function isPortalWorkspacePath(pathname: string): boolean {

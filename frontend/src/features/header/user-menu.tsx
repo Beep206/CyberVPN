@@ -11,8 +11,7 @@ import {
   UserCircle,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { useAuthStore } from '@/stores/auth-store';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
@@ -48,12 +47,13 @@ function getInitials(value: string, fallback: string) {
 export function UserMenu() {
     const [isOpen, setIsOpen] = useState(false);
     const t = useTranslations('Header.userMenu');
-    const router = useRouter();
+    const locale = useLocale();
     const queryClient = useQueryClient();
     const user = useAuthStore((state) => state.user);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const logout = useAuthStore((state) => state.logout);
     const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
     const profileQuery = useQuery({
@@ -78,15 +78,21 @@ export function UserMenu() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        if (isLoggingOut) {
+            return;
+        }
+
         setIsOpen(false);
-        const logoutAttempt = logout();
-        queryClient.clear();
-        router.replace('/');
-        router.refresh();
-        void logoutAttempt.catch(() => {
+        setIsLoggingOut(true);
+        try {
+            await logout();
+        } catch {
             // Local auth state is cleared by the store even if revoke fails.
-        });
+        } finally {
+            queryClient.clear();
+            window.location.replace(`/${locale}/login`);
+        }
     };
 
     const profileDisplayName = profileQuery.data?.display_name?.trim();
@@ -281,7 +287,12 @@ export function UserMenu() {
                             <div className="p-2 border-t border-border/50 dark:border-white/5 mt-1 bg-muted/30 dark:bg-black/20">
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300 transition-all group"
+                                    disabled={isLoggingOut}
+                                    aria-busy={isLoggingOut}
+                                    className={cn(
+                                        "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300 transition-all group",
+                                        isLoggingOut && "pointer-events-none opacity-70",
+                                    )}
                                 >
                                     <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                                     <span>{t('signOut')}</span>

@@ -18,15 +18,21 @@ function createRequest(
   path: string,
   options?: {
     host?: string;
+    runtimeHost?: string;
+    forwardedHost?: string;
+    forwardedProto?: string;
     cookies?: Record<string, string>;
   },
 ): NextRequest {
   const host = options?.host ?? 'localhost:3002';
-  const url = new URL(path, `http://${host}`);
+  const runtimeHost = options?.runtimeHost ?? host;
+  const forwardedHost = options?.forwardedHost ?? host;
+  const url = new URL(path, `http://${runtimeHost}`);
   const req = new NextRequest(url, {
     headers: {
-      host,
-      'x-forwarded-host': host,
+      host: runtimeHost,
+      'x-forwarded-host': forwardedHost,
+      ...(options?.forwardedProto ? { 'x-forwarded-proto': options.forwardedProto } : {}),
     },
   });
   if (options?.cookies) {
@@ -37,6 +43,14 @@ function createRequest(
   return req;
 }
 
+function createProxiedRequest(path: string, forwardedHost: string): NextRequest {
+  return createRequest(path, {
+    runtimeHost: 'cybervpn-partner:3002',
+    forwardedHost,
+    forwardedProto: 'https',
+  });
+}
+
 describe('proxy routing', () => {
   it('redirects localized root routes to localized login', () => {
     const req = createRequest('/en-EN');
@@ -44,6 +58,14 @@ describe('proxy routing', () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('http://localhost:3002/en-EN/login');
+  });
+
+  it('redirects production proxied localized root without leaking the app port', () => {
+    const req = createProxiedRequest('/en-EN', 'partner.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://partner.cyber-vpn.net/en-EN/login');
   });
 
   it('keeps localized root on storefront hosts for public storefront rendering', () => {
@@ -151,11 +173,35 @@ describe('proxy routing', () => {
     expect(res.headers.get('location')).toBe('http://localhost:3002/ru-RU/login');
   });
 
+  it('redirects production proxied storefront commerce routes without leaking the app port', () => {
+    const req = createProxiedRequest('/ru-RU/checkout?plan=plus', 'partner.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://partner.cyber-vpn.net/ru-RU/login');
+  });
+
   it('normalizes unsupported locale prefixes to the default locale', () => {
     const req = createRequest('/zh-CN/login');
     const res = proxy(req);
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('http://localhost:3002/ru-RU/login');
+  });
+
+  it('normalizes production proxied unsupported locale prefixes without leaking the app port', () => {
+    const req = createProxiedRequest('/zh-CN/login?next=%2Fen-EN', 'partner.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://partner.cyber-vpn.net/ru-RU/login?next=%2Fen-EN');
+  });
+
+  it('falls back to the canonical storefront host instead of reflecting unknown forwarded hosts', () => {
+    const req = createProxiedRequest('/zh-CN/login', 'evil.example');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://storefront.cyber-vpn.net/ru-RU/login');
   });
 });
