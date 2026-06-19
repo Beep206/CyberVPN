@@ -1,0 +1,10 @@
+[Unit]
+Description=Alternative CyberVPN SMTP submission socket on port 2587
+Documentation=man:systemd.socket(5)
+
+[Socket]
+ListenStream=2587
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target

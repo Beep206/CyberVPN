@@ -1,0 +1,13 @@
+[Unit]
+Description=Proxy alternative CyberVPN SMTP submission port 2587 to Stalwart 587
+Documentation=man:systemd-socket-proxyd(8)
+Requires=stalwart-submission-alt.socket
+After=stalwart.service
+
+[Service]
+ExecStart=/lib/systemd/systemd-socket-proxyd 127.0.0.1:587
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

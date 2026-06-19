@@ -17,6 +17,16 @@ Date: 2026-06-18
 - Explicit fallback route: `resend` only when the task has `is_resend=true` and `EMAIL_RESEND_FALLBACK_ENABLED=true`.
 - Automatic provider fallback after SMTP send failure was not added, to avoid duplicate OTP/magic-link/password-reset sends when provider acceptance state is uncertain.
 
+## Production Hotfix Notes
+
+Date: 2026-06-19
+
+- Production `cybervpn-worker` failed closed when required SMTP auth env was missing after this routing change.
+- The rented production app host could not reach `mail.cyber-vpn.net` on standard SMTP submission ports, while the mail server itself was healthy.
+- Production now uses `SMTP_PORT=2587`, documented in `docs/runbooks/PRODUCTION_AUTH_EMAIL_DELIVERY_RUNBOOK.md`.
+- The mail server exposes `2587` through the committed systemd socket-proxy units in `infra/mail/stalwart-submission-alt.socket` and `infra/mail/stalwart-submission-alt.service`.
+- No mailbox passwords, SMTP credentials, OTP codes, or customer mailbox contents are committed.
+
 ## Context7 Docs Checked
 
 - Context7 MCP result: monthly quota exceeded.
