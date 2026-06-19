@@ -174,7 +174,7 @@ export function buildReferralLink({
 }): string {
   const safeCode = code.trim();
   const safeOrigin = (origin ?? fallbackOrigin).replace(/\/$/, '');
-  return `${safeOrigin}/referral?code=${encodeURIComponent(safeCode)}`;
+  return `${safeOrigin}/register?ref=${encodeURIComponent(safeCode)}`;
 }
 
 export function buildShareText(template: string, code: string, link: string): string {
