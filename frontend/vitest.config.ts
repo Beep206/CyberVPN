@@ -13,6 +13,11 @@ const resolveWorkspaceDependency = (...segments: string[]) => {
 };
 
 const browserTestDeps = [
+  'react',
+  'react/jsx-runtime',
+  'react/jsx-dev-runtime',
+  'react-dom',
+  'react-dom/client',
   '@tanstack/react-query',
   '@testing-library/dom',
   '@testing-library/jest-dom/vitest',
