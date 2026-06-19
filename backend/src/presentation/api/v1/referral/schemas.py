@@ -1,9 +1,10 @@
 """Pydantic v2 schemas for the referral API."""
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ReferralStatusResponse(BaseModel):
@@ -15,6 +16,16 @@ class ReferralStatusResponse(BaseModel):
 
 class ReferralCodeResponse(BaseModel):
     referral_code: str
+
+
+class ReferralClaimRequest(BaseModel):
+    referral_code: str | None = Field(default=None, max_length=64)
+
+
+class ReferralClaimResponse(BaseModel):
+    status: Literal["claimed", "already_claimed", "no_pending"]
+    referral_code: str | None = None
+    referrer_user_id: UUID | None = None
 
 
 class ReferralStatsResponse(BaseModel):
