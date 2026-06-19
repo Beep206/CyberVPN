@@ -88,6 +88,34 @@ describe('proxy routing', () => {
     expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/ru-RU/support');
   });
 
+  it('redirects short referral links to localized cabinet registration', () => {
+    const req = createRequest('/r/CYBER42?utm_source=share', undefined, 'https://cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe(
+      'https://my.cyber-vpn.net/en-EN/register?ref=CYBER42&utm_source=share',
+    );
+  });
+
+  it('redirects localized short referral links without losing locale', () => {
+    const req = createRequest('/ru-RU/r/CYBER42', undefined, 'https://cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/ru-RU/register?ref=CYBER42');
+  });
+
+  it('redirects legacy referral code URLs to canonical cabinet registration', () => {
+    const req = createRequest('/ru-RU/referral?code=CYBER42&utm_campaign=friend', undefined, 'https://cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe(
+      'https://my.cyber-vpn.net/ru-RU/register?ref=CYBER42&utm_campaign=friend',
+    );
+  });
+
   it('redirects public dashboard route by Host header when runtime URL is local', () => {
     const req = createRequest(
       '/en-EN/dashboard?tab=ops',

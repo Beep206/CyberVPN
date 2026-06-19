@@ -714,6 +714,9 @@ async def initialize_realm_test_database(engine) -> None:
                 subscription_url TEXT,
                 referral_code TEXT UNIQUE,
                 referred_by_user_id TEXT,
+                referral_claimed_at TEXT,
+                referral_source_code_id TEXT,
+                referral_attribution_session_id TEXT,
                 partner_user_id TEXT,
                 partner_account_id TEXT,
                 is_partner INTEGER NOT NULL DEFAULT 0,
@@ -727,6 +730,8 @@ async def initialize_realm_test_database(engine) -> None:
                 last_login_at TEXT,
                 FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id),
                 FOREIGN KEY (referred_by_user_id) REFERENCES mobile_users(id),
+                FOREIGN KEY (referral_source_code_id) REFERENCES growth_codes(id),
+                FOREIGN KEY (referral_attribution_session_id) REFERENCES referral_attribution_sessions(id),
                 FOREIGN KEY (partner_user_id) REFERENCES mobile_users(id),
                 FOREIGN KEY (partner_account_id) REFERENCES partner_accounts(id)
             )
@@ -734,6 +739,14 @@ async def initialize_realm_test_database(engine) -> None:
         )
         conn.exec_driver_sql("CREATE UNIQUE INDEX ix_mobile_users_public_uid ON mobile_users(public_uid)")
         conn.exec_driver_sql("CREATE INDEX ix_mobile_users_auth_realm_id ON mobile_users(auth_realm_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_mobile_users_referred_by_user_id ON mobile_users(referred_by_user_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_mobile_users_referral_source_code_id ON mobile_users(referral_source_code_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_mobile_users_referral_attribution_session_id "
+            "ON mobile_users(referral_attribution_session_id)"
+        )
         conn.exec_driver_sql("CREATE INDEX ix_mobile_users_partner_account_id ON mobile_users(partner_account_id)")
         conn.exec_driver_sql(
             """
@@ -1023,6 +1036,47 @@ async def initialize_realm_test_database(engine) -> None:
             "ON growth_code_touchpoints(converted_to_signup_at)",
             "CREATE INDEX ix_growth_code_touchpoints_converted_to_order_id "
             "ON growth_code_touchpoints(converted_to_order_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE referral_attribution_sessions (
+                id TEXT PRIMARY KEY,
+                token_hash TEXT NOT NULL UNIQUE,
+                growth_code_id TEXT NOT NULL,
+                growth_code_touchpoint_id TEXT,
+                referrer_user_id TEXT NOT NULL,
+                claimed_by_user_id TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                source_host TEXT,
+                source_path TEXT,
+                campaign_params TEXT NOT NULL DEFAULT '{}',
+                evidence_payload TEXT NOT NULL DEFAULT '{}',
+                first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT NOT NULL,
+                claimed_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                FOREIGN KEY (growth_code_touchpoint_id) REFERENCES growth_code_touchpoints(id) ON DELETE SET NULL,
+                FOREIGN KEY (referrer_user_id) REFERENCES mobile_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (claimed_by_user_id) REFERENCES mobile_users(id) ON DELETE SET NULL
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_referral_attr_sessions_token_hash ON referral_attribution_sessions(token_hash)",
+            "CREATE INDEX ix_referral_attr_sessions_growth_code_id ON referral_attribution_sessions(growth_code_id)",
+            "CREATE INDEX ix_referral_attr_sessions_growth_touchpoint_id "
+            "ON referral_attribution_sessions(growth_code_touchpoint_id)",
+            "CREATE INDEX ix_referral_attr_sessions_referrer_user_id "
+            "ON referral_attribution_sessions(referrer_user_id)",
+            "CREATE INDEX ix_referral_attr_sessions_claimed_by_user_id "
+            "ON referral_attribution_sessions(claimed_by_user_id)",
+            "CREATE INDEX ix_referral_attr_sessions_status ON referral_attribution_sessions(status)",
+            "CREATE INDEX ix_referral_attr_sessions_first_seen_at ON referral_attribution_sessions(first_seen_at)",
+            "CREATE INDEX ix_referral_attr_sessions_expires_at ON referral_attribution_sessions(expires_at)",
+            "CREATE INDEX ix_referral_attr_sessions_claimed_at ON referral_attribution_sessions(claimed_at)",
         ):
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(

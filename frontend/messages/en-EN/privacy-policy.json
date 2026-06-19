@@ -13,6 +13,7 @@
         "accountInfo": "Account and authentication data: email, username/display name, password hash, 2FA/TOTP state, Telegram ID/username where linked, OAuth provider identifiers and profile email where used.",
         "paymentInfo": "Commercial and payment data: plan, trial, subscription, wallet state, provider name, provider transaction identifiers, payment status, refund/dispute metadata and reconciliation records.",
         "deviceInfo": "Device, access and provisioning data: session identifiers, refresh-token metadata, device ID where provided, IP address and user-agent in auth/security logs, Remnawave user reference, subscription URL state and device credential state.",
+        "referralAttribution": "Referral attribution data: masked referral code, attribution session ID, referrer and referred account IDs, campaign parameters and claim timestamps used to apply referral rewards and prevent self-referral or partner attribution conflicts.",
         "usageStats": "Operational data: support tickets/staff notes, notification delivery state, audit logs, webhook payload snapshots, security/rate-limit events, backup presence and aggregated service health/traffic counters where enabled."
       }
     },

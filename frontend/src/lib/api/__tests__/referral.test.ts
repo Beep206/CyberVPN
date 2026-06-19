@@ -78,6 +78,75 @@ afterEach(() => {
 });
 
 // ===========================================================================
+// referralApi.captureAttribution / claimAttribution
+// ===========================================================================
+
+describe('referralApi.attribution', () => {
+  it('captures anonymous referral attribution', async () => {
+    server.use(
+      http.post(`${API_BASE}/referral/attribution/capture`, async ({ request }) => {
+        const body = await request.json() as { referral_code: string };
+        expect(body.referral_code).toBe('CYBER42');
+        return HttpResponse.json({
+          status: 'captured',
+          attribution_id: '11111111-1111-4111-8111-111111111111',
+          captured_at: '2026-06-19T00:00:00Z',
+          expires_at: '2026-07-19T00:00:00Z',
+          masked_code: 'CYBE****',
+        });
+      }),
+    );
+
+    const response = await referralApi.captureAttribution({
+      referral_code: 'CYBER42',
+      source_host: 'my.cyber-vpn.net',
+      source_path: '/ru-RU/register',
+      campaign_params: { utm_source: 'share' },
+    });
+
+    expect(response.data.status).toBe('captured');
+    expect(response.data.masked_code).toBe('CYBE****');
+  });
+
+  it('claims pending referral attribution with fallback code', async () => {
+    server.use(
+      http.post(`${API_BASE}/referral/attribution/claim`, async ({ request }) => {
+        const body = await request.json() as { fallback_referral_code?: string };
+        expect(body.fallback_referral_code).toBe('CYBER42');
+        return HttpResponse.json({
+          status: 'claimed',
+          referrer_user_id: '22222222-2222-4222-8222-222222222222',
+          claimed_at: '2026-06-19T00:01:00Z',
+        });
+      }),
+    );
+
+    const response = await referralApi.claimAttribution({
+      fallback_referral_code: 'CYBER42',
+    });
+
+    expect(response.data.status).toBe('claimed');
+    expect(response.data.referrer_user_id).toBe('22222222-2222-4222-8222-222222222222');
+  });
+
+  it('surfaces referral attribution domain errors', async () => {
+    server.use(
+      http.post(`${API_BASE}/referral/attribution/capture`, () => {
+        return HttpResponse.json(
+          { detail: { code: 'REFERRAL_CODE_NOT_FOUND', message: 'Referral code was not found.' } },
+          { status: 404 },
+        );
+      }),
+    );
+
+    await expect(referralApi.captureAttribution({
+      referral_code: 'MISSING',
+      campaign_params: {},
+    })).rejects.toThrow('Request failed with status code 404');
+  });
+});
+
+// ===========================================================================
 // referralApi.getStatus
 // ===========================================================================
 

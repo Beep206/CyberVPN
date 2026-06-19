@@ -371,6 +371,8 @@
       "passwordMismatch": "Passwords do not match",
       "passwordPlaceholder": "Create a password",
       "privacyLink": "Privacy Policy",
+      "referralAppliedCode": "Code: {code}",
+      "referralAppliedTitle": "Referral invitation applied",
       "registerModeEmail": "Email",
       "registerModeUsername": "Username Only",
       "signInLink": "Sign in",
@@ -518,6 +520,7 @@
           "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as {realm}_access_token and {realm}_refresh_token for web API sessions. Production behavior should be HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days unless production configuration changes and evidence is updated.",
           "locale": "Language and routing state: next-intl may use a locale cookie such as NEXT_LOCALE where enabled to remember the selected language/locale. The exact production cookie name, domain, path and lifetime should match browser cookie inventory evidence.",
           "observability": "Operational observability may include Sentry error/performance events, Web Vitals, internal traffic analytics and Telegram Mini App runtime analytics. Sentry is configured with sendDefaultPii=false, text/media replay masking and beforeSend PII scrubbing where enabled.",
+          "referralAttribution": "Referral attribution: cv_ref_attribution is an HttpOnly, SameSite=Lax referral capture cookie used to preserve a referral invite across signup and auth redirects. Browser localStorage key cybervpn.referral_attribution.v2 stores a masked referral code fallback when cookies are unavailable.",
           "telegram": "Telegram Mini App flows may receive Telegram initData and Telegram WebView/runtime information. Cookies or storage controlled by Telegram itself are governed by Telegram, not by CyberVPN.",
           "thirdParty": "Payment providers, OAuth providers, Telegram, Sentry, GA4, PostHog or other analytics/observability services may set or access their own storage on their own domains only where that provider is enabled. PostHog, GA4, marketing pixels and advertising tracking are disabled unless separately approved, consented where required and evidenced.",
           "transaction": "Short-lived browser flow cookies may be used for OAuth, Magic link/OTP, 2FA and checkout return handling, including oauth_tx, pending_2fa and oauth_result. CSRF protection validates Origin/Referer for unsafe cookie-authenticated API requests."
@@ -528,6 +531,7 @@
         "items": {
           "auth": "Auth cookie retention follows token configuration: access cookies default to 15 minutes and refresh cookies default to 7 days unless production configuration changes and evidence is updated.",
           "locale": "Locale and preference storage may remain until browser expiry, user clearing, logout or another configured lifetime confirmed by browser evidence.",
+          "referralAttribution": "Referral attribution cookie and localStorage fallback expire after 30 days or are cleared after a successful or terminal referral claim.",
           "telemetry": "Sentry, Web Vitals, internal analytics and provider telemetry retention must follow the Privacy Policy, provider settings and observability evidence.",
           "transactions": "OAuth, Magic link/OTP, 2FA and checkout return cookies or browser state are intended to be short-lived and limited to completing the current login/payment flow."
         },
@@ -2634,6 +2638,7 @@
           "accountInfo": "Account and authentication data: email, username/display name, password hash, 2FA/TOTP state, Telegram ID/username where linked, OAuth provider identifiers and profile email where used.",
           "deviceInfo": "Device, access and provisioning data: session identifiers, refresh-token metadata, device ID where provided, IP address and user-agent in auth/security logs, Remnawave user reference, subscription URL state and device credential state.",
           "paymentInfo": "Commercial and payment data: plan, trial, subscription, wallet state, provider name, provider transaction identifiers, payment status, refund/dispute metadata and reconciliation records.",
+          "referralAttribution": "Referral attribution data: masked referral code, attribution session ID, referrer and referred account IDs, campaign parameters and claim timestamps used to apply referral rewards and prevent self-referral or partner attribution conflicts.",
           "usageStats": "Operational data: support tickets/staff notes, notification delivery state, audit logs, webhook payload snapshots, security/rate-limit events, backup presence and aggregated service health/traffic counters where enabled."
         },
         "title": "Data We Process"

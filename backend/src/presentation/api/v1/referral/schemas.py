@@ -1,9 +1,35 @@
 """Pydantic v2 schemas for the referral API."""
 
 from datetime import datetime
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ReferralAttributionCaptureRequest(BaseModel):
+    referral_code: str = Field(..., min_length=4, max_length=64)
+    source_host: str | None = Field(None, max_length=255)
+    source_path: str | None = Field(None, max_length=500)
+    campaign_params: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReferralAttributionCaptureResponse(BaseModel):
+    status: Literal["captured"] = "captured"
+    attribution_id: UUID
+    captured_at: datetime
+    expires_at: datetime
+    masked_code: str
+
+
+class ReferralAttributionClaimRequest(BaseModel):
+    fallback_referral_code: str | None = Field(None, min_length=4, max_length=64)
+
+
+class ReferralAttributionClaimResponse(BaseModel):
+    status: Literal["claimed", "already_claimed", "no_pending"]
+    referrer_user_id: UUID | None = None
+    claimed_at: datetime | None = None
 
 
 class ReferralStatusResponse(BaseModel):

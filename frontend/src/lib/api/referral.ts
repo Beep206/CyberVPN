@@ -3,6 +3,10 @@ import type { operations } from './generated/types';
 
 // Extract types from OpenAPI operations
 type ReferralStatusResponse = operations['get_referral_status_api_v1_referral_status_get']['responses'][200]['content']['application/json'];
+type ReferralAttributionCaptureRequest = operations['capture_referral_attribution_api_v1_referral_attribution_capture_post']['requestBody']['content']['application/json'];
+type ReferralAttributionCaptureResponse = operations['capture_referral_attribution_api_v1_referral_attribution_capture_post']['responses'][200]['content']['application/json'];
+type ReferralAttributionClaimRequest = operations['claim_referral_attribution_api_v1_referral_attribution_claim_post']['requestBody']['content']['application/json'];
+type ReferralAttributionClaimResponse = operations['claim_referral_attribution_api_v1_referral_attribution_claim_post']['responses'][200]['content']['application/json'];
 type ReferralCodeResponse = operations['get_referral_code_api_v1_referral_code_get']['responses'][200]['content']['application/json'];
 type ReferralStatsResponse = operations['get_referral_stats_api_v1_referral_stats_get']['responses'][200]['content']['application/json'];
 type ReferralCommissionResponse = operations['get_recent_commissions_api_v1_referral_recent_get']['responses'][200]['content']['application/json'];
@@ -13,6 +17,20 @@ type ReferralRewardsResponse = operations['get_referral_rewards_api_v1_referral_
  * Manages user referral codes, earnings, and commission tracking
  */
 export const referralApi = {
+  /**
+   * Capture anonymous referral attribution.
+   * POST /api/v1/referral/attribution/capture
+   */
+  captureAttribution: (data: ReferralAttributionCaptureRequest) =>
+    apiClient.post<ReferralAttributionCaptureResponse>('/referral/attribution/capture', data),
+
+  /**
+   * Claim a pending referral attribution for the authenticated account.
+   * POST /api/v1/referral/attribution/claim
+   */
+  claimAttribution: (data: ReferralAttributionClaimRequest = {}) =>
+    apiClient.post<ReferralAttributionClaimResponse>('/referral/attribution/claim', data),
+
   /**
    * Get referral program status
    * GET /api/v1/referral/status

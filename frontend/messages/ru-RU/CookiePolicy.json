@@ -41,6 +41,7 @@
       "intro": "The inventory is based on current product flows and deployed evidence expectations. Browser inventory should be refreshed when login, checkout, analytics, Telegram Mini App or admin flows change.",
       "items": {
         "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as {realm}_access_token and {realm}_refresh_token for web API sessions. Production behavior should be HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days unless production configuration changes and evidence is updated.",
+        "referralAttribution": "Реферальная атрибуция: cookie cv_ref_attribution с HttpOnly и SameSite=Lax сохраняет приглашение между регистрацией и редиректами авторизации. Browser localStorage key cybervpn.referral_attribution.v2 хранит masked referral code fallback, когда cookie недоступна.",
         "locale": "Language and routing state: next-intl may use a locale cookie such as NEXT_LOCALE where enabled to remember the selected language/locale. The exact production cookie name, domain, path and lifetime should match browser cookie inventory evidence.",
         "observability": "Operational observability may include Sentry error/performance events, Web Vitals, internal traffic analytics and Telegram Mini App runtime analytics. Sentry is configured with sendDefaultPii=false, text/media replay masking and beforeSend PII scrubbing where enabled.",
         "telegram": "Telegram Mini App flows may receive Telegram initData and Telegram WebView/runtime information. Cookies or storage controlled by Telegram itself are governed by Telegram, not by CyberVPN.",
@@ -52,6 +53,7 @@
     "retention": {
       "items": {
         "auth": "Auth cookie retention follows token configuration: access cookies default to 15 minutes and refresh cookies default to 7 days unless production configuration changes and evidence is updated.",
+        "referralAttribution": "Referral attribution cookie и localStorage fallback истекают через 30 дней или очищаются после успешного или terminal referral claim.",
         "locale": "Locale and preference storage may remain until browser expiry, user clearing, logout or another configured lifetime confirmed by browser evidence.",
         "telemetry": "Sentry, Web Vitals, internal analytics and provider telemetry retention must follow the Privacy Policy, provider settings and observability evidence.",
         "transactions": "OAuth, Magic link/OTP, 2FA and checkout return cookies or browser state are intended to be short-lived and limited to completing the current login/payment flow."

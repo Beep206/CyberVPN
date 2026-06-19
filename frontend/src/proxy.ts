@@ -112,6 +112,54 @@ function getRouteSegment(pathname: string): string {
   return hasLocale ? segments[1] ?? '' : firstSegment ?? '';
 }
 
+function getRequestLocale(pathname: string): string {
+  const firstSegment = pathname.split('/').filter(Boolean)[0];
+  return locales.includes(firstSegment as (typeof locales)[number])
+    ? firstSegment
+    : defaultLocale;
+}
+
+function getShortReferralCode(pathname: string): string | null {
+  const segments = pathname.split('/').filter(Boolean);
+  const firstSegment = segments[0];
+  const hasLocale = locales.includes(firstSegment as (typeof locales)[number]);
+  const routeIndex = hasLocale ? 1 : 0;
+
+  if (segments[routeIndex] !== 'r') {
+    return null;
+  }
+
+  const rawCode = segments[routeIndex + 1];
+  return rawCode ? decodeURIComponent(rawCode).trim() : null;
+}
+
+function getLegacyReferralCode(request: NextRequest, routeSegment: string): string | null {
+  if (routeSegment !== 'referral') {
+    return null;
+  }
+
+  return (
+    request.nextUrl.searchParams.get('code') ||
+    request.nextUrl.searchParams.get('ref') ||
+    request.nextUrl.searchParams.get('referral')
+  )?.trim() || null;
+}
+
+function buildReferralRegisterRedirectUrl(request: NextRequest, rawCode: string): URL {
+  const locale = getRequestLocale(request.nextUrl.pathname);
+  const target = new URL(`/${locale}/register`, CABINET_ORIGIN);
+  target.searchParams.set('ref', rawCode);
+
+  request.nextUrl.searchParams.forEach((value, key) => {
+    if (key === 'code' || key === 'ref' || key === 'referral') {
+      return;
+    }
+    target.searchParams.append(key, value);
+  });
+
+  return target;
+}
+
 /**
  * Next.js 16 proxy function for routing.
  *
@@ -131,6 +179,15 @@ export function proxy(request: NextRequest) {
   }
 
   const routeSegment = getRouteSegment(request.nextUrl.pathname);
+  const shortReferralCode = getShortReferralCode(request.nextUrl.pathname);
+  if (shortReferralCode) {
+    return NextResponse.redirect(buildReferralRegisterRedirectUrl(request, shortReferralCode));
+  }
+
+  const legacyReferralCode = getLegacyReferralCode(request, routeSegment);
+  if (legacyReferralCode) {
+    return NextResponse.redirect(buildReferralRegisterRedirectUrl(request, legacyReferralCode));
+  }
 
   if (
     (hostname === PUBLIC_PRIMARY_HOST || hostname === PUBLIC_WWW_HOST)

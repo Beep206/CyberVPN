@@ -510,8 +510,6 @@ export function ReferralCabinetDashboard({
   const referralLink = growthVisibility.referral
     ? buildReferralLink({
         code: referralCode,
-        origin:
-          typeof window !== 'undefined' ? window.location.origin : undefined,
       })
     : '';
   const shareText = t('share.message', {

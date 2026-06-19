@@ -1241,6 +1241,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/oauth/telegram/account-link/magic-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Telegram Account Link Magic Link
+         * @description Create an authenticated Telegram account-linking deep-link session.
+         */
+        post: operations["create_telegram_account_link_magic_link_api_v1_oauth_telegram_account_link_magic_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth/telegram/account-link/magic-link/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete Telegram Account Link Magic Link
+         * @description Accept trusted Telegram bot data for a pending account-linking session.
+         */
+        post: operations["complete_telegram_account_link_magic_link_api_v1_oauth_telegram_account_link_magic_link_complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth/telegram/account-link/magic-link/{token}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Telegram Account Link Magic Link Status
+         * @description Poll and finalize an authenticated Telegram account-linking session.
+         */
+        get: operations["check_telegram_account_link_magic_link_status_api_v1_oauth_telegram_account_link_magic_link__token__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/oauth/telegram/magic-link/{token}/status": {
         parameters: {
             query?: never;
@@ -6312,6 +6372,46 @@ export interface paths {
          * @description Deactivate a promo code by setting is_active=False (admin only).
          */
         delete: operations["admin_deactivate_promo_api_v1_admin_promo_codes__promo_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referral/attribution/capture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Capture Referral Attribution
+         * @description Capture an anonymous referral attribution session before signup.
+         */
+        post: operations["capture_referral_attribution_api_v1_referral_attribution_capture_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referral/attribution/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Referral Attribution
+         * @description Claim a pending referral attribution for the authenticated customer.
+         */
+        post: operations["claim_referral_attribution_api_v1_referral_attribution_claim_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -25883,6 +25983,62 @@ export interface components {
              */
             code: string;
         };
+        /** ReferralAttributionCaptureRequest */
+        ReferralAttributionCaptureRequest: {
+            /** Referral Code */
+            referral_code: string;
+            /** Source Host */
+            source_host?: string | null;
+            /** Source Path */
+            source_path?: string | null;
+            /** Campaign Params */
+            campaign_params?: {
+                [key: string]: unknown;
+            };
+        };
+        /** ReferralAttributionCaptureResponse */
+        ReferralAttributionCaptureResponse: {
+            /**
+             * Status
+             * @default captured
+             * @constant
+             */
+            status: "captured";
+            /**
+             * Attribution Id
+             * Format: uuid
+             */
+            attribution_id: string;
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Masked Code */
+            masked_code: string;
+        };
+        /** ReferralAttributionClaimRequest */
+        ReferralAttributionClaimRequest: {
+            /** Fallback Referral Code */
+            fallback_referral_code?: string | null;
+        };
+        /** ReferralAttributionClaimResponse */
+        ReferralAttributionClaimResponse: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "claimed" | "already_claimed" | "no_pending";
+            /** Referrer User Id */
+            referrer_user_id?: string | null;
+            /** Claimed At */
+            claimed_at?: string | null;
+        };
         /** ReferralCodeResponse */
         ReferralCodeResponse: {
             /** Referral Code */
@@ -28352,6 +28508,55 @@ export interface components {
         SuspendPartnerPayoutAccountRequest: {
             /** Reason Code */
             reason_code?: string | null;
+        };
+        /**
+         * TelegramAccountLinkSessionResponse
+         * @description Authenticated account-linking session for Telegram bot deep links.
+         */
+        TelegramAccountLinkSessionResponse: {
+            /**
+             * Token
+             * @description Unique account-linking session token
+             */
+            token: string;
+            /**
+             * Bot Url
+             * @description URL to open Telegram bot with the account-link start parameter
+             */
+            bot_url: string;
+            /**
+             * Deep Link Url
+             * @description Native Telegram deep link for devices with the Telegram app installed
+             */
+            deep_link_url?: string | null;
+            /**
+             * Expires In
+             * @description Session TTL in seconds
+             */
+            expires_in: number;
+        };
+        /**
+         * TelegramAccountLinkStatusResponse
+         * @description Status polling response for Telegram account linking.
+         */
+        TelegramAccountLinkStatusResponse: {
+            /**
+             * Status
+             * @description Current status of the account-linking session
+             * @enum {string}
+             */
+            status: "pending" | "linked" | "expired" | "conflict";
+            /**
+             * Provider
+             * @default telegram
+             * @constant
+             */
+            provider: "telegram";
+            /**
+             * Provider User Id
+             * @description Telegram user ID after confirmation
+             */
+            provider_user_id?: string | null;
         };
         /**
          * TelegramAuthRequest
@@ -30952,7 +31157,7 @@ export interface components {
             /**
              * Id
              * Format: uuid
-             * @description Internal user UUID retained for backward-compatible authenticated API flows; clients display public_uid.
+             * @description Internal user UUID kept for backward-compatible API references; clients must display public_uid
              */
             id: string;
             /**
@@ -33411,6 +33616,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TelegramMagicLinkCompleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_telegram_account_link_magic_link_api_v1_oauth_telegram_account_link_magic_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramAccountLinkSessionResponse"];
+                };
+            };
+        };
+    };
+    complete_telegram_account_link_magic_link_api_v1_oauth_telegram_account_link_magic_link_complete_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramMagicLinkCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramMagicLinkCompleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_telegram_account_link_magic_link_status_api_v1_oauth_telegram_account_link_magic_link__token__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramAccountLinkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -44611,6 +44902,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capture_referral_attribution_api_v1_referral_attribution_capture_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralAttributionCaptureRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralAttributionCaptureResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    claim_referral_attribution_api_v1_referral_attribution_claim_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralAttributionClaimRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralAttributionClaimResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

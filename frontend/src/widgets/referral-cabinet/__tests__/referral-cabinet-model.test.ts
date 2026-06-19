@@ -51,15 +51,15 @@ describe('referral-cabinet-model', () => {
   it('builds referral links and share text without guessing backend eligibility', () => {
     const link = buildReferralLink({
       code: 'ABC 123',
-      origin: 'https://cybervpn.example/',
+      origin: 'https://cyber-vpn.net/',
     });
 
-    expect(link).toBe('https://cybervpn.example/referral?code=ABC%20123');
+    expect(link).toBe('https://cyber-vpn.net/r/ABC%20123');
     expect(buildShareText('Use {code}: {link}', 'ABC123', link)).toBe(
-      'Use ABC123: https://cybervpn.example/referral?code=ABC%20123',
+      'Use ABC123: https://cyber-vpn.net/r/ABC%20123',
     );
     expect(buildReferralLink({ code: '  CODE+PLUS  ' })).toBe(
-      'https://cybervpn.example/referral?code=CODE%2BPLUS',
+      'https://cyber-vpn.net/r/CODE%2BPLUS',
     );
     expect(
       buildReferralLink({
@@ -67,7 +67,7 @@ describe('referral-cabinet-model', () => {
         fallbackOrigin: 'https://fallback.example/',
         origin: '',
       }),
-    ).toBe('/referral?code=VIP');
+    ).toBe('https://fallback.example/r/VIP');
   });
 
   it('normalizes reward lifecycle statuses and tones', () => {

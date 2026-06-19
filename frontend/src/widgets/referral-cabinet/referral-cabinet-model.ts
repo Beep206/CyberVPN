@@ -26,6 +26,8 @@ export type RewardTimelineItem = {
   status: RewardLifecycleStatus;
 };
 
+const DEFAULT_REFERRAL_ORIGIN = 'https://cyber-vpn.net';
+
 const STATUS_TONE: Record<RewardLifecycleStatus, StatusTone> = {
   available: 'green',
   blocked_by_risk: 'amber',
@@ -165,7 +167,7 @@ export function getReferralProgramHealth({
 
 export function buildReferralLink({
   code,
-  fallbackOrigin = 'https://cybervpn.example',
+  fallbackOrigin = DEFAULT_REFERRAL_ORIGIN,
   origin,
 }: {
   code: string;
@@ -173,8 +175,19 @@ export function buildReferralLink({
   origin?: string;
 }): string {
   const safeCode = code.trim();
-  const safeOrigin = (origin ?? fallbackOrigin).replace(/\/$/, '');
-  return `${safeOrigin}/referral?code=${encodeURIComponent(safeCode)}`;
+  const configuredOrigin =
+    origin?.trim() ||
+    process.env.NEXT_PUBLIC_REFERRAL_ORIGIN?.trim() ||
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    fallbackOrigin;
+  let parsed: URL;
+  try {
+    parsed = new URL(configuredOrigin);
+  } catch {
+    parsed = new URL(fallbackOrigin);
+  }
+  const safeOrigin = parsed.origin.replace(/\/$/, '');
+  return `${safeOrigin}/r/${encodeURIComponent(safeCode)}`;
 }
 
 export function buildShareText(template: string, code: string, link: string): string {

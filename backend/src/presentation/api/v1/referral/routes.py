@@ -3,13 +3,23 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
 from src.application.services.stage1_growth_policy import (
     Stage1GrowthPolicyError,
     assert_stage1_referral_enabled,
+)
+from src.application.use_cases.referrals.attribution import (
+    REFERRAL_ATTRIBUTION_COOKIE_NAME,
+    REFERRAL_ATTRIBUTION_MAX_AGE_SECONDS,
+    CaptureReferralAttributionCommand,
+    CaptureReferralAttributionUseCase,
+    ClaimReferralAttributionCommand,
+    ClaimReferralAttributionUseCase,
+    ReferralAttributionError,
 )
 from src.application.use_cases.referrals.get_referral_code import GetReferralCodeUseCase
 from src.application.use_cases.referrals.get_referral_stats import GetReferralStatsUseCase
@@ -26,9 +36,14 @@ from src.infrastructure.database.repositories.referral_commission_repo import (
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_referral_operation
 from src.presentation.dependencies.auth import get_current_mobile_user_id
+from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
 
 from .schemas import (
+    ReferralAttributionCaptureRequest,
+    ReferralAttributionCaptureResponse,
+    ReferralAttributionClaimRequest,
+    ReferralAttributionClaimResponse,
     ReferralCodeResponse,
     ReferralCommissionResponse,
     ReferralRewardResponse,
@@ -46,6 +61,39 @@ def _assert_referral_public_flow_enabled() -> None:
         assert_stage1_referral_enabled(enabled=settings.referral_enabled)
     except Stage1GrowthPolicyError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+
+def _referral_attribution_error_response(exc: ReferralAttributionError) -> JSONResponse:
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": {"code": exc.code, "message": exc.message}},
+    )
+    response.headers["Cache-Control"] = "no-store"
+    if exc.clear_cookie:
+        _clear_attribution_cookie(response)
+    return response
+
+
+def _cookie_secure() -> bool:
+    return settings.environment.strip().lower() == "production"
+
+
+def _set_attribution_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=REFERRAL_ATTRIBUTION_COOKIE_NAME,
+        value=token,
+        max_age=REFERRAL_ATTRIBUTION_MAX_AGE_SECONDS,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite="lax",
+        path="/",
+    )
+    response.headers["Cache-Control"] = "no-store"
+
+
+def _clear_attribution_cookie(response: Response) -> None:
+    response.delete_cookie(key=REFERRAL_ATTRIBUTION_COOKIE_NAME, path="/")
+    response.headers["Cache-Control"] = "no-store"
 
 
 def _serialize_referral_reward(model) -> ReferralRewardResponse:
@@ -89,6 +137,104 @@ def _serialize_referral_reward_compat(model) -> ReferralCommissionResponse:
         reversed_at=model.reversed_at,
         source_model="growth_reward",
         created_at=model.allocated_at,
+    )
+
+
+@router.post(
+    "/attribution/capture",
+    response_model=ReferralAttributionCaptureResponse,
+)
+async def capture_referral_attribution(
+    payload: ReferralAttributionCaptureRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
+) -> ReferralAttributionCaptureResponse:
+    """Capture an anonymous referral attribution session before signup."""
+    command = CaptureReferralAttributionCommand(
+        referral_code=payload.referral_code,
+        source_host=payload.source_host or request.headers.get("X-Forwarded-Host") or request.headers.get("Host"),
+        source_path=payload.source_path,
+        campaign_params=payload.campaign_params,
+        existing_cookie_token=request.cookies.get(REFERRAL_ATTRIBUTION_COOKIE_NAME),
+        current_realm=current_realm,
+    )
+    try:
+        result = await CaptureReferralAttributionUseCase(db).execute(command)
+        await db.commit()
+    except ReferralAttributionError as exc:
+        await db.rollback()
+        return _referral_attribution_error_response(exc)
+    except Exception as exc:
+        logger.exception("referral_attribution_capture_transient_failure")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "REFERRAL_TRANSIENT_FAILURE",
+                "message": "Referral attribution is temporarily unavailable.",
+            },
+        ) from exc
+
+    if result.set_cookie_token is not None:
+        _set_attribution_cookie(response, result.set_cookie_token)
+    else:
+        response.headers["Cache-Control"] = "no-store"
+
+    track_referral_operation(operation="attribution_capture")
+    return ReferralAttributionCaptureResponse(
+        attribution_id=result.attribution_id,
+        captured_at=result.captured_at,
+        expires_at=result.expires_at,
+        masked_code=result.masked_code,
+    )
+
+
+@router.post(
+    "/attribution/claim",
+    response_model=ReferralAttributionClaimResponse,
+)
+async def claim_referral_attribution(
+    payload: ReferralAttributionClaimRequest,
+    request: Request,
+    response: Response,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
+) -> ReferralAttributionClaimResponse:
+    """Claim a pending referral attribution for the authenticated customer."""
+    command = ClaimReferralAttributionCommand(
+        user_id=user_id,
+        cookie_token=request.cookies.get(REFERRAL_ATTRIBUTION_COOKIE_NAME),
+        fallback_referral_code=payload.fallback_referral_code,
+        current_realm=current_realm,
+    )
+    try:
+        result = await ClaimReferralAttributionUseCase(db).execute(command)
+        await db.commit()
+    except ReferralAttributionError as exc:
+        await db.rollback()
+        return _referral_attribution_error_response(exc)
+    except Exception as exc:
+        logger.exception("referral_attribution_claim_transient_failure", extra={"user_id": str(user_id)})
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "REFERRAL_TRANSIENT_FAILURE",
+                "message": "Referral attribution is temporarily unavailable.",
+            },
+        ) from exc
+
+    if result.clear_cookie:
+        _clear_attribution_cookie(response)
+    else:
+        response.headers["Cache-Control"] = "no-store"
+
+    track_referral_operation(operation=f"attribution_{result.status}")
+    return ReferralAttributionClaimResponse(
+        status=result.status,
+        referrer_user_id=result.referrer_user_id,
+        claimed_at=result.claimed_at,
     )
 
 

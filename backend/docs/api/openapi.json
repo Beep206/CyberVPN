@@ -3069,6 +3069,141 @@
         }
       }
     },
+    "/api/v1/oauth/telegram/account-link/magic-link": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Create Telegram Account Link Magic Link",
+        "description": "Create an authenticated Telegram account-linking deep-link session.",
+        "operationId": "create_telegram_account_link_magic_link_api_v1_oauth_telegram_account_link_magic_link_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramAccountLinkSessionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/oauth/telegram/account-link/magic-link/complete": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Complete Telegram Account Link Magic Link",
+        "description": "Accept trusted Telegram bot data for a pending account-linking session.",
+        "operationId": "complete_telegram_account_link_magic_link_api_v1_oauth_telegram_account_link_magic_link_complete_post",
+        "parameters": [
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramMagicLinkCompleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramMagicLinkCompleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/oauth/telegram/account-link/magic-link/{token}/status": {
+      "get": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Check Telegram Account Link Magic Link Status",
+        "description": "Poll and finalize an authenticated Telegram account-linking session.",
+        "operationId": "check_telegram_account_link_magic_link_status_api_v1_oauth_telegram_account_link_magic_link__token__status_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramAccountLinkStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/oauth/telegram/magic-link/{token}/status": {
       "get": {
         "tags": [
@@ -22551,6 +22686,95 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/referral/attribution/capture": {
+      "post": {
+        "tags": [
+          "referral"
+        ],
+        "summary": "Capture Referral Attribution",
+        "description": "Capture an anonymous referral attribution session before signup.",
+        "operationId": "capture_referral_attribution_api_v1_referral_attribution_capture_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralAttributionCaptureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralAttributionCaptureResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/referral/attribution/claim": {
+      "post": {
+        "tags": [
+          "referral"
+        ],
+        "summary": "Claim Referral Attribution",
+        "description": "Claim a pending referral attribution for the authenticated customer.",
+        "operationId": "claim_referral_attribution_api_v1_referral_attribution_claim_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferralAttributionClaimRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralAttributionClaimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/referral/status": {
@@ -75157,6 +75381,148 @@
         "title": "RedeemInviteRequest",
         "description": "Request body for redeeming an invite code."
       },
+      "ReferralAttributionCaptureRequest": {
+        "properties": {
+          "referral_code": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 4,
+            "title": "Referral Code"
+          },
+          "source_host": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Host"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          },
+          "campaign_params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Campaign Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "referral_code"
+        ],
+        "title": "ReferralAttributionCaptureRequest"
+      },
+      "ReferralAttributionCaptureResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "captured",
+            "title": "Status",
+            "default": "captured"
+          },
+          "attribution_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attribution Id"
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Captured At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "masked_code": {
+            "type": "string",
+            "title": "Masked Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attribution_id",
+          "captured_at",
+          "expires_at",
+          "masked_code"
+        ],
+        "title": "ReferralAttributionCaptureResponse"
+      },
+      "ReferralAttributionClaimRequest": {
+        "properties": {
+          "fallback_referral_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 4
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Referral Code"
+          }
+        },
+        "type": "object",
+        "title": "ReferralAttributionClaimRequest"
+      },
+      "ReferralAttributionClaimResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "claimed",
+              "already_claimed",
+              "no_pending"
+            ],
+            "title": "Status"
+          },
+          "referrer_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referrer User Id"
+          },
+          "claimed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ReferralAttributionClaimResponse"
+      },
       "ReferralCodeResponse": {
         "properties": {
           "referral_code": {
@@ -81096,6 +81462,84 @@
         },
         "type": "object",
         "title": "SuspendPartnerPayoutAccountRequest"
+      },
+      "TelegramAccountLinkSessionResponse": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "Unique account-linking session token"
+          },
+          "bot_url": {
+            "type": "string",
+            "title": "Bot Url",
+            "description": "URL to open Telegram bot with the account-link start parameter"
+          },
+          "deep_link_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deep Link Url",
+            "description": "Native Telegram deep link for devices with the Telegram app installed"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "description": "Session TTL in seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "bot_url",
+          "expires_in"
+        ],
+        "title": "TelegramAccountLinkSessionResponse",
+        "description": "Authenticated account-linking session for Telegram bot deep links."
+      },
+      "TelegramAccountLinkStatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "linked",
+              "expired",
+              "conflict"
+            ],
+            "title": "Status",
+            "description": "Current status of the account-linking session"
+          },
+          "provider": {
+            "type": "string",
+            "const": "telegram",
+            "title": "Provider",
+            "default": "telegram"
+          },
+          "provider_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider User Id",
+            "description": "Telegram user ID after confirmation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "TelegramAccountLinkStatusResponse",
+        "description": "Status polling response for Telegram account linking."
       },
       "TelegramAuthRequest": {
         "properties": {
@@ -87268,7 +87712,7 @@
             "type": "string",
             "format": "uuid",
             "title": "Id",
-            "description": "Internal user UUID retained for backward-compatible authenticated API flows; clients display public_uid."
+            "description": "Internal user UUID kept for backward-compatible API references; clients must display public_uid"
           },
           "public_uid": {
             "type": "integer",

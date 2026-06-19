@@ -149,6 +149,7 @@ from src.infrastructure.database.models.program_eligibility_policy_model import 
 from src.infrastructure.database.models.promo_code_model import PromoCodeModel, PromoCodeUsageModel
 from src.infrastructure.database.models.provisioning_profile_model import ProvisioningProfileModel
 from src.infrastructure.database.models.quote_session_model import QuoteSessionModel
+from src.infrastructure.database.models.referral_attribution_session_model import ReferralAttributionSessionModel
 from src.infrastructure.database.models.referral_commission_model import ReferralCommissionModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.models.refund_model import RefundModel
@@ -283,6 +284,7 @@ __all__ = [
     "PromoCodeUsageModel",
     "ReferralProgramPolicyModel",
     "ReferralCommissionModel",
+    "ReferralAttributionSessionModel",
     "RefreshToken",
     "ReserveModel",
     "RefundModel",

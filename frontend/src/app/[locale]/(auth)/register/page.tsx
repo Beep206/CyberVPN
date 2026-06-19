@@ -5,7 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation'; // Switching to native router to prevent double-locale issues
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { UserPlus, Loader2, Check, AlertCircle } from 'lucide-react';
+import { UserPlus, Loader2, Check, AlertCircle, TicketCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +25,7 @@ import {
     type PasswordValidationCode,
 } from '@/features/auth/lib/validation';
 import { useAuthStore } from '@/stores/auth-store';
+import { useReferralAttributionSnapshot } from '@/features/referral-attribution/use-referral-attribution';
 
 const FALLBACK_VALIDATION_MESSAGES: Record<EmailValidationCode | PasswordValidationCode | 'passwordMismatch', string> = {
     emailRequired: 'Email is required',
@@ -51,6 +52,7 @@ export default function RegisterPage() {
 
     const { register, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
     const isRateLimited = useIsRateLimited();
+    const referralSnapshot = useReferralAttributionSnapshot();
 
     const [usernameOnly, setUsernameOnly] = useState(false);
     const [username, setUsername] = useState('');
@@ -89,6 +91,13 @@ export default function RegisterPage() {
         const key = `validation.${code}`;
         return t.has(key) ? t(key) : FALLBACK_VALIDATION_MESSAGES[code];
     };
+
+    const referralAppliedTitle = t.has('referralAppliedTitle')
+        ? t('referralAppliedTitle')
+        : 'Referral invitation applied';
+    const referralAppliedCode = t.has('referralAppliedCode')
+        ? t('referralAppliedCode', { code: referralSnapshot?.maskedCode ?? '****' })
+        : `Code: ${referralSnapshot?.maskedCode ?? '****'}`;
 
     // Redirect existing authenticated users only before they start a new registration flow.
     useEffect(() => {
@@ -184,6 +193,23 @@ export default function RegisterPage() {
 
             {/* Rate limit countdown */}
             <RateLimitCountdown />
+
+            {referralSnapshot ? (
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-lg border border-neon-cyan/25 bg-neon-cyan/10 p-3 font-mono text-xs text-neon-cyan"
+                    data-testid="referral-attribution-applied"
+                >
+                    <div className="flex items-start gap-2">
+                        <TicketCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        <div className="min-w-0">
+                            <p className="font-semibold uppercase tracking-[0.14em]">{referralAppliedTitle}</p>
+                            <p className="mt-1 text-muted-foreground">{referralAppliedCode}</p>
+                        </div>
+                    </div>
+                </motion.div>
+            ) : null}
 
             {/* Error message */}
             <div aria-live="polite" aria-atomic="true">

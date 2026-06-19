@@ -8,7 +8,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, BigInteger, Boolean, DateTime, ForeignKey, String, Uuid
+from sqlalchemy import JSON, BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.domain.value_objects.public_uid import generate_public_uid_candidate
@@ -28,6 +28,12 @@ class MobileUserModel(Base):
     """
 
     __tablename__ = "mobile_users"
+    __table_args__ = (
+        CheckConstraint(
+            "referred_by_user_id IS NULL OR referred_by_user_id <> id",
+            name="ck_mobile_users_no_self_referral",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
@@ -118,6 +124,21 @@ class MobileUserModel(Base):
     referred_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("mobile_users.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
+    )
+    referral_claimed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    referral_source_code_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("growth_codes.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    referral_attribution_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("referral_attribution_sessions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     partner_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("mobile_users.id", ondelete="SET NULL"),
