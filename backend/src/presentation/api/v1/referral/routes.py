@@ -3,7 +3,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
@@ -11,11 +11,20 @@ from src.application.services.stage1_growth_policy import (
     Stage1GrowthPolicyError,
     assert_stage1_referral_enabled,
 )
+from src.application.use_cases.referrals.claim_referral_attribution import (
+    ClaimReferralAttributionUseCase,
+    ReferralAttributionError,
+    ReferralAttributionInvalidCodeError,
+    ReferralAttributionPartnerConflictError,
+    ReferralAttributionSelfReferralError,
+    ReferralAttributionUnavailableError,
+    ReferralAttributionWindowExpiredError,
+)
 from src.application.use_cases.referrals.get_referral_code import GetReferralCodeUseCase
 from src.application.use_cases.referrals.get_referral_stats import GetReferralStatsUseCase
 from src.application.use_cases.referrals.list_referral_rewards import ListReferralRewardsUseCase
 from src.config.settings import settings
-from src.domain.exceptions import DomainError
+from src.domain.exceptions import DomainError, UserNotFoundError
 from src.infrastructure.database.repositories.growth_reward_allocation_repo import (
     GrowthRewardAllocationRepository,
 )
@@ -29,6 +38,8 @@ from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 
 from .schemas import (
+    ReferralClaimRequest,
+    ReferralClaimResponse,
     ReferralCodeResponse,
     ReferralCommissionResponse,
     ReferralRewardResponse,
@@ -39,6 +50,8 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/referral", tags=["referral"])
+
+REFERRAL_ATTRIBUTION_COOKIE_NAME = "cybervpn_referral_attribution"
 
 
 def _assert_referral_public_flow_enabled() -> None:
@@ -89,6 +102,75 @@ def _serialize_referral_reward_compat(model) -> ReferralCommissionResponse:
         reversed_at=model.reversed_at,
         source_model="growth_reward",
         created_at=model.allocated_at,
+    )
+
+
+def _claim_error_status(error: ReferralAttributionError) -> int:
+    if isinstance(error, ReferralAttributionInvalidCodeError):
+        return status.HTTP_422_UNPROCESSABLE_CONTENT
+    if isinstance(error, ReferralAttributionUnavailableError):
+        return status.HTTP_404_NOT_FOUND
+    if isinstance(
+        error,
+        (
+            ReferralAttributionPartnerConflictError,
+            ReferralAttributionSelfReferralError,
+            ReferralAttributionWindowExpiredError,
+        ),
+    ):
+        return status.HTTP_409_CONFLICT
+    return status.HTTP_400_BAD_REQUEST
+
+
+@router.post("/claim", response_model=ReferralClaimResponse)
+async def claim_referral_attribution(
+    request: Request,
+    response: Response,
+    payload: ReferralClaimRequest | None = Body(default=None),
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> ReferralClaimResponse:
+    """Persist a pending first-touch referral after successful authentication."""
+    cookie_code = request.cookies.get(REFERRAL_ATTRIBUTION_COOKIE_NAME)
+    body_code = payload.referral_code if payload is not None else None
+    referral_code = cookie_code or body_code
+
+    if not referral_code:
+        track_referral_operation(operation="claim_no_pending")
+        return ReferralClaimResponse(status="no_pending")
+
+    _assert_referral_public_flow_enabled()
+
+    try:
+        result = await ClaimReferralAttributionUseCase(db).execute(
+            user_id=user_id,
+            referral_code=referral_code,
+        )
+    except ReferralAttributionError as exc:
+        logger.info(
+            "claim_referral_attribution_rejected",
+            extra={"user_id": str(user_id), "reason": exc.code},
+        )
+        raise HTTPException(
+            status_code=_claim_error_status(exc),
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "USER_NOT_FOUND", "message": exc.message},
+        ) from exc
+
+    response.delete_cookie(
+        key=REFERRAL_ATTRIBUTION_COOKIE_NAME,
+        path="/",
+        samesite="lax",
+    )
+    track_referral_operation(operation=f"claim_{result.status}")
+    return ReferralClaimResponse(
+        status=result.status,
+        referral_code=result.referral_code,
+        referrer_user_id=result.referrer_user_id,
     )
 
 
