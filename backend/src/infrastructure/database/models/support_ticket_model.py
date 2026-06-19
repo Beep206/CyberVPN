@@ -28,7 +28,7 @@ class SupportTicketModel(Base):
     public_id: Mapped[str] = mapped_column(String(40), unique=True, nullable=False, index=True)
     owner_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     customer_account_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("mobile_users.id", ondelete="CASCADE"),
+        ForeignKey("mobile_users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )

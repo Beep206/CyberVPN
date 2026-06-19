@@ -60,6 +60,7 @@ export { integrationsApi } from './integrations';
 export { growthApi } from './growth';
 export { customersApi } from './customers';
 export { supportApi } from './support';
+export { adminPrivacyRequestsApi } from './privacy-requests';
 
 // Core Client & Types
 export { apiClient, RateLimitError } from './client';

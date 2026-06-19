@@ -10,6 +10,10 @@ class Permission(StrEnum):
     USER_UPDATE = "user_update"
     USER_DELETE = "user_delete"
     SUPPORT_TICKET_READ = "support_ticket_read"
+    PRIVACY_REQUEST_READ = "privacy_request_read"
+    PRIVACY_REQUEST_REVIEW = "privacy_request_review"
+    PRIVACY_REQUEST_FULFILL = "privacy_request_fulfill"
+    PRIVACY_REQUEST_AUDIT_READ = "privacy_request_audit_read"
     # Messaging and site notifications
     MESSAGING_CONVERSATION_READ = "messaging:conversation:read"
     MESSAGING_CONVERSATION_CREATE = "messaging:conversation:create"
@@ -109,6 +113,10 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
         Permission.USER_UPDATE,
         Permission.USER_DELETE,
         Permission.SUPPORT_TICKET_READ,
+        Permission.PRIVACY_REQUEST_READ,
+        Permission.PRIVACY_REQUEST_REVIEW,
+        Permission.PRIVACY_REQUEST_FULFILL,
+        Permission.PRIVACY_REQUEST_AUDIT_READ,
         Permission.MESSAGING_CONVERSATION_READ,
         Permission.MESSAGING_CONVERSATION_CREATE,
         Permission.MESSAGING_MESSAGE_WRITE,
@@ -151,6 +159,9 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
         Permission.USER_READ,
         Permission.USER_UPDATE,
         Permission.SUPPORT_TICKET_READ,
+        Permission.PRIVACY_REQUEST_READ,
+        Permission.PRIVACY_REQUEST_REVIEW,
+        Permission.PRIVACY_REQUEST_AUDIT_READ,
         Permission.MESSAGING_CONVERSATION_READ,
         Permission.MESSAGING_CONVERSATION_CREATE,
         Permission.MESSAGING_MESSAGE_WRITE,

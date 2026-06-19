@@ -18,6 +18,7 @@ export const DASHBOARD_CLIENT_NAMESPACES = [
   'Infrastructure',
   'Messaging',
   'Navigation',
+  'PrivacyRequests',
   'ServerCard',
   'Support',
 ] as const;

@@ -68,6 +68,8 @@ from src.presentation.api.v1.policies.routes import router as policies_router
 from src.presentation.api.v1.policy_acceptance.routes import router as policy_acceptance_router
 from src.presentation.api.v1.policy_evaluation.routes import router as policy_evaluation_router
 from src.presentation.api.v1.pricebooks.routes import router as pricebooks_router
+from src.presentation.api.v1.privacy_requests.routes import admin_router as admin_privacy_requests_router
+from src.presentation.api.v1.privacy_requests.routes import customer_router as privacy_requests_router
 from src.presentation.api.v1.profile.routes import router as profile_router
 from src.presentation.api.v1.program_eligibility.routes import router as program_eligibility_router
 from src.presentation.api.v1.promo_codes.routes import router as promo_codes_router
@@ -238,6 +240,7 @@ api_router.include_router(helix_router)
 api_router.include_router(usage_router)
 api_router.include_router(trial_router)
 api_router.include_router(support_tickets_router)
+api_router.include_router(privacy_requests_router)
 
 # Payments & billing
 api_router.include_router(payments_router)
@@ -267,6 +270,7 @@ api_router.include_router(admin_payment_attempts_router)
 api_router.include_router(admin_pricebooks_router)
 api_router.include_router(admin_customer_support_router)
 api_router.include_router(admin_customer_operations_router)
+api_router.include_router(admin_privacy_requests_router)
 
 # Webhooks & integrations
 api_router.include_router(webhooks_router)

@@ -33,6 +33,7 @@ export { messagingApi } from './messaging';
 export { addonsApi } from './addons';
 export { clientCapabilitiesApi } from './client-capabilities';
 export { supportTicketsApi } from './support-tickets';
+export { privacyRequestsApi } from './privacy-requests';
 
 // Subscriptions
 export { subscriptionsApi } from './subscriptions';
@@ -66,6 +67,15 @@ export type {
   TokenResponse,
   OAuthProvider,
 } from './auth';
+export type {
+  CustomerPrivacyRequestDetail,
+  PrivacyRequestAcceptedResponse,
+  PrivacyRequestCreateRequest,
+  PrivacyRequestListResponse,
+  PrivacyRequestStatus,
+  PrivacyRequestSummary,
+  PrivacyRequestType,
+} from './privacy-requests';
 export type {
   PasskeyCredential,
   PasskeyPolicyResponse,

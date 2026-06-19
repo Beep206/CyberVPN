@@ -3,8 +3,9 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DeleteAccountClient } from '../delete-account-client';
 
-const { deleteAccountMock, routerPushMock } = vi.hoisted(() => ({
+const { deleteAccountMock, listPrivacyRequestsMock, routerPushMock } = vi.hoisted(() => ({
   deleteAccountMock: vi.fn(),
+  listPrivacyRequestsMock: vi.fn(() => Promise.resolve({ data: { requests: [] } })),
   routerPushMock: vi.fn(),
 }));
 
@@ -42,6 +43,14 @@ vi.mock('@/stores/auth-store', () => ({
     selector: (state: { deleteAccount: typeof deleteAccountMock }) => unknown,
   ) => selector({ deleteAccount: deleteAccountMock }),
   useIsAuthenticated: () => true,
+}));
+
+vi.mock('@/lib/api/privacy-requests', () => ({
+  privacyRequestsApi: {
+    cancel: vi.fn(),
+    create: vi.fn(),
+    list: listPrivacyRequestsMock,
+  },
 }));
 
 function renderDeleteAccountClient() {

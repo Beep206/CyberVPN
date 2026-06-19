@@ -339,26 +339,35 @@ export const authHandlers = [
       request_type?: 'account_deletion' | 'data_export';
     };
     const requestType = body.request_type ?? 'data_export';
+    const privacyReference = `PRV-TEST-${requestType.replace('_', '-').toUpperCase()}`;
+    const ticketReference = `SUP-TEST-${requestType.replace('_', '-').toUpperCase()}`;
 
     return HttpResponse.json(
       {
+        privacy_request_reference: privacyReference,
+        ticket_reference: ticketReference,
         request_type: requestType,
+        status: 'submitted',
         message: requestType === 'account_deletion'
-          ? 'Account deletion request accepted for manual privacy review.'
-          : 'Data export request accepted for manual privacy review.',
-        ticket_reference: `s1sup-web-p1-${requestType}`,
-        target_contact: 'privacy@cyber-vpn.net',
-        priority: 'p1',
-        support_state: 'support_review',
-        ack_sla_minutes: 60,
-        customer_response_sla_minutes: 720,
+          ? 'Account deletion request submitted for privacy review.'
+          : 'Data export request submitted for privacy review.',
+        submitted_at: '2026-06-19T12:00:00.000Z',
         manual_fulfillment_target_days: 30,
-        required_actions: ['verify_identity_before_export'],
-        forbidden_actions: ['do_not_request_password_or_2fa_totp'],
-        audit_required: true,
+        existing: false,
       },
       { status: 202 },
     );
+  }),
+
+  /**
+   * GET /auth/me/privacy-requests
+   * Lists durable privacy requests for the current customer.
+   */
+  http.get(`${API_BASE}/auth/me/privacy-requests`, () => {
+    return HttpResponse.json({
+      requests: [],
+      next_cursor: null,
+    });
   }),
 
   /**

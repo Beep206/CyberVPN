@@ -956,12 +956,28 @@
       "title": "Need help?"
     },
     "error": {
+      "activeExists": "An active deletion request already exists for this account.",
       "invalidCredentials": "Invalid email or password",
+      "loadExisting": "Could not check existing privacy requests. Refresh the page or contact support.",
       "message": "We couldn't submit your deletion request. Please try again or contact support.",
       "networkError": "Network error. Please check your connection.",
+      "rateLimited": "Too many privacy requests were created today. Try again later.",
       "serverError": "Server error. Please try again later.",
       "title": "Deletion request failed",
-      "unauthenticated": "You must be logged in to request account deletion."
+      "unauthenticated": "You must be logged in to request account deletion.",
+      "validation": "Check the form and try again."
+    },
+    "existing": {
+      "cancel": "Cancel request",
+      "canceling": "Canceling...",
+      "description": "This account already has an active manual privacy review. Duplicate deletion requests are blocked until this request is completed or canceled.",
+      "loading": "Checking existing deletion requests...",
+      "notAvailable": "n/a",
+      "privacyReference": "Privacy reference",
+      "status": "Status",
+      "submittedAt": "Submitted",
+      "ticketReference": "Support ticket",
+      "title": "Deletion request already open"
     },
     "form": {
       "cancel": "Cancel",
@@ -1043,11 +1059,23 @@
         "title": "What will be deleted"
       }
     },
+    "status": {
+      "approved": "Approved",
+      "canceled": "Canceled",
+      "denied": "Denied",
+      "failed": "Failed",
+      "fulfilled": "Fulfilled",
+      "identity_verification": "Identity verification",
+      "pending_decision": "Pending decision",
+      "scheduled": "Scheduled",
+      "submitted": "Submitted"
+    },
     "subtitle": "Submit a manual privacy review request for permanent account deletion",
     "success": {
       "details": "Target fulfillment is within {days} days after verification. You can contact support with your reference before deletion is finalized.",
       "message": "Your account deletion request is queued for manual privacy review.",
       "reference": "Reference: {reference}",
+      "references": "Privacy request: {privacyReference} / Support ticket: {ticketReference}",
       "returnHome": "Return to Home",
       "returnSettings": "Return to settings",
       "title": "Deletion request submitted"

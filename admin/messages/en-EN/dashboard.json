@@ -70,6 +70,11 @@
       "description": "Tickets currently waiting for support-side response.",
       "metric": "pending support tickets"
     },
+    "privacyRequests": {
+      "title": "Privacy reviews",
+      "description": "Account deletion and data export requests waiting for privacy review.",
+      "metric": "privacy requests"
+    },
     "securityReviews": {
       "title": "Risk reviews",
       "description": "Canonical risk review records surfaced by the security queue.",

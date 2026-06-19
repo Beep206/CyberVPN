@@ -134,30 +134,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/me/privacy-requests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Privacy Request
-         * @description Open a manual S1 privacy request for account deletion or data export.
-         *
-         *     This endpoint creates a safe support/escalation reference only. S1 does not
-         *     automatically export raw data or perform destructive deletion from this
-         *     request path.
-         */
-        post: operations["create_privacy_request_api_v1_auth_me_privacy_requests_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/auth/verify-email": {
         parameters: {
             query?: never;
@@ -5976,6 +5952,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/me/privacy-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Customer Privacy Requests */
+        get: operations["list_customer_privacy_requests_api_v1_auth_me_privacy_requests_get"];
+        put?: never;
+        /** Create Privacy Request */
+        post: operations["create_privacy_request_api_v1_auth_me_privacy_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me/privacy-requests/{reference}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Customer Privacy Request */
+        get: operations["get_customer_privacy_request_api_v1_auth_me_privacy_requests__reference__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me/privacy-requests/{reference}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Customer Privacy Request */
+        post: operations["cancel_customer_privacy_request_api_v1_auth_me_privacy_requests__reference__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/crypto/invoice": {
         parameters: {
             query?: never;
@@ -9781,6 +9809,193 @@ export interface paths {
         put?: never;
         /** Perform Customer Operations Action */
         post: operations["perform_customer_operations_action_api_v1_admin_mobile_users__user_id__operations_insight_actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Privacy Requests */
+        get: operations["list_admin_privacy_requests_api_v1_admin_privacy_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/queue-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Count Admin Privacy Requests */
+        get: operations["count_admin_privacy_requests_api_v1_admin_privacy_requests_queue_count_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/{reference}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Privacy Request */
+        get: operations["get_admin_privacy_request_api_v1_admin_privacy_requests__reference__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/{reference}/start-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Privacy Review */
+        post: operations["start_privacy_review_api_v1_admin_privacy_requests__reference__start_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/{reference}/request-identity-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Privacy Identity Verification */
+        post: operations["request_privacy_identity_verification_api_v1_admin_privacy_requests__reference__request_identity_verification_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/{reference}/verify-identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Privacy Identity */
+        post: operations["verify_privacy_identity_api_v1_admin_privacy_requests__reference__verify_identity_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/{reference}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Privacy Request */
+        post: operations["approve_privacy_request_api_v1_admin_privacy_requests__reference__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/{reference}/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deny Privacy Request */
+        post: operations["deny_privacy_request_api_v1_admin_privacy_requests__reference__deny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/{reference}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Schedule Privacy Request */
+        post: operations["schedule_privacy_request_api_v1_admin_privacy_requests__reference__schedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/{reference}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute Privacy Request */
+        post: operations["execute_privacy_request_api_v1_admin_privacy_requests__reference__execute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/privacy-requests/{reference}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Privacy Request */
+        post: operations["retry_privacy_request_api_v1_admin_privacy_requests__reference__retry_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14373,6 +14588,145 @@ export interface components {
             /** Lifecycle Status */
             lifecycle_status: string;
         };
+        /** AdminPrivacyRequestDetailResponse */
+        AdminPrivacyRequestDetailResponse: {
+            /** Privacy Request Reference */
+            privacy_request_reference: string;
+            /** Ticket Reference */
+            ticket_reference?: string | null;
+            /**
+             * Request Type
+             * @enum {string}
+             */
+            request_type: "account_deletion" | "data_export";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "submitted" | "identity_verification" | "pending_decision" | "approved" | "scheduled" | "fulfilled" | "denied" | "canceled" | "failed";
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Scheduled For */
+            scheduled_for?: string | null;
+            /** Fulfilled At */
+            fulfilled_at?: string | null;
+            /** Canceled At */
+            canceled_at?: string | null;
+            /** Manual Fulfillment Target Days */
+            manual_fulfillment_target_days: number;
+            /**
+             * Existing
+             * @default false
+             */
+            existing: boolean;
+            /** Allowed Actions */
+            allowed_actions?: string[];
+            /** Safe Customer Reference */
+            safe_customer_reference: string;
+            /** Assigned Admin Id */
+            assigned_admin_id?: string | null;
+            /**
+             * Overdue
+             * @default false
+             */
+            overdue: boolean;
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Notes Redacted */
+            notes_redacted?: string | null;
+            /** Policy Snapshot */
+            policy_snapshot?: {
+                [key: string]: unknown;
+            };
+            /** Customer Account Public Uid */
+            customer_account_public_uid?: number | null;
+            /** Principal Subject */
+            principal_subject: string;
+            /** Support Ticket Reference */
+            support_ticket_reference?: string | null;
+            /** Decision Reason */
+            decision_reason?: string | null;
+            /** Last Error Code */
+            last_error_code?: string | null;
+            /** Last Error Redacted */
+            last_error_redacted?: string | null;
+            /** Review Started At */
+            review_started_at?: string | null;
+            /** Identity Verified At */
+            identity_verified_at?: string | null;
+            /** Decision At */
+            decision_at?: string | null;
+            /** Version */
+            version: number;
+            /** Events */
+            events?: components["schemas"]["PrivacyRequestEventResponse"][];
+        };
+        /** AdminPrivacyRequestListResponse */
+        AdminPrivacyRequestListResponse: {
+            /** Requests */
+            requests: components["schemas"]["AdminPrivacyRequestSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** AdminPrivacyRequestSummaryResponse */
+        AdminPrivacyRequestSummaryResponse: {
+            /** Privacy Request Reference */
+            privacy_request_reference: string;
+            /** Ticket Reference */
+            ticket_reference?: string | null;
+            /**
+             * Request Type
+             * @enum {string}
+             */
+            request_type: "account_deletion" | "data_export";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "submitted" | "identity_verification" | "pending_decision" | "approved" | "scheduled" | "fulfilled" | "denied" | "canceled" | "failed";
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Scheduled For */
+            scheduled_for?: string | null;
+            /** Fulfilled At */
+            fulfilled_at?: string | null;
+            /** Canceled At */
+            canceled_at?: string | null;
+            /** Manual Fulfillment Target Days */
+            manual_fulfillment_target_days: number;
+            /**
+             * Existing
+             * @default false
+             */
+            existing: boolean;
+            /** Allowed Actions */
+            allowed_actions?: string[];
+            /** Safe Customer Reference */
+            safe_customer_reference: string;
+            /** Assigned Admin Id */
+            assigned_admin_id?: string | null;
+            /**
+             * Overdue
+             * @default false
+             */
+            overdue: boolean;
+        };
         /** AdminProcessWithdrawalRequest */
         AdminProcessWithdrawalRequest: {
             /** Admin Note */
@@ -17568,6 +17922,54 @@ export interface components {
             /** Created */
             created: boolean;
         };
+        /** CustomerPrivacyRequestDetailResponse */
+        CustomerPrivacyRequestDetailResponse: {
+            /** Privacy Request Reference */
+            privacy_request_reference: string;
+            /** Ticket Reference */
+            ticket_reference?: string | null;
+            /**
+             * Request Type
+             * @enum {string}
+             */
+            request_type: "account_deletion" | "data_export";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "submitted" | "identity_verification" | "pending_decision" | "approved" | "scheduled" | "fulfilled" | "denied" | "canceled" | "failed";
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Scheduled For */
+            scheduled_for?: string | null;
+            /** Fulfilled At */
+            fulfilled_at?: string | null;
+            /** Canceled At */
+            canceled_at?: string | null;
+            /** Manual Fulfillment Target Days */
+            manual_fulfillment_target_days: number;
+            /**
+             * Existing
+             * @default false
+             */
+            existing: boolean;
+            /** Allowed Actions */
+            allowed_actions?: string[];
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Notes Redacted */
+            notes_redacted?: string | null;
+            /** Events */
+            events?: components["schemas"]["PrivacyRequestEventResponse"][];
+        };
         /** CustomerSubscriptionListResponse */
         CustomerSubscriptionListResponse: {
             /**
@@ -17643,6 +18045,11 @@ export interface components {
              * @enum {string}
              */
             management_scope: "subscription_entitlement" | "account_vpn_identity" | "subscription_vpn_identity";
+        };
+        /** DecisionRequest */
+        DecisionRequest: {
+            /** Decision Reason */
+            decision_reason: string;
         };
         /** DedicatedIpSchema */
         DedicatedIpSchema: {
@@ -18252,6 +18659,13 @@ export interface components {
             action: "promote_to_live" | "enter_maintenance" | "start_rollback" | "return_to_canary";
             /** Change Reason */
             change_reason?: string | null;
+        };
+        /** ExecuteRequest */
+        ExecuteRequest: {
+            /** Confirm Text */
+            confirm_text: string;
+            /** Step Up Token */
+            step_up_token?: string | null;
         };
         /**
          * FCMTokenDeleteRequest
@@ -24677,55 +25091,125 @@ export interface components {
          * @enum {string}
          */
         PrincipalClass: "customer" | "partner_operator" | "admin" | "service";
-        /**
-         * PrivacyRequestCreate
-         * @description Request to open an S1 manual privacy review item.
-         */
-        PrivacyRequestCreate: {
-            /**
-             * Request Type
-             * @description S1 privacy request type.
-             * @enum {string}
-             */
-            request_type: "account_deletion" | "data_export";
-            /**
-             * Notes
-             * @description Optional user-provided context; secrets and configs are redacted before staff use.
-             */
-            notes?: string | null;
-        };
-        /**
-         * PrivacyRequestResponse
-         * @description Response for an accepted S1 manual privacy request.
-         */
-        PrivacyRequestResponse: {
-            /**
-             * Request Type
-             * @enum {string}
-             */
-            request_type: "account_deletion" | "data_export";
-            /** Message */
-            message: string;
+        /** PrivacyRequestAcceptedResponse */
+        PrivacyRequestAcceptedResponse: {
+            /** Privacy Request Reference */
+            privacy_request_reference: string;
             /** Ticket Reference */
             ticket_reference: string;
-            /** Target Contact */
-            target_contact: string;
-            /** Priority */
-            priority: string;
-            /** Support State */
-            support_state: string;
-            /** Ack Sla Minutes */
-            ack_sla_minutes?: number | null;
-            /** Customer Response Sla Minutes */
-            customer_response_sla_minutes: number;
+            /**
+             * Request Type
+             * @enum {string}
+             */
+            request_type: "account_deletion" | "data_export";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "submitted" | "identity_verification" | "pending_decision" | "approved" | "scheduled" | "fulfilled" | "denied" | "canceled" | "failed";
+            /** Message */
+            message: string;
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
             /** Manual Fulfillment Target Days */
             manual_fulfillment_target_days: number;
-            /** Required Actions */
-            required_actions: string[];
-            /** Forbidden Actions */
-            forbidden_actions: string[];
-            /** Audit Required */
-            audit_required: boolean;
+            /** Existing */
+            existing: boolean;
+        };
+        /** PrivacyRequestCreateRequest */
+        PrivacyRequestCreateRequest: {
+            /**
+             * Request Type
+             * @enum {string}
+             */
+            request_type: "account_deletion" | "data_export";
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Feedback */
+            feedback?: string | null;
+            /** Locale */
+            locale?: string | null;
+        };
+        /** PrivacyRequestEventResponse */
+        PrivacyRequestEventResponse: {
+            /** Event Type */
+            event_type: string;
+            /**
+             * Actor Type
+             * @enum {string}
+             */
+            actor_type: "customer" | "admin" | "system";
+            /** From Status */
+            from_status?: ("submitted" | "identity_verification" | "pending_decision" | "approved" | "scheduled" | "fulfilled" | "denied" | "canceled" | "failed") | null;
+            /** To Status */
+            to_status?: ("submitted" | "identity_verification" | "pending_decision" | "approved" | "scheduled" | "fulfilled" | "denied" | "canceled" | "failed") | null;
+            /** Safe Summary */
+            safe_summary: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** PrivacyRequestListResponse */
+        PrivacyRequestListResponse: {
+            /** Requests */
+            requests: components["schemas"]["PrivacyRequestSummaryResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** PrivacyRequestSummaryResponse */
+        PrivacyRequestSummaryResponse: {
+            /** Privacy Request Reference */
+            privacy_request_reference: string;
+            /** Ticket Reference */
+            ticket_reference?: string | null;
+            /**
+             * Request Type
+             * @enum {string}
+             */
+            request_type: "account_deletion" | "data_export";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "submitted" | "identity_verification" | "pending_decision" | "approved" | "scheduled" | "fulfilled" | "denied" | "canceled" | "failed";
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Scheduled For */
+            scheduled_for?: string | null;
+            /** Fulfilled At */
+            fulfilled_at?: string | null;
+            /** Canceled At */
+            canceled_at?: string | null;
+            /** Manual Fulfillment Target Days */
+            manual_fulfillment_target_days: number;
+            /**
+             * Existing
+             * @default false
+             */
+            existing: boolean;
+            /** Allowed Actions */
+            allowed_actions?: string[];
         };
         /**
          * ProfileResponse
@@ -26800,6 +27284,11 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** RequestIdentityVerificationRequest */
+        RequestIdentityVerificationRequest: {
+            /** Message */
+            message: string;
+        };
         /** RequestPartnerApplicationInfoRequest */
         RequestPartnerApplicationInfoRequest: {
             /** Message */
@@ -27401,6 +27890,11 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** ScheduleRequest */
+        ScheduleRequest: {
+            /** Scheduled For */
+            scheduled_for?: string | null;
+        };
         /**
          * ServerResponse
          * @description Response schema for a Remnawave VPN server.
@@ -27880,6 +28374,14 @@ export interface components {
          * @enum {string}
          */
         Stage1PaymentState: "not_started" | "quote_ready" | "pending" | "processing" | "paid" | "failed" | "cancelled" | "expired" | "refunded" | "orphan_review_required" | "reconciliation_required";
+        /** StartReviewRequest */
+        StartReviewRequest: {
+            /**
+             * Assign To Self
+             * @default true
+             */
+            assign_to_self: boolean;
+        };
         /**
          * StatementAdjustmentDirection
          * @enum {string}
@@ -30674,6 +31176,13 @@ export interface components {
              */
             code: string;
         };
+        /** VerifyIdentityRequest */
+        VerifyIdentityRequest: {
+            /** Verification Method */
+            verification_method: string;
+            /** Safe Note */
+            safe_note?: string | null;
+        };
         /**
          * VerifyOtpRequest
          * @description Request to verify OTP code.
@@ -31465,44 +31974,6 @@ export interface operations {
             };
             /** @description User not found */
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    create_privacy_request_api_v1_auth_me_privacy_requests_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrivacyRequestCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrivacyRequestResponse"];
-                };
-            };
-            /** @description Not authenticated */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation error */
-            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -44094,6 +44565,137 @@ export interface operations {
             };
         };
     };
+    list_customer_privacy_requests_api_v1_auth_me_privacy_requests_get: {
+        parameters: {
+            query?: {
+                request_type?: ("account_deletion" | "data_export") | null;
+                status?: ("submitted" | "identity_verification" | "pending_decision" | "approved" | "scheduled" | "fulfilled" | "denied" | "canceled" | "failed") | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_privacy_request_api_v1_auth_me_privacy_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivacyRequestCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_customer_privacy_request_api_v1_auth_me_privacy_requests__reference__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_customer_privacy_request_api_v1_auth_me_privacy_requests__reference__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_crypto_invoice_api_v1_payments_crypto_invoice_post: {
         parameters: {
             query?: never;
@@ -51357,6 +51959,378 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminCustomerOperationsActionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_privacy_requests_api_v1_admin_privacy_requests_get: {
+        parameters: {
+            query?: {
+                status?: ("submitted" | "identity_verification" | "pending_decision" | "approved" | "scheduled" | "fulfilled" | "denied" | "canceled" | "failed") | null;
+                request_type?: ("account_deletion" | "data_export") | null;
+                assigned_admin_id?: string | null;
+                overdue?: boolean | null;
+                submitted_from?: string | null;
+                submitted_to?: string | null;
+                query?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    count_admin_privacy_requests_api_v1_admin_privacy_requests_queue_count_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number;
+                    };
+                };
+            };
+        };
+    };
+    get_admin_privacy_request_api_v1_admin_privacy_requests__reference__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_privacy_review_api_v1_admin_privacy_requests__reference__start_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_privacy_identity_verification_api_v1_admin_privacy_requests__reference__request_identity_verification_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestIdentityVerificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_privacy_identity_api_v1_admin_privacy_requests__reference__verify_identity_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyIdentityRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_privacy_request_api_v1_admin_privacy_requests__reference__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deny_privacy_request_api_v1_admin_privacy_requests__reference__deny_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schedule_privacy_request_api_v1_admin_privacy_requests__reference__schedule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    execute_privacy_request_api_v1_admin_privacy_requests__reference__execute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExecuteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_privacy_request_api_v1_admin_privacy_requests__reference__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPrivacyRequestDetailResponse"];
                 };
             };
             /** @description Validation Error */

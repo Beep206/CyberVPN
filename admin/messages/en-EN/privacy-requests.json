@@ -1,0 +1,99 @@
+{
+  "common": {
+    "refresh": "Refresh"
+  },
+  "eyebrow": "PRIVACY OPERATIONS",
+  "title": "Privacy requests",
+  "description": "Review account deletion and data export requests through a durable audit trail linked to support tickets. Fulfillment only becomes final after verified approval and execution.",
+  "permissionDenied": {
+    "title": "Privacy permission required",
+    "description": "This account cannot read the privacy request queue. Use a support, admin, or owner role with privacy request permissions."
+  },
+  "filters": {
+    "search": "Search privacy requests",
+    "searchPlaceholder": "PRV, SUP, principal UUID, public UID",
+    "status": "Status filter",
+    "requestType": "Request type filter",
+    "assignment": "Assignment filter",
+    "allStatuses": "All statuses",
+    "allTypes": "All request types",
+    "assignmentOptions": {
+      "all": "All requests",
+      "mine": "Assigned to me",
+      "unassigned": "Unassigned"
+    }
+  },
+  "metrics": {
+    "visible": "visible",
+    "overdue": "overdue",
+    "submitted": "submitted"
+  },
+  "types": {
+    "account_deletion": "Account deletion",
+    "data_export": "Data export"
+  },
+  "statuses": {
+    "submitted": "Submitted",
+    "identity_verification": "Identity verification",
+    "pending_decision": "Pending decision",
+    "approved": "Approved",
+    "scheduled": "Scheduled",
+    "fulfilled": "Fulfilled",
+    "denied": "Denied",
+    "canceled": "Canceled",
+    "failed": "Failed"
+  },
+  "list": {
+    "empty": "No privacy requests match the current filters.",
+    "open": "Open",
+    "overdue": "Overdue",
+    "submitted": "Submitted {value}",
+    "support": "Support {reference}"
+  },
+  "detail": {
+    "empty": "Select a privacy request to inspect review state, support linkage and audit events.",
+    "safeCustomer": "Safe customer reference: {value}",
+    "submittedAt": "Submitted",
+    "supportTicket": "Support ticket",
+    "version": "Version",
+    "reviewContext": "Review context",
+    "reasonCode": "Reason code",
+    "decisionReason": "Decision reason",
+    "notes": "Redacted notes",
+    "auditTimeline": "Audit timeline",
+    "noEvents": "No audit events are attached to this request yet."
+  },
+  "actions": {
+    "title": "Allowed actions",
+    "description": "Actions are gated by status and privacy permissions. Execute requires typing DELETE.",
+    "none": "No actions are available for this status.",
+    "start_review": "Start review",
+    "request_identity_verification": "Request identity",
+    "verify_identity": "Verify identity",
+    "approve": "Approve",
+    "deny": "Deny",
+    "schedule": "Schedule",
+    "execute": "Execute deletion",
+    "retry": "Retry"
+  },
+  "prompts": {
+    "identityMessage": "Public support message for identity verification",
+    "identityMessageDefault": "Please confirm account ownership before we continue this privacy request.",
+    "verificationMethod": "Verification method",
+    "safeNote": "Safe internal note",
+    "decisionReason": "Decision reason",
+    "approveDefault": "Ownership verified and deletion/export request is approved for scheduling.",
+    "approveConfirm": "Approve this privacy request?",
+    "denyConfirm": "Deny this privacy request?",
+    "scheduleFor": "Scheduled time as ISO string, or blank for now",
+    "executeConfirmText": "Type DELETE to execute account deletion",
+    "executeConfirm": "This executes deletion for the target customer, not the admin. Continue?"
+  },
+  "feedback": {
+    "selectRequest": "Select a privacy request first.",
+    "actionCanceled": "Action canceled.",
+    "actionComplete": "Privacy request updated.",
+    "actionFailed": "Action failed. Try again.",
+    "unknownAction": "Unknown action."
+  }
+}

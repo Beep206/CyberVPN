@@ -70,6 +70,11 @@
       "description": "Tickets, которые сейчас ждут ответа со стороны support.",
       "metric": "тикеты поддержки"
     },
+    "privacyRequests": {
+      "title": "Privacy-проверки",
+      "description": "Запросы на удаление аккаунта и экспорт данных, ожидающие privacy review.",
+      "metric": "privacy-запросов"
+    },
     "securityReviews": {
       "title": "Проверки рисков",
       "description": "Канонические risk review записи из security queue.",

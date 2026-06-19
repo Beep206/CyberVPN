@@ -1,7 +1,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { adminWalletApi, governanceApi, growthApi, securityApi, supportApi } from '@/lib/api';
+import {
+  adminPrivacyRequestsApi,
+  adminWalletApi,
+  governanceApi,
+  growthApi,
+  securityApi,
+  supportApi,
+} from '@/lib/api';
 import type {
   AdminNavHref,
   AdminNavItemRisk,
@@ -62,6 +69,16 @@ const ACTION_QUEUE_DEFINITIONS: readonly AdminActionQueueDefinition[] = [
     metricKey: 'actionQueues.support.metric',
     requiredPermissions: ['support_ticket_read'],
     risk: 'write',
+  },
+  {
+    id: 'privacyRequests',
+    navItemId: 'privacy-requests',
+    href: '/privacy-requests?status=submitted',
+    titleKey: 'actionQueues.privacyRequests.title',
+    descriptionKey: 'actionQueues.privacyRequests.description',
+    metricKey: 'actionQueues.privacyRequests.metric',
+    requiredPermissions: ['privacy_request_read'],
+    risk: 'danger',
   },
   {
     id: 'securityReviews',
@@ -159,9 +176,10 @@ export function useAdminActionQueues(roleOverride?: AdminRole | string | null) {
   const role = roleOverride ?? storeRole;
   const canReadWithdrawals = canAccessQueue(role, ACTION_QUEUE_DEFINITIONS[0]);
   const canReadSupport = canAccessQueue(role, ACTION_QUEUE_DEFINITIONS[1]);
-  const canReadSecurityReviews = canAccessQueue(role, ACTION_QUEUE_DEFINITIONS[2]);
-  const canReadGrowthAbuse = canAccessQueue(role, ACTION_QUEUE_DEFINITIONS[3]);
-  const canReadWebhookFailures = canAccessQueue(role, ACTION_QUEUE_DEFINITIONS[4]);
+  const canReadPrivacyRequests = canAccessQueue(role, ACTION_QUEUE_DEFINITIONS[2]);
+  const canReadSecurityReviews = canAccessQueue(role, ACTION_QUEUE_DEFINITIONS[3]);
+  const canReadGrowthAbuse = canAccessQueue(role, ACTION_QUEUE_DEFINITIONS[4]);
+  const canReadWebhookFailures = canAccessQueue(role, ACTION_QUEUE_DEFINITIONS[5]);
 
   const withdrawalsQuery = useQuery({
     queryKey: ['admin', 'action-queues', 'withdrawals', 'pending'],
@@ -186,6 +204,19 @@ export function useAdminActionQueues(roleOverride?: AdminRole | string | null) {
       return response.data.tickets.length;
     },
     enabled: canReadSupport,
+    staleTime: QUEUE_STALE_TIME_MS,
+    refetchInterval: pollingInterval(QUEUE_REFRESH_INTERVAL_MS),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+  const privacyRequestsQuery = useQuery({
+    queryKey: ['admin', 'action-queues', 'privacy-requests', 'queue-count'],
+    queryFn: async () => {
+      const response = await adminPrivacyRequestsApi.countQueue();
+      return response.data.count;
+    },
+    enabled: canReadPrivacyRequests,
     staleTime: QUEUE_STALE_TIME_MS,
     refetchInterval: pollingInterval(QUEUE_REFRESH_INTERVAL_MS),
     refetchIntervalInBackground: false,
@@ -247,18 +278,24 @@ export function useAdminActionQueues(roleOverride?: AdminRole | string | null) {
     ),
     buildQueue(
       ACTION_QUEUE_DEFINITIONS[2],
+      canReadPrivacyRequests,
+      privacyRequestsQuery,
+      privacyRequestsQuery.data ?? null,
+    ),
+    buildQueue(
+      ACTION_QUEUE_DEFINITIONS[3],
       canReadSecurityReviews,
       securityReviewsQuery,
       securityReviewsQuery.data ?? null,
     ),
     buildQueue(
-      ACTION_QUEUE_DEFINITIONS[3],
+      ACTION_QUEUE_DEFINITIONS[4],
       canReadGrowthAbuse,
       growthAbuseQuery,
       growthAbuseQuery.data ?? null,
     ),
     buildQueue(
-      ACTION_QUEUE_DEFINITIONS[4],
+      ACTION_QUEUE_DEFINITIONS[5],
       canReadWebhookFailures,
       webhookFailuresQuery,
       webhookFailuresQuery.data ?? null,

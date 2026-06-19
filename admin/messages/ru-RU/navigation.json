@@ -64,6 +64,8 @@
     "customersHint": "Жизненный цикл и поиск аккаунтов",
     "support": "Поддержка",
     "supportHint": "Инбокс и внутренние заметки",
+    "privacyRequests": "Privacy-запросы",
+    "privacyRequestsHint": "Проверка удаления и экспорта",
     "messaging": "Сообщения",
     "messagingHint": "Диалоги, заметки, присутствие",
     "commerceOverview": "Обзор коммерции",

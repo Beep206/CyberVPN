@@ -231,49 +231,6 @@
         ]
       }
     },
-    "/api/v1/auth/me/privacy-requests": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Create Privacy Request",
-        "description": "Open a manual S1 privacy request for account deletion or data export.\n\nThis endpoint creates a safe support/escalation reference only. S1 does not\nautomatically export raw data or perform destructive deletion from this\nrequest path.",
-        "operationId": "create_privacy_request_api_v1_auth_me_privacy_requests_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PrivacyRequestCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrivacyRequestResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated"
-          },
-          "422": {
-            "description": "Validation error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      }
-    },
     "/api/v1/auth/verify-email": {
       "post": {
         "tags": [
@@ -21477,6 +21434,275 @@
         }
       }
     },
+    "/api/v1/auth/me/privacy-requests": {
+      "post": {
+        "tags": [
+          "privacy-requests"
+        ],
+        "summary": "Create Privacy Request",
+        "operationId": "create_privacy_request_api_v1_auth_me_privacy_requests_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivacyRequestCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestAcceptedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "privacy-requests"
+        ],
+        "summary": "List Customer Privacy Requests",
+        "operationId": "list_customer_privacy_requests_api_v1_auth_me_privacy_requests_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "account_deletion",
+                    "data_export"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Request Type"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "submitted",
+                    "identity_verification",
+                    "pending_decision",
+                    "approved",
+                    "scheduled",
+                    "fulfilled",
+                    "denied",
+                    "canceled",
+                    "failed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me/privacy-requests/{reference}": {
+      "get": {
+        "tags": [
+          "privacy-requests"
+        ],
+        "summary": "Get Customer Privacy Request",
+        "operationId": "get_customer_privacy_request_api_v1_auth_me_privacy_requests__reference__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me/privacy-requests/{reference}/cancel": {
+      "post": {
+        "tags": [
+          "privacy-requests"
+        ],
+        "summary": "Cancel Customer Privacy Request",
+        "operationId": "cancel_customer_privacy_request_api_v1_auth_me_privacy_requests__reference__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/payments/crypto/invoice": {
       "post": {
         "tags": [
@@ -33740,6 +33966,747 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdminCustomerOperationsActionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests": {
+      "get": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "List Admin Privacy Requests",
+        "operationId": "list_admin_privacy_requests_api_v1_admin_privacy_requests_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "submitted",
+                    "identity_verification",
+                    "pending_decision",
+                    "approved",
+                    "scheduled",
+                    "fulfilled",
+                    "denied",
+                    "canceled",
+                    "failed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "request_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "account_deletion",
+                    "data_export"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Request Type"
+            }
+          },
+          {
+            "name": "assigned_admin_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assigned Admin Id"
+            }
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Overdue"
+            }
+          },
+          {
+            "name": "submitted_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Submitted From"
+            }
+          },
+          {
+            "name": "submitted_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Submitted To"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests/queue-count": {
+      "get": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Count Admin Privacy Requests",
+        "operationId": "count_admin_privacy_requests_api_v1_admin_privacy_requests_queue_count_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object",
+                  "title": "Response Count Admin Privacy Requests Api V1 Admin Privacy Requests Queue Count Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/privacy-requests/{reference}": {
+      "get": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Get Admin Privacy Request",
+        "operationId": "get_admin_privacy_request_api_v1_admin_privacy_requests__reference__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests/{reference}/start-review": {
+      "post": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Start Privacy Review",
+        "operationId": "start_privacy_review_api_v1_admin_privacy_requests__reference__start_review_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests/{reference}/request-identity-verification": {
+      "post": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Request Privacy Identity Verification",
+        "operationId": "request_privacy_identity_verification_api_v1_admin_privacy_requests__reference__request_identity_verification_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestIdentityVerificationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests/{reference}/verify-identity": {
+      "post": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Verify Privacy Identity",
+        "operationId": "verify_privacy_identity_api_v1_admin_privacy_requests__reference__verify_identity_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyIdentityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests/{reference}/approve": {
+      "post": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Approve Privacy Request",
+        "operationId": "approve_privacy_request_api_v1_admin_privacy_requests__reference__approve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests/{reference}/deny": {
+      "post": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Deny Privacy Request",
+        "operationId": "deny_privacy_request_api_v1_admin_privacy_requests__reference__deny_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests/{reference}/schedule": {
+      "post": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Schedule Privacy Request",
+        "operationId": "schedule_privacy_request_api_v1_admin_privacy_requests__reference__schedule_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests/{reference}/execute": {
+      "post": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Execute Privacy Request",
+        "operationId": "execute_privacy_request_api_v1_admin_privacy_requests__reference__execute_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/privacy-requests/{reference}/retry": {
+      "post": {
+        "tags": [
+          "admin",
+          "privacy-requests"
+        ],
+        "summary": "Retry Privacy Request",
+        "operationId": "retry_privacy_request_api_v1_admin_privacy_requests__reference__retry_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reference"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPrivacyRequestDetailResponse"
                 }
               }
             }
@@ -46998,6 +47965,438 @@
         ],
         "title": "AdminPricebookVersionResponse"
       },
+      "AdminPrivacyRequestDetailResponse": {
+        "properties": {
+          "privacy_request_reference": {
+            "type": "string",
+            "title": "Privacy Request Reference"
+          },
+          "ticket_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket Reference"
+          },
+          "request_type": {
+            "type": "string",
+            "enum": [
+              "account_deletion",
+              "data_export"
+            ],
+            "title": "Request Type"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "identity_verification",
+              "pending_decision",
+              "approved",
+              "scheduled",
+              "fulfilled",
+              "denied",
+              "canceled",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Submitted At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "scheduled_for": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled For"
+          },
+          "fulfilled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fulfilled At"
+          },
+          "canceled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canceled At"
+          },
+          "manual_fulfillment_target_days": {
+            "type": "integer",
+            "title": "Manual Fulfillment Target Days"
+          },
+          "existing": {
+            "type": "boolean",
+            "title": "Existing",
+            "default": false
+          },
+          "allowed_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Actions"
+          },
+          "safe_customer_reference": {
+            "type": "string",
+            "title": "Safe Customer Reference"
+          },
+          "assigned_admin_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Admin Id"
+          },
+          "overdue": {
+            "type": "boolean",
+            "title": "Overdue",
+            "default": false
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "notes_redacted": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes Redacted"
+          },
+          "policy_snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Policy Snapshot"
+          },
+          "customer_account_public_uid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Account Public Uid"
+          },
+          "principal_subject": {
+            "type": "string",
+            "title": "Principal Subject"
+          },
+          "support_ticket_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Ticket Reference"
+          },
+          "decision_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Reason"
+          },
+          "last_error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error Code"
+          },
+          "last_error_redacted": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error Redacted"
+          },
+          "review_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Started At"
+          },
+          "identity_verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identity Verified At"
+          },
+          "decision_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision At"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PrivacyRequestEventResponse"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "privacy_request_reference",
+          "request_type",
+          "status",
+          "submitted_at",
+          "updated_at",
+          "manual_fulfillment_target_days",
+          "safe_customer_reference",
+          "principal_subject",
+          "version"
+        ],
+        "title": "AdminPrivacyRequestDetailResponse"
+      },
+      "AdminPrivacyRequestListResponse": {
+        "properties": {
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPrivacyRequestSummaryResponse"
+            },
+            "type": "array",
+            "title": "Requests"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests"
+        ],
+        "title": "AdminPrivacyRequestListResponse"
+      },
+      "AdminPrivacyRequestSummaryResponse": {
+        "properties": {
+          "privacy_request_reference": {
+            "type": "string",
+            "title": "Privacy Request Reference"
+          },
+          "ticket_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket Reference"
+          },
+          "request_type": {
+            "type": "string",
+            "enum": [
+              "account_deletion",
+              "data_export"
+            ],
+            "title": "Request Type"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "identity_verification",
+              "pending_decision",
+              "approved",
+              "scheduled",
+              "fulfilled",
+              "denied",
+              "canceled",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Submitted At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "scheduled_for": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled For"
+          },
+          "fulfilled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fulfilled At"
+          },
+          "canceled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canceled At"
+          },
+          "manual_fulfillment_target_days": {
+            "type": "integer",
+            "title": "Manual Fulfillment Target Days"
+          },
+          "existing": {
+            "type": "boolean",
+            "title": "Existing",
+            "default": false
+          },
+          "allowed_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Actions"
+          },
+          "safe_customer_reference": {
+            "type": "string",
+            "title": "Safe Customer Reference"
+          },
+          "assigned_admin_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Admin Id"
+          },
+          "overdue": {
+            "type": "boolean",
+            "title": "Overdue",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "privacy_request_reference",
+          "request_type",
+          "status",
+          "submitted_at",
+          "updated_at",
+          "manual_fulfillment_target_days",
+          "safe_customer_reference"
+        ],
+        "title": "AdminPrivacyRequestSummaryResponse"
+      },
       "AdminProcessWithdrawalRequest": {
         "properties": {
           "admin_note": {
@@ -54974,6 +56373,149 @@
         ],
         "title": "CustomerMessagingMessageWriteResponse"
       },
+      "CustomerPrivacyRequestDetailResponse": {
+        "properties": {
+          "privacy_request_reference": {
+            "type": "string",
+            "title": "Privacy Request Reference"
+          },
+          "ticket_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket Reference"
+          },
+          "request_type": {
+            "type": "string",
+            "enum": [
+              "account_deletion",
+              "data_export"
+            ],
+            "title": "Request Type"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "identity_verification",
+              "pending_decision",
+              "approved",
+              "scheduled",
+              "fulfilled",
+              "denied",
+              "canceled",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Submitted At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "scheduled_for": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled For"
+          },
+          "fulfilled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fulfilled At"
+          },
+          "canceled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canceled At"
+          },
+          "manual_fulfillment_target_days": {
+            "type": "integer",
+            "title": "Manual Fulfillment Target Days"
+          },
+          "existing": {
+            "type": "boolean",
+            "title": "Existing",
+            "default": false
+          },
+          "allowed_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Actions"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "notes_redacted": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes Redacted"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PrivacyRequestEventResponse"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "privacy_request_reference",
+          "request_type",
+          "status",
+          "submitted_at",
+          "updated_at",
+          "manual_fulfillment_target_days"
+        ],
+        "title": "CustomerPrivacyRequestDetailResponse"
+      },
       "CustomerSubscriptionListResponse": {
         "properties": {
           "customer_account_id": {
@@ -55216,6 +56758,21 @@
           "management_scope"
         ],
         "title": "CustomerSubscriptionSummaryResponse"
+      },
+      "DecisionRequest": {
+        "properties": {
+          "decision_reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Decision Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision_reason"
+        ],
+        "title": "DecisionRequest"
       },
       "DedicatedIpSchema": {
         "properties": {
@@ -56744,6 +58301,33 @@
           "action"
         ],
         "title": "ExecuteAdminMiniAppLaunchActionRequest"
+      },
+      "ExecuteRequest": {
+        "properties": {
+          "confirm_text": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Confirm Text"
+          },
+          "step_up_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Up Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "confirm_text"
+        ],
+        "title": "ExecuteRequest"
       },
       "FCMTokenDeleteRequest": {
         "properties": {
@@ -72199,7 +73783,71 @@
         ],
         "title": "PrincipalClass"
       },
-      "PrivacyRequestCreate": {
+      "PrivacyRequestAcceptedResponse": {
+        "properties": {
+          "privacy_request_reference": {
+            "type": "string",
+            "title": "Privacy Request Reference"
+          },
+          "ticket_reference": {
+            "type": "string",
+            "title": "Ticket Reference"
+          },
+          "request_type": {
+            "type": "string",
+            "enum": [
+              "account_deletion",
+              "data_export"
+            ],
+            "title": "Request Type"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "identity_verification",
+              "pending_decision",
+              "approved",
+              "scheduled",
+              "fulfilled",
+              "denied",
+              "canceled",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Submitted At"
+          },
+          "manual_fulfillment_target_days": {
+            "type": "integer",
+            "title": "Manual Fulfillment Target Days"
+          },
+          "existing": {
+            "type": "boolean",
+            "title": "Existing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "privacy_request_reference",
+          "ticket_reference",
+          "request_type",
+          "status",
+          "message",
+          "submitted_at",
+          "manual_fulfillment_target_days",
+          "existing"
+        ],
+        "title": "PrivacyRequestAcceptedResponse"
+      },
+      "PrivacyRequestCreateRequest": {
         "properties": {
           "request_type": {
             "type": "string",
@@ -72207,8 +73855,31 @@
               "account_deletion",
               "data_export"
             ],
-            "title": "Request Type",
-            "description": "S1 privacy request type."
+            "title": "Request Type"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
           },
           "notes": {
             "anyOf": [
@@ -72220,19 +73891,166 @@
                 "type": "null"
               }
             ],
-            "title": "Notes",
-            "description": "Optional user-provided context; secrets and configs are redacted before staff use."
+            "title": "Notes"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 700
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
           }
         },
         "type": "object",
         "required": [
           "request_type"
         ],
-        "title": "PrivacyRequestCreate",
-        "description": "Request to open an S1 manual privacy review item."
+        "title": "PrivacyRequestCreateRequest"
       },
-      "PrivacyRequestResponse": {
+      "PrivacyRequestEventResponse": {
         "properties": {
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "actor_type": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "admin",
+              "system"
+            ],
+            "title": "Actor Type"
+          },
+          "from_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "submitted",
+                  "identity_verification",
+                  "pending_decision",
+                  "approved",
+                  "scheduled",
+                  "fulfilled",
+                  "denied",
+                  "canceled",
+                  "failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Status"
+          },
+          "to_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "submitted",
+                  "identity_verification",
+                  "pending_decision",
+                  "approved",
+                  "scheduled",
+                  "fulfilled",
+                  "denied",
+                  "canceled",
+                  "failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Status"
+          },
+          "safe_summary": {
+            "type": "string",
+            "title": "Safe Summary"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_type",
+          "actor_type",
+          "safe_summary",
+          "created_at"
+        ],
+        "title": "PrivacyRequestEventResponse"
+      },
+      "PrivacyRequestListResponse": {
+        "properties": {
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/PrivacyRequestSummaryResponse"
+            },
+            "type": "array",
+            "title": "Requests"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests"
+        ],
+        "title": "PrivacyRequestListResponse"
+      },
+      "PrivacyRequestSummaryResponse": {
+        "properties": {
+          "privacy_request_reference": {
+            "type": "string",
+            "title": "Privacy Request Reference"
+          },
+          "ticket_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticket Reference"
+          },
           "request_type": {
             "type": "string",
             "enum": [
@@ -72241,80 +74059,94 @@
             ],
             "title": "Request Type"
           },
-          "message": {
+          "status": {
             "type": "string",
-            "title": "Message"
+            "enum": [
+              "submitted",
+              "identity_verification",
+              "pending_decision",
+              "approved",
+              "scheduled",
+              "fulfilled",
+              "denied",
+              "canceled",
+              "failed"
+            ],
+            "title": "Status"
           },
-          "ticket_reference": {
+          "submitted_at": {
             "type": "string",
-            "title": "Ticket Reference"
+            "format": "date-time",
+            "title": "Submitted At"
           },
-          "target_contact": {
+          "updated_at": {
             "type": "string",
-            "title": "Target Contact"
+            "format": "date-time",
+            "title": "Updated At"
           },
-          "priority": {
-            "type": "string",
-            "title": "Priority"
-          },
-          "support_state": {
-            "type": "string",
-            "title": "Support State"
-          },
-          "ack_sla_minutes": {
+          "scheduled_for": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "string",
+                "format": "date-time"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Ack Sla Minutes"
+            "title": "Scheduled For"
           },
-          "customer_response_sla_minutes": {
-            "type": "integer",
-            "title": "Customer Response Sla Minutes"
+          "fulfilled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fulfilled At"
+          },
+          "canceled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canceled At"
           },
           "manual_fulfillment_target_days": {
             "type": "integer",
             "title": "Manual Fulfillment Target Days"
           },
-          "required_actions": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Required Actions"
-          },
-          "forbidden_actions": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Forbidden Actions"
-          },
-          "audit_required": {
+          "existing": {
             "type": "boolean",
-            "title": "Audit Required"
+            "title": "Existing",
+            "default": false
+          },
+          "allowed_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Actions"
           }
         },
         "type": "object",
         "required": [
+          "privacy_request_reference",
           "request_type",
-          "message",
-          "ticket_reference",
-          "target_contact",
-          "priority",
-          "support_state",
-          "customer_response_sla_minutes",
-          "manual_fulfillment_target_days",
-          "required_actions",
-          "forbidden_actions",
-          "audit_required"
+          "status",
+          "submitted_at",
+          "updated_at",
+          "manual_fulfillment_target_days"
         ],
-        "title": "PrivacyRequestResponse",
-        "description": "Response for an accepted S1 manual privacy request."
+        "title": "PrivacyRequestSummaryResponse"
       },
       "ProfileResponse": {
         "properties": {
@@ -76977,6 +78809,21 @@
         ],
         "title": "ReorderNodePluginsRequest"
       },
+      "RequestIdentityVerificationRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "RequestIdentityVerificationRequest"
+      },
       "RequestPartnerApplicationInfoRequest": {
         "properties": {
           "message": {
@@ -78557,6 +80404,24 @@
         ],
         "title": "SchedulePartnerWorkspaceReportExportRequest"
       },
+      "ScheduleRequest": {
+        "properties": {
+          "scheduled_for": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled For"
+          }
+        },
+        "type": "object",
+        "title": "ScheduleRequest"
+      },
       "ServerResponse": {
         "properties": {
           "uuid": {
@@ -79930,6 +81795,17 @@
         ],
         "title": "Stage1PaymentState",
         "description": "Canonical payment state for web, Telegram, admin and support views."
+      },
+      "StartReviewRequest": {
+        "properties": {
+          "assign_to_self": {
+            "type": "boolean",
+            "title": "Assign To Self",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "StartReviewRequest"
       },
       "StatementAdjustmentDirection": {
         "type": "string",
@@ -86735,6 +88611,33 @@
         "example": {
           "code": "123456"
         }
+      },
+      "VerifyIdentityRequest": {
+        "properties": {
+          "verification_method": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Verification Method"
+          },
+          "safe_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verification_method"
+        ],
+        "title": "VerifyIdentityRequest"
       },
       "VerifyOtpRequest": {
         "properties": {

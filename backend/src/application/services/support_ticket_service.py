@@ -69,6 +69,44 @@ class SupportTicketService:
             metadata=metadata,
         )
 
+    async def create_privacy_ticket(
+        self,
+        *,
+        customer_account_id: UUID | None,
+        actor_id: UUID,
+        request_public_id: str,
+        request_type: str,
+        legacy_routing_reference: str,
+        message: str,
+        metadata: dict[str, object] | None = None,
+    ) -> SupportTicket:
+        subject = (
+            "Account deletion request"
+            if request_type == "account_deletion"
+            else "Data export request"
+        )
+        ticket_metadata = {
+            **dict(metadata or {}),
+            "privacy_request_public_id": request_public_id,
+            "request_type": request_type,
+            "legacy_routing_reference": legacy_routing_reference,
+        }
+        return await self._repository.create_ticket(
+            public_id=self._new_public_id(prefix="SUP"),
+            owner_type=SupportTicketOwnerType.CUSTOMER,
+            customer_account_id=customer_account_id,
+            partner_workspace_id=None,
+            created_by_actor_type=SupportActorType.CUSTOMER,
+            created_by_actor_id=actor_id,
+            source=SupportTicketSource.CUSTOMER_WEB,
+            status=SupportTicketStatus.PENDING_SUPPORT,
+            category=SupportTicketCategory.PRIVACY,
+            priority=SupportTicketPriority.HIGH,
+            subject=subject,
+            message_body=message.strip(),
+            metadata=ticket_metadata,
+        )
+
     async def create_partner_ticket(
         self,
         *,
@@ -414,5 +452,8 @@ class SupportTicketService:
         return ticket
 
     @staticmethod
-    def _new_public_id() -> str:
-        return f"sup_{secrets.token_urlsafe(8).replace('-', '').replace('_', '').lower()[:10]}"
+    def _new_public_id(*, prefix: str = "sup") -> str:
+        suffix = secrets.token_urlsafe(10).replace("-", "").replace("_", "")[:14]
+        if prefix.isupper():
+            return f"{prefix}-{suffix.upper()}"
+        return f"{prefix}_{suffix.lower()}"

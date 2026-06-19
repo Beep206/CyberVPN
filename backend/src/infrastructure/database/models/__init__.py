@@ -145,6 +145,7 @@ from src.infrastructure.database.models.plan_addon_model import PlanAddonModel, 
 from src.infrastructure.database.models.policy_version_model import PolicyVersionModel
 from src.infrastructure.database.models.pricebook_model import PricebookEntryModel, PricebookModel
 from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
+from src.infrastructure.database.models.privacy_request_model import PrivacyRequestEventModel, PrivacyRequestModel
 from src.infrastructure.database.models.program_eligibility_policy_model import ProgramEligibilityPolicyModel
 from src.infrastructure.database.models.promo_code_model import PromoCodeModel, PromoCodeUsageModel
 from src.infrastructure.database.models.provisioning_profile_model import ProvisioningProfileModel
@@ -277,6 +278,8 @@ __all__ = [
     "PricebookEntryModel",
     "PricebookModel",
     "PrincipalSessionModel",
+    "PrivacyRequestEventModel",
+    "PrivacyRequestModel",
     "ProvisioningProfileModel",
     "ProgramEligibilityPolicyModel",
     "PromoCodePolicyModel",

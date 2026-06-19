@@ -1,0 +1,99 @@
+{
+  "common": {
+    "refresh": "Обновить"
+  },
+  "eyebrow": "PRIVACY OPERATIONS",
+  "title": "Privacy-запросы",
+  "description": "Проверяйте запросы на удаление аккаунта и экспорт данных через долговечный audit trail, связанный с support ticket. Fulfillment становится финальным только после подтверждения личности, одобрения и выполнения.",
+  "permissionDenied": {
+    "title": "Нужны права privacy",
+    "description": "Этот аккаунт не может читать очередь privacy requests. Используйте роль support, admin или owner с privacy request permissions."
+  },
+  "filters": {
+    "search": "Поиск privacy requests",
+    "searchPlaceholder": "PRV, SUP, principal UUID, public UID",
+    "status": "Фильтр статуса",
+    "requestType": "Фильтр типа запроса",
+    "assignment": "Фильтр назначения",
+    "allStatuses": "Все статусы",
+    "allTypes": "Все типы запросов",
+    "assignmentOptions": {
+      "all": "Все запросы",
+      "mine": "Назначены мне",
+      "unassigned": "Без назначения"
+    }
+  },
+  "metrics": {
+    "visible": "видно",
+    "overdue": "просрочено",
+    "submitted": "новые"
+  },
+  "types": {
+    "account_deletion": "Удаление аккаунта",
+    "data_export": "Экспорт данных"
+  },
+  "statuses": {
+    "submitted": "Отправлен",
+    "identity_verification": "Проверка личности",
+    "pending_decision": "Ожидает решения",
+    "approved": "Одобрен",
+    "scheduled": "Запланирован",
+    "fulfilled": "Выполнен",
+    "denied": "Отклонён",
+    "canceled": "Отменён",
+    "failed": "Ошибка"
+  },
+  "list": {
+    "empty": "Под текущие фильтры не подходит ни один privacy request.",
+    "open": "Открыть",
+    "overdue": "Просрочен",
+    "submitted": "Отправлен {value}",
+    "support": "Support {reference}"
+  },
+  "detail": {
+    "empty": "Выберите privacy request, чтобы проверить review state, support-связку и audit events.",
+    "safeCustomer": "Безопасная ссылка клиента: {value}",
+    "submittedAt": "Отправлено",
+    "supportTicket": "Тикет поддержки",
+    "version": "Версия",
+    "reviewContext": "Контекст review",
+    "reasonCode": "Код причины",
+    "decisionReason": "Причина решения",
+    "notes": "Отредактированные заметки",
+    "auditTimeline": "Audit timeline",
+    "noEvents": "У этого запроса пока нет audit events."
+  },
+  "actions": {
+    "title": "Доступные действия",
+    "description": "Действия ограничены статусом и privacy permissions. Для execute нужно ввести DELETE.",
+    "none": "Для этого статуса нет доступных действий.",
+    "start_review": "Начать review",
+    "request_identity_verification": "Запросить identity",
+    "verify_identity": "Подтвердить identity",
+    "approve": "Одобрить",
+    "deny": "Отклонить",
+    "schedule": "Запланировать",
+    "execute": "Выполнить удаление",
+    "retry": "Повторить"
+  },
+  "prompts": {
+    "identityMessage": "Публичное сообщение support для проверки личности",
+    "identityMessageDefault": "Пожалуйста, подтвердите владение аккаунтом, чтобы мы продолжили обработку privacy request.",
+    "verificationMethod": "Метод проверки",
+    "safeNote": "Безопасная внутренняя заметка",
+    "decisionReason": "Причина решения",
+    "approveDefault": "Владение подтверждено, запрос на удаление/экспорт одобрен для планирования.",
+    "approveConfirm": "Одобрить этот privacy request?",
+    "denyConfirm": "Отклонить этот privacy request?",
+    "scheduleFor": "Время выполнения в ISO или пусто для запуска сейчас",
+    "executeConfirmText": "Введите DELETE для выполнения удаления аккаунта",
+    "executeConfirm": "Будет удалён целевой customer, а не admin. Продолжить?"
+  },
+  "feedback": {
+    "selectRequest": "Сначала выберите privacy request.",
+    "actionCanceled": "Действие отменено.",
+    "actionComplete": "Privacy request обновлён.",
+    "actionFailed": "Действие не выполнено. Попробуйте ещё раз.",
+    "unknownAction": "Неизвестное действие."
+  }
+}

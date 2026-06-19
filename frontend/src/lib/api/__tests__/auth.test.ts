@@ -479,10 +479,11 @@ describe('authApi.requestPrivacyAction', () => {
     // Assert
     expect(response.status).toBe(202);
     expect(response.data.request_type).toBe('data_export');
-    expect(response.data.target_contact).toBe('privacy@cyber-vpn.net');
-    expect(response.data.ticket_reference).toContain('s1sup-web-p1');
+    expect(response.data.privacy_request_reference).toContain('PRV-');
+    expect(response.data.ticket_reference).toContain('SUP-');
+    expect(response.data.status).toBe('submitted');
     expect(response.data.manual_fulfillment_target_days).toBe(30);
-    expect(response.data.audit_required).toBe(true);
+    expect(response.data.existing).toBe(false);
   });
 
   it('test_request_data_export_uses_s1_privacy_request_path', async () => {
@@ -492,7 +493,7 @@ describe('authApi.requestPrivacyAction', () => {
     // Assert
     expect(response.status).toBe(202);
     expect(response.data.request_type).toBe('data_export');
-    expect(response.data.message).toContain('Data export request accepted');
+    expect(response.data.message).toContain('Data export request submitted');
   });
 });
 

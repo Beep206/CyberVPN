@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
+from src.application.services.customer_shadow_service import ensure_customer_web_mobile_shadow
 from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
@@ -98,11 +99,6 @@ from src.infrastructure.tasks.email_task_dispatcher import (
     EmailTaskDispatcher,
     get_email_dispatcher,
 )
-from src.presentation.api.shared import (
-    Stage1PrivacyRequestInput,
-    Stage1SupportChannel,
-    build_stage1_privacy_request,
-)
 from src.presentation.api.v1.auth.cookies import (
     clear_auth_cookies,
     get_access_token_cookie,
@@ -135,8 +131,6 @@ from src.presentation.api.v1.auth.schemas import (
     MagicLinkVerifyOtpRequest,
     MagicLinkVerifyRequest,
     MagicLinkVerifyResponse,
-    PrivacyRequestCreate,
-    PrivacyRequestResponse,
     RefreshTokenRequest,
     ResendOtpRequest,
     ResendOtpResponse,
@@ -484,57 +478,7 @@ async def _ensure_customer_web_mobile_shadow(
     current_realm: RealmResolution,
 ) -> None:
     """Mirror customer web accounts into mobile_users for B2C resource APIs."""
-
-    if current_realm.realm_type != "customer" or not user.email or not user.password_hash:
-        return
-
-    repo = MobileUserRepository(db)
-    existing = await repo.get_by_id(user.id)
-    if existing is not None:
-        changed = False
-        if existing.auth_realm_id != current_realm.auth_realm.id:
-            existing.auth_realm_id = current_realm.auth_realm.id
-            changed = True
-        if existing.email != user.email:
-            existing.email = user.email
-            changed = True
-        if existing.username is None:
-            existing.username = user.login[:50]
-            changed = True
-        if existing.password_hash != (user.password_hash or existing.password_hash):
-            existing.password_hash = user.password_hash or existing.password_hash
-            changed = True
-        if existing.is_active != user.is_active:
-            existing.is_active = user.is_active
-            changed = True
-        if changed:
-            await repo.update(existing)
-        return
-
-    email_owner = await repo.get_by_email(user.email)
-    if email_owner is not None and email_owner.id != user.id:
-        logger.warning(
-            "Cannot create customer mobile shadow because email is already bound",
-            extra={"admin_user_id": str(user.id), "mobile_user_id": str(email_owner.id)},
-        )
-        return
-
-    username = user.login[:50]
-    username_owner = await repo.get_by_username(username)
-    if username_owner is not None and username_owner.id != user.id:
-        username = f"web_{str(user.id).replace('-', '')[:12]}"
-
-    mobile_user = MobileUserModel(
-        id=user.id,
-        public_uid=await allocate_public_uid(repo),
-        auth_realm_id=current_realm.auth_realm.id,
-        email=user.email,
-        password_hash=user.password_hash,
-        username=username,
-        is_active=user.is_active,
-        status=user.status or ("active" if user.is_active else "pending"),
-    )
-    await repo.create(mobile_user)
+    await ensure_customer_web_mobile_shadow(db=db, user=user, current_realm=current_realm)
 
 
 async def _repair_customer_web_user_realm_after_password_match(
@@ -1315,54 +1259,6 @@ async def get_me(
 ) -> AdminUserResponse:
     """Get current authenticated user information."""
     return _build_admin_user_response(current_user, current_realm)
-
-
-@router.post(
-    "/me/privacy-requests",
-    response_model=PrivacyRequestResponse,
-    status_code=status.HTTP_202_ACCEPTED,
-    responses={
-        401: {"description": "Not authenticated"},
-        422: {"description": "Validation error"},
-    },
-)
-@router.post(
-    "/me/privacy-requests/",
-    response_model=PrivacyRequestResponse,
-    status_code=status.HTTP_202_ACCEPTED,
-    include_in_schema=False,
-)
-async def create_privacy_request(
-    request: PrivacyRequestCreate,
-    current_user=Depends(get_current_active_web_user),
-) -> PrivacyRequestResponse:
-    """Open a manual S1 privacy request for account deletion or data export.
-
-    This endpoint creates a safe support/escalation reference only. S1 does not
-    automatically export raw data or perform destructive deletion from this
-    request path.
-    """
-
-    decision = build_stage1_privacy_request(
-        Stage1PrivacyRequestInput(
-            request_kind=request.request_type,
-            channel=Stage1SupportChannel.WEB_CONTACT_FORM,
-            user_reference=str(current_user.id),
-            contact=current_user.email,
-            notes=request.notes,
-        )
-    )
-
-    logger.info(
-        "S1 privacy request accepted",
-        extra={
-            "user_id": str(current_user.id),
-            "request_type": decision.request_kind.value,
-            "ticket_reference": decision.ticket.reference,
-        },
-    )
-
-    return PrivacyRequestResponse(**decision.to_api_dict())
 
 
 @router.delete(

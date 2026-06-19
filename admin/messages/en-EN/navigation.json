@@ -64,6 +64,8 @@
     "customersHint": "Lifecycle and account lookup",
     "support": "Support",
     "supportHint": "Inbox and internal notes",
+    "privacyRequests": "Privacy requests",
+    "privacyRequestsHint": "Deletion and export review",
     "messaging": "Messages",
     "messagingHint": "Dialogs, notes, presence",
     "commerceOverview": "Commerce overview",

@@ -1,6 +1,12 @@
 import { apiClient } from './client';
 import type { AxiosResponse } from 'axios';
 import type { components } from './generated/types';
+import {
+  privacyRequestsApi,
+  type PrivacyRequestAcceptedResponse,
+  type PrivacyRequestCreateRequest,
+  type PrivacyRequestType,
+} from './privacy-requests';
 
 // Request interfaces
 export interface LoginRequest {
@@ -131,6 +137,15 @@ function clearSessionRequestCache(): void {
   sessionRequest = null;
 }
 
+function createPrivacyIdempotencyKey(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+
+  const suffix = Math.random().toString(16).slice(2, 14).padEnd(12, '0');
+  return `00000000-0000-4000-8000-${suffix}`;
+}
+
 export type OAuthProvider = 'google' | 'github' | 'discord' | 'facebook' | 'apple' | 'microsoft' | 'twitter' | 'telegram';
 
 export interface OAuthAuthorizeResponse {
@@ -243,27 +258,9 @@ export interface DeleteAccountResponse {
   message: string;
 }
 
-export type PrivacyRequestType = 'account_deletion' | 'data_export';
-
-export interface PrivacyRequestCreate {
-  request_type: PrivacyRequestType;
-  notes?: string | null;
-}
-
-export interface PrivacyRequestResponse {
-  request_type: PrivacyRequestType;
-  message: string;
-  ticket_reference: string;
-  target_contact: string;
-  priority: string;
-  support_state: string;
-  ack_sla_minutes: number | null;
-  customer_response_sla_minutes: number;
-  manual_fulfillment_target_days: number;
-  required_actions: string[];
-  forbidden_actions: string[];
-  audit_required: boolean;
-}
+export type { PrivacyRequestType };
+export type PrivacyRequestCreate = PrivacyRequestCreateRequest;
+export type PrivacyRequestResponse = PrivacyRequestAcceptedResponse;
 
 export interface MagicLinkRequest {
   email: string;
@@ -504,8 +501,8 @@ export const authApi = {
    * Open a manual S1 privacy request for account deletion or data export.
    * POST /api/v1/auth/me/privacy-requests
    */
-  requestPrivacyAction: (payload: PrivacyRequestCreate) =>
-    apiClient.post<PrivacyRequestResponse>('/auth/me/privacy-requests', payload),
+  requestPrivacyAction: (payload: PrivacyRequestCreate, idempotencyKey?: string) =>
+    privacyRequestsApi.create(payload, idempotencyKey ?? createPrivacyIdempotencyKey()),
 
   /**
    * Request a manual S1 account-data export.

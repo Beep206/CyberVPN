@@ -1655,6 +1655,11 @@
         "metric": "групп сигналов",
         "title": "Сигналы злоупотребления ростом"
       },
+      "privacyRequests": {
+        "description": "Запросы на удаление аккаунта и экспорт данных, ожидающие privacy review.",
+        "metric": "privacy-запросов",
+        "title": "Privacy-проверки"
+      },
       "securityReviews": {
         "description": "Канонические risk review записи из security queue.",
         "metric": "открытых reviews",
@@ -4390,6 +4395,8 @@
       "postureHint": "Риски и укрепление защиты",
       "pricebooks": "Прайсбуки",
       "pricebooksHint": "Цены по странам и жизненный цикл",
+      "privacyRequests": "Privacy-запросы",
+      "privacyRequestsHint": "Проверка удаления и экспорта",
       "promoCodes": "Промокоды",
       "promoCodesHint": "Промо и скидки",
       "push": "Пуш-уведомления",

@@ -1658,6 +1658,11 @@
         "metric": "open signal groups",
         "title": "Growth abuse signals"
       },
+      "privacyRequests": {
+        "description": "Account deletion and data export requests waiting for privacy review.",
+        "metric": "privacy requests",
+        "title": "Privacy reviews"
+      },
       "securityReviews": {
         "description": "Canonical risk review records surfaced by the security queue.",
         "metric": "open reviews",
@@ -4422,6 +4427,8 @@
       "postureHint": "Risk and hardening",
       "pricebooks": "Pricebooks",
       "pricebooksHint": "Country pricing and lifecycle",
+      "privacyRequests": "Privacy requests",
+      "privacyRequestsHint": "Deletion and export review",
       "promoCodes": "Promo codes",
       "promoCodesHint": "Promotions and discounts",
       "push": "Push",
