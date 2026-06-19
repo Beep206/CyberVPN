@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
+import {
+  extractReferralCode,
+  normalizeReferralCode,
+  REFERRAL_ATTRIBUTION_COOKIE_NAME,
+  REFERRAL_ATTRIBUTION_TTL_SECONDS,
+} from '@/features/referral-attribution/constants';
 import { locales, defaultLocale } from '@/i18n/config';
 
 const intlMiddleware = createMiddleware({
@@ -99,6 +105,38 @@ function getRouteSegment(pathname: string): string {
   return hasLocale ? segments[1] ?? '' : firstSegment ?? '';
 }
 
+function withReferralAttribution(
+  request: NextRequest,
+  response: NextResponse,
+): NextResponse {
+  const referralCode = extractReferralCode(
+    request.nextUrl.pathname,
+    request.nextUrl.searchParams,
+  );
+  if (!referralCode) {
+    return response;
+  }
+
+  // Preserve the first valid touch. The cookie is HttpOnly so URL cleanup,
+  // OAuth redirects, and accidental localStorage deletion do not lose it.
+  const existingCode = normalizeReferralCode(
+    request.cookies.get(REFERRAL_ATTRIBUTION_COOKIE_NAME)?.value,
+  );
+  if (!existingCode) {
+    response.cookies.set({
+      httpOnly: true,
+      maxAge: REFERRAL_ATTRIBUTION_TTL_SECONDS,
+      name: REFERRAL_ATTRIBUTION_COOKIE_NAME,
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      value: referralCode,
+    });
+  }
+
+  return response;
+}
+
 /**
  * Next.js 16 proxy function for routing.
  *
@@ -117,7 +155,7 @@ export function proxy(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.protocol = 'https:';
     redirectUrl.hostname = ADMIN_PRIMARY_HOST;
-    return NextResponse.redirect(redirectUrl);
+    return withReferralAttribution(request, NextResponse.redirect(redirectUrl));
   }
 
   const routeSegment = getRouteSegment(request.nextUrl.pathname);
@@ -129,7 +167,7 @@ export function proxy(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.protocol = 'https:';
     redirectUrl.hostname = CABINET_PRIMARY_HOST;
-    return NextResponse.redirect(redirectUrl);
+    return withReferralAttribution(request, NextResponse.redirect(redirectUrl));
   }
 
   if (hostname === CABINET_PRIMARY_HOST) {
@@ -138,7 +176,7 @@ export function proxy(request: NextRequest) {
       redirectUrl.protocol = 'https:';
       redirectUrl.hostname = CABINET_PRIMARY_HOST;
       redirectUrl.pathname = `/${defaultLocale}/dashboard`;
-      return NextResponse.redirect(redirectUrl);
+      return withReferralAttribution(request, NextResponse.redirect(redirectUrl));
     }
 
     if (
@@ -149,11 +187,11 @@ export function proxy(request: NextRequest) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.protocol = 'https:';
       redirectUrl.hostname = PUBLIC_PRIMARY_HOST;
-      return NextResponse.redirect(redirectUrl);
+      return withReferralAttribution(request, NextResponse.redirect(redirectUrl));
     }
   }
 
-  return intlMiddleware(request);
+  return withReferralAttribution(request, intlMiddleware(request));
 }
 
 export const config = {
