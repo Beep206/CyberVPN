@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { Suspense } from 'react';
 import type { Organization, WebSite } from 'schema-dts';
 import { AnalyticsReporters } from '@/app/providers/analytics-reporters';
 import { AuthSessionBootstrap } from '@/app/providers/auth-provider';
 import { DevTools } from '@/app/providers/dev-tools';
 import { MotionProvider } from '@/app/providers/motion-provider';
+import { ReferralAttributionProvider } from '@/app/providers/referral-attribution-provider';
 import { ThemeProvider } from '@/app/providers/theme-provider';
 import { getStaticParamsLocales } from '@/i18n/config';
 import { getCachedTranslations, setRequestLocale } from '@/i18n/server';
@@ -71,6 +73,9 @@ export default async function RootLayout({
         >
           <MotionProvider>
             <AuthSessionBootstrap />
+            <Suspense fallback={null}>
+              <ReferralAttributionProvider />
+            </Suspense>
             <Script
               src="https://telegram.org/js/telegram-web-app.js"
               strategy="beforeInteractive"
