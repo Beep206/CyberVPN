@@ -1,6 +1,6 @@
 """Durable privacy request workflow.
 
-Revision ID: 20260619_privacy_request_workflow
+Revision ID: 20260619_privacy_request
 Revises: 20260619_referral_attribution
 Create Date: 2026-06-19
 """
@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision: str = "20260619_privacy_request_workflow"
+revision: str = "20260619_privacy_request"
 down_revision: str | Sequence[str] | None = "20260619_referral_attribution"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
