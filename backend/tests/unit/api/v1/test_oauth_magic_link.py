@@ -12,18 +12,19 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
 
-from src.application.use_cases.auth.telegram_account_linking import TelegramAccountLinkConflictError
 from src.application.use_cases.auth_realms import RealmResolution
+from src.application.use_cases.mobile_auth.telegram_account_linking import MobileTelegramAccountLinkConflictError
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.remnawave.adapters import get_remnawave_adapter
 from src.main import app
-from src.presentation.dependencies.auth import get_current_active_user, optional_user
-from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
+from src.presentation.dependencies.auth import get_current_active_user, get_current_mobile_user_id, optional_user
+from src.presentation.dependencies.auth_realms import get_request_customer_realm, get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 
 _DEFAULT_AUTH_USER_ID = uuid4()
+_DEFAULT_CUSTOMER_REALM_ID = uuid4()
 
 
 class _FakeRedis:
@@ -225,6 +226,8 @@ def _override_dependencies(
     fake_redis: _FakeRedis,
     *,
     auth_user: _MockAuthUser | None = None,
+    mobile_user_id: UUID | None = None,
+    customer_realm_id: UUID | None = None,
     db: object | None = None,
 ) -> None:
     async def _redis_override():
@@ -235,6 +238,9 @@ def _override_dependencies(
 
     def _auth_override() -> _MockAuthUser:
         return auth_user or _MockAuthUser()
+
+    def _customer_auth_override() -> UUID:
+        return mobile_user_id or _DEFAULT_AUTH_USER_ID
 
     auth_service = SimpleNamespace(
         decode_token=lambda _token: {
@@ -250,7 +256,7 @@ def _override_dependencies(
 
     def _realm_override() -> RealmResolution:
         auth_realm = SimpleNamespace(
-            id=uuid4(),
+            id=customer_realm_id or _DEFAULT_CUSTOMER_REALM_ID,
             realm_key="customer",
             realm_type="customer",
             audience="cybervpn:customer",
@@ -261,8 +267,10 @@ def _override_dependencies(
     app.dependency_overrides[get_redis] = _redis_override
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_active_user] = _auth_override
+    app.dependency_overrides[get_current_mobile_user_id] = _customer_auth_override
     app.dependency_overrides[optional_user] = _auth_override
     app.dependency_overrides[get_request_web_auth_realm] = _realm_override
+    app.dependency_overrides[get_request_customer_realm] = _realm_override
     app.dependency_overrides[get_auth_service] = _auth_service_override
     app.dependency_overrides[get_remnawave_adapter] = _remnawave_override
 
@@ -393,8 +401,16 @@ async def test_complete_telegram_magic_link_repeated_completion_keeps_first_payl
 @pytest.mark.asyncio
 async def test_create_telegram_account_link_magic_link_stores_owner_session(monkeypatch: pytest.MonkeyPatch):
     fake_redis = _FakeRedis()
-    auth_user = _MockAuthUser(_DEFAULT_AUTH_USER_ID)
-    _override_dependencies(fake_redis, auth_user=auth_user)
+    _override_dependencies(
+        fake_redis,
+        mobile_user_id=_DEFAULT_AUTH_USER_ID,
+        customer_realm_id=_DEFAULT_CUSTOMER_REALM_ID,
+    )
+
+    def _admin_auth_should_not_run() -> _MockAuthUser:
+        raise AssertionError("customer account-link route must not use admin authentication")
+
+    app.dependency_overrides[get_current_active_user] = _admin_auth_should_not_run
     monkeypatch.setattr(settings, "telegram_bot_username", "CyberVPNBot")
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -411,7 +427,8 @@ async def test_create_telegram_account_link_magic_link_stores_owner_session(monk
     stored_payload = json.loads(fake_redis.values[redis_key])
     assert stored_payload["flow"] == "telegram_account_link"
     assert stored_payload["status"] == "pending"
-    assert stored_payload["user_id"] == str(auth_user.id)
+    assert stored_payload["user_id"] == str(_DEFAULT_AUTH_USER_ID)
+    assert stored_payload["auth_realm_id"] == str(_DEFAULT_CUSTOMER_REALM_ID)
     assert fake_redis.ttls[redis_key] == 300
 
 
@@ -426,7 +443,7 @@ async def test_complete_telegram_account_link_accepts_pending_session_from_bot_s
             "flow": "telegram_account_link",
             "status": "pending",
             "user_id": str(_DEFAULT_AUTH_USER_ID),
-            "auth_realm_id": None,
+            "auth_realm_id": str(_DEFAULT_CUSTOMER_REALM_ID),
             "created_at": "2026-06-18T00:00:00+00:00",
         }
     )
@@ -467,13 +484,50 @@ async def test_check_telegram_account_link_status_rejects_wrong_owner():
             "flow": "telegram_account_link",
             "status": "confirmed",
             "user_id": str(uuid4()),
-            "auth_realm_id": None,
+            "auth_realm_id": str(_DEFAULT_CUSTOMER_REALM_ID),
             "created_at": "2026-06-18T00:00:00+00:00",
             "telegram": {"id": "424242", "username": "alice"},
         }
     )
     fake_redis.ttls[redis_key] = 180
-    _override_dependencies(fake_redis, auth_user=_MockAuthUser(_DEFAULT_AUTH_USER_ID), db=_FakeDb())
+    _override_dependencies(
+        fake_redis,
+        mobile_user_id=_DEFAULT_AUTH_USER_ID,
+        customer_realm_id=_DEFAULT_CUSTOMER_REALM_ID,
+        db=_FakeDb(),
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get(f"/api/v1/oauth/telegram/account-link/magic-link/{token}/status")
+
+    assert response.status_code == 403
+    stored_payload = json.loads(fake_redis.values[redis_key])
+    assert stored_payload["status"] == "confirmed"
+    assert "processing_token" not in stored_payload
+
+
+@pytest.mark.asyncio
+async def test_check_telegram_account_link_status_rejects_wrong_customer_realm():
+    fake_redis = _FakeRedis()
+    token = "wrong_realm_link_token"
+    redis_key = f"telegram_account_link:{token}"
+    fake_redis.values[redis_key] = json.dumps(
+        {
+            "flow": "telegram_account_link",
+            "status": "confirmed",
+            "user_id": str(_DEFAULT_AUTH_USER_ID),
+            "auth_realm_id": str(uuid4()),
+            "created_at": "2026-06-18T00:00:00+00:00",
+            "telegram": {"id": "424242", "username": "alice"},
+        }
+    )
+    fake_redis.ttls[redis_key] = 180
+    _override_dependencies(
+        fake_redis,
+        mobile_user_id=_DEFAULT_AUTH_USER_ID,
+        customer_realm_id=_DEFAULT_CUSTOMER_REALM_ID,
+        db=_FakeDb(),
+    )
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get(f"/api/v1/oauth/telegram/account-link/magic-link/{token}/status")
@@ -494,7 +548,7 @@ async def test_check_telegram_account_link_status_links_without_login_cookies():
             "flow": "telegram_account_link",
             "status": "confirmed",
             "user_id": str(_DEFAULT_AUTH_USER_ID),
-            "auth_realm_id": None,
+            "auth_realm_id": str(_DEFAULT_CUSTOMER_REALM_ID),
             "created_at": "2026-06-18T00:00:00+00:00",
             "telegram": {
                 "id": "424242",
@@ -506,12 +560,24 @@ async def test_check_telegram_account_link_status_links_without_login_cookies():
     )
     fake_redis.ttls[redis_key] = 180
     fake_db = _FakeDb()
-    _override_dependencies(fake_redis, auth_user=_MockAuthUser(_DEFAULT_AUTH_USER_ID), db=fake_db)
+    _override_dependencies(
+        fake_redis,
+        mobile_user_id=_DEFAULT_AUTH_USER_ID,
+        customer_realm_id=_DEFAULT_CUSTOMER_REALM_ID,
+        db=fake_db,
+    )
 
-    with patch(
-        "src.presentation.api.v1.oauth.routes.TelegramAccountLinkingUseCase.link_account",
-        new=AsyncMock(return_value=SimpleNamespace()),
-    ) as mock_link:
+    with (
+        patch(
+            "src.presentation.api.v1.oauth.routes.MobileTelegramAccountLinkingUseCase.link_account",
+            new=AsyncMock(return_value=SimpleNamespace()),
+        ) as mock_link,
+        patch(
+            "src.presentation.api.v1.oauth.routes.AutomateCustomerGrowthNotificationRepairUseCase.execute",
+            new=AsyncMock(),
+        ) as mock_repair,
+        patch("src.presentation.api.v1.oauth.routes.sync_auth_security_posture", new=AsyncMock()) as mock_sync,
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(f"/api/v1/oauth/telegram/account-link/magic-link/{token}/status")
 
@@ -522,6 +588,8 @@ async def test_check_telegram_account_link_status_links_without_login_cookies():
         "provider_user_id": "424242",
     }
     mock_link.assert_awaited_once()
+    mock_repair.assert_awaited_once_with(mobile_user_id=_DEFAULT_AUTH_USER_ID, repair_trigger="telegram_linked")
+    mock_sync.assert_awaited_once()
     assert fake_db.commits == 1
     assert "set-cookie" not in response.headers
     stored_payload = json.loads(fake_redis.values[redis_key])
@@ -539,19 +607,26 @@ async def test_check_telegram_account_link_status_returns_conflict_without_losin
             "flow": "telegram_account_link",
             "status": "confirmed",
             "user_id": str(_DEFAULT_AUTH_USER_ID),
-            "auth_realm_id": None,
+            "auth_realm_id": str(_DEFAULT_CUSTOMER_REALM_ID),
             "created_at": "2026-06-18T00:00:00+00:00",
             "telegram": {"id": "424242", "username": "alice"},
         }
     )
     fake_redis.ttls[redis_key] = 180
     fake_db = _FakeDb()
-    _override_dependencies(fake_redis, auth_user=_MockAuthUser(_DEFAULT_AUTH_USER_ID), db=fake_db)
+    _override_dependencies(
+        fake_redis,
+        mobile_user_id=_DEFAULT_AUTH_USER_ID,
+        customer_realm_id=_DEFAULT_CUSTOMER_REALM_ID,
+        db=fake_db,
+    )
 
     with patch(
-        "src.presentation.api.v1.oauth.routes.TelegramAccountLinkingUseCase.link_account",
+        "src.presentation.api.v1.oauth.routes.MobileTelegramAccountLinkingUseCase.link_account",
         new=AsyncMock(
-            side_effect=TelegramAccountLinkConflictError("Telegram account is already linked to another user.")
+            side_effect=MobileTelegramAccountLinkConflictError(
+                "Telegram account is already linked to another customer."
+            )
         ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

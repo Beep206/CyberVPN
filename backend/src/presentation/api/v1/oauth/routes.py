@@ -15,6 +15,7 @@ import uuid
 from datetime import UTC, datetime
 from time import perf_counter
 from urllib.parse import urlparse
+from uuid import UUID
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
@@ -30,6 +31,11 @@ from src.application.use_cases.auth.telegram_account_linking import (
     TelegramAccountLinkingUseCase,
 )
 from src.application.use_cases.auth_realms import RealmResolution
+from src.application.use_cases.growth_notifications.automation import AutomateCustomerGrowthNotificationRepairUseCase
+from src.application.use_cases.mobile_auth.telegram_account_linking import (
+    MobileTelegramAccountLinkConflictError,
+    MobileTelegramAccountLinkingUseCase,
+)
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -84,8 +90,8 @@ from src.presentation.api.v1.oauth.schemas import (
     TelegramMagicLinkResponse,
     TelegramMagicLinkStatusResponse,
 )
-from src.presentation.dependencies.auth import get_current_active_user
-from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
+from src.presentation.dependencies.auth import get_current_active_user, get_current_mobile_user_id
+from src.presentation.dependencies.auth_realms import get_request_customer_realm, get_request_web_auth_realm
 from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
@@ -498,13 +504,13 @@ def _build_account_link_user_info(payload: TelegramMagicLinkCompleteRequest) -> 
 
 def _build_account_link_session_payload(
     *,
-    user: AdminUserModel,
+    user_id: UUID,
     current_realm: RealmResolution,
 ) -> dict[str, str | None]:
     return {
         "flow": _TELEGRAM_ACCOUNT_LINK_FLOW,
         "status": "pending",
-        "user_id": str(user.id),
+        "user_id": str(user_id),
         "auth_realm_id": str(current_realm.auth_realm.id) if current_realm.auth_realm.id else None,
         "created_at": datetime.now(UTC).isoformat(),
     }
@@ -887,8 +893,8 @@ async def complete_telegram_magic_link(
 @router.post("/telegram/account-link/magic-link", response_model=TelegramAccountLinkSessionResponse)
 async def create_telegram_account_link_magic_link(
     redis_client: redis.Redis = Depends(get_redis),
-    user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> TelegramAccountLinkSessionResponse:
     """Create an authenticated Telegram account-linking deep-link session."""
     token = uuid.uuid4().hex
@@ -901,7 +907,7 @@ async def create_telegram_account_link_magic_link(
             detail="Telegram bot is not configured.",
         )
 
-    payload = _build_account_link_session_payload(user=user, current_realm=current_realm)
+    payload = _build_account_link_session_payload(user_id=user_id, current_realm=current_realm)
     await redis_client.setex(
         _get_account_link_key(token),
         _TELEGRAM_ACCOUNT_LINK_TTL_SECONDS,
@@ -910,7 +916,7 @@ async def create_telegram_account_link_magic_link(
 
     logger.info(
         "telegram_account_link_session_created",
-        extra={"user_id": str(user.id), "auth_realm_id": payload["auth_realm_id"]},
+        extra={"user_id": str(user_id), "auth_realm_id": payload["auth_realm_id"]},
     )
 
     bot_url = f"https://t.me/{bot_username}?start=link_{token}"
@@ -974,7 +980,8 @@ async def check_telegram_account_link_magic_link_status(
     token: str,
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
-    user: AdminUserModel = Depends(get_current_active_user),
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> TelegramAccountLinkStatusResponse:
     """Poll and finalize an authenticated Telegram account-linking session."""
     redis_key = _get_account_link_key(token)
@@ -990,26 +997,40 @@ async def check_telegram_account_link_magic_link_status(
     )
 
     if claim_status == 0:
-        logger.info("telegram_account_link_expired", extra={"user_id": str(user.id)})
+        logger.info("telegram_account_link_expired", extra={"user_id": str(user_id)})
         return TelegramAccountLinkStatusResponse(status="expired")
 
     session_payload = _parse_account_link_payload(raw_payload)
     if session_payload is None:
         if claim_status == 3:
             await _restore_account_link_payload(redis_client, redis_key, processing_token)
-        logger.warning("telegram_account_link_invalid_payload", extra={"user_id": str(user.id)})
+        logger.warning("telegram_account_link_invalid_payload", extra={"user_id": str(user_id)})
         return TelegramAccountLinkStatusResponse(status="expired")
 
-    if str(session_payload.get("user_id") or "") != str(user.id):
+    if str(session_payload.get("user_id") or "") != str(user_id):
         if claim_status == 3:
             await _restore_account_link_payload(redis_client, redis_key, processing_token)
         logger.warning(
             "telegram_account_link_forbidden_owner_mismatch",
-            extra={"user_id": str(user.id)},
+            extra={"user_id": str(user_id)},
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Telegram account-link session belongs to another user.",
+        )
+
+    session_realm_id = str(session_payload.get("auth_realm_id") or "")
+    current_realm_id = str(current_realm.auth_realm.id or "")
+    if session_realm_id != current_realm_id:
+        if claim_status == 3:
+            await _restore_account_link_payload(redis_client, redis_key, processing_token)
+        logger.warning(
+            "telegram_account_link_forbidden_realm_mismatch",
+            extra={"user_id": str(user_id), "auth_realm_id": current_realm_id},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Telegram account-link session is not available in this realm.",
         )
 
     if claim_status in (1, 2):
@@ -1023,24 +1044,28 @@ async def check_telegram_account_link_magic_link_status(
     telegram_payload = session_payload.get("telegram")
     if not isinstance(telegram_payload, dict):
         await _restore_account_link_payload(redis_client, redis_key, processing_token)
-        logger.warning("telegram_account_link_missing_telegram_payload", extra={"user_id": str(user.id)})
+        logger.warning("telegram_account_link_missing_telegram_payload", extra={"user_id": str(user_id)})
         return TelegramAccountLinkStatusResponse(status="expired")
 
     provider_user_id = str(telegram_payload.get("id") or "")
     if not provider_user_id:
         await _restore_account_link_payload(redis_client, redis_key, processing_token)
-        logger.warning("telegram_account_link_missing_provider_id", extra={"user_id": str(user.id)})
+        logger.warning("telegram_account_link_missing_provider_id", extra={"user_id": str(user_id)})
         return TelegramAccountLinkStatusResponse(status="expired")
 
-    use_case = TelegramAccountLinkingUseCase(db)
+    use_case = MobileTelegramAccountLinkingUseCase(db)
     try:
         await use_case.link_account(
-            user_id=user.id,
+            user_id=user_id,
             telegram_id=provider_user_id,
             username=str(telegram_payload.get("username") or "") or None,
         )
+        await AutomateCustomerGrowthNotificationRepairUseCase(db).execute(
+            mobile_user_id=user_id,
+            repair_trigger="telegram_linked",
+        )
         await db.commit()
-    except TelegramAccountLinkConflictError:
+    except MobileTelegramAccountLinkConflictError:
         await db.rollback()
         await _set_account_link_terminal_state(
             redis_client,
@@ -1051,7 +1076,7 @@ async def check_telegram_account_link_magic_link_status(
         )
         logger.info(
             "telegram_account_link_conflict",
-            extra={"user_id": str(user.id), "telegram_id": provider_user_id},
+            extra={"user_id": str(user_id), "telegram_id": provider_user_id},
         )
         response.status_code = status.HTTP_409_CONFLICT
         return TelegramAccountLinkStatusResponse(status="conflict", provider_user_id=provider_user_id)
@@ -1069,8 +1094,9 @@ async def check_telegram_account_link_magic_link_status(
     )
     logger.info(
         "telegram_account_link_completed",
-        extra={"user_id": str(user.id), "telegram_id": provider_user_id},
+        extra={"user_id": str(user_id), "telegram_id": provider_user_id},
     )
+    await sync_auth_security_posture(db, redis_client)
 
     return TelegramAccountLinkStatusResponse(status="linked", provider_user_id=provider_user_id)
 
