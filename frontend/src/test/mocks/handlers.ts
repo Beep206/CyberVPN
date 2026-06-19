@@ -301,6 +301,28 @@ export const authHandlers = [
   }),
 
   /**
+   * GET /mobile/auth/me
+   * Returns the current authenticated customer user.
+   */
+  http.get(`${API_BASE}/mobile/auth/me`, () => {
+    return HttpResponse.json({
+      id: MOCK_USER.id,
+      public_uid: MOCK_USER.public_uid,
+      email: MOCK_USER.email,
+      username: MOCK_USER.login,
+      status: 'active',
+      telegram_id: MOCK_USER.telegram_id,
+      telegram_username: null,
+      is_email_verified: MOCK_USER.is_email_verified,
+      is_2fa_enabled: false,
+      linked_providers: [],
+      created_at: MOCK_USER.created_at,
+      last_login_at: null,
+      subscription: null,
+    });
+  }),
+
+  /**
    * DELETE /auth/me
    * Deletes the current user account.
    */

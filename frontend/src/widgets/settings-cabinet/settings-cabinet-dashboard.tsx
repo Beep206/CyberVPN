@@ -224,7 +224,7 @@ export function SettingsCabinetDashboard({
   const userQuery = useQuery({
     queryKey: ['settings', 'auth-user'],
     queryFn: async () => {
-      const response = await authApi.me();
+      const response = await authApi.customerMe();
       return response.data;
     },
     refetchOnWindowFocus: false,

@@ -577,6 +577,38 @@ describe('authApi.me', () => {
 });
 
 // ===========================================================================
+// authApi.customerMe
+// ===========================================================================
+
+describe('authApi.customerMe', () => {
+  it('test_get_customer_me_success_returns_mobile_user_profile', async () => {
+    const response = await authApi.customerMe();
+
+    expect(response.status).toBe(200);
+    expect(response.data.id).toBe(MOCK_USER.id);
+    expect(response.data.email).toBe(MOCK_USER.email);
+    expect(response.data.username).toBe(MOCK_USER.login);
+    expect(response.data.public_uid).toBe(MOCK_USER.public_uid);
+    expect(response.data.telegram_id).toBe(MOCK_USER.telegram_id);
+    expect(response.data.status).toBe('active');
+    expect(response.data.is_email_verified).toBe(true);
+  });
+
+  it('test_get_customer_me_unauthenticated_rejects_with_401', async () => {
+    server.use(
+      http.get(`${API_BASE}/mobile/auth/me`, () => {
+        return HttpResponse.json(
+          { detail: 'Not authenticated' },
+          { status: 401 },
+        );
+      }),
+    );
+
+    await expect(authApi.customerMe()).rejects.toBeDefined();
+  });
+});
+
+// ===========================================================================
 // authApi.logout
 // ===========================================================================
 

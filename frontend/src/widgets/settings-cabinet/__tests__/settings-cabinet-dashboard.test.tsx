@@ -7,7 +7,7 @@ import { SettingsCabinetDashboard } from '../settings-cabinet-dashboard';
 const setupUser = () => userEvent.setup({ writeToClipboard: false });
 
 const apiMocks = vi.hoisted(() => ({
-  authMe: vi.fn(),
+  customerMe: vi.fn(),
   clipboardWriteText: vi.fn(),
   getAntiphishingCode: vi.fn(),
   getCurrentEntitlement: vi.fn(),
@@ -116,10 +116,10 @@ vi.mock('@/app/[locale]/(dashboard)/settings/components/AntiphishingModal', () =
 
 vi.mock('@/lib/api', () => ({
   authApi: {
+    customerMe: apiMocks.customerMe,
     listDevices: apiMocks.listDevices,
     logoutDevice: apiMocks.logoutDevice,
     logoutOtherDevices: apiMocks.logoutOtherDevices,
-    me: apiMocks.authMe,
     pollTelegramAccountLinkStatus: apiMocks.pollTelegramAccountLinkStatus,
     requestTelegramAccountLink: apiMocks.requestTelegramAccountLink,
   },
@@ -279,15 +279,14 @@ describe('SettingsCabinetDashboard', () => {
     installClipboardMock();
 
     apiMocks.getProfile.mockResolvedValue({ data: profile });
-    apiMocks.authMe.mockResolvedValue({
+    apiMocks.customerMe.mockResolvedValue({
       data: {
         created_at: '2026-04-20T10:00:00Z',
         email: 'operator@example.com',
         id: '7d871bc5-af6c-49b2-a3e6-e77eec938021',
         public_uid: 14677650,
-        is_active: true,
         is_email_verified: true,
-        role: 'user',
+        status: 'active',
         telegram_id: 777,
       },
     });
@@ -495,7 +494,7 @@ describe('SettingsCabinetDashboard', () => {
 
     await waitFor(() => {
       expect(apiMocks.getProfile).toHaveBeenCalledTimes(2);
-      expect(apiMocks.authMe).toHaveBeenCalledTimes(2);
+      expect(apiMocks.customerMe).toHaveBeenCalledTimes(2);
       expect(apiMocks.getTwoFactorStatus).toHaveBeenCalledTimes(2);
       expect(apiMocks.getAntiphishingCode).toHaveBeenCalledTimes(2);
       expect(apiMocks.getNotificationPreferences).toHaveBeenCalledTimes(2);
@@ -735,15 +734,14 @@ describe('SettingsCabinetDashboard', () => {
     const user = setupUser();
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
-    apiMocks.authMe
+    apiMocks.customerMe
       .mockResolvedValueOnce({
         data: {
           created_at: '2026-04-20T10:00:00Z',
           email: 'operator@example.com',
           id: 'user-1',
-          is_active: true,
           is_email_verified: true,
-          role: 'user',
+          status: 'active',
           telegram_id: null,
         },
       })
@@ -752,9 +750,8 @@ describe('SettingsCabinetDashboard', () => {
           created_at: '2026-04-20T10:00:00Z',
           email: 'operator@example.com',
           id: 'user-1',
-          is_active: true,
           is_email_verified: true,
-          role: 'user',
+          status: 'active',
           telegram_id: 424242,
         },
       });
@@ -790,15 +787,14 @@ describe('SettingsCabinetDashboard', () => {
         updated_at: null,
       },
     });
-    apiMocks.authMe.mockResolvedValueOnce({
+    apiMocks.customerMe.mockResolvedValueOnce({
       data: {
         created_at: '2026-04-20T10:00:00Z',
         email: 'operator@example.com',
         id: '7d871bc5-af6c-49b2-a3e6-e77eec938021',
         public_uid: null,
-        is_active: true,
         is_email_verified: false,
-        role: 'user',
+        status: 'active',
         telegram_id: null,
       },
     });

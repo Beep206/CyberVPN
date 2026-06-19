@@ -45,7 +45,7 @@ export interface User {
   public_uid?: number | null;
   email: string | null;
   login?: string;
-  telegram_id?: number;
+  telegram_id?: number | null;
   role: 'viewer' | 'user' | 'admin' | 'super_admin';
   is_active: boolean;
   is_email_verified: boolean;
@@ -54,6 +54,9 @@ export interface User {
   current_sign_in_ip?: string | null;
   last_login_at?: string | null;
 }
+
+export type CustomerUser =
+  components['schemas']['src__presentation__api__v1__mobile_auth__schemas__UserResponse'];
 
 export interface AuthResponse {
   user: User;
@@ -360,6 +363,13 @@ export const authApi = {
    */
   me: () =>
     apiClient.get<User>('/auth/me/'),
+
+  /**
+   * Get current authenticated customer profile
+   * GET /api/v1/mobile/auth/me
+   */
+  customerMe: () =>
+    apiClient.get<CustomerUser>('/mobile/auth/me'),
 
   /**
    * Get current authenticated session (redirect-loop-safe alias)
