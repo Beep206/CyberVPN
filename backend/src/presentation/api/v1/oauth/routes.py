@@ -40,6 +40,7 @@ from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.oauth_account_repo import OAuthAccountRepository
 from src.infrastructure.monitoring.client_context import resolve_web_client_context
 from src.infrastructure.monitoring.instrumentation.routes import (
@@ -546,6 +547,59 @@ def _account_link_response_from_payload(payload: dict[str, object]) -> TelegramA
     return TelegramAccountLinkStatusResponse(status="pending")
 
 
+async def _ensure_account_link_bot_confirmation_allowed(
+    *,
+    db: AsyncSession,
+    session_payload: dict[str, object],
+    telegram_id: str,
+) -> None:
+    """Reject bot confirmation before showing success when final linking would conflict."""
+    try:
+        owner_user_id = UUID(str(session_payload.get("user_id") or ""))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Telegram account-link session expired or not found.",
+        ) from exc
+
+    try:
+        normalized_telegram_id = int(telegram_id)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Invalid Telegram account identifier.",
+        ) from exc
+
+    users = MobileUserRepository(db)
+    owner = await users.get_by_id(owner_user_id)
+    if owner is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Telegram account-link session expired or not found.",
+        )
+
+    existing_user = await users.get_by_telegram_id(normalized_telegram_id)
+    if existing_user is not None and existing_user.id != owner_user_id:
+        logger.info(
+            "telegram_account_link_bot_conflict_existing_user",
+            extra={"user_id": str(owner_user_id), "telegram_id": str(normalized_telegram_id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Telegram account is already linked to another customer.",
+        )
+
+    if owner.telegram_id is not None and owner.telegram_id != normalized_telegram_id:
+        logger.info(
+            "telegram_account_link_bot_conflict_owner_has_different_telegram",
+            extra={"user_id": str(owner_user_id), "telegram_id": str(normalized_telegram_id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Customer account already has a different Telegram identity linked.",
+        )
+
+
 async def _build_code_oauth_authorize_response(
     *,
     provider_name: str,
@@ -933,6 +987,7 @@ async def create_telegram_account_link_magic_link(
 @router.post("/telegram/account-link/magic-link/complete", response_model=TelegramMagicLinkCompleteResponse)
 async def complete_telegram_account_link_magic_link(
     payload: TelegramMagicLinkCompleteRequest,
+    db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
 ) -> TelegramMagicLinkCompleteResponse:
@@ -944,6 +999,17 @@ async def complete_telegram_account_link_magic_link(
         )
 
     redis_key = _get_account_link_key(payload.token)
+    raw_session_payload = await redis_client.get(redis_key)
+    session_payload = _parse_account_link_payload(
+        _decode_redis_string(raw_session_payload) if raw_session_payload else None
+    )
+    if session_payload is not None and str(session_payload.get("status") or "") == "pending":
+        await _ensure_account_link_bot_confirmation_allowed(
+            db=db,
+            session_payload=session_payload,
+            telegram_id=payload.id,
+        )
+
     completion_status = int(
         await redis_client.eval(
             _TELEGRAM_ACCOUNT_LINK_COMPLETE_SCRIPT,

@@ -216,6 +216,22 @@ class _FakeDb:
         self.rollbacks += 1
 
 
+class _FakeMobileUserRepository:
+    def __init__(self, *, owner: object | None, existing_user: object | None = None) -> None:
+        self.owner = owner
+        self.existing_user = existing_user
+
+    async def get_by_id(self, user_id: UUID):
+        if self.owner is not None and self.owner.id == user_id:
+            return self.owner
+        return None
+
+    async def get_by_telegram_id(self, telegram_id: int):
+        if self.existing_user is not None and self.existing_user.telegram_id == telegram_id:
+            return self.existing_user
+        return None
+
+
 @pytest.fixture(autouse=True)
 def _clean_overrides():
     yield
@@ -450,20 +466,23 @@ async def test_complete_telegram_account_link_accepts_pending_session_from_bot_s
     fake_redis.ttls[redis_key] = 240
     _override_dependencies(fake_redis)
     monkeypatch.setattr(settings, "telegram_bot_internal_secret", SecretStr("test-bot-secret"))
+    owner = SimpleNamespace(id=_DEFAULT_AUTH_USER_ID, telegram_id=None)
+    repo = _FakeMobileUserRepository(owner=owner)
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.post(
-            "/api/v1/oauth/telegram/account-link/magic-link/complete",
-            headers={"X-Telegram-Bot-Secret": "test-bot-secret"},
-            json={
-                "token": "link_token_123",
-                "id": "424242",
-                "first_name": "Alice",
-                "last_name": "Doe",
-                "username": "alice",
-                "language_code": "en",
-            },
-        )
+    with patch("src.presentation.api.v1.oauth.routes.MobileUserRepository", new=lambda _db: repo):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/api/v1/oauth/telegram/account-link/magic-link/complete",
+                headers={"X-Telegram-Bot-Secret": "test-bot-secret"},
+                json={
+                    "token": "link_token_123",
+                    "id": "424242",
+                    "first_name": "Alice",
+                    "last_name": "Doe",
+                    "username": "alice",
+                    "language_code": "en",
+                },
+            )
 
     assert response.status_code == 200, response.text
     assert response.json() == {"status": "accepted"}
@@ -471,6 +490,48 @@ async def test_complete_telegram_account_link_accepts_pending_session_from_bot_s
     assert stored_payload["status"] == "confirmed"
     assert stored_payload["telegram"]["id"] == "424242"
     assert stored_payload["telegram"]["username"] == "alice"
+    assert fake_redis.ttls[redis_key] == 240
+
+
+@pytest.mark.asyncio
+async def test_complete_telegram_account_link_returns_conflict_before_false_bot_success(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    fake_redis = _FakeRedis()
+    redis_key = "telegram_account_link:link_token_conflict"
+    fake_redis.values[redis_key] = json.dumps(
+        {
+            "flow": "telegram_account_link",
+            "status": "pending",
+            "user_id": str(_DEFAULT_AUTH_USER_ID),
+            "auth_realm_id": str(_DEFAULT_CUSTOMER_REALM_ID),
+            "created_at": "2026-06-18T00:00:00+00:00",
+        }
+    )
+    fake_redis.ttls[redis_key] = 240
+    _override_dependencies(fake_redis)
+    monkeypatch.setattr(settings, "telegram_bot_internal_secret", SecretStr("test-bot-secret"))
+    owner = SimpleNamespace(id=_DEFAULT_AUTH_USER_ID, telegram_id=None)
+    existing_user = SimpleNamespace(id=uuid4(), telegram_id=424242)
+    repo = _FakeMobileUserRepository(owner=owner, existing_user=existing_user)
+
+    with patch("src.presentation.api.v1.oauth.routes.MobileUserRepository", new=lambda _db: repo):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/api/v1/oauth/telegram/account-link/magic-link/complete",
+                headers={"X-Telegram-Bot-Secret": "test-bot-secret"},
+                json={
+                    "token": "link_token_conflict",
+                    "id": "424242",
+                    "first_name": "Alice",
+                    "username": "alice",
+                },
+            )
+
+    assert response.status_code == 409
+    stored_payload = json.loads(fake_redis.values[redis_key])
+    assert stored_payload["status"] == "pending"
+    assert "telegram" not in stored_payload
     assert fake_redis.ttls[redis_key] == 240
 
 
