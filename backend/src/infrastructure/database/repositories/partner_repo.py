@@ -61,6 +61,12 @@ class PartnerRepository:
         )
         return result.scalars().first()
 
+    async def get_code_by_public_slug(self, public_slug: str) -> PartnerCodeModel | None:
+        result = await self._session.execute(
+            select(PartnerCodeModel).where(PartnerCodeModel.public_slug == public_slug.strip()).limit(1)
+        )
+        return result.scalars().first()
+
     async def get_active_code_by_public_token_hash(self, token_hash: str) -> PartnerCodeModel | None:
         result = await self._session.execute(
             select(PartnerCodeModel).where(

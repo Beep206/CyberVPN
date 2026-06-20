@@ -173,10 +173,13 @@ class PartnerWorkspaceCommercialCapabilitiesResponse(BaseModel):
 class PartnerWorkspaceFinanceCurrencySummaryResponse(BaseModel):
     currency_code: str
     event_count: int
-    on_hold_amount: float
-    available_amount: float
-    paid_amount: float
-    total_amount: float
+    on_hold_amount: str
+    available_amount: str
+    paid_amount: str
+    reserved_amount: str = "0.00"
+    reversed_amount: str = "0.00"
+    total_amount: str
+    next_payout_forecast_amount: str = "0.00"
     last_event_at: datetime | None = None
 
 

@@ -11,6 +11,7 @@ import type {
   ListMyPartnerWorkspacesResponse,
   ListPartnerWorkspaceConversionRecordsResponse,
   ListPartnerWorkspaceCodesResponse,
+  GetPartnerWorkspaceFinanceSummaryResponse,
   ListPartnerWorkspacePayoutAccountsResponse,
   ListPartnerWorkspaceResellerVoucherBatchesResponse,
   ListPartnerWorkspaceReportExportsResponse,
@@ -103,8 +104,10 @@ export interface PartnerPortalTrafficDeclaration {
 export interface BuildPartnerPortalRuntimeStateOptions {
   baseState: PartnerPortalState;
   workspace: GetPartnerWorkspaceResponse | null;
+  locale?: string;
   blockedReasons?: GetPartnerSessionBootstrapResponse['blocked_reasons'] | null;
   workspaceCodes?: ListPartnerWorkspaceCodesResponse | null;
+  workspaceFinanceSummary?: GetPartnerWorkspaceFinanceSummaryResponse | null;
   workspaceCampaignAssets?: ListPartnerWorkspaceCampaignAssetsResponse | null;
   workspaceStatements?: ListPartnerWorkspaceStatementsResponse | null;
   workspacePayoutAccounts?: ListPartnerWorkspacePayoutAccountsResponse | null;
@@ -197,14 +200,32 @@ function mapPartnerCodeKind(value: string | null | undefined): PartnerCodeKind {
     : 'starter_code';
 }
 
-function formatMoney(amount: number, currencyCode: string): string {
+function mapPartnerCodeStatus(value: string | null | undefined, isActive: boolean): PartnerCode['status'] {
+  if (value === 'active' || value === 'paused' || value === 'revoked') {
+    return value;
+  }
+  if (value === 'archived') {
+    return 'expired';
+  }
+  return isActive ? 'active' : 'paused';
+}
+
+function normalizeIntlLocale(locale: string | undefined): string {
+  if (locale === 'en-EN') {
+    return 'en-US';
+  }
+  return locale || 'en-US';
+}
+
+function formatMoney(amount: number | string, currencyCode: string, locale = 'en-US'): string {
   const normalizedCurrency = currencyCode || 'USD';
-  return new Intl.NumberFormat('en-US', {
+  const numericAmount = typeof amount === 'string' ? Number(amount) : amount;
+  return new Intl.NumberFormat(normalizeIntlLocale(locale), {
     style: 'currency',
     currency: normalizedCurrency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(Number.isFinite(numericAmount) ? numericAmount : 0);
 }
 
 function mapWorkspaceStatus(
@@ -274,8 +295,13 @@ function mapWorkspaceCodes(
       id: code.id,
       label: code.code,
       kind: mapPartnerCodeKind(extendedCode.code_kind),
-      status: extendedCode.lifecycle_status === 'active' || code.is_active ? 'active' : 'paused',
-      destination: extendedCode.share_url || extendedCode.default_destination_url || '',
+      status: mapPartnerCodeStatus(extendedCode.lifecycle_status, code.is_active),
+      destination: extendedCode.default_destination_url || extendedCode.share_url || '',
+      shareUrl: extendedCode.share_url || '',
+      defaultDestinationUrl: extendedCode.default_destination_url || '',
+      destinationPath: code.destination_path ?? null,
+      version: code.version,
+      availableActions: code.available_actions ?? [],
       notes: [`Markup ${Number(code.markup_pct).toFixed(2)}%`],
     };
   });
@@ -468,7 +494,7 @@ export function applyPartnerSessionBootstrapToState({
       activeWorkspaceKey: null,
       currentPermissionKeys: [],
       trafficDeclarations: [],
-      workspaceDataSource: 'local',
+      workspaceDataSource: 'canonical',
     };
   }
 
@@ -554,6 +580,7 @@ function mapFinanceStatementStatus(
 
 function mapWorkspaceStatements(
   workspaceStatements: ListPartnerWorkspaceStatementsResponse | null | undefined,
+  locale = 'en-US',
 ): PartnerFinanceStatement[] | null {
   if (!workspaceStatements) {
     return null;
@@ -563,13 +590,14 @@ function mapWorkspaceStatements(
     id: statement.id,
     periodLabel: statement.statement_key,
     status: mapFinanceStatementStatus(statement),
-    gross: formatMoney(statement.accrual_amount, statement.currency_code),
+    gross: formatMoney(statement.accrual_amount, statement.currency_code, locale),
     net: formatMoney(
       statement.available_amount + statement.on_hold_amount + statement.reserve_amount,
       statement.currency_code,
+      locale,
     ),
-    available: formatMoney(statement.available_amount, statement.currency_code),
-    onHold: formatMoney(statement.on_hold_amount + statement.reserve_amount, statement.currency_code),
+    available: formatMoney(statement.available_amount, statement.currency_code, locale),
+    onHold: formatMoney(statement.on_hold_amount + statement.reserve_amount, statement.currency_code, locale),
     currency: statement.currency_code,
     notes: [
       `Version ${statement.statement_version}`,
@@ -850,7 +878,23 @@ function mapCanonicalComplianceTasks({
 function deriveFinanceSnapshot(
   baseState: PartnerPortalState,
   workspaceStatements: ListPartnerWorkspaceStatementsResponse | null | undefined,
+  workspaceFinanceSummary: GetPartnerWorkspaceFinanceSummaryResponse | null | undefined,
+  locale = 'en-US',
 ): PartnerFinanceSnapshot {
+  const summaryCurrency = workspaceFinanceSummary?.currencies?.[0];
+  if (summaryCurrency) {
+    return {
+      availableEarnings: formatMoney(summaryCurrency.available_amount, summaryCurrency.currency_code, locale),
+      onHoldEarnings: formatMoney(summaryCurrency.on_hold_amount, summaryCurrency.currency_code, locale),
+      reserves: formatMoney(summaryCurrency.reserved_amount ?? '0', summaryCurrency.currency_code, locale),
+      nextPayoutForecast: formatMoney(
+        summaryCurrency.next_payout_forecast_amount ?? summaryCurrency.available_amount,
+        summaryCurrency.currency_code,
+        locale,
+      ),
+      currency: summaryCurrency.currency_code,
+    };
+  }
   if (!workspaceStatements) {
     return baseState.financeSnapshot;
   }
@@ -864,10 +908,10 @@ function deriveFinanceSnapshot(
     .reduce((sum, item) => sum + Number(item.available_amount), 0);
 
   return {
-    availableEarnings: formatMoney(available, currency),
-    onHoldEarnings: formatMoney(onHold, currency),
-    reserves: formatMoney(reserves, currency),
-    nextPayoutForecast: formatMoney(nextPayoutForecast, currency),
+    availableEarnings: formatMoney(available, currency, locale),
+    onHoldEarnings: formatMoney(onHold, currency, locale),
+    reserves: formatMoney(reserves, currency, locale),
+    nextPayoutForecast: formatMoney(nextPayoutForecast, currency, locale),
     currency,
   };
 }
@@ -920,8 +964,10 @@ export function selectActivePartnerWorkspace(
 export function buildPartnerPortalRuntimeState({
   baseState,
   workspace,
+  locale = 'en-US',
   blockedReasons,
   workspaceCodes,
+  workspaceFinanceSummary,
   workspaceCampaignAssets,
   workspaceStatements,
   workspacePayoutAccounts,
@@ -944,7 +990,7 @@ export function buildPartnerPortalRuntimeState({
       activeWorkspaceKey: null,
       currentPermissionKeys: [],
       trafficDeclarations: [],
-      workspaceDataSource: 'local',
+      workspaceDataSource: 'canonical',
     };
   }
 
@@ -958,6 +1004,7 @@ export function buildPartnerPortalRuntimeState({
 
   const mappedStatements = mapWorkspaceStatements(
     hasEarningsRead ? workspaceStatements : [],
+    locale,
   );
   const mappedCampaignAssets = mapWorkspaceCampaignAssets(
     hasTrafficRead ? workspaceCampaignAssets : [],
@@ -1014,7 +1061,12 @@ export function buildPartnerPortalRuntimeState({
     payoutAccounts: mappedPayoutAccounts ?? [],
     trafficDeclarations: mappedTrafficDeclarations ?? [],
     complianceTasks: mappedComplianceTasks,
-    financeSnapshot: deriveFinanceSnapshot(baseState, hasEarningsRead ? workspaceStatements : []),
+    financeSnapshot: deriveFinanceSnapshot(
+      baseState,
+      hasEarningsRead ? workspaceStatements : [],
+      hasPayoutsRead ? workspaceFinanceSummary : null,
+      locale,
+    ),
     conversionRecords: mappedConversionRecords ?? [],
     integrationCredentials: mappedIntegrationCredentials ?? [],
     integrationDeliveryLogs: mappedIntegrationDeliveryLogs ?? [],

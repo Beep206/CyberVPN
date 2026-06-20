@@ -422,6 +422,7 @@ class GrowthCodeWrongContextTarget(StrEnum):
 class AttributionTouchpointType(StrEnum):
     EXPLICIT_CODE = "explicit_code"
     PASSIVE_CLICK = "passive_click"
+    PARTNER_CLAIM = "partner_claim"
     DEEP_LINK = "deep_link"
     QR_SCAN = "qr_scan"
     STOREFRONT_ORIGIN = "storefront_origin"

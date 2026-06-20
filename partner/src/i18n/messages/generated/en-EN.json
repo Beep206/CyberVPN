@@ -3628,6 +3628,16 @@
         "starter": "This role can work with the starter launch inventory, but broader code scale-out remains gated.",
         "title": "Action posture"
       },
+      "buttons": {
+        "activate": "Activate",
+        "archive": "Archive",
+        "copy": "Copy share link",
+        "create": "Create code",
+        "link": "Create deep link",
+        "pause": "Pause",
+        "qr": "Generate QR",
+        "revoke": "Revoke"
+      },
       "capabilities": {
         "items": {
           "additional_codes": "Additional code creation",
@@ -3639,11 +3649,23 @@
         },
         "title": "Lane capability posture"
       },
+      "create": {
+        "title": "Create code"
+      },
       "eyebrow": "PP4 CODES AND TRACKING",
+      "form": {
+        "code": "Code",
+        "codePlaceholder": "Leave blank to generate",
+        "destinationPath": "Destination path"
+      },
       "inventory": {
         "description": "The code list is now lane-aware. Creator gets the widest probation launch, Performance stays more controlled, and Reseller remains storefront-sensitive.",
         "destination": "Destination: {value}",
         "empty": "No codes are available for the current workspace state and lane.",
+        "forbidden": "This role cannot view workspace codes.",
+        "loading": "Loading workspace codes.",
+        "networkError": "Codes are temporarily unavailable.",
+        "notFound": "Workspace codes endpoint was not found for this workspace.",
         "title": "Code inventory"
       },
       "links": {

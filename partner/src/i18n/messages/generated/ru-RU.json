@@ -3628,6 +3628,16 @@
         "starter": "Эта роль может работать со стартовым launch inventory, но более широкий scale-out по кодам остаётся gated.",
         "title": "Action posture"
       },
+      "buttons": {
+        "activate": "Активировать",
+        "archive": "Архивировать",
+        "copy": "Скопировать ссылку",
+        "create": "Создать код",
+        "link": "Создать deep link",
+        "pause": "Поставить на паузу",
+        "qr": "Сгенерировать QR",
+        "revoke": "Отозвать"
+      },
       "capabilities": {
         "items": {
           "additional_codes": "Создание дополнительных кодов",
@@ -3639,11 +3649,23 @@
         },
         "title": "Capability posture по lane"
       },
+      "create": {
+        "title": "Создать код"
+      },
       "eyebrow": "PP4 CODES И TRACKING",
+      "form": {
+        "code": "Код",
+        "codePlaceholder": "Оставьте пустым для генерации",
+        "destinationPath": "Путь назначения"
+      },
       "inventory": {
         "description": "Список кодов теперь lane-aware. Creator получает самый широкий probation launch, Performance строже, а Reseller зависит от storefront alignment.",
         "destination": "Назначение: {value}",
         "empty": "Для текущего статуса рабочей области и lane коды пока недоступны.",
+        "forbidden": "У этой роли нет доступа к кодам рабочей области.",
+        "loading": "Загружаем коды рабочей области.",
+        "networkError": "Коды временно недоступны.",
+        "notFound": "Endpoint кодов не найден для этой рабочей области.",
         "title": "Инвентарь кодов"
       },
       "links": {

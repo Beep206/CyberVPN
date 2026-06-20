@@ -43,6 +43,8 @@ class _ResolvedCandidate:
     commission_contract_id: UUID | None
     winning_touchpoint_id: UUID | None
     winning_binding_id: UUID | None
+    attribution_model: str | None
+    commercial_policy_snapshot: dict
     rule_path: list[str]
 
 
@@ -105,6 +107,8 @@ class ResolveOrderAttributionUseCase:
         policy_snapshot = {
             "resolver_version": "phase3_t3_3_v1",
             "order_policy_snapshot": dict(order.policy_snapshot or {}),
+            "resolved_attribution_model": candidate.attribution_model if candidate is not None else None,
+            "commercial_policy_snapshot": dict(candidate.commercial_policy_snapshot) if candidate is not None else {},
         }
 
         model = OrderAttributionResultModel(
@@ -210,11 +214,16 @@ class ResolveOrderAttributionUseCase:
                 rule_path=["claimed_commercial_binding_selected"],
             )
 
-        if explicit_touchpoint is not None:
+        selected_touchpoint = _select_touchpoint_by_model([explicit_touchpoint, passive_click])
+        if selected_touchpoint is not None:
             return await self._candidate_from_touchpoint(
-                explicit_touchpoint,
-                owner_source=CommercialOwnerSource.EXPLICIT_CODE.value,
-                fallback_rule_path=["explicit_code_touchpoint_selected"],
+                selected_touchpoint,
+                owner_source=(
+                    CommercialOwnerSource.EXPLICIT_CODE.value
+                    if selected_touchpoint.touchpoint_type == "explicit_code"
+                    else CommercialOwnerSource.PASSIVE_CLICK.value
+                ),
+                fallback_rule_path=[f"{selected_touchpoint.touchpoint_type}_touchpoint_selected"],
             )
 
         if binding_by_type.reseller_binding is not None:
@@ -222,13 +231,6 @@ class ResolveOrderAttributionUseCase:
                 binding_by_type.reseller_binding,
                 owner_source=CommercialOwnerSource.PERSISTENT_RESELLER_BINDING.value,
                 rule_path=["persistent_reseller_binding_selected"],
-            )
-
-        if passive_click is not None:
-            return await self._candidate_from_touchpoint(
-                passive_click,
-                owner_source=CommercialOwnerSource.PASSIVE_CLICK.value,
-                fallback_rule_path=["passive_click_touchpoint_selected"],
             )
 
         if binding_by_type.storefront_default is not None:
@@ -255,19 +257,31 @@ class ResolveOrderAttributionUseCase:
         code_model = await self._partners.get_code_by_id(touchpoint.partner_code_id)
         if code_model is None:
             raise ValueError("Partner code referenced by touchpoint was not found")
-        owner_type = _infer_owner_type_from_code(code_model)
+        policy_snapshot = _policy_snapshot_from_touchpoint(touchpoint)
+        owner_type = _owner_type_from_snapshot(policy_snapshot) or _infer_owner_type_from_code(code_model)
+        partner_account_id = (
+            _uuid_from_snapshot(policy_snapshot.get("partner_account_id")) or code_model.partner_account_id
+        )
+        commission_contract_id = (
+            _uuid_from_snapshot(policy_snapshot.get("commission_contract_id")) or code_model.commission_contract_id
+        )
+        policy_version_id = (
+            _uuid_from_snapshot(policy_snapshot.get("policy_version_id")) or touchpoint.policy_version_id
+        )
         rule_path = list(fallback_rule_path)
-        rule_path.append("owner_type_loaded_from_partner_code_policy")
+        rule_path.append("owner_policy_loaded_from_immutable_touchpoint_snapshot")
         return _ResolvedCandidate(
             owner_type=owner_type,
             owner_source=owner_source,
-            partner_account_id=code_model.partner_account_id,
+            partner_account_id=partner_account_id,
             partner_code_id=code_model.id,
             attribution_session_id=touchpoint.partner_attribution_session_id,
-            policy_version_id=touchpoint.policy_version_id or code_model.policy_version_id,
-            commission_contract_id=code_model.commission_contract_id,
+            policy_version_id=policy_version_id or code_model.policy_version_id,
+            commission_contract_id=commission_contract_id,
             winning_touchpoint_id=touchpoint.id,
             winning_binding_id=None,
+            attribution_model=str(policy_snapshot.get("attribution_model") or code_model.attribution_model),
+            commercial_policy_snapshot=policy_snapshot,
             rule_path=rule_path,
         )
 
@@ -320,6 +334,7 @@ def _candidate_from_binding(
     owner_source: str,
     rule_path: list[str],
 ) -> _ResolvedCandidate:
+    commercial_policy_snapshot = dict((binding.evidence_payload or {}).get("policy_snapshot") or {})
     return _ResolvedCandidate(
         owner_type=binding.owner_type,
         owner_source=owner_source,
@@ -330,6 +345,8 @@ def _candidate_from_binding(
         commission_contract_id=binding.commission_contract_id,
         winning_touchpoint_id=None,
         winning_binding_id=binding.id,
+        attribution_model=str(commercial_policy_snapshot.get("attribution_model") or ""),
+        commercial_policy_snapshot=commercial_policy_snapshot,
         rule_path=rule_path,
     )
 
@@ -342,7 +359,59 @@ def _infer_owner_type_from_code(code_model: PartnerCodeModel) -> str:
         CommercialOwnerType.RESELLER.value,
     }:
         return owner_type
-    return CommercialOwnerType.AFFILIATE.value
+    raise ValueError("Partner code owner_type is invalid")
+
+
+def _owner_type_from_snapshot(policy_snapshot: dict) -> str | None:
+    owner_type = str(policy_snapshot.get("owner_type") or "").strip()
+    if not owner_type:
+        return None
+    if owner_type in {
+        CommercialOwnerType.AFFILIATE.value,
+        CommercialOwnerType.PERFORMANCE.value,
+        CommercialOwnerType.RESELLER.value,
+    }:
+        return owner_type
+    raise ValueError("Partner snapshot owner_type is invalid")
+
+
+def _uuid_from_snapshot(value: object) -> UUID | None:
+    if value is None:
+        return None
+    try:
+        return UUID(str(value))
+    except ValueError:
+        return None
+
+
+def _policy_snapshot_from_touchpoint(touchpoint: AttributionTouchpointModel) -> dict:
+    payload = dict(touchpoint.evidence_payload or {})
+    snapshot = payload.get("policy_snapshot")
+    return dict(snapshot) if isinstance(snapshot, dict) else {}
+
+
+def _touchpoint_attribution_model(touchpoint: AttributionTouchpointModel | None) -> str:
+    if touchpoint is None:
+        return "last_eligible_touch"
+    snapshot = _policy_snapshot_from_touchpoint(touchpoint)
+    return str(snapshot.get("attribution_model") or "last_eligible_touch")
+
+
+def _select_touchpoint_by_model(
+    touchpoints: list[AttributionTouchpointModel | None],
+) -> AttributionTouchpointModel | None:
+    candidates = [touchpoint for touchpoint in touchpoints if touchpoint is not None]
+    if not candidates:
+        return None
+    if any(_touchpoint_attribution_model(touchpoint) == "first_eligible_touch" for touchpoint in candidates):
+        return sorted(
+            candidates,
+            key=lambda item: (_normalize_utc(item.occurred_at), _normalize_utc(item.created_at)),
+        )[0]
+    return sorted(
+        candidates,
+        key=lambda item: (_normalize_utc(item.occurred_at), _normalize_utc(item.created_at)),
+    )[-1]
 
 
 def _normalize_utc(value: datetime) -> datetime:

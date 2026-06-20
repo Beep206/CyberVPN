@@ -3,6 +3,7 @@
 import { startTransition, useEffect, useEffectEvent, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { useLocale } from 'next-intl';
 import { useProductFeatureFlag } from '@/app/providers/product-intelligence-provider';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
 import {
@@ -13,6 +14,8 @@ import { usePartnerPortalBootstrapState } from '@/features/partner-portal-state/
 
 const WORKSPACE_QUERY_PREFIXES = [
   ['partner-portal', 'workspace-codes'],
+  ['partner-portal', 'workspace-commercial-capabilities'],
+  ['partner-portal', 'workspace-finance-summary'],
   ['partner-portal', 'workspace-campaign-assets'],
   ['partner-portal', 'workspace-statements'],
   ['partner-portal', 'workspace-payout-accounts'],
@@ -47,8 +50,57 @@ async function resolveOptionalPortalResource<T>(loader: () => Promise<{ data: T 
   }
 }
 
+function boundedWorkspaceRetry(failureCount: number, error: unknown): boolean {
+  if (error instanceof AxiosError) {
+    const status = error.response?.status;
+    if (status === 401 || status === 403 || status === 404) {
+      return false;
+    }
+  }
+  return failureCount < 2;
+}
+
+type WorkspaceFeedEntry = {
+  eventSource: EventSource;
+  subscribers: Set<(event: MessageEvent<string>) => void>;
+  dispatch: (event: Event) => void;
+};
+
+const workspaceFeedEntries = new Map<string, WorkspaceFeedEntry>();
+
+function subscribeWorkspaceFeed(
+  workspaceId: string,
+  handler: (event: MessageEvent<string>) => void,
+): () => void {
+  let entry = workspaceFeedEntries.get(workspaceId);
+  if (!entry) {
+    const eventSource = new EventSource(`/api/v1/partner-workspaces/${workspaceId}/realtime/feed`);
+    const subscribers = new Set<(event: MessageEvent<string>) => void>();
+    const dispatch = (event: Event) => {
+      for (const subscriber of subscribers) {
+        subscriber(event as MessageEvent<string>);
+      }
+    };
+    eventSource.addEventListener('partner.workspace.feed', dispatch);
+    entry = { eventSource, subscribers, dispatch };
+    workspaceFeedEntries.set(workspaceId, entry);
+  }
+  entry.subscribers.add(handler);
+  return () => {
+    const current = workspaceFeedEntries.get(workspaceId);
+    if (!current) return;
+    current.subscribers.delete(handler);
+    if (current.subscribers.size === 0) {
+      current.eventSource.removeEventListener('partner.workspace.feed', current.dispatch);
+      current.eventSource.close();
+      workspaceFeedEntries.delete(workspaceId);
+    }
+  };
+}
+
 export function usePartnerPortalRuntimeState() {
   const bootstrapState = usePartnerPortalBootstrapState();
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const realtimeWorkspaceFeedFlag = useProductFeatureFlag('partner_portal_realtime_workspace_feed_v1');
   const {
@@ -93,19 +145,10 @@ export function usePartnerPortalRuntimeState() {
       return;
     }
 
-    const eventSource = new EventSource(
-      `/api/v1/partner-workspaces/${activeWorkspace.id}/realtime/feed`,
-    );
-    const eventHandler = (event: Event) => {
-      handleRealtimeWorkspaceFeedEvent(event as MessageEvent<string>);
+    const eventHandler = (event: MessageEvent<string>) => {
+      handleRealtimeWorkspaceFeedEvent(event);
     };
-
-    eventSource.addEventListener('partner.workspace.feed', eventHandler);
-
-    return () => {
-      eventSource.removeEventListener('partner.workspace.feed', eventHandler);
-      eventSource.close();
-    };
+    return subscribeWorkspaceFeed(activeWorkspace.id, eventHandler);
   }, [activeWorkspace?.id, realtimeWorkspaceFeedFlag.value]);
 
   const workspaceCodesQuery = useQuery({
@@ -114,13 +157,40 @@ export function usePartnerPortalRuntimeState() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
-        partnerPortalApi.listWorkspaceCodes(activeWorkspace.id),
-      );
+      const response = await partnerPortalApi.listWorkspaceCodes(activeWorkspace.id);
+      return response.data;
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
+  });
+
+  const workspaceCommercialCapabilitiesQuery = useQuery({
+    queryKey: ['partner-portal', 'workspace-commercial-capabilities', activeWorkspace?.id ?? null],
+    queryFn: async () => {
+      if (!activeWorkspace) {
+        return null;
+      }
+      const response = await partnerPortalApi.getWorkspaceCommercialCapabilities(activeWorkspace.id);
+      return response.data;
+    },
+    enabled: Boolean(activeWorkspace?.id),
+    staleTime: 60_000,
+    retry: boundedWorkspaceRetry,
+  });
+
+  const workspaceFinanceSummaryQuery = useQuery({
+    queryKey: ['partner-portal', 'workspace-finance-summary', activeWorkspace?.id ?? null],
+    queryFn: async () => {
+      if (!activeWorkspace) {
+        return null;
+      }
+      const response = await partnerPortalApi.getWorkspaceFinanceSummary(activeWorkspace.id);
+      return response.data;
+    },
+    enabled: Boolean(activeWorkspace?.id),
+    staleTime: 30_000,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceCampaignAssetsQuery = useQuery({
@@ -135,7 +205,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceStatementsQuery = useQuery({
@@ -153,7 +223,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const payoutAccountsQuery = useQuery({
@@ -171,7 +241,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceResellerVoucherBatchesQuery = useQuery({
@@ -186,7 +256,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceConversionRecordsQuery = useQuery({
@@ -204,7 +274,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceAnalyticsMetricsQuery = useQuery({
@@ -219,7 +289,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceReportExportsQuery = useQuery({
@@ -234,7 +304,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceReviewRequestsQuery = useQuery({
@@ -249,7 +319,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceCasesQuery = useQuery({
@@ -264,7 +334,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceIntegrationCredentialsQuery = useQuery({
@@ -279,7 +349,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceIntegrationDeliveryLogsQuery = useQuery({
@@ -294,7 +364,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceTrafficDeclarationsQuery = useQuery({
@@ -309,7 +379,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const workspaceNotificationsQuery = useQuery({
@@ -327,7 +397,7 @@ export function usePartnerPortalRuntimeState() {
     },
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 15_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const notificationPreferencesQuery = useQuery({
@@ -337,15 +407,17 @@ export function usePartnerPortalRuntimeState() {
       return response.data;
     },
     staleTime: 60_000,
-    retry: false,
+    retry: boundedWorkspaceRetry,
   });
 
   const state = useMemo(
     () => buildPartnerPortalRuntimeState({
       baseState,
       workspace: activeWorkspace ?? null,
+      locale,
       blockedReasons: bootstrap?.blocked_reasons ?? null,
       workspaceCodes: workspaceCodesQuery.data ?? null,
+      workspaceFinanceSummary: workspaceFinanceSummaryQuery.data ?? null,
       workspaceCampaignAssets: workspaceCampaignAssetsQuery.data ?? null,
       workspaceStatements: workspaceStatementsQuery.data ?? null,
       workspacePayoutAccounts: payoutAccountsQuery.data ?? null,
@@ -364,11 +436,13 @@ export function usePartnerPortalRuntimeState() {
       activeWorkspace,
       baseState,
       bootstrap?.blocked_reasons,
+      locale,
       payoutAccountsQuery.data,
       workspaceAnalyticsMetricsQuery.data,
       workspaceCasesQuery.data,
       workspaceCampaignAssetsQuery.data,
       workspaceCodesQuery.data,
+      workspaceFinanceSummaryQuery.data,
       workspaceConversionRecordsQuery.data,
       workspaceIntegrationCredentialsQuery.data,
       workspaceIntegrationDeliveryLogsQuery.data,
@@ -398,6 +472,8 @@ export function usePartnerPortalRuntimeState() {
       bootstrapQuery,
       workspacesQuery,
       workspaceCodesQuery,
+      workspaceCommercialCapabilitiesQuery,
+      workspaceFinanceSummaryQuery,
       workspaceCampaignAssetsQuery,
       workspaceStatementsQuery,
       payoutAccountsQuery,

@@ -1150,7 +1150,29 @@
       "title": "Code inventory",
       "description": "The code list is now lane-aware. Creator gets the widest probation launch, Performance stays more controlled, and Reseller remains storefront-sensitive.",
       "destination": "Destination: {value}",
+      "loading": "Loading workspace codes.",
+      "forbidden": "This role cannot view workspace codes.",
+      "notFound": "Workspace codes endpoint was not found for this workspace.",
+      "networkError": "Codes are temporarily unavailable.",
       "empty": "No codes are available for the current workspace state and lane."
+    },
+    "create": {
+      "title": "Create code"
+    },
+    "form": {
+      "code": "Code",
+      "codePlaceholder": "Leave blank to generate",
+      "destinationPath": "Destination path"
+    },
+    "buttons": {
+      "create": "Create code",
+      "copy": "Copy share link",
+      "link": "Create deep link",
+      "qr": "Generate QR",
+      "activate": "Activate",
+      "pause": "Pause",
+      "revoke": "Revoke",
+      "archive": "Archive"
     },
     "capabilities": {
       "title": "Lane capability posture",

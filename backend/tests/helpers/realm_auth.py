@@ -1677,6 +1677,7 @@ async def initialize_realm_test_database(engine) -> None:
                 code TEXT NOT NULL UNIQUE,
                 code_normalized TEXT UNIQUE,
                 public_token_hash TEXT UNIQUE,
+                public_slug TEXT UNIQUE,
                 partner_account_id TEXT,
                 partner_user_id TEXT,
                 code_kind TEXT NOT NULL DEFAULT 'starter_code',
@@ -1716,6 +1717,7 @@ async def initialize_realm_test_database(engine) -> None:
         )
         conn.exec_driver_sql("CREATE INDEX ix_partner_codes_code_normalized ON partner_codes(code_normalized)")
         conn.exec_driver_sql("CREATE INDEX ix_partner_codes_public_token_hash ON partner_codes(public_token_hash)")
+        conn.exec_driver_sql("CREATE INDEX ix_partner_codes_public_slug ON partner_codes(public_slug)")
         conn.exec_driver_sql("CREATE INDEX ix_partner_codes_partner_account_id ON partner_codes(partner_account_id)")
         conn.exec_driver_sql("CREATE INDEX ix_partner_codes_partner_user_id ON partner_codes(partner_user_id)")
         conn.exec_driver_sql("CREATE INDEX ix_partner_codes_lifecycle_status ON partner_codes(lifecycle_status)")
@@ -2720,8 +2722,10 @@ async def initialize_realm_test_database(engine) -> None:
             """
             CREATE TABLE partner_attribution_sessions (
                 id TEXT PRIMARY KEY,
-                token_hash TEXT NOT NULL UNIQUE,
+                session_token_hash TEXT UNIQUE,
                 transfer_token_hash TEXT UNIQUE,
+                transfer_expires_at TEXT,
+                transfer_consumed_at TEXT,
                 partner_code_id TEXT NOT NULL,
                 partner_account_id TEXT,
                 auth_realm_id TEXT,
@@ -2733,14 +2737,23 @@ async def initialize_realm_test_database(engine) -> None:
                 commission_contract_id TEXT,
                 source_host TEXT,
                 source_path TEXT,
+                destination_path TEXT,
+                locale TEXT NOT NULL DEFAULT 'ru-RU',
+                sale_channel TEXT,
+                sub_ids TEXT NOT NULL DEFAULT '{}',
+                click_id TEXT,
+                browser_key_hash TEXT,
                 destination_url TEXT NOT NULL,
                 campaign_params TEXT NOT NULL DEFAULT '{}',
                 evidence_payload TEXT NOT NULL DEFAULT '{}',
                 policy_snapshot TEXT NOT NULL DEFAULT '{}',
+                rejection_reason_code TEXT,
                 user_id TEXT,
                 touchpoint_id TEXT,
                 binding_id TEXT,
                 expires_at TEXT NOT NULL,
+                first_seen_at TEXT,
+                last_seen_at TEXT,
                 transferred_at TEXT,
                 claimed_at TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2755,9 +2768,12 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         for index_sql in (
-            "CREATE INDEX ix_partner_attr_sessions_token_hash ON partner_attribution_sessions(token_hash)",
+            "CREATE INDEX ix_partner_attr_sessions_session_token_hash "
+            "ON partner_attribution_sessions(session_token_hash)",
             "CREATE INDEX ix_partner_attr_sessions_transfer_token_hash "
             "ON partner_attribution_sessions(transfer_token_hash)",
+            "CREATE INDEX ix_partner_attr_sessions_transfer_expires_at "
+            "ON partner_attribution_sessions(transfer_expires_at)",
             "CREATE INDEX ix_partner_attr_sessions_partner_code_id ON partner_attribution_sessions(partner_code_id)",
             "CREATE INDEX ix_partner_attr_sessions_partner_account_id "
             "ON partner_attribution_sessions(partner_account_id)",
@@ -2768,10 +2784,69 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_partner_attr_sessions_user_id ON partner_attribution_sessions(user_id)",
             "CREATE INDEX ix_partner_attr_sessions_touchpoint_id ON partner_attribution_sessions(touchpoint_id)",
             "CREATE INDEX ix_partner_attr_sessions_binding_id ON partner_attribution_sessions(binding_id)",
+            "CREATE INDEX ix_partner_attr_sessions_sale_channel ON partner_attribution_sessions(sale_channel)",
+            "CREATE INDEX ix_partner_attr_sessions_click_id ON partner_attribution_sessions(click_id)",
+            "CREATE INDEX ix_partner_attr_sessions_browser_key_hash ON partner_attribution_sessions(browser_key_hash)",
             "CREATE INDEX ix_partner_attr_sessions_expires_at ON partner_attribution_sessions(expires_at)",
+            "CREATE INDEX ix_partner_attr_sessions_last_seen_at ON partner_attribution_sessions(last_seen_at)",
             "CREATE INDEX ix_partner_attr_sessions_created_at ON partner_attribution_sessions(created_at)",
         ):
             conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE partner_code_events (
+                id TEXT PRIMARY KEY,
+                partner_code_id TEXT NOT NULL,
+                partner_account_id TEXT,
+                event_type TEXT NOT NULL,
+                previous_status TEXT,
+                next_status TEXT,
+                reason_code TEXT,
+                actor_principal_id TEXT,
+                event_payload TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (partner_code_id) REFERENCES partner_codes(id),
+                FOREIGN KEY (partner_account_id) REFERENCES partner_accounts(id)
+            )
+            """
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_partner_code_events_partner_code_id ON partner_code_events(partner_code_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_partner_code_events_partner_account_id ON partner_code_events(partner_account_id)"
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_partner_code_events_event_type ON partner_code_events(event_type)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_partner_code_events_actor_principal_id ON partner_code_events(actor_principal_id)"
+        )
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE api_idempotency_records (
+                id TEXT PRIMARY KEY,
+                scope TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL,
+                resource_type TEXT NOT NULL,
+                resource_id TEXT,
+                request_hash TEXT,
+                response_payload TEXT NOT NULL DEFAULT '{}',
+                status TEXT NOT NULL DEFAULT 'completed',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT,
+                UNIQUE(scope, idempotency_key)
+            )
+            """
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_api_idempotency_records_scope ON api_idempotency_records(scope)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_api_idempotency_records_resource_id ON api_idempotency_records(resource_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_api_idempotency_records_created_at ON api_idempotency_records(created_at)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_api_idempotency_records_expires_at ON api_idempotency_records(expires_at)"
+        )
         conn.exec_driver_sql(
             """
             CREATE TABLE attribution_touchpoints (

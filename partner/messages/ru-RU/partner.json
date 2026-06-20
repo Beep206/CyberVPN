@@ -1146,7 +1146,29 @@
       "title": "Инвентарь кодов",
       "description": "Список кодов теперь lane-aware. Creator получает самый широкий probation launch, Performance строже, а Reseller зависит от storefront alignment.",
       "destination": "Назначение: {value}",
+      "loading": "Загружаем коды рабочей области.",
+      "forbidden": "У этой роли нет доступа к кодам рабочей области.",
+      "notFound": "Endpoint кодов не найден для этой рабочей области.",
+      "networkError": "Коды временно недоступны.",
       "empty": "Для текущего статуса рабочей области и lane коды пока недоступны."
+    },
+    "create": {
+      "title": "Создать код"
+    },
+    "form": {
+      "code": "Код",
+      "codePlaceholder": "Оставьте пустым для генерации",
+      "destinationPath": "Путь назначения"
+    },
+    "buttons": {
+      "create": "Создать код",
+      "copy": "Скопировать ссылку",
+      "link": "Создать deep link",
+      "qr": "Сгенерировать QR",
+      "activate": "Активировать",
+      "pause": "Поставить на паузу",
+      "revoke": "Отозвать",
+      "archive": "Архивировать"
     },
     "capabilities": {
       "title": "Capability posture по lane",

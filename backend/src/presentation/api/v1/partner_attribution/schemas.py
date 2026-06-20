@@ -9,8 +9,13 @@ from pydantic import BaseModel, Field
 
 class PartnerAttributionCaptureRequest(BaseModel):
     public_token: str = Field(min_length=8, max_length=128)
-    source_host: str | None = Field(default=None, max_length=255)
     source_path: str | None = Field(default=None, max_length=500)
+    destination_path: str | None = Field(default=None, max_length=500)
+    locale: str | None = Field(default=None, max_length=16)
+    sale_channel: str | None = Field(default=None, max_length=40)
+    sub_ids: dict[str, str] | None = None
+    click_id: str | None = Field(default=None, max_length=160)
+    browser_key: str | None = Field(default=None, max_length=160)
     campaign_params: dict[str, Any] | None = None
 
 
@@ -29,12 +34,13 @@ class PartnerAttributionTransferConsumeRequest(BaseModel):
 
 class PartnerAttributionTransferConsumeResponse(BaseModel):
     attribution_id: UUID
+    captured_at: datetime
     expires_at: datetime
     masked_code: str
 
 
 class PartnerAttributionClaimRequest(BaseModel):
-    fallback_token: str | None = Field(default=None, min_length=16, max_length=256)
+    pass
 
 
 class PartnerAttributionClaimResponse(BaseModel):

@@ -8,18 +8,22 @@ import { useAuthStore } from '@/stores/auth-store';
 import {
   clearPartnerAttribution,
   PARTNER_ATTRIBUTION_CHANGED_EVENT,
+  PARTNER_ATTRIBUTION_STORAGE_KEY,
   readPartnerAttribution,
   savePartnerAttribution,
 } from './storage';
 
-const RETRY_DELAYS_MS = [1_000, 3_000, 10_000] as const;
+const RETRY_DELAYS_MS = [1_000, 3_000, 10_000, 30_000] as const;
 const TERMINAL_CODES = new Set([
-  'PARTNER_TRANSFER_NOT_FOUND',
-  'PARTNER_TRANSFER_EXPIRED',
+  'PARTNER_TRANSFER_TOKEN_INVALID',
+  'PARTNER_TRANSFER_TOKEN_EXPIRED',
+  'PARTNER_TRANSFER_TOKEN_CONSUMED',
+  'PARTNER_ATTRIBUTION_SESSION_EXPIRED',
   'PARTNER_CODE_NOT_ACTIVE',
   'PARTNER_CODE_EXPIRED',
   'PARTNER_SELF_ATTRIBUTION_BLOCKED',
   'PARTNER_OWNER_NOT_CONFIGURED',
+  'PARTNER_OWNER_TYPE_INVALID',
 ]);
 
 function getApiErrorCode(error: unknown): string | null {
@@ -65,29 +69,47 @@ export function PartnerAttributionProvider() {
   const [storageVersion, setStorageVersion] = useState(0);
   const consumedLocationRef = useRef<string | null>(null);
   const claimAttemptRef = useRef<string | null>(null);
+  const transferInFlightRef = useRef<string | null>(null);
+  const claimInFlightRef = useRef<string | null>(null);
 
   useEffect(() => {
     const listener = () => setStorageVersion((value) => value + 1);
+    const storageListener = (event: StorageEvent) => {
+      if (event.key === PARTNER_ATTRIBUTION_STORAGE_KEY) {
+        setStorageVersion((value) => value + 1);
+      }
+    };
+    const resumeListener = () => setStorageVersion((value) => value + 1);
     window.addEventListener(PARTNER_ATTRIBUTION_CHANGED_EVENT, listener);
-    return () => window.removeEventListener(PARTNER_ATTRIBUTION_CHANGED_EVENT, listener);
+    window.addEventListener('storage', storageListener);
+    window.addEventListener('online', resumeListener);
+    window.addEventListener('visibilitychange', resumeListener);
+    return () => {
+      window.removeEventListener(PARTNER_ATTRIBUTION_CHANGED_EVENT, listener);
+      window.removeEventListener('storage', storageListener);
+      window.removeEventListener('online', resumeListener);
+      window.removeEventListener('visibilitychange', resumeListener);
+    };
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const locationKey = `${window.location.pathname}?${window.location.search}`;
     if (consumedLocationRef.current === locationKey) return;
-    consumedLocationRef.current = locationKey;
+    if (transferInFlightRef.current === locationKey) return;
 
     const url = new URL(window.location.href);
     const transferToken = url.searchParams.get('pat')?.trim();
     if (!transferToken) return;
+    transferInFlightRef.current = locationKey;
 
     void withPartnerAttributionRetry(() =>
       partnerAttributionApi.consumeTransfer({ transfer_token: transferToken }),
     ).then((response) => {
+      consumedLocationRef.current = locationKey;
       savePartnerAttribution({
         attributionId: response.data.attribution_id,
-        capturedAt: new Date().toISOString(),
+        capturedAt: response.data.captured_at,
         expiresAt: response.data.expires_at,
         maskedCode: response.data.masked_code,
         sourceHost: window.location.host,
@@ -97,11 +119,14 @@ export function PartnerAttributionProvider() {
       removePartnerTransferQueryParam();
     }).catch((error) => {
       if (TERMINAL_CODES.has(getApiErrorCode(error) ?? '')) {
+        consumedLocationRef.current = locationKey;
         clearPartnerAttribution();
         removePartnerTransferQueryParam();
       }
+    }).finally(() => {
+      transferInFlightRef.current = null;
     });
-  }, [pathname]);
+  }, [pathname, storageVersion]);
 
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
@@ -110,21 +135,30 @@ export function PartnerAttributionProvider() {
       ? `${userId}:${snapshot.attributionId}:${snapshot.capturedAt}`
       : `${userId}:partner-cookie-only`;
     if (claimAttemptRef.current === claimKey) return;
-    claimAttemptRef.current = claimKey;
+    if (claimInFlightRef.current === claimKey) return;
+    claimInFlightRef.current = claimKey;
 
     void withPartnerAttributionRetry(() => partnerAttributionApi.claim()).then((response) => {
       if (
         response.data.status === 'claimed' ||
         response.data.status === 'already_claimed' ||
+        response.data.status === 'already_claimed_same_owner' ||
+        response.data.status === 'rejected_existing_owner' ||
         response.data.status === 'expired' ||
         (response.data.status === 'no_pending' && snapshot)
       ) {
         clearPartnerAttribution();
       }
+      if (response.data.status !== 'no_pending' || snapshot) {
+        claimAttemptRef.current = claimKey;
+      }
     }).catch((error) => {
       if (TERMINAL_CODES.has(getApiErrorCode(error) ?? '')) {
+        claimAttemptRef.current = claimKey;
         clearPartnerAttribution();
       }
+    }).finally(() => {
+      claimInFlightRef.current = null;
     });
   }, [isAuthenticated, storageVersion, userId]);
 

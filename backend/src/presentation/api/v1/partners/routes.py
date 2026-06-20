@@ -1,6 +1,8 @@
 """Partner API routes for mobile users and admin."""
 
+import hashlib
 import io
+import json
 import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -11,6 +13,7 @@ from uuid import UUID
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import case, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
@@ -27,9 +30,11 @@ from src.application.use_cases.governance import (
 )
 from src.application.use_cases.orders.explainability import GetOrderExplainabilityUseCase
 from src.application.use_cases.partner_attribution.utils import (
+    build_customer_public_url,
     build_public_token_for_code_id,
     build_share_url,
     generate_partner_code,
+    generate_public_slug,
     hash_partner_attribution_token,
     mask_partner_code,
     normalize_partner_code,
@@ -93,7 +98,11 @@ from src.infrastructure.database.models.order_attribution_result_model import (
     OrderAttributionResultModel,
 )
 from src.infrastructure.database.models.order_model import OrderModel
-from src.infrastructure.database.models.partner_model import PartnerCodeModel
+from src.infrastructure.database.models.partner_model import (
+    ApiIdempotencyRecordModel,
+    PartnerCodeEventModel,
+    PartnerCodeModel,
+)
 from src.infrastructure.database.models.partner_workspace_legal_acceptance_model import (
     PartnerWorkspaceLegalAcceptanceModel,
 )
@@ -268,6 +277,10 @@ _WORKSPACE_PARTNER_CODE_SUBJECT_KIND = "partner_code"
 _WORKSPACE_REVIEW_REQUEST_RESPONSE_ACTION = "partner_response_submitted"
 _WORKSPACE_CASE_REPLY_ACTION = "partner_reply"
 _WORKSPACE_CASE_READY_FOR_OPS_ACTION = "partner_ready_for_ops"
+
+
+def _money_string(value: object) -> str:
+    return Decimal(str(value or "0")).quantize(Decimal("0.01")).to_eng_string()
 _WORKSPACE_REPORT_EXPORT_SCHEDULE_ACTION = "partner_export_requested"
 _WORKSPACE_STATUS_CHANGED_ACTION = "workspace_status_changed"
 _WORKSPACE_PARTNER_CODE_STATUS_CHANGED_ACTION = "partner_code_status_changed"
@@ -1055,7 +1068,7 @@ def _serialize_workspace_legal_documents(
 
 
 def _serialize_workspace_code(code_model) -> PartnerWorkspaceCodeResponse:
-    public_token = build_public_token_for_code_id(code_model.id)
+    public_token = _public_token_for_code(code_model)
     lifecycle_status = str(
         getattr(code_model, "lifecycle_status", None) or ("active" if code_model.is_active else "paused")
     )
@@ -1076,7 +1089,9 @@ def _serialize_workspace_code(code_model) -> PartnerWorkspaceCodeResponse:
         attribution_model=str(getattr(code_model, "attribution_model", None) or "last_eligible_touch"),
         attribution_window_seconds=int(getattr(code_model, "attribution_window_seconds", None) or 30 * 24 * 60 * 60),
         share_url=build_share_url(public_token),
-        default_destination_url=build_share_url(public_token),
+        default_destination_url=build_customer_public_url(
+            destination_path=getattr(code_model, "destination_path", None),
+        ),
         destination_path=getattr(code_model, "destination_path", None),
         allowed_channels=_list_or_default(
             getattr(code_model, "allowed_channels", None),
@@ -1098,6 +1113,10 @@ def _serialize_workspace_code(code_model) -> PartnerWorkspaceCodeResponse:
     )
 
 
+def _public_token_for_code(code_model: PartnerCodeModel) -> str:
+    return str(getattr(code_model, "public_slug", None) or build_public_token_for_code_id(code_model.id))
+
+
 def _list_or_default(value, default: list[str]) -> list[str]:
     if isinstance(value, list):
         return [str(item) for item in value]
@@ -1117,6 +1136,17 @@ def _available_code_actions(lifecycle_status: str) -> list[str]:
     return ["create_link", "download_qr"]
 
 
+async def _allocate_public_slug(repo: PartnerRepository) -> str:
+    for _ in range(32):
+        candidate = generate_public_slug()
+        if await repo.get_code_by_public_slug(candidate) is None:
+            return candidate
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Could not allocate unique partner public slug",
+    )
+
+
 async def _resolve_unique_partner_code(repo: PartnerRepository, requested_code: str | None) -> str:
     if requested_code:
         normalized = normalize_partner_code(requested_code)
@@ -1131,6 +1161,57 @@ async def _resolve_unique_partner_code(repo: PartnerRepository, requested_code: 
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="Could not allocate unique partner code",
     )
+
+
+_PARTNER_CODE_CREATE_BLOCKED_FIELDS = frozenset(
+    {
+        "markup_pct",
+        "owner_type",
+        "lane_key",
+        "attribution_model",
+        "attribution_window_seconds",
+        "allowed_channels",
+        "allowed_storefront_ids",
+        "allowed_geographies",
+    }
+)
+_PARTNER_CODE_UPDATE_BLOCKED_FIELDS = _PARTNER_CODE_CREATE_BLOCKED_FIELDS | frozenset({"lifecycle_status"})
+
+
+def _assert_no_sensitive_partner_code_fields(fields_set: set[str], *, operation: str) -> None:
+    blocked = sorted(
+        fields_set
+        & (
+            _PARTNER_CODE_CREATE_BLOCKED_FIELDS
+            if operation == "create"
+            else _PARTNER_CODE_UPDATE_BLOCKED_FIELDS
+        )
+    )
+    if blocked:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Partner code commercial fields require approval workflow: {', '.join(blocked)}",
+        )
+
+
+def _idempotency_request_hash(payload: dict[str, object]) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+async def _get_idempotency_record(
+    db: AsyncSession,
+    *,
+    scope: str,
+    idempotency_key: str,
+) -> ApiIdempotencyRecordModel | None:
+    result = await db.execute(
+        select(ApiIdempotencyRecordModel).where(
+            ApiIdempotencyRecordModel.scope == scope,
+            ApiIdempotencyRecordModel.idempotency_key == idempotency_key,
+        )
+    )
+    return result.scalars().first()
 
 
 def _validated_owner_type(owner_type: str) -> str:
@@ -1177,26 +1258,67 @@ def _assert_code_version_matches(request: Request, code_model: PartnerCodeModel)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Partner code version conflict")
 
 
-def _apply_code_lifecycle(code_model: PartnerCodeModel, lifecycle_status: str, *, reason: str | None) -> None:
+_CODE_LIFECYCLE_TRANSITIONS = {
+    "active": {"paused", "revoked", "archived"},
+    "paused": {"active", "revoked", "archived"},
+    "revoked": {"archived"},
+    "archived": set(),
+}
+
+
+def _apply_code_lifecycle(
+    code_model: PartnerCodeModel,
+    lifecycle_status: str,
+    *,
+    reason: str | None,
+) -> tuple[str, str]:
     value = lifecycle_status.strip().lower()
     now = datetime.now(UTC)
     if value not in {"active", "paused", "revoked", "archived"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported lifecycle_status")
+    previous = str(getattr(code_model, "lifecycle_status", None) or ("active" if code_model.is_active else "paused"))
+    if previous == value:
+        return previous, value
+    allowed_next = _CODE_LIFECYCLE_TRANSITIONS.get(previous, set())
+    if value not in allowed_next:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Partner code cannot transition from {previous} to {value}",
+        )
     code_model.lifecycle_status = value
     code_model.is_active = value == "active"
-    metadata = dict(code_model.sub_id_schema or {})
-    if reason:
-        metadata["_last_lifecycle_reason"] = reason[:255]
-    metadata["_last_lifecycle_changed_at"] = now.isoformat()
     if value == "active":
         code_model.paused_at = None
-        code_model.revoked_at = None
         code_model.active_from = code_model.active_from or now
     elif value == "paused":
         code_model.paused_at = now
     elif value == "revoked":
         code_model.revoked_at = now
-    code_model.sub_id_schema = metadata
+    return previous, value
+
+
+async def _append_code_event(
+    db: AsyncSession,
+    *,
+    code_model: PartnerCodeModel,
+    event_type: str,
+    previous_status: str | None,
+    next_status: str | None,
+    reason: str | None,
+    payload: dict[str, object] | None = None,
+) -> None:
+    db.add(
+        PartnerCodeEventModel(
+            partner_code_id=code_model.id,
+            partner_account_id=code_model.partner_account_id,
+            event_type=event_type,
+            previous_status=previous_status,
+            next_status=next_status,
+            reason_code=reason[:120] if reason else None,
+            event_payload=dict(payload or {}),
+        )
+    )
+    await db.flush()
 
 
 async def _change_workspace_code_lifecycle(
@@ -1211,8 +1333,17 @@ async def _change_workspace_code_lifecycle(
 ) -> PartnerWorkspaceCodeResponse:
     code_model = await _get_workspace_code_or_404(db, workspace_id, code_id)
     _assert_code_version_matches(request, code_model)
-    _apply_code_lifecycle(code_model, lifecycle_status, reason=reason)
+    previous_status, next_status = _apply_code_lifecycle(code_model, lifecycle_status, reason=reason)
     code_model.version = int(code_model.version or 1) + 1
+    await _append_code_event(
+        db,
+        code_model=code_model,
+        event_type=f"code.{lifecycle_status}",
+        previous_status=previous_status,
+        next_status=next_status,
+        reason=reason,
+        payload={"operation": operation},
+    )
     updated = await PartnerRepository(db).update_code(code_model)
     await db.commit()
     await db.refresh(updated)
@@ -1226,7 +1357,7 @@ def _build_code_share_url(
     campaign_params: dict[str, str],
     sub_ids: dict[str, str],
 ) -> str:
-    public_token = build_public_token_for_code_id(code_model.id)
+    public_token = _public_token_for_code(code_model)
     query = {
         key: value
         for key, value in {
@@ -1242,7 +1373,7 @@ def _build_code_share_url(
     return f"{build_share_url(public_token)}?{encoded}" if encoded else build_share_url(public_token)
 
 
-def _build_placeholder_qr_svg(share_url: str, size: int) -> str:
+def _build_code_qr_svg(share_url: str, size: int) -> str:
     try:
         import segno
 
@@ -1257,19 +1388,12 @@ def _build_placeholder_qr_svg(share_url: str, size: int) -> str:
             border=2,
         )
         return output.getvalue()
-    except Exception:
+    except Exception as exc:
         logger.exception("partner_workspace_code_qr_generation_failed")
-
-    escaped = share_url.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}">'
-        f'<rect width="{size}" height="{size}" fill="#fff"/>'
-        f'<rect x="16" y="16" width="{size - 32}" height="{size - 32}" fill="none" stroke="#111" stroke-width="8"/>'
-        f'<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" '
-        f'font-family="monospace" font-size="12" fill="#111">CyberVPN QR</text>'
-        f"<desc>{escaped}</desc>"
-        "</svg>"
-    )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Partner QR generation failed",
+        ) from exc
 
 
 def _serialize_workspace_program_lane(
@@ -5646,52 +5770,96 @@ async def create_partner_workspace_code(
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceCodeResponse:
     repo = PartnerRepository(db)
+    _assert_no_sensitive_partner_code_fields(body.model_fields_set, operation="create")
     idempotency_key = (request.headers.get("Idempotency-Key") or "").strip()
+    idempotency_scope = f"partner-workspace:{access.workspace.id}:codes:create"
+    request_hash = _idempotency_request_hash(body.model_dump(mode="json", exclude_unset=True))
     if idempotency_key:
-        for existing in await repo.get_codes_by_account(access.workspace.id):
-            metadata = dict(existing.sub_id_schema or {})
-            if metadata.get("_create_idempotency_key") == idempotency_key:
-                track_partner_operation(operation="create_workspace_code:idempotent_replay")
-                return _serialize_workspace_code(existing)
-
-    code = await _resolve_unique_partner_code(repo, body.code)
-    max_markup = await ConfigService(SystemConfigRepository(db)).get_partner_max_markup_pct()
-    if body.markup_pct > max_markup:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Partner code markup exceeds configured maximum",
+        existing_record = await _get_idempotency_record(
+            db,
+            scope=idempotency_scope,
+            idempotency_key=idempotency_key,
         )
-    sub_id_schema = dict(body.sub_id_schema or {})
-    if idempotency_key:
-        sub_id_schema["_create_idempotency_key"] = idempotency_key
+        if existing_record is not None:
+            if existing_record.request_hash and existing_record.request_hash != request_hash:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Idempotency key was already used with a different request payload",
+                )
+            if existing_record.resource_id is not None:
+                existing_code = await repo.get_code_by_id(existing_record.resource_id)
+                if existing_code is not None and existing_code.partner_account_id == access.workspace.id:
+                    track_partner_operation(operation="create_workspace_code:idempotent_replay")
+                    return _serialize_workspace_code(existing_code)
+            if existing_record.response_payload:
+                track_partner_operation(operation="create_workspace_code:idempotent_replay")
+                return PartnerWorkspaceCodeResponse(**existing_record.response_payload)
 
-    model = PartnerCodeModel(
-        partner_account_id=access.workspace.id,
-        partner_user_id=access.workspace.legacy_owner_user_id,
-        code=code,
-        code_normalized=code,
-        markup_pct=body.markup_pct,
-        is_active=True,
-        lifecycle_status="active",
-        approval_status="approved",
-        owner_type=_validated_owner_type(body.owner_type),
-        lane_key=body.lane_key.strip(),
-        attribution_model=body.attribution_model.strip(),
-        attribution_window_seconds=body.attribution_window_seconds,
-        destination_path=_normalize_destination_path(body.destination_path),
-        allowed_channels=_clean_string_list(body.allowed_channels, default=["content", "telegram", "storefront"]),
-        allowed_storefront_ids=_clean_string_list(body.allowed_storefront_ids, default=["*"]),
-        allowed_geographies=_clean_string_list(body.allowed_geographies, default=["*"]),
-        sub_id_schema=sub_id_schema,
-        expires_at=body.expires_at,
+    sub_id_schema = dict(body.sub_id_schema or {})
+    created = None
+    for attempt in range(3):
+        code = await _resolve_unique_partner_code(repo, body.code)
+        public_slug = await _allocate_public_slug(repo)
+        model = PartnerCodeModel(
+            partner_account_id=access.workspace.id,
+            partner_user_id=access.workspace.legacy_owner_user_id,
+            code=code,
+            code_normalized=code,
+            public_slug=public_slug,
+            public_token_hash=hash_partner_attribution_token(public_slug),
+            markup_pct=0,
+            is_active=True,
+            lifecycle_status="active",
+            approval_status="approved",
+            owner_type="affiliate",
+            lane_key="creator_affiliate",
+            attribution_model="last_eligible_touch",
+            attribution_window_seconds=30 * 24 * 60 * 60,
+            destination_path=_normalize_destination_path(body.destination_path),
+            allowed_channels=["content", "telegram", "storefront"],
+            allowed_storefront_ids=["*"],
+            allowed_geographies=["*"],
+            sub_id_schema=sub_id_schema,
+            expires_at=body.expires_at,
+        )
+        try:
+            created = await repo.create_code(model)
+            break
+        except IntegrityError as exc:
+            await db.rollback()
+            if body.code or attempt == 2:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Partner code or public slug already exists",
+                ) from exc
+    if created is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Could not create partner code")
+    await _append_code_event(
+        db,
+        code_model=created,
+        event_type="code.created",
+        previous_status=None,
+        next_status=created.lifecycle_status,
+        reason="partner_workspace_code_create",
+        payload={"idempotency_key": idempotency_key or None},
     )
-    created = await repo.create_code(model)
-    created.public_token_hash = hash_partner_attribution_token(build_public_token_for_code_id(created.id))
-    updated = await repo.update_code(created)
+    serialized = _serialize_workspace_code(created)
+    if idempotency_key:
+        db.add(
+            ApiIdempotencyRecordModel(
+                scope=idempotency_scope,
+                idempotency_key=idempotency_key,
+                resource_type="partner_code",
+                resource_id=created.id,
+                request_hash=request_hash,
+                response_payload=serialized.model_dump(mode="json"),
+            )
+        )
+        await db.flush()
     await db.commit()
-    await db.refresh(updated)
+    await db.refresh(created)
     track_partner_operation(operation="create_workspace_code")
-    return _serialize_workspace_code(updated)
+    return _serialize_workspace_code(created)
 
 
 @router.patch(
@@ -5708,40 +5876,23 @@ async def update_partner_workspace_code(
 ) -> PartnerWorkspaceCodeResponse:
     code_model = await _get_workspace_code_or_404(db, access.workspace.id, code_id)
     _assert_code_version_matches(request, code_model)
-    if body.markup_pct is not None:
-        max_markup = await ConfigService(SystemConfigRepository(db)).get_partner_max_markup_pct()
-        if body.markup_pct > max_markup:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Partner code markup exceeds configured maximum",
-            )
-        code_model.markup_pct = body.markup_pct
-    if body.lifecycle_status is not None:
-        _apply_code_lifecycle(code_model, body.lifecycle_status, reason="manual_update")
-    if body.owner_type is not None:
-        code_model.owner_type = _validated_owner_type(body.owner_type)
-    if body.lane_key is not None:
-        code_model.lane_key = body.lane_key.strip()
-    if body.attribution_model is not None:
-        code_model.attribution_model = body.attribution_model.strip()
-    if body.attribution_window_seconds is not None:
-        code_model.attribution_window_seconds = body.attribution_window_seconds
+    _assert_no_sensitive_partner_code_fields(body.model_fields_set, operation="update")
     if "destination_path" in body.model_fields_set:
         code_model.destination_path = _normalize_destination_path(body.destination_path)
-    if body.allowed_channels is not None:
-        code_model.allowed_channels = _clean_string_list(
-            body.allowed_channels,
-            default=["content", "telegram", "storefront"],
-        )
-    if body.allowed_storefront_ids is not None:
-        code_model.allowed_storefront_ids = _clean_string_list(body.allowed_storefront_ids, default=["*"])
-    if body.allowed_geographies is not None:
-        code_model.allowed_geographies = _clean_string_list(body.allowed_geographies, default=["*"])
     if body.sub_id_schema is not None:
         code_model.sub_id_schema = dict(body.sub_id_schema)
     if "expires_at" in body.model_fields_set:
         code_model.expires_at = body.expires_at
     code_model.version = int(code_model.version or 1) + 1
+    await _append_code_event(
+        db,
+        code_model=code_model,
+        event_type="code.updated",
+        previous_status=code_model.lifecycle_status,
+        next_status=code_model.lifecycle_status,
+        reason="partner_workspace_code_update",
+        payload={"fields": sorted(body.model_fields_set)},
+    )
     updated = await PartnerRepository(db).update_code(code_model)
     await db.commit()
     await db.refresh(updated)
@@ -5885,7 +6036,7 @@ async def create_partner_workspace_code_qr(
     return PartnerWorkspaceCodeQrResponse(
         code_id=code_model.id,
         share_url=share_url,
-        qr_svg=_build_placeholder_qr_svg(share_url, body.size),
+        qr_svg=_build_code_qr_svg(share_url, body.size),
     )
 
 
@@ -5911,7 +6062,7 @@ async def get_partner_workspace_commercial_capabilities(
         attribution_enabled=bool(settings.partner_attribution_enabled),
         default_owner_type="affiliate",
         supported_owner_types=["affiliate", "performance", "reseller"],
-        supported_attribution_models=["last_eligible_touch"],
+        supported_attribution_models=["first_eligible_touch", "last_eligible_touch"],
         available_actions=actions,
     )
 
@@ -5943,6 +6094,12 @@ async def get_partner_workspace_finance_summary(
                 func.sum(case((EarningEventModel.event_status == "paid", EarningEventModel.total_amount), else_=0)),
                 0,
             ),
+            func.coalesce(
+                func.sum(
+                    case((EarningEventModel.event_status == "reversed", EarningEventModel.total_amount), else_=0)
+                ),
+                0,
+            ),
             func.coalesce(func.sum(EarningEventModel.total_amount), 0),
             func.max(EarningEventModel.created_at),
         )
@@ -5954,11 +6111,14 @@ async def get_partner_workspace_finance_summary(
         PartnerWorkspaceFinanceCurrencySummaryResponse(
             currency_code=str(row[0] or "USD"),
             event_count=int(row[1] or 0),
-            on_hold_amount=float(row[2] or 0),
-            available_amount=float(row[3] or 0),
-            paid_amount=float(row[4] or 0),
-            total_amount=float(row[5] or 0),
-            last_event_at=row[6],
+            on_hold_amount=_money_string(row[2]),
+            available_amount=_money_string(row[3]),
+            paid_amount=_money_string(row[4]),
+            reserved_amount=_money_string(0),
+            reversed_amount=_money_string(row[5]),
+            total_amount=_money_string(row[6]),
+            next_payout_forecast_amount=_money_string(row[3]),
+            last_event_at=row[7],
         )
         for row in result.all()
     ]

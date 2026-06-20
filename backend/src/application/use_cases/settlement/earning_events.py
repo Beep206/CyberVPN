@@ -154,10 +154,18 @@ class CreatePartnerEarningEventFromPaymentUseCase:
         if partner_account_id is None and partner_user_id is None:
             return None, None
 
+        commercial_snapshot = dict((attribution_result.policy_snapshot or {}).get("commercial_policy_snapshot") or {})
         base_amount = Decimal(str(commission_base_amount))
-        markup_pct = Decimal(str(code.markup_pct if code is not None else 0))
+        markup_pct = Decimal(str(commercial_snapshot.get("markup_pct", code.markup_pct if code is not None else 0)))
         markup_amount = base_amount * (markup_pct / Decimal("100"))
-        commission_pct = Decimal(str(await self._resolve_commission_pct(partner_account_id, partner_user_id)))
+        commission_pct = Decimal(
+            str(
+                commercial_snapshot.get(
+                    "commission_pct",
+                    await self._resolve_commission_pct(partner_account_id, partner_user_id),
+                )
+            )
+        )
         commission_amount = base_amount * (commission_pct / Decimal("100"))
         total_amount = markup_amount + commission_amount
         hold_days = await self._config.get_partner_payout_hold_days(owner_type=attribution_result.owner_type)
@@ -178,11 +186,11 @@ class CreatePartnerEarningEventFromPaymentUseCase:
             commission_contract_id=attribution_result.commission_contract_id,
             owner_type=attribution_result.owner_type,
             event_status=(EarningEventStatus.ON_HOLD.value if hold_days > 0 else EarningEventStatus.AVAILABLE.value),
-            commission_base_amount=float(base_amount),
-            markup_amount=float(markup_amount),
-            commission_pct=float(commission_pct),
-            commission_amount=float(commission_amount),
-            total_amount=float(total_amount),
+            commission_base_amount=base_amount,
+            markup_amount=markup_amount,
+            commission_pct=commission_pct,
+            commission_amount=commission_amount,
+            total_amount=total_amount,
             currency_code=payment.currency or order.currency_code or "USD",
             available_at=None if hold_days > 0 else created_at,
             created_at=created_at,
@@ -192,6 +200,7 @@ class CreatePartnerEarningEventFromPaymentUseCase:
                 "commission_base_amount": str(base_amount),
                 "markup_pct": str(markup_pct),
                 "commission_pct": str(commission_pct),
+                "commercial_snapshot": commercial_snapshot,
                 "policy_snapshot": dict(attribution_result.policy_snapshot or {}),
             },
             source_snapshot={

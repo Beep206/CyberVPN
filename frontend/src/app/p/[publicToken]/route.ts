@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 import { SITE_URL } from '@/shared/lib/seo-route-policy';
 
 type CaptureResponse = {
@@ -41,6 +42,50 @@ function collectCampaignParams(request: NextRequest): Record<string, string> {
   return params;
 }
 
+function collectSubIds(request: NextRequest): Record<string, string> {
+  const params: Record<string, string> = {};
+  for (const [key, value] of request.nextUrl.searchParams.entries()) {
+    if (key.startsWith('sub_') && value.trim()) {
+      params[key.replace(/^sub_/, '')] = value.trim().slice(0, 160);
+    }
+  }
+  return params;
+}
+
+function resolveLocale(request: NextRequest): string {
+  const explicit = request.nextUrl.searchParams.get('locale')?.trim();
+  if (explicit && /^[a-z]{2}-[A-Z]{2}$/.test(explicit)) {
+    return explicit;
+  }
+  const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value?.trim();
+  if (cookieLocale && /^[a-z]{2}-[A-Z]{2}$/.test(cookieLocale)) {
+    return cookieLocale;
+  }
+  const acceptLanguage = request.headers.get('accept-language') ?? '';
+  return acceptLanguage.toLowerCase().startsWith('en') ? 'en-EN' : 'ru-RU';
+}
+
+function resolveDestinationPath(request: NextRequest): string | null {
+  const rawDestination = request.nextUrl.searchParams.get('to')?.trim();
+  if (!rawDestination) {
+    return null;
+  }
+  if (/^(https?:)?\/\//i.test(rawDestination)) {
+    return null;
+  }
+  return rawDestination.startsWith('/') ? rawDestination : `/${rawDestination}`;
+}
+
+function resolveBrowserKey(request: NextRequest): string {
+  const source = [
+    request.headers.get('user-agent') ?? '',
+    request.headers.get('accept-language') ?? '',
+    request.headers.get('cf-connecting-ip') ?? '',
+    request.headers.get('x-forwarded-for') ?? '',
+  ].join('|');
+  return createHash('sha256').update(source).digest('hex');
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ publicToken: string }> },
@@ -54,8 +99,13 @@ export async function GET(
     },
     body: JSON.stringify({
       public_token: publicToken,
-      source_host: request.headers.get('x-forwarded-host') ?? request.headers.get('host'),
       source_path: `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      destination_path: resolveDestinationPath(request),
+      locale: resolveLocale(request),
+      sale_channel: request.nextUrl.searchParams.get('channel')?.trim() || 'content',
+      sub_ids: collectSubIds(request),
+      click_id: request.nextUrl.searchParams.get('click_id')?.trim() || null,
+      browser_key: resolveBrowserKey(request),
       campaign_params: collectCampaignParams(request),
     }),
     cache: 'no-store',

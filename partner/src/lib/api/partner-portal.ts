@@ -88,6 +88,10 @@ type UpdatePartnerWorkspaceSettingsResponse =
 type ListPartnerWorkspaceCodesResponse =
   operations['list_partner_workspace_codes_api_v1_partner_workspaces__workspace_id__codes_get']['responses'][200]['content']['application/json'];
 type PartnerWorkspaceCodeResponse = ListPartnerWorkspaceCodesResponse[number];
+type GetPartnerWorkspaceCommercialCapabilitiesResponse =
+  operations['get_partner_workspace_commercial_capabilities_api_v1_partner_workspaces__workspace_id__commercial_capabilities_get']['responses'][200]['content']['application/json'];
+type GetPartnerWorkspaceFinanceSummaryResponse =
+  operations['get_partner_workspace_finance_summary_api_v1_partner_workspaces__workspace_id__finance_summary_get']['responses'][200]['content']['application/json'];
 type CreatePartnerWorkspaceCodePayload = {
   code?: string | null;
   markup_pct?: number;
@@ -656,6 +660,16 @@ export const partnerPortalApi = {
       `/partner-workspaces/${workspaceId}/codes`,
     ),
 
+  getWorkspaceCommercialCapabilities: (workspaceId: string) =>
+    apiClient.get<GetPartnerWorkspaceCommercialCapabilitiesResponse>(
+      `/partner-workspaces/${workspaceId}/commercial-capabilities`,
+    ),
+
+  getWorkspaceFinanceSummary: (workspaceId: string) =>
+    apiClient.get<GetPartnerWorkspaceFinanceSummaryResponse>(
+      `/partner-workspaces/${workspaceId}/finance-summary`,
+    ),
+
   createWorkspaceCode: (
     workspaceId: string,
     payload: CreatePartnerWorkspaceCodePayload,
@@ -1040,6 +1054,8 @@ export type {
   GetPartnerSessionBootstrapParams,
   GetPartnerSessionBootstrapResponse,
   GetPartnerWorkspaceResponse,
+  GetPartnerWorkspaceCommercialCapabilitiesResponse,
+  GetPartnerWorkspaceFinanceSummaryResponse,
   GetPartnerWorkspaceOrganizationProfileResponse,
   GetPartnerWorkspaceProgramsResponse,
   GetPartnerWorkspaceSettingsResponse,

@@ -118,6 +118,12 @@ async def test_partner_attribution_capture_transfer_claim_creates_commercial_bin
                     public_token=build_public_token_for_code_id(code.id),
                     source_host="cyber-vpn.net",
                     source_path="/p/demo",
+                    destination_path="/pricing",
+                    locale="ru-RU",
+                    sale_channel="content",
+                    sub_ids={"creator": "demo"},
+                    click_id="click-123",
+                    browser_key="browser-abc",
                     campaign_params={"utm_source": "creator"},
                     current_realm=current_realm,
                 )
@@ -125,6 +131,12 @@ async def test_partner_attribution_capture_transfer_claim_creates_commercial_bin
             transfer = await ConsumePartnerAttributionTransferUseCase(adapter).execute(
                 ConsumePartnerAttributionTransferCommand(transfer_token=capture.transfer_token)
             )
+            assert transfer.cookie_token != capture.transfer_token
+            with pytest.raises(Exception) as replay_error:
+                await ConsumePartnerAttributionTransferUseCase(adapter).execute(
+                    ConsumePartnerAttributionTransferCommand(transfer_token=capture.transfer_token)
+                )
+            assert getattr(replay_error.value, "code", None) == "PARTNER_TRANSFER_TOKEN_CONSUMED"
             claim = await ClaimPartnerAttributionUseCase(adapter).execute(
                 ClaimPartnerAttributionCommand(
                     user_id=customer.id,
@@ -146,6 +158,7 @@ async def test_partner_attribution_capture_transfer_claim_creates_commercial_bin
             assert binding.partner_code_id == code.id
             assert binding.attribution_session_id == capture.attribution_id
             assert binding.claimed_at is not None
+            assert binding.storefront_id == code.default_storefront_id
     finally:
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)

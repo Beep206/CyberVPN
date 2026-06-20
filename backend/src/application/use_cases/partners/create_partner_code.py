@@ -5,8 +5,8 @@ from uuid import UUID
 
 from src.application.services.config_service import ConfigService
 from src.application.use_cases.partner_attribution.utils import (
-    build_public_token_for_code_id,
     generate_partner_code,
+    generate_public_slug,
     hash_partner_attribution_token,
     normalize_partner_code,
 )
@@ -64,12 +64,15 @@ class CreatePartnerCodeUseCase:
             raise MarkupExceedsLimitError(markup_pct=markup_pct, max_pct=float(max_markup))
 
         normalized_code = normalize_partner_code(code) if code else generate_partner_code()
+        public_slug = await self._allocate_public_slug()
 
         model = PartnerCodeModel(
             partner_account_id=partner_account_id,
             partner_user_id=partner_user_id,
             code=normalized_code,
             code_normalized=normalized_code,
+            public_slug=public_slug,
+            public_token_hash=hash_partner_attribution_token(public_slug),
             markup_pct=markup_pct,
             lifecycle_status="active",
             approval_status="approved",
@@ -84,8 +87,6 @@ class CreatePartnerCodeUseCase:
         )
 
         result = await self._partner_repo.create_code(model)
-        result.public_token_hash = hash_partner_attribution_token(build_public_token_for_code_id(result.id))
-        result = await self._partner_repo.update_code(result)
 
         logger.info(
             "partner_code_created",
@@ -98,3 +99,10 @@ class CreatePartnerCodeUseCase:
         )
 
         return result
+
+    async def _allocate_public_slug(self) -> str:
+        for _ in range(32):
+            candidate = generate_public_slug()
+            if await self._partner_repo.get_code_by_public_slug(candidate) is None:
+                return candidate
+        raise DomainError("Could not allocate unique partner public slug")

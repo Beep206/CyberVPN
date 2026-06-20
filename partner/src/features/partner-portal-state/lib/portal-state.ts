@@ -356,6 +356,11 @@ export interface PartnerCode {
   kind: PartnerCodeKind;
   status: PartnerCodeStatus;
   destination: string;
+  shareUrl?: string;
+  defaultDestinationUrl?: string;
+  destinationPath?: string | null;
+  version?: number;
+  availableActions?: string[];
   notes: string[];
 }
 

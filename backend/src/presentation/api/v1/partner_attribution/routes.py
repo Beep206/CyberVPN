@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -45,11 +46,11 @@ def _cookie_secure() -> bool:
     return settings.environment.strip().lower() == "production"
 
 
-def _set_attribution_cookie(response: Response, token: str) -> None:
+def _set_attribution_cookie(response: Response, token: str, *, max_age_seconds: int) -> None:
     response.set_cookie(
         key=PARTNER_ATTRIBUTION_COOKIE_NAME,
         value=token,
-        max_age=PARTNER_ATTRIBUTION_MAX_AGE_SECONDS,
+        max_age=max(0, min(PARTNER_ATTRIBUTION_MAX_AGE_SECONDS, max_age_seconds)),
         httponly=True,
         secure=_cookie_secure(),
         samesite="lax",
@@ -83,8 +84,14 @@ async def capture_partner_attribution(
 ) -> PartnerAttributionCaptureResponse:
     command = CapturePartnerAttributionCommand(
         public_token=payload.public_token,
-        source_host=payload.source_host or request.headers.get("X-Forwarded-Host") or request.headers.get("Host"),
+        source_host=request.url.hostname or request.headers.get("Host"),
         source_path=payload.source_path,
+        destination_path=payload.destination_path,
+        locale=payload.locale,
+        sale_channel=payload.sale_channel,
+        sub_ids=payload.sub_ids,
+        click_id=payload.click_id,
+        browser_key=payload.browser_key,
         campaign_params=payload.campaign_params,
         current_realm=current_realm,
     )
@@ -140,9 +147,11 @@ async def consume_partner_attribution_transfer(
             },
         ) from exc
 
-    _set_attribution_cookie(response, result.cookie_token)
+    max_age_seconds = int(max((result.expires_at - datetime.now(UTC)).total_seconds(), 0))
+    _set_attribution_cookie(response, result.cookie_token, max_age_seconds=max_age_seconds)
     return PartnerAttributionTransferConsumeResponse(
         attribution_id=result.attribution_id,
+        captured_at=result.captured_at,
         expires_at=result.expires_at,
         masked_code=result.masked_code,
     )
@@ -157,7 +166,7 @@ async def claim_partner_attribution(
     db: AsyncSession = Depends(get_db),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> PartnerAttributionClaimResponse:
-    cookie_token = request.cookies.get(PARTNER_ATTRIBUTION_COOKIE_NAME) or payload.fallback_token
+    cookie_token = request.cookies.get(PARTNER_ATTRIBUTION_COOKIE_NAME)
     try:
         result = await ClaimPartnerAttributionUseCase(db).execute(
             ClaimPartnerAttributionCommand(

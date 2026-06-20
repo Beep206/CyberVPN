@@ -18,8 +18,10 @@ class PartnerAttributionSessionModel(Base):
     __tablename__ = "partner_attribution_sessions"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    token_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    session_token_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True, index=True)
     transfer_token_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True, index=True)
+    transfer_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    transfer_consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     partner_code_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("partner_codes.id", ondelete="CASCADE"),
         nullable=False,
@@ -56,10 +58,17 @@ class PartnerAttributionSessionModel(Base):
     commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     source_host: Mapped[str | None] = mapped_column(String(255), nullable=True)
     source_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    destination_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    locale: Mapped[str] = mapped_column(String(16), nullable=False, default="ru-RU", server_default="ru-RU")
+    sale_channel: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    sub_ids: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    click_id: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
+    browser_key_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     destination_url: Mapped[str] = mapped_column(String(1000), nullable=False)
     campaign_params: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     evidence_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     policy_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    rejection_reason_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("mobile_users.id", ondelete="SET NULL"),
         nullable=True,
@@ -76,6 +85,8 @@ class PartnerAttributionSessionModel(Base):
         index=True,
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    first_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     transferred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

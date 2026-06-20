@@ -23,12 +23,12 @@ class PartnerAttributionSessionRepository:
     async def get_by_id(self, session_id: UUID) -> PartnerAttributionSessionModel | None:
         return await self._session.get(PartnerAttributionSessionModel, session_id)
 
-    async def get_by_token_hash(
-        self, token_hash: str, *, for_update: bool = False
+    async def get_by_session_token_hash(
+        self, session_token_hash: str, *, for_update: bool = False
     ) -> PartnerAttributionSessionModel | None:
         stmt = (
             select(PartnerAttributionSessionModel)
-            .where(PartnerAttributionSessionModel.token_hash == token_hash)
+            .where(PartnerAttributionSessionModel.session_token_hash == session_token_hash)
             .limit(1)
         )
         if for_update:

@@ -107,7 +107,13 @@ from src.infrastructure.database.models.partner_bot_model import (
 from src.infrastructure.database.models.partner_integration_credential_model import (
     PartnerIntegrationCredentialModel,
 )
-from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel, PartnerEarningModel
+from src.infrastructure.database.models.partner_model import (
+    ApiIdempotencyRecordModel,
+    PartnerAccountModel,
+    PartnerCodeEventModel,
+    PartnerCodeModel,
+    PartnerEarningModel,
+)
 from src.infrastructure.database.models.partner_notification_read_state_model import (
     PartnerNotificationReadStateModel,
 )
@@ -243,6 +249,7 @@ __all__ = [
     "OrderItemModel",
     "OrderModel",
     "OtpCodeModel",
+    "ApiIdempotencyRecordModel",
     "PartnerAccountModel",
     "PartnerAccountUserModel",
     "PartnerApplicationAttachmentModel",
@@ -253,6 +260,7 @@ __all__ = [
     "PartnerBotProvisioningJobModel",
     "PartnerNotificationReadStateModel",
     "PartnerIntegrationCredentialModel",
+    "PartnerCodeEventModel",
     "PartnerCodeModel",
     "PartnerEarningModel",
     "PartnerLaneApplicationModel",

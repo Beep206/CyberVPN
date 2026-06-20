@@ -6,13 +6,12 @@ export type PartnerAttributionTransferConsumeRequest = {
 
 export type PartnerAttributionTransferConsumeResponse = {
   attribution_id: string;
+  captured_at: string;
   expires_at: string;
   masked_code: string;
 };
 
-export type PartnerAttributionClaimRequest = {
-  fallback_token?: string | null;
-};
+export type PartnerAttributionClaimRequest = Record<string, never>;
 
 export type PartnerAttributionClaimResponse = {
   status: string;

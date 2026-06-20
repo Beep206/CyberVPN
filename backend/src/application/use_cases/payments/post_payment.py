@@ -136,6 +136,7 @@ class PostPaymentProcessingUseCase:
         gift_flow = checkout_mode == "gift_purchase"
         payment_attempt = await self._payment_attempt_repo.get_by_payment_id(payment.id)
         policy_evaluation = None
+        policy_evaluation_failed = False
         renewal_order = None
         resolved_order = None
         if payment_attempt is not None and payment_attempt.order_id is not None:
@@ -168,6 +169,7 @@ class PostPaymentProcessingUseCase:
                     "no_double_payout": policy_evaluation.payout_rules.no_double_payout,
                 }
             except Exception:
+                policy_evaluation_failed = True
                 logger.exception(
                     "post_payment_policy_evaluation_failed",
                     extra={"payment_id": str(payment_id), "order_id": str(payment_attempt.order_id)},
@@ -380,7 +382,14 @@ class PostPaymentProcessingUseCase:
             results["settlement_earning_event_status"] = None
         elif payment_attempt is not None and payment_attempt.order_id is not None and commission_base_amount > 0:
             canonical_partner_event_attempted = True
-            if policy_evaluation is not None and not policy_evaluation.payout_rules.partner_cash_payout_allowed:
+            if policy_evaluation_failed:
+                logger.error(
+                    "post_payment_partner_earning_blocked_by_policy_failure",
+                    extra={"payment_id": str(payment_id), "order_id": str(payment_attempt.order_id)},
+                )
+                results["partner_earning"] = None
+                results["partner_policy_block_reasons"] = ["policy_evaluation_failed"]
+            elif policy_evaluation is not None and not policy_evaluation.payout_rules.partner_cash_payout_allowed:
                 logger.info(
                     "post_payment_partner_earning_blocked_by_policy",
                     extra={
@@ -413,7 +422,14 @@ class PostPaymentProcessingUseCase:
                     )
                     raise
         elif resolved_partner_code_id and user and resolved_partner_user_id and commission_base_amount > 0:
-            if policy_evaluation is not None and not policy_evaluation.payout_rules.partner_cash_payout_allowed:
+            if policy_evaluation_failed:
+                logger.error(
+                    "post_payment_legacy_partner_earning_blocked_by_policy_failure",
+                    extra={"payment_id": str(payment_id)},
+                )
+                results["partner_earning"] = None
+                results["partner_policy_block_reasons"] = ["policy_evaluation_failed"]
+            elif policy_evaluation is not None and not policy_evaluation.payout_rules.partner_cash_payout_allowed:
                 logger.info(
                     "post_payment_partner_earning_blocked_by_policy",
                     extra={

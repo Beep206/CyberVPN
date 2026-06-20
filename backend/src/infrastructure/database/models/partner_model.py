@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
@@ -93,6 +93,13 @@ class PartnerCodeModel(Base):
 
     public_token_hash: Mapped[str | None] = mapped_column(
         String(128),
+        unique=True,
+        nullable=True,
+        index=True,
+    )
+
+    public_slug: Mapped[str | None] = mapped_column(
+        String(80),
         unique=True,
         nullable=True,
         index=True,
@@ -317,3 +324,57 @@ class PartnerEarningModel(Base):
 
     def __repr__(self) -> str:
         return f"<PartnerEarning(id={self.id}, partner={self.partner_user_id}, total={self.total_earning})>"
+
+
+class PartnerCodeEventModel(Base):
+    """Append-only audit event for partner code governance changes."""
+
+    __tablename__ = "partner_code_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    partner_code_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("partner_codes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    partner_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    previous_status: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    next_status: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    reason_code: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    actor_principal_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    event_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class ApiIdempotencyRecordModel(Base):
+    """Durable idempotency record for partner API mutations."""
+
+    __tablename__ = "api_idempotency_records"
+    __table_args__ = (
+        UniqueConstraint("scope", "idempotency_key", name="uq_api_idempotency_records_scope_key"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scope: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    resource_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    resource_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    request_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    response_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="completed", server_default="completed")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        index=True,
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
