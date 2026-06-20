@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { SITE_URL } from '@/shared/lib/seo-route-policy';
 
 type CaptureResponse = {
   redirect_url: string;
@@ -61,7 +62,7 @@ export async function GET(
   });
 
   if (!response.ok) {
-    return NextResponse.redirect(new URL('/ru-RU/register', request.nextUrl.origin));
+    return NextResponse.redirect(new URL('/ru-RU/register', SITE_URL));
   }
 
   const payload = await response.json() as CaptureResponse;
