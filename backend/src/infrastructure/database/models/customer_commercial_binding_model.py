@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Uuid
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
@@ -50,6 +50,17 @@ class CustomerCommercialBindingModel(Base):
         nullable=True,
         index=True,
     )
+    policy_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("policy_versions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    attribution_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_attribution_sessions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     reason_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
     evidence_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_by_admin_user_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -64,6 +75,8 @@ class CustomerCommercialBindingModel(Base):
         index=True,
     )
     effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

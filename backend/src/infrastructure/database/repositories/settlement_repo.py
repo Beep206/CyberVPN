@@ -33,6 +33,12 @@ class SettlementRepository:
         result = await self._session.execute(select(EarningEventModel).where(EarningEventModel.order_id == order_id))
         return result.scalar_one_or_none()
 
+    async def get_earning_event_by_source_event_key(self, source_event_key: str) -> EarningEventModel | None:
+        result = await self._session.execute(
+            select(EarningEventModel).where(EarningEventModel.source_event_key == source_event_key)
+        )
+        return result.scalar_one_or_none()
+
     async def list_earning_events(
         self,
         *,
@@ -252,10 +258,14 @@ class SettlementRepository:
             query = query.where(PartnerPayoutAccountModel.verification_status == verification_status)
         if approval_status is not None:
             query = query.where(PartnerPayoutAccountModel.approval_status == approval_status)
-        query = query.order_by(
-            PartnerPayoutAccountModel.is_default.desc(),
-            PartnerPayoutAccountModel.created_at.asc(),
-        ).offset(offset).limit(limit)
+        query = (
+            query.order_by(
+                PartnerPayoutAccountModel.is_default.desc(),
+                PartnerPayoutAccountModel.created_at.asc(),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
         result = await self._session.execute(query)
         return list(result.scalars().all())
 
@@ -291,10 +301,14 @@ class SettlementRepository:
             query = query.where(PartnerStatementModel.settlement_period_id == settlement_period_id)
         if statement_status is not None:
             query = query.where(PartnerStatementModel.statement_status == statement_status)
-        query = query.order_by(
-            PartnerStatementModel.created_at.desc(),
-            PartnerStatementModel.statement_version.desc(),
-        ).offset(offset).limit(limit)
+        query = (
+            query.order_by(
+                PartnerStatementModel.created_at.desc(),
+                PartnerStatementModel.statement_version.desc(),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
         result = await self._session.execute(query)
         return list(result.scalars().all())
 

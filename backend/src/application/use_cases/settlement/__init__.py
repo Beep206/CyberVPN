@@ -1,4 +1,5 @@
 from src.application.use_cases.settlement.earning_events import (
+    CreatePartnerEarningEventFromPaymentUseCase,
     GetEarningEventUseCase,
     ListEarningEventsUseCase,
     RecordEarningEventUseCase,
@@ -64,6 +65,7 @@ __all__ = [
     "ClosePartnerStatementUseCase",
     "CloseSettlementPeriodUseCase",
     "CreatePartnerPayoutAccountUseCase",
+    "CreatePartnerEarningEventFromPaymentUseCase",
     "CreatePayoutExecutionResult",
     "CreatePayoutExecutionUseCase",
     "CreatePayoutInstructionResult",

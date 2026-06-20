@@ -1,8 +1,10 @@
 import { NextRequest } from 'next/server';
+import {
+  getCanonicalPartnerSurfaceHost,
+  resolvePartnerSurfaceContext,
+} from '@/features/storefront-shell/lib/runtime';
 
 const API_BASE_PATH = '/api/v1';
-const PARTNER_CANONICAL_HOST = 'partner.cyber-vpn.net';
-const PARTNER_CANONICAL_ORIGIN = `https://${PARTNER_CANONICAL_HOST}`;
 const APPROVED_LOCAL_STAGE_PARTNER_ORIGINS = new Set([
   'http://portal.localhost:3004',
   'http://storefront.localhost:3004',
@@ -59,9 +61,9 @@ function normalizeOrigin(value: string | null): string | null {
   }
 }
 
-function rewriteRefererToCanonicalOrigin(value: string): string {
+function rewriteRefererToCanonicalOrigin(value: string, canonicalOrigin: string): string {
   const url = new URL(value);
-  return `${PARTNER_CANONICAL_ORIGIN}${url.pathname}${url.search}${url.hash}`;
+  return `${canonicalOrigin}${url.pathname}${url.search}${url.hash}`;
 }
 
 function getRequestOrigin(request: NextRequest): string {
@@ -72,7 +74,11 @@ function getRequestOrigin(request: NextRequest): string {
   }
 }
 
-function normalizeApprovedLocalStageCsrfHeaders(request: NextRequest, headers: Headers): void {
+function normalizeApprovedLocalStageCsrfHeaders(
+  request: NextRequest,
+  headers: Headers,
+  canonicalOrigin: string,
+): void {
   if (SAFE_METHODS.has(request.method.toUpperCase())) {
     return;
   }
@@ -82,17 +88,26 @@ function normalizeApprovedLocalStageCsrfHeaders(request: NextRequest, headers: H
   }
 
   if (APPROVED_LOCAL_STAGE_PARTNER_ORIGINS.has(normalizeOrigin(headers.get('origin')) ?? '')) {
-    headers.set('origin', PARTNER_CANONICAL_ORIGIN);
+    headers.set('origin', canonicalOrigin);
   }
 
   const referer = headers.get('referer');
   if (referer && APPROVED_LOCAL_STAGE_PARTNER_ORIGINS.has(normalizeOrigin(referer) ?? '')) {
-    headers.set('referer', rewriteRefererToCanonicalOrigin(referer));
+    headers.set('referer', rewriteRefererToCanonicalOrigin(referer, canonicalOrigin));
   }
+}
+
+function resolveForwardedSurfaceHost(request: NextRequest): string {
+  const surfaceContext = resolvePartnerSurfaceContext(
+    request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? request.nextUrl.host,
+  );
+  return getCanonicalPartnerSurfaceHost(surfaceContext);
 }
 
 function buildForwardHeaders(request: NextRequest): Headers {
   const headers = new Headers();
+  const forwardedHost = resolveForwardedSurfaceHost(request);
+  const forwardedOrigin = `https://${forwardedHost}`;
 
   for (const [key, value] of request.headers.entries()) {
     const normalizedKey = key.toLowerCase();
@@ -121,10 +136,10 @@ function buildForwardHeaders(request: NextRequest): Headers {
     }
   }
 
-  headers.set('x-forwarded-host', PARTNER_CANONICAL_HOST);
+  headers.set('x-forwarded-host', forwardedHost);
   headers.set('x-forwarded-proto', 'https');
   headers.set('accept-encoding', 'identity');
-  normalizeApprovedLocalStageCsrfHeaders(request, headers);
+  normalizeApprovedLocalStageCsrfHeaders(request, headers, forwardedOrigin);
 
   return headers;
 }

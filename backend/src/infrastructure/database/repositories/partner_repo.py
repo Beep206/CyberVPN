@@ -4,13 +4,18 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import case, distinct, func, select
+from sqlalchemy import case, distinct, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.partner_model import (
+    PartnerAccountModel,
     PartnerCodeModel,
     PartnerEarningModel,
 )
+
+
+def _normalize_lookup_code(code: str) -> str:
+    return (code or "").strip().upper()
 
 
 class PartnerRepository:
@@ -20,18 +25,52 @@ class PartnerRepository:
     async def get_code_by_id(self, id: UUID) -> PartnerCodeModel | None:
         return await self._session.get(PartnerCodeModel, id)
 
-    async def get_code_by_code(self, code: str) -> PartnerCodeModel | None:
-        result = await self._session.execute(select(PartnerCodeModel).where(PartnerCodeModel.code == code))
-        return result.scalar_one_or_none()
+    async def get_account_by_id(self, id: UUID) -> PartnerAccountModel | None:
+        return await self._session.get(PartnerAccountModel, id)
 
-    async def get_active_code_by_code(self, code: str) -> PartnerCodeModel | None:
+    async def get_code_by_code(self, code: str) -> PartnerCodeModel | None:
+        normalized = _normalize_lookup_code(code)
         result = await self._session.execute(
             select(PartnerCodeModel).where(
-                PartnerCodeModel.code == code,
-                PartnerCodeModel.is_active == True,  # noqa: E712
+                or_(
+                    PartnerCodeModel.code_normalized == normalized,
+                    func.upper(func.trim(PartnerCodeModel.code)) == normalized,
+                )
             )
         )
         return result.scalar_one_or_none()
+
+    async def get_active_code_by_code(self, code: str) -> PartnerCodeModel | None:
+        normalized = _normalize_lookup_code(code)
+        result = await self._session.execute(
+            select(PartnerCodeModel).where(
+                or_(
+                    PartnerCodeModel.code_normalized == normalized,
+                    func.upper(func.trim(PartnerCodeModel.code)) == normalized,
+                ),
+                PartnerCodeModel.is_active == True,  # noqa: E712
+                PartnerCodeModel.lifecycle_status == "active",
+                PartnerCodeModel.approval_status == "approved",
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def get_code_by_public_token_hash(self, token_hash: str) -> PartnerCodeModel | None:
+        result = await self._session.execute(
+            select(PartnerCodeModel).where(PartnerCodeModel.public_token_hash == token_hash).limit(1)
+        )
+        return result.scalars().first()
+
+    async def get_active_code_by_public_token_hash(self, token_hash: str) -> PartnerCodeModel | None:
+        result = await self._session.execute(
+            select(PartnerCodeModel).where(
+                PartnerCodeModel.public_token_hash == token_hash,
+                PartnerCodeModel.is_active == True,  # noqa: E712
+                PartnerCodeModel.lifecycle_status == "active",
+                PartnerCodeModel.approval_status == "approved",
+            )
+        )
+        return result.scalars().first()
 
     async def get_codes_by_partner(self, partner_user_id: UUID) -> list[PartnerCodeModel]:
         result = await self._session.execute(

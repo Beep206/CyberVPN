@@ -31,14 +31,11 @@ describe('storefront runtime resolution', () => {
     }
   });
 
-  it('treats unknown non-portal hosts as deterministic storefront aliases', () => {
+  it('treats unknown non-portal hosts as portal-safe hosts, not storefront aliases', () => {
     const context = resolvePartnerSurfaceContext('brand-a.example.com');
 
-    expect(context.family).toBe('storefront');
-    if (context.family === 'storefront') {
-      expect(context.brandKey).toBe('brand-a');
-      expect(context.host).toBe('brand-a.example.com');
-    }
+    expect(context.family).toBe('portal');
+    expect(context.host).toBe('brand-a.example.com');
   });
 
   it('normalizes mixed-case request hosts', () => {
@@ -50,11 +47,11 @@ describe('storefront runtime resolution', () => {
     expect(normalizeRequestHost('evil.example@partner.cyber-vpn.net')).toBe('localhost:3002');
   });
 
-  it('uses the default canonical storefront host for unknown aliases', () => {
+  it('does not fall back to default storefront host for unknown aliases', () => {
     const context = resolvePartnerSurfaceContext('evil.example');
 
-    expect(context.family).toBe('storefront');
-    expect(getCanonicalPartnerSurfaceHost(context)).toBe('storefront.cyber-vpn.net');
+    expect(context.family).toBe('portal');
+    expect(getCanonicalPartnerSurfaceHost(context)).toBe('evil.example');
   });
 });
 

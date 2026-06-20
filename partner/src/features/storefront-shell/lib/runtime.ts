@@ -49,7 +49,6 @@ export type StorefrontSurfaceContext = {
   authRealmKey: string;
   saleChannel: string;
   defaultCurrency: string;
-  defaultPartnerCode: string | null;
   supportProfile: StorefrontSupportProfile;
   communicationProfile: StorefrontCommunicationProfile;
   merchantProfile: StorefrontMerchantProfile;
@@ -75,8 +74,6 @@ const DEFAULT_STOREFRONT_KEY =
   process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_KEY?.trim() || 'cybervpn-storefront';
 const DEFAULT_STOREFRONT_REALM_KEY =
   process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_REALM_KEY?.trim() || 'cybervpn-storefront';
-const DEFAULT_STOREFRONT_PARTNER_CODE =
-  process.env.NEXT_PUBLIC_PARTNER_DEFAULT_PARTNER_CODE?.trim() || null;
 
 const STOREFRONT_ROUTE_SET: StorefrontRouteSet = {
   home: '/',
@@ -214,7 +211,6 @@ function buildStorefrontContext(host: string, canonicalHost: string): Storefront
     authRealmKey: DEFAULT_STOREFRONT_REALM_KEY,
     saleChannel: 'partner_storefront',
     defaultCurrency: 'USD',
-    defaultPartnerCode: DEFAULT_STOREFRONT_PARTNER_CODE,
     supportProfile: {
       label: `${brandName} Support`,
       email: 'support@cyber-vpn.net',
@@ -245,16 +241,7 @@ export function resolvePartnerSurfaceContext(rawHost: string | null | undefined)
   ]);
 
   if (portalHosts.has(host)) {
-    return {
-      family: 'portal',
-      host,
-      brandName: 'CyberVPN Partner Portal',
-      brandLabel: 'CyberVPN Partner',
-      authRealmKey: 'partner',
-      routes: {
-        login: '/login',
-      },
-    };
+    return buildPortalContext(host);
   }
 
   const storefrontHosts = new Set<string>([
@@ -267,7 +254,20 @@ export function resolvePartnerSurfaceContext(rawHost: string | null | undefined)
     return buildStorefrontContext(host, host);
   }
 
-  return buildStorefrontContext(host, DEFAULT_STOREFRONT_PUBLIC_HOST);
+  return buildPortalContext(host);
+}
+
+function buildPortalContext(host: string): PortalSurfaceContext {
+  return {
+    family: 'portal',
+    host,
+    brandName: 'CyberVPN Partner Portal',
+    brandLabel: 'CyberVPN Partner',
+    authRealmKey: 'partner',
+    routes: {
+      login: '/login',
+    },
+  };
 }
 
 export function getCanonicalPartnerSurfaceHost(context: PartnerSurfaceContext): string {

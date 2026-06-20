@@ -40,6 +40,7 @@ import type {
   PartnerPayoutAccountStatus,
   PartnerPortalNotification,
   PartnerPortalState,
+  PartnerCodeKind,
   PartnerResellerVoucherBatch,
   PartnerReportExport,
   PartnerReviewRequest,
@@ -180,6 +181,22 @@ const WORKSPACE_STATUS_SET = new Set<PartnerWorkspaceStatus>([
   'terminated',
 ]);
 
+const PARTNER_CODE_KIND_SET = new Set<PartnerCodeKind>([
+  'starter_code',
+  'vanity_link',
+  'qr_bundle',
+  'sub_id_template',
+]);
+
+function mapPartnerCodeKind(value: string | null | undefined): PartnerCodeKind {
+  if (!value) {
+    return 'starter_code';
+  }
+  return PARTNER_CODE_KIND_SET.has(value as PartnerCodeKind)
+    ? (value as PartnerCodeKind)
+    : 'starter_code';
+}
+
 function formatMoney(amount: number, currencyCode: string): string {
   const normalizedCurrency = currencyCode || 'USD';
   return new Intl.NumberFormat('en-US', {
@@ -245,14 +262,23 @@ function mapWorkspaceCodes(
     return null;
   }
 
-  return workspaceCodes.map((code) => ({
-    id: code.id,
-    label: code.code,
-    kind: 'starter_code',
-    status: code.is_active ? 'active' : 'paused',
-    destination: `/checkout?partner_code=${encodeURIComponent(code.code)}`,
-    notes: [`Markup ${Number(code.markup_pct).toFixed(2)}%`],
-  }));
+  return workspaceCodes.map((code) => {
+    const extendedCode = code as typeof code & {
+      lifecycle_status?: string | null;
+      share_url?: string | null;
+      default_destination_url?: string | null;
+      code_kind?: string | null;
+    };
+
+    return {
+      id: code.id,
+      label: code.code,
+      kind: mapPartnerCodeKind(extendedCode.code_kind),
+      status: extendedCode.lifecycle_status === 'active' || code.is_active ? 'active' : 'paused',
+      destination: extendedCode.share_url || extendedCode.default_destination_url || '',
+      notes: [`Markup ${Number(code.markup_pct).toFixed(2)}%`],
+    };
+  });
 }
 
 function mapWorkspaceCampaignStatus(status: string): PartnerCampaignAsset['status'] {

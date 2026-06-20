@@ -39,6 +39,10 @@ PARTNER_PLATFORM_EVENT_FAMILIES = {
         "partner_bot.provisioning_requested",
         "partner_bot.status_changed",
     ),
+    "partner": (
+        "partner.attribution.captured",
+        "partner.attribution.claimed",
+    ),
     "realm": (
         "realm.session.issued",
         "realm.session.revoked",

@@ -24,9 +24,7 @@ PARTNER_PORTAL_PUBLIC_PREFIXES = (
     "/api/v1/reporting/partner-workspaces",
 )
 
-PARTNER_APPLICATION_PREFIXES = (
-    "/api/v1/partner-application-drafts",
-)
+PARTNER_APPLICATION_PREFIXES = ("/api/v1/partner-application-drafts",)
 
 PARTNER_CODE_PREFIXES = (
     "/api/v1/partner/codes",
@@ -35,6 +33,7 @@ PARTNER_CODE_PREFIXES = (
 
 PARTNER_ATTRIBUTION_PREFIXES = (
     "/api/v1/attribution",
+    "/api/v1/partner-attribution",
 )
 
 PARTNER_PAYOUT_PREFIXES = (
@@ -47,13 +46,9 @@ PARTNER_STOREFRONT_PREFIXES = (
     "/api/v1/storefront-profiles",
 )
 
-PARTNER_REPORTING_PREFIXES = (
-    "/api/v1/reporting/partner-workspaces",
-)
+PARTNER_REPORTING_PREFIXES = ("/api/v1/reporting/partner-workspaces",)
 
-PARTNER_SETTLEMENT_SANDBOX_PREFIXES = (
-    "/api/v1/settlement-sandbox",
-)
+PARTNER_SETTLEMENT_SANDBOX_PREFIXES = ("/api/v1/settlement-sandbox",)
 
 
 class PartnerDisabledBoundaryMiddleware(BaseHTTPMiddleware):
@@ -175,10 +170,7 @@ def _matches_partner_workspace_codes_path(path: str, *, method: str = "GET") -> 
         return False
     if method.upper() == "GET" and path.endswith("/reseller-voucher-batches"):
         return False
-    return (
-        "/codes" in path
-        or "/reseller-voucher-batches" in path
-    )
+    return "/codes" in path or "/reseller-voucher-batches" in path
 
 
 def _matches_partner_workspace_reporting_path(path: str) -> bool:

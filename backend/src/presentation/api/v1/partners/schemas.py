@@ -98,6 +98,95 @@ class UpdatePartnerWorkspaceCodeStatusRequest(BaseModel):
     reason: str = Field(..., min_length=1, max_length=255)
 
 
+class CreatePartnerWorkspaceCodeRequest(BaseModel):
+    code: str | None = Field(default=None, min_length=4, max_length=30)
+    markup_pct: float = Field(default=0, ge=0)
+    owner_type: str = Field(default="affiliate", min_length=1, max_length=30)
+    lane_key: str = Field(default="creator_affiliate", min_length=1, max_length=60)
+    attribution_model: str = Field(default="last_eligible_touch", min_length=1, max_length=40)
+    attribution_window_seconds: int = Field(default=30 * 24 * 60 * 60, ge=3600)
+    destination_path: str | None = Field(default=None, max_length=500)
+    allowed_channels: list[str] = Field(default_factory=lambda: ["content", "telegram", "storefront"])
+    allowed_storefront_ids: list[str] = Field(default_factory=lambda: ["*"])
+    allowed_geographies: list[str] = Field(default_factory=lambda: ["*"])
+    sub_id_schema: dict[str, Any] = Field(default_factory=dict)
+    expires_at: datetime | None = None
+
+
+class UpdatePartnerWorkspaceCodeRequest(BaseModel):
+    markup_pct: float | None = Field(default=None, ge=0)
+    lifecycle_status: str | None = Field(default=None, min_length=1, max_length=24)
+    owner_type: str | None = Field(default=None, min_length=1, max_length=30)
+    lane_key: str | None = Field(default=None, min_length=1, max_length=60)
+    attribution_model: str | None = Field(default=None, min_length=1, max_length=40)
+    attribution_window_seconds: int | None = Field(default=None, ge=3600)
+    destination_path: str | None = Field(default=None, max_length=500)
+    allowed_channels: list[str] | None = None
+    allowed_storefront_ids: list[str] | None = None
+    allowed_geographies: list[str] | None = None
+    sub_id_schema: dict[str, Any] | None = None
+    expires_at: datetime | None = None
+
+
+class PartnerWorkspaceCodeLifecycleRequest(BaseModel):
+    reason: str | None = Field(default=None, max_length=255)
+
+
+class PartnerWorkspaceCodeLinkRequest(BaseModel):
+    destination_path: str | None = Field(default=None, max_length=500)
+    campaign_params: dict[str, str] = Field(default_factory=dict)
+    sub_ids: dict[str, str] = Field(default_factory=dict)
+
+
+class PartnerWorkspaceCodeLinkResponse(BaseModel):
+    code_id: UUID
+    share_url: str
+    destination_path: str | None = None
+    campaign_params: dict[str, str] = Field(default_factory=dict)
+    sub_ids: dict[str, str] = Field(default_factory=dict)
+
+
+class PartnerWorkspaceCodeQrRequest(BaseModel):
+    destination_path: str | None = Field(default=None, max_length=500)
+    size: int = Field(default=256, ge=128, le=1024)
+
+
+class PartnerWorkspaceCodeQrResponse(BaseModel):
+    code_id: UUID
+    share_url: str
+    qr_svg: str
+
+
+class PartnerWorkspaceCommercialCapabilitiesResponse(BaseModel):
+    workspace_id: UUID
+    workspace_status: str
+    can_read_codes: bool
+    can_write_codes: bool
+    can_read_finance: bool
+    attribution_enabled: bool
+    default_owner_type: str
+    supported_owner_types: list[str]
+    supported_attribution_models: list[str]
+    available_actions: list[str]
+
+
+class PartnerWorkspaceFinanceCurrencySummaryResponse(BaseModel):
+    currency_code: str
+    event_count: int
+    on_hold_amount: float
+    available_amount: float
+    paid_amount: float
+    total_amount: float
+    last_event_at: datetime | None = None
+
+
+class PartnerWorkspaceFinanceSummaryResponse(BaseModel):
+    workspace_id: UUID
+    generated_at: datetime
+    source_of_truth: str
+    currencies: list[PartnerWorkspaceFinanceCurrencySummaryResponse]
+
+
 class PartnerWorkspaceRoleResponse(BaseModel):
     id: UUID
     role_key: str
@@ -275,9 +364,7 @@ class PartnerSessionBootstrapResponse(BaseModel):
     technical_readiness: str
     governance_state: str
     current_permission_keys: list[str] = Field(default_factory=list)
-    counters: PartnerSessionBootstrapCounterResponse = Field(
-        default_factory=PartnerSessionBootstrapCounterResponse
-    )
+    counters: PartnerSessionBootstrapCounterResponse = Field(default_factory=PartnerSessionBootstrapCounterResponse)
     pending_tasks: list[PartnerSessionBootstrapPendingTaskResponse] = Field(default_factory=list)
     blocked_reasons: list[PartnerSessionBootstrapBlockedReasonResponse] = Field(default_factory=list)
     updated_at: datetime
@@ -496,10 +583,33 @@ class PartnerWorkspaceCodeResponse(BaseModel):
 
     id: UUID
     partner_account_id: UUID | None
-    partner_user_id: UUID
+    partner_user_id: UUID | None
     code: str
+    code_normalized: str | None = None
+    masked_code: str
     markup_pct: float
     is_active: bool
+    lifecycle_status: str
+    approval_status: str
+    owner_type: str
+    lane_key: str
+    attribution_model: str
+    attribution_window_seconds: int
+    share_url: str
+    default_destination_url: str
+    destination_path: str | None = None
+    allowed_channels: list[str] = Field(default_factory=list)
+    allowed_storefront_ids: list[str] = Field(default_factory=list)
+    allowed_geographies: list[str] = Field(default_factory=list)
+    sub_id_schema: dict[str, Any] = Field(default_factory=dict)
+    policy_version_id: UUID | None = None
+    commission_contract_id: UUID | None = None
+    active_from: datetime | None = None
+    expires_at: datetime | None = None
+    paused_at: datetime | None = None
+    revoked_at: datetime | None = None
+    version: int
+    available_actions: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

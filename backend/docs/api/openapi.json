@@ -9393,6 +9393,134 @@
         }
       }
     },
+    "/api/v1/partner-attribution/capture": {
+      "post": {
+        "tags": [
+          "partner-attribution"
+        ],
+        "summary": "Capture Partner Attribution",
+        "operationId": "capture_partner_attribution_api_v1_partner_attribution_capture_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerAttributionCaptureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerAttributionCaptureResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-attribution/transfer/consume": {
+      "post": {
+        "tags": [
+          "partner-attribution"
+        ],
+        "summary": "Consume Partner Attribution Transfer",
+        "operationId": "consume_partner_attribution_transfer_api_v1_partner_attribution_transfer_consume_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerAttributionTransferConsumeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerAttributionTransferConsumeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-attribution/claim": {
+      "post": {
+        "tags": [
+          "partner-attribution"
+        ],
+        "summary": "Claim Partner Attribution",
+        "operationId": "claim_partner_attribution_api_v1_partner_attribution_claim_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerAttributionClaimRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerAttributionClaimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/commercial-bindings/": {
       "post": {
         "tags": [
@@ -25954,6 +26082,634 @@
                     "$ref": "#/components/schemas/PartnerWorkspaceCodeResponse"
                   },
                   "title": "Response List Partner Workspace Codes Api V1 Partner Workspaces  Workspace Id  Codes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Create Partner Workspace Code",
+        "operationId": "create_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePartnerWorkspaceCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}": {
+      "patch": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Update Partner Workspace Code",
+        "operationId": "update_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Code Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePartnerWorkspaceCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/activate": {
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Activate Partner Workspace Code",
+        "operationId": "activate_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__activate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Code Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerWorkspaceCodeLifecycleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/pause": {
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Pause Partner Workspace Code",
+        "operationId": "pause_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__pause_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Code Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerWorkspaceCodeLifecycleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/revoke": {
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Revoke Partner Workspace Code",
+        "operationId": "revoke_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__revoke_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Code Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerWorkspaceCodeLifecycleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/archive": {
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Archive Partner Workspace Code",
+        "operationId": "archive_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__archive_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Code Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerWorkspaceCodeLifecycleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/links": {
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Create Partner Workspace Code Link",
+        "operationId": "create_partner_workspace_code_link_api_v1_partner_workspaces__workspace_id__codes__code_id__links_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Code Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerWorkspaceCodeLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCodeLinkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/qr": {
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Create Partner Workspace Code Qr",
+        "operationId": "create_partner_workspace_code_qr_api_v1_partner_workspaces__workspace_id__codes__code_id__qr_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Code Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerWorkspaceCodeQrRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCodeQrResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/commercial-capabilities": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Get Partner Workspace Commercial Capabilities",
+        "operationId": "get_partner_workspace_commercial_capabilities_api_v1_partner_workspaces__workspace_id__commercial_capabilities_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCommercialCapabilitiesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/finance-summary": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Get Partner Workspace Finance Summary",
+        "operationId": "get_partner_workspace_finance_summary_api_v1_partner_workspaces__workspace_id__finance_summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceFinanceSummaryResponse"
                 }
               }
             }
@@ -51309,6 +52065,7 @@
         "enum": [
           "explicit_code",
           "passive_click",
+          "claimed_commercial_binding",
           "persistent_reseller_binding",
           "storefront_default",
           "manual_override",
@@ -53404,6 +54161,108 @@
           "destination_reference"
         ],
         "title": "CreatePartnerPayoutAccountRequest"
+      },
+      "CreatePartnerWorkspaceCodeRequest": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30,
+                "minLength": 4
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "markup_pct": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Markup Pct",
+            "default": 0
+          },
+          "owner_type": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "Owner Type",
+            "default": "affiliate"
+          },
+          "lane_key": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Lane Key",
+            "default": "creator_affiliate"
+          },
+          "attribution_model": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Attribution Model",
+            "default": "last_eligible_touch"
+          },
+          "attribution_window_seconds": {
+            "type": "integer",
+            "minimum": 3600.0,
+            "title": "Attribution Window Seconds",
+            "default": 2592000
+          },
+          "destination_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Path"
+          },
+          "allowed_channels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Channels"
+          },
+          "allowed_storefront_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Storefront Ids"
+          },
+          "allowed_geographies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Geographies"
+          },
+          "sub_id_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Sub Id Schema"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "title": "CreatePartnerWorkspaceCodeRequest"
       },
       "CreatePartnerWorkspacePayoutAccountRequest": {
         "properties": {
@@ -56105,6 +56964,7 @@
       "CustomerCommercialBindingType": {
         "type": "string",
         "enum": [
+          "partner_attribution",
           "reseller_binding",
           "storefront_default_owner",
           "manual_override",
@@ -66337,6 +67197,218 @@
         ],
         "title": "PartnerApplicationWorkspaceSummaryResponse"
       },
+      "PartnerAttributionCaptureRequest": {
+        "properties": {
+          "public_token": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Public Token"
+          },
+          "source_host": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Host"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          },
+          "campaign_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_token"
+        ],
+        "title": "PartnerAttributionCaptureRequest"
+      },
+      "PartnerAttributionCaptureResponse": {
+        "properties": {
+          "attribution_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attribution Id"
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Captured At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "masked_code": {
+            "type": "string",
+            "title": "Masked Code"
+          },
+          "transfer_token": {
+            "type": "string",
+            "title": "Transfer Token"
+          },
+          "redirect_url": {
+            "type": "string",
+            "title": "Redirect Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attribution_id",
+          "captured_at",
+          "expires_at",
+          "masked_code",
+          "transfer_token",
+          "redirect_url"
+        ],
+        "title": "PartnerAttributionCaptureResponse"
+      },
+      "PartnerAttributionClaimRequest": {
+        "properties": {
+          "fallback_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "minLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Token"
+          }
+        },
+        "type": "object",
+        "title": "PartnerAttributionClaimRequest"
+      },
+      "PartnerAttributionClaimResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "partner_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Account Id"
+          },
+          "partner_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Code Id"
+          },
+          "binding_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
+          },
+          "claimed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "PartnerAttributionClaimResponse"
+      },
+      "PartnerAttributionTransferConsumeRequest": {
+        "properties": {
+          "transfer_token": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 16,
+            "title": "Transfer Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transfer_token"
+        ],
+        "title": "PartnerAttributionTransferConsumeRequest"
+      },
+      "PartnerAttributionTransferConsumeResponse": {
+        "properties": {
+          "attribution_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attribution Id"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "masked_code": {
+            "type": "string",
+            "title": "Masked Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attribution_id",
+          "expires_at",
+          "masked_code"
+        ],
+        "title": "PartnerAttributionTransferConsumeResponse"
+      },
       "PartnerBotProvisioningJobResponse": {
         "properties": {
           "id": {
@@ -68467,6 +69539,149 @@
         ],
         "title": "PartnerWorkspaceCaseResponse"
       },
+      "PartnerWorkspaceCodeLifecycleRequest": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "title": "PartnerWorkspaceCodeLifecycleRequest"
+      },
+      "PartnerWorkspaceCodeLinkRequest": {
+        "properties": {
+          "destination_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Path"
+          },
+          "campaign_params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Campaign Params"
+          },
+          "sub_ids": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Sub Ids"
+          }
+        },
+        "type": "object",
+        "title": "PartnerWorkspaceCodeLinkRequest"
+      },
+      "PartnerWorkspaceCodeLinkResponse": {
+        "properties": {
+          "code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Code Id"
+          },
+          "share_url": {
+            "type": "string",
+            "title": "Share Url"
+          },
+          "destination_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Path"
+          },
+          "campaign_params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Campaign Params"
+          },
+          "sub_ids": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Sub Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code_id",
+          "share_url"
+        ],
+        "title": "PartnerWorkspaceCodeLinkResponse"
+      },
+      "PartnerWorkspaceCodeQrRequest": {
+        "properties": {
+          "destination_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Path"
+          },
+          "size": {
+            "type": "integer",
+            "maximum": 1024.0,
+            "minimum": 128.0,
+            "title": "Size",
+            "default": 256
+          }
+        },
+        "type": "object",
+        "title": "PartnerWorkspaceCodeQrRequest"
+      },
+      "PartnerWorkspaceCodeQrResponse": {
+        "properties": {
+          "code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Code Id"
+          },
+          "share_url": {
+            "type": "string",
+            "title": "Share Url"
+          },
+          "qr_svg": {
+            "type": "string",
+            "title": "Qr Svg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code_id",
+          "share_url",
+          "qr_svg"
+        ],
+        "title": "PartnerWorkspaceCodeQrResponse"
+      },
       "PartnerWorkspaceCodeResponse": {
         "properties": {
           "id": {
@@ -68487,13 +69702,35 @@
             "title": "Partner Account Id"
           },
           "partner_user_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Partner User Id"
           },
           "code": {
             "type": "string",
             "title": "Code"
+          },
+          "code_normalized": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Normalized"
+          },
+          "masked_code": {
+            "type": "string",
+            "title": "Masked Code"
           },
           "markup_pct": {
             "type": "number",
@@ -68502,6 +69739,158 @@
           "is_active": {
             "type": "boolean",
             "title": "Is Active"
+          },
+          "lifecycle_status": {
+            "type": "string",
+            "title": "Lifecycle Status"
+          },
+          "approval_status": {
+            "type": "string",
+            "title": "Approval Status"
+          },
+          "owner_type": {
+            "type": "string",
+            "title": "Owner Type"
+          },
+          "lane_key": {
+            "type": "string",
+            "title": "Lane Key"
+          },
+          "attribution_model": {
+            "type": "string",
+            "title": "Attribution Model"
+          },
+          "attribution_window_seconds": {
+            "type": "integer",
+            "title": "Attribution Window Seconds"
+          },
+          "share_url": {
+            "type": "string",
+            "title": "Share Url"
+          },
+          "default_destination_url": {
+            "type": "string",
+            "title": "Default Destination Url"
+          },
+          "destination_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Path"
+          },
+          "allowed_channels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Channels"
+          },
+          "allowed_storefront_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Storefront Ids"
+          },
+          "allowed_geographies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Geographies"
+          },
+          "sub_id_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Sub Id Schema"
+          },
+          "policy_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Version Id"
+          },
+          "commission_contract_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commission Contract Id"
+          },
+          "active_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active From"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "available_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Available Actions"
           },
           "created_at": {
             "type": "string",
@@ -68520,12 +69909,90 @@
           "partner_account_id",
           "partner_user_id",
           "code",
+          "masked_code",
           "markup_pct",
           "is_active",
+          "lifecycle_status",
+          "approval_status",
+          "owner_type",
+          "lane_key",
+          "attribution_model",
+          "attribution_window_seconds",
+          "share_url",
+          "default_destination_url",
+          "version",
           "created_at",
           "updated_at"
         ],
         "title": "PartnerWorkspaceCodeResponse"
+      },
+      "PartnerWorkspaceCommercialCapabilitiesResponse": {
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "workspace_status": {
+            "type": "string",
+            "title": "Workspace Status"
+          },
+          "can_read_codes": {
+            "type": "boolean",
+            "title": "Can Read Codes"
+          },
+          "can_write_codes": {
+            "type": "boolean",
+            "title": "Can Write Codes"
+          },
+          "can_read_finance": {
+            "type": "boolean",
+            "title": "Can Read Finance"
+          },
+          "attribution_enabled": {
+            "type": "boolean",
+            "title": "Attribution Enabled"
+          },
+          "default_owner_type": {
+            "type": "string",
+            "title": "Default Owner Type"
+          },
+          "supported_owner_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supported Owner Types"
+          },
+          "supported_attribution_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supported Attribution Models"
+          },
+          "available_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Available Actions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "workspace_status",
+          "can_read_codes",
+          "can_write_codes",
+          "can_read_finance",
+          "attribution_enabled",
+          "default_owner_type",
+          "supported_owner_types",
+          "supported_attribution_models",
+          "available_actions"
+        ],
+        "title": "PartnerWorkspaceCommercialCapabilitiesResponse"
       },
       "PartnerWorkspaceConversionRecordResponse": {
         "properties": {
@@ -68592,6 +70059,89 @@
           "updated_at"
         ],
         "title": "PartnerWorkspaceConversionRecordResponse"
+      },
+      "PartnerWorkspaceFinanceCurrencySummaryResponse": {
+        "properties": {
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "event_count": {
+            "type": "integer",
+            "title": "Event Count"
+          },
+          "on_hold_amount": {
+            "type": "number",
+            "title": "On Hold Amount"
+          },
+          "available_amount": {
+            "type": "number",
+            "title": "Available Amount"
+          },
+          "paid_amount": {
+            "type": "number",
+            "title": "Paid Amount"
+          },
+          "total_amount": {
+            "type": "number",
+            "title": "Total Amount"
+          },
+          "last_event_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Event At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency_code",
+          "event_count",
+          "on_hold_amount",
+          "available_amount",
+          "paid_amount",
+          "total_amount"
+        ],
+        "title": "PartnerWorkspaceFinanceCurrencySummaryResponse"
+      },
+      "PartnerWorkspaceFinanceSummaryResponse": {
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "source_of_truth": {
+            "type": "string",
+            "title": "Source Of Truth"
+          },
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerWorkspaceFinanceCurrencySummaryResponse"
+            },
+            "type": "array",
+            "title": "Currencies"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "generated_at",
+          "source_of_truth",
+          "currencies"
+        ],
+        "title": "PartnerWorkspaceFinanceSummaryResponse"
       },
       "PartnerWorkspaceIntegrationCredentialResponse": {
         "properties": {
@@ -87070,6 +88620,166 @@
         },
         "type": "object",
         "title": "UpdatePartnerLaneApplicationRequest"
+      },
+      "UpdatePartnerWorkspaceCodeRequest": {
+        "properties": {
+          "markup_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markup Pct"
+          },
+          "lifecycle_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 24,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifecycle Status"
+          },
+          "owner_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 30,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Type"
+          },
+          "lane_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lane Key"
+          },
+          "attribution_model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attribution Model"
+          },
+          "attribution_window_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 3600.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attribution Window Seconds"
+          },
+          "destination_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Path"
+          },
+          "allowed_channels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Channels"
+          },
+          "allowed_storefront_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Storefront Ids"
+          },
+          "allowed_geographies": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Geographies"
+          },
+          "sub_id_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub Id Schema"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "title": "UpdatePartnerWorkspaceCodeRequest"
       },
       "UpdatePartnerWorkspaceCodeStatusRequest": {
         "properties": {

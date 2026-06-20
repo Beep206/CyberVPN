@@ -1,0 +1,1 @@
+"""Partner attribution use cases."""

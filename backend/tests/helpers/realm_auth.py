@@ -1675,28 +1675,67 @@ async def initialize_realm_test_database(engine) -> None:
             CREATE TABLE partner_codes (
                 id TEXT PRIMARY KEY,
                 code TEXT NOT NULL UNIQUE,
+                code_normalized TEXT UNIQUE,
+                public_token_hash TEXT UNIQUE,
                 partner_account_id TEXT,
-                partner_user_id TEXT NOT NULL,
+                partner_user_id TEXT,
+                code_kind TEXT NOT NULL DEFAULT 'starter_code',
+                lifecycle_status TEXT NOT NULL DEFAULT 'active',
+                owner_type TEXT NOT NULL DEFAULT 'affiliate',
+                lane_key TEXT NOT NULL DEFAULT 'creator_affiliate',
+                attribution_model TEXT NOT NULL DEFAULT 'last_eligible_touch',
+                attribution_window_seconds INTEGER NOT NULL DEFAULT 2592000,
+                commission_contract_id TEXT,
+                policy_version_id TEXT,
+                default_storefront_id TEXT,
+                destination_path TEXT,
+                allowed_channels TEXT NOT NULL DEFAULT '["content","telegram","storefront"]',
+                allowed_storefront_ids TEXT NOT NULL DEFAULT '["*"]',
+                allowed_geographies TEXT NOT NULL DEFAULT '["*"]',
+                sub_id_schema TEXT NOT NULL DEFAULT '{}',
+                approval_status TEXT NOT NULL DEFAULT 'approved',
                 markup_pct NUMERIC NOT NULL DEFAULT 0,
                 is_active INTEGER NOT NULL DEFAULT 1,
+                active_from TEXT,
+                expires_at TEXT,
+                paused_at TEXT,
+                revoked_at TEXT,
+                created_by_admin_user_id TEXT,
+                updated_by_admin_user_id TEXT,
+                version INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (partner_account_id) REFERENCES partner_accounts(id),
-                FOREIGN KEY (partner_user_id) REFERENCES mobile_users(id)
+                FOREIGN KEY (partner_user_id) REFERENCES mobile_users(id),
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id),
+                FOREIGN KEY (default_storefront_id) REFERENCES storefronts(id),
+                FOREIGN KEY (created_by_admin_user_id) REFERENCES admin_users(id),
+                FOREIGN KEY (updated_by_admin_user_id) REFERENCES admin_users(id)
             )
             """
         )
+        conn.exec_driver_sql("CREATE INDEX ix_partner_codes_code_normalized ON partner_codes(code_normalized)")
+        conn.exec_driver_sql("CREATE INDEX ix_partner_codes_public_token_hash ON partner_codes(public_token_hash)")
         conn.exec_driver_sql("CREATE INDEX ix_partner_codes_partner_account_id ON partner_codes(partner_account_id)")
         conn.exec_driver_sql("CREATE INDEX ix_partner_codes_partner_user_id ON partner_codes(partner_user_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_partner_codes_lifecycle_status ON partner_codes(lifecycle_status)")
+        conn.exec_driver_sql("CREATE INDEX ix_partner_codes_owner_type ON partner_codes(owner_type)")
+        conn.exec_driver_sql("CREATE INDEX ix_partner_codes_lane_key ON partner_codes(lane_key)")
+        conn.exec_driver_sql("CREATE INDEX ix_partner_codes_policy_version_id ON partner_codes(policy_version_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_partner_codes_default_storefront_id ON partner_codes(default_storefront_id)"
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_partner_codes_approval_status ON partner_codes(approval_status)")
+        conn.exec_driver_sql("CREATE INDEX ix_partner_codes_expires_at ON partner_codes(expires_at)")
         conn.exec_driver_sql(
             """
             CREATE TABLE partner_earnings (
                 id TEXT PRIMARY KEY,
                 partner_account_id TEXT,
-                partner_user_id TEXT NOT NULL,
+                partner_user_id TEXT,
                 client_user_id TEXT NOT NULL,
                 payment_id TEXT NOT NULL,
-                partner_code_id TEXT NOT NULL,
+                partner_code_id TEXT,
                 base_price NUMERIC NOT NULL,
                 markup_amount NUMERIC NOT NULL,
                 commission_pct NUMERIC NOT NULL,
@@ -1721,13 +1760,17 @@ async def initialize_realm_test_database(engine) -> None:
             CREATE TABLE earning_events (
                 id TEXT PRIMARY KEY,
                 partner_account_id TEXT,
-                partner_user_id TEXT NOT NULL,
+                partner_user_id TEXT,
                 client_user_id TEXT NOT NULL,
                 order_id TEXT NOT NULL UNIQUE,
                 payment_id TEXT,
+                source_event_id TEXT,
+                source_event_key TEXT UNIQUE,
                 partner_code_id TEXT,
                 legacy_partner_earning_id TEXT,
                 order_attribution_result_id TEXT,
+                policy_version_id TEXT,
+                commission_contract_id TEXT,
                 owner_type TEXT NOT NULL,
                 event_status TEXT NOT NULL DEFAULT 'on_hold',
                 commission_base_amount NUMERIC NOT NULL,
@@ -1737,6 +1780,7 @@ async def initialize_realm_test_database(engine) -> None:
                 total_amount NUMERIC NOT NULL,
                 currency_code TEXT NOT NULL DEFAULT 'USD',
                 available_at TEXT,
+                calculation_snapshot TEXT NOT NULL DEFAULT '{}',
                 source_snapshot TEXT NOT NULL DEFAULT '{}',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1747,7 +1791,8 @@ async def initialize_realm_test_database(engine) -> None:
                 FOREIGN KEY (payment_id) REFERENCES payments(id),
                 FOREIGN KEY (partner_code_id) REFERENCES partner_codes(id),
                 FOREIGN KEY (legacy_partner_earning_id) REFERENCES partner_earnings(id),
-                FOREIGN KEY (order_attribution_result_id) REFERENCES order_attribution_results(id)
+                FOREIGN KEY (order_attribution_result_id) REFERENCES order_attribution_results(id),
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id)
             )
             """
         )
@@ -1756,6 +1801,8 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_earning_events_client_user_id ON earning_events(client_user_id)")
         conn.exec_driver_sql("CREATE INDEX ix_earning_events_order_id ON earning_events(order_id)")
         conn.exec_driver_sql("CREATE INDEX ix_earning_events_payment_id ON earning_events(payment_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_earning_events_source_event_id ON earning_events(source_event_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_earning_events_source_event_key ON earning_events(source_event_key)")
         conn.exec_driver_sql("CREATE INDEX ix_earning_events_partner_code_id ON earning_events(partner_code_id)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_earning_events_legacy_partner_earning_id ON earning_events(legacy_partner_earning_id)"
@@ -1766,6 +1813,10 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_earning_events_owner_type ON earning_events(owner_type)")
         conn.exec_driver_sql("CREATE INDEX ix_earning_events_event_status ON earning_events(event_status)")
         conn.exec_driver_sql("CREATE INDEX ix_earning_events_available_at ON earning_events(available_at)")
+        conn.exec_driver_sql("CREATE INDEX ix_earning_events_policy_version_id ON earning_events(policy_version_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_earning_events_commission_contract_id ON earning_events(commission_contract_id)"
+        )
         conn.exec_driver_sql(
             """
             CREATE TABLE earning_holds (
@@ -2667,9 +2718,68 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_order_items_subject_code ON order_items(subject_code)")
         conn.exec_driver_sql(
             """
+            CREATE TABLE partner_attribution_sessions (
+                id TEXT PRIMARY KEY,
+                token_hash TEXT NOT NULL UNIQUE,
+                transfer_token_hash TEXT UNIQUE,
+                partner_code_id TEXT NOT NULL,
+                partner_account_id TEXT,
+                auth_realm_id TEXT,
+                storefront_id TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                owner_type TEXT NOT NULL DEFAULT 'affiliate',
+                attribution_model TEXT NOT NULL DEFAULT 'last_eligible_touch',
+                policy_version_id TEXT,
+                commission_contract_id TEXT,
+                source_host TEXT,
+                source_path TEXT,
+                destination_url TEXT NOT NULL,
+                campaign_params TEXT NOT NULL DEFAULT '{}',
+                evidence_payload TEXT NOT NULL DEFAULT '{}',
+                policy_snapshot TEXT NOT NULL DEFAULT '{}',
+                user_id TEXT,
+                touchpoint_id TEXT,
+                binding_id TEXT,
+                expires_at TEXT NOT NULL,
+                transferred_at TEXT,
+                claimed_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (partner_code_id) REFERENCES partner_codes(id),
+                FOREIGN KEY (partner_account_id) REFERENCES partner_accounts(id),
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id),
+                FOREIGN KEY (storefront_id) REFERENCES storefronts(id),
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id),
+                FOREIGN KEY (user_id) REFERENCES mobile_users(id)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_partner_attr_sessions_token_hash ON partner_attribution_sessions(token_hash)",
+            "CREATE INDEX ix_partner_attr_sessions_transfer_token_hash "
+            "ON partner_attribution_sessions(transfer_token_hash)",
+            "CREATE INDEX ix_partner_attr_sessions_partner_code_id ON partner_attribution_sessions(partner_code_id)",
+            "CREATE INDEX ix_partner_attr_sessions_partner_account_id "
+            "ON partner_attribution_sessions(partner_account_id)",
+            "CREATE INDEX ix_partner_attr_sessions_auth_realm_id ON partner_attribution_sessions(auth_realm_id)",
+            "CREATE INDEX ix_partner_attr_sessions_storefront_id ON partner_attribution_sessions(storefront_id)",
+            "CREATE INDEX ix_partner_attr_sessions_policy_version_id "
+            "ON partner_attribution_sessions(policy_version_id)",
+            "CREATE INDEX ix_partner_attr_sessions_user_id ON partner_attribution_sessions(user_id)",
+            "CREATE INDEX ix_partner_attr_sessions_touchpoint_id ON partner_attribution_sessions(touchpoint_id)",
+            "CREATE INDEX ix_partner_attr_sessions_binding_id ON partner_attribution_sessions(binding_id)",
+            "CREATE INDEX ix_partner_attr_sessions_expires_at ON partner_attribution_sessions(expires_at)",
+            "CREATE INDEX ix_partner_attr_sessions_created_at ON partner_attribution_sessions(created_at)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
             CREATE TABLE attribution_touchpoints (
                 id TEXT PRIMARY KEY,
                 touchpoint_type TEXT NOT NULL,
+                source_event_id TEXT,
+                idempotency_key TEXT,
+                partner_attribution_session_id TEXT,
                 user_id TEXT,
                 auth_realm_id TEXT,
                 storefront_id TEXT,
@@ -2677,6 +2787,7 @@ async def initialize_realm_test_database(engine) -> None:
                 checkout_session_id TEXT,
                 order_id TEXT,
                 partner_code_id TEXT,
+                policy_version_id TEXT,
                 sale_channel TEXT,
                 source_host TEXT,
                 source_path TEXT,
@@ -2690,7 +2801,9 @@ async def initialize_realm_test_database(engine) -> None:
                 FOREIGN KEY (quote_session_id) REFERENCES quote_sessions(id),
                 FOREIGN KEY (checkout_session_id) REFERENCES checkout_sessions(id),
                 FOREIGN KEY (order_id) REFERENCES orders(id),
-                FOREIGN KEY (partner_code_id) REFERENCES partner_codes(id)
+                FOREIGN KEY (partner_code_id) REFERENCES partner_codes(id),
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id),
+                FOREIGN KEY (partner_attribution_session_id) REFERENCES partner_attribution_sessions(id)
             )
             """
         )
@@ -2716,6 +2829,19 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_attribution_touchpoints_partner_code_id ON attribution_touchpoints(partner_code_id)"
         )
         conn.exec_driver_sql(
+            "CREATE INDEX ix_attribution_touchpoints_partner_attr_session_id "
+            "ON attribution_touchpoints(partner_attribution_session_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_attribution_touchpoints_policy_version_id ON attribution_touchpoints(policy_version_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_attribution_touchpoints_source_event_id ON attribution_touchpoints(source_event_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_attribution_touchpoints_idempotency_key ON attribution_touchpoints(idempotency_key)"
+        )
+        conn.exec_driver_sql(
             "CREATE INDEX ix_attribution_touchpoints_sale_channel ON attribution_touchpoints(sale_channel)"
         )
         conn.exec_driver_sql(
@@ -2733,11 +2859,16 @@ async def initialize_realm_test_database(engine) -> None:
                 owner_type TEXT NOT NULL,
                 partner_account_id TEXT,
                 partner_code_id TEXT,
+                policy_version_id TEXT,
+                commission_contract_id TEXT,
+                attribution_session_id TEXT,
                 reason_code TEXT,
                 evidence_payload TEXT NOT NULL DEFAULT '{}',
                 created_by_admin_user_id TEXT,
                 effective_from TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 effective_to TEXT,
+                claimed_at TEXT,
+                version INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES mobile_users(id),
@@ -2745,6 +2876,8 @@ async def initialize_realm_test_database(engine) -> None:
                 FOREIGN KEY (storefront_id) REFERENCES storefronts(id),
                 FOREIGN KEY (partner_account_id) REFERENCES partner_accounts(id),
                 FOREIGN KEY (partner_code_id) REFERENCES partner_codes(id),
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id),
+                FOREIGN KEY (attribution_session_id) REFERENCES partner_attribution_sessions(id),
                 FOREIGN KEY (created_by_admin_user_id) REFERENCES admin_users(id)
             )
             """
@@ -2777,6 +2910,21 @@ async def initialize_realm_test_database(engine) -> None:
             "ON customer_commercial_bindings(partner_code_id)"
         )
         conn.exec_driver_sql(
+            "CREATE INDEX ix_customer_commercial_bindings_policy_version_id "
+            "ON customer_commercial_bindings(policy_version_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_customer_commercial_bindings_commission_contract_id "
+            "ON customer_commercial_bindings(commission_contract_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_customer_commercial_bindings_attribution_session_id "
+            "ON customer_commercial_bindings(attribution_session_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_customer_commercial_bindings_claimed_at ON customer_commercial_bindings(claimed_at)"
+        )
+        conn.exec_driver_sql(
             "CREATE INDEX ix_customer_commercial_bindings_created_by_admin_user_id "
             "ON customer_commercial_bindings(created_by_admin_user_id)"
         )
@@ -2799,6 +2947,9 @@ async def initialize_realm_test_database(engine) -> None:
                 owner_source TEXT,
                 partner_account_id TEXT,
                 partner_code_id TEXT,
+                attribution_session_id TEXT,
+                policy_version_id TEXT,
+                commission_contract_id TEXT,
                 winning_touchpoint_id TEXT,
                 winning_binding_id TEXT,
                 rule_path TEXT NOT NULL DEFAULT '[]',
@@ -2813,6 +2964,8 @@ async def initialize_realm_test_database(engine) -> None:
                 FOREIGN KEY (storefront_id) REFERENCES storefronts(id),
                 FOREIGN KEY (partner_account_id) REFERENCES partner_accounts(id),
                 FOREIGN KEY (partner_code_id) REFERENCES partner_codes(id),
+                FOREIGN KEY (attribution_session_id) REFERENCES partner_attribution_sessions(id),
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id),
                 FOREIGN KEY (winning_touchpoint_id) REFERENCES attribution_touchpoints(id),
                 FOREIGN KEY (winning_binding_id) REFERENCES customer_commercial_bindings(id)
             )
@@ -2828,6 +2981,12 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_order_attribution_results_partner_account_id "
             "ON order_attribution_results(partner_account_id)",
             "CREATE INDEX ix_order_attribution_results_partner_code_id ON order_attribution_results(partner_code_id)",
+            "CREATE INDEX ix_order_attribution_results_attribution_session_id "
+            "ON order_attribution_results(attribution_session_id)",
+            "CREATE INDEX ix_order_attribution_results_policy_version_id "
+            "ON order_attribution_results(policy_version_id)",
+            "CREATE INDEX ix_order_attribution_results_commission_contract_id "
+            "ON order_attribution_results(commission_contract_id)",
             "CREATE INDEX ix_order_attribution_results_winning_touchpoint_id "
             "ON order_attribution_results(winning_touchpoint_id)",
             "CREATE INDEX ix_order_attribution_results_winning_binding_id "

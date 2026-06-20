@@ -351,6 +351,7 @@ class CommercialOwnerType(StrEnum):
 class CommercialOwnerSource(StrEnum):
     EXPLICIT_CODE = "explicit_code"
     PASSIVE_CLICK = "passive_click"
+    CLAIMED_COMMERCIAL_BINDING = "claimed_commercial_binding"
     PERSISTENT_RESELLER_BINDING = "persistent_reseller_binding"
     STOREFRONT_DEFAULT = "storefront_default"
     MANUAL_OVERRIDE = "manual_override"
@@ -431,6 +432,7 @@ class AttributionTouchpointType(StrEnum):
 
 
 class CustomerCommercialBindingType(StrEnum):
+    PARTNER_ATTRIBUTION = "partner_attribution"
     RESELLER_BINDING = "reseller_binding"
     STOREFRONT_DEFAULT_OWNER = "storefront_default_owner"
     MANUAL_OVERRIDE = "manual_override"

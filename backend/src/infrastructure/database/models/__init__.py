@@ -99,6 +99,7 @@ from src.infrastructure.database.models.partner_application_model import (
     PartnerApplicationReviewRequestModel,
     PartnerLaneApplicationModel,
 )
+from src.infrastructure.database.models.partner_attribution_session_model import PartnerAttributionSessionModel
 from src.infrastructure.database.models.partner_bot_model import (
     PartnerBotModel,
     PartnerBotProvisioningJobModel,
@@ -247,6 +248,7 @@ __all__ = [
     "PartnerApplicationAttachmentModel",
     "PartnerApplicationDraftModel",
     "PartnerApplicationReviewRequestModel",
+    "PartnerAttributionSessionModel",
     "PartnerBotModel",
     "PartnerBotProvisioningJobModel",
     "PartnerNotificationReadStateModel",

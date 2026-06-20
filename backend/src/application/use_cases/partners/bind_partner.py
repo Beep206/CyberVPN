@@ -51,7 +51,7 @@ class BindPartnerUseCase:
             )
             raise PartnerCodeNotFoundError(partner_code)
 
-        if user.partner_user_id is not None:
+        if user.partner_user_id is not None or user.partner_account_id is not None:
             if (
                 user.partner_user_id == code_model.partner_user_id
                 and user.partner_account_id == code_model.partner_account_id
@@ -59,7 +59,11 @@ class BindPartnerUseCase:
                 return user
             logger.warning(
                 "bind_partner_already_bound",
-                extra={"user_id": str(user_id), "existing_partner": str(user.partner_user_id)},
+                extra={
+                    "user_id": str(user_id),
+                    "existing_partner": str(user.partner_user_id) if user.partner_user_id else None,
+                    "existing_partner_account": str(user.partner_account_id) if user.partner_account_id else None,
+                },
             )
             raise UserAlreadyBoundToPartnerError(str(user_id))
 

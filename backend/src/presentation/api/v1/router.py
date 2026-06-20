@@ -53,6 +53,7 @@ from src.presentation.api.v1.notifications.routes import router as notifications
 from src.presentation.api.v1.oauth.routes import router as oauth_router
 from src.presentation.api.v1.offers.routes import router as offers_router
 from src.presentation.api.v1.orders.routes import router as orders_router
+from src.presentation.api.v1.partner_attribution.routes import router as partner_attribution_router
 from src.presentation.api.v1.partner_bots.routes import router as partner_bots_router
 from src.presentation.api.v1.partner_payout_accounts.routes import router as partner_payout_accounts_router
 from src.presentation.api.v1.partner_realtime.routes import router as partner_realtime_router
@@ -205,6 +206,7 @@ api_router.include_router(merchant_profiles_router)
 api_router.include_router(invoice_profiles_router)
 api_router.include_router(billing_descriptors_router)
 api_router.include_router(attribution_router)
+api_router.include_router(partner_attribution_router)
 api_router.include_router(commercial_bindings_router)
 api_router.include_router(growth_rewards_router)
 api_router.include_router(growth_notifications_router)

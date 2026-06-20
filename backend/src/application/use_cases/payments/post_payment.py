@@ -26,7 +26,7 @@ from src.application.use_cases.partners.process_partner_earning import (
 from src.application.use_cases.referrals.process_referral_reward import (
     ProcessReferralRewardUseCase,
 )
-from src.application.use_cases.settlement import RecordEarningEventUseCase
+from src.application.use_cases.settlement import CreatePartnerEarningEventFromPaymentUseCase, RecordEarningEventUseCase
 from src.domain.enums import WalletTxReason
 from src.infrastructure.database.models.plan_addon_model import SubscriptionAddonModel
 from src.infrastructure.database.models.promo_code_model import PromoCodeUsageModel
@@ -106,6 +106,7 @@ class PostPaymentProcessingUseCase:
             config_service=self._config,
         )
         self._record_earning_event = RecordEarningEventUseCase(session)
+        self._create_partner_earning_event = CreatePartnerEarningEventFromPaymentUseCase(session)
         self._policy_evaluator = EvaluateOrderPolicyUseCase(session)
         self._outbox = EventOutboxService(session)
 
@@ -128,10 +129,10 @@ class PostPaymentProcessingUseCase:
         commission_base_amount = Decimal(str(payment_metadata.get("commission_base_amount", payment.amount)))
         checkout_mode = str(payment_metadata.get("checkout_mode", "new_purchase"))
         target_subscription_key = str(payment_metadata.get("target_subscription_key") or "")
-        selected_subscription_write = (
-            checkout_mode in {"selected_subscription_upgrade", "selected_subscription_addons"}
-            and bool(target_subscription_key)
-        )
+        selected_subscription_write = checkout_mode in {
+            "selected_subscription_upgrade",
+            "selected_subscription_addons",
+        } and bool(target_subscription_key)
         gift_flow = checkout_mode == "gift_purchase"
         payment_attempt = await self._payment_attempt_repo.get_by_payment_id(payment.id)
         policy_evaluation = None
@@ -322,9 +323,7 @@ class PostPaymentProcessingUseCase:
                     extra={
                         "payment_id": str(payment_id),
                         "order_id": (
-                            str(payment_attempt.order_id)
-                            if payment_attempt and payment_attempt.order_id
-                            else None
+                            str(payment_attempt.order_id) if payment_attempt and payment_attempt.order_id else None
                         ),
                         "reason_codes": policy_evaluation.payout_rules.referral_reason_codes,
                     },
@@ -374,10 +373,45 @@ class PostPaymentProcessingUseCase:
             if resolved_partner_code is not None:
                 resolved_partner_user_id = resolved_partner_code.partner_user_id
 
+        canonical_partner_event_attempted = False
         if gift_flow:
             results["partner_earning"] = None
             results["settlement_earning_event_id"] = None
             results["settlement_earning_event_status"] = None
+        elif payment_attempt is not None and payment_attempt.order_id is not None and commission_base_amount > 0:
+            canonical_partner_event_attempted = True
+            if policy_evaluation is not None and not policy_evaluation.payout_rules.partner_cash_payout_allowed:
+                logger.info(
+                    "post_payment_partner_earning_blocked_by_policy",
+                    extra={
+                        "payment_id": str(payment_id),
+                        "order_id": str(payment_attempt.order_id),
+                        "reason_codes": policy_evaluation.payout_rules.partner_reason_codes,
+                    },
+                )
+                results["partner_earning"] = None
+                results["partner_policy_block_reasons"] = policy_evaluation.payout_rules.partner_reason_codes
+            else:
+                try:
+                    earning_event, _earning_hold = await self._create_partner_earning_event.execute(
+                        order_id=payment_attempt.order_id,
+                        payment_id=payment.id,
+                        commission_base_amount=commission_base_amount,
+                        source_event_id=str(payment.external_id or payment.id),
+                        commit=False,
+                    )
+                    if earning_event is not None:
+                        results["partner_earning"] = float(earning_event.total_amount)
+                        results["settlement_earning_event_id"] = str(earning_event.id)
+                        results["settlement_earning_event_status"] = earning_event.event_status
+                    else:
+                        results["partner_earning"] = None
+                except Exception:
+                    logger.exception(
+                        "post_payment_canonical_partner_earning_failed",
+                        extra={"payment_id": str(payment_id), "order_id": str(payment_attempt.order_id)},
+                    )
+                    raise
         elif resolved_partner_code_id and user and resolved_partner_user_id and commission_base_amount > 0:
             if policy_evaluation is not None and not policy_evaluation.payout_rules.partner_cash_payout_allowed:
                 logger.info(
@@ -385,9 +419,7 @@ class PostPaymentProcessingUseCase:
                     extra={
                         "payment_id": str(payment_id),
                         "order_id": (
-                            str(payment_attempt.order_id)
-                            if payment_attempt and payment_attempt.order_id
-                            else None
+                            str(payment_attempt.order_id) if payment_attempt and payment_attempt.order_id else None
                         ),
                         "reason_codes": policy_evaluation.payout_rules.partner_reason_codes,
                     },
@@ -431,6 +463,8 @@ class PostPaymentProcessingUseCase:
                     results["settlement_earning_event_status"] = None
         else:
             results["partner_earning"] = None
+            if canonical_partner_event_attempted:
+                results["partner_earning_source"] = "canonical_no_owner"
             results["settlement_earning_event_id"] = None
             results["settlement_earning_event_status"] = None
 

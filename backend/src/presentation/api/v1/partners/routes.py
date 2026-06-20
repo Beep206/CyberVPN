@@ -1,13 +1,16 @@
 """Partner API routes for mobile users and admin."""
 
+import io
 import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from time import perf_counter
+from urllib.parse import urlencode
 from uuid import UUID
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
@@ -23,6 +26,14 @@ from src.application.use_cases.governance import (
     ListTrafficDeclarationsUseCase,
 )
 from src.application.use_cases.orders.explainability import GetOrderExplainabilityUseCase
+from src.application.use_cases.partner_attribution.utils import (
+    build_public_token_for_code_id,
+    build_share_url,
+    generate_partner_code,
+    hash_partner_attribution_token,
+    mask_partner_code,
+    normalize_partner_code,
+)
 from src.application.use_cases.partners.add_partner_workspace_member import AddPartnerWorkspaceMemberUseCase
 from src.application.use_cases.partners.admin_promote_partner import AdminPromotePartnerUseCase
 from src.application.use_cases.partners.bind_partner import BindPartnerUseCase
@@ -50,6 +61,7 @@ from src.application.use_cases.settlement import (
     ListPayoutInstructionsUseCase,
     MakeDefaultPartnerPayoutAccountUseCase,
 )
+from src.config.settings import settings
 from src.domain.entities.partner_permission import PartnerPermission
 from src.domain.enums import (
     AdminRole,
@@ -75,6 +87,7 @@ from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.commissionability_evaluation_model import (
     CommissionabilityEvaluationModel,
 )
+from src.infrastructure.database.models.earning_event_model import EarningEventModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.order_attribution_result_model import (
     OrderAttributionResultModel,
@@ -148,6 +161,7 @@ from .schemas import (
     CreatePartnerApplicationAttachmentRequest,
     CreatePartnerCodeRequest,
     CreatePartnerLaneApplicationRequest,
+    CreatePartnerWorkspaceCodeRequest,
     CreatePartnerWorkspacePayoutAccountRequest,
     CreatePartnerWorkspaceRequest,
     MarkPartnerWorkspaceCaseReadyForOpsRequest,
@@ -181,8 +195,16 @@ from .schemas import (
     PartnerWorkspaceAnalyticsMetricResponse,
     PartnerWorkspaceCampaignAssetResponse,
     PartnerWorkspaceCaseResponse,
+    PartnerWorkspaceCodeLifecycleRequest,
+    PartnerWorkspaceCodeLinkRequest,
+    PartnerWorkspaceCodeLinkResponse,
+    PartnerWorkspaceCodeQrRequest,
+    PartnerWorkspaceCodeQrResponse,
     PartnerWorkspaceCodeResponse,
+    PartnerWorkspaceCommercialCapabilitiesResponse,
     PartnerWorkspaceConversionRecordResponse,
+    PartnerWorkspaceFinanceCurrencySummaryResponse,
+    PartnerWorkspaceFinanceSummaryResponse,
     PartnerWorkspaceIntegrationCredentialResponse,
     PartnerWorkspaceIntegrationDeliveryLogResponse,
     PartnerWorkspaceLegalDocumentResponse,
@@ -225,6 +247,7 @@ from .schemas import (
     SubmitPartnerWorkspaceTrafficDeclarationRequest,
     UpdateMarkupRequest,
     UpdatePartnerLaneApplicationRequest,
+    UpdatePartnerWorkspaceCodeRequest,
     UpdatePartnerWorkspaceCodeStatusRequest,
     UpdatePartnerWorkspaceMemberRequest,
     UpdatePartnerWorkspaceOrganizationProfileRequest,
@@ -309,11 +332,7 @@ def _serialize_workspace_member(
         admin_user_id=membership.admin_user_id,
         operator_login=operator.login if operator is not None else None,
         operator_email=operator.email if operator is not None else None,
-        operator_display_name=(
-            operator.display_name or operator.login
-            if operator is not None
-            else None
-        ),
+        operator_display_name=(operator.display_name or operator.login if operator is not None else None),
         role_id=membership.role_id,
         role_key=role.role_key,
         role_display_name=role.display_name,
@@ -408,8 +427,7 @@ async def _enforce_workspace_owner_role_update_guard(
     requested_membership_status: str,
 ) -> None:
     touches_owner_role = (
-        current_role_key == _WORKSPACE_OWNER_ROLE_KEY
-        or requested_role_key == _WORKSPACE_OWNER_ROLE_KEY
+        current_role_key == _WORKSPACE_OWNER_ROLE_KEY or requested_role_key == _WORKSPACE_OWNER_ROLE_KEY
     )
     if not touches_owner_role:
         return
@@ -422,8 +440,7 @@ async def _enforce_workspace_owner_role_update_guard(
         )
 
     keeps_target_as_active_owner = (
-        requested_role_key == _WORKSPACE_OWNER_ROLE_KEY
-        and requested_membership_status == "active"
+        requested_role_key == _WORKSPACE_OWNER_ROLE_KEY and requested_membership_status == "active"
     )
     if keeps_target_as_active_owner:
         return
@@ -473,10 +490,7 @@ def _pref_enabled(current_user: AdminUserModel, key: str) -> bool:
 def _notification_state_by_key(
     read_states,
 ) -> dict[str, object]:
-    return {
-        item.notification_key: item
-        for item in read_states
-    }
+    return {item.notification_key: item for item in read_states}
 
 
 def _coerce_notification_key(value: str) -> str:
@@ -834,9 +848,8 @@ async def _build_partner_notification_feed(
                 source_event_kind=reason.code,
             )
         if (
-            (reason.code.startswith("workspace_status:") or reason.code.startswith("governance_state:"))
-            and _pref_enabled(current_user, "partner_compliance_alerts")
-        ):
+            reason.code.startswith("workspace_status:") or reason.code.startswith("governance_state:")
+        ) and _pref_enabled(current_user, "partner_compliance_alerts"):
             _append_partner_notification(
                 items=items,
                 read_state_by_key=read_state_by_key,
@@ -862,9 +875,8 @@ async def _build_partner_notification_feed(
             offset=0,
         )
         for statement in statements:
-            if (
-                statement.statement_status != PartnerStatementStatus.CLOSED.value
-                or not _pref_enabled(current_user, "partner_payout_status_emails")
+            if statement.statement_status != PartnerStatementStatus.CLOSED.value or not _pref_enabled(
+                current_user, "partner_payout_status_emails"
             ):
                 continue
             _append_partner_notification(
@@ -938,6 +950,7 @@ async def _build_partner_notification_counters(
         action_required_notifications=sum(1 for item in items if item.action_required),
     )
 
+
 def _serialize_workspace_organization_profile_response(
     *,
     workspace,
@@ -1005,16 +1018,11 @@ def _serialize_workspace_legal_documents(
     role_by_admin_user_id: dict[UUID, str],
     acceptances: list[PartnerWorkspaceLegalAcceptanceModel],
 ) -> list[PartnerWorkspaceLegalDocumentResponse]:
-    acceptance_by_document = {
-        (item.document_kind, item.document_version): item
-        for item in acceptances
-    }
+    acceptance_by_document = {(item.document_kind, item.document_version): item for item in acceptances}
 
     requires_acceptance = workspace.status in {"approved_probation", "active", "restricted"}
     definitions = list(_WORKSPACE_LEGAL_DOCUMENT_DEFINITIONS)
-    has_reseller_lane = any(
-        item.lane_key == "reseller_api" for item in programs.lane_memberships
-    )
+    has_reseller_lane = any(item.lane_key == "reseller_api" for item in programs.lane_memberships)
     if has_reseller_lane:
         definitions.append(("reseller_annex", "Reseller Annex", "2026.04"))
 
@@ -1047,15 +1055,220 @@ def _serialize_workspace_legal_documents(
 
 
 def _serialize_workspace_code(code_model) -> PartnerWorkspaceCodeResponse:
+    public_token = build_public_token_for_code_id(code_model.id)
+    lifecycle_status = str(
+        getattr(code_model, "lifecycle_status", None) or ("active" if code_model.is_active else "paused")
+    )
+    code_normalized = getattr(code_model, "code_normalized", None) or str(code_model.code).strip().upper()
     return PartnerWorkspaceCodeResponse(
         id=code_model.id,
         partner_account_id=code_model.partner_account_id,
         partner_user_id=code_model.partner_user_id,
         code=code_model.code,
+        code_normalized=code_normalized,
+        masked_code=mask_partner_code(code_model.code),
         markup_pct=float(code_model.markup_pct),
         is_active=bool(code_model.is_active),
+        lifecycle_status=lifecycle_status,
+        approval_status=str(getattr(code_model, "approval_status", None) or "approved"),
+        owner_type=str(getattr(code_model, "owner_type", None) or "affiliate"),
+        lane_key=str(getattr(code_model, "lane_key", None) or "creator_affiliate"),
+        attribution_model=str(getattr(code_model, "attribution_model", None) or "last_eligible_touch"),
+        attribution_window_seconds=int(getattr(code_model, "attribution_window_seconds", None) or 30 * 24 * 60 * 60),
+        share_url=build_share_url(public_token),
+        default_destination_url=build_share_url(public_token),
+        destination_path=getattr(code_model, "destination_path", None),
+        allowed_channels=_list_or_default(
+            getattr(code_model, "allowed_channels", None),
+            ["content", "telegram", "storefront"],
+        ),
+        allowed_storefront_ids=_list_or_default(getattr(code_model, "allowed_storefront_ids", None), ["*"]),
+        allowed_geographies=_list_or_default(getattr(code_model, "allowed_geographies", None), ["*"]),
+        sub_id_schema=dict(getattr(code_model, "sub_id_schema", None) or {}),
+        policy_version_id=getattr(code_model, "policy_version_id", None),
+        commission_contract_id=getattr(code_model, "commission_contract_id", None),
+        active_from=getattr(code_model, "active_from", None),
+        expires_at=getattr(code_model, "expires_at", None),
+        paused_at=getattr(code_model, "paused_at", None),
+        revoked_at=getattr(code_model, "revoked_at", None),
+        version=int(getattr(code_model, "version", None) or 1),
+        available_actions=_available_code_actions(lifecycle_status),
         created_at=code_model.created_at,
         updated_at=code_model.updated_at,
+    )
+
+
+def _list_or_default(value, default: list[str]) -> list[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    return list(default)
+
+
+def _available_code_actions(lifecycle_status: str) -> list[str]:
+    status_value = lifecycle_status.strip().lower()
+    if status_value == "active":
+        return ["create_link", "download_qr", "pause", "revoke", "archive"]
+    if status_value == "paused":
+        return ["create_link", "download_qr", "activate", "revoke", "archive"]
+    if status_value == "revoked":
+        return ["archive"]
+    if status_value == "archived":
+        return []
+    return ["create_link", "download_qr"]
+
+
+async def _resolve_unique_partner_code(repo: PartnerRepository, requested_code: str | None) -> str:
+    if requested_code:
+        normalized = normalize_partner_code(requested_code)
+        if await repo.get_code_by_code(normalized) is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Partner code already exists")
+        return normalized
+    for _ in range(16):
+        candidate = generate_partner_code()
+        if await repo.get_code_by_code(candidate) is None:
+            return candidate
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Could not allocate unique partner code",
+    )
+
+
+def _validated_owner_type(owner_type: str) -> str:
+    value = owner_type.strip().lower()
+    if value not in {"affiliate", "performance", "reseller"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported partner owner_type")
+    return value
+
+
+def _clean_string_list(value: list[str] | None, *, default: list[str]) -> list[str]:
+    items = [str(item).strip() for item in list(value or []) if str(item).strip()]
+    return items or list(default)
+
+
+def _normalize_destination_path(destination_path: str | None) -> str | None:
+    if destination_path is None:
+        return None
+    stripped = destination_path.strip()
+    if not stripped:
+        return None
+    if not stripped.startswith("/"):
+        stripped = f"/{stripped}"
+    return stripped[:500]
+
+
+async def _get_workspace_code_or_404(
+    db: AsyncSession,
+    workspace_id: UUID,
+    code_id: UUID,
+) -> PartnerCodeModel:
+    code_model = await PartnerRepository(db).get_code_by_id(code_id)
+    if code_model is None or code_model.partner_account_id != workspace_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner code not found")
+    return code_model
+
+
+def _assert_code_version_matches(request: Request, code_model: PartnerCodeModel) -> None:
+    raw_if_match = (request.headers.get("If-Match") or "").strip()
+    if not raw_if_match:
+        return
+    current = str(int(code_model.version or 1))
+    accepted = {current, f'"{current}"', f'W/"{current}"'}
+    if raw_if_match not in accepted:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Partner code version conflict")
+
+
+def _apply_code_lifecycle(code_model: PartnerCodeModel, lifecycle_status: str, *, reason: str | None) -> None:
+    value = lifecycle_status.strip().lower()
+    now = datetime.now(UTC)
+    if value not in {"active", "paused", "revoked", "archived"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported lifecycle_status")
+    code_model.lifecycle_status = value
+    code_model.is_active = value == "active"
+    metadata = dict(code_model.sub_id_schema or {})
+    if reason:
+        metadata["_last_lifecycle_reason"] = reason[:255]
+    metadata["_last_lifecycle_changed_at"] = now.isoformat()
+    if value == "active":
+        code_model.paused_at = None
+        code_model.revoked_at = None
+        code_model.active_from = code_model.active_from or now
+    elif value == "paused":
+        code_model.paused_at = now
+    elif value == "revoked":
+        code_model.revoked_at = now
+    code_model.sub_id_schema = metadata
+
+
+async def _change_workspace_code_lifecycle(
+    *,
+    db: AsyncSession,
+    request: Request,
+    workspace_id: UUID,
+    code_id: UUID,
+    lifecycle_status: str,
+    reason: str | None,
+    operation: str,
+) -> PartnerWorkspaceCodeResponse:
+    code_model = await _get_workspace_code_or_404(db, workspace_id, code_id)
+    _assert_code_version_matches(request, code_model)
+    _apply_code_lifecycle(code_model, lifecycle_status, reason=reason)
+    code_model.version = int(code_model.version or 1) + 1
+    updated = await PartnerRepository(db).update_code(code_model)
+    await db.commit()
+    await db.refresh(updated)
+    track_partner_operation(operation=operation)
+    return _serialize_workspace_code(updated)
+
+
+def _build_code_share_url(
+    code_model: PartnerCodeModel,
+    destination_path: str | None,
+    campaign_params: dict[str, str],
+    sub_ids: dict[str, str],
+) -> str:
+    public_token = build_public_token_for_code_id(code_model.id)
+    query = {
+        key: value
+        for key, value in {
+            **{f"utm_{key.removeprefix('utm_')}": value for key, value in dict(campaign_params or {}).items()},
+            **{f"sub_{key}": value for key, value in dict(sub_ids or {}).items()},
+        }.items()
+        if str(value).strip()
+    }
+    target_path = _normalize_destination_path(destination_path) or code_model.destination_path
+    if target_path:
+        query["to"] = target_path
+    encoded = urlencode(query)
+    return f"{build_share_url(public_token)}?{encoded}" if encoded else build_share_url(public_token)
+
+
+def _build_placeholder_qr_svg(share_url: str, size: int) -> str:
+    try:
+        import segno
+
+        output = io.StringIO()
+        qr = segno.make(share_url, error="m")
+        qr.save(
+            output,
+            kind="svg",
+            xmldecl=False,
+            svgclass="cybervpn-partner-qr",
+            scale=max(size // 33, 1),
+            border=2,
+        )
+        return output.getvalue()
+    except Exception:
+        logger.exception("partner_workspace_code_qr_generation_failed")
+
+    escaped = share_url.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}">'
+        f'<rect width="{size}" height="{size}" fill="#fff"/>'
+        f'<rect x="16" y="16" width="{size - 32}" height="{size - 32}" fill="none" stroke="#111" stroke-width="8"/>'
+        f'<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" '
+        f'font-family="monospace" font-size="12" fill="#111">CyberVPN QR</text>'
+        f"<desc>{escaped}</desc>"
+        "</svg>"
     )
 
 
@@ -1233,15 +1446,9 @@ def _serialize_partner_lane_application_response(
         status=lane_application.status,
         application_payload=dict(lane_application.application_payload or {}),
         submitted_at=(
-            _normalize_utc(lane_application.submitted_at)
-            if lane_application.submitted_at is not None
-            else None
+            _normalize_utc(lane_application.submitted_at) if lane_application.submitted_at is not None else None
         ),
-        decided_at=(
-            _normalize_utc(lane_application.decided_at)
-            if lane_application.decided_at is not None
-            else None
-        ),
+        decided_at=(_normalize_utc(lane_application.decided_at) if lane_application.decided_at is not None else None),
         decision_reason_code=lane_application.decision_reason_code,
         decision_summary=lane_application.decision_summary,
         created_at=_normalize_utc(lane_application.created_at),
@@ -1294,20 +1501,10 @@ def _serialize_partner_application_review_request_detail(
         resolved_by_admin_user_id=review_request.resolved_by_admin_user_id,
         requested_at=_normalize_utc(review_request.requested_at),
         response_due_at=(
-            _normalize_utc(review_request.response_due_at)
-            if review_request.response_due_at is not None
-            else None
+            _normalize_utc(review_request.response_due_at) if review_request.response_due_at is not None else None
         ),
-        responded_at=(
-            _normalize_utc(review_request.responded_at)
-            if review_request.responded_at is not None
-            else None
-        ),
-        resolved_at=(
-            _normalize_utc(review_request.resolved_at)
-            if review_request.resolved_at is not None
-            else None
-        ),
+        responded_at=(_normalize_utc(review_request.responded_at) if review_request.responded_at is not None else None),
+        resolved_at=(_normalize_utc(review_request.resolved_at) if review_request.resolved_at is not None else None),
         thread_events=list(thread_events or []),
     )
 
@@ -1350,16 +1547,8 @@ def _derive_partner_governance_state(
         return "clear"
 
     lane_memberships = programs.lane_memberships or []
-    blocking_codes = {
-        code
-        for lane in lane_memberships
-        for code in list(lane.blocking_reason_codes or [])
-    }
-    warning_codes = {
-        code
-        for lane in lane_memberships
-        for code in list(lane.warning_reason_codes or [])
-    }
+    blocking_codes = {code for lane in lane_memberships for code in list(lane.blocking_reason_codes or [])}
+    warning_codes = {code for lane in lane_memberships for code in list(lane.warning_reason_codes or [])}
 
     if {
         "governance_action_blocking",
@@ -1559,9 +1748,7 @@ def _build_partner_session_blocked_reasons(
                         "workspace remains under observation."
                     )
                     if governance_state == "warning"
-                    else (
-                        "Governance posture is limiting launch-sensitive actions while remediation continues."
-                    )
+                    else ("Governance posture is limiting launch-sensitive actions while remediation continues.")
                     if governance_state == "limited"
                     else (
                         "Governance posture is frozen. Remediation and support cases remain visible, but "
@@ -1862,6 +2049,7 @@ def _derive_conversion_status(
         return "on_hold"
     return "commissionable"
 
+
 def _serialize_workspace_conversion_record(item: dict) -> PartnerWorkspaceConversionRecordResponse:
     order: OrderModel = item["order"]
     attribution_result: OrderAttributionResultModel = item["attribution_result"]
@@ -1896,11 +2084,7 @@ def _serialize_workspace_conversion_record(item: dict) -> PartnerWorkspaceConver
         reason_codes.append(f"Commissionability: {commissionability_status}.")
     if evaluation is not None:
         reason_codes.extend(
-            [
-                str(reason_code)
-                for reason_code in list(evaluation.reason_codes or [])
-                if reason_code not in reason_codes
-            ]
+            [str(reason_code) for reason_code in list(evaluation.reason_codes or []) if reason_code not in reason_codes]
         )
     if disputes:
         reason_codes.append(f"{len(disputes)} dispute record(s)")
@@ -1949,9 +2133,7 @@ def _get_workspace_partner_reporting_row(
 def _get_reporting_health_summary(report_pack: dict) -> tuple[dict[str, dict], str | None]:
     consumer_views = report_pack.get("reporting_health_views", {}).get("consumer_health_views", [])
     consumer_health = {
-        str(item.get("consumer_key")): dict(item)
-        for item in consumer_views
-        if item.get("consumer_key") is not None
+        str(item.get("consumer_key")): dict(item) for item in consumer_views if item.get("consumer_key") is not None
     }
     failed = sum(int(item.get("failed_count", 0) or 0) for item in consumer_health.values())
     backlog = sum(int(item.get("backlog_count", 0) or 0) for item in consumer_health.values())
@@ -1975,9 +2157,7 @@ def _build_workspace_analytics_metrics(
         partner_account_id=partner_account_id,
     )
     workspace_orders = [
-        item
-        for item in report_pack.get("order_reporting_mart", [])
-        if item.get("partner_account_id") == workspace_id
+        item for item in report_pack.get("order_reporting_mart", []) if item.get("partner_account_id") == workspace_id
     ]
     first_paid = sum(
         1
@@ -2083,9 +2263,7 @@ def _build_workspace_reporting_summary(
         partner_account_id=partner_account_id,
     )
     workspace_orders = [
-        item
-        for item in report_pack.get("order_reporting_mart", [])
-        if item.get("partner_account_id") == workspace_id
+        item for item in report_pack.get("order_reporting_mart", []) if item.get("partner_account_id") == workspace_id
     ]
     paid_rows = [
         item
@@ -2099,10 +2277,7 @@ def _build_workspace_reporting_summary(
     all_user_ids = {str(item.get("user_id")) for item in workspace_orders if item.get("user_id")}
     currency_codes = list(partner_row.get("currency_codes") or [])
     currency_code = str(currency_codes[0]) if currency_codes else "USD"
-    mismatch_counts = {
-        str(key): int(value)
-        for key, value in dict(reconciliation.get("mismatch_counts") or {}).items()
-    }
+    mismatch_counts = {str(key): int(value) for key, value in dict(reconciliation.get("mismatch_counts") or {}).items()}
     blocking_mismatches = list(reconciliation.get("blocking_mismatches") or [])
 
     metrics = [
@@ -2292,8 +2467,7 @@ def _build_workspace_settlement_sandbox_simulation(
     payout_instruction_allowed = bool(closed_positive_statements and eligible_payout_accounts and not active_executions)
     dry_run_execution_allowed = bool(approved_instructions and not active_executions)
     available_statement_amount = sum(
-        float(getattr(item, "available_amount", 0) or 0)
-        for item in closed_positive_statements
+        float(getattr(item, "available_amount", 0) or 0) for item in closed_positive_statements
     )
     on_hold_amount = sum(float(getattr(item, "on_hold_amount", 0) or 0) for item in statements)
     reserve_amount = sum(float(getattr(item, "reserve_amount", 0) or 0) for item in statements)
@@ -2655,9 +2829,7 @@ def _build_workspace_report_exports(
     can_operate_exports = PartnerPermission.OPERATIONS_WRITE.value in access.permission_keys
     workspace_id = str(access.workspace.id)
     workspace_orders = [
-        item
-        for item in report_pack.get("order_reporting_mart", [])
-        if item.get("partner_account_id") == workspace_id
+        item for item in report_pack.get("order_reporting_mart", []) if item.get("partner_account_id") == workspace_id
     ]
     consumer_health, reporting_health_note = _get_reporting_health_summary(report_pack)
     analytics_consumer = consumer_health.get("analytics_mart")
@@ -2679,6 +2851,7 @@ def _build_workspace_report_exports(
         if any(item and int(item.get("backlog_count", 0) or 0) > 0 for item in relevant_consumers):
             return "scheduled"
         return "available"
+
     export_definitions = [
         {
             "id": "code-report",
@@ -2764,15 +2937,9 @@ def _build_workspace_report_exports(
                 redaction_policy="redacted_partner_export",
                 pii_fields_excluded=list(excluded_pii_fields),
                 notes=list(item["notes"]),
-                available_actions=(
-                    ["schedule_export"]
-                    if can_operate_exports and status != "blocked"
-                    else []
-                ),
+                available_actions=(["schedule_export"] if can_operate_exports and status != "blocked" else []),
                 thread_events=thread_events,
-                last_requested_at=(
-                    max(event.created_at for event in thread_events) if thread_events else None
-                ),
+                last_requested_at=(max(event.created_at for event in thread_events) if thread_events else None),
             )
         )
     return exports
@@ -2860,9 +3027,7 @@ def _serialize_workspace_postback_readiness(
         delivery_status=item.delivery_status,
         scope_label=item.scope_label,
         credential_id=item.credential.id if item.credential is not None else None,
-        credential_status=(
-            item.credential.credential_status if item.credential is not None else None
-        ),
+        credential_status=(item.credential.credential_status if item.credential is not None else None),
         notes=list(item.notes),
     )
 
@@ -2884,9 +3049,7 @@ def _group_workspace_thread_events(
 ) -> dict[tuple[str, str], list[PartnerWorkspaceThreadEventResponse]]:
     grouped: dict[tuple[str, str], list[PartnerWorkspaceThreadEventResponse]] = {}
     for event in events:
-        grouped.setdefault((event.subject_kind, event.subject_id), []).append(
-            _serialize_workspace_thread_event(event)
-        )
+        grouped.setdefault((event.subject_kind, event.subject_id), []).append(_serialize_workspace_thread_event(event))
     return grouped
 
 
@@ -3102,11 +3265,7 @@ def _payload_string_list(payload: dict, *keys: str) -> list[str]:
     for key in keys:
         value = payload.get(key)
         if isinstance(value, list):
-            return [
-                str(item).strip()
-                for item in value
-                if str(item).strip()
-            ]
+            return [str(item).strip() for item in value if str(item).strip()]
     return []
 
 
@@ -3588,9 +3747,7 @@ async def _load_workspace_cases(
     return _build_workspace_cases(
         access=access,
         review_requests=review_requests,
-        conversion_records=[
-            _serialize_workspace_conversion_record(item) for item in reporting_context.order_items
-        ],
+        conversion_records=[_serialize_workspace_conversion_record(item) for item in reporting_context.order_items],
         statements=reporting_context.statements,
         payout_accounts=reporting_context.payout_accounts,
         dispute_cases=dispute_cases,
@@ -3622,10 +3779,7 @@ async def _build_partner_application_detail_response(
             workspace,
             access=access,
         ),
-        lane_applications=[
-            _serialize_partner_lane_application_response(item)
-            for item in lane_applications
-        ],
+        lane_applications=[_serialize_partner_lane_application_response(item) for item in lane_applications],
         review_requests=[
             _serialize_partner_application_review_request_detail(
                 item,
@@ -3637,10 +3791,7 @@ async def _build_partner_application_detail_response(
             )
             for item in review_requests
         ],
-        attachments=[
-            _serialize_partner_application_attachment_response(item)
-            for item in attachments
-        ],
+        attachments=[_serialize_partner_application_attachment_response(item) for item in attachments],
     )
 
 
@@ -3992,6 +4143,8 @@ async def update_admin_partner_workspace_code_status(
 
     previous_active = bool(code_model.is_active)
     code_model.is_active = body.is_active
+    code_model.lifecycle_status = "active" if body.is_active else "paused"
+    code_model.version = int(code_model.version or 1) + 1
     updated = await partner_repo.update_code(code_model)
     try:
         await CreatePartnerWorkspaceWorkflowEventUseCase(db).execute(
@@ -4051,15 +4204,11 @@ async def list_admin_partner_applications(
                     if draft.applicant_admin_user_id is not None
                     else None
                 ),
-                primary_lane=(
-                    str((draft.draft_payload or {}).get("primary_lane") or "") or None
-                ),
+                primary_lane=(str((draft.draft_payload or {}).get("primary_lane") or "") or None),
                 review_ready=draft.review_ready,
                 submitted_at=_normalize_utc(draft.submitted_at) if draft.submitted_at is not None else None,
                 updated_at=_normalize_utc(draft.updated_at),
-                open_review_request_count=sum(
-                    1 for item in review_requests if item.status == "open"
-                ),
+                open_review_request_count=sum(1 for item in review_requests if item.status == "open"),
                 lane_statuses=sorted({item.status for item in lane_applications}),
             )
         )
@@ -4386,14 +4535,8 @@ async def get_partner_session_bootstrap(
         programs_response = PartnerWorkspaceProgramsResponse(
             canonical_source=programs.canonical_source,
             primary_lane_key=programs.primary_lane_key,
-            lane_memberships=[
-                _serialize_workspace_program_lane(item)
-                for item in programs.lane_memberships
-            ],
-            readiness_items=[
-                _serialize_workspace_program_readiness_item(item)
-                for item in programs.readiness_items
-            ],
+            lane_memberships=[_serialize_workspace_program_lane(item) for item in programs.lane_memberships],
+            readiness_items=[_serialize_workspace_program_readiness_item(item) for item in programs.readiness_items],
             updated_at=_normalize_utc(programs.updated_at),
         )
         if PartnerPermission.WORKSPACE_READ.value in active_access.permission_keys:
@@ -4405,11 +4548,7 @@ async def get_partner_session_bootstrap(
             *(item.due_date for item in review_requests),
             *(item.updated_at for item in cases),
         ]
-        normalized_candidates = [
-            _normalize_utc(item)
-            for item in updated_at_candidates
-            if item is not None
-        ]
+        normalized_candidates = [_normalize_utc(item) for item in updated_at_candidates if item is not None]
         if normalized_candidates:
             updated_at = max(normalized_candidates)
 
@@ -4977,9 +5116,7 @@ async def resubmit_partner_application_draft(
 )
 async def list_partner_workspace_lane_applications(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
     current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerLaneApplicationResponse]:
@@ -4999,9 +5136,7 @@ async def list_partner_workspace_lane_applications(
 async def create_partner_workspace_lane_application(
     workspace_id: UUID,
     body: CreatePartnerLaneApplicationRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
@@ -5032,9 +5167,7 @@ async def update_partner_workspace_lane_application(
     workspace_id: UUID,
     lane_application_id: UUID,
     body: UpdatePartnerLaneApplicationRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerLaneApplicationResponse:
@@ -5058,9 +5191,7 @@ async def update_partner_workspace_lane_application(
 async def submit_partner_workspace_lane_application(
     workspace_id: UUID,
     lane_application_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
@@ -5084,9 +5215,7 @@ async def submit_partner_workspace_lane_application(
 )
 async def get_partner_workspace(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceResponse:
     payload = await GetPartnerWorkspaceUseCase(
@@ -5103,9 +5232,7 @@ async def get_partner_workspace(
 )
 async def get_partner_workspace_organization_profile(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceOrganizationProfileResponse:
@@ -5120,9 +5247,7 @@ async def get_partner_workspace_organization_profile(
         workspace_label=access.workspace.display_name,
     )
     primary_lane = (
-        str((draft.draft_payload or {}).get("primary_lane") or "") or None
-        if draft is not None
-        else None
+        str((draft.draft_payload or {}).get("primary_lane") or "") or None if draft is not None else None
     ) or programs.primary_lane_key
     track_partner_operation(operation="get_workspace_organization_profile")
     return _serialize_workspace_organization_profile_response(
@@ -5140,9 +5265,7 @@ async def get_partner_workspace_organization_profile(
 async def update_partner_workspace_organization_profile(
     workspace_id: UUID,
     body: UpdatePartnerWorkspaceOrganizationProfileRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceOrganizationProfileResponse:
@@ -5170,9 +5293,7 @@ async def update_partner_workspace_organization_profile(
         workspace_label=access.workspace.display_name,
     )
     primary_lane = (
-        str((draft.draft_payload or {}).get("primary_lane") or "") or None
-        if draft is not None
-        else None
+        str((draft.draft_payload or {}).get("primary_lane") or "") or None if draft is not None else None
     ) or programs.primary_lane_key
     track_partner_operation(operation="update_workspace_organization_profile")
     return _serialize_workspace_organization_profile_response(
@@ -5189,9 +5310,7 @@ async def update_partner_workspace_organization_profile(
 )
 async def list_partner_workspace_members(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceMemberResponse]:
     payload = await GetPartnerWorkspaceUseCase(
@@ -5208,9 +5327,7 @@ async def list_partner_workspace_members(
 )
 async def list_partner_workspace_roles(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceRoleResponse]:
     roles = await PartnerAccountRepository(db).list_roles()
@@ -5237,9 +5354,7 @@ async def update_partner_workspace_member(
     member_id: UUID,
     body: UpdatePartnerWorkspaceMemberRequest,
     request: Request,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_web_user),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
@@ -5308,9 +5423,7 @@ async def update_partner_workspace_member(
 )
 async def list_partner_workspace_legal_documents(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceLegalDocumentResponse]:
     workspace_payload = await GetPartnerWorkspaceUseCase(
@@ -5342,9 +5455,7 @@ async def list_partner_workspace_legal_documents(
 async def accept_partner_workspace_legal_document(
     workspace_id: UUID,
     document_kind: str,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceLegalDocumentResponse:
@@ -5414,9 +5525,7 @@ async def accept_partner_workspace_legal_document(
 )
 async def get_partner_workspace_settings(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceSettingsResponse:
@@ -5438,9 +5547,7 @@ async def update_partner_workspace_settings(
     workspace_id: UUID,
     body: UpdatePartnerWorkspaceSettingsRequest,
     request: Request,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
@@ -5494,9 +5601,7 @@ async def update_partner_workspace_settings(
 )
 async def get_partner_workspace_programs(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceProgramsResponse:
     programs = await BuildPartnerWorkspaceProgramsUseCase(db).execute(
@@ -5508,14 +5613,8 @@ async def get_partner_workspace_programs(
     return PartnerWorkspaceProgramsResponse(
         canonical_source=programs.canonical_source,
         primary_lane_key=programs.primary_lane_key,
-        lane_memberships=[
-            _serialize_workspace_program_lane(item)
-            for item in programs.lane_memberships
-        ],
-        readiness_items=[
-            _serialize_workspace_program_readiness_item(item)
-            for item in programs.readiness_items
-        ],
+        lane_memberships=[_serialize_workspace_program_lane(item) for item in programs.lane_memberships],
+        readiness_items=[_serialize_workspace_program_readiness_item(item) for item in programs.readiness_items],
         updated_at=_normalize_utc(programs.updated_at),
     )
 
@@ -5526,14 +5625,350 @@ async def get_partner_workspace_programs(
 )
 async def list_partner_workspace_codes(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.CODES_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceCodeResponse]:
     codes = await PartnerRepository(db).get_codes_by_account(access.workspace.id)
     track_partner_operation(operation="list_workspace_codes")
     return [_serialize_workspace_code(code_model) for code_model in codes]
+
+
+@router.post(
+    "/partner-workspaces/{workspace_id}/codes",
+    response_model=PartnerWorkspaceCodeResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_partner_workspace_code(
+    workspace_id: UUID,
+    body: CreatePartnerWorkspaceCodeRequest,
+    request: Request,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceCodeResponse:
+    repo = PartnerRepository(db)
+    idempotency_key = (request.headers.get("Idempotency-Key") or "").strip()
+    if idempotency_key:
+        for existing in await repo.get_codes_by_account(access.workspace.id):
+            metadata = dict(existing.sub_id_schema or {})
+            if metadata.get("_create_idempotency_key") == idempotency_key:
+                track_partner_operation(operation="create_workspace_code:idempotent_replay")
+                return _serialize_workspace_code(existing)
+
+    code = await _resolve_unique_partner_code(repo, body.code)
+    max_markup = await ConfigService(SystemConfigRepository(db)).get_partner_max_markup_pct()
+    if body.markup_pct > max_markup:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Partner code markup exceeds configured maximum",
+        )
+    sub_id_schema = dict(body.sub_id_schema or {})
+    if idempotency_key:
+        sub_id_schema["_create_idempotency_key"] = idempotency_key
+
+    model = PartnerCodeModel(
+        partner_account_id=access.workspace.id,
+        partner_user_id=access.workspace.legacy_owner_user_id,
+        code=code,
+        code_normalized=code,
+        markup_pct=body.markup_pct,
+        is_active=True,
+        lifecycle_status="active",
+        approval_status="approved",
+        owner_type=_validated_owner_type(body.owner_type),
+        lane_key=body.lane_key.strip(),
+        attribution_model=body.attribution_model.strip(),
+        attribution_window_seconds=body.attribution_window_seconds,
+        destination_path=_normalize_destination_path(body.destination_path),
+        allowed_channels=_clean_string_list(body.allowed_channels, default=["content", "telegram", "storefront"]),
+        allowed_storefront_ids=_clean_string_list(body.allowed_storefront_ids, default=["*"]),
+        allowed_geographies=_clean_string_list(body.allowed_geographies, default=["*"]),
+        sub_id_schema=sub_id_schema,
+        expires_at=body.expires_at,
+    )
+    created = await repo.create_code(model)
+    created.public_token_hash = hash_partner_attribution_token(build_public_token_for_code_id(created.id))
+    updated = await repo.update_code(created)
+    await db.commit()
+    await db.refresh(updated)
+    track_partner_operation(operation="create_workspace_code")
+    return _serialize_workspace_code(updated)
+
+
+@router.patch(
+    "/partner-workspaces/{workspace_id}/codes/{code_id}",
+    response_model=PartnerWorkspaceCodeResponse,
+)
+async def update_partner_workspace_code(
+    workspace_id: UUID,
+    code_id: UUID,
+    body: UpdatePartnerWorkspaceCodeRequest,
+    request: Request,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceCodeResponse:
+    code_model = await _get_workspace_code_or_404(db, access.workspace.id, code_id)
+    _assert_code_version_matches(request, code_model)
+    if body.markup_pct is not None:
+        max_markup = await ConfigService(SystemConfigRepository(db)).get_partner_max_markup_pct()
+        if body.markup_pct > max_markup:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Partner code markup exceeds configured maximum",
+            )
+        code_model.markup_pct = body.markup_pct
+    if body.lifecycle_status is not None:
+        _apply_code_lifecycle(code_model, body.lifecycle_status, reason="manual_update")
+    if body.owner_type is not None:
+        code_model.owner_type = _validated_owner_type(body.owner_type)
+    if body.lane_key is not None:
+        code_model.lane_key = body.lane_key.strip()
+    if body.attribution_model is not None:
+        code_model.attribution_model = body.attribution_model.strip()
+    if body.attribution_window_seconds is not None:
+        code_model.attribution_window_seconds = body.attribution_window_seconds
+    if "destination_path" in body.model_fields_set:
+        code_model.destination_path = _normalize_destination_path(body.destination_path)
+    if body.allowed_channels is not None:
+        code_model.allowed_channels = _clean_string_list(
+            body.allowed_channels,
+            default=["content", "telegram", "storefront"],
+        )
+    if body.allowed_storefront_ids is not None:
+        code_model.allowed_storefront_ids = _clean_string_list(body.allowed_storefront_ids, default=["*"])
+    if body.allowed_geographies is not None:
+        code_model.allowed_geographies = _clean_string_list(body.allowed_geographies, default=["*"])
+    if body.sub_id_schema is not None:
+        code_model.sub_id_schema = dict(body.sub_id_schema)
+    if "expires_at" in body.model_fields_set:
+        code_model.expires_at = body.expires_at
+    code_model.version = int(code_model.version or 1) + 1
+    updated = await PartnerRepository(db).update_code(code_model)
+    await db.commit()
+    await db.refresh(updated)
+    track_partner_operation(operation="update_workspace_code")
+    return _serialize_workspace_code(updated)
+
+
+@router.post(
+    "/partner-workspaces/{workspace_id}/codes/{code_id}/activate",
+    response_model=PartnerWorkspaceCodeResponse,
+)
+async def activate_partner_workspace_code(
+    workspace_id: UUID,
+    code_id: UUID,
+    body: PartnerWorkspaceCodeLifecycleRequest,
+    request: Request,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceCodeResponse:
+    return await _change_workspace_code_lifecycle(
+        db=db,
+        request=request,
+        workspace_id=access.workspace.id,
+        code_id=code_id,
+        lifecycle_status="active",
+        reason=body.reason,
+        operation="activate_workspace_code",
+    )
+
+
+@router.post(
+    "/partner-workspaces/{workspace_id}/codes/{code_id}/pause",
+    response_model=PartnerWorkspaceCodeResponse,
+)
+async def pause_partner_workspace_code(
+    workspace_id: UUID,
+    code_id: UUID,
+    body: PartnerWorkspaceCodeLifecycleRequest,
+    request: Request,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceCodeResponse:
+    return await _change_workspace_code_lifecycle(
+        db=db,
+        request=request,
+        workspace_id=access.workspace.id,
+        code_id=code_id,
+        lifecycle_status="paused",
+        reason=body.reason,
+        operation="pause_workspace_code",
+    )
+
+
+@router.post(
+    "/partner-workspaces/{workspace_id}/codes/{code_id}/revoke",
+    response_model=PartnerWorkspaceCodeResponse,
+)
+async def revoke_partner_workspace_code(
+    workspace_id: UUID,
+    code_id: UUID,
+    body: PartnerWorkspaceCodeLifecycleRequest,
+    request: Request,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceCodeResponse:
+    if not body.reason:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="reason is required for revoke")
+    return await _change_workspace_code_lifecycle(
+        db=db,
+        request=request,
+        workspace_id=access.workspace.id,
+        code_id=code_id,
+        lifecycle_status="revoked",
+        reason=body.reason,
+        operation="revoke_workspace_code",
+    )
+
+
+@router.post(
+    "/partner-workspaces/{workspace_id}/codes/{code_id}/archive",
+    response_model=PartnerWorkspaceCodeResponse,
+)
+async def archive_partner_workspace_code(
+    workspace_id: UUID,
+    code_id: UUID,
+    body: PartnerWorkspaceCodeLifecycleRequest,
+    request: Request,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceCodeResponse:
+    if not body.reason:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="reason is required for archive")
+    return await _change_workspace_code_lifecycle(
+        db=db,
+        request=request,
+        workspace_id=access.workspace.id,
+        code_id=code_id,
+        lifecycle_status="archived",
+        reason=body.reason,
+        operation="archive_workspace_code",
+    )
+
+
+@router.post(
+    "/partner-workspaces/{workspace_id}/codes/{code_id}/links",
+    response_model=PartnerWorkspaceCodeLinkResponse,
+)
+async def create_partner_workspace_code_link(
+    workspace_id: UUID,
+    code_id: UUID,
+    body: PartnerWorkspaceCodeLinkRequest,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_READ)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceCodeLinkResponse:
+    code_model = await _get_workspace_code_or_404(db, access.workspace.id, code_id)
+    share_url = _build_code_share_url(code_model, body.destination_path, body.campaign_params, body.sub_ids)
+    track_partner_operation(operation="create_workspace_code_link")
+    return PartnerWorkspaceCodeLinkResponse(
+        code_id=code_model.id,
+        share_url=share_url,
+        destination_path=body.destination_path or code_model.destination_path,
+        campaign_params=dict(body.campaign_params or {}),
+        sub_ids=dict(body.sub_ids or {}),
+    )
+
+
+@router.post(
+    "/partner-workspaces/{workspace_id}/codes/{code_id}/qr",
+    response_model=PartnerWorkspaceCodeQrResponse,
+)
+async def create_partner_workspace_code_qr(
+    workspace_id: UUID,
+    code_id: UUID,
+    body: PartnerWorkspaceCodeQrRequest,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_READ)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceCodeQrResponse:
+    code_model = await _get_workspace_code_or_404(db, access.workspace.id, code_id)
+    share_url = _build_code_share_url(code_model, body.destination_path, {}, {})
+    track_partner_operation(operation="create_workspace_code_qr")
+    return PartnerWorkspaceCodeQrResponse(
+        code_id=code_model.id,
+        share_url=share_url,
+        qr_svg=_build_placeholder_qr_svg(share_url, body.size),
+    )
+
+
+@router.get(
+    "/partner-workspaces/{workspace_id}/commercial-capabilities",
+    response_model=PartnerWorkspaceCommercialCapabilitiesResponse,
+)
+async def get_partner_workspace_commercial_capabilities(
+    workspace_id: UUID,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_READ)),
+) -> PartnerWorkspaceCommercialCapabilitiesResponse:
+    permission_keys = access.permission_keys
+    actions = ["list_codes", "create_link", "download_qr"]
+    if PartnerPermission.CODES_WRITE.value in permission_keys:
+        actions.extend(["create_code", "update_code", "activate", "pause", "revoke", "archive"])
+    track_partner_operation(operation="workspace_commercial_capabilities")
+    return PartnerWorkspaceCommercialCapabilitiesResponse(
+        workspace_id=access.workspace.id,
+        workspace_status=access.workspace.status,
+        can_read_codes=PartnerPermission.CODES_READ.value in permission_keys,
+        can_write_codes=PartnerPermission.CODES_WRITE.value in permission_keys,
+        can_read_finance=PartnerPermission.PAYOUTS_READ.value in permission_keys,
+        attribution_enabled=bool(settings.partner_attribution_enabled),
+        default_owner_type="affiliate",
+        supported_owner_types=["affiliate", "performance", "reseller"],
+        supported_attribution_models=["last_eligible_touch"],
+        available_actions=actions,
+    )
+
+
+@router.get(
+    "/partner-workspaces/{workspace_id}/finance-summary",
+    response_model=PartnerWorkspaceFinanceSummaryResponse,
+)
+async def get_partner_workspace_finance_summary(
+    workspace_id: UUID,
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceFinanceSummaryResponse:
+    result = await db.execute(
+        select(
+            EarningEventModel.currency_code,
+            func.count(EarningEventModel.id),
+            func.coalesce(
+                func.sum(case((EarningEventModel.event_status == "on_hold", EarningEventModel.total_amount), else_=0)),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    case((EarningEventModel.event_status == "available", EarningEventModel.total_amount), else_=0)
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(case((EarningEventModel.event_status == "paid", EarningEventModel.total_amount), else_=0)),
+                0,
+            ),
+            func.coalesce(func.sum(EarningEventModel.total_amount), 0),
+            func.max(EarningEventModel.created_at),
+        )
+        .where(EarningEventModel.partner_account_id == access.workspace.id)
+        .group_by(EarningEventModel.currency_code)
+        .order_by(EarningEventModel.currency_code.asc())
+    )
+    currencies = [
+        PartnerWorkspaceFinanceCurrencySummaryResponse(
+            currency_code=str(row[0] or "USD"),
+            event_count=int(row[1] or 0),
+            on_hold_amount=float(row[2] or 0),
+            available_amount=float(row[3] or 0),
+            paid_amount=float(row[4] or 0),
+            total_amount=float(row[5] or 0),
+            last_event_at=row[6],
+        )
+        for row in result.all()
+    ]
+    track_partner_operation(operation="workspace_finance_summary")
+    return PartnerWorkspaceFinanceSummaryResponse(
+        workspace_id=access.workspace.id,
+        generated_at=datetime.now(UTC),
+        source_of_truth="earning_events",
+        currencies=currencies,
+    )
 
 
 @router.get(
@@ -5542,9 +5977,7 @@ async def list_partner_workspace_codes(
 )
 async def list_partner_workspace_campaign_assets(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.TRAFFIC_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.TRAFFIC_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceCampaignAssetResponse]:
     creative_approvals = await ListCreativeApprovalsUseCase(db).execute(
@@ -5562,9 +5995,7 @@ async def list_partner_workspace_campaign_assets(
 )
 async def list_partner_workspace_reseller_voucher_batches(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.CODES_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceResellerVoucherBatchResponse]:
     if not await _workspace_reseller_voucher_capability_enabled(access=access, db=db):
@@ -5615,9 +6046,7 @@ async def list_partner_workspace_reseller_voucher_batches(
 async def request_partner_workspace_reseller_voucher_batch(
     workspace_id: UUID,
     body: RequestPartnerWorkspaceResellerVoucherBatchRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.CODES_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> RequestPartnerWorkspaceResellerVoucherBatchResponse:
@@ -5634,10 +6063,7 @@ async def request_partner_workspace_reseller_voucher_batch(
         reason_code="reseller_voucher_batch_request",
     )
     redemption_counts = {item.growth_code.id: 0 for item in result.items}
-    policies_by_code_id = {
-        item.growth_code.id: item.policy
-        for item in result.items
-    }
+    policies_by_code_id = {item.growth_code.id: item.policy for item in result.items}
     batch = _build_reseller_voucher_batch_summary(
         batch_id=result.batch_id,
         codes=[item.growth_code for item in result.items],
@@ -5660,9 +6086,7 @@ async def list_partner_workspace_statements(
     statement_status: PartnerStatementStatus | None = Query(None),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerStatementResponse]:
     items = await ListPartnerStatementsUseCase(db).execute(
@@ -5684,9 +6108,7 @@ async def list_partner_workspace_payout_accounts(
     workspace_id: UUID,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspacePayoutAccountResponse]:
     items = await ListPartnerPayoutAccountsUseCase(db).execute(
@@ -5707,9 +6129,7 @@ async def create_partner_workspace_payout_account(
     workspace_id: UUID,
     payload: CreatePartnerWorkspacePayoutAccountRequest,
     request: Request,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.PAYOUTS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.PAYOUTS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_web_user),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
@@ -5746,9 +6166,7 @@ async def create_partner_workspace_payout_account(
 async def get_partner_workspace_payout_account_eligibility(
     workspace_id: UUID,
     payout_account_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspacePayoutAccountEligibilityResponse:
     payout_account = await ListPartnerPayoutAccountsUseCase(db).execute(
@@ -5779,9 +6197,7 @@ async def make_partner_workspace_payout_account_default(
     workspace_id: UUID,
     payout_account_id: UUID,
     request: Request,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.PAYOUTS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.PAYOUTS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_web_user),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
@@ -5823,9 +6239,7 @@ async def list_partner_workspace_payout_history(
     workspace_id: UUID,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspacePayoutHistoryResponse]:
     track_partner_operation(operation="list_workspace_payout_history")
@@ -5840,9 +6254,7 @@ async def list_partner_workspace_conversion_records(
     workspace_id: UUID,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceConversionRecordResponse]:
     reporting_context = await BuildPartnerWorkspaceReportingUseCase(db).execute(
@@ -5861,9 +6273,7 @@ async def list_partner_workspace_conversion_records(
 async def get_partner_workspace_conversion_explainability(
     workspace_id: UUID,
     order_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> OrderExplainabilityResponse:
     reporting_use_case = BuildPartnerWorkspaceReportingUseCase(db)
@@ -5894,9 +6304,7 @@ async def get_partner_workspace_conversion_explainability(
 )
 async def list_partner_workspace_analytics_metrics(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceAnalyticsMetricResponse]:
     reporting_context = await BuildPartnerWorkspaceReportingUseCase(db).execute(
@@ -5919,9 +6327,7 @@ async def list_partner_workspace_analytics_metrics(
 )
 async def get_partner_workspace_reporting_summary(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceReportingSummaryResponse:
     reporting_context = await BuildPartnerWorkspaceReportingUseCase(db).execute(
@@ -5946,9 +6352,7 @@ async def get_partner_workspace_reporting_summary(
 )
 async def get_partner_workspace_settlement_sandbox(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceSettlementSandboxSimulationResponse:
     track_partner_operation(operation="get_workspace_settlement_sandbox")
@@ -5961,9 +6365,7 @@ async def get_partner_workspace_settlement_sandbox(
 )
 async def list_partner_workspace_report_exports(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceReportExportResponse]:
     track_partner_operation(operation="list_workspace_report_exports")
@@ -5979,9 +6381,7 @@ async def schedule_partner_workspace_report_export(
     workspace_id: UUID,
     export_id: str,
     payload: SchedulePartnerWorkspaceReportExportRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceReportExportResponse:
@@ -6028,14 +6428,10 @@ async def schedule_partner_workspace_report_export(
 )
 async def list_partner_workspace_integration_credentials(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.INTEGRATIONS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.INTEGRATIONS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceIntegrationCredentialResponse]:
-    items = await ListPartnerWorkspaceIntegrationCredentialsUseCase(db).execute(
-        partner_account_id=access.workspace.id
-    )
+    items = await ListPartnerWorkspaceIntegrationCredentialsUseCase(db).execute(partner_account_id=access.workspace.id)
     track_partner_operation(operation="list_workspace_integration_credentials")
     return [
         _serialize_workspace_integration_credential(
@@ -6094,9 +6490,7 @@ async def rotate_partner_workspace_integration_credential(
 )
 async def list_partner_workspace_integration_delivery_logs(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.INTEGRATIONS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.INTEGRATIONS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceIntegrationDeliveryLogResponse]:
     items = await BuildPartnerWorkspaceIntegrationDeliveryLogsUseCase(db).execute(
@@ -6115,9 +6509,7 @@ async def list_partner_workspace_integration_delivery_logs(
 )
 async def get_partner_workspace_postback_readiness(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.INTEGRATIONS_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.INTEGRATIONS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspacePostbackReadinessResponse:
     item = await BuildPartnerWorkspacePostbackReadinessUseCase(db).execute(
@@ -6135,9 +6527,7 @@ async def get_partner_workspace_postback_readiness(
 )
 async def list_partner_workspace_review_requests(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceReviewRequestResponse]:
     track_partner_operation(operation="list_workspace_review_requests")
@@ -6153,9 +6543,7 @@ async def respond_partner_workspace_review_request(
     workspace_id: UUID,
     review_request_id: str,
     payload: SubmitPartnerWorkspaceReviewRequestResponseRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceThreadEventResponse:
@@ -6201,9 +6589,7 @@ async def respond_partner_workspace_review_request(
 )
 async def list_partner_workspace_traffic_declarations(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.TRAFFIC_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.TRAFFIC_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceTrafficDeclarationResponse]:
     track_partner_operation(operation="list_workspace_traffic_declarations")
@@ -6231,9 +6617,7 @@ async def list_partner_workspace_traffic_declarations(
 async def submit_partner_workspace_traffic_declaration(
     workspace_id: UUID,
     payload: SubmitPartnerWorkspaceTrafficDeclarationRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.TRAFFIC_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.TRAFFIC_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> TrafficDeclarationResponse:
@@ -6260,9 +6644,7 @@ async def submit_partner_workspace_traffic_declaration(
 async def submit_partner_workspace_creative_approval(
     workspace_id: UUID,
     payload: SubmitPartnerWorkspaceCreativeApprovalRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.TRAFFIC_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.TRAFFIC_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> CreativeApprovalResponse:
@@ -6291,9 +6673,7 @@ async def list_partner_workspace_creative_approvals(
     workspace_id: UUID,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.TRAFFIC_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.TRAFFIC_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[CreativeApprovalResponse]:
     items = await ListCreativeApprovalsUseCase(db).execute(
@@ -6312,9 +6692,7 @@ async def list_partner_workspace_creative_approvals(
 )
 async def list_partner_workspace_cases(
     workspace_id: UUID,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceCaseResponse]:
     track_partner_operation(operation="list_workspace_cases")
@@ -6330,9 +6708,7 @@ async def respond_partner_workspace_case(
     workspace_id: UUID,
     case_id: str,
     payload: SubmitPartnerWorkspaceCaseResponseRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceThreadEventResponse:
@@ -6370,9 +6746,7 @@ async def mark_partner_workspace_case_ready_for_ops(
     workspace_id: UUID,
     case_id: str,
     payload: MarkPartnerWorkspaceCaseReadyForOpsRequest,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceThreadEventResponse:
@@ -6410,9 +6784,7 @@ async def add_partner_workspace_member(
     workspace_id: UUID,
     body: AddPartnerWorkspaceMemberRequest,
     request: Request,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_WRITE)
-    ),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_WRITE)),
     current_user: AdminUserModel = Depends(get_current_active_web_user),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),

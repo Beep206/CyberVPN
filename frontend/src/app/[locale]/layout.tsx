@@ -6,6 +6,7 @@ import { AuthSessionBootstrap } from '@/app/providers/auth-provider';
 import { DevTools } from '@/app/providers/dev-tools';
 import { MotionProvider } from '@/app/providers/motion-provider';
 import { ThemeProvider } from '@/app/providers/theme-provider';
+import { PartnerAttributionProvider } from '@/features/partner-attribution/provider';
 import { ReferralAttributionProvider } from '@/features/referral-attribution/provider';
 import { getStaticParamsLocales } from '@/i18n/config';
 import { getCachedTranslations, setRequestLocale } from '@/i18n/server';
@@ -73,6 +74,7 @@ export default async function RootLayout({
           <MotionProvider>
             <AuthSessionBootstrap />
             <ReferralAttributionProvider />
+            <PartnerAttributionProvider />
             <Script
               src="https://telegram.org/js/telegram-web-app.js"
               strategy="beforeInteractive"

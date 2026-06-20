@@ -3022,6 +3022,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/partner-attribution/capture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Capture Partner Attribution */
+        post: operations["capture_partner_attribution_api_v1_partner_attribution_capture_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-attribution/transfer/consume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consume Partner Attribution Transfer */
+        post: operations["consume_partner_attribution_transfer_api_v1_partner_attribution_transfer_consume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-attribution/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Claim Partner Attribution */
+        post: operations["claim_partner_attribution_api_v1_partner_attribution_claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/commercial-bindings/": {
         parameters: {
             query?: never;
@@ -7361,6 +7412,160 @@ export interface paths {
         };
         /** List Partner Workspace Codes */
         get: operations["list_partner_workspace_codes_api_v1_partner_workspaces__workspace_id__codes_get"];
+        put?: never;
+        /** Create Partner Workspace Code */
+        post: operations["create_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Partner Workspace Code */
+        patch: operations["update_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate Partner Workspace Code */
+        post: operations["activate_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause Partner Workspace Code */
+        post: operations["pause_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Partner Workspace Code */
+        post: operations["revoke_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Partner Workspace Code */
+        post: operations["archive_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Partner Workspace Code Link */
+        post: operations["create_partner_workspace_code_link_api_v1_partner_workspaces__workspace_id__codes__code_id__links_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/qr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Partner Workspace Code Qr */
+        post: operations["create_partner_workspace_code_qr_api_v1_partner_workspaces__workspace_id__codes__code_id__qr_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/commercial-capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Workspace Commercial Capabilities */
+        get: operations["get_partner_workspace_commercial_capabilities_api_v1_partner_workspaces__workspace_id__commercial_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/finance-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Workspace Finance Summary */
+        get: operations["get_partner_workspace_finance_summary_api_v1_partner_workspaces__workspace_id__finance_summary_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -15836,7 +16041,7 @@ export interface components {
          * CommercialOwnerSource
          * @enum {string}
          */
-        CommercialOwnerSource: "explicit_code" | "passive_click" | "persistent_reseller_binding" | "storefront_default" | "manual_override" | "contract_assignment";
+        CommercialOwnerSource: "explicit_code" | "passive_click" | "claimed_commercial_binding" | "persistent_reseller_binding" | "storefront_default" | "manual_override" | "contract_assignment";
         /**
          * CommercialOwnerType
          * @enum {string}
@@ -16699,6 +16904,50 @@ export interface components {
              * @default false
              */
             make_default: boolean;
+        };
+        /** CreatePartnerWorkspaceCodeRequest */
+        CreatePartnerWorkspaceCodeRequest: {
+            /** Code */
+            code?: string | null;
+            /**
+             * Markup Pct
+             * @default 0
+             */
+            markup_pct: number;
+            /**
+             * Owner Type
+             * @default affiliate
+             */
+            owner_type: string;
+            /**
+             * Lane Key
+             * @default creator_affiliate
+             */
+            lane_key: string;
+            /**
+             * Attribution Model
+             * @default last_eligible_touch
+             */
+            attribution_model: string;
+            /**
+             * Attribution Window Seconds
+             * @default 2592000
+             */
+            attribution_window_seconds: number;
+            /** Destination Path */
+            destination_path?: string | null;
+            /** Allowed Channels */
+            allowed_channels?: string[];
+            /** Allowed Storefront Ids */
+            allowed_storefront_ids?: string[];
+            /** Allowed Geographies */
+            allowed_geographies?: string[];
+            /** Sub Id Schema */
+            sub_id_schema?: {
+                [key: string]: unknown;
+            };
+            /** Expires At */
+            expires_at?: string | null;
         };
         /** CreatePartnerWorkspacePayoutAccountRequest */
         CreatePartnerWorkspacePayoutAccountRequest: {
@@ -17811,7 +18060,7 @@ export interface components {
          * CustomerCommercialBindingType
          * @enum {string}
          */
-        CustomerCommercialBindingType: "reseller_binding" | "storefront_default_owner" | "manual_override" | "contract_assignment";
+        CustomerCommercialBindingType: "partner_attribution" | "reseller_binding" | "storefront_default_owner" | "manual_override" | "contract_assignment";
         /** CustomerConversationDetailResponse */
         CustomerConversationDetailResponse: {
             /**
@@ -22126,6 +22375,81 @@ export interface components {
             /** Current Permission Keys */
             current_permission_keys?: string[];
         };
+        /** PartnerAttributionCaptureRequest */
+        PartnerAttributionCaptureRequest: {
+            /** Public Token */
+            public_token: string;
+            /** Source Host */
+            source_host?: string | null;
+            /** Source Path */
+            source_path?: string | null;
+            /** Campaign Params */
+            campaign_params?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** PartnerAttributionCaptureResponse */
+        PartnerAttributionCaptureResponse: {
+            /**
+             * Attribution Id
+             * Format: uuid
+             */
+            attribution_id: string;
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Masked Code */
+            masked_code: string;
+            /** Transfer Token */
+            transfer_token: string;
+            /** Redirect Url */
+            redirect_url: string;
+        };
+        /** PartnerAttributionClaimRequest */
+        PartnerAttributionClaimRequest: {
+            /** Fallback Token */
+            fallback_token?: string | null;
+        };
+        /** PartnerAttributionClaimResponse */
+        PartnerAttributionClaimResponse: {
+            /** Status */
+            status: string;
+            /** Partner Account Id */
+            partner_account_id?: string | null;
+            /** Partner Code Id */
+            partner_code_id?: string | null;
+            /** Binding Id */
+            binding_id?: string | null;
+            /** Claimed At */
+            claimed_at?: string | null;
+        };
+        /** PartnerAttributionTransferConsumeRequest */
+        PartnerAttributionTransferConsumeRequest: {
+            /** Transfer Token */
+            transfer_token: string;
+        };
+        /** PartnerAttributionTransferConsumeResponse */
+        PartnerAttributionTransferConsumeResponse: {
+            /**
+             * Attribution Id
+             * Format: uuid
+             */
+            attribution_id: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Masked Code */
+            masked_code: string;
+        };
         /** PartnerBotProvisioningJobResponse */
         PartnerBotProvisioningJobResponse: {
             /**
@@ -22952,6 +23276,66 @@ export interface components {
             /** Thread Events */
             thread_events?: components["schemas"]["PartnerWorkspaceThreadEventResponse"][];
         };
+        /** PartnerWorkspaceCodeLifecycleRequest */
+        PartnerWorkspaceCodeLifecycleRequest: {
+            /** Reason */
+            reason?: string | null;
+        };
+        /** PartnerWorkspaceCodeLinkRequest */
+        PartnerWorkspaceCodeLinkRequest: {
+            /** Destination Path */
+            destination_path?: string | null;
+            /** Campaign Params */
+            campaign_params?: {
+                [key: string]: string;
+            };
+            /** Sub Ids */
+            sub_ids?: {
+                [key: string]: string;
+            };
+        };
+        /** PartnerWorkspaceCodeLinkResponse */
+        PartnerWorkspaceCodeLinkResponse: {
+            /**
+             * Code Id
+             * Format: uuid
+             */
+            code_id: string;
+            /** Share Url */
+            share_url: string;
+            /** Destination Path */
+            destination_path?: string | null;
+            /** Campaign Params */
+            campaign_params?: {
+                [key: string]: string;
+            };
+            /** Sub Ids */
+            sub_ids?: {
+                [key: string]: string;
+            };
+        };
+        /** PartnerWorkspaceCodeQrRequest */
+        PartnerWorkspaceCodeQrRequest: {
+            /** Destination Path */
+            destination_path?: string | null;
+            /**
+             * Size
+             * @default 256
+             */
+            size: number;
+        };
+        /** PartnerWorkspaceCodeQrResponse */
+        PartnerWorkspaceCodeQrResponse: {
+            /**
+             * Code Id
+             * Format: uuid
+             */
+            code_id: string;
+            /** Share Url */
+            share_url: string;
+            /** Qr Svg */
+            qr_svg: string;
+        };
         /** PartnerWorkspaceCodeResponse */
         PartnerWorkspaceCodeResponse: {
             /**
@@ -22961,17 +23345,62 @@ export interface components {
             id: string;
             /** Partner Account Id */
             partner_account_id: string | null;
-            /**
-             * Partner User Id
-             * Format: uuid
-             */
-            partner_user_id: string;
+            /** Partner User Id */
+            partner_user_id: string | null;
             /** Code */
             code: string;
+            /** Code Normalized */
+            code_normalized?: string | null;
+            /** Masked Code */
+            masked_code: string;
             /** Markup Pct */
             markup_pct: number;
             /** Is Active */
             is_active: boolean;
+            /** Lifecycle Status */
+            lifecycle_status: string;
+            /** Approval Status */
+            approval_status: string;
+            /** Owner Type */
+            owner_type: string;
+            /** Lane Key */
+            lane_key: string;
+            /** Attribution Model */
+            attribution_model: string;
+            /** Attribution Window Seconds */
+            attribution_window_seconds: number;
+            /** Share Url */
+            share_url: string;
+            /** Default Destination Url */
+            default_destination_url: string;
+            /** Destination Path */
+            destination_path?: string | null;
+            /** Allowed Channels */
+            allowed_channels?: string[];
+            /** Allowed Storefront Ids */
+            allowed_storefront_ids?: string[];
+            /** Allowed Geographies */
+            allowed_geographies?: string[];
+            /** Sub Id Schema */
+            sub_id_schema?: {
+                [key: string]: unknown;
+            };
+            /** Policy Version Id */
+            policy_version_id?: string | null;
+            /** Commission Contract Id */
+            commission_contract_id?: string | null;
+            /** Active From */
+            active_from?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Paused At */
+            paused_at?: string | null;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /** Version */
+            version: number;
+            /** Available Actions */
+            available_actions?: string[];
             /**
              * Created At
              * Format: date-time
@@ -22982,6 +23411,32 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** PartnerWorkspaceCommercialCapabilitiesResponse */
+        PartnerWorkspaceCommercialCapabilitiesResponse: {
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            /** Workspace Status */
+            workspace_status: string;
+            /** Can Read Codes */
+            can_read_codes: boolean;
+            /** Can Write Codes */
+            can_write_codes: boolean;
+            /** Can Read Finance */
+            can_read_finance: boolean;
+            /** Attribution Enabled */
+            attribution_enabled: boolean;
+            /** Default Owner Type */
+            default_owner_type: string;
+            /** Supported Owner Types */
+            supported_owner_types: string[];
+            /** Supported Attribution Models */
+            supported_attribution_models: string[];
+            /** Available Actions */
+            available_actions: string[];
         };
         /** PartnerWorkspaceConversionRecordResponse */
         PartnerWorkspaceConversionRecordResponse: {
@@ -23010,6 +23465,40 @@ export interface components {
             updated_at: string;
             /** Notes */
             notes?: string[];
+        };
+        /** PartnerWorkspaceFinanceCurrencySummaryResponse */
+        PartnerWorkspaceFinanceCurrencySummaryResponse: {
+            /** Currency Code */
+            currency_code: string;
+            /** Event Count */
+            event_count: number;
+            /** On Hold Amount */
+            on_hold_amount: number;
+            /** Available Amount */
+            available_amount: number;
+            /** Paid Amount */
+            paid_amount: number;
+            /** Total Amount */
+            total_amount: number;
+            /** Last Event At */
+            last_event_at?: string | null;
+        };
+        /** PartnerWorkspaceFinanceSummaryResponse */
+        PartnerWorkspaceFinanceSummaryResponse: {
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Source Of Truth */
+            source_of_truth: string;
+            /** Currencies */
+            currencies: components["schemas"]["PartnerWorkspaceFinanceCurrencySummaryResponse"][];
         };
         /** PartnerWorkspaceIntegrationCredentialResponse */
         PartnerWorkspaceIntegrationCredentialResponse: {
@@ -30663,6 +31152,35 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** UpdatePartnerWorkspaceCodeRequest */
+        UpdatePartnerWorkspaceCodeRequest: {
+            /** Markup Pct */
+            markup_pct?: number | null;
+            /** Lifecycle Status */
+            lifecycle_status?: string | null;
+            /** Owner Type */
+            owner_type?: string | null;
+            /** Lane Key */
+            lane_key?: string | null;
+            /** Attribution Model */
+            attribution_model?: string | null;
+            /** Attribution Window Seconds */
+            attribution_window_seconds?: number | null;
+            /** Destination Path */
+            destination_path?: string | null;
+            /** Allowed Channels */
+            allowed_channels?: string[] | null;
+            /** Allowed Storefront Ids */
+            allowed_storefront_ids?: string[] | null;
+            /** Allowed Geographies */
+            allowed_geographies?: string[] | null;
+            /** Sub Id Schema */
+            sub_id_schema?: {
+                [key: string]: unknown;
+            } | null;
+            /** Expires At */
+            expires_at?: string | null;
+        };
         /** UpdatePartnerWorkspaceCodeStatusRequest */
         UpdatePartnerWorkspaceCodeStatusRequest: {
             /** Is Active */
@@ -38037,6 +38555,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderAttributionResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capture_partner_attribution_api_v1_partner_attribution_capture_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerAttributionCaptureRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerAttributionCaptureResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    consume_partner_attribution_transfer_api_v1_partner_attribution_transfer_consume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerAttributionTransferConsumeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerAttributionTransferConsumeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    claim_partner_attribution_api_v1_partner_attribution_claim_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerAttributionClaimRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerAttributionClaimResponse"];
                 };
             };
             /** @description Validation Error */
@@ -47365,6 +47982,355 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PartnerWorkspaceCodeResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePartnerWorkspaceCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                code_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePartnerWorkspaceCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                code_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerWorkspaceCodeLifecycleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                code_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerWorkspaceCodeLifecycleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                code_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerWorkspaceCodeLifecycleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_partner_workspace_code_api_v1_partner_workspaces__workspace_id__codes__code_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                code_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerWorkspaceCodeLifecycleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_partner_workspace_code_link_api_v1_partner_workspaces__workspace_id__codes__code_id__links_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                code_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerWorkspaceCodeLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCodeLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_partner_workspace_code_qr_api_v1_partner_workspaces__workspace_id__codes__code_id__qr_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                code_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerWorkspaceCodeQrRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCodeQrResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_workspace_commercial_capabilities_api_v1_partner_workspaces__workspace_id__commercial_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCommercialCapabilitiesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_workspace_finance_summary_api_v1_partner_workspaces__workspace_id__finance_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceFinanceSummaryResponse"];
                 };
             };
             /** @description Validation Error */

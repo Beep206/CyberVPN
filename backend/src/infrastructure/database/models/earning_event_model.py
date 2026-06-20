@@ -21,9 +21,9 @@ class EarningEventModel(Base):
         nullable=True,
         index=True,
     )
-    partner_user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("mobile_users.id", ondelete="CASCADE"),
-        nullable=False,
+    partner_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("mobile_users.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
     client_user_id: Mapped[uuid.UUID] = mapped_column(
@@ -42,6 +42,8 @@ class EarningEventModel(Base):
         nullable=True,
         index=True,
     )
+    source_event_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    source_event_key: Mapped[str | None] = mapped_column(String(180), nullable=True, unique=True, index=True)
     partner_code_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("partner_codes.id", ondelete="SET NULL"),
         nullable=True,
@@ -57,6 +59,12 @@ class EarningEventModel(Base):
         nullable=True,
         index=True,
     )
+    policy_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("policy_versions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
     owner_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     event_status: Mapped[str] = mapped_column(String(20), nullable=False, default="on_hold", server_default="on_hold")
     commission_base_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
@@ -66,6 +74,7 @@ class EarningEventModel(Base):
     total_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     currency_code: Mapped[str] = mapped_column(String(12), nullable=False, default="USD", server_default="USD")
     available_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    calculation_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     source_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

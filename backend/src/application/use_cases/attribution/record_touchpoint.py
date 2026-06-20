@@ -42,6 +42,10 @@ class RecordAttributionTouchpointUseCase:
         order_id: UUID | None = None,
         partner_code: str | None = None,
         partner_code_id: UUID | None = None,
+        partner_attribution_session_id: UUID | None = None,
+        policy_version_id: UUID | None = None,
+        source_event_id: str | None = None,
+        idempotency_key: str | None = None,
         sale_channel: str | None = None,
         source_host: str | None = None,
         source_path: str | None = None,
@@ -94,6 +98,9 @@ class RecordAttributionTouchpointUseCase:
 
             model = AttributionTouchpointModel(
                 touchpoint_type=touchpoint_type,
+                source_event_id=source_event_id,
+                idempotency_key=idempotency_key,
+                partner_attribution_session_id=partner_attribution_session_id,
                 user_id=resolved_user_id,
                 auth_realm_id=UUID(current_realm.realm_id),
                 storefront_id=resolved_storefront_id,
@@ -101,6 +108,7 @@ class RecordAttributionTouchpointUseCase:
                 checkout_session_id=checkout_session_id,
                 order_id=order_id,
                 partner_code_id=resolved_partner_code_id,
+                policy_version_id=policy_version_id,
                 sale_channel=sale_channel,
                 source_host=source_host,
                 source_path=source_path,

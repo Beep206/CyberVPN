@@ -38,6 +38,9 @@ class _ResolvedCandidate:
     owner_source: str
     partner_account_id: UUID | None
     partner_code_id: UUID | None
+    attribution_session_id: UUID | None
+    policy_version_id: UUID | None
+    commission_contract_id: UUID | None
     winning_touchpoint_id: UUID | None
     winning_binding_id: UUID | None
     rule_path: list[str]
@@ -113,6 +116,9 @@ class ResolveOrderAttributionUseCase:
             owner_source=candidate.owner_source if candidate is not None else None,
             partner_account_id=candidate.partner_account_id if candidate is not None else None,
             partner_code_id=candidate.partner_code_id if candidate is not None else None,
+            attribution_session_id=candidate.attribution_session_id if candidate is not None else None,
+            policy_version_id=candidate.policy_version_id if candidate is not None else None,
+            commission_contract_id=candidate.commission_contract_id if candidate is not None else None,
             winning_touchpoint_id=candidate.winning_touchpoint_id if candidate is not None else None,
             winning_binding_id=candidate.winning_binding_id if candidate is not None else None,
             rule_path=candidate.rule_path if candidate is not None else ["no_owner_resolved"],
@@ -134,6 +140,13 @@ class ResolveOrderAttributionUseCase:
                 "owner_source": created.owner_source,
                 "partner_account_id": str(created.partner_account_id) if created.partner_account_id else None,
                 "partner_code_id": str(created.partner_code_id) if created.partner_code_id else None,
+                "attribution_session_id": str(created.attribution_session_id)
+                if created.attribution_session_id
+                else None,
+                "policy_version_id": str(created.policy_version_id) if created.policy_version_id else None,
+                "commission_contract_id": str(created.commission_contract_id)
+                if created.commission_contract_id
+                else None,
                 "winning_touchpoint_id": str(created.winning_touchpoint_id) if created.winning_touchpoint_id else None,
                 "winning_binding_id": str(created.winning_binding_id) if created.winning_binding_id else None,
             },
@@ -190,6 +203,13 @@ class ResolveOrderAttributionUseCase:
                 rule_path=["contract_assignment_binding_selected"],
             )
 
+        if binding_by_type.partner_attribution is not None:
+            return _candidate_from_binding(
+                binding_by_type.partner_attribution,
+                owner_source=CommercialOwnerSource.CLAIMED_COMMERCIAL_BINDING.value,
+                rule_path=["claimed_commercial_binding_selected"],
+            )
+
         if explicit_touchpoint is not None:
             return await self._candidate_from_touchpoint(
                 explicit_touchpoint,
@@ -237,15 +257,15 @@ class ResolveOrderAttributionUseCase:
             raise ValueError("Partner code referenced by touchpoint was not found")
         owner_type = _infer_owner_type_from_code(code_model)
         rule_path = list(fallback_rule_path)
-        if owner_type == CommercialOwnerType.RESELLER.value:
-            rule_path.append("owner_type_inferred_from_partner_account")
-        else:
-            rule_path.append("owner_type_inferred_as_affiliate")
+        rule_path.append("owner_type_loaded_from_partner_code_policy")
         return _ResolvedCandidate(
             owner_type=owner_type,
             owner_source=owner_source,
             partner_account_id=code_model.partner_account_id,
             partner_code_id=code_model.id,
+            attribution_session_id=touchpoint.partner_attribution_session_id,
+            policy_version_id=touchpoint.policy_version_id or code_model.policy_version_id,
+            commission_contract_id=code_model.commission_contract_id,
             winning_touchpoint_id=touchpoint.id,
             winning_binding_id=None,
             rule_path=rule_path,
@@ -256,6 +276,7 @@ class ResolveOrderAttributionUseCase:
 class _BindingSelections:
     manual_override: CustomerCommercialBindingModel | None
     contract_assignment: CustomerCommercialBindingModel | None
+    partner_attribution: CustomerCommercialBindingModel | None
     reseller_binding: CustomerCommercialBindingModel | None
     storefront_default: CustomerCommercialBindingModel | None
 
@@ -270,6 +291,7 @@ def _latest_binding_by_type(bindings: list[CustomerCommercialBindingModel]) -> _
     return _BindingSelections(
         manual_override=_pick(CustomerCommercialBindingType.MANUAL_OVERRIDE.value),
         contract_assignment=_pick(CustomerCommercialBindingType.CONTRACT_ASSIGNMENT.value),
+        partner_attribution=_pick(CustomerCommercialBindingType.PARTNER_ATTRIBUTION.value),
         reseller_binding=_pick(CustomerCommercialBindingType.RESELLER_BINDING.value),
         storefront_default=_pick(CustomerCommercialBindingType.STOREFRONT_DEFAULT_OWNER.value),
     )
@@ -303,6 +325,9 @@ def _candidate_from_binding(
         owner_source=owner_source,
         partner_account_id=binding.partner_account_id,
         partner_code_id=binding.partner_code_id,
+        attribution_session_id=binding.attribution_session_id,
+        policy_version_id=binding.policy_version_id,
+        commission_contract_id=binding.commission_contract_id,
         winning_touchpoint_id=None,
         winning_binding_id=binding.id,
         rule_path=rule_path,
@@ -310,8 +335,13 @@ def _candidate_from_binding(
 
 
 def _infer_owner_type_from_code(code_model: PartnerCodeModel) -> str:
-    if code_model.partner_account_id is not None:
-        return CommercialOwnerType.RESELLER.value
+    owner_type = (code_model.owner_type or "").strip()
+    if owner_type in {
+        CommercialOwnerType.AFFILIATE.value,
+        CommercialOwnerType.PERFORMANCE.value,
+        CommercialOwnerType.RESELLER.value,
+    }:
+        return owner_type
     return CommercialOwnerType.AFFILIATE.value
 
 
@@ -354,6 +384,7 @@ def _build_explainability_snapshot(
         "resolution_precedence": [
             "manual_override",
             "contract_assignment",
+            "claimed_commercial_binding",
             "explicit_code",
             "persistent_reseller_binding",
             "passive_click",
@@ -366,6 +397,13 @@ def _build_explainability_snapshot(
                 "owner_source": candidate.owner_source,
                 "partner_account_id": str(candidate.partner_account_id) if candidate.partner_account_id else None,
                 "partner_code_id": str(candidate.partner_code_id) if candidate.partner_code_id else None,
+                "attribution_session_id": (
+                    str(candidate.attribution_session_id) if candidate.attribution_session_id else None
+                ),
+                "policy_version_id": str(candidate.policy_version_id) if candidate.policy_version_id else None,
+                "commission_contract_id": (
+                    str(candidate.commission_contract_id) if candidate.commission_contract_id else None
+                ),
                 "winning_touchpoint_id": (
                     str(candidate.winning_touchpoint_id) if candidate.winning_touchpoint_id else None
                 ),

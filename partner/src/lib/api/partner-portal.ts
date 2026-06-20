@@ -87,6 +87,48 @@ type UpdatePartnerWorkspaceSettingsResponse =
   operations['update_partner_workspace_settings_api_v1_partner_workspaces__workspace_id__settings_patch']['responses'][200]['content']['application/json'];
 type ListPartnerWorkspaceCodesResponse =
   operations['list_partner_workspace_codes_api_v1_partner_workspaces__workspace_id__codes_get']['responses'][200]['content']['application/json'];
+type PartnerWorkspaceCodeResponse = ListPartnerWorkspaceCodesResponse[number];
+type CreatePartnerWorkspaceCodePayload = {
+  code?: string | null;
+  markup_pct?: number;
+  owner_type?: string;
+  lane_key?: string;
+  attribution_model?: string;
+  attribution_window_seconds?: number;
+  destination_path?: string | null;
+  allowed_channels?: string[];
+  allowed_storefront_ids?: string[];
+  allowed_geographies?: string[];
+  sub_id_schema?: Record<string, unknown>;
+  expires_at?: string | null;
+};
+type UpdatePartnerWorkspaceCodePayload = Partial<CreatePartnerWorkspaceCodePayload> & {
+  lifecycle_status?: string | null;
+};
+type PartnerWorkspaceCodeLifecyclePayload = {
+  reason?: string | null;
+};
+type PartnerWorkspaceCodeLinkPayload = {
+  destination_path?: string | null;
+  campaign_params?: Record<string, string>;
+  sub_ids?: Record<string, string>;
+};
+type PartnerWorkspaceCodeLinkResponse = {
+  code_id: string;
+  share_url: string;
+  destination_path?: string | null;
+  campaign_params: Record<string, string>;
+  sub_ids: Record<string, string>;
+};
+type PartnerWorkspaceCodeQrPayload = {
+  destination_path?: string | null;
+  size?: number;
+};
+type PartnerWorkspaceCodeQrResponse = {
+  code_id: string;
+  share_url: string;
+  qr_svg: string;
+};
 type ListPartnerWorkspaceCampaignAssetsResponse =
   operations['list_partner_workspace_campaign_assets_api_v1_partner_workspaces__workspace_id__campaign_assets_get']['responses'][200]['content']['application/json'];
 type ListPartnerWorkspaceLaneApplicationsResponse =
@@ -614,6 +656,62 @@ export const partnerPortalApi = {
       `/partner-workspaces/${workspaceId}/codes`,
     ),
 
+  createWorkspaceCode: (
+    workspaceId: string,
+    payload: CreatePartnerWorkspaceCodePayload,
+    idempotencyKey: string,
+  ) =>
+    apiClient.post<PartnerWorkspaceCodeResponse>(
+      `/partner-workspaces/${workspaceId}/codes`,
+      payload,
+      { headers: { 'Idempotency-Key': idempotencyKey } },
+    ),
+
+  updateWorkspaceCode: (
+    workspaceId: string,
+    codeId: string,
+    payload: UpdatePartnerWorkspaceCodePayload,
+    version?: number,
+  ) =>
+    apiClient.patch<PartnerWorkspaceCodeResponse>(
+      `/partner-workspaces/${workspaceId}/codes/${codeId}`,
+      payload,
+      version ? { headers: { 'If-Match': String(version) } } : undefined,
+    ),
+
+  changeWorkspaceCodeLifecycle: (
+    workspaceId: string,
+    codeId: string,
+    action: 'activate' | 'pause' | 'revoke' | 'archive',
+    payload: PartnerWorkspaceCodeLifecyclePayload = {},
+    version?: number,
+  ) =>
+    apiClient.post<PartnerWorkspaceCodeResponse>(
+      `/partner-workspaces/${workspaceId}/codes/${codeId}/${action}`,
+      payload,
+      version ? { headers: { 'If-Match': String(version) } } : undefined,
+    ),
+
+  createWorkspaceCodeLink: (
+    workspaceId: string,
+    codeId: string,
+    payload: PartnerWorkspaceCodeLinkPayload = {},
+  ) =>
+    apiClient.post<PartnerWorkspaceCodeLinkResponse>(
+      `/partner-workspaces/${workspaceId}/codes/${codeId}/links`,
+      payload,
+    ),
+
+  createWorkspaceCodeQr: (
+    workspaceId: string,
+    codeId: string,
+    payload: PartnerWorkspaceCodeQrPayload = {},
+  ) =>
+    apiClient.post<PartnerWorkspaceCodeQrResponse>(
+      `/partner-workspaces/${workspaceId}/codes/${codeId}/qr`,
+      payload,
+    ),
+
   listWorkspaceCampaignAssets: (workspaceId: string) =>
     apiClient.get<ListPartnerWorkspaceCampaignAssetsResponse>(
       `/partner-workspaces/${workspaceId}/campaign-assets`,
@@ -935,6 +1033,7 @@ export type {
   CreatePartnerApplicationDraftResponse,
   CreatePartnerWorkspaceLaneApplicationPayload,
   CreatePartnerWorkspaceLaneApplicationResponse,
+  CreatePartnerWorkspaceCodePayload,
   GetCurrentPartnerApplicationDraftResponse,
   GetPartnerNotificationCountersResponse,
   GetPartnerNotificationPreferencesResponse,
@@ -955,6 +1054,12 @@ export type {
   ListPartnerWorkspaceCasesResponse,
   ListPartnerWorkspaceCampaignAssetsResponse,
   ListPartnerWorkspaceCodesResponse,
+  PartnerWorkspaceCodeLifecyclePayload,
+  PartnerWorkspaceCodeLinkPayload,
+  PartnerWorkspaceCodeLinkResponse,
+  PartnerWorkspaceCodeQrPayload,
+  PartnerWorkspaceCodeQrResponse,
+  PartnerWorkspaceCodeResponse,
   GetPartnerWorkspaceConversionExplainabilityResponse,
   ListPartnerWorkspaceConversionRecordsParams,
   ListPartnerWorkspaceConversionRecordsResponse,

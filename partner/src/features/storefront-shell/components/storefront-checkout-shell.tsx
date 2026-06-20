@@ -175,7 +175,6 @@ export function StorefrontCheckoutShell({
         currency: surfaceContext.defaultCurrency,
         channel: surfaceContext.saleChannel,
         use_wallet: 0,
-        partner_code: surfaceContext.defaultPartnerCode,
       });
 
       const checkoutResponse = await commerceApi.createCheckoutSession(

@@ -17,6 +17,13 @@ class AttributionTouchpointModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     touchpoint_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    source_event_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
+    partner_attribution_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_attribution_sessions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("mobile_users.id", ondelete="SET NULL"),
         nullable=True,
@@ -49,6 +56,11 @@ class AttributionTouchpointModel(Base):
     )
     partner_code_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("partner_codes.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    policy_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("policy_versions.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )

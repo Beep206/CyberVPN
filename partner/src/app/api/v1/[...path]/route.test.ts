@@ -71,7 +71,7 @@ describe('partner API proxy route', () => {
         redirect: 'manual',
       }),
     );
-    expect(headers.get('x-forwarded-host')).toBe('partner.cyber-vpn.net');
+    expect(headers.get('x-forwarded-host')).toBe('portal.localhost:3004');
     expect(headers.get('x-forwarded-proto')).toBe('https');
     expect(headers.get('cookie')).toBe('partner_access_token=current; partner_refresh_token=refresh');
     expect(headers.get('x-request-id')).toBe('req-1');
@@ -110,10 +110,10 @@ describe('partner API proxy route', () => {
         redirect: 'manual',
       }),
     );
-    expect(headers.get('x-forwarded-host')).toBe('partner.cyber-vpn.net');
+    expect(headers.get('x-forwarded-host')).toBe('portal.localhost:3004');
     expect(headers.get('x-forwarded-proto')).toBe('https');
-    expect(headers.get('origin')).toBe('https://partner.cyber-vpn.net');
-    expect(headers.get('referer')).toBe('https://partner.cyber-vpn.net/en-EN/dashboard');
+    expect(headers.get('origin')).toBe('https://portal.localhost:3004');
+    expect(headers.get('referer')).toBe('https://portal.localhost:3004/en-EN/dashboard');
     expect(headers.get('content-type')).toBe('application/json');
     expect(new TextDecoder().decode(body)).toBe('{}');
     expect(response.status).toBe(204);

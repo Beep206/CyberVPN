@@ -22,7 +22,6 @@ const surfaceContext: StorefrontSurfaceContext = {
   authRealmKey: 'ozoxy-storefront',
   saleChannel: 'partner_storefront',
   defaultCurrency: 'USD',
-  defaultPartnerCode: 'OZOXY42',
   supportProfile: {
     label: 'Ozoxy Storefront Support',
     email: 'support@ozoxy.ru',

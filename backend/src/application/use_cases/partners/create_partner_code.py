@@ -1,10 +1,15 @@
 """Use case for creating a new partner referral code."""
 
 import logging
-import secrets
 from uuid import UUID
 
 from src.application.services.config_service import ConfigService
+from src.application.use_cases.partner_attribution.utils import (
+    build_public_token_for_code_id,
+    generate_partner_code,
+    hash_partner_attribution_token,
+    normalize_partner_code,
+)
 from src.config.settings import settings
 from src.domain.exceptions import DomainError, MarkupExceedsLimitError
 from src.infrastructure.database.models.partner_model import PartnerCodeModel
@@ -29,7 +34,7 @@ class CreatePartnerCodeUseCase:
 
     async def execute(
         self,
-        partner_user_id: UUID,
+        partner_user_id: UUID | None,
         code: str,
         markup_pct: float = 0,
         partner_account_id: UUID | None = None,
@@ -43,6 +48,8 @@ class CreatePartnerCodeUseCase:
         """
         if not settings.partner_codes_enabled:
             raise DomainError("Partner codes are not enabled for this release")
+        if markup_pct < 0:
+            raise DomainError("Partner code markup cannot be negative")
 
         max_markup = await self._config.get_partner_max_markup_pct()
         if markup_pct > max_markup:
@@ -56,23 +63,35 @@ class CreatePartnerCodeUseCase:
             )
             raise MarkupExceedsLimitError(markup_pct=markup_pct, max_pct=float(max_markup))
 
-        if not code:
-            code = secrets.token_urlsafe(6)[:8].upper()
+        normalized_code = normalize_partner_code(code) if code else generate_partner_code()
 
         model = PartnerCodeModel(
             partner_account_id=partner_account_id,
             partner_user_id=partner_user_id,
-            code=code,
+            code=normalized_code,
+            code_normalized=normalized_code,
             markup_pct=markup_pct,
+            lifecycle_status="active",
+            approval_status="approved",
+            owner_type="affiliate",
+            lane_key="creator_affiliate",
+            attribution_model="last_eligible_touch",
+            attribution_window_seconds=30 * 24 * 60 * 60,
+            allowed_channels=["content", "telegram", "storefront"],
+            allowed_storefront_ids=["*"],
+            allowed_geographies=["*"],
+            sub_id_schema={},
         )
 
         result = await self._partner_repo.create_code(model)
+        result.public_token_hash = hash_partner_attribution_token(build_public_token_for_code_id(result.id))
+        result = await self._partner_repo.update_code(result)
 
         logger.info(
             "partner_code_created",
             extra={
-                "partner_user_id": str(partner_user_id),
-                "code": code,
+                "partner_user_id": str(partner_user_id) if partner_user_id else None,
+                "code": normalized_code,
                 "markup_pct": markup_pct,
                 "code_id": str(result.id),
             },
