@@ -133,6 +133,24 @@ function getShortReferralCode(pathname: string): string | null {
   return rawCode ? decodeURIComponent(rawCode).trim() : null;
 }
 
+function getPartnerAttributionToken(pathname: string): {
+  isLocalized: boolean;
+  token: string;
+} | null {
+  const segments = pathname.split('/').filter(Boolean);
+  const firstSegment = segments[0];
+  const isLocalized = locales.includes(firstSegment as (typeof locales)[number]);
+  const routeIndex = isLocalized ? 1 : 0;
+
+  if (segments[routeIndex] !== 'p') {
+    return null;
+  }
+
+  const rawToken = segments[routeIndex + 1];
+  const token = rawToken ? decodeURIComponent(rawToken).trim() : '';
+  return token ? { isLocalized, token } : null;
+}
+
 function getLegacyReferralCode(request: NextRequest, routeSegment: string): string | null {
   if (routeSegment !== 'referral') {
     return null;
@@ -160,6 +178,14 @@ function buildReferralRegisterRedirectUrl(request: NextRequest, rawCode: string)
   return target;
 }
 
+function buildPartnerAttributionCanonicalUrl(request: NextRequest, token: string): URL {
+  const target = new URL(`/p/${encodeURIComponent(token)}`, PUBLIC_ORIGIN);
+  request.nextUrl.searchParams.forEach((value, key) => {
+    target.searchParams.append(key, value);
+  });
+  return target;
+}
+
 /**
  * Next.js 16 proxy function for routing.
  *
@@ -179,6 +205,19 @@ export function proxy(request: NextRequest) {
   }
 
   const routeSegment = getRouteSegment(request.nextUrl.pathname);
+  const partnerAttribution = getPartnerAttributionToken(request.nextUrl.pathname);
+  if (partnerAttribution) {
+    if (
+      partnerAttribution.isLocalized
+      || (hostname !== PUBLIC_PRIMARY_HOST && hostname !== PUBLIC_WWW_HOST)
+    ) {
+      return NextResponse.redirect(
+        buildPartnerAttributionCanonicalUrl(request, partnerAttribution.token),
+      );
+    }
+    return NextResponse.next();
+  }
+
   const shortReferralCode = getShortReferralCode(request.nextUrl.pathname);
   if (shortReferralCode) {
     return NextResponse.redirect(buildReferralRegisterRedirectUrl(request, shortReferralCode));

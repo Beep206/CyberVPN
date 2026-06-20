@@ -106,6 +106,30 @@ describe('proxy routing', () => {
     expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/ru-RU/register?ref=CYBER42');
   });
 
+  it('passes canonical partner attribution links through without locale redirect', () => {
+    const req = createRequest('/p/partner-token-42?utm_source=share', undefined, 'https://cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('redirects localized partner attribution links back to the canonical public route', () => {
+    const req = createRequest('/ru-RU/p/partner-token-42?utm_source=share', undefined, 'https://cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://cyber-vpn.net/p/partner-token-42?utm_source=share');
+  });
+
+  it('redirects cabinet partner attribution links to the canonical public route', () => {
+    const req = createRequest('/p/partner-token-42?utm_source=share', undefined, 'https://my.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://cyber-vpn.net/p/partner-token-42?utm_source=share');
+  });
+
   it('redirects legacy referral code URLs to canonical cabinet registration', () => {
     const req = createRequest('/ru-RU/referral?code=CYBER42&utm_campaign=friend', undefined, 'https://cyber-vpn.net');
     const res = proxy(req);
