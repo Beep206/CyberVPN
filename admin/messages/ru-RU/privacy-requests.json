@@ -2,16 +2,16 @@
   "common": {
     "refresh": "Обновить"
   },
-  "eyebrow": "PRIVACY OPERATIONS",
-  "title": "Privacy-запросы",
-  "description": "Проверяйте запросы на удаление аккаунта и экспорт данных через долговечный audit trail, связанный с support ticket. Fulfillment становится финальным только после подтверждения личности, одобрения и выполнения.",
+  "eyebrow": "ОПЕРАЦИИ С ДАННЫМИ",
+  "title": "Запросы приватности",
+  "description": "Проверяйте запросы на удаление аккаунта и экспорт данных через постоянный журнал аудита, связанный с тикетом поддержки. Исполнение становится финальным только после подтверждения личности, одобрения и выполнения.",
   "permissionDenied": {
-    "title": "Нужны права privacy",
-    "description": "Этот аккаунт не может читать очередь privacy requests. Используйте роль support, admin или owner с privacy request permissions."
+    "title": "Нужны права на запросы приватности",
+    "description": "Этот аккаунт не может читать очередь запросов приватности. Используйте роль поддержки, администратора или владельца с правами на обработку таких запросов."
   },
   "filters": {
-    "search": "Поиск privacy requests",
-    "searchPlaceholder": "PRV, SUP, principal UUID, public UID",
+    "search": "Поиск запросов",
+    "searchPlaceholder": "PRV, SUP, внутренний UUID, публичный UID",
     "status": "Фильтр статуса",
     "requestType": "Фильтр типа запроса",
     "assignment": "Фильтр назначения",
@@ -44,32 +44,32 @@
     "failed": "Ошибка"
   },
   "list": {
-    "empty": "Под текущие фильтры не подходит ни один privacy request.",
+    "empty": "Под текущие фильтры не подходит ни один запрос приватности.",
     "open": "Открыть",
     "overdue": "Просрочен",
     "submitted": "Отправлен {value}",
-    "support": "Support {reference}"
+    "support": "Поддержка {reference}"
   },
   "detail": {
-    "empty": "Выберите privacy request, чтобы проверить review state, support-связку и audit events.",
+    "empty": "Выберите запрос приватности, чтобы проверить состояние проверки, связь с поддержкой и события аудита.",
     "safeCustomer": "Безопасная ссылка клиента: {value}",
     "submittedAt": "Отправлено",
     "supportTicket": "Тикет поддержки",
     "version": "Версия",
-    "reviewContext": "Контекст review",
+    "reviewContext": "Контекст проверки",
     "reasonCode": "Код причины",
     "decisionReason": "Причина решения",
     "notes": "Отредактированные заметки",
-    "auditTimeline": "Audit timeline",
-    "noEvents": "У этого запроса пока нет audit events."
+    "auditTimeline": "Хронология аудита",
+    "noEvents": "У этого запроса пока нет событий аудита."
   },
   "actions": {
     "title": "Доступные действия",
-    "description": "Действия ограничены статусом и privacy permissions. Для execute нужно ввести DELETE.",
+    "description": "Действия ограничены статусом и правами на запросы приватности. Для выполнения удаления нужно ввести DELETE.",
     "none": "Для этого статуса нет доступных действий.",
-    "start_review": "Начать review",
-    "request_identity_verification": "Запросить identity",
-    "verify_identity": "Подтвердить identity",
+    "start_review": "Начать проверку",
+    "request_identity_verification": "Запросить подтверждение личности",
+    "verify_identity": "Подтвердить личность",
     "approve": "Одобрить",
     "deny": "Отклонить",
     "schedule": "Запланировать",
@@ -77,22 +77,22 @@
     "retry": "Повторить"
   },
   "prompts": {
-    "identityMessage": "Публичное сообщение support для проверки личности",
-    "identityMessageDefault": "Пожалуйста, подтвердите владение аккаунтом, чтобы мы продолжили обработку privacy request.",
+    "identityMessage": "Публичное сообщение поддержки для проверки личности",
+    "identityMessageDefault": "Пожалуйста, подтвердите владение аккаунтом, чтобы мы продолжили обработку запроса приватности.",
     "verificationMethod": "Метод проверки",
     "safeNote": "Безопасная внутренняя заметка",
     "decisionReason": "Причина решения",
     "approveDefault": "Владение подтверждено, запрос на удаление/экспорт одобрен для планирования.",
-    "approveConfirm": "Одобрить этот privacy request?",
-    "denyConfirm": "Отклонить этот privacy request?",
+    "approveConfirm": "Одобрить этот запрос приватности?",
+    "denyConfirm": "Отклонить этот запрос приватности?",
     "scheduleFor": "Время выполнения в ISO или пусто для запуска сейчас",
     "executeConfirmText": "Введите DELETE для выполнения удаления аккаунта",
-    "executeConfirm": "Будет удалён целевой customer, а не admin. Продолжить?"
+    "executeConfirm": "Будет удалён целевой клиент, а не администратор. Продолжить?"
   },
   "feedback": {
-    "selectRequest": "Сначала выберите privacy request.",
+    "selectRequest": "Сначала выберите запрос приватности.",
     "actionCanceled": "Действие отменено.",
-    "actionComplete": "Privacy request обновлён.",
+    "actionComplete": "Запрос приватности обновлён.",
     "actionFailed": "Действие не выполнено. Попробуйте ещё раз.",
     "unknownAction": "Неизвестное действие."
   }

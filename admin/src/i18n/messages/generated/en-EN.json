@@ -4722,6 +4722,105 @@
     },
     "title": "Privacy Policy"
   },
+  "PrivacyRequests": {
+    "actions": {
+      "approve": "Approve",
+      "deny": "Deny",
+      "description": "Actions are gated by status and privacy permissions. Execute requires typing DELETE.",
+      "execute": "Execute deletion",
+      "none": "No actions are available for this status.",
+      "request_identity_verification": "Request identity",
+      "retry": "Retry",
+      "schedule": "Schedule",
+      "start_review": "Start review",
+      "title": "Allowed actions",
+      "verify_identity": "Verify identity"
+    },
+    "common": {
+      "refresh": "Refresh"
+    },
+    "description": "Review account deletion and data export requests through a durable audit trail linked to support tickets. Fulfillment only becomes final after verified approval and execution.",
+    "detail": {
+      "auditTimeline": "Audit timeline",
+      "decisionReason": "Decision reason",
+      "empty": "Select a privacy request to inspect review state, support linkage and audit events.",
+      "noEvents": "No audit events are attached to this request yet.",
+      "notes": "Redacted notes",
+      "reasonCode": "Reason code",
+      "reviewContext": "Review context",
+      "safeCustomer": "Safe customer reference: {value}",
+      "submittedAt": "Submitted",
+      "supportTicket": "Support ticket",
+      "version": "Version"
+    },
+    "eyebrow": "PRIVACY OPERATIONS",
+    "feedback": {
+      "actionCanceled": "Action canceled.",
+      "actionComplete": "Privacy request updated.",
+      "actionFailed": "Action failed. Try again.",
+      "selectRequest": "Select a privacy request first.",
+      "unknownAction": "Unknown action."
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "allTypes": "All request types",
+      "assignment": "Assignment filter",
+      "assignmentOptions": {
+        "all": "All requests",
+        "mine": "Assigned to me",
+        "unassigned": "Unassigned"
+      },
+      "requestType": "Request type filter",
+      "search": "Search privacy requests",
+      "searchPlaceholder": "PRV, SUP, principal UUID, public UID",
+      "status": "Status filter"
+    },
+    "list": {
+      "empty": "No privacy requests match the current filters.",
+      "open": "Open",
+      "overdue": "Overdue",
+      "submitted": "Submitted {value}",
+      "support": "Support {reference}"
+    },
+    "metrics": {
+      "overdue": "overdue",
+      "submitted": "submitted",
+      "visible": "visible"
+    },
+    "permissionDenied": {
+      "description": "This account cannot read the privacy request queue. Use a support, admin, or owner role with privacy request permissions.",
+      "title": "Privacy permission required"
+    },
+    "prompts": {
+      "approveConfirm": "Approve this privacy request?",
+      "approveDefault": "Ownership verified and deletion/export request is approved for scheduling.",
+      "decisionReason": "Decision reason",
+      "denyConfirm": "Deny this privacy request?",
+      "executeConfirm": "This executes deletion for the target customer, not the admin. Continue?",
+      "executeConfirmText": "Type DELETE to execute account deletion",
+      "identityMessage": "Public support message for identity verification",
+      "identityMessageDefault": "Please confirm account ownership before we continue this privacy request.",
+      "safeNote": "Safe internal note",
+      "scheduleFor": "Scheduled time as ISO string, or blank for now",
+      "verificationMethod": "Verification method"
+    },
+    "statuses": {
+      "approved": "Approved",
+      "canceled": "Canceled",
+      "denied": "Denied",
+      "failed": "Failed",
+      "fulfilled": "Fulfilled",
+      "identity_verification": "Identity verification",
+      "pending_decision": "Pending decision",
+      "scheduled": "Scheduled",
+      "submitted": "Submitted"
+    },
+    "title": "Privacy requests",
+    "types": {
+      "account_deletion": "Account deletion",
+      "data_export": "Data export"
+    }
+  },
   "Referral": {
     "commissionRate": "Commission Rate",
     "copied": "Copied!",

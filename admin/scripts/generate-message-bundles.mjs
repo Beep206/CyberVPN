@@ -34,6 +34,7 @@ export const MESSAGE_FILE_NAMESPACE_MAP = {
   'footer.json': 'Footer',
   'language-selector.json': 'LanguageSelector',
   'privacy-policy.json': 'PrivacyPolicy',
+  'privacy-requests.json': 'PrivacyRequests',
   'delete-account.json': 'DeleteAccount',
   'auth.json': 'Auth',
   'a11y.json': 'A11y',
