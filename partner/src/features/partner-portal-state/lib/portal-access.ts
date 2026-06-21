@@ -200,10 +200,10 @@ export function getPartnerRoleRouteAccess(
 ): PartnerRouteAccessLevel {
   const visibility = getPartnerRouteVisibility(route, state);
   const roleAccess = ROUTE_ROLE_ACCESS[route][state.workspaceRole] ?? 'none';
-  const permissionKeys = state.currentPermissionKeys ?? [];
+  const permissionKeys = state.currentPermissionKeys;
 
   if (
-    permissionKeys.length > 0
+    permissionKeys !== undefined
     && !ROUTE_PERMISSION_REQUIREMENTS[route].some((permission) => permissionKeys.includes(permission))
   ) {
     return 'none';

@@ -83,4 +83,35 @@ describe('partner portal role access policy', () => {
     expect(getPartnerRoleRouteAccess('finance', ownerState)).toBe('none');
     expect(getPartnerRoleRouteAccess('dashboard', ownerState)).toBe('read');
   });
+
+  it('fails closed when backend returns an empty permission list', () => {
+    const ownerState = {
+      ...createPartnerPortalScenarioState(
+        'active',
+        'creator_affiliate',
+        'workspace_owner',
+        'R4',
+      ),
+      currentPermissionKeys: [],
+    };
+
+    expect(getPartnerRoleRouteAccess('dashboard', ownerState)).toBe('none');
+    expect(getPartnerRoleRouteAccess('codes', ownerState)).toBe('none');
+    expect(countPartnerAccessibleSections(ownerState)).toBe(0);
+  });
+
+  it('keeps legacy role fallback only when backend permission keys are undefined', () => {
+    const ownerState = {
+      ...createPartnerPortalScenarioState(
+        'active',
+        'creator_affiliate',
+        'workspace_owner',
+        'R4',
+      ),
+      currentPermissionKeys: undefined,
+    };
+
+    expect(getPartnerRoleRouteAccess('dashboard', ownerState)).toBe('read');
+    expect(getPartnerRoleRouteAccess('codes', ownerState)).toBe('admin');
+  });
 });
