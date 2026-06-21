@@ -62,10 +62,14 @@ class CreateCustomerCommercialBindingUseCase:
         owner_type_enum = CommercialOwnerType(owner_type)
         normalized_reason_code = reason_code.strip() if reason_code else None
 
-        if binding_type_enum in {
-            CustomerCommercialBindingType.MANUAL_OVERRIDE,
-            CustomerCommercialBindingType.CONTRACT_ASSIGNMENT,
-        } and not normalized_reason_code:
+        if (
+            binding_type_enum
+            in {
+                CustomerCommercialBindingType.MANUAL_OVERRIDE,
+                CustomerCommercialBindingType.CONTRACT_ASSIGNMENT,
+            }
+            and not normalized_reason_code
+        ):
             raise ValueError("reason_code is required for manual_override and contract_assignment")
 
         resolved_storefront_id = storefront_id
@@ -113,6 +117,7 @@ class CreateCustomerCommercialBindingUseCase:
             user_id=user.id,
             binding_type=binding_type_enum.value,
             storefront_id=resolved_storefront_id,
+            for_update=True,
         )
         if existing and _is_same_binding(
             existing=existing,

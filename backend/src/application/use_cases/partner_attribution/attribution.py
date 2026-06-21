@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlsplit
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService
@@ -583,100 +584,95 @@ class ClaimPartnerAttributionUseCase:
         active_bindings = await self._bindings.list_active_for_user(
             user_id=user.id,
             storefront_id=attribution.storefront_id,
+            for_update=True,
         )
-        existing_binding = _find_active_owner(active_bindings)
+        existing_binding = _find_active_owner(active_bindings, storefront_id=attribution.storefront_id)
         if existing_binding is not None:
-            attribution.user_id = user.id
-            attribution.updated_at = now
-            if _is_same_owner_binding(existing_binding, attribution):
-                attribution.status = "claimed"
-                attribution.binding_id = existing_binding.id
-                attribution.claimed_at = attribution.claimed_at or now
-                await self._session.flush()
-                return ClaimPartnerAttributionResult(
-                    status="already_claimed_same_owner",
-                    partner_account_id=existing_binding.partner_account_id,
-                    partner_code_id=existing_binding.partner_code_id,
-                    binding_id=existing_binding.id,
-                    claimed_at=attribution.claimed_at,
-                    clear_cookie=True,
+            return await self._claim_existing_owner(attribution=attribution, existing_binding=existing_binding, now=now)
+
+        try:
+            async with self._session.begin_nested():
+                binding = await CreateCustomerCommercialBindingUseCase(self._session).execute(
+                    user_id=user.id,
+                    binding_type=CustomerCommercialBindingType.PARTNER_ATTRIBUTION.value,
+                    owner_type=attribution.owner_type,
+                    storefront_id=attribution.storefront_id,
+                    partner_code_id=code_model.id,
+                    partner_account_id=code_model.partner_account_id,
+                    reason_code="partner_public_attribution_claim",
+                    evidence_payload={
+                        "partner_attribution_session_id": str(attribution.id),
+                        "touchpoint_id": str(attribution.touchpoint_id) if attribution.touchpoint_id else None,
+                        "policy_snapshot": dict(attribution.policy_snapshot or {}),
+                        "campaign_params": dict(attribution.campaign_params or {}),
+                    },
+                    effective_from=now,
+                    commit=False,
                 )
-            attribution.status = "rejected"
-            attribution.rejection_reason_code = "existing_active_owner_conflict"
-            await self._session.flush()
-            return ClaimPartnerAttributionResult(
-                status="rejected_existing_owner",
-                partner_account_id=existing_binding.partner_account_id,
-                partner_code_id=existing_binding.partner_code_id,
-                binding_id=existing_binding.id,
-                clear_cookie=True,
+                binding.policy_version_id = attribution.policy_version_id
+                binding.commission_contract_id = attribution.commission_contract_id
+                binding.attribution_session_id = attribution.id
+                binding.claimed_at = now
+                claim_touchpoint = await RecordAttributionTouchpointUseCase(self._session).execute(
+                    current_realm=command.current_realm,
+                    touchpoint_type=AttributionTouchpointType.PARTNER_CLAIM.value,
+                    user_id=user.id,
+                    storefront_id=attribution.storefront_id,
+                    partner_code_id=code_model.id,
+                    partner_attribution_session_id=attribution.id,
+                    policy_version_id=attribution.policy_version_id,
+                    source_event_id=f"partner_claim:{attribution.id}:{user.id}",
+                    idempotency_key=f"partner-claim:{attribution.id}:{user.id}",
+                    sale_channel=attribution.sale_channel,
+                    source_host=attribution.source_host,
+                    source_path=attribution.source_path,
+                    campaign_params=attribution.campaign_params,
+                    evidence_payload={
+                        "binding_id": str(binding.id),
+                        "partner_account_id": (
+                            str(code_model.partner_account_id) if code_model.partner_account_id else None
+                        ),
+                        "owner_type": attribution.owner_type,
+                        "storefront_id": str(attribution.storefront_id) if attribution.storefront_id else None,
+                    },
+                    occurred_at=now,
+                    commit=False,
+                )
+                attribution.status = "claimed"
+                attribution.user_id = user.id
+                attribution.binding_id = binding.id
+                attribution.claimed_at = now
+                attribution.touchpoint_id = claim_touchpoint.id
+                attribution.updated_at = now
+
+                await self._outbox.append_event(
+                    event_name="partner.attribution.claimed",
+                    aggregate_type="partner_attribution_session",
+                    aggregate_id=str(attribution.id),
+                    partition_key=str(user.id),
+                    event_payload={
+                        "user_id": str(user.id),
+                        "partner_code_id": str(code_model.id),
+                        "partner_account_id": (
+                            str(code_model.partner_account_id) if code_model.partner_account_id else None
+                        ),
+                        "binding_id": str(binding.id),
+                        "owner_type": attribution.owner_type,
+                    },
+                    source_context={"source_use_case": "ClaimPartnerAttributionUseCase"},
+                )
+        except IntegrityError as exc:
+            if not _is_active_owner_unique_violation(exc):
+                raise
+            active_bindings = await self._bindings.list_active_for_user(
+                user_id=user.id,
+                storefront_id=attribution.storefront_id,
+                for_update=True,
             )
-
-        binding = await CreateCustomerCommercialBindingUseCase(self._session).execute(
-            user_id=user.id,
-            binding_type=CustomerCommercialBindingType.PARTNER_ATTRIBUTION.value,
-            owner_type=attribution.owner_type,
-            storefront_id=attribution.storefront_id,
-            partner_code_id=code_model.id,
-            partner_account_id=code_model.partner_account_id,
-            reason_code="partner_public_attribution_claim",
-            evidence_payload={
-                "partner_attribution_session_id": str(attribution.id),
-                "touchpoint_id": str(attribution.touchpoint_id) if attribution.touchpoint_id else None,
-                "policy_snapshot": dict(attribution.policy_snapshot or {}),
-                "campaign_params": dict(attribution.campaign_params or {}),
-            },
-            effective_from=now,
-            commit=False,
-        )
-        binding.policy_version_id = attribution.policy_version_id
-        binding.commission_contract_id = attribution.commission_contract_id
-        binding.attribution_session_id = attribution.id
-        binding.claimed_at = now
-        claim_touchpoint = await RecordAttributionTouchpointUseCase(self._session).execute(
-            current_realm=command.current_realm,
-            touchpoint_type=AttributionTouchpointType.PARTNER_CLAIM.value,
-            user_id=user.id,
-            storefront_id=attribution.storefront_id,
-            partner_code_id=code_model.id,
-            partner_attribution_session_id=attribution.id,
-            policy_version_id=attribution.policy_version_id,
-            source_event_id=f"partner_claim:{attribution.id}:{user.id}",
-            idempotency_key=f"partner-claim:{attribution.id}:{user.id}",
-            sale_channel=attribution.sale_channel,
-            source_host=attribution.source_host,
-            source_path=attribution.source_path,
-            campaign_params=attribution.campaign_params,
-            evidence_payload={
-                "binding_id": str(binding.id),
-                "partner_account_id": str(code_model.partner_account_id) if code_model.partner_account_id else None,
-                "owner_type": attribution.owner_type,
-                "storefront_id": str(attribution.storefront_id) if attribution.storefront_id else None,
-            },
-            occurred_at=now,
-            commit=False,
-        )
-        attribution.status = "claimed"
-        attribution.user_id = user.id
-        attribution.binding_id = binding.id
-        attribution.claimed_at = now
-        attribution.touchpoint_id = claim_touchpoint.id
-        attribution.updated_at = now
-
-        await self._outbox.append_event(
-            event_name="partner.attribution.claimed",
-            aggregate_type="partner_attribution_session",
-            aggregate_id=str(attribution.id),
-            partition_key=str(user.id),
-            event_payload={
-                "user_id": str(user.id),
-                "partner_code_id": str(code_model.id),
-                "partner_account_id": str(code_model.partner_account_id) if code_model.partner_account_id else None,
-                "binding_id": str(binding.id),
-                "owner_type": attribution.owner_type,
-            },
-            source_context={"source_use_case": "ClaimPartnerAttributionUseCase"},
-        )
+            existing_binding = _find_active_owner(active_bindings, storefront_id=attribution.storefront_id)
+            if existing_binding is None:
+                raise
+            return await self._claim_existing_owner(attribution=attribution, existing_binding=existing_binding, now=now)
         await self._session.flush()
         return ClaimPartnerAttributionResult(
             status="claimed",
@@ -698,6 +694,50 @@ class ClaimPartnerAttributionUseCase:
             return None
         return await self._partners.get_account_by_id(code_model.partner_account_id)
 
+    async def _claim_existing_owner(
+        self,
+        *,
+        attribution: PartnerAttributionSessionModel,
+        existing_binding: CustomerCommercialBindingModel,
+        now: datetime,
+    ) -> ClaimPartnerAttributionResult:
+        attribution.user_id = existing_binding.user_id
+        attribution.updated_at = now
+        if existing_binding.partner_account_id is None and existing_binding.partner_code_id is None:
+            attribution.status = "rejected"
+            attribution.rejection_reason_code = "manual_review_required_active_owner_conflict"
+            await self._session.flush()
+            return ClaimPartnerAttributionResult(
+                status="manual_review_required",
+                binding_id=existing_binding.id,
+                clear_cookie=True,
+            )
+
+        if _is_same_owner_binding(existing_binding, attribution):
+            attribution.status = "claimed"
+            attribution.binding_id = existing_binding.id
+            attribution.claimed_at = attribution.claimed_at or now
+            await self._session.flush()
+            return ClaimPartnerAttributionResult(
+                status="already_claimed_same_owner",
+                partner_account_id=existing_binding.partner_account_id,
+                partner_code_id=existing_binding.partner_code_id,
+                binding_id=existing_binding.id,
+                claimed_at=attribution.claimed_at,
+                clear_cookie=True,
+            )
+
+        attribution.status = "rejected"
+        attribution.rejection_reason_code = "existing_active_owner_conflict"
+        await self._session.flush()
+        return ClaimPartnerAttributionResult(
+            status="rejected_existing_owner",
+            partner_account_id=existing_binding.partner_account_id,
+            partner_code_id=existing_binding.partner_code_id,
+            binding_id=existing_binding.id,
+            clear_cookie=True,
+        )
+
 
 def _parse_deterministic_public_token(public_token: str) -> UUID | None:
     token = public_token.strip()
@@ -710,6 +750,24 @@ def _parse_deterministic_public_token(public_token: str) -> UUID | None:
         return UUID(hex=raw)
     except ValueError:
         return None
+
+
+_ACTIVE_OWNER_UNIQUE_INDEXES = frozenset(
+    {
+        "uq_customer_commercial_bindings_active_owner_global_scope",
+        "uq_customer_commercial_bindings_active_owner_storefront_scope",
+    }
+)
+
+
+def _is_active_owner_unique_violation(exc: IntegrityError) -> bool:
+    orig = getattr(exc, "orig", None)
+    diag = getattr(orig, "diag", None)
+    constraint_name = getattr(diag, "constraint_name", None)
+    if constraint_name in _ACTIVE_OWNER_UNIQUE_INDEXES:
+        return True
+    details = f"{orig!s} {exc!s}"
+    return any(index_name in details for index_name in _ACTIVE_OWNER_UNIQUE_INDEXES)
 
 
 def _record_legacy_public_token_resolution(*, source: str, result: str, public_token_hash: str) -> None:
@@ -857,15 +915,42 @@ def _assert_not_self_attribution(
         )
 
 
-def _find_active_owner(bindings: list[CustomerCommercialBindingModel]) -> CustomerCommercialBindingModel | None:
-    for binding in bindings:
+_IMMUTABLE_GLOBAL_BINDING_TYPES = frozenset(
+    {
+        CustomerCommercialBindingType.MANUAL_OVERRIDE.value,
+        CustomerCommercialBindingType.CONTRACT_ASSIGNMENT.value,
+    }
+)
+
+
+def _find_active_owner(
+    bindings: list[CustomerCommercialBindingModel],
+    *,
+    storefront_id: UUID | None,
+) -> CustomerCommercialBindingModel | None:
+    candidates = [
+        binding
+        for binding in bindings
         if (
             binding.binding_status == CustomerCommercialBindingStatus.ACTIVE.value
             and binding.owner_type != CommercialOwnerType.NONE.value
-            and (binding.partner_account_id is not None or binding.partner_code_id is not None)
-        ):
-            return binding
-    return None
+        )
+    ]
+    if storefront_id is None:
+        return next((binding for binding in candidates if binding.storefront_id is None), None)
+
+    exact_storefront_owner = next((binding for binding in candidates if binding.storefront_id == storefront_id), None)
+    if exact_storefront_owner is not None:
+        return exact_storefront_owner
+
+    return next(
+        (
+            binding
+            for binding in candidates
+            if binding.storefront_id is None and binding.binding_type in _IMMUTABLE_GLOBAL_BINDING_TYPES
+        ),
+        None,
+    )
 
 
 def _is_same_owner_binding(

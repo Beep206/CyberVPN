@@ -56,6 +56,7 @@ class CustomerCommercialBindingRepository:
         user_id: UUID,
         binding_type: str,
         storefront_id: UUID | None,
+        for_update: bool = False,
     ) -> CustomerCommercialBindingModel | None:
         stmt = (
             select(CustomerCommercialBindingModel)
@@ -73,6 +74,8 @@ class CustomerCommercialBindingRepository:
             stmt = stmt.where(CustomerCommercialBindingModel.storefront_id.is_(None))
         else:
             stmt = stmt.where(CustomerCommercialBindingModel.storefront_id == storefront_id)
+        if for_update:
+            stmt = stmt.with_for_update()
         result = await self._session.execute(stmt)
         return result.scalars().first()
 
@@ -96,6 +99,7 @@ class CustomerCommercialBindingRepository:
         *,
         user_id: UUID,
         storefront_id: UUID | None,
+        for_update: bool = False,
     ) -> list[CustomerCommercialBindingModel]:
         stmt = (
             select(CustomerCommercialBindingModel)
@@ -117,5 +121,7 @@ class CustomerCommercialBindingRepository:
                     CustomerCommercialBindingModel.storefront_id.is_(None),
                 )
             )
+        if for_update:
+            stmt = stmt.with_for_update()
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
