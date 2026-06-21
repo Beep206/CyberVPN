@@ -7,11 +7,19 @@ import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.partner_attribution.utils import (
+    PARTNER_ATTRIBUTION_COOKIE_NAME,
+    hash_partner_attribution_token,
+)
 from src.config.settings import settings
+from src.domain.enums import AttributionTouchpointType, CustomerCommercialBindingType
 from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.database.models.attribution_touchpoint_model import AttributionTouchpointModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.billing_descriptor_model import BillingDescriptorModel
 from src.infrastructure.database.models.brand_model import BrandModel
+from src.infrastructure.database.models.checkout_session_model import CheckoutSessionModel
+from src.infrastructure.database.models.customer_commercial_binding_model import CustomerCommercialBindingModel
 from src.infrastructure.database.models.growth_code_model import GrowthCodeReservationModel
 from src.infrastructure.database.models.invoice_profile_model import InvoiceProfileModel
 from src.infrastructure.database.models.legal_document_model import LegalDocumentModel
@@ -22,6 +30,8 @@ from src.infrastructure.database.models.legal_document_set_model import (
 from src.infrastructure.database.models.merchant_profile_model import MerchantProfileModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.offer_model import OfferModel
+from src.infrastructure.database.models.partner_attribution_session_model import PartnerAttributionSessionModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from src.infrastructure.database.models.policy_version_model import PolicyVersionModel
 from src.infrastructure.database.models.pricebook_model import PricebookEntryModel, PricebookModel
 from src.infrastructure.database.models.program_eligibility_policy_model import ProgramEligibilityPolicyModel
@@ -303,6 +313,220 @@ async def _seed_quote_context(sessionmaker, auth_service: AuthService) -> dict[s
         }
 
 
+def _seed_partner_attribution_cookie(
+    sessionmaker,
+    *,
+    seeded: dict[str, str],
+    cookie_token: str,
+    expires_at: datetime | None = None,
+    markup_pct: int = 10,
+) -> dict[str, str]:
+    now = datetime.now(UTC)
+    suffix = uuid.uuid4().hex[:10].upper()
+    with sessionmaker() as db:
+        partner_owner = MobileUserModel(
+            id=uuid.uuid4(),
+            auth_realm_id=uuid.UUID(seeded["customer_realm_id"]),
+            email=f"partner-{suffix.lower()}@partner.example.test",
+            password_hash="hashed-partner-password",
+            is_active=True,
+            status="active",
+        )
+        account = PartnerAccountModel(
+            id=uuid.uuid4(),
+            account_key=f"quote-attr-{suffix.lower()}",
+            display_name="Quote Attribution Partner",
+            status="active",
+            legacy_owner_user_id=partner_owner.id,
+        )
+        code = PartnerCodeModel(
+            id=uuid.uuid4(),
+            code=f"QA{suffix[:8]}",
+            code_normalized=f"QA{suffix[:8]}",
+            public_token_hash=hash_partner_attribution_token(f"quote-attr-{suffix.lower()}"),
+            partner_account_id=account.id,
+            partner_user_id=partner_owner.id,
+            markup_pct=markup_pct,
+            is_active=True,
+            lifecycle_status="active",
+            approval_status="approved",
+            owner_type="affiliate",
+            lane_key="creator_affiliate",
+            attribution_model="last_eligible_touch",
+            attribution_window_seconds=30 * 24 * 60 * 60,
+            default_storefront_id=uuid.UUID(seeded["storefront_id"]),
+            allowed_channels=["web"],
+            allowed_storefront_ids=[seeded["storefront_id"]],
+            allowed_geographies=["*"],
+            sub_id_schema={},
+        )
+        attribution = PartnerAttributionSessionModel(
+            id=uuid.uuid4(),
+            session_token_hash=hash_partner_attribution_token(cookie_token),
+            transfer_token_hash=None,
+            consumed_transfer_token_hash=hash_partner_attribution_token(f"consumed-{cookie_token}"),
+            transfer_expires_at=now + timedelta(minutes=10),
+            transfer_consumed_at=now,
+            partner_code_id=code.id,
+            partner_account_id=account.id,
+            auth_realm_id=uuid.UUID(seeded["customer_realm_id"]),
+            storefront_id=uuid.UUID(seeded["storefront_id"]),
+            status="transferred",
+            owner_type="affiliate",
+            attribution_model="last_eligible_touch",
+            source_host="partner.example.test",
+            source_path="/p/quote-attribution",
+            destination_path="/pricing",
+            locale="ru-RU",
+            sale_channel="web",
+            sub_ids={"creator": "quote-safety-net"},
+            click_id="quote-safety-click",
+            destination_url="https://my.cyber-vpn.net/ru-RU/pricing",
+            campaign_params={"utm_source": "quote_safety_net"},
+            evidence_payload={"source": "test_cookie_seed"},
+            policy_snapshot={"allowed": True, "reason_codes": []},
+            expires_at=expires_at or now + timedelta(days=30),
+            first_seen_at=now,
+            last_seen_at=now,
+            transferred_at=now,
+        )
+        db.add_all([partner_owner, account, code, attribution])
+        db.commit()
+        return {
+            "partner_owner_id": str(partner_owner.id),
+            "partner_account_id": str(account.id),
+            "partner_code_id": str(code.id),
+            "attribution_session_id": str(attribution.id),
+        }
+
+
+def _seed_foreign_partner_attribution_cookie(
+    sessionmaker,
+    *,
+    seeded: dict[str, str],
+    cookie_token: str,
+    with_foreign_storefront: bool,
+) -> dict[str, str]:
+    now = datetime.now(UTC)
+    suffix = uuid.uuid4().hex[:10].upper()
+    with sessionmaker() as db:
+        current_storefront = db.get(StorefrontModel, uuid.UUID(seeded["storefront_id"]))
+        assert current_storefront is not None
+        foreign_realm = AuthRealmModel(
+            id=uuid.uuid4(),
+            realm_key=f"foreign-{suffix.lower()}",
+            realm_type="customer",
+            display_name="Foreign Customer Realm",
+            audience=f"cybervpn:foreign:{suffix.lower()}",
+            cookie_namespace=f"foreign-{suffix.lower()}",
+            status="active",
+            is_default=False,
+        )
+        foreign_storefront = None
+        if with_foreign_storefront:
+            foreign_storefront = StorefrontModel(
+                id=uuid.uuid4(),
+                storefront_key=f"foreign-web-{suffix.lower()}",
+                brand_id=current_storefront.brand_id,
+                display_name="Foreign Web",
+                host=f"foreign-{suffix.lower()}.example.test",
+                merchant_profile_id=current_storefront.merchant_profile_id,
+                auth_realm_id=foreign_realm.id,
+                status="active",
+            )
+        partner_owner = MobileUserModel(
+            id=uuid.uuid4(),
+            auth_realm_id=foreign_realm.id,
+            email=f"foreign-partner-{suffix.lower()}@partner.example.test",
+            password_hash="hashed-partner-password",
+            is_active=True,
+            status="active",
+        )
+        account = PartnerAccountModel(
+            id=uuid.uuid4(),
+            account_key=f"foreign-attr-{suffix.lower()}",
+            display_name="Foreign Attribution Partner",
+            status="active",
+            legacy_owner_user_id=partner_owner.id,
+        )
+        storefront_id = foreign_storefront.id if foreign_storefront is not None else None
+        code = PartnerCodeModel(
+            id=uuid.uuid4(),
+            code=f"FA{suffix[:8]}",
+            code_normalized=f"FA{suffix[:8]}",
+            public_token_hash=hash_partner_attribution_token(f"foreign-attr-{suffix.lower()}"),
+            partner_account_id=account.id,
+            partner_user_id=partner_owner.id,
+            markup_pct=10,
+            is_active=True,
+            lifecycle_status="active",
+            approval_status="approved",
+            owner_type="affiliate",
+            lane_key="creator_affiliate",
+            attribution_model="last_eligible_touch",
+            attribution_window_seconds=30 * 24 * 60 * 60,
+            default_storefront_id=storefront_id,
+            allowed_channels=["web"],
+            allowed_storefront_ids=[str(storefront_id)] if storefront_id is not None else ["*"],
+            allowed_geographies=["*"],
+            sub_id_schema={},
+        )
+        attribution = PartnerAttributionSessionModel(
+            id=uuid.uuid4(),
+            session_token_hash=hash_partner_attribution_token(cookie_token),
+            transfer_token_hash=None,
+            consumed_transfer_token_hash=hash_partner_attribution_token(f"consumed-{cookie_token}"),
+            transfer_expires_at=now + timedelta(minutes=10),
+            transfer_consumed_at=now,
+            partner_code_id=code.id,
+            partner_account_id=account.id,
+            auth_realm_id=foreign_realm.id,
+            storefront_id=storefront_id,
+            status="transferred",
+            owner_type="affiliate",
+            attribution_model="last_eligible_touch",
+            source_host="foreign.example.test",
+            source_path="/p/foreign-attribution",
+            destination_path="/pricing",
+            locale="ru-RU",
+            sale_channel="web",
+            sub_ids={"creator": "foreign"},
+            click_id="foreign-click",
+            destination_url="https://foreign.example.test/ru-RU/pricing",
+            campaign_params={"utm_source": "foreign"},
+            evidence_payload={"source": "test_foreign_cookie_seed"},
+            policy_snapshot={"allowed": True, "reason_codes": []},
+            expires_at=now + timedelta(days=30),
+            first_seen_at=now,
+            last_seen_at=now,
+            transferred_at=now,
+        )
+        models = [foreign_realm, partner_owner, account, code, attribution]
+        if foreign_storefront is not None:
+            models.insert(1, foreign_storefront)
+        db.add_all(models)
+        db.commit()
+        return {
+            "foreign_realm_id": str(foreign_realm.id),
+            "partner_account_id": str(account.id),
+            "partner_code_id": str(code.id),
+            "attribution_session_id": str(attribution.id),
+            "storefront_id": str(storefront_id) if storefront_id is not None else "",
+        }
+
+
+def _assert_attribution_cookie_deleted(response) -> None:
+    set_cookie_headers = response.headers.get_list("set-cookie")
+    attribution_headers = [
+        header for header in set_cookie_headers if header.startswith(f"{PARTNER_ATTRIBUTION_COOKIE_NAME}=")
+    ]
+    assert attribution_headers
+    deleted_header = attribution_headers[-1].lower()
+    assert "max-age=0" in deleted_header
+    assert "path=/" in deleted_header
+    assert response.headers.get("cache-control") == "no-store"
+
+
 @pytest.mark.asyncio
 async def test_legacy_payment_commit_is_disabled_and_quote_uses_pricebook_amount(
     async_client: AsyncClient,
@@ -542,6 +766,439 @@ async def test_quote_and_checkout_sessions_follow_lineage_and_idempotency(async_
             )
             assert conflicting_response.status_code == 409
             assert "already exists" in conflicting_response.json()["detail"]
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_quote_session_claims_partner_attribution_cookie_and_snapshots_owner(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            cookie_token = "quote-cookie-only-token"
+            attribution_ids = _seed_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=cookie_token,
+            )
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers={
+                    **headers,
+                    "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}",
+                    "X-Forwarded-Host": "evil.example.test",
+                },
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201
+            _assert_attribution_cookie_deleted(quote_response)
+            quote_payload = quote_response.json()
+            assert quote_payload["quote"]["partner_markup"] == 7.5
+            assert "partner_attribution" not in quote_payload["quote"]
+
+            quote_id = uuid.UUID(quote_payload["id"])
+            attribution_session_id = uuid.UUID(attribution_ids["attribution_session_id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                assert attribution.status == "claimed"
+                assert attribution.user_id == uuid.UUID(seeded["customer_user_id"])
+                assert attribution.binding_id is not None
+                binding = db.get(CustomerCommercialBindingModel, attribution.binding_id)
+                assert binding is not None
+                assert binding.binding_type == CustomerCommercialBindingType.PARTNER_ATTRIBUTION.value
+                assert binding.partner_account_id == uuid.UUID(attribution_ids["partner_account_id"])
+                assert binding.partner_code_id == uuid.UUID(attribution_ids["partner_code_id"])
+                assert binding.attribution_session_id == attribution_session_id
+                linked_touchpoints = (
+                    db.query(AttributionTouchpointModel)
+                    .filter(
+                        AttributionTouchpointModel.quote_session_id == quote_id,
+                        AttributionTouchpointModel.partner_attribution_session_id == attribution_session_id,
+                        AttributionTouchpointModel.touchpoint_type == AttributionTouchpointType.PARTNER_CLAIM.value,
+                    )
+                    .all()
+                )
+                assert len(linked_touchpoints) == 1
+                assert linked_touchpoints[0].source_host == "partner.example.test"
+                quote_session = db.get(QuoteSessionModel, quote_id)
+                assert quote_session is not None
+                snapshot = quote_session.quote_snapshot["partner_attribution"]
+                assert snapshot["source"] == "server_side_quote_safety_net"
+                assert snapshot["status"] == "already_claimed"
+                assert snapshot["attribution_session_id"] == str(attribution_session_id)
+                binding_id = str(binding.id)
+                assert snapshot["binding_id"] == binding_id
+                assert snapshot["quote_touchpoint_id"] == str(linked_touchpoints[0].id)
+                assert cookie_token not in str(snapshot)
+
+            checkout_response = await async_client.post(
+                "/api/v1/checkout-sessions/",
+                headers={**headers, "Idempotency-Key": "quote-attr-checkout-1"},
+                json={"quote_session_id": quote_payload["id"]},
+            )
+            assert checkout_response.status_code == 201
+            checkout_payload = checkout_response.json()
+            assert checkout_payload["quote"]["partner_markup"] == 7.5
+
+            with sessionmaker() as db:
+                checkout = db.get(CheckoutSessionModel, uuid.UUID(checkout_payload["id"]))
+                assert checkout is not None
+                checkout_snapshot = checkout.checkout_snapshot["quote_snapshot"]["partner_attribution"]
+                assert checkout_snapshot["binding_id"] == binding_id
+                assert checkout_snapshot["attribution_session_id"] == str(attribution_session_id)
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_checkout_safety_net_claims_legacy_quote_cookie_and_marks_stale(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201
+            quote_payload = quote_response.json()
+            assert quote_payload["quote"]["partner_markup"] == 0.0
+
+            cookie_token = "checkout-cookie-fallback-token"
+            attribution_ids = _seed_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=cookie_token,
+            )
+            checkout_response = await async_client.post(
+                "/api/v1/checkout-sessions/",
+                headers={
+                    **headers,
+                    "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}",
+                    "Idempotency-Key": "checkout-attr-stale-1",
+                },
+                json={"quote_session_id": quote_payload["id"]},
+            )
+            assert checkout_response.status_code == 409
+            assert "stale" in checkout_response.json()["detail"]
+            _assert_attribution_cookie_deleted(checkout_response)
+
+            quote_id = uuid.UUID(quote_payload["id"])
+            attribution_session_id = uuid.UUID(attribution_ids["attribution_session_id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                assert attribution.status == "claimed"
+                assert attribution.binding_id is not None
+                quote_session = db.get(QuoteSessionModel, quote_id)
+                assert quote_session is not None
+                assert quote_session.quote_status == "stale"
+                snapshot = quote_session.quote_snapshot["partner_attribution"]
+                assert snapshot["source"] == "server_side_checkout_safety_net"
+                assert snapshot["attribution_session_id"] == str(attribution_session_id)
+                assert snapshot["binding_id"] == str(attribution.binding_id)
+                assert cookie_token not in str(snapshot)
+                assert (
+                    db.query(CheckoutSessionModel).filter(CheckoutSessionModel.quote_session_id == quote_id).count()
+                    == 0
+                )
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_expired_partner_attribution_cookie_does_not_block_quote(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            cookie_token = "expired-quote-cookie-token"
+            attribution_ids = _seed_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=cookie_token,
+                expires_at=datetime.now(UTC) - timedelta(minutes=1),
+            )
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers={**headers, "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}"},
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201
+            _assert_attribution_cookie_deleted(quote_response)
+            quote_payload = quote_response.json()
+            assert quote_payload["quote"]["partner_markup"] == 0.0
+
+            attribution_session_id = uuid.UUID(attribution_ids["attribution_session_id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                assert attribution.status == "expired"
+                assert attribution.binding_id is None
+                quote_session = db.get(QuoteSessionModel, uuid.UUID(quote_payload["id"]))
+                assert quote_session is not None
+                snapshot = quote_session.quote_snapshot["partner_attribution"]
+                assert snapshot["status"] == "expired"
+                assert snapshot["attribution_session_id"] == str(attribution_session_id)
+                assert snapshot["binding_id"] is None
+                assert cookie_token not in str(snapshot)
+                assert (
+                    db.query(CustomerCommercialBindingModel)
+                    .filter(CustomerCommercialBindingModel.attribution_session_id == attribution_session_id)
+                    .count()
+                    == 0
+                )
+                assert (
+                    db.query(AttributionTouchpointModel)
+                    .filter(
+                        AttributionTouchpointModel.quote_session_id == uuid.UUID(quote_payload["id"]),
+                        AttributionTouchpointModel.partner_attribution_session_id == attribution_session_id,
+                    )
+                    .count()
+                    == 0
+                )
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("with_foreign_storefront", [True, False])
+async def test_foreign_realm_partner_attribution_cookie_does_not_bind_or_block_quote(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    with_foreign_storefront: bool,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            cookie_token = f"foreign-realm-cookie-token-{int(with_foreign_storefront)}"
+            attribution_ids = _seed_foreign_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=cookie_token,
+                with_foreign_storefront=with_foreign_storefront,
+            )
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers={**headers, "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}"},
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201
+            _assert_attribution_cookie_deleted(quote_response)
+            quote_payload = quote_response.json()
+            assert quote_payload["quote"]["partner_markup"] == 0.0
+            assert "partner_attribution" not in quote_payload["quote"]
+
+            quote_id = uuid.UUID(quote_payload["id"])
+            attribution_session_id = uuid.UUID(attribution_ids["attribution_session_id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                assert attribution.status == "transferred"
+                assert attribution.user_id is None
+                assert attribution.binding_id is None
+                quote_session = db.get(QuoteSessionModel, quote_id)
+                assert quote_session is not None
+                snapshot = quote_session.quote_snapshot["partner_attribution"]
+                assert snapshot["status"] == "no_pending"
+                assert snapshot["attribution_session_id"] is None
+                assert snapshot["partner_account_id"] is None
+                assert snapshot["partner_code_id"] is None
+                assert snapshot["binding_id"] is None
+                assert snapshot["quote_touchpoint_id"] is None
+                assert cookie_token not in str(snapshot)
+                assert (
+                    db.query(CustomerCommercialBindingModel)
+                    .filter(CustomerCommercialBindingModel.attribution_session_id == attribution_session_id)
+                    .count()
+                    == 0
+                )
+                assert (
+                    db.query(AttributionTouchpointModel)
+                    .filter(
+                        AttributionTouchpointModel.quote_session_id == quote_id,
+                        AttributionTouchpointModel.partner_attribution_session_id == attribution_session_id,
+                    )
+                    .count()
+                    == 0
+                )
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()
@@ -795,7 +1452,7 @@ async def test_stale_quote_releases_reserved_promo(
                 db.add(entry)
                 db.commit()
 
-            request_marker = "stale" "-quote" "-promo-1"
+            request_marker = "stale-quote-promo-1"
             checkout_response = await async_client.post(
                 "/api/v1/checkout-sessions/",
                 headers={**headers, "Idempotency-Key": request_marker},

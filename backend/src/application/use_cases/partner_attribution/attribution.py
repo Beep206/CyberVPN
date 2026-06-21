@@ -50,6 +50,9 @@ from src.infrastructure.database.models.partner_attribution_session_model import
     PartnerAttributionSessionModel,
 )
 from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeLinkModel, PartnerCodeModel
+from src.infrastructure.database.repositories.attribution_touchpoint_repo import (
+    AttributionTouchpointRepository,
+)
 from src.infrastructure.database.repositories.customer_commercial_binding_repo import (
     CustomerCommercialBindingRepository,
 )
@@ -63,6 +66,7 @@ from src.presentation.dependencies.auth_realms import RealmResolution
 _logger = logging.getLogger(__name__)
 
 _TERMINAL_STATUSES = frozenset({"claimed", "expired", "invalidated", "rejected"})
+_CLAIMED_OWNER_STATUSES = frozenset({"claimed", "already_claimed", "already_claimed_same_owner"})
 _ALLOWED_OWNER_TYPES = {
     CommercialOwnerType.AFFILIATE.value,
     CommercialOwnerType.PERFORMANCE.value,
@@ -129,11 +133,48 @@ class ClaimPartnerAttributionCommand:
 @dataclass(frozen=True)
 class ClaimPartnerAttributionResult:
     status: str
+    attribution_session_id: UUID | None = None
     partner_account_id: UUID | None = None
     partner_code_id: UUID | None = None
     binding_id: UUID | None = None
+    claim_touchpoint_id: UUID | None = None
     claimed_at: datetime | None = None
     clear_cookie: bool = False
+
+
+@dataclass(frozen=True)
+class EnsurePendingPartnerAttributionClaimedCommand:
+    user_id: UUID
+    cookie_token: str | None
+    current_realm: RealmResolution
+    quote_session_id: UUID | None = None
+    checkout_session_id: UUID | None = None
+    source_host: str | None = None
+    source_path: str | None = None
+    campaign_params: dict[str, str] | None = None
+    sale_channel: str | None = None
+
+
+@dataclass(frozen=True)
+class EnsurePendingPartnerAttributionClaimedResult:
+    status: str
+    attribution_session_id: UUID | None = None
+    partner_account_id: UUID | None = None
+    partner_code_id: UUID | None = None
+    binding_id: UUID | None = None
+    claim_touchpoint_id: UUID | None = None
+    quote_touchpoint_id: UUID | None = None
+    claimed_at: datetime | None = None
+    clear_cookie: bool = False
+
+    @property
+    def has_claimed_owner(self) -> bool:
+        return (
+            self.attribution_session_id is not None
+            and self.partner_code_id is not None
+            and self.binding_id is not None
+            and self.status in _CLAIMED_OWNER_STATUSES
+        )
 
 
 @dataclass(frozen=True)
@@ -582,6 +623,7 @@ class ClaimPartnerAttributionUseCase:
 
         attribution = await self._sessions.get_by_session_token_hash(
             hash_partner_attribution_token(command.cookie_token.strip()),
+            auth_realm_id=UUID(command.current_realm.realm_id),
             for_update=True,
         )
         if attribution is None:
@@ -591,9 +633,11 @@ class ClaimPartnerAttributionUseCase:
         if attribution.status == "claimed":
             return ClaimPartnerAttributionResult(
                 status="already_claimed",
+                attribution_session_id=attribution.id,
                 partner_account_id=attribution.partner_account_id,
                 partner_code_id=attribution.partner_code_id,
                 binding_id=attribution.binding_id,
+                claim_touchpoint_id=attribution.touchpoint_id,
                 claimed_at=attribution.claimed_at,
                 clear_cookie=True,
             )
@@ -601,7 +645,11 @@ class ClaimPartnerAttributionUseCase:
             attribution.status = "expired"
             attribution.updated_at = now
             await self._session.flush()
-            return ClaimPartnerAttributionResult(status="expired", clear_cookie=True)
+            return ClaimPartnerAttributionResult(
+                status="expired",
+                attribution_session_id=attribution.id,
+                clear_cookie=True,
+            )
 
         user = await self._lock_user(command.user_id)
         if user is None or not user.is_active:
@@ -623,7 +671,11 @@ class ClaimPartnerAttributionUseCase:
             attribution.status = "invalidated"
             attribution.updated_at = now
             await self._session.flush()
-            return ClaimPartnerAttributionResult(status="no_pending", clear_cookie=True)
+            return ClaimPartnerAttributionResult(
+                status="no_pending",
+                attribution_session_id=attribution.id,
+                clear_cookie=True,
+            )
         partner_account = await self._load_partner_account(code_model)
         link_model = (
             await self._partners.get_code_link_by_id(attribution.partner_code_link_id)
@@ -738,9 +790,11 @@ class ClaimPartnerAttributionUseCase:
         await self._session.flush()
         return ClaimPartnerAttributionResult(
             status="claimed",
+            attribution_session_id=attribution.id,
             partner_account_id=code_model.partner_account_id,
             partner_code_id=code_model.id,
             binding_id=binding.id,
+            claim_touchpoint_id=claim_touchpoint.id,
             claimed_at=now,
             clear_cookie=True,
         )
@@ -771,6 +825,7 @@ class ClaimPartnerAttributionUseCase:
             await self._session.flush()
             return ClaimPartnerAttributionResult(
                 status="manual_review_required",
+                attribution_session_id=attribution.id,
                 binding_id=existing_binding.id,
                 clear_cookie=True,
             )
@@ -782,9 +837,11 @@ class ClaimPartnerAttributionUseCase:
             await self._session.flush()
             return ClaimPartnerAttributionResult(
                 status="already_claimed_same_owner",
+                attribution_session_id=attribution.id,
                 partner_account_id=existing_binding.partner_account_id,
                 partner_code_id=existing_binding.partner_code_id,
                 binding_id=existing_binding.id,
+                claim_touchpoint_id=attribution.touchpoint_id,
                 claimed_at=attribution.claimed_at,
                 clear_cookie=True,
             )
@@ -794,11 +851,136 @@ class ClaimPartnerAttributionUseCase:
         await self._session.flush()
         return ClaimPartnerAttributionResult(
             status="rejected_existing_owner",
+            attribution_session_id=attribution.id,
             partner_account_id=existing_binding.partner_account_id,
             partner_code_id=existing_binding.partner_code_id,
             binding_id=existing_binding.id,
+            claim_touchpoint_id=attribution.touchpoint_id,
             clear_cookie=True,
         )
+
+
+class EnsurePendingPartnerAttributionClaimedUseCase:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+        self._claim = ClaimPartnerAttributionUseCase(session)
+        self._sessions = PartnerAttributionSessionRepository(session)
+        self._touchpoint_repo = AttributionTouchpointRepository(session)
+
+    async def execute(
+        self,
+        command: EnsurePendingPartnerAttributionClaimedCommand,
+    ) -> EnsurePendingPartnerAttributionClaimedResult:
+        if not settings.partner_attribution_enabled or not command.cookie_token:
+            return EnsurePendingPartnerAttributionClaimedResult(status="no_pending", clear_cookie=False)
+
+        try:
+            claim = await self._claim.execute(
+                ClaimPartnerAttributionCommand(
+                    user_id=command.user_id,
+                    cookie_token=command.cookie_token,
+                    current_realm=command.current_realm,
+                )
+            )
+        except PartnerAttributionError as exc:
+            if exc.status_code >= 500:
+                raise
+            return EnsurePendingPartnerAttributionClaimedResult(
+                status=f"ignored_{exc.code.lower()}",
+                clear_cookie=True,
+            )
+
+        result = EnsurePendingPartnerAttributionClaimedResult(
+            status=claim.status,
+            attribution_session_id=claim.attribution_session_id,
+            partner_account_id=claim.partner_account_id,
+            partner_code_id=claim.partner_code_id,
+            binding_id=claim.binding_id,
+            claim_touchpoint_id=claim.claim_touchpoint_id,
+            claimed_at=claim.claimed_at,
+            clear_cookie=claim.clear_cookie,
+        )
+        if not result.has_claimed_owner or command.quote_session_id is None:
+            return result
+
+        quote_touchpoint_id = await self._record_quote_linked_touchpoint(
+            command=command,
+            result=result,
+        )
+        return EnsurePendingPartnerAttributionClaimedResult(
+            status=result.status,
+            attribution_session_id=result.attribution_session_id,
+            partner_account_id=result.partner_account_id,
+            partner_code_id=result.partner_code_id,
+            binding_id=result.binding_id,
+            claim_touchpoint_id=result.claim_touchpoint_id,
+            quote_touchpoint_id=quote_touchpoint_id,
+            claimed_at=result.claimed_at,
+            clear_cookie=result.clear_cookie,
+        )
+
+    async def _record_quote_linked_touchpoint(
+        self,
+        *,
+        command: EnsurePendingPartnerAttributionClaimedCommand,
+        result: EnsurePendingPartnerAttributionClaimedResult,
+    ) -> UUID | None:
+        if result.attribution_session_id is None:
+            return None
+        attribution = await self._sessions.get_by_id(result.attribution_session_id)
+        if attribution is None:
+            return None
+
+        idempotency_key = f"partner-quote-claim:{result.attribution_session_id}:{command.quote_session_id}"
+        existing = await self._touchpoint_repo.get_by_realm_and_idempotency_key(
+            auth_realm_id=UUID(command.current_realm.realm_id),
+            idempotency_key=idempotency_key,
+        )
+        if existing is not None:
+            return existing.id
+
+        campaign_params = dict(attribution.campaign_params or {})
+        campaign_params.update(command.campaign_params or {})
+        try:
+            async with self._session.begin_nested():
+                touchpoint = await RecordAttributionTouchpointUseCase(self._session).execute(
+                    current_realm=command.current_realm,
+                    touchpoint_type=AttributionTouchpointType.PARTNER_CLAIM.value,
+                    user_id=command.user_id,
+                    quote_session_id=command.quote_session_id,
+                    checkout_session_id=command.checkout_session_id,
+                    storefront_id=attribution.storefront_id,
+                    partner_code_id=result.partner_code_id,
+                    partner_attribution_session_id=result.attribution_session_id,
+                    policy_version_id=attribution.policy_version_id,
+                    source_event_id=f"partner_quote_claim:{result.attribution_session_id}:{command.quote_session_id}",
+                    idempotency_key=idempotency_key,
+                    sale_channel=command.sale_channel or attribution.sale_channel,
+                    source_host=command.source_host or attribution.source_host,
+                    source_path=command.source_path or attribution.source_path,
+                    campaign_params=campaign_params,
+                    evidence_payload={
+                        "source": "server_side_quote_safety_net",
+                        "binding_id": str(result.binding_id) if result.binding_id else None,
+                        "claim_touchpoint_id": (
+                            str(result.claim_touchpoint_id) if result.claim_touchpoint_id else None
+                        ),
+                        "partner_account_id": (str(result.partner_account_id) if result.partner_account_id else None),
+                        "owner_type": attribution.owner_type,
+                        "claim_status": result.status,
+                    },
+                    occurred_at=result.claimed_at,
+                    commit=False,
+                )
+        except IntegrityError:
+            existing_after_conflict = await self._touchpoint_repo.get_by_realm_and_idempotency_key(
+                auth_realm_id=UUID(command.current_realm.realm_id),
+                idempotency_key=idempotency_key,
+            )
+            if existing_after_conflict is None:
+                raise
+            return existing_after_conflict.id
+        return touchpoint.id
 
 
 def _parse_deterministic_public_token(public_token: str) -> UUID | None:

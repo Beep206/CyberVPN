@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from builtins import list as builtin_list
 from uuid import UUID
 
 from sqlalchemy import or_, select
@@ -21,6 +22,23 @@ class AttributionTouchpointRepository:
     async def get_by_id(self, touchpoint_id: UUID) -> AttributionTouchpointModel | None:
         return await self._session.get(AttributionTouchpointModel, touchpoint_id)
 
+    async def get_by_realm_and_idempotency_key(
+        self,
+        *,
+        auth_realm_id: UUID,
+        idempotency_key: str,
+    ) -> AttributionTouchpointModel | None:
+        stmt = (
+            select(AttributionTouchpointModel)
+            .where(
+                AttributionTouchpointModel.auth_realm_id == auth_realm_id,
+                AttributionTouchpointModel.idempotency_key == idempotency_key,
+            )
+            .limit(1)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().first()
+
     async def list(
         self,
         *,
@@ -29,7 +47,7 @@ class AttributionTouchpointRepository:
         order_id: UUID | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> list[AttributionTouchpointModel]:
+    ) -> builtin_list[AttributionTouchpointModel]:
         stmt = select(AttributionTouchpointModel).order_by(
             AttributionTouchpointModel.occurred_at.asc(),
             AttributionTouchpointModel.created_at.asc(),
@@ -49,7 +67,7 @@ class AttributionTouchpointRepository:
         quote_session_id: UUID | None,
         checkout_session_id: UUID,
         order_id: UUID,
-    ) -> list[AttributionTouchpointModel]:
+    ) -> builtin_list[AttributionTouchpointModel]:
         clauses = [
             AttributionTouchpointModel.checkout_session_id == checkout_session_id,
             AttributionTouchpointModel.order_id == order_id,

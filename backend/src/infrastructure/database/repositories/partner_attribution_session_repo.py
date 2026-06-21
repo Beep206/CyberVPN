@@ -25,13 +25,19 @@ class PartnerAttributionSessionRepository:
         return await self._session.get(PartnerAttributionSessionModel, session_id)
 
     async def get_by_session_token_hash(
-        self, session_token_hash: str, *, for_update: bool = False
+        self,
+        session_token_hash: str,
+        *,
+        auth_realm_id: UUID | None = None,
+        for_update: bool = False,
     ) -> PartnerAttributionSessionModel | None:
         stmt = (
             select(PartnerAttributionSessionModel)
             .where(PartnerAttributionSessionModel.session_token_hash == session_token_hash)
             .limit(1)
         )
+        if auth_realm_id is not None:
+            stmt = stmt.where(PartnerAttributionSessionModel.auth_realm_id == auth_realm_id)
         if for_update:
             stmt = stmt.with_for_update()
         result = await self._session.execute(stmt)

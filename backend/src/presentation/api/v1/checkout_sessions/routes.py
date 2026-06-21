@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.commerce_sessions import (
@@ -10,6 +11,8 @@ from src.application.use_cases.commerce_sessions import (
     QuoteSessionDriftError,
     QuoteSessionExpiredError,
 )
+from src.application.use_cases.partner_attribution.attribution import PartnerAttributionError
+from src.application.use_cases.partner_attribution.utils import PARTNER_ATTRIBUTION_COOKIE_NAME
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
@@ -17,6 +20,22 @@ from src.presentation.dependencies.database import get_db
 from .schemas import CheckoutSessionResponse, CreateCheckoutSessionRequest
 
 router = APIRouter(prefix="/checkout-sessions", tags=["checkout-sessions"])
+
+
+def _clear_attribution_cookie(response: Response) -> None:
+    response.delete_cookie(key=PARTNER_ATTRIBUTION_COOKIE_NAME, path="/")
+    response.headers["Cache-Control"] = "no-store"
+
+
+def _partner_attribution_error_response(exc: PartnerAttributionError) -> JSONResponse:
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": {"code": exc.code, "message": exc.message, "retryable": exc.status_code >= 500}},
+    )
+    response.headers["Cache-Control"] = "no-store"
+    if exc.clear_cookie:
+        _clear_attribution_cookie(response)
+    return response
 
 
 def _build_checkout_session_response(model) -> CheckoutSessionResponse:
@@ -66,8 +85,9 @@ async def create_checkout_session(
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
     idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=120),
-) -> CheckoutSessionResponse:
+) -> CheckoutSessionResponse | JSONResponse:
     use_case = CreateCheckoutSessionUseCase(db)
+    attribution_cookie_token = request.cookies.get(PARTNER_ATTRIBUTION_COOKIE_NAME)
     try:
         checkout_session, created = await use_case.execute(
             quote_session_id=payload.quote_session_id,
@@ -75,20 +95,33 @@ async def create_checkout_session(
             current_realm=current_realm,
             idempotency_key=idempotency_key,
             host=request.headers.get("X-Forwarded-Host") or request.headers.get("Host"),
+            partner_attribution_cookie_token=attribution_cookie_token,
+            source_host=current_realm.host,
+            source_path=request.url.path,
+            campaign_params={key: value for key, value in request.query_params.items()},
         )
     except QuoteSessionExpiredError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except QuoteSessionDriftError as exc:
+        if attribution_cookie_token:
+            response = JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
+            _clear_attribution_cookie(response)
+            return response
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except CheckoutSessionConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except PartnerAttributionError as exc:
+        await db.rollback()
+        return _partner_attribution_error_response(exc)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    response = _build_checkout_session_response(checkout_session)
+    checkout_response = _build_checkout_session_response(checkout_session)
+    if attribution_cookie_token:
+        _clear_attribution_cookie(http_response)
     if created:
-        return response
+        return checkout_response
     http_response.status_code = status.HTTP_200_OK
-    return response
+    return checkout_response
 
 
 @router.get("/{checkout_session_id}", response_model=CheckoutSessionResponse)

@@ -14,7 +14,14 @@ from src.application.use_cases.commerce_sessions.quote_serialization import (
     serialize_checkout_result,
 )
 from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
+from src.application.use_cases.partner_attribution.attribution import (
+    EnsurePendingPartnerAttributionClaimedCommand,
+    EnsurePendingPartnerAttributionClaimedResult,
+    EnsurePendingPartnerAttributionClaimedUseCase,
+    PartnerAttributionError,
+)
 from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
+from src.config.settings import settings
 from src.infrastructure.database.models.checkout_session_model import CheckoutSessionModel
 from src.infrastructure.database.models.quote_session_model import QuoteSessionModel
 from src.infrastructure.database.repositories.commerce_session_repo import CommerceSessionRepository
@@ -49,6 +56,7 @@ class CreateCheckoutSessionUseCase:
         self._checkout = CheckoutUseCase(session)
         self._growth_codes = GrowthCodeRepository(session)
         self._reservations = GrowthCodeReservationService(session)
+        self._partner_attribution = EnsurePendingPartnerAttributionClaimedUseCase(session)
 
     @staticmethod
     def _normalize_utc(value: datetime) -> datetime:
@@ -64,6 +72,10 @@ class CreateCheckoutSessionUseCase:
         current_realm: RealmResolution,
         idempotency_key: str,
         host: str | None,
+        partner_attribution_cookie_token: str | None = None,
+        source_host: str | None = None,
+        source_path: str | None = None,
+        campaign_params: dict[str, str] | None = None,
     ) -> tuple[CheckoutSessionModel, bool]:
         started_at = perf_counter()
         metric_channel = "unknown"
@@ -100,6 +112,24 @@ class CreateCheckoutSessionUseCase:
                 )
                 await self._session.commit()
                 raise QuoteSessionExpiredError("Quote session has expired")
+
+            partner_attribution = await self._ensure_partner_attribution_claimed(
+                user_id=user_id,
+                current_realm=current_realm,
+                cookie_token=partner_attribution_cookie_token,
+                quote_session_id=quote_session.id,
+                source_host=source_host,
+                source_path=source_path,
+                campaign_params=campaign_params,
+                sale_channel=quote_session.sale_channel,
+            )
+            partner_attribution_snapshot = _build_partner_attribution_snapshot(partner_attribution)
+            if partner_attribution_snapshot is not None:
+                quote_session.quote_snapshot = {
+                    **dict(quote_session.quote_snapshot or {}),
+                    "partner_attribution": partner_attribution_snapshot,
+                }
+                await self._session.flush()
 
             current_context, current_quote_snapshot = await self._resolve_current_state(
                 quote_session=quote_session,
@@ -259,6 +289,42 @@ class CreateCheckoutSessionUseCase:
         reservation.checkout_session_id = checkout_session.id
         await self._session.flush()
 
+    async def _ensure_partner_attribution_claimed(
+        self,
+        *,
+        user_id: UUID,
+        current_realm: RealmResolution,
+        cookie_token: str | None,
+        quote_session_id: UUID,
+        source_host: str | None = None,
+        source_path: str | None = None,
+        campaign_params: dict[str, str] | None = None,
+        sale_channel: str | None = None,
+    ) -> EnsurePendingPartnerAttributionClaimedResult | None:
+        if not settings.partner_attribution_enabled or not cookie_token:
+            return None
+        try:
+            return await self._partner_attribution.execute(
+                EnsurePendingPartnerAttributionClaimedCommand(
+                    user_id=user_id,
+                    cookie_token=cookie_token,
+                    current_realm=current_realm,
+                    quote_session_id=quote_session_id,
+                    source_host=source_host,
+                    source_path=source_path,
+                    campaign_params=campaign_params,
+                    sale_channel=sale_channel,
+                )
+            )
+        except PartnerAttributionError:
+            raise
+        except Exception as exc:
+            raise PartnerAttributionError(
+                code="PARTNER_ATTRIBUTION_TRANSIENT_FAILURE",
+                message="Partner attribution is temporarily unavailable.",
+                status_code=503,
+            ) from exc
+
 
 def _extract_reservation_id(quote_snapshot: dict | None) -> UUID | None:
     code_resolution = (quote_snapshot or {}).get("code_resolution") or {}
@@ -270,11 +336,29 @@ def _extract_reservation_id(quote_snapshot: dict | None) -> UUID | None:
 
 def _sanitize_quote_snapshot(snapshot: dict | None) -> dict:
     sanitized = dict(snapshot or {})
+    sanitized.pop("partner_attribution", None)
     code_resolution = dict(sanitized.get("code_resolution") or {})
     if code_resolution:
         code_resolution["reservation_id"] = None
         sanitized["code_resolution"] = code_resolution
     return sanitized
+
+
+def _build_partner_attribution_snapshot(
+    result: EnsurePendingPartnerAttributionClaimedResult | None,
+) -> dict[str, str | None] | None:
+    if result is None:
+        return None
+    return {
+        "source": "server_side_checkout_safety_net",
+        "status": result.status,
+        "attribution_session_id": str(result.attribution_session_id) if result.attribution_session_id else None,
+        "partner_account_id": str(result.partner_account_id) if result.partner_account_id else None,
+        "partner_code_id": str(result.partner_code_id) if result.partner_code_id else None,
+        "binding_id": str(result.binding_id) if result.binding_id else None,
+        "claim_touchpoint_id": str(result.claim_touchpoint_id) if result.claim_touchpoint_id else None,
+        "quote_touchpoint_id": str(result.quote_touchpoint_id) if result.quote_touchpoint_id else None,
+    }
 
 
 def _record_checkout_metric(

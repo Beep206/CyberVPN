@@ -16,6 +16,12 @@ from src.application.use_cases.commerce_sessions.quote_serialization import (
     serialize_checkout_result,
 )
 from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
+from src.application.use_cases.partner_attribution.attribution import (
+    EnsurePendingPartnerAttributionClaimedCommand,
+    EnsurePendingPartnerAttributionClaimedResult,
+    EnsurePendingPartnerAttributionClaimedUseCase,
+    PartnerAttributionError,
+)
 from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
 from src.config.settings import settings
 from src.domain.enums import AttributionTouchpointType, GrowthCodeType
@@ -38,6 +44,7 @@ class CreateQuoteSessionUseCase:
         self._checkout = CheckoutUseCase(session)
         self._resolver = ResolveQuoteContextUseCase(session)
         self._touchpoints = RecordAttributionTouchpointUseCase(session)
+        self._partner_attribution = EnsurePendingPartnerAttributionClaimedUseCase(session)
         self._reservations = GrowthCodeReservationService(session)
 
     async def execute(
@@ -60,10 +67,20 @@ class CreateQuoteSessionUseCase:
         source_host: str | None = None,
         source_path: str | None = None,
         campaign_params: dict[str, str] | None = None,
+        partner_attribution_cookie_token: str | None = None,
     ) -> QuoteSessionModel:
         started_at = perf_counter()
         normalized_currency = currency.upper()
         try:
+            pending_attribution = await self._ensure_partner_attribution_claimed(
+                user_id=user_id,
+                current_realm=current_realm,
+                cookie_token=partner_attribution_cookie_token,
+                source_host=source_host,
+                source_path=source_path,
+                campaign_params=campaign_params,
+                sale_channel=channel,
+            )
             resolved_context = await self._resolver.execute(
                 current_realm=current_realm,
                 storefront_key=storefront_key,
@@ -145,6 +162,16 @@ class CreateQuoteSessionUseCase:
                 expires_at=now + QUOTE_SESSION_TTL,
             )
             created = await self._repo.create_quote_session(model)
+            linked_attribution = await self._ensure_partner_attribution_claimed(
+                user_id=user_id,
+                current_realm=current_realm,
+                cookie_token=partner_attribution_cookie_token,
+                quote_session_id=created.id,
+                source_host=source_host,
+                source_path=source_path,
+                campaign_params=campaign_params,
+                sale_channel=channel,
+            )
             if _should_reserve_growth_code(checkout_result):
                 reservation = await self._reservations.reserve_for_quote(
                     growth_code_id=checkout_result.code_resolution.growth_code_id,
@@ -157,6 +184,14 @@ class CreateQuoteSessionUseCase:
                     checkout_result,
                     subscription_snapshot=subscription_snapshot,
                 )
+                await self._session.flush()
+
+            attribution_snapshot = _build_partner_attribution_snapshot(linked_attribution or pending_attribution)
+            if attribution_snapshot is not None:
+                created.quote_snapshot = {
+                    **dict(created.quote_snapshot or {}),
+                    "partner_attribution": attribution_snapshot,
+                }
                 await self._session.flush()
 
             normalized_partner_code = partner_code.strip() if partner_code else None
@@ -227,6 +262,42 @@ class CreateQuoteSessionUseCase:
             commerce_checkout_addons_total.labels(channel=channel, status="quoted").inc(len(addons))
         return created
 
+    async def _ensure_partner_attribution_claimed(
+        self,
+        *,
+        user_id: UUID,
+        current_realm: RealmResolution,
+        cookie_token: str | None,
+        quote_session_id: UUID | None = None,
+        source_host: str | None = None,
+        source_path: str | None = None,
+        campaign_params: dict[str, str] | None = None,
+        sale_channel: str | None = None,
+    ) -> EnsurePendingPartnerAttributionClaimedResult | None:
+        if not settings.partner_attribution_enabled or not cookie_token:
+            return None
+        try:
+            return await self._partner_attribution.execute(
+                EnsurePendingPartnerAttributionClaimedCommand(
+                    user_id=user_id,
+                    cookie_token=cookie_token,
+                    current_realm=current_realm,
+                    quote_session_id=quote_session_id,
+                    source_host=source_host,
+                    source_path=source_path,
+                    campaign_params=campaign_params,
+                    sale_channel=sale_channel,
+                )
+            )
+        except PartnerAttributionError:
+            raise
+        except Exception as exc:
+            raise PartnerAttributionError(
+                code="PARTNER_ATTRIBUTION_TRANSIENT_FAILURE",
+                message="Partner attribution is temporarily unavailable.",
+                status_code=503,
+            ) from exc
+
 
 def _should_reserve_growth_code(checkout_result) -> bool:
     if checkout_result.code_resolution is None:
@@ -236,3 +307,20 @@ def _should_reserve_growth_code(checkout_result) -> bool:
     if checkout_result.code_resolution.growth_code_id is None:
         return False
     return checkout_result.code_resolution.code_type == GrowthCodeType.PROMO
+
+
+def _build_partner_attribution_snapshot(
+    result: EnsurePendingPartnerAttributionClaimedResult | None,
+) -> dict[str, str | None] | None:
+    if result is None:
+        return None
+    return {
+        "source": "server_side_quote_safety_net",
+        "status": result.status,
+        "attribution_session_id": str(result.attribution_session_id) if result.attribution_session_id else None,
+        "partner_account_id": str(result.partner_account_id) if result.partner_account_id else None,
+        "partner_code_id": str(result.partner_code_id) if result.partner_code_id else None,
+        "binding_id": str(result.binding_id) if result.binding_id else None,
+        "claim_touchpoint_id": str(result.claim_touchpoint_id) if result.claim_touchpoint_id else None,
+        "quote_touchpoint_id": str(result.quote_touchpoint_id) if result.quote_touchpoint_id else None,
+    }

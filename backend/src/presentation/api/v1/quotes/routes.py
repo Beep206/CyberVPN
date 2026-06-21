@@ -1,9 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.commerce_sessions import CreateQuoteSessionUseCase, GetQuoteSessionUseCase
+from src.application.use_cases.partner_attribution.attribution import PartnerAttributionError
+from src.application.use_cases.partner_attribution.utils import PARTNER_ATTRIBUTION_COOKIE_NAME
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
@@ -11,6 +14,22 @@ from src.presentation.dependencies.database import get_db
 from .schemas import CreateQuoteSessionRequest, QuoteSessionResponse
 
 router = APIRouter(prefix="/quotes", tags=["quotes"])
+
+
+def _clear_attribution_cookie(response: Response) -> None:
+    response.delete_cookie(key=PARTNER_ATTRIBUTION_COOKIE_NAME, path="/")
+    response.headers["Cache-Control"] = "no-store"
+
+
+def _partner_attribution_error_response(exc: PartnerAttributionError) -> JSONResponse:
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": {"code": exc.code, "message": exc.message, "retryable": exc.status_code >= 500}},
+    )
+    response.headers["Cache-Control"] = "no-store"
+    if exc.clear_cookie:
+        _clear_attribution_cookie(response)
+    return response
 
 
 def _build_quote_session_response(model) -> QuoteSessionResponse:
@@ -52,11 +71,13 @@ def _build_quote_session_response(model) -> QuoteSessionResponse:
 async def create_quote_session(
     payload: CreateQuoteSessionRequest,
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
-) -> QuoteSessionResponse:
+) -> QuoteSessionResponse | JSONResponse:
     use_case = CreateQuoteSessionUseCase(db)
+    attribution_cookie_token = request.cookies.get(PARTNER_ATTRIBUTION_COOKIE_NAME)
     try:
         created = await use_case.execute(
             user_id=user_id,
@@ -73,12 +94,18 @@ async def create_quote_session(
             currency=payload.currency,
             channel=payload.channel,
             addons=[addon.model_dump() for addon in payload.addons],
-            source_host=request.headers.get("X-Forwarded-Host") or request.headers.get("Host"),
+            source_host=current_realm.host,
             source_path=request.url.path,
             campaign_params={key: value for key, value in request.query_params.items()},
+            partner_attribution_cookie_token=attribution_cookie_token,
         )
+    except PartnerAttributionError as exc:
+        await db.rollback()
+        return _partner_attribution_error_response(exc)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if attribution_cookie_token:
+        _clear_attribution_cookie(response)
     return _build_quote_session_response(created)
 
 
