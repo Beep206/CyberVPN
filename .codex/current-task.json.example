@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "task_id": "CYBA-000",
+  "title": "Exact task title",
+  "status": "in_progress",
+  "goal": "Exact observable user or system outcome",
+  "assumptions": [],
+  "in_scope": [],
+  "out_of_scope": [],
+  "affected_surfaces": [],
+  "acceptance_criteria": [
+    {
+      "id": "AC-01",
+      "text": "One atomic observable outcome",
+      "status": "pending",
+      "implementation_evidence": [],
+      "test_evidence": []
+    }
+  ],
+  "negative_acceptance_criteria": [],
+  "validations": [
+    {
+      "command": "Exact required command",
+      "required": true,
+      "status": "not_run",
+      "exit_code": null,
+      "evidence": ""
+    }
+  ],
+  "reviews": [
+    {
+      "agent": "verifier",
+      "status": "not_run",
+      "findings": [],
+      "evidence": ""
+    },
+    {
+      "agent": "adversarial_reviewer",
+      "status": "not_run",
+      "findings": [],
+      "evidence": ""
+    }
+  ],
+  "unresolved": [],
+  "created_at": "",
+  "updated_at": ""
+}

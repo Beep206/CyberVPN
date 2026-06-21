@@ -67,12 +67,10 @@ dev-debug.log
 # OS specific
 # AI tools
 .claude/
-.codex/
 .gemini/
 .opencode/
 .taskmaster/
 .agent/
-.agents/
 .adal/
 .augment/
 .cline/
@@ -165,6 +163,25 @@ infra/prometheus/targets/*.json
 !infra/prometheus/targets/stage2-vpn-node-tcp.json
 !infra/prometheus/targets/stage3-storefront-endpoints.json
 # Codex local task state and verification logs
+.codex/*
+!.codex/agents/
+!.codex/agents/*.toml
+!.codex/config.toml
+!.codex/current-task.json.example
+!.codex/hooks.json
+!.codex/hooks/
+!.codex/hooks/*.py
+!.codex/skills/
+.codex/skills/*
+!.codex/skills/requirements-analysis/
+!.codex/skills/requirements-analysis/**
+!.codex/task-template.json
 .codex/current-task.json
 .codex/tmp/
 .codex/command-logs/
+.agents/*
+!.agents/plugins/
+!.agents/plugins/marketplace.json
+!.agents/skills/
+!.agents/skills/cybervpn-*/
+!.agents/skills/cybervpn-*/*

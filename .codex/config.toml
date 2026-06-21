@@ -1,0 +1,80 @@
+model = "gpt-5.5"
+review_model = "gpt-5.5"
+
+model_reasoning_effort = "xhigh"
+plan_mode_reasoning_effort = "xhigh"
+model_reasoning_summary = "detailed"
+model_verbosity = "high"
+personality = "pragmatic"
+
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+web_search = "live"
+
+allow_login_shell = true
+background_terminal_max_timeout = 1800000
+project_doc_max_bytes = 131072
+tool_output_token_limit = 50000
+
+developer_instructions = """
+Operate autonomously inside CyberVPN.
+
+Do not ask for routine confirmations.
+Install missing project and system dependencies.
+Start required local services.
+Create and apply local migrations.
+Regenerate generated clients and artifacts.
+Run tests and repair failures autonomously.
+
+For every non-trivial task:
+- create or refresh .codex/current-task.json;
+- convert the complete task into atomic acceptance criteria;
+- continue implementation after planning;
+- use specialist agents;
+- use verifier and adversarial_reviewer;
+- do not claim VERIFIED until every acceptance criterion and required
+  validation has direct implementation and test evidence.
+"""
+
+[features]
+apps = true
+browser_use = true
+browser_use_external = true
+computer_use = true
+enable_request_compression = true
+fast_mode = false
+goals = true
+hooks = true
+image_generation = true
+in_app_browser = true
+memories = true
+mentions_v2 = true
+multi_agent = true
+personality = true
+plugin_sharing = true
+plugins = true
+prevent_idle_sleep = true
+remote_compaction_v2 = true
+shell_snapshot = true
+shell_tool = true
+skill_mcp_dependency_install = true
+tool_call_mcp_elicitation = true
+tool_suggest = true
+unified_exec = true
+workspace_dependencies = true
+
+[agents]
+max_threads = 12
+max_depth = 2
+job_max_runtime_seconds = 14400
+
+[tools]
+web_search = { context_size = "high" }
+
+[mcp_servers.openai_developer_docs]
+url = "https://developers.openai.com/mcp"
+enabled = true
+required = false
+startup_timeout_sec = 30
+tool_timeout_sec = 180
+default_tools_approval_mode = "approve"

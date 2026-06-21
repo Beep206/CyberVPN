@@ -1,0 +1,20 @@
+{
+  "name": "cybervpn-local",
+  "interface": {
+    "displayName": "CyberVPN Local Plugins"
+  },
+  "plugins": [
+    {
+      "name": "cybervpn-autonomous-team",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cybervpn-autonomous-team"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/context_hook.py\"",
+            "timeout": 20,
+            "statusMessage": "Loading CyberVPN autonomous delivery context"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/context_hook.py\"",
+            "timeout": 20,
+            "statusMessage": "Applying CyberVPN task contract"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/context_hook.py\"",
+            "timeout": 20,
+            "statusMessage": "Applying CyberVPN subagent context"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/stop_guard.py\"",
+            "timeout": 30,
+            "statusMessage": "Checking CyberVPN completion evidence"
+          }
+        ]
+      }
+    ]
+  }
+}
