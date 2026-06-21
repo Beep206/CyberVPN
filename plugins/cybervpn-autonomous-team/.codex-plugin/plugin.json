@@ -1,0 +1,36 @@
+{
+  "name": "cybervpn-autonomous-team",
+  "version": "1.0.0",
+  "description": "Cross-stack delivery, security review, and release-readiness workflows for the CyberVPN monorepo.",
+  "author": {
+    "name": "CyberVPN project"
+  },
+  "license": "MIT",
+  "keywords": [
+    "cybervpn",
+    "delivery",
+    "security",
+    "release",
+    "multi-agent"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "CyberVPN Autonomous Team",
+    "shortDescription": "Autonomous engineering workflows for CyberVPN",
+    "longDescription": "Adds cross-stack implementation, security review, and release-readiness workflows aligned with CyberVPN agents, task contracts, and verification gates.",
+    "developerName": "CyberVPN project",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Shell",
+      "Web"
+    ],
+    "defaultPrompt": [
+      "Use the CyberVPN Autonomous Team to implement this feature end to end.",
+      "Run the CyberVPN security workflow against the current branch.",
+      "Evaluate this branch for CyberVPN release readiness."
+    ],
+    "brandColor": "#00FFFF"
+  }
+}
