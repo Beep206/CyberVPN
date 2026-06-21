@@ -1,25 +1,17 @@
 import { apiClient } from './client';
+import type { operations } from './generated/types';
 
-export type PartnerAttributionTransferConsumeRequest = {
-  transfer_token: string;
-};
+export type PartnerAttributionTransferConsumeRequest =
+  operations['consume_partner_attribution_transfer_api_v1_partner_attribution_transfer_consume_post']['requestBody']['content']['application/json'];
 
-export type PartnerAttributionTransferConsumeResponse = {
-  attribution_id: string;
-  captured_at: string;
-  expires_at: string;
-  masked_code: string;
-};
+export type PartnerAttributionTransferConsumeResponse =
+  operations['consume_partner_attribution_transfer_api_v1_partner_attribution_transfer_consume_post']['responses'][200]['content']['application/json'];
 
-export type PartnerAttributionClaimRequest = Record<string, never>;
+export type PartnerAttributionClaimRequest =
+  operations['claim_partner_attribution_api_v1_partner_attribution_claim_post']['requestBody']['content']['application/json'];
 
-export type PartnerAttributionClaimResponse = {
-  status: string;
-  partner_account_id?: string | null;
-  partner_code_id?: string | null;
-  binding_id?: string | null;
-  claimed_at?: string | null;
-};
+export type PartnerAttributionClaimResponse =
+  operations['claim_partner_attribution_api_v1_partner_attribution_claim_post']['responses'][200]['content']['application/json'];
 
 export const partnerAttributionApi = {
   consumeTransfer: (data: PartnerAttributionTransferConsumeRequest) =>

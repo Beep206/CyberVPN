@@ -20,6 +20,9 @@ class PartnerAttributionSessionModel(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_token_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True, index=True)
     transfer_token_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True, index=True)
+    consumed_transfer_token_hash: Mapped[str | None] = mapped_column(
+        String(128), nullable=True, unique=True, index=True
+    )
     transfer_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     transfer_consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     partner_code_id: Mapped[uuid.UUID] = mapped_column(
@@ -64,6 +67,9 @@ class PartnerAttributionSessionModel(Base):
     sub_ids: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     click_id: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
     browser_key_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    capture_idempotency_key_hash: Mapped[str | None] = mapped_column(
+        String(128), nullable=True, unique=True, index=True
+    )
     destination_url: Mapped[str] = mapped_column(String(1000), nullable=False)
     campaign_params: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     evidence_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)

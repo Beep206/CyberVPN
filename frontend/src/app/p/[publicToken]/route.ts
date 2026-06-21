@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { SITE_URL } from '@/shared/lib/seo-route-policy';
 
 type CaptureResponse = {
   redirect_url: string;
 };
+
+const PARTNER_BROWSER_COOKIE_NAME = 'cv_partner_browser';
+const PARTNER_BROWSER_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+const CUSTOMER_APP_ORIGIN = 'https://my.cyber-vpn.net';
+const PUBLIC_CAPTURE_HOSTS = new Set(['cyber-vpn.net', 'www.cyber-vpn.net', 'my.cyber-vpn.net']);
+const LOCAL_CAPTURE_HOSTS = new Set(['localhost', '127.0.0.1', '::1', 'testserver']);
 
 const CAMPAIGN_KEYS = [
   'utm_source',
@@ -66,24 +72,107 @@ function resolveLocale(request: NextRequest): string {
 }
 
 function resolveDestinationPath(request: NextRequest): string | null {
-  const rawDestination = request.nextUrl.searchParams.get('to')?.trim();
-  if (!rawDestination) {
-    return null;
+  const destinationKey = request.nextUrl.searchParams.get('destination')?.trim();
+  if (destinationKey === 'pricing') {
+    return '/pricing';
   }
-  if (/^(https?:)?\/\//i.test(rawDestination)) {
-    return null;
+  if (destinationKey === 'download') {
+    return '/download';
   }
-  return rawDestination.startsWith('/') ? rawDestination : `/${rawDestination}`;
+  return null;
 }
 
-function resolveBrowserKey(request: NextRequest): string {
-  const source = [
-    request.headers.get('user-agent') ?? '',
-    request.headers.get('accept-language') ?? '',
-    request.headers.get('cf-connecting-ip') ?? '',
-    request.headers.get('x-forwarded-for') ?? '',
-  ].join('|');
-  return createHash('sha256').update(source).digest('hex');
+function resolveBrowserToken(request: NextRequest): { token: string; created: boolean } {
+  const existing = request.cookies.get(PARTNER_BROWSER_COOKIE_NAME)?.value?.trim();
+  if (existing && /^[A-Za-z0-9_-]{24,128}$/.test(existing)) {
+    return { token: existing, created: false };
+  }
+  return { token: randomBytes(32).toString('base64url'), created: true };
+}
+
+function buildCaptureIdempotencyKey(publicToken: string, browserToken: string): string {
+  return createHash('sha256')
+    .update(`partner-capture:${publicToken}:${browserToken}`)
+    .digest('hex');
+}
+
+function isProductionRuntime(): boolean {
+  return (process.env.NEXT_PUBLIC_APP_ENV ?? process.env.NODE_ENV ?? 'development') === 'production';
+}
+
+function normalizeHost(rawHost: string | null): string | null {
+  if (!rawHost) {
+    return null;
+  }
+  const host = rawHost.split(',', 1)[0]?.trim().toLowerCase() ?? '';
+  if (!host) {
+    return null;
+  }
+  if (host.startsWith('[')) {
+    const bracketIndex = host.indexOf(']');
+    return bracketIndex > 0 ? host.slice(1, bracketIndex) : null;
+  }
+  return host.split(':', 1)[0] || null;
+}
+
+function resolveTrustedPublicHost(request: NextRequest): string | null {
+  const host = normalizeHost(request.headers.get('host')) ?? normalizeHost(request.nextUrl.host);
+  if (!host) {
+    return null;
+  }
+  if (PUBLIC_CAPTURE_HOSTS.has(host)) {
+    return host;
+  }
+  if (!isProductionRuntime() && (LOCAL_CAPTURE_HOSTS.has(host) || host.endsWith('.localhost'))) {
+    return host;
+  }
+  return null;
+}
+
+function safeCaptureRedirect(rawRedirectUrl: string): URL {
+  try {
+    const redirectUrl = new URL(rawRedirectUrl);
+    const allowedOrigins = new Set([SITE_URL, CUSTOMER_APP_ORIGIN]);
+    if (allowedOrigins.has(redirectUrl.origin) && /^\/[a-z]{2}-[A-Z]{2}\//.test(redirectUrl.pathname)) {
+      return redirectUrl;
+    }
+  } catch {
+    // Fall through to the canonical registration page.
+  }
+  return new URL('/ru-RU/register', SITE_URL);
+}
+
+function withBrowserCookie(response: NextResponse, browserToken: string): NextResponse {
+  response.cookies.set(PARTNER_BROWSER_COOKIE_NAME, browserToken, {
+    httpOnly: true,
+    maxAge: PARTNER_BROWSER_COOKIE_MAX_AGE_SECONDS,
+    path: '/',
+    sameSite: 'lax',
+    secure: isProductionRuntime(),
+  });
+  response.headers.set('Cache-Control', 'no-store');
+  return response;
+}
+
+async function preserveRateLimitResponse(response: Response): Promise<NextResponse> {
+  let payload: unknown = {
+    detail: {
+      code: 'PARTNER_ATTRIBUTION_RATE_LIMITED',
+      message: 'Too many partner attribution attempts.',
+    },
+  };
+  try {
+    payload = await response.clone().json() as unknown;
+  } catch {
+    // Keep the stable fallback body when the backend returns a non-JSON rate-limit payload.
+  }
+  const nextResponse = NextResponse.json(payload, { status: 429 });
+  const retryAfter = response.headers.get('Retry-After');
+  if (retryAfter) {
+    nextResponse.headers.set('Retry-After', retryAfter);
+  }
+  nextResponse.headers.set('Cache-Control', 'no-store');
+  return nextResponse;
 }
 
 export async function GET(
@@ -91,11 +180,26 @@ export async function GET(
   { params }: { params: Promise<{ publicToken: string }> },
 ) {
   const { publicToken } = await params;
+  const trustedPublicHost = resolveTrustedPublicHost(request);
+  if (!trustedPublicHost) {
+    return NextResponse.json(
+      {
+        detail: {
+          code: 'PARTNER_ATTRIBUTION_HOST_NOT_TRUSTED',
+          message: 'Partner attribution capture host is not trusted.',
+        },
+      },
+      { status: 421 },
+    );
+  }
+  const browser = resolveBrowserToken(request);
+  const captureIdempotencyKey = buildCaptureIdempotencyKey(publicToken, browser.token);
   const response = await fetch(`${resolveBackendApiBaseUrl()}/partner-attribution/capture`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Forwarded-Host': request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '',
+      'Idempotency-Key': captureIdempotencyKey,
+      'X-Forwarded-Host': trustedPublicHost,
     },
     body: JSON.stringify({
       public_token: publicToken,
@@ -105,16 +209,19 @@ export async function GET(
       sale_channel: request.nextUrl.searchParams.get('channel')?.trim() || 'content',
       sub_ids: collectSubIds(request),
       click_id: request.nextUrl.searchParams.get('click_id')?.trim() || null,
-      browser_key: resolveBrowserKey(request),
+      browser_key: browser.token,
       campaign_params: collectCampaignParams(request),
     }),
     cache: 'no-store',
   });
 
   if (!response.ok) {
-    return NextResponse.redirect(new URL('/ru-RU/register', SITE_URL));
+    if (response.status === 429) {
+      return preserveRateLimitResponse(response);
+    }
+    return withBrowserCookie(NextResponse.redirect(new URL('/ru-RU/register', SITE_URL)), browser.token);
   }
 
   const payload = await response.json() as CaptureResponse;
-  return NextResponse.redirect(payload.redirect_url);
+  return withBrowserCookie(NextResponse.redirect(safeCaptureRedirect(payload.redirect_url)), browser.token);
 }

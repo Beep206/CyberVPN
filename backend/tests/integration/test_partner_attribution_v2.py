@@ -22,11 +22,13 @@ from src.application.use_cases.partner_attribution.utils import (
     hash_partner_attribution_token,
 )
 from src.config import settings
+from src.infrastructure.database.models.attribution_touchpoint_model import AttributionTouchpointModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.customer_commercial_binding_model import (
     CustomerCommercialBindingModel,
 )
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.partner_attribution_session_model import PartnerAttributionSessionModel
 from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from tests.helpers.realm_auth import (
     SyncSessionAdapter,
@@ -124,14 +126,40 @@ async def test_partner_attribution_capture_transfer_claim_creates_commercial_bin
                     sub_ids={"creator": "demo"},
                     click_id="click-123",
                     browser_key="browser-abc",
+                    capture_idempotency_key="capture-idempotency-1",
                     campaign_params={"utm_source": "creator"},
                     current_realm=current_realm,
                 )
             )
+            duplicate_capture = await CapturePartnerAttributionUseCase(adapter).execute(
+                CapturePartnerAttributionCommand(
+                    public_token=build_public_token_for_code_id(code.id),
+                    source_host="cyber-vpn.net",
+                    source_path="/p/demo?utm_source=creator",
+                    destination_path="/pricing",
+                    locale="ru-RU",
+                    sale_channel="content",
+                    sub_ids={"creator": "demo"},
+                    click_id="click-123",
+                    browser_key="browser-abc",
+                    capture_idempotency_key="capture-idempotency-1",
+                    campaign_params={"utm_source": "creator"},
+                    current_realm=current_realm,
+                )
+            )
+            assert duplicate_capture.attribution_id == capture.attribution_id
+            assert duplicate_capture.transfer_token == capture.transfer_token
+            assert db.query(PartnerAttributionSessionModel).count() == 1
+            assert db.query(AttributionTouchpointModel).count() == 1
+
             transfer = await ConsumePartnerAttributionTransferUseCase(adapter).execute(
                 ConsumePartnerAttributionTransferCommand(transfer_token=capture.transfer_token)
             )
             assert transfer.cookie_token != capture.transfer_token
+            stored_capture = db.get(PartnerAttributionSessionModel, capture.attribution_id)
+            assert stored_capture is not None
+            assert stored_capture.transfer_token_hash is None
+            assert stored_capture.consumed_transfer_token_hash is not None
             with pytest.raises(Exception) as replay_error:
                 await ConsumePartnerAttributionTransferUseCase(adapter).execute(
                     ConsumePartnerAttributionTransferCommand(transfer_token=capture.transfer_token)

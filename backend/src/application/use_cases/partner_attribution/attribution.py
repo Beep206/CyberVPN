@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 from uuid import UUID
 
 from sqlalchemy import select
@@ -79,6 +80,7 @@ class CapturePartnerAttributionCommand:
     sub_ids: dict[str, str] | None
     click_id: str | None
     browser_key: str | None
+    capture_idempotency_key: str | None
     campaign_params: dict[str, Any] | None
     current_realm: RealmResolution
 
@@ -144,6 +146,34 @@ class CapturePartnerAttributionUseCase:
         _assert_code_eligible(code_model, partner_account)
 
         now = datetime.now(UTC)
+        browser_key_hash = hash_partner_attribution_token(command.browser_key.strip()) if command.browser_key else None
+        idempotency_key_hash = (
+            hash_partner_attribution_token(command.capture_idempotency_key.strip())
+            if command.capture_idempotency_key
+            else None
+        )
+        existing = await self._find_existing_capture(
+            code_model=code_model,
+            current_realm=command.current_realm,
+            browser_key_hash=browser_key_hash,
+            idempotency_key_hash=idempotency_key_hash,
+            now=now,
+        )
+        if existing is not None:
+            existing.last_seen_at = now
+            existing.updated_at = now
+            await self._session.flush()
+            transfer_token = _extract_transfer_token_from_destination_url(existing.destination_url)
+            if transfer_token is not None:
+                return CapturePartnerAttributionResult(
+                    attribution_id=existing.id,
+                    captured_at=existing.created_at,
+                    expires_at=existing.expires_at,
+                    masked_code=mask_partner_code(code_model.code),
+                    transfer_token=transfer_token,
+                    redirect_url=existing.destination_url,
+                )
+
         transfer_token = generate_transfer_token()
         transfer_hash = hash_partner_attribution_token(transfer_token)
         window_seconds = max(int(code_model.attribution_window_seconds or 0), PARTNER_ATTRIBUTION_TRANSFER_TTL_SECONDS)
@@ -177,9 +207,8 @@ class CapturePartnerAttributionUseCase:
             sale_channel=clamp_optional(command.sale_channel, 40),
             sub_ids=_sanitize_sub_ids(command.sub_ids),
             click_id=clamp_optional(command.click_id, 160),
-            browser_key_hash=(
-                hash_partner_attribution_token(command.browser_key.strip()) if command.browser_key else None
-            ),
+            browser_key_hash=browser_key_hash,
+            capture_idempotency_key_hash=idempotency_key_hash,
             destination_url=destination_url,
             campaign_params=_sanitize_campaign_params(command.campaign_params),
             evidence_payload={
@@ -281,6 +310,35 @@ class CapturePartnerAttributionUseCase:
             return None
         return await self._partners.get_account_by_id(code_model.partner_account_id)
 
+    async def _find_existing_capture(
+        self,
+        *,
+        code_model: PartnerCodeModel,
+        current_realm: RealmResolution,
+        browser_key_hash: str | None,
+        idempotency_key_hash: str | None,
+        now: datetime,
+    ) -> PartnerAttributionSessionModel | None:
+        if idempotency_key_hash:
+            existing = await self._sessions.get_by_capture_idempotency_key(
+                idempotency_key_hash,
+                for_update=True,
+            )
+            if _is_reusable_capture(existing, code_model=code_model, current_realm=current_realm, now=now):
+                return existing
+        if browser_key_hash:
+            existing = await self._sessions.get_active_for_browser(
+                partner_code_id=code_model.id,
+                auth_realm_id=UUID(current_realm.realm_id),
+                storefront_id=code_model.default_storefront_id,
+                browser_key_hash=browser_key_hash,
+                now=now,
+                for_update=True,
+            )
+            if _is_reusable_capture(existing, code_model=code_model, current_realm=current_realm, now=now):
+                return existing
+        return None
+
 
 class ConsumePartnerAttributionTransferUseCase:
     def __init__(self, session: AsyncSession) -> None:
@@ -335,7 +393,9 @@ class ConsumePartnerAttributionTransferUseCase:
             )
 
         session_token = generate_transfer_token()
+        attribution.consumed_transfer_token_hash = attribution.transfer_token_hash
         attribution.session_token_hash = hash_partner_attribution_token(session_token)
+        attribution.transfer_token_hash = None
         attribution.transfer_consumed_at = now
         if attribution.status == "pending":
             attribution.status = "transferred"
@@ -552,6 +612,33 @@ def _parse_deterministic_public_token(public_token: str) -> UUID | None:
         return None
 
 
+def _is_reusable_capture(
+    attribution: PartnerAttributionSessionModel | None,
+    *,
+    code_model: PartnerCodeModel,
+    current_realm: RealmResolution,
+    now: datetime,
+) -> bool:
+    return (
+        attribution is not None
+        and attribution.partner_code_id == code_model.id
+        and str(attribution.auth_realm_id) == current_realm.realm_id
+        and attribution.status == "pending"
+        and attribution.transfer_consumed_at is None
+        and _coerce_utc(attribution.expires_at) > now
+    )
+
+
+def _extract_transfer_token_from_destination_url(destination_url: str | None) -> str | None:
+    if not destination_url:
+        return None
+    values = parse_qs(urlsplit(destination_url).query).get("pat")
+    if not values:
+        return None
+    token = values[0].strip()
+    return token or None
+
+
 def _assert_code_eligible(code_model: PartnerCodeModel, account: PartnerAccountModel | None) -> None:
     now = datetime.now(UTC)
     if not code_model.is_active or code_model.lifecycle_status != "active" or code_model.approval_status != "approved":
@@ -691,11 +778,7 @@ def _sanitize_campaign_params(campaign_params: dict[str, Any] | None) -> dict[st
         key_text = str(key).strip()
         if not key_text or len(key_text) > 64:
             continue
-        if not (
-            key_text.startswith("utm_")
-            or key_text.startswith("sub_")
-            or key_text in allowed_exact
-        ):
+        if not (key_text.startswith("utm_") or key_text.startswith("sub_") or key_text in allowed_exact):
             continue
         if isinstance(value, dict | list | tuple | set):
             continue

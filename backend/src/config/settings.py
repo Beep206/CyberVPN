@@ -13,6 +13,7 @@ S1_PRODUCTION_CORS_ORIGINS = frozenset(
         "https://cyber-vpn.net",
         "https://my.cyber-vpn.net",
         "https://admin.cyber-vpn.net",
+        "https://partner.cyber-vpn.net",
     }
 )
 S1_REDIRECT_ONLY_ORIGINS = frozenset(

@@ -137,6 +137,7 @@ class TestS1CorsAndCookieSettings:
             "cors_origins": [
                 "https://cyber-vpn.net",
                 "https://admin.cyber-vpn.net",
+                "https://partner.cyber-vpn.net",
             ],
             "cookie_secure": True,
             "admin_2fa_required": True,
@@ -145,11 +146,14 @@ class TestS1CorsAndCookieSettings:
         return Settings(**values)
 
     def test_s1_production_cors_origins_are_accepted_and_normalized(self) -> None:
-        settings = self._production_settings(cors_origins="https://cyber-vpn.net/, https://admin.cyber-vpn.net/")
+        settings = self._production_settings(
+            cors_origins="https://cyber-vpn.net/, https://admin.cyber-vpn.net/, https://partner.cyber-vpn.net/"
+        )
 
         assert settings.cors_origins == [
             "https://cyber-vpn.net",
             "https://admin.cyber-vpn.net",
+            "https://partner.cyber-vpn.net",
         ]
 
     def test_s1_production_rejects_wildcard_cors(self) -> None:

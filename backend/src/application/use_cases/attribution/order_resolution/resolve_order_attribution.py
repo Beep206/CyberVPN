@@ -214,16 +214,11 @@ class ResolveOrderAttributionUseCase:
                 rule_path=["claimed_commercial_binding_selected"],
             )
 
-        selected_touchpoint = _select_touchpoint_by_model([explicit_touchpoint, passive_click])
-        if selected_touchpoint is not None:
+        if explicit_touchpoint is not None:
             return await self._candidate_from_touchpoint(
-                selected_touchpoint,
-                owner_source=(
-                    CommercialOwnerSource.EXPLICIT_CODE.value
-                    if selected_touchpoint.touchpoint_type == "explicit_code"
-                    else CommercialOwnerSource.PASSIVE_CLICK.value
-                ),
-                fallback_rule_path=[f"{selected_touchpoint.touchpoint_type}_touchpoint_selected"],
+                explicit_touchpoint,
+                owner_source=CommercialOwnerSource.EXPLICIT_CODE.value,
+                fallback_rule_path=["explicit_code_touchpoint_selected"],
             )
 
         if binding_by_type.reseller_binding is not None:
@@ -231,6 +226,13 @@ class ResolveOrderAttributionUseCase:
                 binding_by_type.reseller_binding,
                 owner_source=CommercialOwnerSource.PERSISTENT_RESELLER_BINDING.value,
                 rule_path=["persistent_reseller_binding_selected"],
+            )
+
+        if passive_click is not None:
+            return await self._candidate_from_touchpoint(
+                passive_click,
+                owner_source=CommercialOwnerSource.PASSIVE_CLICK.value,
+                fallback_rule_path=["passive_click_touchpoint_selected"],
             )
 
         if binding_by_type.storefront_default is not None:

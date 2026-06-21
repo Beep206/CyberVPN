@@ -2724,6 +2724,7 @@ async def initialize_realm_test_database(engine) -> None:
                 id TEXT PRIMARY KEY,
                 session_token_hash TEXT UNIQUE,
                 transfer_token_hash TEXT UNIQUE,
+                consumed_transfer_token_hash TEXT UNIQUE,
                 transfer_expires_at TEXT,
                 transfer_consumed_at TEXT,
                 partner_code_id TEXT NOT NULL,
@@ -2743,6 +2744,7 @@ async def initialize_realm_test_database(engine) -> None:
                 sub_ids TEXT NOT NULL DEFAULT '{}',
                 click_id TEXT,
                 browser_key_hash TEXT,
+                capture_idempotency_key_hash TEXT UNIQUE,
                 destination_url TEXT NOT NULL,
                 campaign_params TEXT NOT NULL DEFAULT '{}',
                 evidence_payload TEXT NOT NULL DEFAULT '{}',
@@ -2772,6 +2774,8 @@ async def initialize_realm_test_database(engine) -> None:
             "ON partner_attribution_sessions(session_token_hash)",
             "CREATE INDEX ix_partner_attr_sessions_transfer_token_hash "
             "ON partner_attribution_sessions(transfer_token_hash)",
+            "CREATE INDEX ix_partner_attr_sessions_consumed_transfer_token_hash "
+            "ON partner_attribution_sessions(consumed_transfer_token_hash)",
             "CREATE INDEX ix_partner_attr_sessions_transfer_expires_at "
             "ON partner_attribution_sessions(transfer_expires_at)",
             "CREATE INDEX ix_partner_attr_sessions_partner_code_id ON partner_attribution_sessions(partner_code_id)",
@@ -2787,6 +2791,8 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_partner_attr_sessions_sale_channel ON partner_attribution_sessions(sale_channel)",
             "CREATE INDEX ix_partner_attr_sessions_click_id ON partner_attribution_sessions(click_id)",
             "CREATE INDEX ix_partner_attr_sessions_browser_key_hash ON partner_attribution_sessions(browser_key_hash)",
+            "CREATE INDEX ix_partner_attr_sessions_capture_idempotency_key_hash "
+            "ON partner_attribution_sessions(capture_idempotency_key_hash)",
             "CREATE INDEX ix_partner_attr_sessions_expires_at ON partner_attribution_sessions(expires_at)",
             "CREATE INDEX ix_partner_attr_sessions_last_seen_at ON partner_attribution_sessions(last_seen_at)",
             "CREATE INDEX ix_partner_attr_sessions_created_at ON partner_attribution_sessions(created_at)",
@@ -2915,6 +2921,16 @@ async def initialize_realm_test_database(engine) -> None:
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_attribution_touchpoints_idempotency_key ON attribution_touchpoints(idempotency_key)"
+        )
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX uq_attribution_touchpoints_realm_idempotency_key "
+            "ON attribution_touchpoints(auth_realm_id, idempotency_key) "
+            "WHERE idempotency_key IS NOT NULL"
+        )
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX uq_attribution_touchpoints_realm_source_event_id "
+            "ON attribution_touchpoints(auth_realm_id, source_event_id) "
+            "WHERE source_event_id IS NOT NULL"
         )
         conn.exec_driver_sql(
             "CREATE INDEX ix_attribution_touchpoints_sale_channel ON attribution_touchpoints(sale_channel)"

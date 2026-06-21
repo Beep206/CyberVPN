@@ -35,7 +35,8 @@ def _build_test_app(allowed_origins: list[str] | None = None) -> FastAPI:
     app = FastAPI()
     app.add_middleware(
         CSRFMiddleware,
-        allowed_origins=allowed_origins or ["https://cyber-vpn.net", "https://admin.cyber-vpn.net"],
+        allowed_origins=allowed_origins
+        or ["https://cyber-vpn.net", "https://admin.cyber-vpn.net", "https://partner.cyber-vpn.net"],
     )
 
     @app.post("/api/v1/profile")
@@ -66,6 +67,18 @@ async def test_stage1_csrf_allows_cookie_auth_unsafe_request_from_approved_origi
         response = await client.post(
             "/api/v1/profile",
             headers={"Origin": "https://cyber-vpn.net"},
+        )
+
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_stage1_csrf_allows_partner_cookie_auth_unsafe_request_from_approved_origin() -> None:
+    async with AsyncClient(transport=ASGITransport(app=_build_test_app()), base_url="https://backend") as client:
+        client.cookies.set("partner_access_token", "token")
+        response = await client.post(
+            "/api/v1/profile",
+            headers={"Origin": "https://partner.cyber-vpn.net"},
         )
 
     assert response.status_code == 200

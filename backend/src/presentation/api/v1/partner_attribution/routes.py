@@ -6,7 +6,7 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,7 +25,11 @@ from src.application.use_cases.partner_attribution.utils import (
 )
 from src.config.settings import settings
 from src.presentation.dependencies.auth import get_current_mobile_user_id
-from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
+from src.presentation.dependencies.auth_realms import (
+    RealmResolution,
+    get_request_customer_realm,
+    get_request_public_customer_realm,
+)
 from src.presentation.dependencies.database import get_db
 
 from .schemas import (
@@ -78,13 +82,13 @@ def _error_response(exc: PartnerAttributionError) -> JSONResponse:
 @router.post("/capture", response_model=PartnerAttributionCaptureResponse)
 async def capture_partner_attribution(
     payload: PartnerAttributionCaptureRequest,
-    request: Request,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     db: AsyncSession = Depends(get_db),
-    current_realm: RealmResolution = Depends(get_request_customer_realm),
-) -> PartnerAttributionCaptureResponse:
+    current_realm: RealmResolution = Depends(get_request_public_customer_realm),
+) -> PartnerAttributionCaptureResponse | JSONResponse:
     command = CapturePartnerAttributionCommand(
         public_token=payload.public_token,
-        source_host=request.url.hostname or request.headers.get("Host"),
+        source_host=current_realm.host,
         source_path=payload.source_path,
         destination_path=payload.destination_path,
         locale=payload.locale,
@@ -92,6 +96,7 @@ async def capture_partner_attribution(
         sub_ids=payload.sub_ids,
         click_id=payload.click_id,
         browser_key=payload.browser_key,
+        capture_idempotency_key=idempotency_key,
         campaign_params=payload.campaign_params,
         current_realm=current_realm,
     )
@@ -127,7 +132,7 @@ async def consume_partner_attribution_transfer(
     payload: PartnerAttributionTransferConsumeRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
-) -> PartnerAttributionTransferConsumeResponse:
+) -> PartnerAttributionTransferConsumeResponse | JSONResponse:
     try:
         result = await ConsumePartnerAttributionTransferUseCase(db).execute(
             ConsumePartnerAttributionTransferCommand(transfer_token=payload.transfer_token)
@@ -165,7 +170,7 @@ async def claim_partner_attribution(
     user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
-) -> PartnerAttributionClaimResponse:
+) -> PartnerAttributionClaimResponse | JSONResponse:
     cookie_token = request.cookies.get(PARTNER_ATTRIBUTION_COOKIE_NAME)
     try:
         result = await ClaimPartnerAttributionUseCase(db).execute(
