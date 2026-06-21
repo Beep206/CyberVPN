@@ -23,7 +23,7 @@ from src.domain.enums import InviteSource
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
-from src.infrastructure.database.models.partner_model import PartnerCodeModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from src.infrastructure.database.models.promo_code_model import PromoCodeModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.main import app
@@ -36,8 +36,7 @@ from tests.integration.conftest import admin_auth_headers, get_default_test_real
 def require_docker_backed_db() -> None:
     if os.environ.get(TEST_DB_AVAILABLE_ENV) == "0":
         pytest.skip(
-            "Docker-backed test database is unavailable. "
-            "Start the local stack or run targeted sqlite-backed packs."
+            "Docker-backed test database is unavailable. Start the local stack or run targeted sqlite-backed packs."
         )
 
 
@@ -186,9 +185,7 @@ class TestInviteCodeFlow:
         assert redeem_data["is_used"] is True
         assert redeem_data["free_days"] == 7
 
-        result = await db.execute(
-            select(InviteCodeModel).where(InviteCodeModel.code == invite_code)
-        )
+        result = await db.execute(select(InviteCodeModel).where(InviteCodeModel.code == invite_code))
         invite_record = result.scalar_one()
         assert invite_record.is_used is True
         assert invite_record.used_by_user_id == redeemer.id
@@ -466,6 +463,60 @@ class TestPartnerFlow:
         code_data = create_response.json()
         assert "code" in code_data
         assert Decimal(str(code_data["markup_pct"])) == Decimal("15.0")
+
+    @pytest.mark.integration
+    async def test_regular_customer_cannot_create_partner_code(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        regular_user = await _create_mobile_user(db, is_partner=False)
+        requested_code = f"CUSTOMER{secrets.token_hex(4).upper()}"
+
+        _override_mobile_user(regular_user.id)
+        create_response = await async_client.post(
+            "/api/v1/partner/codes",
+            json={
+                "code": requested_code,
+                "markup_pct": 15.0,
+            },
+        )
+
+        assert create_response.status_code == 403
+        stored_code = await db.scalar(select(PartnerCodeModel).where(PartnerCodeModel.code == requested_code))
+        assert stored_code is None
+
+    @pytest.mark.integration
+    async def test_suspended_partner_account_cannot_create_partner_code(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        partner_user = await _create_mobile_user(db, is_partner=False)
+        suspended_account = PartnerAccountModel(
+            account_key=f"suspended-{secrets.token_hex(4)}",
+            display_name="Suspended Partner Workspace",
+            status="suspended",
+            legacy_owner_user_id=partner_user.id,
+        )
+        db.add(suspended_account)
+        await db.flush()
+        partner_user.partner_account_id = suspended_account.id
+        await db.commit()
+        requested_code = f"SUSPENDED{secrets.token_hex(4).upper()}"
+
+        _override_mobile_user(partner_user.id)
+        create_response = await async_client.post(
+            "/api/v1/partner/codes",
+            json={
+                "code": requested_code,
+                "markup_pct": 10.0,
+            },
+        )
+
+        assert create_response.status_code == 403
+        stored_code = await db.scalar(select(PartnerCodeModel).where(PartnerCodeModel.code == requested_code))
+        assert stored_code is None
 
     @pytest.mark.integration
     async def test_partner_markup_exceeds_limit(

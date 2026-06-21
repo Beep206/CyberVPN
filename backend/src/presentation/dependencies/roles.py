@@ -1,10 +1,12 @@
 from fastapi import Depends, HTTPException, status
 
 from src.application.use_cases.auth.permissions import Permission, check_minimum_role, has_permission
+from src.application.use_cases.auth_realms import RealmResolution
 from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth_realms import get_request_admin_realm
 
 
 def _resolve_admin_role(user: AdminUserModel) -> AdminRole:
@@ -27,10 +29,22 @@ def _enforce_admin_2fa(user: AdminUserModel) -> None:
         )
 
 
+def _enforce_admin_realm(current_realm: RealmResolution | object) -> None:
+    if not isinstance(current_realm, RealmResolution):
+        return
+    if current_realm.realm_type != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin realm required",
+        )
+
+
 def require_role(minimum_role: AdminRole):
     async def role_checker(
         user: AdminUserModel = Depends(get_current_active_user),
+        current_realm: RealmResolution = Depends(get_request_admin_realm),
     ) -> AdminUserModel:
+        _enforce_admin_realm(current_realm)
         user_role = _resolve_admin_role(user)
         _enforce_admin_2fa(user)
         if not check_minimum_role(user_role, minimum_role):
@@ -46,7 +60,9 @@ def require_role(minimum_role: AdminRole):
 def require_permission(permission: Permission):
     async def permission_checker(
         user: AdminUserModel = Depends(get_current_active_user),
+        current_realm: RealmResolution = Depends(get_request_admin_realm),
     ) -> AdminUserModel:
+        _enforce_admin_realm(current_realm)
         user_role = _resolve_admin_role(user)
         _enforce_admin_2fa(user)
         if not has_permission(user_role, permission):

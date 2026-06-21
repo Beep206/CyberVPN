@@ -11,7 +11,7 @@ from src.application.use_cases.partner_attribution.utils import (
     normalize_partner_code,
 )
 from src.config.settings import settings
-from src.domain.exceptions import DomainError, MarkupExceedsLimitError
+from src.domain.exceptions import DomainError, MarkupExceedsLimitError, NotAPartnerError
 from src.infrastructure.database.models.partner_model import PartnerCodeModel
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
 
@@ -38,6 +38,7 @@ class CreatePartnerCodeUseCase:
         code: str,
         markup_pct: float = 0,
         partner_account_id: UUID | None = None,
+        is_partner_user: bool = False,
     ) -> PartnerCodeModel:
         """Create a partner code for *partner_user_id*.
 
@@ -50,6 +51,15 @@ class CreatePartnerCodeUseCase:
             raise DomainError("Partner codes are not enabled for this release")
         if markup_pct < 0:
             raise DomainError("Partner code markup cannot be negative")
+        if partner_user_id is None:
+            raise NotAPartnerError()
+        if partner_account_id is None:
+            if not is_partner_user:
+                raise NotAPartnerError(str(partner_user_id))
+        else:
+            partner_account = await self._partner_repo.get_account_by_id(partner_account_id)
+            if partner_account is None or partner_account.status != "active":
+                raise NotAPartnerError(str(partner_user_id))
 
         max_markup = await self._config.get_partner_max_markup_pct()
         if markup_pct > max_markup:

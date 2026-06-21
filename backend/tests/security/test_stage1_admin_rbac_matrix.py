@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Iterable
 
 import pytest
@@ -9,9 +10,12 @@ from fastapi import Depends, FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
 
 from src.application.use_cases.auth.permissions import Permission, check_minimum_role, has_permission
+from src.application.use_cases.auth_realms import RealmResolution
 from src.domain.enums import AdminRole
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth_realms import get_request_admin_realm
 from src.presentation.dependencies.roles import require_permission, require_role
 
 
@@ -21,6 +25,21 @@ def _admin_user(role: AdminRole | str) -> AdminUserModel:
         login=f"s1-rbac-{role_value.replace('/', '-')}",
         email=f"{role_value.replace('/', '-')}@example.test",
         role=role_value,
+    )
+
+
+def _realm(realm_type: str, realm_key: str) -> RealmResolution:
+    return RealmResolution(
+        auth_realm=AuthRealmModel(
+            id=uuid.uuid4(),
+            realm_key=realm_key,
+            realm_type=realm_type,
+            display_name=f"{realm_key} realm",
+            audience=f"cybervpn:{realm_key}",
+            cookie_namespace=realm_key,
+            is_default=realm_key == realm_type,
+        ),
+        source="test",
     )
 
 
@@ -215,7 +234,11 @@ async def test_stage1_rbac_matrix_works_through_fastapi_dependency_pipeline() ->
         async def fake_current_user() -> AdminUserModel:
             return _admin_user(role)
 
+        async def fake_realm() -> RealmResolution:
+            return _realm("admin", "admin")
+
         app.dependency_overrides[get_current_active_user] = fake_current_user
+        app.dependency_overrides[get_request_admin_realm] = fake_realm
         async with AsyncClient(transport=ASGITransport(app=app), base_url="https://admin.cyber-vpn.net") as client:
             return await client.get(path)
 
@@ -239,3 +262,38 @@ async def test_stage1_rbac_matrix_works_through_fastapi_dependency_pipeline() ->
     assert finance_on_ops.json()["detail"] == "Missing permission: server_update"
     assert invalid_role.status_code == 403
     assert invalid_role.json()["detail"] == "Invalid admin role"
+
+
+@pytest.mark.asyncio
+async def test_stage1_admin_dependencies_reject_non_admin_realms() -> None:
+    app = FastAPI()
+
+    @app.patch("/admin-only")
+    async def admin_only(
+        _: AdminUserModel = Depends(require_role(AdminRole.ADMIN)),
+    ) -> dict[str, str]:
+        return {"surface": "admin"}
+
+    async def fake_current_user() -> AdminUserModel:
+        return _admin_user(AdminRole.ADMIN)
+
+    app.dependency_overrides[get_current_active_user] = fake_current_user
+
+    async def request_as_realm(realm: RealmResolution):
+        async def fake_realm() -> RealmResolution:
+            return realm
+
+        app.dependency_overrides[get_request_admin_realm] = fake_realm
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="https://admin.cyber-vpn.net") as client:
+            return await client.patch("/admin-only")
+
+    assert (await request_as_realm(_realm("admin", "admin"))).status_code == 200
+    assert (await request_as_realm(_realm("admin", "pilot-ops"))).status_code == 200
+
+    partner_response = await request_as_realm(_realm("partner", "partner"))
+    customer_response = await request_as_realm(_realm("customer", "customer"))
+
+    assert partner_response.status_code == 403
+    assert partner_response.json()["detail"] == "Admin realm required"
+    assert customer_response.status_code == 403
+    assert customer_response.json()["detail"] == "Admin realm required"

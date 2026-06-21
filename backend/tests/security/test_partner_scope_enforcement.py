@@ -1,10 +1,14 @@
+import uuid
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from src.application.services.auth_service import AuthService
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeLinkModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
 from tests.helpers.realm_auth import (
@@ -103,6 +107,15 @@ async def test_partner_workspace_scope_enforcement(
                     password="ScopeAdminP@ssword123!",
                     role="admin",
                 )
+                await _create_admin_user(
+                    session=db,
+                    auth_service=auth_service,
+                    auth_realm_id=partner_realm.id,
+                    login="scope_partner_admin",
+                    email="scope-partner-admin@example.com",
+                    password="ScopePartnerAdminP@ssword123!",
+                    role="admin",
+                )
                 owner_operator = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
@@ -137,6 +150,30 @@ async def test_partner_workspace_scope_enforcement(
                 "ScopeAdminP@ssword123!",
                 realm="admin",
             )
+            partner_admin_token = await _login(
+                async_client,
+                "scope-partner-admin@example.com",
+                "ScopePartnerAdminP@ssword123!",
+                realm="partner",
+            )
+            partner_admin_attempt = await async_client.post(
+                "/api/v1/admin/partner-workspaces",
+                headers=_auth_headers(partner_admin_token, realm="partner", host=ADMIN_AUTH_HOST),
+                json={
+                    "display_name": "Forged Partner Admin Workspace",
+                    "owner_admin_user_id": str(owner_operator.id),
+                },
+            )
+            assert partner_admin_attempt.status_code == 403
+            assert partner_admin_attempt.json()["detail"] == "Admin realm required"
+            with sessionmaker() as db:
+                forged_workspace = db.scalar(
+                    select(PartnerAccountModel).where(
+                        PartnerAccountModel.display_name == "Forged Partner Admin Workspace",
+                    )
+                )
+                assert forged_workspace is None
+
             create_response = await async_client.post(
                 "/api/v1/admin/partner-workspaces",
                 headers=_auth_headers(admin_token, realm="admin", host=ADMIN_AUTH_HOST),
@@ -184,6 +221,61 @@ async def test_partner_workspace_scope_enforcement(
             )
             assert analyst_detail.status_code == 200
             assert analyst_detail.json()["current_role_key"] == "analyst"
+
+            owner_code_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes",
+                headers=_auth_headers(owner_token, realm="partner", host=PARTNER_AUTH_HOST),
+                json={
+                    "code": "SCOPEWRITE42",
+                    "destination_path": "/pricing",
+                },
+            )
+            assert owner_code_response.status_code == 201
+            code_id = owner_code_response.json()["id"]
+            with sessionmaker() as db:
+                existing_links = (
+                    db.execute(
+                        select(PartnerCodeLinkModel).where(
+                            PartnerCodeLinkModel.partner_code_id == uuid.UUID(code_id),
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+                initial_link_count = len(existing_links)
+
+            analyst_codes_response = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes",
+                headers=_auth_headers(analyst_token, realm="partner", host=PARTNER_AUTH_HOST),
+            )
+            assert analyst_codes_response.status_code == 200
+            assert analyst_codes_response.json()[0]["id"] == code_id
+
+            analyst_link_attempt = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/links",
+                headers=_auth_headers(analyst_token, realm="partner", host=PARTNER_AUTH_HOST),
+                json={"destination_path": "/pricing", "campaign_params": {"utm_source": "analyst"}},
+            )
+            assert analyst_link_attempt.status_code == 403
+
+            analyst_qr_attempt = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/qr",
+                headers=_auth_headers(analyst_token, realm="partner", host=PARTNER_AUTH_HOST),
+                json={"destination_path": "/pricing", "size": 128},
+            )
+            assert analyst_qr_attempt.status_code == 403
+
+            with sessionmaker() as db:
+                links_after_denied_attempts = (
+                    db.execute(
+                        select(PartnerCodeLinkModel).where(
+                            PartnerCodeLinkModel.partner_code_id == uuid.UUID(code_id),
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+                assert len(links_after_denied_attempts) == initial_link_count
 
             analyst_add_attempt = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",

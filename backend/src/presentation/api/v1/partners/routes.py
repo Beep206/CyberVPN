@@ -83,6 +83,7 @@ from src.domain.enums import (
 from src.domain.exceptions import (
     DomainError,
     MarkupExceedsLimitError,
+    NotAPartnerError,
     PartnerCodeNotFoundError,
     UserAlreadyBoundToPartnerError,
 )
@@ -4099,7 +4100,11 @@ async def create_partner_code(
             body.code,
             body.markup_pct,
             partner_account_id=mobile_user.partner_account_id if mobile_user else None,
+            is_partner_user=bool(mobile_user and mobile_user.is_partner),
         )
+    except NotAPartnerError as exc:
+        track_partner_operation(operation="create_code")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=exc.message) from exc
     except MarkupExceedsLimitError as exc:
         track_partner_operation(operation="create_code")
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=exc.message) from exc
@@ -6161,7 +6166,7 @@ async def create_partner_workspace_code_link(
     workspace_id: UUID,
     code_id: UUID,
     body: PartnerWorkspaceCodeLinkRequest,
-    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_READ)),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceCodeLinkResponse:
     code_model = await _get_workspace_code_or_404(db, access.workspace.id, code_id)
@@ -6192,7 +6197,7 @@ async def create_partner_workspace_code_qr(
     workspace_id: UUID,
     code_id: UUID,
     body: PartnerWorkspaceCodeQrRequest,
-    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_READ)),
+    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceCodeQrResponse:
     code_model = await _get_workspace_code_or_404(db, access.workspace.id, code_id)
