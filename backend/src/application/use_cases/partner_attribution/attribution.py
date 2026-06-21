@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -50,7 +51,10 @@ from src.infrastructure.database.repositories.partner_attribution_session_repo i
     PartnerAttributionSessionRepository,
 )
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
+from src.infrastructure.monitoring.partner_runtime_metrics import partner_attribution_legacy_public_token_total
 from src.presentation.dependencies.auth_realms import RealmResolution
+
+_logger = logging.getLogger(__name__)
 
 _TERMINAL_STATUSES = frozenset({"claimed", "expired", "invalidated", "rejected"})
 _ALLOWED_OWNER_TYPES = {
@@ -130,6 +134,7 @@ class ClaimPartnerAttributionResult:
 class _ResolvedPublicToken:
     code_model: PartnerCodeModel
     link_model: PartnerCodeLinkModel | None
+    source: str
 
 
 class CapturePartnerAttributionUseCase:
@@ -231,7 +236,7 @@ class CapturePartnerAttributionUseCase:
             campaign_params=_sanitize_campaign_params(campaign_params),
             evidence_payload={
                 "public_token_hash": hash_partner_attribution_token(command.public_token),
-                "public_token_source": "partner_code_link" if link_model is not None else "partner_code_legacy",
+                "public_token_source": resolved.source,
                 "partner_code_link_id": str(link_model.id) if link_model is not None else None,
                 "link_destination_key": link_model.destination_key if link_model is not None else None,
                 "masked_code": mask_partner_code(code_model.code),
@@ -296,6 +301,7 @@ class CapturePartnerAttributionUseCase:
 
     async def _find_code_by_public_token(self, public_token: str) -> _ResolvedPublicToken:
         token_value = public_token.strip()
+        token_hash = hash_partner_attribution_token(token_value)
         link_model = await self._partners.get_code_link_by_public_slug(token_value)
         if link_model is not None:
             code_model = await self._partners.get_code_by_id(link_model.partner_code_id)
@@ -305,17 +311,50 @@ class CapturePartnerAttributionUseCase:
                     message="Partner public token was not found.",
                     status_code=404,
                 )
-            return _ResolvedPublicToken(code_model=code_model, link_model=link_model)
-        code_model = await self._partners.get_code_by_public_slug(token_value)
-        if code_model is not None:
-            return _ResolvedPublicToken(code_model=code_model, link_model=None)
-        token_hash = hash_partner_attribution_token(token_value)
-        code_model = await self._partners.get_code_by_public_token_hash(token_hash)
-        if code_model is not None:
-            if not code_model.public_slug:
-                code_model.public_slug = token_value
-                await self._session.flush()
-            return _ResolvedPublicToken(code_model=code_model, link_model=None)
+            return _ResolvedPublicToken(code_model=code_model, link_model=link_model, source="partner_code_link")
+        if settings.partner_legacy_code_public_slug_enabled:
+            code_model = await self._partners.get_code_by_public_slug(token_value)
+            if code_model is not None:
+                _record_legacy_public_token_resolution(
+                    source="code_public_slug",
+                    result="resolved",
+                    public_token_hash=token_hash,
+                )
+                return _ResolvedPublicToken(
+                    code_model=code_model, link_model=None, source="partner_code_public_slug_legacy"
+                )
+            code_model = await self._partners.get_code_by_public_token_hash(token_hash)
+            if code_model is not None:
+                _record_legacy_public_token_resolution(
+                    source="code_public_token_hash",
+                    result="resolved",
+                    public_token_hash=token_hash,
+                )
+                if not code_model.public_slug:
+                    code_model.public_slug = token_value
+                    await self._session.flush()
+                return _ResolvedPublicToken(
+                    code_model=code_model,
+                    link_model=None,
+                    source="partner_code_public_token_hash_legacy",
+                )
+        else:
+            legacy_source = await self._resolve_disabled_legacy_code_source(
+                token_value=token_value,
+                token_hash=token_hash,
+            )
+            if legacy_source is not None:
+                _record_legacy_public_token_resolution(
+                    source=legacy_source,
+                    result="disabled",
+                    public_token_hash=token_hash,
+                )
+                raise PartnerAttributionError(
+                    code="PARTNER_LEGACY_PUBLIC_TOKEN_DISABLED",
+                    message="Legacy partner public token fallback is disabled.",
+                    status_code=410,
+                    clear_cookie=True,
+                )
         fallback_id = _parse_deterministic_public_token(token_value)
         if fallback_id is None:
             raise PartnerAttributionError(
@@ -323,24 +362,53 @@ class CapturePartnerAttributionUseCase:
                 message="Partner public token was not found.",
                 status_code=404,
             )
+        if not settings.partner_deterministic_public_token_fallback_enabled:
+            _record_legacy_public_token_resolution(
+                source="deterministic_px",
+                result="disabled",
+                public_token_hash=token_hash,
+            )
+            raise PartnerAttributionError(
+                code="PARTNER_LEGACY_PUBLIC_TOKEN_DISABLED",
+                message="Legacy partner public token fallback is disabled.",
+                status_code=410,
+                clear_cookie=True,
+            )
         code_model = await self._partners.get_code_by_id(fallback_id)
         if code_model is None:
+            _record_legacy_public_token_resolution(
+                source="deterministic_px",
+                result="not_found",
+                public_token_hash=token_hash,
+            )
             raise PartnerAttributionError(
                 code="PARTNER_CODE_NOT_FOUND",
                 message="Partner public token was not found.",
                 status_code=404,
             )
+        _record_legacy_public_token_resolution(
+            source="deterministic_px",
+            result="resolved",
+            public_token_hash=token_hash,
+        )
         if not code_model.public_token_hash:
             code_model.public_token_hash = hash_partner_attribution_token(build_public_token_for_code_id(code_model.id))
         if not code_model.public_slug:
             code_model.public_slug = build_public_token_for_code_id(code_model.id)
             await self._session.flush()
-        return _ResolvedPublicToken(code_model=code_model, link_model=None)
+        return _ResolvedPublicToken(code_model=code_model, link_model=None, source="partner_code_deterministic_legacy")
 
     async def _load_partner_account(self, code_model: PartnerCodeModel) -> PartnerAccountModel | None:
         if code_model.partner_account_id is None:
             return None
         return await self._partners.get_account_by_id(code_model.partner_account_id)
+
+    async def _resolve_disabled_legacy_code_source(self, *, token_value: str, token_hash: str) -> str | None:
+        if await self._partners.get_code_by_public_slug(token_value) is not None:
+            return "code_public_slug"
+        if await self._partners.get_code_by_public_token_hash(token_hash) is not None:
+            return "code_public_token_hash"
+        return None
 
     async def _find_existing_capture(
         self,
@@ -642,6 +710,25 @@ def _parse_deterministic_public_token(public_token: str) -> UUID | None:
         return UUID(hex=raw)
     except ValueError:
         return None
+
+
+def _record_legacy_public_token_resolution(*, source: str, result: str, public_token_hash: str) -> None:
+    partner_attribution_legacy_public_token_total.labels(source=source, result=result).inc()
+    sunset_date = (
+        settings.partner_deterministic_public_token_sunset_date
+        if source == "deterministic_px"
+        else settings.partner_legacy_code_public_slug_sunset_date
+    )
+    _logger.warning(
+        "partner_attribution_legacy_public_token_%s",
+        result,
+        extra={
+            "source": source,
+            "result": result,
+            "public_token_hash": public_token_hash,
+            "sunset_date": sunset_date,
+        },
+    )
 
 
 def _is_reusable_capture(

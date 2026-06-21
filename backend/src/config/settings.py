@@ -310,6 +310,10 @@ class Settings(BaseSettings):
     partner_applications_enabled: bool = False
     partner_codes_enabled: bool = False
     partner_attribution_enabled: bool = False
+    partner_legacy_code_public_slug_enabled: bool = True
+    partner_legacy_code_public_slug_sunset_date: str = "2026-09-30"  # noqa: S105 - date, not a secret.
+    partner_deterministic_public_token_fallback_enabled: bool = True
+    partner_deterministic_public_token_sunset_date: str = "2026-09-30"  # noqa: S105 - date, not a secret.
     partner_storefronts_enabled: bool = False
     partner_reporting_enabled: bool = False
     partner_settlement_sandbox_enabled: bool = False

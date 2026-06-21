@@ -282,6 +282,12 @@ partner_attribution_rate_limited_total = Counter(
     ["scope"],
 )
 
+partner_attribution_legacy_public_token_total = Counter(
+    "partner_attribution_legacy_public_token_total",
+    "Partner attribution public-token compatibility resolver usage.",
+    ["source", "result"],
+)
+
 cybervpn_partner_attribution_resolutions_total = Counter(
     "cybervpn_partner_attribution_resolutions_total",
     "Partner attribution resolution outcomes.",
