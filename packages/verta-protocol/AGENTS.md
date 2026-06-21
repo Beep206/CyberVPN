@@ -1,159 +1,215 @@
-# Verta Operating Guide
+# Verta Protocol Engineering Contract
 
-## Project Mission
+Apply the repository root contract and `packages/AGENTS.md`. This file is
+authoritative for `packages/verta-protocol/`.
 
-Verta is an open-source adaptive proxy/VPN protocol suite written in Rust.
-The project must stay on a non-fork integration path with Remnawave acting as the external control plane and subscription layer.
-Implementation work must remain spec-driven, security-conscious, transport-agnostic at the session core, and friendly to future parallel Codex work.
+Verta is an adaptive proxy/VPN protocol suite in Rust. It must remain
+spec-driven, security-conscious, transport-agnostic at the session core, and
+integrated with Remnawave through explicit bridge/adapter boundaries rather
+than a panel fork.
 
-Legacy naming note:
+`Verta` is the canonical public name. Existing internal crate/package
+identifiers such as `ns-*` and documented artifact paths may remain until an
+approved compatibility migration changes them.
 
-- `Verta` is the canonical public protocol name.
-- Canonical spec filenames under `docs/spec/verta_*` and the canonical package path `packages/verta-protocol` are now active. Legacy artifact roots under `target/verta` and technical identifiers such as `ns-*` remain valid during the migration window.
+## Normative sources
 
-## Authoritative Documents
-
-Treat `docs/spec/` as the source of truth for protocol and integration behavior.
-If code, notes, or assumptions disagree with those documents, the documents win until they are updated.
-
-Authoritative inputs:
+Read `docs/spec/INDEX.md` first, then every governing spec section for the
+changed slice. Normative documents include:
 
 - `docs/spec/adaptive_proxy_vpn_protocol_master_plan.md`
-- `docs/spec/verta_blueprint_v0.md` (`Verta` blueprint)
-- `docs/spec/verta_wire_format_freeze_candidate_v0_1.md` (`Verta` wire format freeze candidate)
-- `docs/spec/verta_remnawave_bridge_spec_v0_1.md` (`Verta` Remnawave bridge spec)
-- `docs/spec/verta_threat_model_v0_1.md` (`Verta` threat model)
-- `docs/spec/verta_security_test_and_interop_plan_v0_1.md` (`Verta` security and interop plan)
-- `docs/spec/verta_implementation_spec_rust_workspace_plan_v0_1.md` (`Verta` implementation spec)
-- `docs/spec/verta_protocol_rfc_draft_v0_1.md` (`Verta` RFC draft)
+- `docs/spec/verta_blueprint_v0.md`
+- `docs/spec/verta_wire_format_freeze_candidate_v0_1.md`
+- `docs/spec/verta_remnawave_bridge_spec_v0_1.md`
+- `docs/spec/verta_threat_model_v0_1.md`
+- `docs/spec/verta_security_test_and_interop_plan_v0_1.md`
+- `docs/spec/verta_implementation_spec_rust_workspace_plan_v0_1.md`
+- `docs/spec/verta_protocol_rfc_draft_v0_1.md`
 
-Use `docs/spec/INDEX.md` as the quick index.
-If a required spec is absent in a future run, record that gap in `docs/spec/MISSING_INPUTS.md` instead of inventing replacement protocol behavior.
+The relevant spec is authoritative for protocol behavior. The task may
+explicitly request a spec change; in that case update/approve the specification
+or ADR before making implementation behavior diverge.
 
-## Architecture Guardrails
+If a required semantic rule is missing or contradictory, record the exact gap
+in `docs/spec/MISSING_INPUTS.md` or an ADR. Do not invent wire, crypto,
+downgrade, negotiation, authentication, replay, or bridge semantics.
 
-- Keep the session core transport-agnostic.
-- Keep transport personas and carrier implementations replaceable behind stable interfaces.
-- Do not fork Remnawave or blur Verta logic into panel internals; use bridge and adapter boundaries.
-- Treat wire-format, manifest, and bridge contract changes as compatibility-sensitive changes.
-- Use Rust stable by default unless a spec-backed exception is approved.
-- Prefer explicit versioning, registries, and capability negotiation over implicit behavior.
-- Use `tracing` and structured logs for diagnostics; avoid ad-hoc print debugging in durable code.
-- Keep changes small, reviewable, and scoped to one coherent concern.
+Record the governing spec sections in `.codex/current-task.json` and the PR
+description.
 
-## Work Style
+## Architecture invariants
 
-- Start every implementation task by reading the governing spec files for that slice.
-- State assumptions when the spec is silent, then stop and escalate if those assumptions would change behavior.
-- Favor narrow specialist subagents and narrow repo-scoped skills over giant generic helpers.
-- Keep plans execution-oriented: spec read, code change, verification, doc update, review.
-- Prefer paired PowerShell and Bash commands in docs when shell examples are needed.
-- Preserve useful existing files and unrelated user changes.
+- Keep session, policy, authentication, manifest, storage, observability,
+  carrier, client runtime, gateway runtime, and bridge responsibilities in
+  their documented crates.
+- The session core remains transport-agnostic.
+- Carrier/persona implementations remain replaceable behind stable interfaces.
+- Remnawave remains an external control plane/subscription source integrated
+  through bridge/adapter contracts.
+- Keep platform-specific behavior behind explicit features/adapters.
+- Prefer explicit versions, registries, capability negotiation, and typed state
+  machines over implicit behavior.
+- Treat public API, wire format, manifest, persisted state, CLI output, and
+  bridge contracts as compatibility boundaries.
+- Keep changes narrow and traceable to requirements. Do not combine unrelated
+  protocol, refactor, tooling, and documentation work.
 
-## Coding Rules
+Before adding a crate, feature, abstraction, or dependency, inspect the
+workspace plan and existing crates. Avoid cyclic dependencies and duplicate
+types.
 
-- Follow the authoritative specs; do not “improve” protocol behavior by intuition.
-- Keep transport-independent logic out of transport-specific modules.
-- Keep public APIs and crate boundaries aligned with the workspace plan and ADRs.
-- Avoid custom cryptography and unsafe shortcuts.
-- Fail safely on malformed or untrusted input; avoid panics in protocol-facing paths.
-- Use explicit bounds, timeouts, and backpressure rather than unbounded buffers or retries.
-- Prefer typed errors, clear invariants, and deterministic state transitions.
-- Add focused comments only where an invariant, wire rule, or boundary is not obvious from the code.
+## Protocol and parser safety
 
-## Testing Rules
+- Parse untrusted input with explicit length/count/depth limits before
+  allocation or decompression.
+- Reject trailing, ambiguous, non-canonical, truncated, oversized, duplicate,
+  and version-incompatible representations according to the spec.
+- Avoid panics, `unwrap`, `expect`, unchecked indexing, integer truncation,
+  overflow, and allocation based directly on attacker-controlled values.
+- Use typed errors that preserve failure category without exposing secrets.
+- Bound handshake work, session state, replay windows, queues, streams,
+  reassembly, retry, timers, concurrent peers, and per-peer resources.
+- Make timeout, cancellation, cleanup, backpressure, and shutdown behavior
+  explicit.
+- Test cross-protocol confusion, downgrade, replay, reflection/amplification,
+  resource exhaustion, state desynchronization, and fingerprinting risks where
+  relevant.
+- Do not weaken validation or accept malformed legacy input merely to make an
+  interop test pass.
 
-- After meaningful code changes, run formatting, linting, and the relevant test suite before handing work off.
-- Add or update tests whenever behavior changes.
-- Add negative tests for malformed input, boundary conditions, and downgrade or replay handling when relevant.
-- Add fuzz, interop, and performance coverage when touching parsers, state machines, transport boundaries, or hot paths.
-- Do not mark work “done” if verification was skipped; explicitly note what was not run and why.
+## Cryptography and authentication
 
-## Documentation Rules
+- Do not invent cryptographic primitives, constructions, key derivation, nonce
+  formats, signature formats, or random generators.
+- Use established audited libraries through documented APIs and the algorithms
+  selected by the normative specs.
+- Keep key, nonce, sequence, epoch, transcript, and replay invariants explicit.
+- Use constant-time comparisons for secret authentication material through
+  established APIs.
+- Never log plaintext keys, secrets, tokens, credentials, transcripts,
+  decrypted payloads, or stable identifiers that violate the threat model.
+- Zeroize or minimize secret lifetime where the current design requires it.
+- Crypto-sensitive changes require `security_reviewer`, negative tests, vectors,
+  and a spec/ADR trace.
 
-- Create or update docs whenever behavior, interfaces, or operator expectations change.
-- Keep docs concise, structured, and spec-referenced.
-- Use ADRs for intentional deviations, major design choices, compatibility-sensitive changes, or boundary decisions.
-- Keep examples, verification commands, and release-facing docs synchronized with actual behavior.
+## Compatibility and versioning
 
-## Security Rules
+A wire, manifest, persisted-state, public API, CLI, or bridge change requires:
 
-- Use the threat model as a routine review input, not a one-time artifact.
-- Preserve secure defaults; do not weaken them for convenience.
-- Never log secrets, raw tokens, long-lived identifiers, or plaintext sensitive payloads.
-- Treat downgrade, replay, resource exhaustion, cross-protocol confusion, and fingerprinting risks as first-class review topics.
-- Call out any use of `unsafe`, crypto-sensitive changes, parser complexity growth, or unauthenticated amplification paths.
+1. Identify old and new versions and every consumer.
+2. Decide whether the change is additive, negotiated, migrated, or breaking.
+3. Update the normative spec/ADR and compatibility matrix.
+4. Add golden vectors and decode/encode round trips.
+5. Add old/new interop and downgrade-rejection tests.
+6. Update client, gateway, bridge, testkit, tools, examples, and operator docs.
+7. Preserve a safe rollback or explicitly document why rollback is impossible.
+8. Run a second generation/vector check to prove reproducibility.
 
-## Review Expectations
+Do not silently change serialization order, defaults, enum discriminants, field
+meaning, capability negotiation, command output consumed by automation, or
+storage schema.
 
-- Reviews must check spec conformance, compatibility risk, security impact, tests, and doc updates.
-- Wire-format and bridge-contract changes require especially skeptical review.
-- Prefer concrete findings with file references, required follow-ups, and missing tests called out explicitly.
-- If a task changes behavior without updating docs or ADRs, the review is incomplete.
+## Rust quality
 
-## Done Means
+- Use stable Rust unless a spec-backed and CI-supported exception is approved.
+- Prefer ownership and safe abstractions. Any `unsafe` must be unavoidable,
+  narrowly scoped, documented with safety invariants, reviewed, and covered by
+  tests/Miri or equivalent evidence where applicable.
+- Use typed errors and deterministic state transitions.
+- Avoid blocking calls in async tasks.
+- Bound channels, buffers, spawned tasks, retries, and parallelism.
+- Propagate cancellation and join/clean up spawned tasks.
+- Keep observability structured with `tracing`; avoid durable `println!`
+  diagnostics.
+- Do not add broad lint allowances. A narrow allowance must explain why and be
+  located at the smallest scope.
+- Review dependency default features, target support, license, security,
+  maintenance, and binary footprint.
 
-Implementation work is only done when:
+## Testing and evidence
 
-- the governing spec sections were read and cited in the task notes or PR;
-- the code matches the spec or an approved ADR;
-- formatting, linting, and relevant tests were run after the change;
-- diagnostics or observability were updated when needed;
-- docs, templates, and examples were updated for behavior changes;
-- the resulting diff is small enough for a focused review.
+For changed behavior add the relevant:
 
-## Specs vs Implementation
+- unit tests for invariants/state transitions;
+- malformed/boundary/property tests;
+- golden vectors and canonical round trips;
+- old/new and client/gateway/bridge interop tests;
+- replay/downgrade/authentication negative tests;
+- fuzz targets and regression corpus entries for parsers/state machines;
+- concurrency, cancellation, timeout, and resource-bound tests;
+- deterministic network impairment tests;
+- target/platform tests;
+- benchmarks for hot paths or changes with performance requirements;
+- operator/CLI smoke tests.
 
-- Specs are normative; implementation follows them.
-- If implementation reveals a real gap, ambiguity, or conflict in the spec, stop and record it instead of silently deciding protocol behavior in code.
-- Use ADRs for controlled deviations or architecture choices, and update the relevant spec documents when the normative behavior changes.
-- Do not make ad-hoc protocol, wire-format, manifest, or bridge changes without an ADR or spec update.
+A parser or protocol change without negative and boundary coverage is
+incomplete. A benchmark must compare a meaningful baseline and must not replace
+correctness tests.
 
-## ADR Process
+Use `ns-testkit` and existing deterministic harnesses. Do not depend on the
+public internet, arbitrary sleeps, production credentials, or uncontrolled
+wall-clock timing.
 
-- Record ADRs under `docs/adr/NNNN-short-title.md`.
-- Use `docs/templates/adr-template.md`.
-- Write ADRs for compatibility-sensitive choices, transport abstraction boundaries, control-plane contract decisions, security tradeoffs, and any intentional deviation from a governing spec.
-- Link the ADR to the affected specs and implementation changes.
+## Documentation and ADRs
 
-## Windows-First Local Development
+Update specs, examples, diagrams, CLI help, configuration templates, operator
+guides, and release notes when behavior or expectations change.
 
-- Treat Windows and PowerShell as the first-class local path.
-- Do not require WSL-only, Linux-only, or shell-fragile workflows when a clean cross-platform option exists.
-- Keep script pairs in `scripts/*.ps1` and `scripts/*.sh` where that improves team reliability.
-- Use portable paths and avoid hidden assumptions about symlinks, case sensitivity, or GNU-only tooling.
+Create an ADR under `docs/adr/` using the project template for:
 
-## Branch and Diff Hygiene
+- compatibility-sensitive decisions;
+- transport/session boundary changes;
+- Remnawave bridge contract choices;
+- security tradeoffs;
+- new cryptographic or authentication choices selected by the spec;
+- intentional deviation from a governing document.
 
-- Use one coherent task per branch.
-- Prefer branch names with a `codex/` prefix when creating new branches.
-- Keep diffs tight; avoid mixing setup, refactor, and behavior changes without a strong reason.
-- Review the diff before finishing and call out any intentionally deferred work.
-- Never overwrite or revert unrelated user changes without explicit permission.
+Documentation is synchronized after implementation and tests; it does not prove
+implementation by itself.
 
-## Worktrees for Parallel Tasks
+## Subagents and worktrees
 
-- Use a separate git worktree for each parallel implementation track once this repository is initialized as a git repo.
-- Keep one Codex thread mapped to one worktree whenever practical.
-- Use worktrees for concurrent transport, bridge, fuzz, perf, or docs tasks that should not share build artifacts or partial edits.
-- Keep shared design decisions in ADRs or spec updates so parallel threads do not drift.
+Use narrow specialist agents for spec mapping, implementation, fuzzing,
+performance, interop, and security review. Give writing agents explicit crate
+ownership and use separate worktrees for parallel tracks. The parent agent owns
+spec interpretation, integration, and final verification.
 
-## Subagent Usage
+No subagent may invent missing protocol semantics.
 
-- Delegate narrow, specialist tasks to the smallest agent that can do the job well.
-- Keep the parent agent responsible for scope control, spec selection, integration, and final verification.
-- Give subagents explicit file ownership or output boundaries when they will write.
-- Use read-only review agents for compatibility or security checks before merge-ready handoff.
-- Do not ask subagents to invent missing protocol semantics.
+## WSL Ubuntu 24.04 local development
 
-## Do Not
+Use WSL Ubuntu 24.04 and Bash as the primary local execution environment for
+this repository owner. Keep code and operator-facing scripts portable across
+supported targets.
 
-- Do not fork Remnawave.
-- Do not make the session core transport-specific.
-- Do not make transport personas non-replaceable.
-- Do not invent custom cryptography.
-- Do not slip ad-hoc wire or bridge changes into implementation code without ADRs or spec updates.
-- Do not introduce giant generic agents or giant generic skills.
-- Do not rely on Linux-only or WSL-only workflows.
-- Do not weaken security defaults to make tests or demos easier.
-- Do not mark implementation complete without verification and doc updates.
+- Use Linux paths and manifest-scoped Cargo commands.
+- Do not assume PowerShell is installed.
+- Preserve or add paired `.ps1`/`.sh` wrappers when cross-platform operator
+  workflows require both.
+- Do not use symlink, case-sensitivity, GNU-tool, or filesystem assumptions
+  without considering supported targets.
+- Run target-specific CI/smoke for Windows/macOS behavior that WSL cannot prove.
+
+## Required validation
+
+From the repository root:
+
+```bash
+cargo fmt --manifest-path packages/verta-protocol/Cargo.toml --all -- --check
+cargo clippy --manifest-path packages/verta-protocol/Cargo.toml --workspace --all-targets --all-features -- -D warnings
+cargo test --manifest-path packages/verta-protocol/Cargo.toml --workspace
+```
+
+Add the relevant feature/target matrix, fuzz, interop, vector, benchmark,
+Miri/sanitizer, CLI help, bridge, and release smoke commands for the changed
+slice.
+
+Before `TASK_STATUS: VERIFIED`:
+
+- governing spec sections are recorded;
+- code and specs/ADR agree;
+- compatibility/security implications are covered;
+- all affected tests were rerun after the final change;
+- generated vectors/artifacts are reproducible;
+- verifier, adversarial reviewer, and security reviewer (when relevant) have no
+  unresolved finding.
