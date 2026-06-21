@@ -12,6 +12,7 @@ from src.infrastructure.database.models.attribution_touchpoint_model import Attr
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
+from src.infrastructure.database.models.storefront_model import StorefrontModel
 from src.main import app
 from tests.helpers.realm_auth import (
     FakeRedis,
@@ -55,6 +56,19 @@ async def test_s3_reseller_storefront_preview_is_gated_readonly_and_does_not_cha
             )
 
             with sessionmaker() as db:
+                current_storefront = (
+                    db.query(StorefrontModel).filter(StorefrontModel.storefront_key == seeded["storefront_key"]).one()
+                )
+                other_storefront = StorefrontModel(
+                    id=uuid.uuid4(),
+                    storefront_key="partner-web-b",
+                    brand_id=current_storefront.brand_id,
+                    display_name="Partner Web B",
+                    host="partner-b.example.test",
+                    merchant_profile_id=current_storefront.merchant_profile_id,
+                    auth_realm_id=current_storefront.auth_realm_id,
+                    status="active",
+                )
                 partner_owner = MobileUserModel(
                     id=uuid.uuid4(),
                     auth_realm_id=customer_realm.id,
@@ -78,8 +92,24 @@ async def test_s3_reseller_storefront_preview_is_gated_readonly_and_does_not_cha
                     partner_user_id=partner_owner.id,
                     markup_pct=8,
                     is_active=True,
+                    owner_type="reseller",
+                    allowed_channels=["storefront"],
+                    allowed_storefront_ids=[str(current_storefront.id)],
+                    allowed_geographies=["*"],
                 )
-                db.add_all([partner_owner, reseller_workspace, reseller_code])
+                wrong_storefront_code = PartnerCodeModel(
+                    id=uuid.uuid4(),
+                    code="S3STORE09B",
+                    partner_account_id=reseller_workspace.id,
+                    partner_user_id=partner_owner.id,
+                    markup_pct=8,
+                    is_active=True,
+                    owner_type="reseller",
+                    allowed_channels=["storefront"],
+                    allowed_storefront_ids=[str(other_storefront.id)],
+                    allowed_geographies=["*"],
+                )
+                db.add_all([other_storefront, partner_owner, reseller_workspace, reseller_code, wrong_storefront_code])
                 db.commit()
 
             hidden_response = await async_client.get(f"/api/v1/storefronts/{seeded['storefront_key']}/preview")
@@ -89,6 +119,18 @@ async def test_s3_reseller_storefront_preview_is_gated_readonly_and_does_not_cha
             monkeypatch.setattr(settings, "partner_storefronts_enabled", True)
             with sessionmaker() as db:
                 touchpoints_before_preview = db.query(AttributionTouchpointModel).count()
+
+            wrong_storefront_response = await async_client.get(
+                f"/api/v1/storefronts/{seeded['storefront_key']}/preview",
+                params={"partner_code": wrong_storefront_code.code},
+            )
+            assert wrong_storefront_response.status_code == 400
+            wrong_storefront_payload = wrong_storefront_response.json()
+            assert wrong_storefront_payload == {"detail": "Partner code not found or inactive"}
+            wrong_storefront_response_text = wrong_storefront_response.text
+            assert str(wrong_storefront_code.id) not in wrong_storefront_response_text
+            assert str(reseller_workspace.id) not in wrong_storefront_response_text
+            assert reseller_workspace.account_key not in wrong_storefront_response_text
 
             preview_response = await async_client.get(
                 f"/api/v1/storefronts/{seeded['storefront_key']}/preview",

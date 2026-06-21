@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.use_cases.partner_attribution.eligibility import (
+    EvaluatePartnerCodeEligibilityCommand,
+    EvaluatePartnerCodeEligibilityUseCase,
+)
 from src.config.settings import settings
 from src.infrastructure.database.models.pricebook_model import PricebookModel
 from src.infrastructure.database.models.storefront_model import StorefrontModel
@@ -65,6 +71,7 @@ async def preview_storefront_contract(
     pricebooks = await PricebookRepository(db).list_active(storefront_id=storefront.id)
     attribution_contract = await _build_attribution_contract(
         partner_code=partner_code,
+        storefront_id=storefront.id,
         db=db,
     )
 
@@ -104,7 +111,7 @@ async def preview_storefront_contract(
 
 
 def _build_route_contract(storefront: StorefrontModel) -> StorefrontRouteContractResponse:
-    route_status = "preview" if storefront.status == "active" else "inactive"
+    route_status: Literal["preview", "inactive"] = "preview" if storefront.status == "active" else "inactive"
     return StorefrontRouteContractResponse(
         storefront_key=storefront.storefront_key,
         host=storefront.host,
@@ -148,6 +155,7 @@ def _build_pricing_boundary(pricebooks: list[PricebookModel]) -> StorefrontPrici
 async def _build_attribution_contract(
     *,
     partner_code: str | None,
+    storefront_id: UUID,
     db: AsyncSession,
 ) -> StorefrontAttributionContractResponse:
     if not partner_code:
@@ -165,8 +173,20 @@ async def _build_attribution_contract(
     partner_account = None
     if code_model.partner_account_id is not None:
         partner_account = await PartnerAccountRepository(db).get_account_by_id(code_model.partner_account_id)
+    eligibility = EvaluatePartnerCodeEligibilityUseCase().execute(
+        EvaluatePartnerCodeEligibilityCommand(
+            code_model=code_model,
+            account=partner_account,
+            sale_channel="storefront",
+            storefront_id=storefront_id,
+        )
+    )
+    if not eligibility.allowed:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Partner code not found or inactive")
 
-    owner_type = "reseller" if code_model.partner_account_id is not None else "affiliate"
+    owner_type: Literal["reseller", "affiliate"] = (
+        "reseller" if code_model.partner_account_id is not None else "affiliate"
+    )
     return StorefrontAttributionContractResponse(
         owner_type=owner_type,
         owner_source="explicit_code",
