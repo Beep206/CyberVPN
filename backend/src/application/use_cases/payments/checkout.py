@@ -3,6 +3,7 @@
 import logging
 from dataclasses import dataclass, field
 from decimal import Decimal
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +19,11 @@ from src.application.use_cases.growth_codes import (
     GrowthCodeResolutionOutcome,
     ResolveGrowthCodeUseCase,
 )
+from src.application.use_cases.partner_attribution.eligibility import (
+    EvaluatePartnerCodeEligibilityCommand,
+    EvaluatePartnerCodeEligibilityUseCase,
+    PartnerCodeEligibilityResult,
+)
 from src.config.settings import settings
 from src.domain.enums import (
     CommercialOwnerType,
@@ -26,6 +32,7 @@ from src.domain.enums import (
     GrowthCodeResolutionStatus,
     GrowthCodeType,
 )
+from src.infrastructure.database.models.customer_commercial_binding_model import CustomerCommercialBindingModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from src.infrastructure.database.models.plan_addon_model import PlanAddonModel
@@ -167,15 +174,33 @@ class CheckoutUseCase:
         if normalized_partner_code:
             if not settings.partner_codes_enabled:
                 raise ValueError("Partner codes are not enabled for this release")
-            explicit_code = await self._partner_repo.get_active_code_by_code(normalized_partner_code)
+            explicit_code = await self._partner_repo.get_code_by_code(normalized_partner_code)
             if explicit_code is None:
                 raise ValueError("Partner code not found or inactive")
+            account = (
+                await self._partner_repo.get_account_by_id(explicit_code.partner_account_id)
+                if explicit_code.partner_account_id is not None
+                else None
+            )
+            eligibility = EvaluatePartnerCodeEligibilityUseCase().execute(
+                EvaluatePartnerCodeEligibilityCommand(
+                    code_model=explicit_code,
+                    account=account,
+                    sale_channel=sale_channel,
+                    storefront_id=storefront_id,
+                )
+            )
+            _assert_checkout_partner_eligibility(eligibility)
             if await self._is_self_partner_code(user=user, partner_code=explicit_code):
                 raise ValueError("Partner code self-referral is blocked")
             partner_markup = base_price * (Decimal(str(explicit_code.markup_pct)) / Decimal("100"))
             partner_code_id = explicit_code.id
         elif settings.partner_attribution_enabled:
-            active_code = await self._resolve_bound_partner_code(user=user, storefront_id=storefront_id)
+            active_code = await self._resolve_bound_partner_code(
+                user=user,
+                storefront_id=storefront_id,
+                sale_channel=sale_channel,
+            )
             if active_code is not None:
                 partner_markup = base_price * (Decimal(str(active_code.markup_pct)) / Decimal("100"))
                 partner_code_id = active_code.id
@@ -209,11 +234,11 @@ class CheckoutUseCase:
                     raise ValueError("Partner code is already applied")
                 if code_resolution.partner_code_id is None:
                     raise ValueError("Partner code is not valid")
-                partner_code = await self._partner_repo.get_code_by_id(code_resolution.partner_code_id)
-                if partner_code is None or not partner_code.is_active:
+                resolved_partner_code = await self._partner_repo.get_code_by_id(code_resolution.partner_code_id)
+                if resolved_partner_code is None or not resolved_partner_code.is_active:
                     raise ValueError("Partner code not found or inactive")
-                partner_markup = base_price * (Decimal(str(partner_code.markup_pct)) / Decimal("100"))
-                partner_code_id = partner_code.id
+                partner_markup = base_price * (Decimal(str(resolved_partner_code.markup_pct)) / Decimal("100"))
+                partner_code_id = resolved_partner_code.id
                 displayed_price = base_price + addon_amount + partner_markup
             elif code_resolution.code_type == GrowthCodeType.PROMO:
                 promo = await self._promo_repo.get_active_by_code(normalized_growth_code_input)
@@ -331,23 +356,63 @@ class CheckoutUseCase:
         *,
         user: MobileUserModel | None,
         storefront_id: UUID | None,
-    ):
+        sale_channel: str | None,
+    ) -> PartnerCodeModel | None:
         if user is None:
             return None
 
-        bindings = await self._bindings.list_active_for_user(user_id=user.id, storefront_id=storefront_id)
+        bindings = cast(
+            list[CustomerCommercialBindingModel],
+            await self._bindings.list_active_for_user(user_id=user.id, storefront_id=storefront_id),
+        )
         for binding in bindings:
             if binding.partner_code_id is None or binding.owner_type not in PARTNER_MARKUP_OWNER_TYPES:
                 continue
             code = await self._partner_repo.get_code_by_id(binding.partner_code_id)
-            if code is not None and code.is_active:
+            if code is not None and await self._is_checkout_partner_code_allowed(
+                code,
+                sale_channel=sale_channel,
+                storefront_id=storefront_id,
+            ):
                 return code
 
         if user.partner_user_id is None:
             return None
 
         codes = await self._partner_repo.get_codes_by_partner(user.partner_user_id)
-        return next((code for code in codes if code.is_active), None)
+        for code in codes:
+            if await self._is_checkout_partner_code_allowed(
+                code,
+                sale_channel=sale_channel,
+                storefront_id=storefront_id,
+            ):
+                return code
+        return None
+
+    async def _is_checkout_partner_code_allowed(
+        self,
+        code: PartnerCodeModel,
+        *,
+        sale_channel: str | None,
+        storefront_id: UUID | None,
+    ) -> bool:
+        account = (
+            await self._partner_repo.get_account_by_id(code.partner_account_id)
+            if code.partner_account_id is not None
+            else None
+        )
+        return (
+            EvaluatePartnerCodeEligibilityUseCase()
+            .execute(
+                EvaluatePartnerCodeEligibilityCommand(
+                    code_model=code,
+                    account=account,
+                    sale_channel=sale_channel,
+                    storefront_id=storefront_id,
+                )
+            )
+            .allowed
+        )
 
     async def _is_self_partner_code(
         self,
@@ -534,6 +599,10 @@ def _quote_resolution_error_message(resolution) -> str:
         if resolution.code_type == GrowthCodeType.REFERRAL:
             return "Referral code is not eligible for this plan"
         return "Promo code is not eligible for this plan"
+    if resolution.reject_reason == GrowthCodeRejectReason.CODE_NOT_ELIGIBLE_FOR_SURFACE:
+        if resolution.code_type == GrowthCodeType.PARTNER:
+            return "Partner code is not eligible for this checkout surface"
+        return "Code is not eligible for this checkout surface"
     if resolution.reject_reason == GrowthCodeRejectReason.CODE_WRONG_CONTEXT:
         if resolution.code_type == GrowthCodeType.INVITE:
             return "Invite code must be redeemed outside checkout"
@@ -546,6 +615,15 @@ def _quote_resolution_error_message(resolution) -> str:
         if resolution.code_type == GrowthCodeType.PARTNER:
             return "Partner code self-referral is blocked"
     return "Growth code is not valid"
+
+
+def _assert_checkout_partner_eligibility(eligibility: PartnerCodeEligibilityResult) -> None:
+    if eligibility.allowed:
+        return
+    reason_codes = set(eligibility.reason_codes)
+    if reason_codes.intersection({"sale_channel_not_allowed", "storefront_not_allowed", "geography_not_allowed"}):
+        raise ValueError("Partner code is not eligible for this checkout surface")
+    raise ValueError("Partner code not found or inactive")
 
 
 def _normalize_code_input(*, code_input: str | None, promo_code: str | None) -> str | None:

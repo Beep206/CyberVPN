@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from time import perf_counter
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -11,6 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.growth_codes.hashing import hash_growth_code
 from src.application.use_cases.growth_codes.registry import GrowthCodeRegistryService
+from src.application.use_cases.partner_attribution.eligibility import (
+    EvaluatePartnerCodeEligibilityCommand,
+    EvaluatePartnerCodeEligibilityUseCase,
+    PartnerCodeEligibilityResult,
+)
 from src.config.settings import settings
 from src.domain.enums import (
     CommercialOwnerType,
@@ -21,8 +27,9 @@ from src.domain.enums import (
     GrowthCodeWrongContextTarget,
     InviteSource,
 )
+from src.infrastructure.database.models.customer_commercial_binding_model import CustomerCommercialBindingModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
-from src.infrastructure.database.models.partner_model import PartnerAccountModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from src.infrastructure.database.repositories.customer_commercial_binding_repo import (
     CustomerCommercialBindingRepository,
 )
@@ -58,6 +65,7 @@ class GrowthCodeResolutionOutcome:
     growth_code_id: UUID | None = None
     promo_code_id: UUID | None = None
     partner_code_id: UUID | None = None
+    policy_snapshot: dict | None = None
 
 
 class ResolveGrowthCodeUseCase:
@@ -229,6 +237,8 @@ class ResolveGrowthCodeUseCase:
                 action_context=action_context,
                 user_id=user_id,
                 existing_promo_present=existing_promo_present,
+                sale_channel=surface,
+                storefront_id=storefront_id,
             )
             await self._registry.record_resolution_event(
                 growth_code_id=None,
@@ -663,10 +673,12 @@ class ResolveGrowthCodeUseCase:
     async def _resolve_partner_code(
         self,
         *,
-        partner_code,
+        partner_code: PartnerCodeModel,
         action_context: GrowthCodeActionContext,
         user_id: UUID | None,
         existing_promo_present: bool,
+        sale_channel: str | None,
+        storefront_id: UUID | None,
     ) -> GrowthCodeResolutionOutcome:
         owner_type = "reseller" if partner_code.partner_account_id is not None else "affiliate"
         if not settings.partner_codes_enabled:
@@ -683,6 +695,20 @@ class ResolveGrowthCodeUseCase:
                 partner_code_id=partner_code.id,
             )
 
+        account = (
+            await self._partners.get_account_by_id(partner_code.partner_account_id)
+            if partner_code.partner_account_id is not None
+            else None
+        )
+        eligibility = EvaluatePartnerCodeEligibilityUseCase().execute(
+            EvaluatePartnerCodeEligibilityCommand(
+                code_model=partner_code,
+                account=account,
+                sale_channel=sale_channel,
+                storefront_id=storefront_id,
+            )
+        )
+        owner_type = eligibility.owner_type or owner_type
         if action_context != GrowthCodeActionContext.CHECKOUT:
             return self._wrong_context(
                 code_type=GrowthCodeType.PARTNER,
@@ -723,18 +749,20 @@ class ResolveGrowthCodeUseCase:
                 partner_code_id=partner_code.id,
             )
 
-        if not partner_code.is_active:
+        if not eligibility.allowed:
+            reject_reason, message_key = _growth_reject_for_partner_eligibility(eligibility)
             return GrowthCodeResolutionOutcome(
                 accepted=False,
                 code_type=GrowthCodeType.PARTNER,
                 action_context=action_context,
                 result=GrowthCodeResolutionStatus.REJECTED,
-                reject_reason=GrowthCodeRejectReason.CODE_NOT_ACTIVE,
-                user_message_key="growth_codes.partner.inactive",
+                reject_reason=reject_reason,
+                user_message_key=message_key,
                 issuer_type="partner",
                 owner_type=owner_type,
                 resolved_code_id=partner_code.id,
                 partner_code_id=partner_code.id,
+                policy_snapshot=eligibility.policy_snapshot,
             )
 
         return GrowthCodeResolutionOutcome(
@@ -747,6 +775,7 @@ class ResolveGrowthCodeUseCase:
             owner_type=owner_type,
             resolved_code_id=partner_code.id,
             partner_code_id=partner_code.id,
+            policy_snapshot=eligibility.policy_snapshot,
         )
 
     async def _is_partner_code_self_referral(self, *, partner_code, user_id: UUID | None) -> bool:
@@ -783,6 +812,7 @@ class ResolveGrowthCodeUseCase:
             growth_code_id=growth_code_id,
             promo_code_id=outcome.promo_code_id,
             partner_code_id=outcome.partner_code_id,
+            policy_snapshot=outcome.policy_snapshot,
         )
 
     async def _resolve_referral_owner(self, referral_code: str) -> MobileUserModel | None:
@@ -798,7 +828,10 @@ class ResolveGrowthCodeUseCase:
         if user is not None and (user.partner_user_id is not None or user.partner_account_id is not None):
             return True
 
-        bindings = await self._bindings.list_active_for_user(user_id=user_id, storefront_id=storefront_id)
+        bindings = cast(
+            list[CustomerCommercialBindingModel],
+            await self._bindings.list_active_for_user(user_id=user_id, storefront_id=storefront_id),
+        )
         return any(binding.owner_type in PARTNER_FLOW_OWNER_TYPES for binding in bindings)
 
     @staticmethod
@@ -839,3 +872,14 @@ class ResolveGrowthCodeUseCase:
     @staticmethod
     def _invite_issuer_type(source: str) -> str:
         return "purchase" if source == InviteSource.PURCHASE.value else "admin"
+
+
+def _growth_reject_for_partner_eligibility(
+    eligibility: PartnerCodeEligibilityResult,
+) -> tuple[GrowthCodeRejectReason, str]:
+    reason_codes = set(eligibility.reason_codes)
+    if "code_expired" in reason_codes:
+        return GrowthCodeRejectReason.CODE_EXPIRED, "growth_codes.partner.expired"
+    if reason_codes.intersection({"sale_channel_not_allowed", "storefront_not_allowed", "geography_not_allowed"}):
+        return GrowthCodeRejectReason.CODE_NOT_ELIGIBLE_FOR_SURFACE, "growth_codes.partner.not_eligible_for_surface"
+    return GrowthCodeRejectReason.CODE_NOT_ACTIVE, "growth_codes.partner.inactive"

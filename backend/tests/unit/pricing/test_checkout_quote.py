@@ -53,6 +53,32 @@ def _build_addon(**overrides):
     return SimpleNamespace(**base)
 
 
+def _build_partner_code(**overrides):
+    base = {
+        "id": uuid4(),
+        "partner_account_id": uuid4(),
+        "partner_user_id": uuid4(),
+        "markup_pct": Decimal("20.00"),
+        "is_active": True,
+        "lifecycle_status": "active",
+        "approval_status": "approved",
+        "active_from": None,
+        "expires_at": None,
+        "owner_type": "affiliate",
+        "code_kind": "starter_code",
+        "lane_key": "creator_affiliate",
+        "attribution_model": "last_eligible_touch",
+        "attribution_window_seconds": 30 * 24 * 60 * 60,
+        "policy_version_id": None,
+        "commission_contract_id": None,
+        "allowed_channels": ["web"],
+        "allowed_storefront_ids": ["*"],
+        "allowed_geographies": ["*"],
+    }
+    base.update(overrides)
+    return SimpleNamespace(**base)
+
+
 @pytest.mark.asyncio
 async def test_checkout_quote_applies_addons_to_entitlements(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "stage1_addons_enabled", True)
@@ -138,24 +164,20 @@ async def test_checkout_quote_rejects_hidden_plan_on_public_channel() -> None:
 @pytest.mark.asyncio
 async def test_checkout_quote_prefers_explicit_partner_code_over_legacy_bound_partner() -> None:
     partner_user_id = uuid4()
-    session = SimpleNamespace(
-        get=AsyncMock(
-            return_value=SimpleNamespace(
-                id=uuid4(),
-                partner_user_id=partner_user_id,
-            )
-        )
-    )
+    user = SimpleNamespace(id=uuid4(), partner_user_id=partner_user_id)
+    account = SimpleNamespace(status="active", legacy_owner_user_id=uuid4())
+    session = SimpleNamespace(get=AsyncMock(side_effect=[user, account]))
     use_case = CheckoutUseCase(session)
     plan = _build_plan(price_usd=Decimal("100.00"))
-    explicit_code = SimpleNamespace(id=uuid4(), markup_pct=Decimal("20.00"), is_active=True)
-    legacy_code = SimpleNamespace(id=uuid4(), markup_pct=Decimal("5.00"), is_active=True)
+    explicit_code = _build_partner_code(markup_pct=Decimal("20.00"))
+    legacy_code = _build_partner_code(markup_pct=Decimal("5.00"))
 
     use_case._plan_repo = SimpleNamespace(get_by_id=AsyncMock(return_value=plan))
     use_case._addon_repo = SimpleNamespace(get_by_codes=AsyncMock(return_value=[]))
     use_case._promo_repo = SimpleNamespace(get_active_by_code=AsyncMock(return_value=None))
     use_case._partner_repo = SimpleNamespace(
-        get_active_code_by_code=AsyncMock(return_value=explicit_code),
+        get_code_by_code=AsyncMock(return_value=explicit_code),
+        get_account_by_id=AsyncMock(return_value=account),
         get_codes_by_partner=AsyncMock(return_value=[legacy_code]),
     )
     use_case._wallet = SimpleNamespace(
@@ -172,3 +194,31 @@ async def test_checkout_quote_prefers_explicit_partner_code_over_legacy_bound_pa
     assert result.partner_code_id == explicit_code.id
     assert result.partner_markup == Decimal("20.00")
     assert result.displayed_price == Decimal("120.00")
+
+
+@pytest.mark.asyncio
+async def test_checkout_quote_rejects_explicit_partner_code_when_policy_disallows_channel() -> None:
+    session = SimpleNamespace(get=AsyncMock(return_value=SimpleNamespace(id=uuid4())))
+    use_case = CheckoutUseCase(session)
+    plan = _build_plan(price_usd=Decimal("100.00"))
+    explicit_code = _build_partner_code(allowed_channels=["partner_blog"])
+
+    use_case._plan_repo = SimpleNamespace(get_by_id=AsyncMock(return_value=plan))
+    use_case._addon_repo = SimpleNamespace(get_by_codes=AsyncMock(return_value=[]))
+    use_case._promo_repo = SimpleNamespace(get_active_by_code=AsyncMock(return_value=None))
+    use_case._partner_repo = SimpleNamespace(
+        get_code_by_code=AsyncMock(return_value=explicit_code),
+        get_account_by_id=AsyncMock(return_value=SimpleNamespace(status="active", legacy_owner_user_id=uuid4())),
+        get_codes_by_partner=AsyncMock(return_value=[]),
+    )
+    use_case._wallet = SimpleNamespace(
+        get_balance=AsyncMock(return_value=SimpleNamespace(balance=Decimal("0"), frozen=Decimal("0")))
+    )
+
+    with pytest.raises(ValueError, match="not eligible for this checkout surface"):
+        await use_case.execute(
+            user_id=uuid4(),
+            plan_id=plan.id,
+            partner_code="NEBULA20",
+            sale_channel="web",
+        )

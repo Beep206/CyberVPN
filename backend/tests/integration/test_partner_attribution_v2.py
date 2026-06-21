@@ -119,7 +119,7 @@ async def test_partner_attribution_capture_transfer_claim_creates_commercial_bin
                 lane_key="creator_affiliate",
                 attribution_model="last_eligible_touch",
                 attribution_window_seconds=30 * 24 * 60 * 60,
-                allowed_channels=["content"],
+                allowed_channels=["content", "partner-newsletter"],
                 allowed_storefront_ids=["*"],
                 allowed_geographies=["*"],
                 sub_id_schema={},
@@ -173,6 +173,9 @@ async def test_partner_attribution_capture_transfer_claim_creates_commercial_bin
             assert transfer.cookie_token != capture.transfer_token
             stored_capture = db.get(PartnerAttributionSessionModel, capture.attribution_id)
             assert stored_capture is not None
+            assert stored_capture.policy_snapshot["allowed"] is True
+            assert stored_capture.policy_snapshot["reason_codes"] == []
+            assert stored_capture.policy_snapshot["evaluated_sale_channel"] == "content"
             assert stored_capture.transfer_token_hash is None
             assert stored_capture.consumed_transfer_token_hash is not None
             with pytest.raises(Exception) as replay_error:
@@ -239,7 +242,7 @@ async def test_partner_attribution_capture_uses_persisted_link_snapshot() -> Non
                 lane_key="creator_affiliate",
                 attribution_model="last_eligible_touch",
                 attribution_window_seconds=30 * 24 * 60 * 60,
-                allowed_channels=["content"],
+                allowed_channels=["content", "partner-newsletter"],
                 allowed_storefront_ids=["*"],
                 allowed_geographies=["*"],
                 sub_id_schema={},
@@ -711,6 +714,261 @@ async def test_partner_attribution_capture_rejects_expired_link() -> None:
             assert exc_info.value.code == "PARTNER_CODE_LINK_EXPIRED"
             assert exc_info.value.status_code == 410
             assert db.query(PartnerAttributionSessionModel).count() == 0
+    finally:
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_partner_attribution_capture_rejects_disallowed_channel_policy() -> None:
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    try:
+        with sessionmaker() as db:
+            realm = _realm()
+            partner_owner = _user(realm_id=realm.id, email="partner-channel-owner@example.test")
+            account = PartnerAccountModel(
+                id=uuid.uuid4(),
+                account_key="channel-policy-partner",
+                display_name="Channel Policy Partner",
+                status="active",
+                legacy_owner_user_id=partner_owner.id,
+            )
+            code = PartnerCodeModel(
+                id=uuid.uuid4(),
+                code="CHANNEL42",
+                code_normalized="CHANNEL42",
+                public_slug="channel-policy-token",
+                public_token_hash=hash_partner_attribution_token("channel-policy-token"),
+                partner_account_id=account.id,
+                partner_user_id=partner_owner.id,
+                markup_pct=7,
+                is_active=True,
+                lifecycle_status="active",
+                approval_status="approved",
+                owner_type="affiliate",
+                lane_key="creator_affiliate",
+                attribution_model="last_eligible_touch",
+                attribution_window_seconds=30 * 24 * 60 * 60,
+                allowed_channels=["partner_blog"],
+                allowed_storefront_ids=["*"],
+                allowed_geographies=["*"],
+                sub_id_schema={},
+            )
+            db.add_all([realm, partner_owner, account, code])
+            db.commit()
+
+            with pytest.raises(PartnerAttributionError) as exc_info:
+                await CapturePartnerAttributionUseCase(SyncSessionAdapter(db)).execute(
+                    CapturePartnerAttributionCommand(
+                        public_token=code.public_slug,
+                        source_host="cyber-vpn.net",
+                        source_path="/p/channel-policy-token",
+                        destination_path="/pricing",
+                        locale="ru-RU",
+                        sale_channel="content",
+                        sub_ids={},
+                        click_id=None,
+                        browser_key="browser-channel-policy",
+                        capture_idempotency_key="capture-channel-policy",
+                        campaign_params={},
+                        current_realm=RealmResolution(auth_realm=realm, source="test"),
+                    )
+                )
+
+            assert exc_info.value.code == "PARTNER_CODE_CHANNEL_NOT_ALLOWED"
+            assert exc_info.value.status_code == 409
+            assert db.query(PartnerAttributionSessionModel).count() == 0
+    finally:
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_partner_attribution_claim_rejects_revoked_link_after_transfer() -> None:
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    try:
+        with sessionmaker() as db:
+            realm = _realm()
+            partner_owner = _user(realm_id=realm.id, email="partner-revoked-link-owner@example.test")
+            customer = _user(realm_id=realm.id, email="customer-revoked-link@example.test")
+            account = PartnerAccountModel(
+                id=uuid.uuid4(),
+                account_key="revoked-link-partner",
+                display_name="Revoked Link Partner",
+                status="active",
+                legacy_owner_user_id=partner_owner.id,
+            )
+            code = PartnerCodeModel(
+                id=uuid.uuid4(),
+                code="REVOKED42",
+                code_normalized="REVOKED42",
+                public_slug="code-level-revoked42",
+                public_token_hash=hash_partner_attribution_token("code-level-revoked42"),
+                partner_account_id=account.id,
+                partner_user_id=partner_owner.id,
+                markup_pct=7,
+                is_active=True,
+                lifecycle_status="active",
+                approval_status="approved",
+                owner_type="affiliate",
+                lane_key="creator_affiliate",
+                attribution_model="last_eligible_touch",
+                attribution_window_seconds=30 * 24 * 60 * 60,
+                allowed_channels=["content"],
+                allowed_storefront_ids=["*"],
+                allowed_geographies=["*"],
+                sub_id_schema={},
+            )
+            link = PartnerCodeLinkModel(
+                id=uuid.uuid4(),
+                public_slug="revoked-link-token",
+                partner_code_id=code.id,
+                partner_account_id=account.id,
+                link_kind="deep_link",
+                destination_key="pricing",
+                destination_path="/pricing",
+                campaign_params={},
+                sub_ids={},
+                sale_channel="content",
+                status="active",
+            )
+            db.add_all([realm, partner_owner, customer, account, code, link])
+            db.commit()
+
+            adapter = SyncSessionAdapter(db)
+            current_realm = RealmResolution(auth_realm=realm, source="test")
+            capture = await CapturePartnerAttributionUseCase(adapter).execute(
+                CapturePartnerAttributionCommand(
+                    public_token=link.public_slug,
+                    source_host="cyber-vpn.net",
+                    source_path="/p/revoked-link-token",
+                    destination_path="/download",
+                    locale="ru-RU",
+                    sale_channel="content",
+                    sub_ids={},
+                    click_id=None,
+                    browser_key="browser-revoked-link",
+                    capture_idempotency_key="capture-revoked-link",
+                    campaign_params={},
+                    current_realm=current_realm,
+                )
+            )
+            transfer = await ConsumePartnerAttributionTransferUseCase(adapter).execute(
+                ConsumePartnerAttributionTransferCommand(transfer_token=capture.transfer_token)
+            )
+            link.status = "archived"
+            db.commit()
+
+            with pytest.raises(PartnerAttributionError) as exc_info:
+                await ClaimPartnerAttributionUseCase(adapter).execute(
+                    ClaimPartnerAttributionCommand(
+                        user_id=customer.id,
+                        cookie_token=transfer.cookie_token,
+                        current_realm=current_realm,
+                    )
+                )
+
+            assert exc_info.value.code == "PARTNER_CODE_LINK_NOT_ACTIVE"
+            assert exc_info.value.status_code == 409
+            assert db.query(CustomerCommercialBindingModel).count() == 0
+            stored_capture = db.get(PartnerAttributionSessionModel, capture.attribution_id)
+            assert stored_capture is not None
+            assert stored_capture.status == "transferred"
+            assert stored_capture.binding_id is None
+    finally:
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_partner_attribution_transfer_rejects_revoked_link_before_cookie_issue() -> None:
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    try:
+        with sessionmaker() as db:
+            realm = _realm()
+            partner_owner = _user(realm_id=realm.id, email="partner-transfer-revoked-link-owner@example.test")
+            account = PartnerAccountModel(
+                id=uuid.uuid4(),
+                account_key="transfer-revoked-link-partner",
+                display_name="Transfer Revoked Link Partner",
+                status="active",
+                legacy_owner_user_id=partner_owner.id,
+            )
+            code = PartnerCodeModel(
+                id=uuid.uuid4(),
+                code="TRREVOKE42",
+                code_normalized="TRREVOKE42",
+                public_slug="code-level-transfer-revoked42",
+                public_token_hash=hash_partner_attribution_token("code-level-transfer-revoked42"),
+                partner_account_id=account.id,
+                partner_user_id=partner_owner.id,
+                markup_pct=7,
+                is_active=True,
+                lifecycle_status="active",
+                approval_status="approved",
+                owner_type="affiliate",
+                lane_key="creator_affiliate",
+                attribution_model="last_eligible_touch",
+                attribution_window_seconds=30 * 24 * 60 * 60,
+                allowed_channels=["content"],
+                allowed_storefront_ids=["*"],
+                allowed_geographies=["*"],
+                sub_id_schema={},
+            )
+            link = PartnerCodeLinkModel(
+                id=uuid.uuid4(),
+                public_slug="transfer-revoked-link-token",
+                partner_code_id=code.id,
+                partner_account_id=account.id,
+                link_kind="deep_link",
+                destination_key="pricing",
+                destination_path="/pricing",
+                campaign_params={},
+                sub_ids={},
+                sale_channel="content",
+                status="active",
+            )
+            db.add_all([realm, partner_owner, account, code, link])
+            db.commit()
+
+            adapter = SyncSessionAdapter(db)
+            capture = await CapturePartnerAttributionUseCase(adapter).execute(
+                CapturePartnerAttributionCommand(
+                    public_token=link.public_slug,
+                    source_host="cyber-vpn.net",
+                    source_path="/p/transfer-revoked-link-token",
+                    destination_path="/download",
+                    locale="ru-RU",
+                    sale_channel="content",
+                    sub_ids={},
+                    click_id=None,
+                    browser_key="browser-transfer-revoked-link",
+                    capture_idempotency_key="capture-transfer-revoked-link",
+                    campaign_params={},
+                    current_realm=RealmResolution(auth_realm=realm, source="test"),
+                )
+            )
+            link.status = "archived"
+            db.commit()
+
+            with pytest.raises(PartnerAttributionError) as exc_info:
+                await ConsumePartnerAttributionTransferUseCase(adapter).execute(
+                    ConsumePartnerAttributionTransferCommand(transfer_token=capture.transfer_token)
+                )
+
+            assert exc_info.value.code == "PARTNER_CODE_LINK_NOT_ACTIVE"
+            assert exc_info.value.status_code == 409
+            stored_capture = db.get(PartnerAttributionSessionModel, capture.attribution_id)
+            assert stored_capture is not None
+            assert stored_capture.status == "pending"
+            assert stored_capture.session_token_hash is None
+            assert stored_capture.transfer_token_hash is not None
     finally:
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)

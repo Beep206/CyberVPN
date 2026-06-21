@@ -138,6 +138,7 @@ def _serialize_code_resolution(result: CheckoutResult) -> dict[str, Any] | None:
         "promo_code_id": str(resolution.promo_code_id) if resolution.promo_code_id else None,
         "partner_code_id": str(resolution.partner_code_id) if resolution.partner_code_id else None,
         "user_message_key": resolution.user_message_key,
+        "policy_snapshot": dict(resolution.policy_snapshot or {}),
         "reservation_id": str(result.reservation_id) if result.reservation_id else None,
     }
 
