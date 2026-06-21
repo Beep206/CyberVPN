@@ -111,6 +111,7 @@ from src.infrastructure.database.models.partner_model import (
     ApiIdempotencyRecordModel,
     PartnerAccountModel,
     PartnerCodeEventModel,
+    PartnerCodeLinkModel,
     PartnerCodeModel,
     PartnerEarningModel,
 )
@@ -261,6 +262,7 @@ __all__ = [
     "PartnerNotificationReadStateModel",
     "PartnerIntegrationCredentialModel",
     "PartnerCodeEventModel",
+    "PartnerCodeLinkModel",
     "PartnerCodeModel",
     "PartnerEarningModel",
     "PartnerLaneApplicationModel",

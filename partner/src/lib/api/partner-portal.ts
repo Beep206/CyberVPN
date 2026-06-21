@@ -112,27 +112,14 @@ type UpdatePartnerWorkspaceCodePayload = Partial<CreatePartnerWorkspaceCodePaylo
 type PartnerWorkspaceCodeLifecyclePayload = {
   reason?: string | null;
 };
-type PartnerWorkspaceCodeLinkPayload = {
-  destination_path?: string | null;
-  campaign_params?: Record<string, string>;
-  sub_ids?: Record<string, string>;
-};
-type PartnerWorkspaceCodeLinkResponse = {
-  code_id: string;
-  share_url: string;
-  destination_path?: string | null;
-  campaign_params: Record<string, string>;
-  sub_ids: Record<string, string>;
-};
-type PartnerWorkspaceCodeQrPayload = {
-  destination_path?: string | null;
-  size?: number;
-};
-type PartnerWorkspaceCodeQrResponse = {
-  code_id: string;
-  share_url: string;
-  qr_svg: string;
-};
+type PartnerWorkspaceCodeLinkPayload =
+  operations['create_partner_workspace_code_link_api_v1_partner_workspaces__workspace_id__codes__code_id__links_post']['requestBody']['content']['application/json'];
+type PartnerWorkspaceCodeLinkResponse =
+  operations['create_partner_workspace_code_link_api_v1_partner_workspaces__workspace_id__codes__code_id__links_post']['responses'][200]['content']['application/json'];
+type PartnerWorkspaceCodeQrPayload =
+  operations['create_partner_workspace_code_qr_api_v1_partner_workspaces__workspace_id__codes__code_id__qr_post']['requestBody']['content']['application/json'];
+type PartnerWorkspaceCodeQrResponse =
+  operations['create_partner_workspace_code_qr_api_v1_partner_workspaces__workspace_id__codes__code_id__qr_post']['responses'][200]['content']['application/json'];
 type ListPartnerWorkspaceCampaignAssetsResponse =
   operations['list_partner_workspace_campaign_assets_api_v1_partner_workspaces__workspace_id__campaign_assets_get']['responses'][200]['content']['application/json'];
 type ListPartnerWorkspaceLaneApplicationsResponse =
@@ -709,21 +696,21 @@ export const partnerPortalApi = {
   createWorkspaceCodeLink: (
     workspaceId: string,
     codeId: string,
-    payload: PartnerWorkspaceCodeLinkPayload = {},
+    payload: Partial<PartnerWorkspaceCodeLinkPayload> = {},
   ) =>
     apiClient.post<PartnerWorkspaceCodeLinkResponse>(
       `/partner-workspaces/${workspaceId}/codes/${codeId}/links`,
-      payload,
+      { link_kind: 'deep_link', ...payload },
     ),
 
   createWorkspaceCodeQr: (
     workspaceId: string,
     codeId: string,
-    payload: PartnerWorkspaceCodeQrPayload = {},
+    payload: Partial<PartnerWorkspaceCodeQrPayload> = {},
   ) =>
     apiClient.post<PartnerWorkspaceCodeQrResponse>(
       `/partner-workspaces/${workspaceId}/codes/${codeId}/qr`,
-      payload,
+      { size: 256, ...payload },
     ),
 
   listWorkspaceCampaignAssets: (workspaceId: string) =>

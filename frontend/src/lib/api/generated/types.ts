@@ -23297,8 +23297,19 @@ export interface components {
         };
         /** PartnerWorkspaceCodeLinkRequest */
         PartnerWorkspaceCodeLinkRequest: {
+            /** Destination Key */
+            destination_key?: string | null;
             /** Destination Path */
             destination_path?: string | null;
+            /**
+             * Link Kind
+             * @default deep_link
+             */
+            link_kind: string;
+            /** Locale */
+            locale?: string | null;
+            /** Sale Channel */
+            sale_channel?: string | null;
             /** Campaign Params */
             campaign_params?: {
                 [key: string]: string;
@@ -23307,18 +23318,37 @@ export interface components {
             sub_ids?: {
                 [key: string]: string;
             };
+            /** Active From */
+            active_from?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
         };
         /** PartnerWorkspaceCodeLinkResponse */
         PartnerWorkspaceCodeLinkResponse: {
+            /**
+             * Link Id
+             * Format: uuid
+             */
+            link_id: string;
             /**
              * Code Id
              * Format: uuid
              */
             code_id: string;
+            /** Public Slug */
+            public_slug: string;
             /** Share Url */
             share_url: string;
+            /** Link Kind */
+            link_kind: string;
+            /** Destination Key */
+            destination_key: string;
             /** Destination Path */
-            destination_path?: string | null;
+            destination_path: string;
+            /** Locale */
+            locale?: string | null;
+            /** Sale Channel */
+            sale_channel?: string | null;
             /** Campaign Params */
             campaign_params?: {
                 [key: string]: string;
@@ -23327,9 +23357,29 @@ export interface components {
             sub_ids?: {
                 [key: string]: string;
             };
+            /** Status */
+            status: string;
+            /** Active From */
+            active_from?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** PartnerWorkspaceCodeQrRequest */
         PartnerWorkspaceCodeQrRequest: {
+            /** Link Id */
+            link_id?: string | null;
+            /** Destination Key */
+            destination_key?: string | null;
             /** Destination Path */
             destination_path?: string | null;
             /**
@@ -23341,10 +23391,17 @@ export interface components {
         /** PartnerWorkspaceCodeQrResponse */
         PartnerWorkspaceCodeQrResponse: {
             /**
+             * Link Id
+             * Format: uuid
+             */
+            link_id: string;
+            /**
              * Code Id
              * Format: uuid
              */
             code_id: string;
+            /** Public Slug */
+            public_slug: string;
             /** Share Url */
             share_url: string;
             /** Qr Svg */
@@ -38600,7 +38657,9 @@ export interface operations {
     capture_partner_attribution_api_v1_partner_attribution_capture_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };

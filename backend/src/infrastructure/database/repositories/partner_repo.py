@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.partner_model import (
     PartnerAccountModel,
+    PartnerCodeLinkModel,
     PartnerCodeModel,
     PartnerEarningModel,
 )
@@ -67,6 +68,27 @@ class PartnerRepository:
         )
         return result.scalars().first()
 
+    async def get_code_link_by_public_slug(self, public_slug: str) -> PartnerCodeLinkModel | None:
+        result = await self._session.execute(
+            select(PartnerCodeLinkModel).where(PartnerCodeLinkModel.public_slug == public_slug.strip()).limit(1)
+        )
+        return result.scalars().first()
+
+    async def get_code_link_by_id(self, id: UUID) -> PartnerCodeLinkModel | None:
+        return await self._session.get(PartnerCodeLinkModel, id)
+
+    async def get_default_code_link(self, partner_code_id: UUID) -> PartnerCodeLinkModel | None:
+        result = await self._session.execute(
+            select(PartnerCodeLinkModel)
+            .where(
+                PartnerCodeLinkModel.partner_code_id == partner_code_id,
+                PartnerCodeLinkModel.link_kind == "default",
+            )
+            .order_by(PartnerCodeLinkModel.created_at.asc(), PartnerCodeLinkModel.id.asc())
+            .limit(1)
+        )
+        return result.scalars().first()
+
     async def get_active_code_by_public_token_hash(self, token_hash: str) -> PartnerCodeModel | None:
         result = await self._session.execute(
             select(PartnerCodeModel).where(
@@ -100,6 +122,11 @@ class PartnerRepository:
         return list(result.scalars().all())
 
     async def create_code(self, model: PartnerCodeModel) -> PartnerCodeModel:
+        self._session.add(model)
+        await self._session.flush()
+        return model
+
+    async def create_code_link(self, model: PartnerCodeLinkModel) -> PartnerCodeLinkModel:
         self._session.add(model)
         await self._session.flush()
         return model

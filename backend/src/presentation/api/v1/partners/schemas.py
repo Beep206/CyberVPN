@@ -133,26 +133,47 @@ class PartnerWorkspaceCodeLifecycleRequest(BaseModel):
 
 
 class PartnerWorkspaceCodeLinkRequest(BaseModel):
+    destination_key: str | None = Field(default=None, max_length=80)
     destination_path: str | None = Field(default=None, max_length=500)
+    link_kind: str = Field(default="deep_link", min_length=1, max_length=40)
+    locale: str | None = Field(default=None, max_length=16)
+    sale_channel: str | None = Field(default=None, max_length=40)
     campaign_params: dict[str, str] = Field(default_factory=dict)
     sub_ids: dict[str, str] = Field(default_factory=dict)
+    active_from: datetime | None = None
+    expires_at: datetime | None = None
 
 
 class PartnerWorkspaceCodeLinkResponse(BaseModel):
+    link_id: UUID
     code_id: UUID
+    public_slug: str
     share_url: str
-    destination_path: str | None = None
+    link_kind: str
+    destination_key: str
+    destination_path: str
+    locale: str | None = None
+    sale_channel: str | None = None
     campaign_params: dict[str, str] = Field(default_factory=dict)
     sub_ids: dict[str, str] = Field(default_factory=dict)
+    status: str
+    active_from: datetime | None = None
+    expires_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
 
 
 class PartnerWorkspaceCodeQrRequest(BaseModel):
+    link_id: UUID | None = None
+    destination_key: str | None = Field(default=None, max_length=80)
     destination_path: str | None = Field(default=None, max_length=500)
     size: int = Field(default=256, ge=128, le=1024)
 
 
 class PartnerWorkspaceCodeQrResponse(BaseModel):
+    link_id: UUID
     code_id: UUID
+    public_slug: str
     share_url: str
     qr_svg: str
 

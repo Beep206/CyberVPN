@@ -242,6 +242,94 @@ class PartnerCodeModel(Base):
         return f"<PartnerCode(id={self.id}, code={self.code}, markup={self.markup_pct}%)>"
 
 
+class PartnerCodeLinkModel(Base):
+    """Durable public link for a partner code."""
+
+    __tablename__ = "partner_code_links"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    public_slug: Mapped[str] = mapped_column(
+        String(80),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    partner_code_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("partner_codes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    partner_account_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("partner_accounts.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    link_kind: Mapped[str] = mapped_column(
+        String(40),
+        nullable=False,
+        default="deep_link",
+        server_default="deep_link",
+        index=True,
+    )
+
+    destination_key: Mapped[str] = mapped_column(
+        String(80),
+        nullable=False,
+        default="register",
+        server_default="register",
+        index=True,
+    )
+
+    destination_path: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False,
+        default="/register",
+        server_default="/register",
+    )
+
+    locale: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    sale_channel: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    campaign_params: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    sub_ids: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+
+    status: Mapped[str] = mapped_column(
+        String(24),
+        nullable=False,
+        default="active",
+        server_default="active",
+        index=True,
+    )
+
+    active_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+
+    created_by_admin_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("admin_users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
 class PartnerEarningModel(Base):
     """Ledger of partner earnings per client payment."""
 
@@ -359,9 +447,7 @@ class ApiIdempotencyRecordModel(Base):
     """Durable idempotency record for partner API mutations."""
 
     __tablename__ = "api_idempotency_records"
-    __table_args__ = (
-        UniqueConstraint("scope", "idempotency_key", name="uq_api_idempotency_records_scope_key"),
-    )
+    __table_args__ = (UniqueConstraint("scope", "idempotency_key", name="uq_api_idempotency_records_scope_key"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     scope: Mapped[str] = mapped_column(String(120), nullable=False, index=True)

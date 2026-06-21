@@ -30,6 +30,11 @@ class PartnerAttributionSessionModel(Base):
         nullable=False,
         index=True,
     )
+    partner_code_link_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_code_links.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     partner_account_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("partner_accounts.id", ondelete="SET NULL"),
         nullable=True,

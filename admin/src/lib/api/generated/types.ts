@@ -15257,7 +15257,7 @@ export interface components {
          * AttributionTouchpointType
          * @enum {string}
          */
-        AttributionTouchpointType: "explicit_code" | "passive_click" | "deep_link" | "qr_scan" | "storefront_origin" | "campaign_params" | "invite_redemption" | "postback" | "manual_support_action";
+        AttributionTouchpointType: "explicit_code" | "passive_click" | "partner_claim" | "deep_link" | "qr_scan" | "storefront_origin" | "campaign_params" | "invite_redemption" | "postback" | "manual_support_action";
         /**
          * AuditLogResponse
          * @description Response schema for audit log entry.
@@ -22379,10 +22379,22 @@ export interface components {
         PartnerAttributionCaptureRequest: {
             /** Public Token */
             public_token: string;
-            /** Source Host */
-            source_host?: string | null;
             /** Source Path */
             source_path?: string | null;
+            /** Destination Path */
+            destination_path?: string | null;
+            /** Locale */
+            locale?: string | null;
+            /** Sale Channel */
+            sale_channel?: string | null;
+            /** Sub Ids */
+            sub_ids?: {
+                [key: string]: string;
+            } | null;
+            /** Click Id */
+            click_id?: string | null;
+            /** Browser Key */
+            browser_key?: string | null;
             /** Campaign Params */
             campaign_params?: {
                 [key: string]: unknown;
@@ -22413,10 +22425,7 @@ export interface components {
             redirect_url: string;
         };
         /** PartnerAttributionClaimRequest */
-        PartnerAttributionClaimRequest: {
-            /** Fallback Token */
-            fallback_token?: string | null;
-        };
+        PartnerAttributionClaimRequest: Record<string, never>;
         /** PartnerAttributionClaimResponse */
         PartnerAttributionClaimResponse: {
             /** Status */
@@ -22442,6 +22451,11 @@ export interface components {
              * Format: uuid
              */
             attribution_id: string;
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
             /**
              * Expires At
              * Format: date-time
@@ -23283,8 +23297,19 @@ export interface components {
         };
         /** PartnerWorkspaceCodeLinkRequest */
         PartnerWorkspaceCodeLinkRequest: {
+            /** Destination Key */
+            destination_key?: string | null;
             /** Destination Path */
             destination_path?: string | null;
+            /**
+             * Link Kind
+             * @default deep_link
+             */
+            link_kind: string;
+            /** Locale */
+            locale?: string | null;
+            /** Sale Channel */
+            sale_channel?: string | null;
             /** Campaign Params */
             campaign_params?: {
                 [key: string]: string;
@@ -23293,18 +23318,37 @@ export interface components {
             sub_ids?: {
                 [key: string]: string;
             };
+            /** Active From */
+            active_from?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
         };
         /** PartnerWorkspaceCodeLinkResponse */
         PartnerWorkspaceCodeLinkResponse: {
+            /**
+             * Link Id
+             * Format: uuid
+             */
+            link_id: string;
             /**
              * Code Id
              * Format: uuid
              */
             code_id: string;
+            /** Public Slug */
+            public_slug: string;
             /** Share Url */
             share_url: string;
+            /** Link Kind */
+            link_kind: string;
+            /** Destination Key */
+            destination_key: string;
             /** Destination Path */
-            destination_path?: string | null;
+            destination_path: string;
+            /** Locale */
+            locale?: string | null;
+            /** Sale Channel */
+            sale_channel?: string | null;
             /** Campaign Params */
             campaign_params?: {
                 [key: string]: string;
@@ -23313,9 +23357,29 @@ export interface components {
             sub_ids?: {
                 [key: string]: string;
             };
+            /** Status */
+            status: string;
+            /** Active From */
+            active_from?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** PartnerWorkspaceCodeQrRequest */
         PartnerWorkspaceCodeQrRequest: {
+            /** Link Id */
+            link_id?: string | null;
+            /** Destination Key */
+            destination_key?: string | null;
             /** Destination Path */
             destination_path?: string | null;
             /**
@@ -23327,10 +23391,17 @@ export interface components {
         /** PartnerWorkspaceCodeQrResponse */
         PartnerWorkspaceCodeQrResponse: {
             /**
+             * Link Id
+             * Format: uuid
+             */
+            link_id: string;
+            /**
              * Code Id
              * Format: uuid
              */
             code_id: string;
+            /** Public Slug */
+            public_slug: string;
             /** Share Url */
             share_url: string;
             /** Qr Svg */
@@ -23473,13 +23544,28 @@ export interface components {
             /** Event Count */
             event_count: number;
             /** On Hold Amount */
-            on_hold_amount: number;
+            on_hold_amount: string;
             /** Available Amount */
-            available_amount: number;
+            available_amount: string;
             /** Paid Amount */
-            paid_amount: number;
+            paid_amount: string;
+            /**
+             * Reserved Amount
+             * @default 0.00
+             */
+            reserved_amount: string;
+            /**
+             * Reversed Amount
+             * @default 0.00
+             */
+            reversed_amount: string;
             /** Total Amount */
-            total_amount: number;
+            total_amount: string;
+            /**
+             * Next Payout Forecast Amount
+             * @default 0.00
+             */
+            next_payout_forecast_amount: string;
             /** Last Event At */
             last_event_at?: string | null;
         };
@@ -38571,7 +38657,9 @@ export interface operations {
     capture_partner_attribution_api_v1_partner_attribution_capture_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };

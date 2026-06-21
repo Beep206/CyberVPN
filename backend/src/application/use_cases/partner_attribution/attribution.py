@@ -42,7 +42,7 @@ from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.partner_attribution_session_model import (
     PartnerAttributionSessionModel,
 )
-from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeLinkModel, PartnerCodeModel
 from src.infrastructure.database.repositories.customer_commercial_binding_repo import (
     CustomerCommercialBindingRepository,
 )
@@ -126,6 +126,12 @@ class ClaimPartnerAttributionResult:
     clear_cookie: bool = False
 
 
+@dataclass(frozen=True)
+class _ResolvedPublicToken:
+    code_model: PartnerCodeModel
+    link_model: PartnerCodeLinkModel | None
+
+
 class CapturePartnerAttributionUseCase:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -141,9 +147,13 @@ class CapturePartnerAttributionUseCase:
                 status_code=403,
             )
 
-        code_model = await self._find_code_by_public_token(command.public_token)
+        resolved = await self._find_code_by_public_token(command.public_token)
+        code_model = resolved.code_model
+        link_model = resolved.link_model
         partner_account = await self._load_partner_account(code_model)
         _assert_code_eligible(code_model, partner_account)
+        if link_model is not None:
+            _assert_link_eligible(link_model)
 
         now = datetime.now(UTC)
         browser_key_hash = hash_partner_attribution_token(command.browser_key.strip()) if command.browser_key else None
@@ -179,8 +189,15 @@ class CapturePartnerAttributionUseCase:
         window_seconds = max(int(code_model.attribution_window_seconds or 0), PARTNER_ATTRIBUTION_TRANSFER_TTL_SECONDS)
         expires_at = now + timedelta(seconds=window_seconds)
         transfer_expires_at = now + timedelta(seconds=min(PARTNER_ATTRIBUTION_TRANSFER_TTL_SECONDS, window_seconds))
-        locale = normalize_customer_locale(command.locale)
-        destination_path = normalize_customer_destination_path(command.destination_path or code_model.destination_path)
+        locale = normalize_customer_locale(link_model.locale if link_model and link_model.locale else command.locale)
+        if link_model is not None:
+            raw_destination_path = link_model.destination_path
+        else:
+            raw_destination_path = command.destination_path or code_model.destination_path
+        destination_path = normalize_customer_destination_path(raw_destination_path)
+        sale_channel = link_model.sale_channel if link_model and link_model.sale_channel else command.sale_channel
+        campaign_params = link_model.campaign_params if link_model is not None else command.campaign_params
+        sub_ids = link_model.sub_ids if link_model is not None else command.sub_ids
         destination_url = build_customer_destination_url(
             transfer_token,
             locale=locale,
@@ -192,6 +209,7 @@ class CapturePartnerAttributionUseCase:
             transfer_token_hash=transfer_hash,
             transfer_expires_at=transfer_expires_at,
             partner_code_id=code_model.id,
+            partner_code_link_id=link_model.id if link_model is not None else None,
             partner_account_id=code_model.partner_account_id,
             auth_realm_id=UUID(command.current_realm.realm_id),
             storefront_id=code_model.default_storefront_id,
@@ -204,15 +222,18 @@ class CapturePartnerAttributionUseCase:
             source_path=clamp_optional(command.source_path, 500),
             destination_path=destination_path,
             locale=locale,
-            sale_channel=clamp_optional(command.sale_channel, 40),
-            sub_ids=_sanitize_sub_ids(command.sub_ids),
+            sale_channel=clamp_optional(sale_channel, 40),
+            sub_ids=_sanitize_sub_ids(sub_ids),
             click_id=clamp_optional(command.click_id, 160),
             browser_key_hash=browser_key_hash,
             capture_idempotency_key_hash=idempotency_key_hash,
             destination_url=destination_url,
-            campaign_params=_sanitize_campaign_params(command.campaign_params),
+            campaign_params=_sanitize_campaign_params(campaign_params),
             evidence_payload={
                 "public_token_hash": hash_partner_attribution_token(command.public_token),
+                "public_token_source": "partner_code_link" if link_model is not None else "partner_code_legacy",
+                "partner_code_link_id": str(link_model.id) if link_model is not None else None,
+                "link_destination_key": link_model.destination_key if link_model is not None else None,
                 "masked_code": mask_partner_code(code_model.code),
                 "storage_version": PARTNER_ATTRIBUTION_STORAGE_VERSION,
                 "transfer_token_ttl_seconds": PARTNER_ATTRIBUTION_TRANSFER_TTL_SECONDS,
@@ -238,6 +259,7 @@ class CapturePartnerAttributionUseCase:
             evidence_payload={
                 "partner_attribution_session_id": str(created.id),
                 "partner_account_id": str(created.partner_account_id) if created.partner_account_id else None,
+                "partner_code_link_id": str(link_model.id) if link_model is not None else None,
                 "owner_type": created.owner_type,
                 "destination_path": created.destination_path,
                 "locale": created.locale,
@@ -272,18 +294,28 @@ class CapturePartnerAttributionUseCase:
             redirect_url=destination_url,
         )
 
-    async def _find_code_by_public_token(self, public_token: str) -> PartnerCodeModel:
+    async def _find_code_by_public_token(self, public_token: str) -> _ResolvedPublicToken:
         token_value = public_token.strip()
+        link_model = await self._partners.get_code_link_by_public_slug(token_value)
+        if link_model is not None:
+            code_model = await self._partners.get_code_by_id(link_model.partner_code_id)
+            if code_model is None:
+                raise PartnerAttributionError(
+                    code="PARTNER_CODE_NOT_FOUND",
+                    message="Partner public token was not found.",
+                    status_code=404,
+                )
+            return _ResolvedPublicToken(code_model=code_model, link_model=link_model)
         code_model = await self._partners.get_code_by_public_slug(token_value)
         if code_model is not None:
-            return code_model
+            return _ResolvedPublicToken(code_model=code_model, link_model=None)
         token_hash = hash_partner_attribution_token(token_value)
         code_model = await self._partners.get_code_by_public_token_hash(token_hash)
         if code_model is not None:
             if not code_model.public_slug:
                 code_model.public_slug = token_value
                 await self._session.flush()
-            return code_model
+            return _ResolvedPublicToken(code_model=code_model, link_model=None)
         fallback_id = _parse_deterministic_public_token(token_value)
         if fallback_id is None:
             raise PartnerAttributionError(
@@ -303,7 +335,7 @@ class CapturePartnerAttributionUseCase:
         if not code_model.public_slug:
             code_model.public_slug = build_public_token_for_code_id(code_model.id)
             await self._session.flush()
-        return code_model
+        return _ResolvedPublicToken(code_model=code_model, link_model=None)
 
     async def _load_partner_account(self, code_model: PartnerCodeModel) -> PartnerAccountModel | None:
         if code_model.partner_account_id is None:
@@ -681,6 +713,31 @@ def _assert_code_eligible(code_model: PartnerCodeModel, account: PartnerAccountM
             code="PARTNER_OWNER_TYPE_NOT_ELIGIBLE",
             message="Partner owner type is not eligible for attribution.",
             status_code=409,
+            clear_cookie=True,
+        )
+
+
+def _assert_link_eligible(link_model: PartnerCodeLinkModel) -> None:
+    now = datetime.now(UTC)
+    if link_model.status != "active":
+        raise PartnerAttributionError(
+            code="PARTNER_CODE_LINK_NOT_ACTIVE",
+            message="Partner link is not active.",
+            status_code=409,
+            clear_cookie=True,
+        )
+    if link_model.active_from is not None and _coerce_utc(link_model.active_from) > now:
+        raise PartnerAttributionError(
+            code="PARTNER_CODE_LINK_NOT_ACTIVE",
+            message="Partner link is not active yet.",
+            status_code=409,
+            clear_cookie=True,
+        )
+    if link_model.expires_at is not None and _coerce_utc(link_model.expires_at) <= now:
+        raise PartnerAttributionError(
+            code="PARTNER_CODE_LINK_EXPIRED",
+            message="Partner link expired.",
+            status_code=410,
             clear_cookie=True,
         )
 

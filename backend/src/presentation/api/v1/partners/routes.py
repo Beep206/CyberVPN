@@ -7,7 +7,6 @@ import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from time import perf_counter
-from urllib.parse import urlencode
 from uuid import UUID
 
 import redis.asyncio as redis
@@ -101,6 +100,7 @@ from src.infrastructure.database.models.order_model import OrderModel
 from src.infrastructure.database.models.partner_model import (
     ApiIdempotencyRecordModel,
     PartnerCodeEventModel,
+    PartnerCodeLinkModel,
     PartnerCodeModel,
 )
 from src.infrastructure.database.models.partner_workspace_legal_acceptance_model import (
@@ -281,6 +281,8 @@ _WORKSPACE_CASE_READY_FOR_OPS_ACTION = "partner_ready_for_ops"
 
 def _money_string(value: object) -> str:
     return Decimal(str(value or "0")).quantize(Decimal("0.01")).to_eng_string()
+
+
 _WORKSPACE_REPORT_EXPORT_SCHEDULE_ACTION = "partner_export_requested"
 _WORKSPACE_STATUS_CHANGED_ACTION = "workspace_status_changed"
 _WORKSPACE_PARTNER_CODE_STATUS_CHANGED_ACTION = "partner_code_status_changed"
@@ -1136,10 +1138,22 @@ def _available_code_actions(lifecycle_status: str) -> list[str]:
     return ["create_link", "download_qr"]
 
 
+_LINK_DESTINATION_PATHS = {
+    "register": "/register",
+    "pricing": "/pricing",
+    "checkout": "/checkout",
+    "download": "/download",
+}
+_APPROVED_CAMPAIGN_PREFIXES = ("/campaigns/", "/campaign/", "/landing/", "/lp/")
+_APPROVED_STOREFRONT_PREFIXES = ("/storefronts/", "/storefront/", "/checkout")
+
+
 async def _allocate_public_slug(repo: PartnerRepository) -> str:
     for _ in range(32):
         candidate = generate_public_slug()
-        if await repo.get_code_by_public_slug(candidate) is None:
+        code_exists = await repo.get_code_by_public_slug(candidate) is not None
+        link_exists = await repo.get_code_link_by_public_slug(candidate) is not None
+        if not code_exists and not link_exists:
             return candidate
     raise HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -1181,11 +1195,7 @@ _PARTNER_CODE_UPDATE_BLOCKED_FIELDS = _PARTNER_CODE_CREATE_BLOCKED_FIELDS | froz
 def _assert_no_sensitive_partner_code_fields(fields_set: set[str], *, operation: str) -> None:
     blocked = sorted(
         fields_set
-        & (
-            _PARTNER_CODE_CREATE_BLOCKED_FIELDS
-            if operation == "create"
-            else _PARTNER_CODE_UPDATE_BLOCKED_FIELDS
-        )
+        & (_PARTNER_CODE_CREATE_BLOCKED_FIELDS if operation == "create" else _PARTNER_CODE_UPDATE_BLOCKED_FIELDS)
     )
     if blocked:
         raise HTTPException(
@@ -1232,9 +1242,177 @@ def _normalize_destination_path(destination_path: str | None) -> str | None:
     stripped = destination_path.strip()
     if not stripped:
         return None
+    if stripped.startswith(("http://", "https://", "//")):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="External destination URLs are not allowed")
     if not stripped.startswith("/"):
         stripped = f"/{stripped}"
     return stripped[:500]
+
+
+def _resolve_link_destination(destination_key: str | None, destination_path: str | None) -> tuple[str, str]:
+    normalized_path = _normalize_destination_path(destination_path)
+    normalized_key = (destination_key or "").strip().lower()
+    if not normalized_key:
+        normalized_key = _infer_destination_key(normalized_path)
+    if normalized_key in _LINK_DESTINATION_PATHS:
+        expected_path = _LINK_DESTINATION_PATHS[normalized_key]
+        if normalized_path is not None and normalized_path != expected_path:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"destination_path does not match destination_key={normalized_key}",
+            )
+        return normalized_key, expected_path
+    if normalized_key == "approved_campaign_landing":
+        if normalized_path is None or not normalized_path.startswith(_APPROVED_CAMPAIGN_PREFIXES):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="approved_campaign_landing requires an approved internal campaign path",
+            )
+        return normalized_key, normalized_path
+    if normalized_key == "approved_storefront":
+        if normalized_path is None or not normalized_path.startswith(_APPROVED_STOREFRONT_PREFIXES):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="approved_storefront requires an approved internal storefront path",
+            )
+        return normalized_key, normalized_path
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported destination_key")
+
+
+def _infer_destination_key(destination_path: str | None) -> str:
+    if not destination_path:
+        return "register"
+    for key, path in _LINK_DESTINATION_PATHS.items():
+        if destination_path == path:
+            return key
+    if destination_path.startswith(_APPROVED_CAMPAIGN_PREFIXES):
+        return "approved_campaign_landing"
+    if destination_path.startswith(_APPROVED_STOREFRONT_PREFIXES):
+        return "approved_storefront"
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported partner link destination")
+
+
+def _normalize_link_kind(link_kind: str | None) -> str:
+    value = (link_kind or "deep_link").strip().lower()
+    if value not in {"default", "deep_link", "campaign", "storefront", "qr"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported partner link_kind")
+    return value
+
+
+def _clean_link_string_mapping(value: dict[str, str] | None, *, max_value_length: int) -> dict[str, str]:
+    cleaned: dict[str, str] = {}
+    for key, raw_value in dict(value or {}).items():
+        key_text = str(key).strip()
+        value_text = str(raw_value).strip()
+        if not key_text or not value_text or len(key_text) > 64:
+            continue
+        cleaned[key_text] = value_text[:max_value_length]
+    return cleaned
+
+
+async def _allocate_code_link_slug(repo: PartnerRepository) -> str:
+    for _ in range(32):
+        candidate = generate_public_slug()
+        link_exists = await repo.get_code_link_by_public_slug(candidate) is not None
+        code_exists = await repo.get_code_by_public_slug(candidate) is not None
+        if not link_exists and not code_exists:
+            return candidate
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Could not allocate unique partner link slug",
+    )
+
+
+async def _ensure_default_code_link(db: AsyncSession, code_model: PartnerCodeModel) -> PartnerCodeLinkModel:
+    repo = PartnerRepository(db)
+    existing = await repo.get_default_code_link(code_model.id)
+    if existing is not None:
+        return existing
+    if code_model.partner_account_id is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Partner code has no workspace owner")
+    public_slug = _public_token_for_code(code_model)
+    if await repo.get_code_link_by_public_slug(public_slug) is not None:
+        public_slug = await _allocate_code_link_slug(repo)
+    destination_key, destination_path = _resolve_link_destination(None, code_model.destination_path)
+    now = datetime.now(UTC)
+    link = PartnerCodeLinkModel(
+        public_slug=public_slug,
+        partner_code_id=code_model.id,
+        partner_account_id=code_model.partner_account_id,
+        link_kind="default",
+        destination_key=destination_key,
+        destination_path=destination_path,
+        locale=None,
+        sale_channel=None,
+        campaign_params={},
+        sub_ids={},
+        status="active",
+        active_from=code_model.active_from,
+        expires_at=code_model.expires_at,
+        created_at=now,
+        updated_at=now,
+    )
+    return await repo.create_code_link(link)
+
+
+async def _create_code_link(
+    db: AsyncSession,
+    *,
+    code_model: PartnerCodeModel,
+    destination_key: str | None,
+    destination_path: str | None,
+    link_kind: str | None,
+    locale: str | None,
+    sale_channel: str | None,
+    campaign_params: dict[str, str] | None,
+    sub_ids: dict[str, str] | None,
+    active_from: datetime | None,
+    expires_at: datetime | None,
+) -> PartnerCodeLinkModel:
+    if code_model.partner_account_id is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Partner code has no workspace owner")
+    key, path = _resolve_link_destination(destination_key, destination_path)
+    repo = PartnerRepository(db)
+    now = datetime.now(UTC)
+    link = PartnerCodeLinkModel(
+        public_slug=await _allocate_code_link_slug(repo),
+        partner_code_id=code_model.id,
+        partner_account_id=code_model.partner_account_id,
+        link_kind=_normalize_link_kind(link_kind),
+        destination_key=key,
+        destination_path=path,
+        locale=locale.strip()[:16] if locale and locale.strip() else None,
+        sale_channel=sale_channel.strip()[:40] if sale_channel and sale_channel.strip() else None,
+        campaign_params=_clean_link_string_mapping(campaign_params, max_value_length=200),
+        sub_ids=_clean_link_string_mapping(sub_ids, max_value_length=160),
+        status="active",
+        active_from=active_from,
+        expires_at=expires_at,
+        created_at=now,
+        updated_at=now,
+    )
+    return await repo.create_code_link(link)
+
+
+def _serialize_code_link(link: PartnerCodeLinkModel) -> PartnerWorkspaceCodeLinkResponse:
+    return PartnerWorkspaceCodeLinkResponse(
+        link_id=link.id,
+        code_id=link.partner_code_id,
+        public_slug=link.public_slug,
+        share_url=build_share_url(link.public_slug),
+        link_kind=link.link_kind,
+        destination_key=link.destination_key,
+        destination_path=link.destination_path,
+        locale=link.locale,
+        sale_channel=link.sale_channel,
+        campaign_params={str(key): str(value) for key, value in dict(link.campaign_params or {}).items()},
+        sub_ids={str(key): str(value) for key, value in dict(link.sub_ids or {}).items()},
+        status=link.status,
+        active_from=link.active_from,
+        expires_at=link.expires_at,
+        created_at=link.created_at,
+        updated_at=link.updated_at,
+    )
 
 
 async def _get_workspace_code_or_404(
@@ -1351,33 +1529,11 @@ async def _change_workspace_code_lifecycle(
     return _serialize_workspace_code(updated)
 
 
-def _build_code_share_url(
-    code_model: PartnerCodeModel,
-    destination_path: str | None,
-    campaign_params: dict[str, str],
-    sub_ids: dict[str, str],
-) -> str:
-    public_token = _public_token_for_code(code_model)
-    query = {
-        key: value
-        for key, value in {
-            **{f"utm_{key.removeprefix('utm_')}": value for key, value in dict(campaign_params or {}).items()},
-            **{f"sub_{key}": value for key, value in dict(sub_ids or {}).items()},
-        }.items()
-        if str(value).strip()
-    }
-    target_path = _normalize_destination_path(destination_path) or code_model.destination_path
-    if target_path:
-        query["to"] = target_path
-    encoded = urlencode(query)
-    return f"{build_share_url(public_token)}?{encoded}" if encoded else build_share_url(public_token)
-
-
 def _build_code_qr_svg(share_url: str, size: int) -> str:
     try:
         import segno
 
-        output = io.StringIO()
+        output = io.BytesIO()
         qr = segno.make(share_url, error="m")
         qr.save(
             output,
@@ -1387,7 +1543,7 @@ def _build_code_qr_svg(share_url: str, size: int) -> str:
             scale=max(size // 33, 1),
             border=2,
         )
-        return output.getvalue()
+        return output.getvalue().decode("utf-8")
     except Exception as exc:
         logger.exception("partner_workspace_code_qr_generation_failed")
         raise HTTPException(
@@ -5824,6 +5980,7 @@ async def create_partner_workspace_code(
         )
         try:
             created = await repo.create_code(model)
+            await _ensure_default_code_link(db, created)
             break
         except IntegrityError as exc:
             await db.rollback()
@@ -6008,15 +6165,23 @@ async def create_partner_workspace_code_link(
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceCodeLinkResponse:
     code_model = await _get_workspace_code_or_404(db, access.workspace.id, code_id)
-    share_url = _build_code_share_url(code_model, body.destination_path, body.campaign_params, body.sub_ids)
-    track_partner_operation(operation="create_workspace_code_link")
-    return PartnerWorkspaceCodeLinkResponse(
-        code_id=code_model.id,
-        share_url=share_url,
-        destination_path=body.destination_path or code_model.destination_path,
-        campaign_params=dict(body.campaign_params or {}),
-        sub_ids=dict(body.sub_ids or {}),
+    link = await _create_code_link(
+        db,
+        code_model=code_model,
+        destination_key=body.destination_key,
+        destination_path=body.destination_path,
+        link_kind=body.link_kind,
+        locale=body.locale,
+        sale_channel=body.sale_channel,
+        campaign_params=body.campaign_params,
+        sub_ids=body.sub_ids,
+        active_from=body.active_from,
+        expires_at=body.expires_at,
     )
+    await db.commit()
+    await db.refresh(link)
+    track_partner_operation(operation="create_workspace_code_link")
+    return _serialize_code_link(link)
 
 
 @router.post(
@@ -6031,10 +6196,32 @@ async def create_partner_workspace_code_qr(
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceCodeQrResponse:
     code_model = await _get_workspace_code_or_404(db, access.workspace.id, code_id)
-    share_url = _build_code_share_url(code_model, body.destination_path, {}, {})
+    if body.link_id is not None:
+        link = await PartnerRepository(db).get_code_link_by_id(body.link_id)
+        if link is None or link.partner_code_id != code_model.id or link.partner_account_id != access.workspace.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner code link not found")
+    else:
+        link = await _create_code_link(
+            db,
+            code_model=code_model,
+            destination_key=body.destination_key,
+            destination_path=body.destination_path,
+            link_kind="qr",
+            locale=None,
+            sale_channel=None,
+            campaign_params={},
+            sub_ids={},
+            active_from=None,
+            expires_at=None,
+        )
+        await db.commit()
+        await db.refresh(link)
+    share_url = build_share_url(link.public_slug)
     track_partner_operation(operation="create_workspace_code_qr")
     return PartnerWorkspaceCodeQrResponse(
+        link_id=link.id,
         code_id=code_model.id,
+        public_slug=link.public_slug,
         share_url=share_url,
         qr_svg=_build_code_qr_svg(share_url, body.size),
     )
@@ -6095,9 +6282,7 @@ async def get_partner_workspace_finance_summary(
                 0,
             ),
             func.coalesce(
-                func.sum(
-                    case((EarningEventModel.event_status == "reversed", EarningEventModel.total_amount), else_=0)
-                ),
+                func.sum(case((EarningEventModel.event_status == "reversed", EarningEventModel.total_amount), else_=0)),
                 0,
             ),
             func.coalesce(func.sum(EarningEventModel.total_amount), 0),

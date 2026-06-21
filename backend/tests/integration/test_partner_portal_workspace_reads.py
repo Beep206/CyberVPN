@@ -11,7 +11,7 @@ from src.application.services.auth_service import AuthService
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.creative_approval_model import CreativeApprovalModel
-from src.infrastructure.database.models.partner_model import PartnerCodeModel
+from src.infrastructure.database.models.partner_model import PartnerCodeLinkModel, PartnerCodeModel
 from src.infrastructure.database.models.partner_statement_model import PartnerStatementModel
 from src.infrastructure.database.models.pilot_cohort_model import (
     PilotCohortModel,
@@ -322,6 +322,7 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
                     markup_pct=Decimal("15.00"),
                     is_active=True,
                 )
+                code_id = code.id
                 db.add_all([settlement_period, statement, code])
                 db.commit()
 
@@ -342,6 +343,44 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
             assert codes_payload[0]["code"] == "PORTAL42"
             assert codes_payload[0]["partner_account_id"] == workspace_id
 
+            link_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/links",
+                headers=owner_headers,
+                json={
+                    "destination_path": "/pricing",
+                    "campaign_params": {"utm_source": "portal"},
+                    "sub_ids": {"creator": "portal42"},
+                },
+            )
+            assert link_response.status_code == 200
+            link_payload = link_response.json()
+            assert link_payload["code_id"] == str(code_id)
+            assert link_payload["destination_key"] == "pricing"
+            assert link_payload["destination_path"] == "/pricing"
+            assert link_payload["campaign_params"] == {"utm_source": "portal"}
+            assert link_payload["sub_ids"] == {"creator": "portal42"}
+            assert link_payload["share_url"].endswith(f"/p/{link_payload['public_slug']}")
+            assert "to=" not in link_payload["share_url"]
+
+            with sessionmaker() as db:
+                stored_link = db.get(PartnerCodeLinkModel, uuid.UUID(link_payload["link_id"]))
+                assert stored_link is not None
+                assert stored_link.partner_code_id == code_id
+                assert stored_link.partner_account_id == uuid.UUID(workspace_id)
+                assert stored_link.destination_path == "/pricing"
+
+            qr_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/qr",
+                headers=owner_headers,
+                json={"link_id": link_payload["link_id"], "size": 128},
+            )
+            assert qr_response.status_code == 200
+            qr_payload = qr_response.json()
+            assert qr_payload["link_id"] == link_payload["link_id"]
+            assert qr_payload["public_slug"] == link_payload["public_slug"]
+            assert qr_payload["share_url"] == link_payload["share_url"]
+            assert "<svg" in qr_payload["qr_svg"]
+
             statements_response = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}/statements",
                 headers=owner_headers,
@@ -358,6 +397,13 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
                 headers=outsider_headers,
             )
             assert outsider_codes_response.status_code == 403
+
+            outsider_link_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}/links",
+                headers=outsider_headers,
+                json={"destination_path": "/pricing"},
+            )
+            assert outsider_link_response.status_code == 403
 
             outsider_statements_response = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}/statements",

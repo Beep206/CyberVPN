@@ -9400,15 +9400,33 @@
         ],
         "summary": "Capture Partner Attribution",
         "operationId": "capture_partner_attribution_api_v1_partner_attribution_capture_post",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PartnerAttributionCaptureRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -69614,6 +69632,18 @@
       },
       "PartnerWorkspaceCodeLinkRequest": {
         "properties": {
+          "destination_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Key"
+          },
           "destination_path": {
             "anyOf": [
               {
@@ -69626,6 +69656,37 @@
             ],
             "title": "Destination Path"
           },
+          "link_kind": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Link Kind",
+            "default": "deep_link"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
+          "sale_channel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sale Channel"
+          },
           "campaign_params": {
             "additionalProperties": {
               "type": "string"
@@ -69639,6 +69700,30 @@
             },
             "type": "object",
             "title": "Sub Ids"
+          },
+          "active_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active From"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
           }
         },
         "type": "object",
@@ -69646,16 +69731,37 @@
       },
       "PartnerWorkspaceCodeLinkResponse": {
         "properties": {
+          "link_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Link Id"
+          },
           "code_id": {
             "type": "string",
             "format": "uuid",
             "title": "Code Id"
           },
+          "public_slug": {
+            "type": "string",
+            "title": "Public Slug"
+          },
           "share_url": {
             "type": "string",
             "title": "Share Url"
           },
+          "link_kind": {
+            "type": "string",
+            "title": "Link Kind"
+          },
+          "destination_key": {
+            "type": "string",
+            "title": "Destination Key"
+          },
           "destination_path": {
+            "type": "string",
+            "title": "Destination Path"
+          },
+          "locale": {
             "anyOf": [
               {
                 "type": "string"
@@ -69664,7 +69770,18 @@
                 "type": "null"
               }
             ],
-            "title": "Destination Path"
+            "title": "Locale"
+          },
+          "sale_channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sale Channel"
           },
           "campaign_params": {
             "additionalProperties": {
@@ -69679,17 +69796,87 @@
             },
             "type": "object",
             "title": "Sub Ids"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "active_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active From"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
           }
         },
         "type": "object",
         "required": [
+          "link_id",
           "code_id",
-          "share_url"
+          "public_slug",
+          "share_url",
+          "link_kind",
+          "destination_key",
+          "destination_path",
+          "status",
+          "created_at",
+          "updated_at"
         ],
         "title": "PartnerWorkspaceCodeLinkResponse"
       },
       "PartnerWorkspaceCodeQrRequest": {
         "properties": {
+          "link_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Id"
+          },
+          "destination_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Key"
+          },
           "destination_path": {
             "anyOf": [
               {
@@ -69715,10 +69902,19 @@
       },
       "PartnerWorkspaceCodeQrResponse": {
         "properties": {
+          "link_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Link Id"
+          },
           "code_id": {
             "type": "string",
             "format": "uuid",
             "title": "Code Id"
+          },
+          "public_slug": {
+            "type": "string",
+            "title": "Public Slug"
           },
           "share_url": {
             "type": "string",
@@ -69731,7 +69927,9 @@
         },
         "type": "object",
         "required": [
+          "link_id",
           "code_id",
+          "public_slug",
           "share_url",
           "qr_svg"
         ],

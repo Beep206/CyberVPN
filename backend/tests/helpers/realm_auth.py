@@ -1731,6 +1731,45 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_partner_codes_expires_at ON partner_codes(expires_at)")
         conn.exec_driver_sql(
             """
+            CREATE TABLE partner_code_links (
+                id TEXT PRIMARY KEY,
+                public_slug TEXT NOT NULL UNIQUE,
+                partner_code_id TEXT NOT NULL,
+                partner_account_id TEXT NOT NULL,
+                link_kind TEXT NOT NULL DEFAULT 'deep_link',
+                destination_key TEXT NOT NULL DEFAULT 'register',
+                destination_path TEXT NOT NULL DEFAULT '/register',
+                locale TEXT,
+                sale_channel TEXT,
+                campaign_params TEXT NOT NULL DEFAULT '{}',
+                sub_ids TEXT NOT NULL DEFAULT '{}',
+                status TEXT NOT NULL DEFAULT 'active',
+                active_from TEXT,
+                expires_at TEXT,
+                created_by_admin_user_id TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (partner_code_id) REFERENCES partner_codes(id),
+                FOREIGN KEY (partner_account_id) REFERENCES partner_accounts(id),
+                FOREIGN KEY (created_by_admin_user_id) REFERENCES admin_users(id)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_partner_code_links_public_slug ON partner_code_links(public_slug)",
+            "CREATE INDEX ix_partner_code_links_partner_code_id ON partner_code_links(partner_code_id)",
+            "CREATE INDEX ix_partner_code_links_partner_account_id ON partner_code_links(partner_account_id)",
+            "CREATE INDEX ix_partner_code_links_link_kind ON partner_code_links(link_kind)",
+            "CREATE INDEX ix_partner_code_links_destination_key ON partner_code_links(destination_key)",
+            "CREATE INDEX ix_partner_code_links_sale_channel ON partner_code_links(sale_channel)",
+            "CREATE INDEX ix_partner_code_links_status ON partner_code_links(status)",
+            "CREATE INDEX ix_partner_code_links_expires_at ON partner_code_links(expires_at)",
+            "CREATE INDEX ix_partner_code_links_created_by_admin_user_id "
+            "ON partner_code_links(created_by_admin_user_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
             CREATE TABLE partner_earnings (
                 id TEXT PRIMARY KEY,
                 partner_account_id TEXT,
@@ -2728,6 +2767,7 @@ async def initialize_realm_test_database(engine) -> None:
                 transfer_expires_at TEXT,
                 transfer_consumed_at TEXT,
                 partner_code_id TEXT NOT NULL,
+                partner_code_link_id TEXT,
                 partner_account_id TEXT,
                 auth_realm_id TEXT,
                 storefront_id TEXT,
@@ -2761,6 +2801,7 @@ async def initialize_realm_test_database(engine) -> None:
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (partner_code_id) REFERENCES partner_codes(id),
+                FOREIGN KEY (partner_code_link_id) REFERENCES partner_code_links(id),
                 FOREIGN KEY (partner_account_id) REFERENCES partner_accounts(id),
                 FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id),
                 FOREIGN KEY (storefront_id) REFERENCES storefronts(id),
@@ -2779,6 +2820,8 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_partner_attr_sessions_transfer_expires_at "
             "ON partner_attribution_sessions(transfer_expires_at)",
             "CREATE INDEX ix_partner_attr_sessions_partner_code_id ON partner_attribution_sessions(partner_code_id)",
+            "CREATE INDEX ix_partner_attr_sessions_partner_code_link_id "
+            "ON partner_attribution_sessions(partner_code_link_id)",
             "CREATE INDEX ix_partner_attr_sessions_partner_account_id "
             "ON partner_attribution_sessions(partner_account_id)",
             "CREATE INDEX ix_partner_attr_sessions_auth_realm_id ON partner_attribution_sessions(auth_realm_id)",
