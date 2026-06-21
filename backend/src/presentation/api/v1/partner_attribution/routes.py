@@ -24,6 +24,7 @@ from src.application.use_cases.partner_attribution.utils import (
     PARTNER_ATTRIBUTION_MAX_AGE_SECONDS,
 )
 from src.config.settings import settings
+from src.infrastructure.cache.redis_client import get_redis
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import (
     RealmResolution,
@@ -31,6 +32,11 @@ from src.presentation.dependencies.auth_realms import (
     get_request_public_customer_realm,
 )
 from src.presentation.dependencies.database import get_db
+from src.presentation.dependencies.partner_attribution_rate_limit import (
+    check_partner_attribution_capture_rate_limit,
+    check_partner_attribution_claim_rate_limit,
+    check_partner_attribution_transfer_rate_limit,
+)
 
 from .schemas import (
     PartnerAttributionCaptureRequest,
@@ -82,10 +88,17 @@ def _error_response(exc: PartnerAttributionError) -> JSONResponse:
 @router.post("/capture", response_model=PartnerAttributionCaptureResponse)
 async def capture_partner_attribution(
     payload: PartnerAttributionCaptureRequest,
+    request: Request,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     db: AsyncSession = Depends(get_db),
+    redis_client=Depends(get_redis),
     current_realm: RealmResolution = Depends(get_request_public_customer_realm),
 ) -> PartnerAttributionCaptureResponse | JSONResponse:
+    await check_partner_attribution_capture_rate_limit(
+        request=request,
+        payload=payload,
+        redis_client=redis_client,
+    )
     command = CapturePartnerAttributionCommand(
         public_token=payload.public_token,
         source_host=current_realm.host,
@@ -130,9 +143,12 @@ async def capture_partner_attribution(
 @router.post("/transfer/consume", response_model=PartnerAttributionTransferConsumeResponse)
 async def consume_partner_attribution_transfer(
     payload: PartnerAttributionTransferConsumeRequest,
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
+    redis_client=Depends(get_redis),
 ) -> PartnerAttributionTransferConsumeResponse | JSONResponse:
+    await check_partner_attribution_transfer_rate_limit(request=request, redis_client=redis_client)
     try:
         result = await ConsumePartnerAttributionTransferUseCase(db).execute(
             ConsumePartnerAttributionTransferCommand(transfer_token=payload.transfer_token)
@@ -169,8 +185,10 @@ async def claim_partner_attribution(
     response: Response,
     user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
+    redis_client=Depends(get_redis),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> PartnerAttributionClaimResponse | JSONResponse:
+    await check_partner_attribution_claim_rate_limit(user_id=user_id, redis_client=redis_client)
     cookie_token = request.cookies.get(PARTNER_ATTRIBUTION_COOKIE_NAME)
     try:
         result = await ClaimPartnerAttributionUseCase(db).execute(

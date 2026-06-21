@@ -276,6 +276,12 @@ cybervpn_partner_touchpoints_rejected_total = Counter(
     ["surface", "touchpoint_type", "reason"],
 )
 
+partner_attribution_rate_limited_total = Counter(
+    "partner_attribution_rate_limited_total",
+    "Partner attribution requests rejected by rate-limit scope.",
+    ["scope"],
+)
+
 cybervpn_partner_attribution_resolutions_total = Counter(
     "cybervpn_partner_attribution_resolutions_total",
     "Partner attribution resolution outcomes.",
