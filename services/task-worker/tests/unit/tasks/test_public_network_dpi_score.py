@@ -325,6 +325,7 @@ async def test_run_probes_adds_https_baseline_after_successful_tls_handshake() -
 
 @pytest.mark.asyncio
 async def test_publish_public_network_dpi_score_publishes_measured_snapshot(mock_settings, mock_redis):
+    fresh_probe_at = datetime.now(UTC).replace(microsecond=0).isoformat()
     mock_backend = AsyncMock()
     mock_backend.enabled = True
     mock_backend.publish_public_network_dpi_score = AsyncMock(
@@ -376,12 +377,8 @@ async def test_publish_public_network_dpi_score_publishes_measured_snapshot(mock
             "src.tasks.monitoring.publish_public_network_dpi_score.CacheService",
             return_value=mock_cache,
         ),
-        patch(
-            "src.tasks.monitoring.publish_public_network_dpi_score.BackendAPIClient"
-        ) as mock_backend_cls,
-        patch(
-            "src.tasks.monitoring.publish_public_network_dpi_score.RemnawaveClient"
-        ) as mock_remnawave_cls,
+        patch("src.tasks.monitoring.publish_public_network_dpi_score.BackendAPIClient") as mock_backend_cls,
+        patch("src.tasks.monitoring.publish_public_network_dpi_score.RemnawaveClient") as mock_remnawave_cls,
         patch(
             "src.tasks.monitoring.publish_public_network_dpi_score._run_probes",
             new=AsyncMock(
@@ -393,7 +390,7 @@ async def test_publish_public_network_dpi_score_publishes_measured_snapshot(mock
                         "metric_kind": "tls_handshake_ms",
                         "success": True,
                         "latency_ms": 120,
-                        "last_probe_at": "2026-04-22T10:00:00+00:00",
+                        "last_probe_at": fresh_probe_at,
                     },
                     {
                         "country_id": "de",
@@ -402,7 +399,7 @@ async def test_publish_public_network_dpi_score_publishes_measured_snapshot(mock
                         "metric_kind": "https_head_ms",
                         "success": True,
                         "latency_ms": 180,
-                        "last_probe_at": "2026-04-22T10:00:01+00:00",
+                        "last_probe_at": fresh_probe_at,
                     },
                     {
                         "country_id": "us",
@@ -411,7 +408,7 @@ async def test_publish_public_network_dpi_score_publishes_measured_snapshot(mock
                         "metric_kind": "tcp_connect_ms",
                         "success": False,
                         "latency_ms": None,
-                        "last_probe_at": "2026-04-22T10:00:00+00:00",
+                        "last_probe_at": fresh_probe_at,
                     },
                 ]
             ),
@@ -516,12 +513,8 @@ async def test_publish_public_network_dpi_score_enables_snapshot_after_sufficien
             "src.tasks.monitoring.publish_public_network_dpi_score.CacheService",
             return_value=mock_cache,
         ),
-        patch(
-            "src.tasks.monitoring.publish_public_network_dpi_score.BackendAPIClient"
-        ) as mock_backend_cls,
-        patch(
-            "src.tasks.monitoring.publish_public_network_dpi_score.RemnawaveClient"
-        ) as mock_remnawave_cls,
+        patch("src.tasks.monitoring.publish_public_network_dpi_score.BackendAPIClient") as mock_backend_cls,
+        patch("src.tasks.monitoring.publish_public_network_dpi_score.RemnawaveClient") as mock_remnawave_cls,
         patch(
             "src.tasks.monitoring.publish_public_network_dpi_score._run_probes",
             new=AsyncMock(return_value=[]),
@@ -584,12 +577,8 @@ async def test_publish_public_network_dpi_score_marks_missing_targets(mock_setti
             "src.tasks.monitoring.publish_public_network_dpi_score.CacheService",
             return_value=mock_cache,
         ),
-        patch(
-            "src.tasks.monitoring.publish_public_network_dpi_score.BackendAPIClient"
-        ) as mock_backend_cls,
-        patch(
-            "src.tasks.monitoring.publish_public_network_dpi_score.RemnawaveClient"
-        ) as mock_remnawave_cls,
+        patch("src.tasks.monitoring.publish_public_network_dpi_score.BackendAPIClient") as mock_backend_cls,
+        patch("src.tasks.monitoring.publish_public_network_dpi_score.RemnawaveClient") as mock_remnawave_cls,
     ):
         mock_backend_cls.return_value.__aenter__ = AsyncMock(return_value=mock_backend)
         mock_backend_cls.return_value.__aexit__ = AsyncMock(return_value=False)
@@ -635,12 +624,8 @@ async def test_publish_public_network_dpi_score_degrades_when_probe_source_unava
             "src.tasks.monitoring.publish_public_network_dpi_score.CacheService",
             return_value=mock_cache,
         ),
-        patch(
-            "src.tasks.monitoring.publish_public_network_dpi_score.BackendAPIClient"
-        ) as mock_backend_cls,
-        patch(
-            "src.tasks.monitoring.publish_public_network_dpi_score.RemnawaveClient"
-        ) as mock_remnawave_cls,
+        patch("src.tasks.monitoring.publish_public_network_dpi_score.BackendAPIClient") as mock_backend_cls,
+        patch("src.tasks.monitoring.publish_public_network_dpi_score.RemnawaveClient") as mock_remnawave_cls,
     ):
         mock_backend_cls.return_value.__aenter__ = AsyncMock(return_value=mock_backend)
         mock_backend_cls.return_value.__aexit__ = AsyncMock(return_value=False)
