@@ -6,7 +6,9 @@ import {
   isPortalWorkspacePath,
   isRetiredGenericPortalSectionPath,
   isStorefrontPublicPath,
+  getDefaultPartnerStorefrontHost,
   getCanonicalPartnerSurfaceHost,
+  isKnownPartnerSurfaceHost,
   type PartnerSurfaceContext,
   resolvePartnerSurfaceContext,
 } from '@/features/storefront-shell/lib/runtime';
@@ -57,6 +59,24 @@ function getSurfaceRedirectUrl(
   });
 }
 
+function resolveProxySurfaceContext(request: NextRequest): PartnerSurfaceContext {
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  if (forwardedHost) {
+    if (isKnownPartnerSurfaceHost(forwardedHost)) {
+      return resolvePartnerSurfaceContext(forwardedHost);
+    }
+
+    return resolvePartnerSurfaceContext(getDefaultPartnerStorefrontHost());
+  }
+
+  const host = request.headers.get('host');
+  if (isKnownPartnerSurfaceHost(host)) {
+    return resolvePartnerSurfaceContext(host);
+  }
+
+  return resolvePartnerSurfaceContext(getDefaultPartnerStorefrontHost());
+}
+
 /**
  * Next.js 16 proxy function for routing.
  *
@@ -69,9 +89,7 @@ function getSurfaceRedirectUrl(
  * handlers instead."
  */
 export function proxy(request: NextRequest) {
-  const surfaceContext = resolvePartnerSurfaceContext(
-    request.headers.get('x-forwarded-host') ?? request.headers.get('host'),
-  );
+  const surfaceContext = resolveProxySurfaceContext(request);
   const localeLikePathMatch = request.nextUrl.pathname.match(/^\/([a-z]{2,3}-[A-Z]{2})(\/.*)?$/);
   const locale = localeLikePathMatch?.[1];
 

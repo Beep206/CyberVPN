@@ -41,6 +41,7 @@ const mockRuntimeState = vi.fn<
         channel: 'postback',
         status: 'delivered',
         destination: 'postback://workspace_001',
+        lastAttemptAt: '2026-04-22T10:00:00Z',
         notes: ['Postback delivery is green.'],
       },
     ],

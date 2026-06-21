@@ -23543,6 +23543,11 @@ export interface components {
             currency_code: string;
             /** Event Count */
             event_count: number;
+            /**
+             * Pending Amount
+             * @default 0.00
+             */
+            pending_amount: string;
             /** On Hold Amount */
             on_hold_amount: string;
             /** Available Amount */
@@ -23559,8 +23564,73 @@ export interface components {
              * @default 0.00
              */
             reversed_amount: string;
+            /**
+             * Adjustment Amount
+             * @default 0.00
+             */
+            adjustment_amount: string;
             /** Total Amount */
             total_amount: string;
+            /**
+             * Statement Count
+             * @default 0
+             */
+            statement_count: number;
+            /**
+             * Statement Event Count
+             * @default 0
+             */
+            statement_event_count: number;
+            /**
+             * Statement Included Amount
+             * @default 0.00
+             */
+            statement_included_amount: string;
+            /**
+             * Statement On Hold Amount
+             * @default 0.00
+             */
+            statement_on_hold_amount: string;
+            /**
+             * Statement Available Amount
+             * @default 0.00
+             */
+            statement_available_amount: string;
+            /**
+             * Statement Reserved Amount
+             * @default 0.00
+             */
+            statement_reserved_amount: string;
+            /**
+             * Statement Adjustment Amount
+             * @default 0.00
+             */
+            statement_adjustment_amount: string;
+            /**
+             * Payout Instruction Count
+             * @default 0
+             */
+            payout_instruction_count: number;
+            /**
+             * Payout Instruction Amount
+             * @default 0.00
+             */
+            payout_instruction_amount: string;
+            /**
+             * Payout Pending Amount
+             * @default 0.00
+             */
+            payout_pending_amount: string;
+            /**
+             * Payout Approved Amount
+             * @default 0.00
+             */
+            payout_approved_amount: string;
+            /**
+             * Payout Completed Amount
+             * @default 0.00
+             */
+            payout_completed_amount: string;
             /**
              * Next Payout Forecast Amount
              * @default 0.00
@@ -53436,7 +53506,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        [key: string]: string;
+                        [key: string]: unknown;
                     };
                 };
             };

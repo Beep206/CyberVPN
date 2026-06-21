@@ -1,13 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService
-from src.domain.enums import CommercialOwnerSource, CommercialOwnerType, CustomerCommercialBindingType
+from src.application.use_cases.settlement.commission_terms import (
+    attach_commission_contract_snapshot,
+    build_incomplete_commission_contract_snapshot,
+    with_commission_snapshot_currency,
+)
+from src.domain.enums import (
+    AttributionTouchpointType,
+    CommercialOwnerSource,
+    CommercialOwnerType,
+    CustomerCommercialBindingType,
+)
 from src.infrastructure.database.models.attribution_touchpoint_model import AttributionTouchpointModel
 from src.infrastructure.database.models.customer_commercial_binding_model import (
     CustomerCommercialBindingModel,
@@ -92,6 +103,10 @@ class ResolveOrderAttributionUseCase:
         )
 
         candidate = await self._resolve_candidate(order=order, touchpoints=touchpoints, bindings=bindings)
+        candidate = await self._ensure_candidate_commission_snapshot(
+            candidate,
+            order_currency_code=order.currency_code,
+        )
         evidence_snapshot = _build_evidence_snapshot(
             order=order,
             touchpoints=touchpoints,
@@ -131,34 +146,23 @@ class ResolveOrderAttributionUseCase:
             policy_snapshot=policy_snapshot,
             resolved_at=datetime.now(UTC),
         )
-        created = await self._results.create(model)
-        await self._outbox.append_event(
-            event_name="attribution.result.finalized",
-            aggregate_type="order_attribution_result",
-            aggregate_id=str(created.id),
-            partition_key=str(order.user_id),
-            event_payload={
-                "order_id": str(order.id),
-                "result_id": str(created.id),
-                "owner_type": created.owner_type,
-                "owner_source": created.owner_source,
-                "partner_account_id": str(created.partner_account_id) if created.partner_account_id else None,
-                "partner_code_id": str(created.partner_code_id) if created.partner_code_id else None,
-                "attribution_session_id": str(created.attribution_session_id)
-                if created.attribution_session_id
-                else None,
-                "policy_version_id": str(created.policy_version_id) if created.policy_version_id else None,
-                "commission_contract_id": str(created.commission_contract_id)
-                if created.commission_contract_id
-                else None,
-                "winning_touchpoint_id": str(created.winning_touchpoint_id) if created.winning_touchpoint_id else None,
-                "winning_binding_id": str(created.winning_binding_id) if created.winning_binding_id else None,
-            },
-            source_context={
-                "source_use_case": "ResolveOrderAttributionUseCase",
-                "order_id": str(order.id),
-            },
-        )
+        try:
+            async with self._session.begin_nested():
+                created = await self._results.create(model)
+                await self._append_result_finalized_event(created)
+        except IntegrityError:
+            existing = await self._results.get_by_order_id(order_id)
+            if existing is None:
+                raise
+            observe_partner_attribution_resolution(
+                surface=CUSTOMER_COMMERCE_SURFACE,
+                owner_type=existing.owner_type or "none",
+                owner_source=existing.owner_source or "none",
+                result="cached",
+                reason="concurrent_resolution_won",
+                duration_seconds=0.0,
+            )
+            return existing
         if commit:
             await self._session.commit()
             await self._session.refresh(created)
@@ -182,6 +186,35 @@ class ResolveOrderAttributionUseCase:
         )
         return created
 
+    async def _append_result_finalized_event(self, created: OrderAttributionResultModel) -> None:
+        await self._outbox.append_event(
+            event_name="attribution.result.finalized",
+            aggregate_type="order_attribution_result",
+            aggregate_id=str(created.id),
+            partition_key=str(created.user_id),
+            event_payload={
+                "order_id": str(created.order_id),
+                "result_id": str(created.id),
+                "owner_type": created.owner_type,
+                "owner_source": created.owner_source,
+                "partner_account_id": str(created.partner_account_id) if created.partner_account_id else None,
+                "partner_code_id": str(created.partner_code_id) if created.partner_code_id else None,
+                "attribution_session_id": str(created.attribution_session_id)
+                if created.attribution_session_id
+                else None,
+                "policy_version_id": str(created.policy_version_id) if created.policy_version_id else None,
+                "commission_contract_id": str(created.commission_contract_id)
+                if created.commission_contract_id
+                else None,
+                "winning_touchpoint_id": str(created.winning_touchpoint_id) if created.winning_touchpoint_id else None,
+                "winning_binding_id": str(created.winning_binding_id) if created.winning_binding_id else None,
+            },
+            source_context={
+                "source_use_case": "ResolveOrderAttributionUseCase",
+                "order_id": str(created.order_id),
+            },
+        )
+
     async def _resolve_candidate(
         self,
         *,
@@ -190,8 +223,7 @@ class ResolveOrderAttributionUseCase:
         bindings: list[CustomerCommercialBindingModel],
     ) -> _ResolvedCandidate | None:
         binding_by_type = _latest_binding_by_type(bindings)
-        explicit_touchpoint = _latest_touchpoint(touchpoints, touchpoint_type="explicit_code")
-        passive_click = _latest_touchpoint(touchpoints, touchpoint_type="passive_click")
+        touchpoint_candidate, touchpoint_strategy = _select_touchpoint_candidate(touchpoints)
 
         if binding_by_type.manual_override is not None:
             return _candidate_from_binding(
@@ -214,11 +246,14 @@ class ResolveOrderAttributionUseCase:
                 rule_path=["claimed_commercial_binding_selected"],
             )
 
-        if explicit_touchpoint is not None:
+        if touchpoint_candidate is not None and touchpoint_candidate.touchpoint_type == "explicit_code":
             return await self._candidate_from_touchpoint(
-                explicit_touchpoint,
-                owner_source=CommercialOwnerSource.EXPLICIT_CODE.value,
-                fallback_rule_path=["explicit_code_touchpoint_selected"],
+                touchpoint_candidate,
+                owner_source=_owner_source_for_touchpoint(touchpoint_candidate),
+                fallback_rule_path=[
+                    f"{touchpoint_strategy}_strategy_selected",
+                    "explicit_code_touchpoint_selected",
+                ],
             )
 
         if binding_by_type.reseller_binding is not None:
@@ -228,11 +263,14 @@ class ResolveOrderAttributionUseCase:
                 rule_path=["persistent_reseller_binding_selected"],
             )
 
-        if passive_click is not None:
+        if touchpoint_candidate is not None:
             return await self._candidate_from_touchpoint(
-                passive_click,
-                owner_source=CommercialOwnerSource.PASSIVE_CLICK.value,
-                fallback_rule_path=["passive_click_touchpoint_selected"],
+                touchpoint_candidate,
+                owner_source=_owner_source_for_touchpoint(touchpoint_candidate),
+                fallback_rule_path=[
+                    f"{touchpoint_strategy}_strategy_selected",
+                    f"{touchpoint_candidate.touchpoint_type}_touchpoint_selected",
+                ],
             )
 
         if binding_by_type.storefront_default is not None:
@@ -287,6 +325,62 @@ class ResolveOrderAttributionUseCase:
             rule_path=rule_path,
         )
 
+    async def _ensure_candidate_commission_snapshot(
+        self,
+        candidate: _ResolvedCandidate | None,
+        *,
+        order_currency_code: str | None,
+    ) -> _ResolvedCandidate | None:
+        if candidate is None or candidate.owner_type == CommercialOwnerType.NONE.value:
+            return candidate
+        commercial_snapshot = dict(candidate.commercial_policy_snapshot or {})
+        existing_snapshot = commercial_snapshot.get("commission_contract_snapshot")
+        if isinstance(existing_snapshot, dict) and existing_snapshot.get("snapshot_complete") is True:
+            order_currency = str(order_currency_code or "").upper()
+            if order_currency and str(existing_snapshot.get("currency_code") or "").upper() != order_currency:
+                enriched_snapshot = attach_commission_contract_snapshot(
+                    commercial_snapshot,
+                    with_commission_snapshot_currency(existing_snapshot, currency_code=order_currency),
+                )
+                rule_path = list(candidate.rule_path)
+                if "commission_contract_snapshot_currency_scoped_to_order" not in rule_path:
+                    rule_path.append("commission_contract_snapshot_currency_scoped_to_order")
+                return replace(
+                    candidate,
+                    commercial_policy_snapshot=enriched_snapshot,
+                    rule_path=rule_path,
+                )
+            return candidate
+        if isinstance(existing_snapshot, dict):
+            return candidate
+
+        code_model = (
+            await self._partners.get_code_by_id(candidate.partner_code_id)
+            if candidate.partner_code_id is not None
+            else None
+        )
+
+        enriched_snapshot = attach_commission_contract_snapshot(
+            commercial_snapshot,
+            build_incomplete_commission_contract_snapshot(
+                missing_terms=["commission_contract_snapshot"],
+                snapshot_source="order_attribution_missing_snapshot",
+                commission_contract_id=candidate.commission_contract_id,
+                partner_account_id=candidate.partner_account_id,
+                partner_user_id=code_model.partner_user_id if code_model is not None else None,
+                partner_code_id=candidate.partner_code_id,
+                owner_type=candidate.owner_type,
+            ),
+        )
+        rule_path = list(candidate.rule_path)
+        if "commission_contract_snapshot_incomplete" not in rule_path:
+            rule_path.append("commission_contract_snapshot_incomplete")
+        return replace(
+            candidate,
+            commercial_policy_snapshot=enriched_snapshot,
+            rule_path=rule_path,
+        )
+
 
 @dataclass(frozen=True)
 class _BindingSelections:
@@ -328,6 +422,109 @@ def _latest_touchpoint(
             _normalize_utc(item.created_at),
         ),
     )[-1]
+
+
+_ELIGIBLE_TOUCHPOINT_TYPES = frozenset(
+    {
+        AttributionTouchpointType.EXPLICIT_CODE.value,
+        AttributionTouchpointType.PASSIVE_CLICK.value,
+        AttributionTouchpointType.DEEP_LINK.value,
+        AttributionTouchpointType.QR_SCAN.value,
+        AttributionTouchpointType.CAMPAIGN_PARAMS.value,
+    }
+)
+_CLICK_TOUCHPOINT_TYPES = frozenset(
+    {
+        AttributionTouchpointType.PASSIVE_CLICK.value,
+        AttributionTouchpointType.DEEP_LINK.value,
+        AttributionTouchpointType.QR_SCAN.value,
+        AttributionTouchpointType.CAMPAIGN_PARAMS.value,
+    }
+)
+_SUPPORTED_TOUCHPOINT_STRATEGIES = frozenset(
+    {
+        "first_eligible_touch",
+        "last_eligible_touch",
+        "last_eligible_click",
+        "explicit_code_priority",
+        "persistent_storefront_binding",
+    }
+)
+
+
+def _select_touchpoint_candidate(
+    touchpoints: list[AttributionTouchpointModel],
+) -> tuple[AttributionTouchpointModel | None, str]:
+    candidates = [
+        touchpoint
+        for touchpoint in touchpoints
+        if touchpoint.partner_code_id is not None
+        and touchpoint.touchpoint_type in _ELIGIBLE_TOUCHPOINT_TYPES
+        and _touchpoint_policy_allows_resolution(touchpoint)
+    ]
+    if not candidates:
+        return None, "explicit_code_priority"
+
+    strategy = _resolve_touchpoint_strategy(candidates)
+    if strategy == "first_eligible_touch":
+        return _first_touchpoint(candidates), strategy
+    if strategy == "last_eligible_touch":
+        return _last_touchpoint(candidates), strategy
+    if strategy == "last_eligible_click":
+        click_candidate = _last_touchpoint(
+            [touchpoint for touchpoint in candidates if touchpoint.touchpoint_type in _CLICK_TOUCHPOINT_TYPES]
+        )
+        return click_candidate, strategy
+
+    explicit_candidate = _last_touchpoint(
+        [
+            touchpoint
+            for touchpoint in candidates
+            if touchpoint.touchpoint_type == AttributionTouchpointType.EXPLICIT_CODE.value
+        ]
+    )
+    if explicit_candidate is not None:
+        return explicit_candidate, strategy
+    return _last_touchpoint(candidates), strategy
+
+
+def _resolve_touchpoint_strategy(touchpoints: list[AttributionTouchpointModel]) -> str:
+    if any(
+        touchpoint.touchpoint_type == AttributionTouchpointType.EXPLICIT_CODE.value
+        and _touchpoint_attribution_model(touchpoint) == "explicit_code_priority"
+        for touchpoint in touchpoints
+    ):
+        return "explicit_code_priority"
+    for strategy in (
+        "first_eligible_touch",
+        "last_eligible_click",
+        "persistent_storefront_binding",
+    ):
+        if any(_touchpoint_attribution_model(touchpoint) == strategy for touchpoint in touchpoints):
+            return strategy
+    if any(touchpoint.touchpoint_type == AttributionTouchpointType.EXPLICIT_CODE.value for touchpoint in touchpoints):
+        return "explicit_code_priority"
+    if any(_touchpoint_attribution_model(touchpoint) == "last_eligible_touch" for touchpoint in touchpoints):
+        return "last_eligible_touch"
+    return "explicit_code_priority"
+
+
+def _first_touchpoint(touchpoints: list[AttributionTouchpointModel]) -> AttributionTouchpointModel | None:
+    if not touchpoints:
+        return None
+    return sorted(touchpoints, key=lambda item: (_normalize_utc(item.occurred_at), _normalize_utc(item.created_at)))[0]
+
+
+def _last_touchpoint(touchpoints: list[AttributionTouchpointModel]) -> AttributionTouchpointModel | None:
+    if not touchpoints:
+        return None
+    return sorted(touchpoints, key=lambda item: (_normalize_utc(item.occurred_at), _normalize_utc(item.created_at)))[-1]
+
+
+def _owner_source_for_touchpoint(touchpoint: AttributionTouchpointModel) -> str:
+    if touchpoint.touchpoint_type == AttributionTouchpointType.EXPLICIT_CODE.value:
+        return CommercialOwnerSource.EXPLICIT_CODE.value
+    return CommercialOwnerSource.PASSIVE_CLICK.value
 
 
 def _candidate_from_binding(
@@ -390,6 +587,15 @@ def _policy_snapshot_from_touchpoint(touchpoint: AttributionTouchpointModel) -> 
     payload = dict(touchpoint.evidence_payload or {})
     snapshot = payload.get("policy_snapshot")
     return dict(snapshot) if isinstance(snapshot, dict) else {}
+
+
+def _touchpoint_policy_allows_resolution(touchpoint: AttributionTouchpointModel) -> bool:
+    snapshot = _policy_snapshot_from_touchpoint(touchpoint)
+    if not snapshot:
+        return True
+    if snapshot.get("allowed") is False:
+        return False
+    return not bool(snapshot.get("reason_codes") or [])
 
 
 def _touchpoint_attribution_model(touchpoint: AttributionTouchpointModel | None) -> str:

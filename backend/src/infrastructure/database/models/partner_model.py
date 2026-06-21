@@ -1,13 +1,22 @@
 """Partner workspace, code, and earning ORM models."""
 
+import secrets
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
+
+_PUBLIC_SLUG_ALPHABET = "abcdefghijklmnopqrstuvwxyz23456789"
+
+
+def _generate_partner_public_slug_default() -> str:
+    body = "".join(secrets.choice(_PUBLIC_SLUG_ALPHABET) for _ in range(24))
+    return f"px_{body}"
 
 
 class PartnerAccountModel(Base):
@@ -67,6 +76,71 @@ class PartnerAccountModel(Base):
         return f"<PartnerAccount(id={self.id}, account_key={self.account_key}, status={self.status})>"
 
 
+class PartnerCommissionContractModel(Base):
+    """Immutable partner earning terms referenced by attributed orders."""
+
+    __tablename__ = "partner_commission_contracts"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    partner_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    partner_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("mobile_users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    partner_code_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_codes.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    owner_type: Mapped[str] = mapped_column(String(30), nullable=False, default="affiliate", server_default="affiliate")
+    contract_status: Mapped[str] = mapped_column(String(24), nullable=False, default="active", server_default="active")
+    commission_model: Mapped[str] = mapped_column(
+        String(40),
+        nullable=False,
+        default="base_plus_markup",
+        server_default="base_plus_markup",
+    )
+    commission_pct: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False, default=0, server_default="0")
+    markup_pct: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False, default=0, server_default="0")
+    markup_cap_amount: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
+    payout_hold_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30, server_default="30")
+    currency_code: Mapped[str] = mapped_column(String(12), nullable=False, default="USD", server_default="USD")
+    currency_policy: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    rounding_mode: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="ROUND_HALF_UP",
+        server_default="ROUND_HALF_UP",
+    )
+    renewal_policy: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    refund_policy: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    terms_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    source: Mapped[str] = mapped_column(
+        String(60),
+        nullable=False,
+        default="runtime_code_create",
+        server_default="runtime_code_create",
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"<PartnerCommissionContract(id={self.id}, code={self.partner_code_id}, status={self.contract_status})>"
+
+
 class PartnerCodeModel(Base):
     """Partner-created referral codes with canonical partner-account ownership."""
 
@@ -98,11 +172,12 @@ class PartnerCodeModel(Base):
         index=True,
     )
 
-    public_slug: Mapped[str | None] = mapped_column(
+    public_slug: Mapped[str] = mapped_column(
         String(80),
         unique=True,
-        nullable=True,
+        nullable=False,
         index=True,
+        default=_generate_partner_public_slug_default,
     )
 
     partner_account_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -163,6 +238,7 @@ class PartnerCodeModel(Base):
     )
 
     commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_commission_contracts.id", ondelete="RESTRICT"),
         nullable=True,
         index=True,
     )
@@ -194,7 +270,7 @@ class PartnerCodeModel(Base):
         index=True,
     )
 
-    markup_pct: Mapped[float] = mapped_column(
+    markup_pct: Mapped[Decimal] = mapped_column(
         Numeric(5, 2),
         nullable=False,
         default=0,
@@ -368,27 +444,27 @@ class PartnerEarningModel(Base):
         nullable=True,
     )
 
-    base_price: Mapped[float] = mapped_column(
+    base_price: Mapped[Decimal] = mapped_column(
         Numeric(20, 8),
         nullable=False,
     )
 
-    markup_amount: Mapped[float] = mapped_column(
+    markup_amount: Mapped[Decimal] = mapped_column(
         Numeric(20, 8),
         nullable=False,
     )
 
-    commission_pct: Mapped[float] = mapped_column(
+    commission_pct: Mapped[Decimal] = mapped_column(
         Numeric(5, 2),
         nullable=False,
     )
 
-    commission_amount: Mapped[float] = mapped_column(
+    commission_amount: Mapped[Decimal] = mapped_column(
         Numeric(20, 8),
         nullable=False,
     )
 
-    total_earning: Mapped[float] = mapped_column(
+    total_earning: Mapped[Decimal] = mapped_column(
         Numeric(20, 8),
         nullable=False,
     )

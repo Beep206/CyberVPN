@@ -42,6 +42,19 @@ def _account(**overrides):
     return SimpleNamespace(**base)
 
 
+def _contract_snapshot(**overrides):
+    base = {
+        "snapshot_complete": True,
+        "commission_contract_id": str(uuid.uuid4()),
+        "partner_code_id": None,
+        "contract_status": "active",
+        "effective_from": datetime(2026, 6, 20, tzinfo=UTC).isoformat(),
+        "effective_to": datetime(2026, 6, 22, tzinfo=UTC).isoformat(),
+    }
+    base.update(overrides)
+    return base
+
+
 def test_partner_code_eligibility_allows_active_code_and_persists_decision_snapshot() -> None:
     storefront_id = uuid.uuid4()
     result = EvaluatePartnerCodeEligibilityUseCase().execute(
@@ -115,3 +128,87 @@ def test_partner_code_eligibility_maps_expired_link_to_link_error() -> None:
     assert result.status_code == 410
     assert result.reason_codes == ["link_expired"]
     assert result.policy_snapshot["partner_code_link_id"] == str(link.id)
+
+
+def test_partner_code_eligibility_rejects_blocked_lane_risk_and_contract_context() -> None:
+    code_id = uuid.uuid4()
+    contract_id = uuid.uuid4()
+    risk_review_id = uuid.uuid4()
+
+    result = EvaluatePartnerCodeEligibilityUseCase().execute(
+        EvaluatePartnerCodeEligibilityCommand(
+            code_model=_code(id=code_id, commission_contract_id=contract_id),
+            account=_account(),
+            sale_channel="content",
+            lane_application_id=uuid.uuid4(),
+            lane_application_status="declined",
+            risk_subject_id=uuid.uuid4(),
+            risk_review_ids=(risk_review_id,),
+            risk_review_decisions=("hold",),
+            commission_contract_snapshot=_contract_snapshot(
+                commission_contract_id=str(contract_id),
+                partner_code_id=str(code_id),
+                effective_to=datetime(2026, 6, 20, tzinfo=UTC).isoformat(),
+            ),
+            now=datetime(2026, 6, 21, tzinfo=UTC),
+        )
+    )
+
+    assert result.allowed is False
+    assert result.error_code == "PARTNER_LANE_NOT_APPROVED"
+    assert result.status_code == 409
+    assert set(result.reason_codes) == {
+        "commission_contract_expired",
+        "lane_not_approved",
+        "risk_review_hold",
+    }
+    assert result.policy_snapshot["allowed"] is False
+    assert result.policy_snapshot["lane_application_status"] == "declined"
+    assert result.policy_snapshot["risk_review_ids"] == [str(risk_review_id)]
+    assert result.policy_snapshot["risk_review_decisions"] == ["hold"]
+
+
+def test_partner_code_eligibility_rejects_missing_required_lane_membership() -> None:
+    result = EvaluatePartnerCodeEligibilityUseCase().execute(
+        EvaluatePartnerCodeEligibilityCommand(
+            code_model=_code(),
+            account=_account(),
+            sale_channel="content",
+            require_lane_membership=True,
+            now=datetime(2026, 6, 21, tzinfo=UTC),
+        )
+    )
+
+    assert result.allowed is False
+    assert result.error_code == "PARTNER_LANE_NOT_APPROVED"
+    assert result.status_code == 409
+    assert result.reason_codes == ["lane_membership_missing"]
+    assert result.policy_snapshot["lane_application_id"] is None
+    assert result.policy_snapshot["lane_application_status"] is None
+
+
+def test_partner_code_eligibility_rejects_contract_mismatch_and_incomplete_snapshot() -> None:
+    code_id = uuid.uuid4()
+    expected_contract_id = uuid.uuid4()
+
+    result = EvaluatePartnerCodeEligibilityUseCase().execute(
+        EvaluatePartnerCodeEligibilityCommand(
+            code_model=_code(id=code_id, commission_contract_id=expected_contract_id),
+            account=_account(),
+            sale_channel="content",
+            commission_contract_snapshot=_contract_snapshot(
+                snapshot_complete=False,
+                commission_contract_id=str(uuid.uuid4()),
+                partner_code_id=str(uuid.uuid4()),
+            ),
+            now=datetime(2026, 6, 21, tzinfo=UTC),
+        )
+    )
+
+    assert result.allowed is False
+    assert result.error_code == "PARTNER_COMMISSION_CONTRACT_INCOMPLETE"
+    assert set(result.reason_codes) == {
+        "commission_contract_code_mismatch",
+        "commission_contract_mismatch",
+        "commission_contract_snapshot_incomplete",
+    }

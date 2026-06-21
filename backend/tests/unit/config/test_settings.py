@@ -28,6 +28,7 @@ class TestWeakSecretPatterns:
     STRONG_SECRET = "xVanw-qakEZA0v_T5mJ9GSCJkTzoWYpHMJDX02lFg-B8"
     VALID_TOKEN = "valid_token_for_testing_purposes_32characters"
     VALID_PRODUCTION_PROVIDER_TOKEN = "liveProviderCredentialAlphaBeta123456"
+    VALID_WORKER_SECRET = "liveSettlementWorkerCredentialAlpha123456"
     PRODUCTION_CORS_ORIGINS = list(S1_PRODUCTION_CORS_ORIGINS)
 
     @pytest.mark.parametrize("weak_secret", WEAK_SECRETS)
@@ -39,6 +40,7 @@ class TestWeakSecretPatterns:
                 jwt_secret=SecretStr(weak_secret),
                 remnawave_token=SecretStr(self.VALID_TOKEN),
                 cryptobot_token=SecretStr(self.VALID_TOKEN),
+                payment_settlement_worker_secret=SecretStr(self.VALID_WORKER_SECRET),
                 cors_origins=self.PRODUCTION_CORS_ORIGINS,
                 oauth_enabled_login_providers=[],
                 admin_2fa_required=True,
@@ -56,6 +58,7 @@ class TestWeakSecretPatterns:
             jwt_secret=SecretStr(self.STRONG_SECRET),
             remnawave_token=SecretStr(self.VALID_TOKEN),
             cryptobot_token=SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            payment_settlement_worker_secret=SecretStr(self.VALID_WORKER_SECRET),
             cors_origins=self.PRODUCTION_CORS_ORIGINS,
             oauth_token_encryption_key=SecretStr(self.STRONG_SECRET),
             oauth_enabled_login_providers=[],
@@ -125,6 +128,7 @@ class TestS1CorsAndCookieSettings:
     STRONG_SECRET = TestWeakSecretPatterns.STRONG_SECRET
     VALID_TOKEN = TestWeakSecretPatterns.VALID_TOKEN
     VALID_PRODUCTION_PROVIDER_TOKEN = TestWeakSecretPatterns.VALID_PRODUCTION_PROVIDER_TOKEN
+    VALID_WORKER_SECRET = TestWeakSecretPatterns.VALID_WORKER_SECRET
 
     def _production_settings(self, **overrides):
         values = {
@@ -132,6 +136,7 @@ class TestS1CorsAndCookieSettings:
             "jwt_secret": SecretStr(self.STRONG_SECRET),
             "remnawave_token": SecretStr(self.VALID_TOKEN),
             "cryptobot_token": SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            "payment_settlement_worker_secret": SecretStr(self.VALID_WORKER_SECRET),
             "oauth_token_encryption_key": SecretStr(self.STRONG_SECRET),
             "oauth_enabled_login_providers": [],
             "cors_origins": [
@@ -327,12 +332,13 @@ class TestS1CorsAndCookieSettings:
             self._production_settings(admin_allowed_hosts=f"admin.cyber-vpn.net,{host}")
 
 
-class TestS2OAuthProductionReadiness:
-    """Test S2 production OAuth login provider credential guards."""
+class TestPaymentSettlementWorkerSettings:
+    """Test dedicated payment settlement worker credential guards."""
 
     STRONG_SECRET = TestWeakSecretPatterns.STRONG_SECRET
     VALID_TOKEN = TestWeakSecretPatterns.VALID_TOKEN
     VALID_PRODUCTION_PROVIDER_TOKEN = TestWeakSecretPatterns.VALID_PRODUCTION_PROVIDER_TOKEN
+    VALID_WORKER_SECRET = TestWeakSecretPatterns.VALID_WORKER_SECRET
 
     def _production_settings(self, **overrides):
         values = {
@@ -340,6 +346,51 @@ class TestS2OAuthProductionReadiness:
             "jwt_secret": SecretStr(self.STRONG_SECRET),
             "remnawave_token": SecretStr(self.VALID_TOKEN),
             "cryptobot_token": SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            "oauth_token_encryption_key": SecretStr(self.STRONG_SECRET),
+            "oauth_enabled_login_providers": [],
+            "cors_origins": list(S1_PRODUCTION_CORS_ORIGINS),
+            "cookie_secure": True,
+            "admin_2fa_required": True,
+            "payment_settlement_worker_secret": SecretStr(self.VALID_WORKER_SECRET),
+        }
+        values.update(overrides)
+        return Settings(**values)
+
+    def test_production_requires_payment_settlement_worker_secret_when_enabled(self) -> None:
+        with pytest.raises(ValidationError, match="PAYMENT_SETTLEMENT_WORKER_SECRET"):
+            self._production_settings(payment_settlement_worker_secret=SecretStr(""))
+
+    def test_production_rejects_telegram_secret_reuse_for_payment_settlement_worker(self) -> None:
+        with pytest.raises(ValidationError, match="must differ"):
+            self._production_settings(
+                telegram_bot_internal_secret=SecretStr(self.VALID_WORKER_SECRET),
+                payment_settlement_worker_secret=SecretStr(self.VALID_WORKER_SECRET),
+            )
+
+    def test_production_allows_worker_disabled_without_settlement_secret(self) -> None:
+        settings = self._production_settings(
+            payment_settlement_worker_enabled=False,
+            payment_settlement_worker_secret=SecretStr(""),
+        )
+
+        assert settings.payment_settlement_worker_enabled is False
+
+
+class TestS2OAuthProductionReadiness:
+    """Test S2 production OAuth login provider credential guards."""
+
+    STRONG_SECRET = TestWeakSecretPatterns.STRONG_SECRET
+    VALID_TOKEN = TestWeakSecretPatterns.VALID_TOKEN
+    VALID_PRODUCTION_PROVIDER_TOKEN = TestWeakSecretPatterns.VALID_PRODUCTION_PROVIDER_TOKEN
+    VALID_WORKER_SECRET = TestWeakSecretPatterns.VALID_WORKER_SECRET
+
+    def _production_settings(self, **overrides):
+        values = {
+            "environment": "production",
+            "jwt_secret": SecretStr(self.STRONG_SECRET),
+            "remnawave_token": SecretStr(self.VALID_TOKEN),
+            "cryptobot_token": SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            "payment_settlement_worker_secret": SecretStr(self.VALID_WORKER_SECRET),
             "oauth_token_encryption_key": SecretStr(self.STRONG_SECRET),
             "oauth_web_base_url": "",
             "google_client_id": "",

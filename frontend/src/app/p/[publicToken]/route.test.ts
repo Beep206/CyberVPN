@@ -22,7 +22,7 @@ describe('partner attribution public route', () => {
     vi.unstubAllGlobals();
   });
 
-  it('uses the public site origin for invalid-token fallback redirects', async () => {
+  it('returns an explicit no-store error for invalid public attribution tokens', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -51,9 +51,15 @@ describe('partner attribution public route', () => {
       params: Promise.resolve({ publicToken: 'invalid-smoke-token' }),
     });
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe('https://cyber-vpn.net/ru-RU/register');
-    expect(response.headers.get('set-cookie')).toContain('cv_partner_browser=');
+    expect(response.status).toBe(404);
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('set-cookie')).toBeNull();
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    await expect(response.json()).resolves.toMatchObject({
+      detail: {
+        code: 'PARTNER_CODE_NOT_FOUND',
+      },
+    });
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.cyber-vpn.net/api/v1/partner-attribution/capture',
       expect.objectContaining({

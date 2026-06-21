@@ -13,9 +13,13 @@ from src.application.services.stage1_growth_policy import Stage1GrowthPolicyErro
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.payments.checkout import (
     CheckoutAddonInput,
+    CheckoutResult,
     CheckoutUseCase,
 )
 from src.application.use_cases.payments.crypto_payment import CreateCryptoInvoiceUseCase
+from src.application.use_cases.payments.payment_completed_earnings import (
+    RunPaymentCompletedEarningOutboxUseCase,
+)
 from src.application.use_cases.payments.payment_history import PaymentHistoryUseCase
 from src.application.use_cases.payments.stage1_reconciliation import (
     DEFAULT_RECONCILIATION_LIMIT,
@@ -24,6 +28,7 @@ from src.application.use_cases.payments.stage1_reconciliation import (
     assert_stage1_payment_reconciliation_output_is_redacted,
 )
 from src.config.settings import settings
+from src.domain.enums import PaymentProvider, PaymentStatus
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
@@ -66,6 +71,19 @@ def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
 
 def _require_telegram_bot_secret(secret: str | None) -> None:
     if _is_valid_telegram_bot_secret(secret):
+        return
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def _is_valid_payment_settlement_worker_secret(secret: str | None) -> bool:
+    configured = settings.payment_settlement_worker_secret.get_secret_value().strip()
+    if not configured or not secret:
+        return False
+    return hmac.compare_digest(secret.strip(), configured)
+
+
+def _require_payment_settlement_worker_secret(secret: str | None) -> None:
+    if _is_valid_payment_settlement_worker_secret(secret):
         return
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
 
@@ -135,7 +153,7 @@ async def _build_quote(
     body: CheckoutQuoteRequest,
     db: AsyncSession,
     user_id: UUID,
-) -> object:
+) -> CheckoutResult:
     use_case = CheckoutUseCase(db)
     try:
         return await use_case.execute(
@@ -381,6 +399,32 @@ async def run_stage1_payment_reconciliation(
     return payload
 
 
+@router.post("/internal/partner-earnings/run", include_in_schema=False)
+async def run_payment_completed_partner_earnings(
+    limit: int = Query(25, ge=1, le=100),
+    worker_id: str = Query("task-worker", min_length=1, max_length=120),
+    db: AsyncSession = Depends(get_db),
+    payment_settlement_worker_secret: str | None = Header(
+        default=None,
+        alias="X-Payment-Settlement-Worker-Secret",
+    ),
+) -> dict:
+    """Claim and process durable payment.completed partner earning publications."""
+
+    _require_payment_settlement_worker_secret(payment_settlement_worker_secret)
+    report = await RunPaymentCompletedEarningOutboxUseCase(db).execute(limit=limit, worker_id=worker_id)
+    logger.info(
+        "payment_completed_partner_earning_outbox_run_completed",
+        extra={
+            "claimed": report["claimed"],
+            "succeeded": report["succeeded"],
+            "retrying": report["retrying"],
+            "dead_letter": report["dead_letter"],
+        },
+    )
+    return report
+
+
 @router.get("/{payment_id}", response_model=PaymentStatusResponse)
 async def get_payment_status(
     payment_id: UUID,
@@ -394,8 +438,8 @@ async def get_payment_status(
 
     return PaymentStatusResponse(
         payment_id=payment.id,
-        status=payment.status,
-        provider=payment.provider,
+        status=PaymentStatus(payment.status),
+        provider=PaymentProvider(payment.provider),
         external_id=payment.external_id,
         amount=float(payment.amount),
         currency=payment.currency,

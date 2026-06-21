@@ -6,9 +6,14 @@ import hashlib
 import hmac
 import importlib.util
 import json
+import logging
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
+from unittest.mock import AsyncMock
+from uuid import uuid4
 
 import pytest
 
@@ -135,6 +140,114 @@ async def test_cryptobot_invalid_signature_log_never_stores_raw_signature_or_pay
     assert log.is_valid is False
     assert log.signature_fingerprint == hashlib.sha256(b"raw-signature-value").hexdigest()
     _assert_sensitive_values_absent(_serialized(log.payload))
+
+
+@pytest.mark.asyncio
+async def test_payment_webhook_application_logs_redact_provider_external_ids(caplog, monkeypatch) -> None:
+    raw_external_id = "raw-provider-invoice-424242"
+    expected_fingerprint = hashlib.sha256(raw_external_id.encode("utf-8")).hexdigest()
+    caplog.set_level(logging.INFO, logger="src.application.use_cases.payments.payment_webhook")
+
+    missing_repo = SimpleNamespace(
+        get_by_external_id_for_update=AsyncMock(return_value=None),
+        update=AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "src.application.use_cases.payments.payment_webhook.PaymentRepository",
+        lambda _session: missing_repo,
+    )
+    missing_use_case = ProcessPaymentWebhookUseCase(  # type: ignore[arg-type]
+        session=_FakeSession(),
+        webhook_handler=object(),
+    )
+
+    missing_result = await missing_use_case._handle_invoice_paid(raw_external_id)
+
+    assert missing_result["warning"] == "payment_not_found"
+    assert raw_external_id not in caplog.text
+    assert any(getattr(record, "external_id_fingerprint", None) == expected_fingerprint for record in caplog.records)
+    assert all(record.__dict__.get("external_id") != raw_external_id for record in caplog.records)
+
+    caplog.clear()
+    payment = SimpleNamespace(
+        id=uuid4(),
+        user_uuid=uuid4(),
+        status="pending",
+        provider="cryptobot",
+        currency="USD",
+        amount=Decimal("12.34"),
+        metadata_={},
+        wallet_amount_used=Decimal("0"),
+    )
+    paid_repo = SimpleNamespace(
+        get_by_external_id_for_update=AsyncMock(return_value=payment),
+        get_by_external_id=AsyncMock(return_value=payment),
+        update=AsyncMock(return_value=payment),
+    )
+    monkeypatch.setattr(
+        "src.application.use_cases.payments.payment_webhook.PaymentRepository",
+        lambda _session: paid_repo,
+    )
+    paid_use_case = ProcessPaymentWebhookUseCase(  # type: ignore[arg-type]
+        session=SimpleNamespace(commit=AsyncMock()),
+        webhook_handler=object(),
+    )
+    paid_use_case._attempts = SimpleNamespace(get_by_payment_id=AsyncMock(return_value=None))  # type: ignore[assignment]
+    paid_use_case._outbox = SimpleNamespace(append_event=AsyncMock())  # type: ignore[assignment]
+
+    class _PostPaymentProcessing:
+        async def execute(self, _payment_id, *, process_cash_rewards: bool) -> dict[str, Any]:
+            assert process_cash_rewards is False
+            return {"cash_rewards_deferred": True}
+
+    monkeypatch.setattr(
+        "src.application.use_cases.payments.post_payment.PostPaymentProcessingUseCase",
+        lambda _session: _PostPaymentProcessing(),
+    )
+
+    paid_result = await paid_use_case._handle_invoice_paid(raw_external_id)
+
+    assert paid_result["status"] == "processed"
+    assert raw_external_id not in caplog.text
+    assert any(getattr(record, "external_id_fingerprint", None) == expected_fingerprint for record in caplog.records)
+    assert all(record.__dict__.get("external_id") != raw_external_id for record in caplog.records)
+
+    caplog.clear()
+    payment.status = "pending"
+    payment.wallet_amount_used = Decimal("3.21")
+    payment.metadata_ = {"wallet_frozen": True}
+    unfreeze_error_use_case = ProcessPaymentWebhookUseCase(  # type: ignore[arg-type]
+        session=SimpleNamespace(commit=AsyncMock()),
+        webhook_handler=object(),
+    )
+    unfreeze_error_use_case._attempts = SimpleNamespace(  # type: ignore[assignment]
+        get_by_payment_id=AsyncMock(return_value=None)
+    )
+    unfreeze_error_use_case._wallet = SimpleNamespace(  # type: ignore[assignment]
+        unfreeze=AsyncMock(side_effect=RuntimeError("wallet backend down"))
+    )
+
+    unfreeze_error_result = await unfreeze_error_use_case._handle_invoice_failed(raw_external_id, "invoice_failed")
+
+    assert unfreeze_error_result["status"] == "processed"
+    assert raw_external_id not in caplog.text
+    assert any(getattr(record, "external_id_fingerprint", None) == expected_fingerprint for record in caplog.records)
+    assert all(record.__dict__.get("external_id") != raw_external_id for record in caplog.records)
+
+    caplog.clear()
+    payment.status = "pending"
+    failed_use_case = ProcessPaymentWebhookUseCase(  # type: ignore[arg-type]
+        session=SimpleNamespace(commit=AsyncMock()),
+        webhook_handler=object(),
+    )
+    failed_use_case._attempts = SimpleNamespace(get_by_payment_id=AsyncMock(return_value=None))  # type: ignore[assignment]
+
+    failed_result = await failed_use_case._handle_invoice_failed(raw_external_id, "invoice_failed")
+
+    assert failed_result["status"] == "processed"
+    assert raw_external_id not in caplog.text
+    assert any(getattr(record, "external_id_fingerprint", None) == expected_fingerprint for record in caplog.records)
+    assert all(record.__dict__.get("external_id") != raw_external_id for record in caplog.records)
 
 
 @pytest.mark.asyncio

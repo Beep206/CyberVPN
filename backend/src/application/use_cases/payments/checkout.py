@@ -8,6 +8,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.config_service import ConfigService
 from src.application.services.entitlements_service import EntitlementsService
 from src.application.services.stage1_growth_policy import assert_stage1_checkout_codes_enabled
 from src.application.services.stage1_plan_policy import (
@@ -21,8 +22,13 @@ from src.application.use_cases.growth_codes import (
 )
 from src.application.use_cases.partner_attribution.eligibility import (
     EvaluatePartnerCodeEligibilityCommand,
-    EvaluatePartnerCodeEligibilityUseCase,
+    EvaluatePartnerCodeEligibilityWithContextUseCase,
     PartnerCodeEligibilityResult,
+)
+from src.application.use_cases.settlement.commission_terms import (
+    build_commission_contract_model,
+    build_commission_contract_snapshot,
+    build_commission_contract_snapshot_for_code,
 )
 from src.config.settings import settings
 from src.domain.enums import (
@@ -45,6 +51,7 @@ from src.infrastructure.database.repositories.partner_repo import PartnerReposit
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
 from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
+from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 
 logger = logging.getLogger(__name__)
@@ -111,6 +118,7 @@ class CheckoutResult:
     code_input: str | None = None
     code_resolution: GrowthCodeResolutionOutcome | None = None
     reservation_id: UUID | None = None
+    partner_commission_contract_snapshot: dict | None = None
 
 
 class CheckoutUseCase:
@@ -124,9 +132,11 @@ class CheckoutUseCase:
         self._bindings = CustomerCommercialBindingRepository(session)
         self._growth_code_repo = GrowthCodeRepository(session)
         self._addon_repo = PlanAddonRepository(session)
+        self._config = ConfigService(SystemConfigRepository(session))
         wallet_repo = WalletRepository(session)
         self._wallet = WalletService(wallet_repo)
         self._growth_codes = ResolveGrowthCodeUseCase(session)
+        self._partner_eligibility = EvaluatePartnerCodeEligibilityWithContextUseCase(session)
 
     async def execute(
         self,
@@ -166,6 +176,7 @@ class CheckoutUseCase:
 
         partner_markup = Decimal("0")
         partner_code_id = None
+        partner_commission_contract_snapshot: dict | None = None
         code_resolution: GrowthCodeResolutionOutcome | None = None
         normalized_growth_code_input = _normalize_code_input(code_input=code_input, promo_code=promo_code)
 
@@ -182,12 +193,18 @@ class CheckoutUseCase:
                 if explicit_code.partner_account_id is not None
                 else None
             )
-            eligibility = EvaluatePartnerCodeEligibilityUseCase().execute(
+            explicit_commission_snapshot = await self._ensure_commission_contract_snapshot(
+                explicit_code,
+                source="checkout_quote_pricing",
+                currency_code=normalized_currency,
+            )
+            eligibility = await self._partner_eligibility.execute(
                 EvaluatePartnerCodeEligibilityCommand(
                     code_model=explicit_code,
                     account=account,
                     sale_channel=sale_channel,
                     storefront_id=storefront_id,
+                    commission_contract_snapshot=explicit_commission_snapshot,
                 )
             )
             _assert_checkout_partner_eligibility(eligibility)
@@ -195,13 +212,20 @@ class CheckoutUseCase:
                 raise ValueError("Partner code self-referral is blocked")
             partner_markup = base_price * (Decimal(str(explicit_code.markup_pct)) / Decimal("100"))
             partner_code_id = explicit_code.id
+            partner_commission_contract_snapshot = explicit_commission_snapshot
         elif settings.partner_attribution_enabled:
             active_code = await self._resolve_bound_partner_code(
                 user=user,
                 storefront_id=storefront_id,
                 sale_channel=sale_channel,
+                currency_code=normalized_currency,
             )
             if active_code is not None:
+                partner_commission_contract_snapshot = await self._ensure_commission_contract_snapshot(
+                    active_code,
+                    source="checkout_bound_partner_code",
+                    currency_code=normalized_currency,
+                )
                 partner_markup = base_price * (Decimal(str(active_code.markup_pct)) / Decimal("100"))
                 partner_code_id = active_code.id
 
@@ -237,6 +261,11 @@ class CheckoutUseCase:
                 resolved_partner_code = await self._partner_repo.get_code_by_id(code_resolution.partner_code_id)
                 if resolved_partner_code is None or not resolved_partner_code.is_active:
                     raise ValueError("Partner code not found or inactive")
+                partner_commission_contract_snapshot = await self._ensure_commission_contract_snapshot(
+                    resolved_partner_code,
+                    source="checkout_growth_partner_code",
+                    currency_code=normalized_currency,
+                )
                 partner_markup = base_price * (Decimal(str(resolved_partner_code.markup_pct)) / Decimal("100"))
                 partner_code_id = resolved_partner_code.id
                 displayed_price = base_price + addon_amount + partner_markup
@@ -349,7 +378,52 @@ class CheckoutUseCase:
             discounts=discounts,
             code_input=normalized_growth_code_input,
             code_resolution=code_resolution,
+            partner_commission_contract_snapshot=partner_commission_contract_snapshot,
         )
+
+    async def _ensure_commission_contract_snapshot(
+        self,
+        code: PartnerCodeModel,
+        *,
+        source: str,
+        currency_code: str,
+    ) -> dict:
+        get_contract = getattr(self._partner_repo, "get_commission_contract_by_id", None)
+        contract = None
+        existing_contract_id = getattr(code, "commission_contract_id", None)
+        if existing_contract_id is not None and callable(get_contract):
+            contract = await get_contract(existing_contract_id)
+        if contract is None:
+            attach_contract = getattr(self._partner_repo, "attach_commission_contract_to_code", None)
+            if not callable(attach_contract) or not hasattr(code, "version"):
+                payout_hold_days = 45 if code.owner_type == CommercialOwnerType.PERFORMANCE.value else 30
+                return build_commission_contract_snapshot_for_code(
+                    code_model=code,
+                    commission_pct=Decimal("20"),
+                    payout_hold_days=payout_hold_days,
+                    snapshot_source=source,
+                    currency_code=currency_code,
+                )
+            commission_pct, payout_hold_days = await self._partner_commission_defaults(code.owner_type)
+            contract = build_commission_contract_model(
+                code_model=code,
+                commission_pct=commission_pct,
+                payout_hold_days=payout_hold_days,
+                source=source,
+            )
+            await attach_contract(code, contract)
+        return build_commission_contract_snapshot(contract, snapshot_source=source, currency_code=currency_code)
+
+    async def _partner_commission_defaults(self, owner_type: str | None) -> tuple[Decimal, int]:
+        try:
+            tiers = await self._config.get_partner_tiers()
+        except (AttributeError, StopAsyncIteration, TypeError):
+            tiers = [{"min_clients": 0, "commission_pct": 20}]
+        try:
+            payout_hold_days = await self._config.get_partner_payout_hold_days(owner_type=owner_type)
+        except (AttributeError, StopAsyncIteration, TypeError):
+            payout_hold_days = 45 if owner_type == CommercialOwnerType.PERFORMANCE.value else 30
+        return _resolve_base_commission_pct(tiers), payout_hold_days
 
     async def _resolve_bound_partner_code(
         self,
@@ -357,6 +431,7 @@ class CheckoutUseCase:
         user: MobileUserModel | None,
         storefront_id: UUID | None,
         sale_channel: str | None,
+        currency_code: str,
     ) -> PartnerCodeModel | None:
         if user is None:
             return None
@@ -373,6 +448,7 @@ class CheckoutUseCase:
                 code,
                 sale_channel=sale_channel,
                 storefront_id=storefront_id,
+                currency_code=currency_code,
             ):
                 return code
 
@@ -385,6 +461,7 @@ class CheckoutUseCase:
                 code,
                 sale_channel=sale_channel,
                 storefront_id=storefront_id,
+                currency_code=currency_code,
             ):
                 return code
         return None
@@ -395,24 +472,28 @@ class CheckoutUseCase:
         *,
         sale_channel: str | None,
         storefront_id: UUID | None,
+        currency_code: str,
     ) -> bool:
         account = (
             await self._partner_repo.get_account_by_id(code.partner_account_id)
             if code.partner_account_id is not None
             else None
         )
-        return (
-            EvaluatePartnerCodeEligibilityUseCase()
-            .execute(
-                EvaluatePartnerCodeEligibilityCommand(
-                    code_model=code,
-                    account=account,
-                    sale_channel=sale_channel,
-                    storefront_id=storefront_id,
-                )
-            )
-            .allowed
+        commission_snapshot = await self._ensure_commission_contract_snapshot(
+            code,
+            source="checkout_bound_partner_code_eligibility",
+            currency_code=currency_code,
         )
+        eligibility = await self._partner_eligibility.execute(
+            EvaluatePartnerCodeEligibilityCommand(
+                code_model=code,
+                account=account,
+                sale_channel=sale_channel,
+                storefront_id=storefront_id,
+                commission_contract_snapshot=commission_snapshot,
+            )
+        )
+        return eligibility.allowed
 
     async def _is_self_partner_code(
         self,
@@ -568,6 +649,14 @@ def _resolve_addon_price(addon: PlanAddonModel, currency: str) -> Decimal:
     if currency == "RUB" and addon.price_rub is not None:
         return Decimal(str(addon.price_rub))
     raise ValueError(f"Missing {currency} price for addon {addon.code}")
+
+
+def _resolve_base_commission_pct(tiers: list[dict]) -> Decimal:
+    commission = Decimal("0")
+    for tier in sorted(tiers or [], key=lambda item: int(item.get("min_clients", 0) or 0)):
+        if int(tier.get("min_clients", 0) or 0) <= 0:
+            commission = Decimal(str(tier.get("commission_pct", 0) or 0))
+    return commission
 
 
 def _quote_resolution_error_message(resolution) -> str:

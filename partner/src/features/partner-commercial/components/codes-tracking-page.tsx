@@ -7,11 +7,13 @@ import {
   Archive,
   Ban,
   Copy,
+  Download,
   LinkIcon,
   Pause,
   Play,
   Plus,
   QrCode,
+  Share2,
   Ticket,
   Waypoints,
 } from 'lucide-react';
@@ -20,12 +22,22 @@ import { Link } from '@/i18n/navigation';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
 import { PartnerRouteGuard } from '@/features/partner-portal-state/components/partner-route-guard';
 import type { PartnerRouteAccessLevel } from '@/features/partner-portal-state/lib/portal-access';
-import {
-  getPartnerCodeCapabilities,
-  getPartnerCommercialSurfaceMode,
-} from '@/features/partner-commercial/lib/commercial-capabilities';
+import { getPartnerCommercialSurfaceMode } from '@/features/partner-commercial/lib/commercial-capabilities';
 import type { PartnerCode } from '@/features/partner-portal-state/lib/portal-state';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
+import { AdminActionDialog } from '@/shared/ui/admin-action-dialog';
+
+type FeedbackState = {
+  tone: 'success' | 'error';
+  message: string;
+} | null;
+
+type LifecycleAction = 'activate' | 'pause' | 'revoke' | 'archive';
+
+type LifecycleConfirmation = {
+  code: PartnerCode;
+  action: Extract<LifecycleAction, 'revoke' | 'archive'>;
+} | null;
 
 function isWriteAccess(access: PartnerRouteAccessLevel) {
   return access === 'write' || access === 'admin';
@@ -46,6 +58,14 @@ function buildMutationReason(action: string) {
   return `partner_portal_${action}`;
 }
 
+function axiosStatus(error: unknown): number | null {
+  return error instanceof AxiosError ? error.response?.status ?? null : null;
+}
+
+function codeDownloadName(code: PartnerCode) {
+  return `${code.label.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'partner-code'}-qr.svg`;
+}
+
 export function CodesTrackingPage() {
   const t = useTranslations('Partner.codes');
   const portalT = useTranslations('Partner.portalState');
@@ -62,9 +82,11 @@ export function CodesTrackingPage() {
   const [deepLinkPathByCode, setDeepLinkPathByCode] = useState<Record<string, string>>({});
   const [generatedLinkByCode, setGeneratedLinkByCode] = useState<Record<string, string>>({});
   const [qrByCode, setQrByCode] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [confirmation, setConfirmation] = useState<LifecycleConfirmation>(null);
   const mode = getPartnerCommercialSurfaceMode('codes', state);
-  const localCapabilities = getPartnerCodeCapabilities(state);
   const backendCapabilities = workspaceCommercialCapabilitiesQuery.data;
+  const backendActions = backendCapabilities?.available_actions ?? [];
   const invalidateWorkspace = useWorkspaceInvalidation(activeWorkspace?.id);
 
   const canWrite = useMemo(
@@ -88,7 +110,11 @@ export function CodesTrackingPage() {
     },
     onSuccess: () => {
       setNewCode('');
+      setFeedback({ tone: 'success', message: t('feedback.createSuccess') });
       invalidateWorkspace();
+    },
+    onError: () => {
+      setFeedback({ tone: 'error', message: t('feedback.createError') });
     },
   });
 
@@ -111,7 +137,21 @@ export function CodesTrackingPage() {
         code.version,
       );
     },
-    onSuccess: () => invalidateWorkspace(),
+    onSuccess: (_response, variables) => {
+      setFeedback({
+        tone: 'success',
+        message: t('feedback.lifecycleSuccess', { action: t(`buttons.${variables.action}`) }),
+      });
+      invalidateWorkspace();
+    },
+    onError: (error) => {
+      if (axiosStatus(error) === 409) {
+        setFeedback({ tone: 'error', message: t('feedback.versionConflict') });
+        invalidateWorkspace();
+        return;
+      }
+      setFeedback({ tone: 'error', message: t('feedback.lifecycleError') });
+    },
   });
 
   const linkMutation = useMutation({
@@ -128,7 +168,10 @@ export function CodesTrackingPage() {
     },
     onSuccess: (response, code) => {
       setGeneratedLinkByCode((current) => ({ ...current, [code.id]: response.data.share_url }));
-      void navigator.clipboard?.writeText(response.data.share_url);
+      void copyText(response.data.share_url);
+    },
+    onError: () => {
+      setFeedback({ tone: 'error', message: t('feedback.linkError') });
     },
   });
 
@@ -144,17 +187,73 @@ export function CodesTrackingPage() {
     },
     onSuccess: (response, code) => {
       setQrByCode((current) => ({ ...current, [code.id]: response.data.qr_svg }));
+      setFeedback({ tone: 'success', message: t('feedback.qrSuccess') });
+    },
+    onError: () => {
+      setFeedback({ tone: 'error', message: t('feedback.qrError') });
     },
   });
 
-  const copyText = (value: string | undefined) => {
-    if (!value) return;
-    void navigator.clipboard?.writeText(value);
+  const copyText = async (value: string | undefined) => {
+    if (!value || typeof navigator.clipboard?.writeText !== 'function') {
+      setFeedback({ tone: 'error', message: t('feedback.copyError') });
+      return false;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      setFeedback({ tone: 'success', message: t('feedback.copySuccess') });
+      return true;
+    } catch {
+      setFeedback({ tone: 'error', message: t('feedback.copyError') });
+      return false;
+    }
+  };
+
+  const shareCode = async (code: PartnerCode) => {
+    const shareUrl = generatedLinkByCode[code.id] ?? code.shareUrl;
+    if (!shareUrl) {
+      setFeedback({ tone: 'error', message: t('feedback.copyError') });
+      return;
+    }
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: t('share.title', { code: code.label }),
+          text: t('share.text', { code: code.label }),
+          url: shareUrl,
+        });
+        setFeedback({ tone: 'success', message: t('feedback.shareSuccess') });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+      }
+    }
+    await copyText(shareUrl);
+  };
+
+  const downloadQr = (code: PartnerCode) => {
+    const svg = qrByCode[code.id];
+    if (!svg || typeof URL.createObjectURL !== 'function') {
+      setFeedback({ tone: 'error', message: t('feedback.qrDownloadError') });
+      return;
+    }
+    const objectUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = codeDownloadName(code);
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+    setFeedback({ tone: 'success', message: t('feedback.qrDownloadSuccess') });
   };
 
   const codesErrorStatus = workspaceCodesQuery.error instanceof AxiosError
     ? workspaceCodesQuery.error.response?.status
     : null;
+  const confirmedAction = confirmation?.action;
 
   return (
     <PartnerRouteGuard route="codes" title={t('title')}>
@@ -213,6 +312,20 @@ export function CodesTrackingPage() {
                   </div>
                 </div>
 
+                {feedback ? (
+                  <div
+                    role={feedback.tone === 'error' ? 'alert' : 'status'}
+                    aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
+                    className={`mt-5 rounded-lg border px-4 py-3 text-sm font-mono leading-6 ${
+                      feedback.tone === 'success'
+                        ? 'border-matrix-green/35 bg-matrix-green/10 text-matrix-green'
+                        : 'border-warning-amber/35 bg-warning-amber/10 text-warning-amber'
+                    }`}
+                  >
+                    {feedback.message}
+                  </div>
+                ) : null}
+
                 {workspaceCodesQuery.isLoading ? (
                   <p className="mt-5 rounded-lg border border-dashed border-grid-line/25 bg-terminal-surface/25 p-4 text-sm font-mono leading-6 text-muted-foreground">
                     {t('inventory.loading')}
@@ -239,6 +352,11 @@ export function CodesTrackingPage() {
                             </h3>
                             <p className="mt-2 break-all text-sm font-mono leading-6 text-muted-foreground">
                               {t('inventory.destination', { value: code.destination })}
+                            </p>
+                            <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+                              {t('inventory.audit', {
+                                value: code.updatedAt ?? code.createdAt ?? t('inventory.auditUnavailable'),
+                              })}
                             </p>
                             {generatedLinkByCode[code.id] ? (
                               <p className="mt-2 break-all text-xs font-mono leading-5 text-neon-cyan">
@@ -274,37 +392,74 @@ export function CodesTrackingPage() {
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
-                              onClick={() => copyText(code.shareUrl)}
+                              onClick={() => void copyText(code.shareUrl)}
                               className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 text-neon-cyan transition hover:border-neon-cyan"
                               title={t('buttons.copy')}
+                              aria-label={t('buttons.copy')}
                             >
                               <Copy className="h-4 w-4" />
                             </button>
                             <button
                               type="button"
+                              onClick={() => void shareCode(code)}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 text-neon-cyan transition hover:border-neon-cyan"
+                              title={t('buttons.share')}
+                              aria-label={t('buttons.share')}
+                            >
+                              <Share2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => linkMutation.mutate(code)}
-                              disabled={!code.availableActions?.includes('create_link') || linkMutation.isPending}
+                              disabled={
+                                !code.availableActions?.includes('create_link')
+                                || (linkMutation.isPending && linkMutation.variables?.id === code.id)
+                              }
                               className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 text-neon-cyan transition hover:border-neon-cyan disabled:cursor-not-allowed disabled:opacity-45"
                               title={t('buttons.link')}
+                              aria-label={t('buttons.link')}
                             >
                               <LinkIcon className="h-4 w-4" />
                             </button>
                             <button
                               type="button"
                               onClick={() => qrMutation.mutate(code)}
-                              disabled={!code.availableActions?.includes('download_qr') || qrMutation.isPending}
+                              disabled={
+                                !code.availableActions?.includes('download_qr')
+                                || (qrMutation.isPending && qrMutation.variables?.id === code.id)
+                              }
                               className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 text-matrix-green transition hover:border-matrix-green disabled:cursor-not-allowed disabled:opacity-45"
                               title={t('buttons.qr')}
+                              aria-label={t('buttons.qr')}
                             >
                               <QrCode className="h-4 w-4" />
                             </button>
+                            {qrByCode[code.id] ? (
+                              <button
+                                type="button"
+                                onClick={() => downloadQr(code)}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 text-matrix-green transition hover:border-matrix-green"
+                                title={t('buttons.downloadQr')}
+                                aria-label={t('buttons.downloadQr')}
+                              >
+                                <Download className="h-4 w-4" />
+                              </button>
+                            ) : null}
                             {code.availableActions?.includes('activate') ? (
                               <button
                                 type="button"
                                 onClick={() => lifecycleMutation.mutate({ code, action: 'activate' })}
-                                disabled={!writeEnabled || lifecycleMutation.isPending}
+                                disabled={
+                                  !writeEnabled
+                                  || (
+                                    lifecycleMutation.isPending
+                                    && lifecycleMutation.variables?.code.id === code.id
+                                    && lifecycleMutation.variables.action === 'activate'
+                                  )
+                                }
                                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 text-matrix-green transition hover:border-matrix-green disabled:cursor-not-allowed disabled:opacity-45"
                                 title={t('buttons.activate')}
+                                aria-label={t('buttons.activate')}
                               >
                                 <Play className="h-4 w-4" />
                               </button>
@@ -313,9 +468,17 @@ export function CodesTrackingPage() {
                               <button
                                 type="button"
                                 onClick={() => lifecycleMutation.mutate({ code, action: 'pause' })}
-                                disabled={!writeEnabled || lifecycleMutation.isPending}
+                                disabled={
+                                  !writeEnabled
+                                  || (
+                                    lifecycleMutation.isPending
+                                    && lifecycleMutation.variables?.code.id === code.id
+                                    && lifecycleMutation.variables.action === 'pause'
+                                  )
+                                }
                                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 text-warning-amber transition hover:border-warning-amber disabled:cursor-not-allowed disabled:opacity-45"
                                 title={t('buttons.pause')}
+                                aria-label={t('buttons.pause')}
                               >
                                 <Pause className="h-4 w-4" />
                               </button>
@@ -323,10 +486,18 @@ export function CodesTrackingPage() {
                             {code.availableActions?.includes('revoke') ? (
                               <button
                                 type="button"
-                                onClick={() => lifecycleMutation.mutate({ code, action: 'revoke' })}
-                                disabled={!writeEnabled || lifecycleMutation.isPending}
+                                onClick={() => setConfirmation({ code, action: 'revoke' })}
+                                disabled={
+                                  !writeEnabled
+                                  || (
+                                    lifecycleMutation.isPending
+                                    && lifecycleMutation.variables?.code.id === code.id
+                                    && lifecycleMutation.variables.action === 'revoke'
+                                  )
+                                }
                                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 text-warning-amber transition hover:border-warning-amber disabled:cursor-not-allowed disabled:opacity-45"
                                 title={t('buttons.revoke')}
+                                aria-label={t('buttons.revoke')}
                               >
                                 <Ban className="h-4 w-4" />
                               </button>
@@ -334,10 +505,18 @@ export function CodesTrackingPage() {
                             {code.availableActions?.includes('archive') ? (
                               <button
                                 type="button"
-                                onClick={() => lifecycleMutation.mutate({ code, action: 'archive' })}
-                                disabled={!writeEnabled || lifecycleMutation.isPending}
+                                onClick={() => setConfirmation({ code, action: 'archive' })}
+                                disabled={
+                                  !writeEnabled
+                                  || (
+                                    lifecycleMutation.isPending
+                                    && lifecycleMutation.variables?.code.id === code.id
+                                    && lifecycleMutation.variables.action === 'archive'
+                                  )
+                                }
                                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 text-muted-foreground transition hover:border-grid-line disabled:cursor-not-allowed disabled:opacity-45"
                                 title={t('buttons.archive')}
+                                aria-label={t('buttons.archive')}
                               >
                                 <Archive className="h-4 w-4" />
                               </button>
@@ -414,19 +593,25 @@ export function CodesTrackingPage() {
                     {t(`modes.${mode}`)}
                   </p>
                   <ul className="mt-4 space-y-3">
-                    {localCapabilities.map((capability) => (
+                    {backendActions.length > 0 ? backendActions.map((action) => (
                       <li
-                        key={capability.key}
+                        key={action}
                         className="flex items-center justify-between gap-3 rounded-lg border border-grid-line/20 bg-terminal-bg/55 px-4 py-3"
                       >
                         <span className="text-sm font-mono text-foreground/90">
-                          {t(`capabilities.items.${capability.key}`)}
+                          {t('capabilities.backendAction', { value: action })}
                         </span>
                         <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-neon-cyan">
-                          {portalT(`capabilityAvailability.${capability.availability}`)}
+                          {backendCapabilities?.can_write_codes ? t('capabilities.write') : t('capabilities.read')}
                         </span>
                       </li>
-                    ))}
+                    )) : (
+                      <li className="rounded-lg border border-dashed border-grid-line/25 bg-terminal-bg/55 px-4 py-3 text-sm font-mono text-muted-foreground">
+                        {workspaceCommercialCapabilitiesQuery.isLoading
+                          ? t('capabilities.loading')
+                          : t('capabilities.empty')}
+                      </li>
+                    )}
                   </ul>
                 </article>
 
@@ -448,6 +633,27 @@ export function CodesTrackingPage() {
                 </article>
               </div>
             </div>
+            <AdminActionDialog
+              isOpen={Boolean(confirmation)}
+              isPending={lifecycleMutation.isPending}
+              title={confirmedAction ? t(`confirm.${confirmedAction}.title`) : ''}
+              description={confirmedAction ? t(`confirm.${confirmedAction}.description`) : ''}
+              confirmLabel={confirmedAction ? t(`buttons.${confirmedAction}`) : t('buttons.revoke')}
+              cancelLabel={t('buttons.cancel')}
+              subjectLabel={t('confirm.subject')}
+              subject={confirmation?.code.label}
+              tone={confirmedAction === 'archive' ? 'warning' : 'danger'}
+              onClose={() => setConfirmation(null)}
+              onConfirm={async () => {
+                if (!confirmation) return;
+                try {
+                  await lifecycleMutation.mutateAsync(confirmation);
+                  setConfirmation(null);
+                } catch {
+                  // onError owns visible feedback and query invalidation.
+                }
+              }}
+            />
           </section>
         );
       }}

@@ -36,6 +36,7 @@ from src.utils.constants import (
     SCHEDULE_HELIX_ROLLOUTS,
     SCHEDULE_HOURLY_BANDWIDTH,
     SCHEDULE_PARTNER_BOT_PROVISIONING,
+    SCHEDULE_PAYMENT_COMPLETED_PARTNER_EARNINGS,
     SCHEDULE_PAYMENT_VERIFY,
     SCHEDULE_PUBLIC_NETWORK_DPI_SCORE,
     SCHEDULE_QUEUE_DEPTH,
@@ -250,6 +251,12 @@ from src.tasks.payments.provisioning_retries import process_stage1_provisioning_
 
 process_stage1_provisioning_retries = _schedule_task(
     process_stage1_provisioning_retries, [{"cron": SCHEDULE_STAGE1_PROVISIONING_RETRY}]
+)
+
+from src.tasks.payments.process_partner_earnings import process_partner_earning_from_payment
+
+process_partner_earning_from_payment = _schedule_task(
+    process_partner_earning_from_payment, [{"cron": SCHEDULE_PAYMENT_COMPLETED_PARTNER_EARNINGS}]
 )
 
 from src.tasks.payments.reconcile_telegram_stars import (

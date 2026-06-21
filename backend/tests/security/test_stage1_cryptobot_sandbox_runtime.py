@@ -34,6 +34,7 @@ def _production_settings(**overrides: object) -> Settings:
         "totp_encryption_key": SecretStr(STRONG_SECRET),
         "oauth_token_encryption_key": SecretStr(STRONG_SECRET),
         "oauth_enabled_login_providers": [],
+        "payment_settlement_worker_secret": SecretStr("liveSettlementWorkerCredentialForChecksOnly"),
     }
     values.update(overrides)
     return _settings(**values)

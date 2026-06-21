@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { GetCurrentPartnerApplicationDraftResponse } from '@/lib/api/partner-portal';
 import {
   buildPartnerApplicationDraftPayload,
   canResubmitPartnerApplication,
@@ -9,7 +10,7 @@ import {
 } from './application-contract';
 
 describe('partner application contract helpers', () => {
-  const response = {
+  const response: GetCurrentPartnerApplicationDraftResponse = {
     draft: {
       id: 'draft-1',
       partner_account_id: 'workspace-1',
@@ -47,7 +48,7 @@ describe('partner application contract helpers', () => {
     lane_applications: [],
     review_requests: [],
     attachments: [],
-  } as const;
+  };
 
   it('maps backend draft responses to the local onboarding draft shape', () => {
     expect(

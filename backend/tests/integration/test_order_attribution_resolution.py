@@ -66,6 +66,7 @@ async def _create_quote_checkout(
     plan_id: str,
     partner_code: str | None = None,
     idempotency_key: str = "attribution-checkout",
+    currency: str = "USD",
 ) -> tuple[dict, dict]:
     quote_response = await async_client.post(
         "/api/v1/quotes/",
@@ -75,7 +76,7 @@ async def _create_quote_checkout(
             "pricebook_key": pricebook_key,
             "offer_key": offer_key,
             "plan_id": plan_id,
-            "currency": "USD",
+            "currency": currency,
             "channel": "web",
             "partner_code": partner_code,
             "use_wallet": 0,
@@ -90,7 +91,7 @@ async def _create_quote_checkout(
         headers={**headers, "Idempotency-Key": idempotency_key},
         json={"quote_session_id": quote_payload["id"]},
     )
-    assert checkout_response.status_code == 201
+    assert checkout_response.status_code == 201, checkout_response.text
     checkout_payload = checkout_response.json()
     return quote_payload, checkout_payload
 

@@ -11,6 +11,7 @@ from src.infrastructure.database.models.partner_model import (
     PartnerAccountModel,
     PartnerCodeLinkModel,
     PartnerCodeModel,
+    PartnerCommissionContractModel,
     PartnerEarningModel,
 )
 
@@ -28,6 +29,9 @@ class PartnerRepository:
 
     async def get_account_by_id(self, id: UUID) -> PartnerAccountModel | None:
         return await self._session.get(PartnerAccountModel, id)
+
+    async def get_commission_contract_by_id(self, id: UUID) -> PartnerCommissionContractModel | None:
+        return await self._session.get(PartnerCommissionContractModel, id)
 
     async def get_code_by_code(self, code: str) -> PartnerCodeModel | None:
         normalized = _normalize_lookup_code(code)
@@ -125,6 +129,31 @@ class PartnerRepository:
         self._session.add(model)
         await self._session.flush()
         return model
+
+    async def create_commission_contract(
+        self,
+        model: PartnerCommissionContractModel,
+    ) -> PartnerCommissionContractModel:
+        self._session.add(model)
+        await self._session.flush()
+        return model
+
+    async def attach_commission_contract_to_code(
+        self,
+        code_model: PartnerCodeModel,
+        contract_model: PartnerCommissionContractModel,
+    ) -> PartnerCodeModel:
+        if contract_model.partner_code_id is None:
+            contract_model.partner_code_id = code_model.id
+        if contract_model.partner_account_id is None:
+            contract_model.partner_account_id = code_model.partner_account_id
+        if contract_model.partner_user_id is None:
+            contract_model.partner_user_id = code_model.partner_user_id
+        self._session.add(contract_model)
+        await self._session.flush()
+        code_model.commission_contract_id = contract_model.id
+        await self._session.flush()
+        return code_model
 
     async def create_code_link(self, model: PartnerCodeLinkModel) -> PartnerCodeLinkModel:
         self._session.add(model)

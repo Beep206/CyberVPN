@@ -6,6 +6,17 @@ vi.mock('next-intl/server', () => ({
   getRequestConfig,
 }));
 
+function expectMessages(
+  messages: unknown,
+): asserts messages is {
+  Auth: Record<string, unknown>;
+  Footer: Record<string, unknown>;
+  Header: Record<string, unknown>;
+} {
+  expect(messages).toBeDefined();
+  expect(messages).not.toBeNull();
+}
+
 describe('i18n request config', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -20,6 +31,7 @@ describe('i18n request config', () => {
     });
 
     expect(config.locale).toBe('ru-RU');
+    expectMessages(config.messages);
     expect(config.messages.Header).toMatchObject({
       netUplink: 'СЕТЬ_АПЛИНК',
     });
@@ -43,6 +55,7 @@ describe('i18n request config', () => {
     });
 
     expect(config.locale).toBe('ru-RU');
+    expectMessages(config.messages);
     expect(config.messages.Header).toMatchObject({
       netUplink: 'СЕТЬ_АПЛИНК',
     });

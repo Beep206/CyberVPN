@@ -1,6 +1,7 @@
 """Webhook routes for external service callbacks."""
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends, Request, status
 from redis.asyncio import Redis
@@ -61,7 +62,7 @@ async def cryptobot_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
     redis_client: Redis = Depends(get_redis),
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Handle webhook callbacks from CryptoBot payment service."""
     body = await request.body()
     signature = request.headers.get("crypto-pay-api-signature", "")

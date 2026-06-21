@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.partner_attribution.eligibility import (
     EvaluatePartnerCodeEligibilityCommand,
-    EvaluatePartnerCodeEligibilityUseCase,
+    EvaluatePartnerCodeEligibilityWithContextUseCase,
 )
 from src.config.settings import settings
 from src.infrastructure.database.models.pricebook_model import PricebookModel
@@ -173,7 +173,7 @@ async def _build_attribution_contract(
     partner_account = None
     if code_model.partner_account_id is not None:
         partner_account = await PartnerAccountRepository(db).get_account_by_id(code_model.partner_account_id)
-    eligibility = EvaluatePartnerCodeEligibilityUseCase().execute(
+    eligibility = await EvaluatePartnerCodeEligibilityWithContextUseCase(db).execute(
         EvaluatePartnerCodeEligibilityCommand(
             code_model=code_model,
             account=partner_account,

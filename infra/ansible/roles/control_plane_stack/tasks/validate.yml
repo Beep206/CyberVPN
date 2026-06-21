@@ -80,6 +80,7 @@
             'TELEGRAM_BOT_TOKEN',
             'TELEGRAM_BOT_USERNAME',
             'TELEGRAM_BOT_INTERNAL_SECRET',
+            'PAYMENT_SETTLEMENT_WORKER_SECRET',
             'ENVIRONMENT',
             'CORS_ORIGINS'
           ] | difference(control_plane_stack_backend_env.keys() | list)
@@ -101,6 +102,9 @@
             'REDIS_URL',
             'REMNAWAVE_URL',
             'REMNAWAVE_API_TOKEN',
+            'BACKEND_API_URL',
+            'BACKEND_INTERNAL_SECRET',
+            'PAYMENT_SETTLEMENT_WORKER_SECRET',
             'TELEGRAM_BOT_TOKEN',
             'CRYPTOBOT_TOKEN',
             'ADMIN_TELEGRAM_IDS',

@@ -1,6 +1,8 @@
 """Use case for creating a new partner referral code."""
 
 import logging
+from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
 from src.application.services.config_service import ConfigService
@@ -10,6 +12,7 @@ from src.application.use_cases.partner_attribution.utils import (
     hash_partner_attribution_token,
     normalize_partner_code,
 )
+from src.application.use_cases.settlement.commission_terms import build_commission_contract_model
 from src.config.settings import settings
 from src.domain.exceptions import DomainError, MarkupExceedsLimitError, NotAPartnerError
 from src.infrastructure.database.models.partner_model import PartnerCodeModel
@@ -53,10 +56,9 @@ class CreatePartnerCodeUseCase:
             raise DomainError("Partner code markup cannot be negative")
         if partner_user_id is None:
             raise NotAPartnerError()
-        if partner_account_id is None:
-            if not is_partner_user:
-                raise NotAPartnerError(str(partner_user_id))
-        else:
+        if not is_partner_user:
+            raise NotAPartnerError(str(partner_user_id))
+        if partner_account_id is not None:
             partner_account = await self._partner_repo.get_account_by_id(partner_account_id)
             if partner_account is None or partner_account.status != "active":
                 raise NotAPartnerError(str(partner_user_id))
@@ -97,6 +99,13 @@ class CreatePartnerCodeUseCase:
         )
 
         result = await self._partner_repo.create_code(model)
+        commission_contract = build_commission_contract_model(
+            code_model=result,
+            commission_pct=_resolve_base_commission_pct(await self._config.get_partner_tiers()),
+            payout_hold_days=await self._config.get_partner_payout_hold_days(owner_type=result.owner_type),
+            source="partner_code_create",
+        )
+        await self._partner_repo.attach_commission_contract_to_code(result, commission_contract)
 
         logger.info(
             "partner_code_created",
@@ -116,3 +125,11 @@ class CreatePartnerCodeUseCase:
             if await self._partner_repo.get_code_by_public_slug(candidate) is None:
                 return candidate
         raise DomainError("Could not allocate unique partner public slug")
+
+
+def _resolve_base_commission_pct(tiers: list[dict[str, Any]]) -> Decimal:
+    commission = Decimal("0")
+    for tier in sorted(tiers or [], key=lambda item: int(item.get("min_clients", 0) or 0)):
+        if int(tier.get("min_clients", 0) or 0) <= 0:
+            commission = Decimal(str(tier.get("commission_pct", 0) or 0))
+    return commission

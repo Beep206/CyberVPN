@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.events import EventOutboxService
 from src.application.services.auth_service import AuthService
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.services.public_uid_allocator import allocate_public_uid
@@ -30,8 +31,11 @@ from src.application.use_cases.customer_subscriptions import (
     ListCustomerSubscriptionsUseCase,
 )
 from src.application.use_cases.orders import ListOrdersUseCase
-from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
+from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutResult, CheckoutUseCase
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
+from src.application.use_cases.payments.payment_completed_earnings import (
+    append_payment_completed_partner_earning_publication,
+)
 from src.application.use_cases.refunds import ReconcileTelegramStarsRefundUseCase
 from src.application.use_cases.service_access import GetCurrentServiceStateUseCase
 from src.application.use_cases.subscriptions import GenerateConfigUseCase
@@ -51,6 +55,7 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.infrastructure.database.repositories.customer_staff_note_repo import CustomerStaffNoteRepository
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
+from src.infrastructure.database.repositories.payment_attempt_repo import PaymentAttemptRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
@@ -73,6 +78,7 @@ from src.presentation.api.v1.access_delivery_channels.routes import (
 from src.presentation.api.v1.access_delivery_channels.schemas import CurrentServiceStateConsumptionContextResponse
 from src.presentation.api.v1.addons.schemas import AddonResponse
 from src.presentation.api.v1.device_credentials.routes import _serialize_device_credential
+from src.presentation.api.v1.entitlements.schemas import CurrentEntitlementStateResponse
 from src.presentation.api.v1.orders.routes import _serialize_order
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
@@ -81,7 +87,12 @@ from src.presentation.api.v1.payments.schemas import (
     EntitlementsSnapshotResponse,
     InvoiceResponse,
 )
-from src.presentation.api.v1.plans.schemas import PlanResponse
+from src.presentation.api.v1.plans.schemas import (
+    DedicatedIpSchema,
+    InviteBundleSchema,
+    PlanResponse,
+    TrafficPolicySchema,
+)
 from src.presentation.api.v1.provisioning_profiles.routes import _serialize_provisioning_profile
 from src.presentation.api.v1.service_identities.routes import _serialize_service_identity
 from src.presentation.api.v1.telegram.schemas import (
@@ -160,9 +171,7 @@ def _telegram_username_allowlist(value: str | None) -> frozenset[str]:
         return frozenset()
 
     return frozenset(
-        normalized
-        for item in value.replace(";", ",").split(",")
-        if (normalized := _normalize_telegram_username(item))
+        normalized for item in value.replace(";", ",").split(",") if (normalized := _normalize_telegram_username(item))
     )
 
 
@@ -252,13 +261,17 @@ def _serialize_plan(plan) -> PlanResponse:
         devices_included=plan.device_limit,
         price_usd=float(plan.price_usd),
         price_rub=float(plan.price_rub) if plan.price_rub is not None else None,
-        traffic_policy=plan.traffic_policy or {"mode": "fair_use", "display_label": "Unlimited"},
+        traffic_policy=TrafficPolicySchema.model_validate(
+            plan.traffic_policy or {"mode": "fair_use", "display_label": "Unlimited"}
+        ),
         connection_modes=plan.connection_modes or [],
         server_pool=plan.server_pool or [],
         support_sla=plan.support_sla,
-        dedicated_ip=plan.dedicated_ip or {"included": 0, "eligible": False},
+        dedicated_ip=DedicatedIpSchema.model_validate(plan.dedicated_ip or {"included": 0, "eligible": False}),
         sale_channels=plan.sale_channels or [],
-        invite_bundle=plan.invite_bundle or {"count": 0, "friend_days": 0, "expiry_days": 0},
+        invite_bundle=InviteBundleSchema.model_validate(
+            plan.invite_bundle or {"count": 0, "friend_days": 0, "expiry_days": 0}
+        ),
         trial_eligible=plan.trial_eligible,
         features=plan.features or {},
         is_active=plan.is_active,
@@ -397,7 +410,7 @@ async def _build_checkout_result(
     db: AsyncSession,
     user_id: UUID,
     body: TelegramBotCheckoutRequest,
-) -> object:
+) -> CheckoutResult:
     use_case = CheckoutUseCase(db)
     try:
         return await use_case.execute(
@@ -427,7 +440,7 @@ async def _validate_telegram_stars_payment(
     currency: str,
     total_amount: int,
     invoice_payload: str,
-) -> tuple[object, MobileUserModel]:
+) -> tuple[PaymentModel, MobileUserModel]:
     mobile_user = await _get_mobile_user_or_404(db, telegram_id)
     payment = await PaymentRepository(db).get_by_id(payment_id)
     if payment is None or payment.user_uuid != mobile_user.id:
@@ -509,11 +522,7 @@ def _build_bot_subscription_from_entitlements(
     return TelegramBotSubscriptionResponse(
         status=status,
         plan_name=str(entitlements_snapshot.get("display_name") or entitlements_snapshot.get("plan_code") or "VPN"),
-        expires_at=(
-            datetime.fromisoformat(str(expires_at_raw).replace("Z", "+00:00"))
-            if expires_at_raw
-            else None
-        ),
+        expires_at=(datetime.fromisoformat(str(expires_at_raw).replace("Z", "+00:00")) if expires_at_raw else None),
         traffic_limit_bytes=effective.get("traffic_limit_bytes"),
         used_traffic_bytes=effective.get("used_traffic_bytes"),
         auto_renew=False,
@@ -524,11 +533,7 @@ def _build_bot_subscription_from_summary(
     item: CustomerSubscriptionSummary,
 ) -> TelegramBotSubscriptionResponse:
     effective = dict(item.effective_entitlements or {})
-    expires_at = (
-        datetime.fromisoformat(str(item.expires_at).replace("Z", "+00:00"))
-        if item.expires_at
-        else None
-    )
+    expires_at = datetime.fromisoformat(str(item.expires_at).replace("Z", "+00:00")) if item.expires_at else None
     return TelegramBotSubscriptionResponse(
         subscription_key=item.subscription_key,
         kind=item.kind,
@@ -762,6 +767,7 @@ async def get_user_config(
         config_string=str(config_string),
         client_type="subscription" if subscription_url else str(result.get("client_type", "subscription")),
         subscription_url=str(subscription_url) if subscription_url else None,
+        subscription_key=None,
     )
 
 
@@ -827,9 +833,7 @@ async def get_bot_user(
     gateway = RemnawaveUserGateway(client=remnawave_client)
     remnawave_user = await gateway.get_by_telegram_id(telegram_id)
     entitlements_snapshot = (
-        await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
-        if mobile_user is not None
-        else None
+        await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id) if mobile_user is not None else None
     )
 
     route_operations_total.labels(route="telegram_bot", action="get_user", status="success").inc()
@@ -1077,6 +1081,7 @@ async def get_bot_user_service_state(
     _require_telegram_bot_secret(telegram_bot_secret)
     mobile_user = await _get_mobile_user_or_404(db, telegram_id)
     current_realm = await _resolve_bot_customer_realm(db, mobile_user)
+    result: Any
     if subscription_key:
         try:
             result = await CustomerSubscriptionServiceAccessUseCase(db).get_service_state(
@@ -1108,7 +1113,7 @@ async def get_bot_user_service_state(
         customer_account_id=mobile_user.id,
         auth_realm_id=current_realm.auth_realm.id,
         provider_name="remnawave",
-        entitlement_snapshot=result.entitlement_snapshot,
+        entitlement_snapshot=CurrentEntitlementStateResponse.model_validate(result.entitlement_snapshot),
         service_identity=(
             _serialize_service_identity(result.service_identity) if result.service_identity is not None else None
         ),
@@ -1388,6 +1393,14 @@ async def confirm_telegram_stars_payment(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Payment was already confirmed with another charge",
             )
+        payment_attempt = await PaymentAttemptRepository(db).get_by_payment_id(payment.id)
+        await append_payment_completed_partner_earning_publication(
+            EventOutboxService(db),
+            payment=payment,
+            payment_attempt=payment_attempt,
+            source="telegram_stars_already_completed",
+        )
+        await db.commit()
 
         route_operations_total.labels(route="telegram_payments", action="stars_confirm", status="completed").inc()
         return TelegramStarsConfirmResponse(
@@ -1415,7 +1428,14 @@ async def confirm_telegram_stars_payment(
 
     from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
 
-    await PostPaymentProcessingUseCase(db).execute(payment.id)
+    await PostPaymentProcessingUseCase(db).execute(payment.id, process_cash_rewards=False)
+    payment_attempt = await PaymentAttemptRepository(db).get_by_payment_id(payment.id)
+    await append_payment_completed_partner_earning_publication(
+        EventOutboxService(db),
+        payment=payment,
+        payment_attempt=payment_attempt,
+        source="telegram_stars_confirm",
+    )
     await db.commit()
 
     route_operations_total.labels(route="telegram_payments", action="stars_confirm", status="completed").inc()
@@ -1572,9 +1592,7 @@ async def get_bot_user_referral_stats(
 
     user = await _get_mobile_user_or_404(db, telegram_id)
     referred_count = await db.scalar(
-        select(func.count())
-        .select_from(MobileUserModel)
-        .where(MobileUserModel.referred_by_user_id == user.id)
+        select(func.count()).select_from(MobileUserModel).where(MobileUserModel.referred_by_user_id == user.id)
     )
 
     route_operations_total.labels(route="telegram_bot", action="referral_stats", status="success").inc()
@@ -1663,6 +1681,7 @@ async def get_bot_user_config(
                 config_string=str(config_string),
                 client_type="subscription" if subscription_url else str(result.get("client_type", "subscription")),
                 subscription_url=str(subscription_url) if subscription_url else None,
+                subscription_key=None,
             )
 
     gateway = RemnawaveUserGateway(client=remnawave_client)
@@ -1670,14 +1689,14 @@ async def get_bot_user_config(
     if not user:
         if mobile_user and mobile_user.subscription_url:
             subscription_url = (
-                normalize_public_subscription_url(mobile_user.subscription_url)
-                or mobile_user.subscription_url
+                normalize_public_subscription_url(mobile_user.subscription_url) or mobile_user.subscription_url
             )
             route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
             return ConfigResponse(
                 config_string=str(subscription_url),
                 client_type="subscription",
                 subscription_url=str(subscription_url),
+                subscription_key=None,
             )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1696,4 +1715,5 @@ async def get_bot_user_config(
         config_string=str(config_string),
         client_type="subscription" if subscription_url else str(result.get("client_type", "subscription")),
         subscription_url=str(subscription_url) if subscription_url else None,
+        subscription_key=None,
     )

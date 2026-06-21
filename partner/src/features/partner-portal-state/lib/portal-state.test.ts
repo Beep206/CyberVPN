@@ -104,9 +104,9 @@ describe('partner portal state storage', () => {
       'performance_media',
       'technical_manager',
     );
-    const legacyState = { ...state };
+    const { releaseRing, ...legacyState } = state;
 
-    delete legacyState.releaseRing;
+    expect(releaseRing).toBe('R3');
 
     window.localStorage.setItem(
       PARTNER_PORTAL_STATE_STORAGE_KEY,

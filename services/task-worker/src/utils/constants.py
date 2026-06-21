@@ -36,7 +36,6 @@ HELIX_POLICY_ADVISORY_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_
 HELIX_ACTUATION_AUDIT_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:actuation"
 HELIX_CANARY_GATE_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-gate"
 HELIX_CANARY_CONTROL_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-control"
-HELIX_CANARY_CONTROL_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-control"
 
 # ============================================================================
 # Cron Schedule Expressions
@@ -57,6 +56,7 @@ INTERVAL_REALTIME_METRICS_SECONDS: Final[int] = 30  # Every 30 seconds
 SCHEDULE_PAYMENT_VERIFY: Final[str] = "*/5 * * * *"  # Every 5 minutes
 SCHEDULE_STAGE1_PAYMENT_RECONCILIATION: Final[str] = "*/15 * * * *"  # Every 15 minutes
 SCHEDULE_STAGE1_PROVISIONING_RETRY: Final[str] = "*/2 * * * *"  # Every 2 minutes
+SCHEDULE_PAYMENT_COMPLETED_PARTNER_EARNINGS: Final[str] = "*/1 * * * *"  # Every minute
 SCHEDULE_TELEGRAM_STARS_RECONCILIATION: Final[str] = "*/10 * * * *"  # Every 10 minutes
 SCHEDULE_PARTNER_BOT_PROVISIONING: Final[str] = "*/2 * * * *"  # Every 2 minutes
 SCHEDULE_WEBHOOK_RETRY: Final[str] = "*/30 * * * *"  # Every 30 minutes
@@ -83,7 +83,6 @@ SCHEDULE_HELIX_ROLLOUTS: Final[str] = "*/3 * * * *"  # Every 3 minutes
 SCHEDULE_HELIX_HEALTH: Final[str] = "*/2 * * * *"  # Every 2 minutes
 SCHEDULE_HELIX_ACTUATIONS: Final[str] = "*/4 * * * *"  # Every 4 minutes
 SCHEDULE_HELIX_CANARY_GATES: Final[str] = "*/5 * * * *"  # Every 5 minutes
-SCHEDULE_HELIX_CANARY_CONTROL: Final[str] = "*/6 * * * *"  # Every 6 minutes
 SCHEDULE_HELIX_CANARY_CONTROL: Final[str] = "*/6 * * * *"  # Every 6 minutes
 
 # Legacy string aliases kept for compatibility with older tests/tooling.
@@ -140,9 +139,9 @@ RETRY_POLICIES: Final[dict[str, RetryPolicy]] = {
         "delays": [30, 60],
     },
     "payments": {
-        "max_retries": 3,
+        "max_retries": 5,
         "backoff": "exponential",
-        "delays": [60, 300, 900],
+        "delays": [60, 300, 900, 3600, 21600],
     },
     "analytics": {
         "max_retries": 2,
@@ -255,6 +254,7 @@ __all__ = [  # noqa: RUF022
     "SCHEDULE_PAYMENT_VERIFY",
     "SCHEDULE_STAGE1_PAYMENT_RECONCILIATION",
     "SCHEDULE_STAGE1_PROVISIONING_RETRY",
+    "SCHEDULE_PAYMENT_COMPLETED_PARTNER_EARNINGS",
     "SCHEDULE_TELEGRAM_STARS_RECONCILIATION",
     "SCHEDULE_WEBHOOK_RETRY",
     "SCHEDULE_CLEANUP",

@@ -194,12 +194,26 @@ class PartnerWorkspaceCommercialCapabilitiesResponse(BaseModel):
 class PartnerWorkspaceFinanceCurrencySummaryResponse(BaseModel):
     currency_code: str
     event_count: int
+    pending_amount: str = "0.00"
     on_hold_amount: str
     available_amount: str
     paid_amount: str
     reserved_amount: str = "0.00"
     reversed_amount: str = "0.00"
+    adjustment_amount: str = "0.00"
     total_amount: str
+    statement_count: int = 0
+    statement_event_count: int = 0
+    statement_included_amount: str = "0.00"
+    statement_on_hold_amount: str = "0.00"
+    statement_available_amount: str = "0.00"
+    statement_reserved_amount: str = "0.00"
+    statement_adjustment_amount: str = "0.00"
+    payout_instruction_count: int = 0
+    payout_instruction_amount: str = "0.00"
+    payout_pending_amount: str = "0.00"
+    payout_approved_amount: str = "0.00"
+    payout_completed_amount: str = "0.00"
     next_payout_forecast_amount: str = "0.00"
     last_event_at: datetime | None = None
 

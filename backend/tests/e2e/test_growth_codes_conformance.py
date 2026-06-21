@@ -525,7 +525,10 @@ async def test_growth_codes_gift_conformance_purchase_and_redeem_do_not_create_p
                 payment.status = "completed"
                 db.commit()
 
-                results = await PostPaymentProcessingUseCase(SyncSessionAdapter(db)).execute(payment.id)
+                results = await PostPaymentProcessingUseCase(SyncSessionAdapter(db)).execute(
+                    payment.id,
+                    process_cash_rewards=True,
+                )
                 db.commit()
                 assert results["gift_code_issued"] is True
                 assert results["referral_commission"] is None

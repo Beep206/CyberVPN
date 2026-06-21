@@ -360,6 +360,8 @@ export interface PartnerCode {
   defaultDestinationUrl?: string;
   destinationPath?: string | null;
   version?: number;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   availableActions?: string[];
   notes: string[];
 }
@@ -435,6 +437,15 @@ export interface PartnerFinanceSnapshot {
   reserves: string;
   nextPayoutForecast: string;
   currency: string;
+}
+
+export interface PartnerFinanceCurrencySnapshot extends PartnerFinanceSnapshot {
+  eventCount?: number;
+  lastEventAt?: string | null;
+  paid: string;
+  reversed: string;
+  source: 'local' | 'statements' | 'summary';
+  total: string;
 }
 
 export interface PartnerConversionRecord {
@@ -524,6 +535,7 @@ export interface PartnerPortalState {
   financeStatements: PartnerFinanceStatement[];
   payoutAccounts: PartnerPayoutAccount[];
   financeSnapshot: PartnerFinanceSnapshot;
+  financeCurrencySnapshots?: PartnerFinanceCurrencySnapshot[];
   conversionRecords: PartnerConversionRecord[];
   integrationCredentials: PartnerIntegrationCredential[];
   integrationDeliveryLogs: PartnerIntegrationDeliveryLog[];

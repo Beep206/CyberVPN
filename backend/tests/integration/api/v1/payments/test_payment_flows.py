@@ -92,9 +92,7 @@ class TestCreateCryptoInvoice:
             expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
 
-        with patch(
-            "src.presentation.api.v1.payments.routes.CreateCryptoInvoiceUseCase"
-        ) as mock_uc_class:
+        with patch("src.presentation.api.v1.payments.routes.CreateCryptoInvoiceUseCase") as mock_uc_class:
             # Mock the use case
             mock_uc = AsyncMock()
             mock_uc.execute.return_value = mock_invoice
@@ -135,9 +133,7 @@ class TestCreateCryptoInvoice:
         user_id, _password, _email = await _create_admin_user(db)
         access_token = await _issue_admin_payment_token(db, user_id)
 
-        with patch(
-            "src.presentation.api.v1.payments.routes.CreateCryptoInvoiceUseCase"
-        ) as mock_uc_class:
+        with patch("src.presentation.api.v1.payments.routes.CreateCryptoInvoiceUseCase") as mock_uc_class:
             mock_uc = AsyncMock()
             mock_uc.execute.side_effect = ValueError("Plan not found: nonexistent_plan")
             mock_uc_class.return_value = mock_uc
@@ -242,9 +238,7 @@ class TestCryptobotWebhook:
         body_bytes = json.dumps(body_dict).encode()
         valid_signature = hmac.new(hmac_secret, body_bytes, hashlib.sha256).hexdigest()
 
-        with patch(
-            "src.presentation.api.v1.webhooks.routes.settings"
-        ) as mock_settings:
+        with patch("src.presentation.api.v1.webhooks.routes.settings") as mock_settings:
             mock_token = MagicMock()
             mock_token.get_secret_value.return_value = test_api_token
             mock_settings.cryptobot_token = mock_token
@@ -284,9 +278,7 @@ class TestCryptobotWebhook:
         body_bytes = json.dumps(body_dict).encode()
         invalid_signature = "deadbeef" * 8  # Wrong signature
 
-        with patch(
-            "src.presentation.api.v1.webhooks.routes.settings"
-        ) as mock_settings:
+        with patch("src.presentation.api.v1.webhooks.routes.settings") as mock_settings:
             mock_token = MagicMock()
             mock_token.get_secret_value.return_value = test_api_token
             mock_settings.cryptobot_token = mock_token
@@ -304,6 +296,81 @@ class TestCryptobotWebhook:
         assert response.status_code == 401
         data = response.json()
         assert data["detail"] == "Invalid webhook signature"
+
+
+class TestPaymentInternalPartnerEarnings:
+    """Test internal payment.completed partner earning runner boundary."""
+
+    @pytest.mark.integration
+    async def test_partner_earning_runner_rejects_missing_internal_secret(
+        self,
+        async_client: AsyncClient,
+    ):
+        response = await async_client.post("/api/v1/payments/internal/partner-earnings/run")
+
+        assert response.status_code == 401
+
+    @pytest.mark.integration
+    async def test_partner_earning_runner_accepts_valid_internal_secret(
+        self,
+        async_client: AsyncClient,
+    ):
+        with (
+            patch("src.presentation.api.v1.payments.routes.settings") as mock_settings,
+            patch("src.presentation.api.v1.payments.routes.RunPaymentCompletedEarningOutboxUseCase") as runner_cls,
+        ):
+            internal_secret = MagicMock()
+            internal_secret.get_secret_value.return_value = "test-settlement-worker-secret"
+            mock_settings.payment_settlement_worker_secret = internal_secret
+            runner = runner_cls.return_value
+            runner.execute = AsyncMock(
+                return_value={
+                    "claimed": 0,
+                    "succeeded": 0,
+                    "retrying": 0,
+                    "dead_letter": 0,
+                    "skipped": 0,
+                    "backfilled": {
+                        "scanned": 0,
+                        "ensured_publications": 0,
+                        "created_events": 0,
+                        "already_queued": 0,
+                        "already_receipted": 0,
+                    },
+                    "reconciliation_required": 0,
+                    "alerts": 0,
+                    "failures": [],
+                }
+            )
+
+            response = await async_client.post(
+                "/api/v1/payments/internal/partner-earnings/run?limit=5&worker_id=test-worker",
+                headers={"X-Payment-Settlement-Worker-Secret": "test-settlement-worker-secret"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["claimed"] == 0
+        runner.execute.assert_awaited_once_with(limit=5, worker_id="test-worker")
+
+    @pytest.mark.integration
+    async def test_partner_earning_runner_rejects_telegram_bot_secret(
+        self,
+        async_client: AsyncClient,
+    ):
+        with patch("src.presentation.api.v1.payments.routes.settings") as mock_settings:
+            telegram_secret = MagicMock()
+            telegram_secret.get_secret_value.return_value = "test-telegram-bot-secret"
+            worker_secret = MagicMock()
+            worker_secret.get_secret_value.return_value = "test-settlement-worker-secret"
+            mock_settings.telegram_bot_internal_secret = telegram_secret
+            mock_settings.payment_settlement_worker_secret = worker_secret
+
+            response = await async_client.post(
+                "/api/v1/payments/internal/partner-earnings/run?limit=5&worker_id=test-worker",
+                headers={"X-Telegram-Bot-Secret": "test-telegram-bot-secret"},
+            )
+
+        assert response.status_code == 401
 
 
 class TestPaymentAuth:

@@ -1,3 +1,4 @@
+import hmac
 import json
 import logging
 from typing import Annotated, ClassVar, Literal, Self
@@ -143,6 +144,8 @@ class Settings(BaseSettings):
     telegram_oidc_clock_skew_seconds: int = 60
     telegram_bot_internal_secret: SecretStr = SecretStr("")
     frontend_observability_internal_secret: SecretStr = SecretStr("")
+    payment_settlement_worker_enabled: bool = True
+    payment_settlement_worker_secret: SecretStr = SecretStr("")
 
     # Google OAuth (optional)
     google_client_id: str = ""
@@ -314,6 +317,8 @@ class Settings(BaseSettings):
     partner_legacy_code_public_slug_sunset_date: str = "2026-09-30"  # noqa: S105 - date, not a secret.
     partner_deterministic_public_token_fallback_enabled: bool = True
     partner_deterministic_public_token_sunset_date: str = "2026-09-30"  # noqa: S105 - date, not a secret.
+    partner_legacy_partner_earning_enabled: bool = True
+    partner_legacy_partner_earning_sunset_date: str = "2026-09-30"  # noqa: S105 - date, not a secret.
     partner_storefronts_enabled: bool = False
     partner_reporting_enabled: bool = False
     partner_settlement_sandbox_enabled: bool = False
@@ -553,6 +558,28 @@ class Settings(BaseSettings):
                 "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are required in production "
                 "when github OAuth login is enabled."
             )
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_payment_settlement_worker_secret(self) -> Self:
+        if not self.payment_settlement_worker_enabled:
+            return self
+        if self.environment.lower() != "production":
+            return self
+
+        worker_secret = self.payment_settlement_worker_secret.get_secret_value().strip()
+        if len(worker_secret) < 16:
+            raise ValueError("PAYMENT_SETTLEMENT_WORKER_SECRET is required in production.")
+
+        worker_secret_lower = worker_secret.lower()
+        for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS:
+            if marker in worker_secret_lower:
+                raise ValueError("PAYMENT_SETTLEMENT_WORKER_SECRET must not be a placeholder/test value in production.")
+
+        telegram_secret = self.telegram_bot_internal_secret.get_secret_value().strip()
+        if telegram_secret and hmac.compare_digest(worker_secret, telegram_secret):
+            raise ValueError("PAYMENT_SETTLEMENT_WORKER_SECRET must differ from TELEGRAM_BOT_INTERNAL_SECRET.")
 
         return self
 
@@ -836,4 +863,4 @@ class Settings(BaseSettings):
         return v
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]

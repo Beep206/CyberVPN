@@ -93,7 +93,7 @@ describe('3D Components - Smoke Tests', () => {
     });
 
     it('test_renders_wrapper_div', () => {
-      const { container } = render(<FeaturesScene3D />);
+      const { container } = render(<FeaturesScene3D activeFeature="quantum" />);
       const wrapper = container.firstElementChild as HTMLElement;
       expect(wrapper).toBeTruthy();
       expect(wrapper.className).toContain('absolute');

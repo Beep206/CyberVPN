@@ -44,6 +44,18 @@ function restoreWebAuthnMocks() {
   });
 }
 
+function expectCredentialRequestOptions(
+  options: CredentialRequestOptions | undefined,
+): asserts options is CredentialRequestOptions {
+  expect(options).toBeDefined();
+}
+
+function expectCredentialCreationOptions(
+  options: CredentialCreationOptions | undefined,
+): asserts options is CredentialCreationOptions {
+  expect(options).toBeDefined();
+}
+
 function buildAuthenticationCredential(): Credential {
   return {
     authenticatorAttachment: 'platform',
@@ -81,7 +93,7 @@ describe('partner passkey WebAuthn helper', () => {
   });
 
   it('normalizes request options and serializes authentication credentials through SimpleWebAuthn', async () => {
-    const getMock = vi.fn(async () => buildAuthenticationCredential());
+    const getMock = vi.fn(async (_options?: CredentialRequestOptions) => buildAuthenticationCredential());
     installWebAuthnMocks({ get: getMock });
 
     const payload = await startPasskeyAuthentication({
@@ -96,7 +108,8 @@ describe('partner passkey WebAuthn helper', () => {
       userVerification: 'required',
     });
 
-    const requestOptions = getMock.mock.calls[0][0] as CredentialRequestOptions;
+    const requestOptions = getMock.mock.calls[0]?.[0];
+    expectCredentialRequestOptions(requestOptions);
     expect(requestOptions.publicKey?.challenge).toBeInstanceOf(ArrayBuffer);
     expect(requestOptions.publicKey?.allowCredentials?.[0].id).toBeInstanceOf(ArrayBuffer);
     expect(payload).toMatchObject({
@@ -114,7 +127,7 @@ describe('partner passkey WebAuthn helper', () => {
   });
 
   it('normalizes creation options and serializes registration credentials through SimpleWebAuthn', async () => {
-    const createMock = vi.fn(async () => buildRegistrationCredential());
+    const createMock = vi.fn(async (_options?: CredentialCreationOptions) => buildRegistrationCredential());
     installWebAuthnMocks({ create: createMock });
 
     const payload = await startPasskeyRegistration({
@@ -134,7 +147,8 @@ describe('partner passkey WebAuthn helper', () => {
       },
     });
 
-    const creationOptions = createMock.mock.calls[0][0] as CredentialCreationOptions;
+    const creationOptions = createMock.mock.calls[0]?.[0];
+    expectCredentialCreationOptions(creationOptions);
     expect(creationOptions.publicKey?.challenge).toBeInstanceOf(ArrayBuffer);
     expect(creationOptions.publicKey?.user.id).toBeInstanceOf(ArrayBuffer);
     expect(creationOptions.publicKey?.excludeCredentials?.[0].id).toBeInstanceOf(ArrayBuffer);

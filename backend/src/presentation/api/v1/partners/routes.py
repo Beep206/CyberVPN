@@ -7,11 +7,11 @@ import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from time import perf_counter
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import case, func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,12 +59,14 @@ from src.application.use_cases.reporting import (
 from src.application.use_cases.settlement import (
     CreatePartnerPayoutAccountUseCase,
     EvaluatePartnerPayoutAccountEligibilityUseCase,
+    GetPartnerFinanceSummaryUseCase,
     ListPartnerPayoutAccountsUseCase,
     ListPartnerStatementsUseCase,
     ListPayoutExecutionsUseCase,
     ListPayoutInstructionsUseCase,
     MakeDefaultPartnerPayoutAccountUseCase,
 )
+from src.application.use_cases.settlement.commission_terms import build_commission_contract_model
 from src.config.settings import settings
 from src.domain.entities.partner_permission import PartnerPermission
 from src.domain.enums import (
@@ -92,7 +94,6 @@ from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.commissionability_evaluation_model import (
     CommissionabilityEvaluationModel,
 )
-from src.infrastructure.database.models.earning_event_model import EarningEventModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.order_attribution_result_model import (
     OrderAttributionResultModel,
@@ -278,11 +279,6 @@ _WORKSPACE_PARTNER_CODE_SUBJECT_KIND = "partner_code"
 _WORKSPACE_REVIEW_REQUEST_RESPONSE_ACTION = "partner_response_submitted"
 _WORKSPACE_CASE_REPLY_ACTION = "partner_reply"
 _WORKSPACE_CASE_READY_FOR_OPS_ACTION = "partner_ready_for_ops"
-
-
-def _money_string(value: object) -> str:
-    return Decimal(str(value or "0")).quantize(Decimal("0.01")).to_eng_string()
-
 
 _WORKSPACE_REPORT_EXPORT_SCHEDULE_ACTION = "partner_export_requested"
 _WORKSPACE_STATUS_CHANGED_ACTION = "workspace_status_changed"
@@ -1191,13 +1187,25 @@ _PARTNER_CODE_CREATE_BLOCKED_FIELDS = frozenset(
     }
 )
 _PARTNER_CODE_UPDATE_BLOCKED_FIELDS = _PARTNER_CODE_CREATE_BLOCKED_FIELDS | frozenset({"lifecycle_status"})
+_PARTNER_CODE_REVENUE_TERM_FIELDS = frozenset({"markup_pct"})
 
 
-def _assert_no_sensitive_partner_code_fields(fields_set: set[str], *, operation: str) -> None:
-    blocked = sorted(
-        fields_set
-        & (_PARTNER_CODE_CREATE_BLOCKED_FIELDS if operation == "create" else _PARTNER_CODE_UPDATE_BLOCKED_FIELDS)
+def _can_manage_partner_code_revenue_terms(access: PartnerWorkspaceAccess) -> bool:
+    return access.is_internal_admin_override or PartnerPermission.PAYOUTS_WRITE.value in access.permission_keys
+
+
+def _assert_no_sensitive_partner_code_fields(
+    fields_set: set[str],
+    *,
+    operation: str,
+    allow_revenue_terms: bool = False,
+) -> None:
+    blocked_fields = (
+        _PARTNER_CODE_CREATE_BLOCKED_FIELDS if operation == "create" else _PARTNER_CODE_UPDATE_BLOCKED_FIELDS
     )
+    if allow_revenue_terms:
+        blocked_fields = blocked_fields - _PARTNER_CODE_REVENUE_TERM_FIELDS
+    blocked = sorted(fields_set & blocked_fields)
     if blocked:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -1248,6 +1256,14 @@ def _normalize_destination_path(destination_path: str | None) -> str | None:
     if not stripped.startswith("/"):
         stripped = f"/{stripped}"
     return stripped[:500]
+
+
+def _resolve_base_commission_pct(tiers: list[dict]) -> Decimal:
+    commission = Decimal("0")
+    for tier in sorted(tiers or [], key=lambda item: int(item.get("min_clients", 0) or 0)):
+        if int(tier.get("min_clients", 0) or 0) <= 0:
+            commission = Decimal(str(tier.get("commission_pct", 0) or 0))
+    return commission
 
 
 def _resolve_link_destination(destination_key: str | None, destination_path: str | None) -> tuple[str, str]:
@@ -4081,6 +4097,21 @@ async def _build_partner_application_detail_response(
 # ---------------------------------------------------------------------------
 
 
+async def _require_active_mobile_partner_user(
+    db: AsyncSession,
+    partner_repo: PartnerRepository,
+    user_id: UUID,
+) -> MobileUserModel:
+    mobile_user = await db.get(MobileUserModel, user_id)
+    if mobile_user is None or not mobile_user.is_partner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Partner account is required")
+    if mobile_user.partner_account_id is not None:
+        partner_account = await partner_repo.get_account_by_id(mobile_user.partner_account_id)
+        if partner_account is None or partner_account.status != "active":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Partner account is not active")
+    return mobile_user
+
+
 @router.post("/partner/codes", response_model=PartnerCodeResponse, status_code=status.HTTP_201_CREATED)
 async def create_partner_code(
     body: CreatePartnerCodeRequest,
@@ -4113,7 +4144,7 @@ async def create_partner_code(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
     track_partner_operation(operation="create_code")
-    return code_model
+    return PartnerCodeResponse.model_validate(code_model)
 
 
 @router.get("/partner/codes", response_model=list[PartnerCodeResponse])
@@ -4123,13 +4154,13 @@ async def list_partner_codes(
 ) -> list[PartnerCodeResponse]:
     """List all partner codes owned by the authenticated user."""
     partner_repo = PartnerRepository(db)
-    mobile_user = await db.get(MobileUserModel, user_id)
-    if mobile_user and mobile_user.partner_account_id is not None:
+    mobile_user = await _require_active_mobile_partner_user(db, partner_repo, user_id)
+    if mobile_user.partner_account_id is not None:
         codes = await partner_repo.get_codes_by_account(mobile_user.partner_account_id)
     else:
         codes = await partner_repo.get_codes_by_partner(user_id)
     track_partner_operation(operation="list_codes")
-    return codes
+    return [PartnerCodeResponse.model_validate(code) for code in codes]
 
 
 @router.put("/partner/codes/{code_id}", response_model=PartnerCodeResponse)
@@ -4147,6 +4178,20 @@ async def update_partner_code_markup(
     code_model = await partner_repo.get_code_by_id(code_id)
     if code_model is None or code_model.partner_user_id != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner code not found")
+    mobile_user = await db.get(MobileUserModel, user_id)
+    if mobile_user is None or not mobile_user.is_partner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Partner account is required")
+    if code_model.partner_account_id is not None:
+        partner_account = await partner_repo.get_account_by_id(code_model.partner_account_id)
+        if partner_account is None or partner_account.status != "active":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Partner account is not active")
+    if not code_model.is_active or code_model.lifecycle_status != "active" or code_model.approval_status != "approved":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Partner code is not eligible for updates")
+    if body.markup_pct < 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Partner code markup cannot be negative",
+        )
 
     max_markup = await config_service.get_partner_max_markup_pct()
     if body.markup_pct > max_markup:
@@ -4155,10 +4200,19 @@ async def update_partner_code_markup(
             detail=f"Markup {body.markup_pct}% exceeds maximum {max_markup}%",
         )
 
-    code_model.markup_pct = body.markup_pct
+    code_model.markup_pct = Decimal(str(body.markup_pct))
+    code_model.version = int(code_model.version or 1) + 1
+    commission_contract = build_commission_contract_model(
+        code_model=code_model,
+        commission_pct=_resolve_base_commission_pct(await config_service.get_partner_tiers()),
+        payout_hold_days=await config_service.get_partner_payout_hold_days(owner_type=code_model.owner_type),
+        source="partner_code_markup_update",
+        contract_id=uuid4(),
+    )
+    await partner_repo.attach_commission_contract_to_code(code_model, commission_contract)
     updated = await partner_repo.update_code(code_model)
     track_partner_operation(operation="update_code")
-    return updated
+    return PartnerCodeResponse.model_validate(updated)
 
 
 @router.get("/partner/dashboard", response_model=PartnerDashboardResponse)
@@ -4170,7 +4224,7 @@ async def get_partner_dashboard(
     config_repo = SystemConfigRepository(db)
     config_service = ConfigService(config_repo)
     partner_repo = PartnerRepository(db)
-    mobile_user = await db.get(MobileUserModel, user_id)
+    mobile_user = await _require_active_mobile_partner_user(db, partner_repo, user_id)
 
     use_case = PartnerDashboardUseCase(partner_repo, config_service)
     try:
@@ -4207,13 +4261,13 @@ async def list_partner_earnings(
 ) -> list[PartnerEarningResponse]:
     """List recent earnings for the authenticated partner."""
     partner_repo = PartnerRepository(db)
-    mobile_user = await db.get(MobileUserModel, user_id)
-    if mobile_user and mobile_user.partner_account_id is not None:
+    mobile_user = await _require_active_mobile_partner_user(db, partner_repo, user_id)
+    if mobile_user.partner_account_id is not None:
         earnings = await partner_repo.get_earnings_by_account(mobile_user.partner_account_id)
     else:
         earnings = await partner_repo.get_earnings_by_partner(user_id)
     track_partner_operation(operation="list_earnings")
-    return earnings
+    return [PartnerEarningResponse.model_validate(earning) for earning in earnings]
 
 
 @router.post("/partner/bind", status_code=status.HTTP_200_OK)
@@ -5931,7 +5985,11 @@ async def create_partner_workspace_code(
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceCodeResponse:
     repo = PartnerRepository(db)
-    _assert_no_sensitive_partner_code_fields(body.model_fields_set, operation="create")
+    _assert_no_sensitive_partner_code_fields(
+        body.model_fields_set,
+        operation="create",
+        allow_revenue_terms=_can_manage_partner_code_revenue_terms(access),
+    )
     idempotency_key = (request.headers.get("Idempotency-Key") or "").strip()
     idempotency_scope = f"partner-workspace:{access.workspace.id}:codes:create"
     request_hash = _idempotency_request_hash(body.model_dump(mode="json", exclude_unset=True))
@@ -5958,6 +6016,13 @@ async def create_partner_workspace_code(
 
     sub_id_schema = dict(body.sub_id_schema or {})
     created = None
+    config_service = ConfigService(SystemConfigRepository(db))
+    max_markup = await config_service.get_partner_max_markup_pct()
+    if body.markup_pct > max_markup:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Markup {body.markup_pct}% exceeds maximum {max_markup}%",
+        )
     for attempt in range(3):
         code = await _resolve_unique_partner_code(repo, body.code)
         public_slug = await _allocate_public_slug(repo)
@@ -5968,23 +6033,30 @@ async def create_partner_workspace_code(
             code_normalized=code,
             public_slug=public_slug,
             public_token_hash=hash_partner_attribution_token(public_slug),
-            markup_pct=0,
+            markup_pct=body.markup_pct,
             is_active=True,
             lifecycle_status="active",
             approval_status="approved",
-            owner_type="affiliate",
-            lane_key="creator_affiliate",
-            attribution_model="last_eligible_touch",
-            attribution_window_seconds=30 * 24 * 60 * 60,
+            owner_type=_validated_owner_type(body.owner_type),
+            lane_key=body.lane_key.strip(),
+            attribution_model=body.attribution_model.strip(),
+            attribution_window_seconds=body.attribution_window_seconds,
             destination_path=_normalize_destination_path(body.destination_path),
-            allowed_channels=["content", "telegram", "storefront"],
-            allowed_storefront_ids=["*"],
-            allowed_geographies=["*"],
+            allowed_channels=_clean_string_list(body.allowed_channels, default=["content", "telegram", "storefront"]),
+            allowed_storefront_ids=_clean_string_list(body.allowed_storefront_ids, default=["*"]),
+            allowed_geographies=_clean_string_list(body.allowed_geographies, default=["*"]),
             sub_id_schema=sub_id_schema,
             expires_at=body.expires_at,
         )
         try:
             created = await repo.create_code(model)
+            commission_contract = build_commission_contract_model(
+                code_model=created,
+                commission_pct=_resolve_base_commission_pct(await config_service.get_partner_tiers()),
+                payout_hold_days=await config_service.get_partner_payout_hold_days(owner_type=created.owner_type),
+                source="partner_workspace_code_create",
+            )
+            await repo.attach_commission_contract_to_code(created, commission_contract)
             await _ensure_default_code_link(db, created)
             break
         except IntegrityError as exc:
@@ -6038,14 +6110,39 @@ async def update_partner_workspace_code(
 ) -> PartnerWorkspaceCodeResponse:
     code_model = await _get_workspace_code_or_404(db, access.workspace.id, code_id)
     _assert_code_version_matches(request, code_model)
-    _assert_no_sensitive_partner_code_fields(body.model_fields_set, operation="update")
+    _assert_no_sensitive_partner_code_fields(
+        body.model_fields_set,
+        operation="update",
+        allow_revenue_terms=_can_manage_partner_code_revenue_terms(access),
+    )
+    should_increment_version = True
+    if body.markup_pct is not None:
+        config_service = ConfigService(SystemConfigRepository(db))
+        max_markup = await config_service.get_partner_max_markup_pct()
+        if body.markup_pct > max_markup:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"Markup {body.markup_pct}% exceeds maximum {max_markup}%",
+            )
+        code_model.markup_pct = Decimal(str(body.markup_pct))
+        code_model.version = int(code_model.version or 1) + 1
+        should_increment_version = False
+        commission_contract = build_commission_contract_model(
+            code_model=code_model,
+            commission_pct=_resolve_base_commission_pct(await config_service.get_partner_tiers()),
+            payout_hold_days=await config_service.get_partner_payout_hold_days(owner_type=code_model.owner_type),
+            source="partner_workspace_code_markup_update",
+            contract_id=uuid4(),
+        )
+        await PartnerRepository(db).attach_commission_contract_to_code(code_model, commission_contract)
     if "destination_path" in body.model_fields_set:
         code_model.destination_path = _normalize_destination_path(body.destination_path)
     if body.sub_id_schema is not None:
         code_model.sub_id_schema = dict(body.sub_id_schema)
     if "expires_at" in body.model_fields_set:
         code_model.expires_at = body.expires_at
-    code_model.version = int(code_model.version or 1) + 1
+    if should_increment_version:
+        code_model.version = int(code_model.version or 1) + 1
     await _append_code_event(
         db,
         code_model=code_model,
@@ -6268,56 +6365,13 @@ async def get_partner_workspace_finance_summary(
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceFinanceSummaryResponse:
-    result = await db.execute(
-        select(
-            EarningEventModel.currency_code,
-            func.count(EarningEventModel.id),
-            func.coalesce(
-                func.sum(case((EarningEventModel.event_status == "on_hold", EarningEventModel.total_amount), else_=0)),
-                0,
-            ),
-            func.coalesce(
-                func.sum(
-                    case((EarningEventModel.event_status == "available", EarningEventModel.total_amount), else_=0)
-                ),
-                0,
-            ),
-            func.coalesce(
-                func.sum(case((EarningEventModel.event_status == "paid", EarningEventModel.total_amount), else_=0)),
-                0,
-            ),
-            func.coalesce(
-                func.sum(case((EarningEventModel.event_status == "reversed", EarningEventModel.total_amount), else_=0)),
-                0,
-            ),
-            func.coalesce(func.sum(EarningEventModel.total_amount), 0),
-            func.max(EarningEventModel.created_at),
-        )
-        .where(EarningEventModel.partner_account_id == access.workspace.id)
-        .group_by(EarningEventModel.currency_code)
-        .order_by(EarningEventModel.currency_code.asc())
-    )
-    currencies = [
-        PartnerWorkspaceFinanceCurrencySummaryResponse(
-            currency_code=str(row[0] or "USD"),
-            event_count=int(row[1] or 0),
-            on_hold_amount=_money_string(row[2]),
-            available_amount=_money_string(row[3]),
-            paid_amount=_money_string(row[4]),
-            reserved_amount=_money_string(0),
-            reversed_amount=_money_string(row[5]),
-            total_amount=_money_string(row[6]),
-            next_payout_forecast_amount=_money_string(row[3]),
-            last_event_at=row[7],
-        )
-        for row in result.all()
-    ]
+    summary = await GetPartnerFinanceSummaryUseCase(db).execute(partner_account_id=access.workspace.id)
     track_partner_operation(operation="workspace_finance_summary")
     return PartnerWorkspaceFinanceSummaryResponse(
-        workspace_id=access.workspace.id,
-        generated_at=datetime.now(UTC),
-        source_of_truth="earning_events",
-        currencies=currencies,
+        workspace_id=summary.workspace_id,
+        generated_at=summary.generated_at,
+        source_of_truth=summary.source_of_truth,
+        currencies=[PartnerWorkspaceFinanceCurrencySummaryResponse(**item.__dict__) for item in summary.currencies],
     )
 
 

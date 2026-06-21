@@ -117,6 +117,22 @@ const AUTH_ROUTE_PREFIXES = [
   '/verify',
 ] as const;
 
+function getPortalSurfaceHosts(): Set<string> {
+  return new Set<string>([
+    PARTNER_PORTAL_PUBLIC_HOST,
+    ...PARTNER_PORTAL_LOCAL_HOSTS,
+    ...readCsvHosts(process.env.NEXT_PUBLIC_PARTNER_PORTAL_HOSTS),
+  ]);
+}
+
+function getStorefrontSurfaceHosts(): Set<string> {
+  return new Set<string>([
+    DEFAULT_STOREFRONT_HOST,
+    DEFAULT_STOREFRONT_PUBLIC_HOST,
+    ...readCsvHosts(process.env.NEXT_PUBLIC_PARTNER_STOREFRONT_HOSTS),
+  ]);
+}
+
 function readCsvHosts(value: string | undefined): string[] {
   if (!value) {
     return [];
@@ -234,27 +250,32 @@ function buildStorefrontContext(host: string, canonicalHost: string): Storefront
 
 export function resolvePartnerSurfaceContext(rawHost: string | null | undefined): PartnerSurfaceContext {
   const host = normalizeRequestHost(rawHost);
-  const portalHosts = new Set<string>([
-    PARTNER_PORTAL_PUBLIC_HOST,
-    ...PARTNER_PORTAL_LOCAL_HOSTS,
-    ...readCsvHosts(process.env.NEXT_PUBLIC_PARTNER_PORTAL_HOSTS),
-  ]);
+  const portalHosts = getPortalSurfaceHosts();
 
   if (portalHosts.has(host)) {
     return buildPortalContext(host);
   }
 
-  const storefrontHosts = new Set<string>([
-    DEFAULT_STOREFRONT_HOST,
-    DEFAULT_STOREFRONT_PUBLIC_HOST,
-    ...readCsvHosts(process.env.NEXT_PUBLIC_PARTNER_STOREFRONT_HOSTS),
-  ]);
+  const storefrontHosts = getStorefrontSurfaceHosts();
 
   if (storefrontHosts.has(host)) {
     return buildStorefrontContext(host, host);
   }
 
   return buildPortalContext(host);
+}
+
+export function getDefaultPartnerStorefrontHost(): string {
+  return DEFAULT_STOREFRONT_PUBLIC_HOST;
+}
+
+export function getDefaultPartnerPortalHost(): string {
+  return PARTNER_PORTAL_PUBLIC_HOST;
+}
+
+export function isKnownPartnerSurfaceHost(rawHost: string | null | undefined): boolean {
+  const host = normalizeRequestHost(rawHost);
+  return getPortalSurfaceHosts().has(host) || getStorefrontSurfaceHosts().has(host);
 }
 
 function buildPortalContext(host: string): PortalSurfaceContext {

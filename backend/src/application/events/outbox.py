@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.enums import OutboxEventStatus, OutboxPublicationStatus
@@ -38,6 +39,7 @@ class OutboxActorContext:
 
 class EventOutboxService:
     def __init__(self, session: AsyncSession) -> None:
+        self._session = session
         self._repo = OutboxRepository(session)
 
     async def append_event(
@@ -66,6 +68,14 @@ class EventOutboxService:
         normalized_event_key = (event_key or f"evt_{uuid.uuid4().hex}").strip()
         if not normalized_event_key:
             raise ValueError("Outbox event_key must not be empty")
+        if event_key is not None:
+            existing = await self._repo.get_event_by_key(normalized_event_key)
+            if existing is not None:
+                return await self._repo.ensure_publications(
+                    event=existing,
+                    consumer_keys=normalized_consumers,
+                    now=now,
+                )
         event = OutboxEventModel(
             id=uuid.uuid4(),
             event_key=normalized_event_key,
@@ -93,7 +103,21 @@ class EventOutboxService:
             )
             for consumer_key in normalized_consumers
         ]
-        created = await self._repo.create_event(event, publications)
+        if event_key is not None:
+            try:
+                async with self._session.begin_nested():
+                    created = await self._repo.create_event(event, publications)
+            except IntegrityError:
+                existing = await self._repo.get_event_by_key(normalized_event_key)
+                if existing is not None:
+                    return await self._repo.ensure_publications(
+                        event=existing,
+                        consumer_keys=normalized_consumers,
+                        now=now,
+                    )
+                raise
+        else:
+            created = await self._repo.create_event(event, publications)
         if normalized_name in PARTNER_PLATFORM_EVENT_NAMES:
             observe_partner_outbox_event_created(
                 event_type=normalized_name,

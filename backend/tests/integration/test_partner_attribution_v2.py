@@ -135,7 +135,7 @@ async def test_partner_attribution_capture_transfer_claim_creates_commercial_bin
                     public_token=build_public_token_for_code_id(code.id),
                     source_host="cyber-vpn.net",
                     source_path="/p/demo",
-                    destination_path="/pricing",
+                    destination_path="/pricing?pat=attacker-supplied-transfer-token&utm_source=direct-backend",
                     locale="ru-RU",
                     sale_channel="content",
                     sub_ids={"creator": "demo"},
@@ -166,6 +166,13 @@ async def test_partner_attribution_capture_transfer_claim_creates_commercial_bin
             assert duplicate_capture.transfer_token == capture.transfer_token
             assert db.query(PartnerAttributionSessionModel).count() == 1
             assert db.query(AttributionTouchpointModel).count() == 1
+            stored_pending_capture = db.get(PartnerAttributionSessionModel, capture.attribution_id)
+            assert stored_pending_capture is not None
+            assert "pat=" not in stored_pending_capture.destination_url
+            assert "attacker-supplied-transfer-token" not in stored_pending_capture.destination_url
+            assert capture.transfer_token not in stored_pending_capture.destination_url
+            assert "pat=" in capture.redirect_url
+            assert "attacker-supplied-transfer-token" not in capture.redirect_url
 
             transfer = await ConsumePartnerAttributionTransferUseCase(adapter).execute(
                 ConsumePartnerAttributionTransferCommand(transfer_token=capture.transfer_token)
@@ -496,6 +503,7 @@ async def test_partner_attribution_deterministic_legacy_token_disabled_creates_n
             db.commit()
 
             token = build_public_token_for_code_id(code.id)
+            original_public_slug = code.public_slug
             before = _legacy_public_token_metric(source="deterministic_px", result="disabled")
             caplog.set_level(logging.WARNING, logger="src.application.use_cases.partner_attribution.attribution")
             with pytest.raises(PartnerAttributionError) as exc_info:
@@ -520,7 +528,7 @@ async def test_partner_attribution_deterministic_legacy_token_disabled_creates_n
             assert exc_info.value.status_code == 410
             assert db.query(PartnerAttributionSessionModel).count() == 0
             db.refresh(code)
-            assert code.public_slug is None
+            assert code.public_slug == original_public_slug
             assert code.public_token_hash is None
             assert _legacy_public_token_metric(source="deterministic_px", result="disabled") == before + 1
             assert "partner_attribution_legacy_public_token_disabled" in caplog.text

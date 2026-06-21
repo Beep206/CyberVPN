@@ -29,6 +29,9 @@ def serialize_checkout_result(
         "duration_days": result.duration_days,
         "promo_code_id": str(result.promo_code_id) if result.promo_code_id else None,
         "partner_code_id": str(result.partner_code_id) if result.partner_code_id else None,
+        "partner_commission_contract_snapshot": (
+            dict(result.partner_commission_contract_snapshot) if result.partner_commission_contract_snapshot else None
+        ),
         "code_input": result.code_input,
         "code_resolution": _serialize_code_resolution(result),
         "discounts": [

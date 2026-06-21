@@ -1,10 +1,15 @@
+import hashlib
 import logging
 from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.events import EventOutboxService
 from src.application.services.wallet_service import WalletService
+from src.application.use_cases.payments.payment_completed_earnings import (
+    append_payment_completed_partner_earning_publication,
+)
 from src.application.use_cases.webhooks.webhook_log_redaction import (
     build_cryptobot_webhook_log_payload,
     cryptobot_event_type,
@@ -27,6 +32,7 @@ class ProcessPaymentWebhookUseCase:
         self._handler = webhook_handler
         self._attempts = PaymentAttemptRepository(session)
         self._orders = OrderRepository(session)
+        self._outbox = EventOutboxService(session)
         wallet_repo = WalletRepository(session)
         self._wallet = WalletService(wallet_repo)
 
@@ -91,16 +97,26 @@ class ProcessPaymentWebhookUseCase:
         from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
 
         payment_repo = PaymentRepository(self._session)
-        payment = await payment_repo.get_by_external_id(external_id)
+        payment = await payment_repo.get_by_external_id_for_update(external_id)
 
         if payment is None:
-            logger.warning("Webhook invoice_paid: payment not found for external_id=%s", external_id)
+            logger.warning(
+                "Webhook invoice_paid: payment not found",
+                extra={"external_id_fingerprint": _provider_reference_fingerprint(external_id)},
+            )
             return {"status": "processed", "invoice_id": external_id, "warning": "payment_not_found"}
 
+        payment_attempt = await self._attempts.get_by_payment_id(payment.id)
         if payment.status == "completed":
+            await append_payment_completed_partner_earning_publication(
+                self._outbox,
+                payment=payment,
+                payment_attempt=payment_attempt,
+                source="payment_webhook_already_completed",
+            )
+            await self._session.commit()
             return {"status": "already_processed", "invoice_id": external_id}
 
-        payment_attempt = await self._attempts.get_by_payment_id(payment.id)
         if payment_attempt is not None and payment_attempt.status in {
             PaymentAttemptStatus.FAILED.value,
             PaymentAttemptStatus.EXPIRED.value,
@@ -124,15 +140,26 @@ class ProcessPaymentWebhookUseCase:
                 if order is not None:
                     order.settlement_status = "paid"
 
-        # Run post-payment processing (invites, commissions, wallet debit, promo)
+        # Run operational post-payment processing without cash payouts; referral and
+        # partner earnings are created from the durable payment.completed outbox event.
         post_payment = PostPaymentProcessingUseCase(self._session)
-        post_results = await post_payment.execute(payment.id)
+        post_results = await post_payment.execute(payment.id, process_cash_rewards=False)
+        await append_payment_completed_partner_earning_publication(
+            self._outbox,
+            payment=payment,
+            payment_attempt=payment_attempt,
+            source="payment_webhook",
+        )
 
         await self._session.commit()
 
         logger.info(
             "Webhook invoice_paid processed",
-            extra={"external_id": external_id, "payment_id": str(payment.id), **post_results},
+            extra={
+                "external_id_fingerprint": _provider_reference_fingerprint(external_id),
+                "payment_id": str(payment.id),
+                **post_results,
+            },
         )
         return {"status": "processed", "invoice_id": external_id, "post_payment": post_results}
 
@@ -142,7 +169,13 @@ class ProcessPaymentWebhookUseCase:
         payment = await payment_repo.get_by_external_id(external_id)
 
         if payment is None:
-            logger.warning("Webhook %s: payment not found for external_id=%s", update_type, external_id)
+            logger.warning(
+                "Webhook invoice failure: payment not found",
+                extra={
+                    "update_type": update_type,
+                    "external_id_fingerprint": _provider_reference_fingerprint(external_id),
+                },
+            )
             return {"status": "processed", "invoice_id": external_id, "warning": "payment_not_found"}
 
         if payment.status in {"completed", "failed"}:
@@ -156,7 +189,10 @@ class ProcessPaymentWebhookUseCase:
             except Exception:
                 logger.exception(
                     "payment_webhook_wallet_unfreeze_failed",
-                    extra={"external_id": external_id, "payment_id": str(payment.id)},
+                    extra={
+                        "external_id_fingerprint": _provider_reference_fingerprint(external_id),
+                        "payment_id": str(payment.id),
+                    },
                 )
 
         payment.status = "failed"
@@ -178,7 +214,11 @@ class ProcessPaymentWebhookUseCase:
         await self._session.commit()
         logger.info(
             "Webhook invoice failure processed",
-            extra={"external_id": external_id, "payment_id": str(payment.id), "update_type": update_type},
+            extra={
+                "external_id_fingerprint": _provider_reference_fingerprint(external_id),
+                "payment_id": str(payment.id),
+                "update_type": update_type,
+            },
         )
         return {"status": "processed", "invoice_id": external_id, "update_type": update_type}
 
@@ -189,3 +229,12 @@ def _map_attempt_failure_status(update_type: str) -> str:
     if update_type == "invoice_cancelled":
         return PaymentAttemptStatus.CANCELLED.value
     return PaymentAttemptStatus.FAILED.value
+
+
+def _provider_reference_fingerprint(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()

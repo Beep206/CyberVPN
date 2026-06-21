@@ -190,7 +190,7 @@ async def test_payout_instruction_maker_checker_and_execution_workflow(
                 )
                 db.add_all([payment, attempt])
                 db.commit()
-                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id)
+                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id, process_cash_rewards=True)
                 db.commit()
                 assert results["settlement_earning_event_id"] is not None
                 earning_event_id = results["settlement_earning_event_id"]

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.partner_attribution_session_model import (
@@ -97,6 +97,8 @@ class PartnerAttributionSessionRepository:
                 PartnerAttributionSessionModel.auth_realm_id == auth_realm_id,
                 PartnerAttributionSessionModel.browser_key_hash == browser_key_hash,
                 PartnerAttributionSessionModel.status == "pending",
+                PartnerAttributionSessionModel.transfer_token_hash.is_not(None),
+                PartnerAttributionSessionModel.transfer_expires_at > now,
                 PartnerAttributionSessionModel.transfer_consumed_at.is_(None),
                 PartnerAttributionSessionModel.expires_at > now,
             )
@@ -114,3 +116,26 @@ class PartnerAttributionSessionRepository:
             stmt = stmt.with_for_update()
         result = await self._session.execute(stmt)
         return result.scalars().first()
+
+    async def count_active_for_browser(
+        self,
+        *,
+        auth_realm_id: UUID,
+        browser_key_hash: str,
+        now: datetime,
+    ) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(PartnerAttributionSessionModel)
+            .where(
+                PartnerAttributionSessionModel.auth_realm_id == auth_realm_id,
+                PartnerAttributionSessionModel.browser_key_hash == browser_key_hash,
+                PartnerAttributionSessionModel.status == "pending",
+                PartnerAttributionSessionModel.transfer_token_hash.is_not(None),
+                PartnerAttributionSessionModel.transfer_expires_at > now,
+                PartnerAttributionSessionModel.transfer_consumed_at.is_(None),
+                PartnerAttributionSessionModel.expires_at > now,
+            )
+        )
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one() or 0)

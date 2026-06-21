@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import {
   getCanonicalPartnerSurfaceHost,
+  isKnownPartnerSurfaceHost,
   resolvePartnerSurfaceContext,
 } from '@/features/storefront-shell/lib/runtime';
 
@@ -98,9 +99,12 @@ function normalizeApprovedLocalStageCsrfHeaders(
 }
 
 function resolveForwardedSurfaceHost(request: NextRequest): string {
-  const surfaceContext = resolvePartnerSurfaceContext(
-    request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? request.nextUrl.host,
-  );
+  const requestHost = request.headers.get('host') ?? request.nextUrl.host;
+  if (!isKnownPartnerSurfaceHost(requestHost)) {
+    throw new Error('UNKNOWN_PARTNER_SURFACE_HOST');
+  }
+
+  const surfaceContext = resolvePartnerSurfaceContext(requestHost);
   return getCanonicalPartnerSurfaceHost(surfaceContext);
 }
 
@@ -118,6 +122,7 @@ function buildForwardHeaders(request: NextRequest): Headers {
       || normalizedKey === 'x-forwarded-host'
       || normalizedKey === 'x-forwarded-proto'
       || normalizedKey === 'x-forwarded-port'
+      || normalizedKey === 'x-auth-realm'
     ) {
       continue;
     }
@@ -181,13 +186,25 @@ async function proxyApiRequest(
   context: ApiProxyRouteContext,
 ): Promise<Response> {
   const { path } = await context.params;
+  let headers: Headers;
+  try {
+    headers = buildForwardHeaders(request);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'UNKNOWN_PARTNER_SURFACE_HOST') {
+      return Response.json(
+        { detail: { code: 'UNKNOWN_PARTNER_SURFACE_HOST', message: 'Unknown partner surface host.' } },
+        { status: 421, headers: { 'cache-control': 'no-store' } },
+      );
+    }
+    throw error;
+  }
   const body = request.method === 'GET' || request.method === 'HEAD'
     ? undefined
     : await request.arrayBuffer();
 
   const upstreamResponse = await fetch(buildBackendUrl(request, path), {
     method: request.method,
-    headers: buildForwardHeaders(request),
+    headers,
     body,
     cache: 'no-store',
     redirect: 'manual',

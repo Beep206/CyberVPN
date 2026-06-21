@@ -170,6 +170,9 @@ services:
       - HELIX_ENABLED=${HELIX_ENABLED:-false}
       - HELIX_ADAPTER_URL=http://helix-adapter:8088
       - HELIX_ADAPTER_TOKEN=${HELIX_INTERNAL_AUTH_TOKEN:-replace-me-too}
+      - BACKEND_API_URL=http://cybervpn-backend:8000/api/v1
+      - BACKEND_INTERNAL_SECRET=${TELEGRAM_BOT_INTERNAL_SECRET:-}
+      - PAYMENT_SETTLEMENT_WORKER_SECRET=${PAYMENT_SETTLEMENT_WORKER_SECRET:-}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - CRYPTOBOT_TOKEN=${CRYPTOBOT_TOKEN:-}
       - ADMIN_TELEGRAM_IDS=${ADMIN_TELEGRAM_IDS:-}
@@ -432,6 +435,9 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-local_dev_postgres}@remnawave-db:5432/${POSTGRES_DB:-postgres}
       - REDIS_URL=redis://remnawave-redis:6379/0
       - REMNAWAVE_URL=http://remnawave:3000
+      - BACKEND_API_URL=http://cybervpn-backend:8000/api/v1
+      - BACKEND_INTERNAL_SECRET=${TELEGRAM_BOT_INTERNAL_SECRET:-}
+      - PAYMENT_SETTLEMENT_WORKER_SECRET=${PAYMENT_SETTLEMENT_WORKER_SECRET:-}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - METRICS_PROTECT=false

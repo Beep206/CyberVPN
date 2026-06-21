@@ -112,6 +112,37 @@ def _capture_payload(
     return PartnerAttributionCaptureRequest(public_token=public_token, browser_key=browser_key)
 
 
+def _capture_route_app(*, redis_client: _FakeRedisClient | None = None) -> FastAPI:
+    app = FastAPI()
+    app.include_router(partner_attribution_router)
+
+    async def _override_redis():
+        yield redis_client or _FakeRedisClient()
+
+    async def _override_db():
+        yield object()
+
+    async def _override_realm():
+        return RealmResolution(
+            auth_realm=AuthRealmModel(
+                realm_key="customer",
+                realm_type="customer",
+                display_name="Customer",
+                audience="cybervpn:customer",
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            ),
+            source="test",
+            host="cyber-vpn.net",
+        )
+
+    app.dependency_overrides[get_redis] = _override_redis
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_request_public_customer_realm] = _override_realm
+    return app
+
+
 @pytest.mark.asyncio
 async def test_capture_ip_limit_returns_429_with_retry_after() -> None:
     redis_client = _FakeRedisClient()
@@ -164,11 +195,11 @@ async def test_capture_slug_limit_is_shared_across_ips() -> None:
 
 
 @pytest.mark.asyncio
-async def test_browser_active_session_limit_counts_distinct_public_tokens() -> None:
+async def test_capture_rate_limit_does_not_treat_browser_history_as_active_sessions() -> None:
     redis_client = _FakeRedisClient()
     browser_key = "browser-opaque-key"
 
-    for index in range(BROWSER_ACTIVE_SESSION_LIMIT):
+    for index in range(BROWSER_ACTIVE_SESSION_LIMIT + 1):
         await check_partner_attribution_capture_rate_limit(
             request=_request(ip=f"203.0.113.{index + 1}"),
             payload=_capture_payload(public_token=f"public-token-{index}", browser_key=browser_key),
@@ -180,17 +211,6 @@ async def test_browser_active_session_limit_counts_distinct_public_tokens() -> N
         payload=_capture_payload(public_token="public-token-0", browser_key=browser_key),
         redis_client=redis_client,  # type: ignore[arg-type]
     )
-
-    with pytest.raises(HTTPException) as exc_info:
-        await check_partner_attribution_capture_rate_limit(
-            request=_request(ip="203.0.113.101"),
-            payload=_capture_payload(public_token="public-token-over-limit", browser_key=browser_key),
-            redis_client=redis_client,  # type: ignore[arg-type]
-        )
-
-    assert exc_info.value.status_code == 429
-    assert exc_info.value.headers == {"Retry-After": "2592000"}
-    assert exc_info.value.detail["scope"] == "browser_active_sessions"
 
 
 @pytest.mark.asyncio
@@ -261,7 +281,7 @@ async def test_redis_outage_fails_open_outside_production(monkeypatch: pytest.Mo
 @pytest.mark.asyncio
 async def test_capture_route_returns_429_before_use_case_when_ip_bucket_is_exhausted() -> None:
     redis_client = _FakeRedisClient()
-    payload = _capture_payload()
+    payload = _capture_payload(browser_key="route-browser-key")
     for _ in range(CAPTURE_IP_LIMIT):
         await check_partner_attribution_capture_rate_limit(
             request=_request(ip="127.0.0.1"),
@@ -269,37 +289,12 @@ async def test_capture_route_returns_429_before_use_case_when_ip_bucket_is_exhau
             redis_client=redis_client,  # type: ignore[arg-type]
         )
 
-    app = FastAPI()
-    app.include_router(partner_attribution_router)
-
-    async def _override_redis():
-        yield redis_client
-
-    async def _override_db():
-        yield object()
-
-    async def _override_realm():
-        return RealmResolution(
-            auth_realm=AuthRealmModel(
-                realm_key="customer",
-                realm_type="customer",
-                display_name="Customer",
-                audience="cybervpn:customer",
-                cookie_namespace="customer",
-                status="active",
-                is_default=True,
-            ),
-            source="test",
-            host="cyber-vpn.net",
-        )
-
-    app.dependency_overrides[get_redis] = _override_redis
-    app.dependency_overrides[get_db] = _override_db
-    app.dependency_overrides[get_request_public_customer_realm] = _override_realm
+    app = _capture_route_app(redis_client=redis_client)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://cyber-vpn.net") as client:
         response = await client.post(
             "/partner-attribution/capture",
+            headers={"Idempotency-Key": "route-capture-idempotency"},
             json={
                 "public_token": payload.public_token,
                 "browser_key": payload.browser_key,
@@ -309,3 +304,32 @@ async def test_capture_route_returns_429_before_use_case_when_ip_bucket_is_exhau
     assert response.status_code == 429
     assert response.headers["Retry-After"] == "600"
     assert response.json()["detail"]["scope"] == "capture_ip"
+
+
+@pytest.mark.asyncio
+async def test_capture_route_requires_idempotency_key_before_capture_use_case() -> None:
+    app = _capture_route_app()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://cyber-vpn.net") as client:
+        response = await client.post(
+            "/partner-attribution/capture",
+            json={"public_token": "public-token-123", "browser_key": "route-browser-key"},
+        )
+
+    assert response.status_code == 428
+    assert response.json()["detail"]["code"] == "PARTNER_CAPTURE_IDEMPOTENCY_KEY_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_capture_route_requires_browser_key_before_capture_use_case() -> None:
+    app = _capture_route_app()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://cyber-vpn.net") as client:
+        response = await client.post(
+            "/partner-attribution/capture",
+            headers={"Idempotency-Key": "route-capture-idempotency"},
+            json={"public_token": "public-token-123"},
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "PARTNER_CAPTURE_BROWSER_KEY_REQUIRED"

@@ -380,7 +380,7 @@ async def test_post_payment_blocks_referral_when_affiliate_owner_exists(
                 db.commit()
 
                 post_payment = PostPaymentProcessingUseCase(adapter)
-                results = await post_payment.execute(payment.id)
+                results = await post_payment.execute(payment.id, process_cash_rewards=True)
                 db.commit()
 
                 assert results["referral_commission"] is None

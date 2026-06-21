@@ -19,9 +19,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.partner_attribution.attribution import (
+    CapturePartnerAttributionCommand,
+    CapturePartnerAttributionUseCase,
     ClaimPartnerAttributionCommand,
     ClaimPartnerAttributionResult,
     ClaimPartnerAttributionUseCase,
+    ConsumePartnerAttributionTransferCommand,
+    ConsumePartnerAttributionTransferUseCase,
+    PartnerAttributionError,
 )
 from src.application.use_cases.partner_attribution.utils import hash_partner_attribution_token
 from src.config import settings
@@ -257,6 +262,569 @@ async def _seed_claim_fixture(
         session_ids=[item.id for item in sessions],
         cookie_tokens=cookie_tokens,
     )
+
+
+@dataclass(frozen=True)
+class _CaptureSeed:
+    realm: AuthRealmModel
+    owner_id: uuid.UUID
+    account_id: uuid.UUID
+    code_id: uuid.UUID
+    public_slug: str
+
+
+async def _seed_capture_fixture(maker: async_sessionmaker[AsyncSession]) -> _CaptureSeed:
+    suffix = uuid.uuid4().hex
+    now = datetime.now(UTC)
+    realm = AuthRealmModel(
+        id=uuid.uuid4(),
+        realm_key=f"pg-capture-{suffix}",
+        realm_type="customer",
+        display_name=f"PG Capture {suffix}",
+        audience=f"cybervpn:pg-capture:{suffix}",
+        cookie_namespace=f"pgcapture{suffix[:16]}",
+        status="active",
+        is_default=False,
+    )
+    owner = MobileUserModel(
+        id=uuid.uuid4(),
+        auth_realm_id=realm.id,
+        email=f"pg-capture-owner-{suffix}@example.test",
+        password_hash="hashed-password",
+        is_active=True,
+        status="active",
+        created_at=now,
+    )
+    account = PartnerAccountModel(
+        id=uuid.uuid4(),
+        account_key=f"pg-capture-acct-{suffix[:16]}",
+        display_name=f"PG Capture Account {suffix[:12]}",
+        status="active",
+        legacy_owner_user_id=owner.id,
+    )
+    public_slug = f"pg-capture-code-{suffix}"
+    code = PartnerCodeModel(
+        id=uuid.uuid4(),
+        code=f"PGCAP{suffix[:18]}".upper(),
+        code_normalized=f"PGCAP{suffix[:18]}".upper(),
+        public_slug=public_slug,
+        public_token_hash=hash_partner_attribution_token(public_slug),
+        partner_account_id=account.id,
+        partner_user_id=owner.id,
+        markup_pct=7,
+        is_active=True,
+        lifecycle_status="active",
+        approval_status="approved",
+        owner_type="affiliate",
+        lane_key="creator_affiliate",
+        attribution_model="last_eligible_touch",
+        attribution_window_seconds=30 * 24 * 60 * 60,
+        allowed_channels=["content"],
+        allowed_storefront_ids=["*"],
+        allowed_geographies=["*"],
+        sub_id_schema={},
+    )
+    async with maker() as session:
+        session.add_all([realm, owner, account])
+        await session.flush()
+        session.add(code)
+        await session.commit()
+    return _CaptureSeed(
+        realm=realm,
+        owner_id=owner.id,
+        account_id=account.id,
+        code_id=code.id,
+        public_slug=public_slug,
+    )
+
+
+@pytest.mark.asyncio
+async def test_capture_idempotency_key_is_reused_under_parallel_first_loads(
+    pg_sessionmaker: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_legacy_code_public_slug_enabled", True)
+    seed = await _seed_capture_fixture(pg_sessionmaker)
+    current_realm = RealmResolution(auth_realm=seed.realm, source="test")
+    browser_key = f"pg-browser-key-{uuid.uuid4()}"
+    idempotency_key = f"pg-capture-idempotency-{uuid.uuid4()}"
+    start = asyncio.Event()
+
+    async def capture_once() -> tuple[uuid.UUID, str]:
+        async with pg_sessionmaker() as session:
+            await start.wait()
+            result = await CapturePartnerAttributionUseCase(session).execute(
+                CapturePartnerAttributionCommand(
+                    public_token=seed.public_slug,
+                    source_host="cyber-vpn.net",
+                    source_path="/p/pg-capture",
+                    destination_path="/pricing",
+                    locale="ru-RU",
+                    sale_channel="content",
+                    sub_ids={"creator": "pg"},
+                    click_id="pg-click",
+                    browser_key=browser_key,
+                    capture_idempotency_key=idempotency_key,
+                    campaign_params={"utm_source": "pg"},
+                    current_realm=current_realm,
+                )
+            )
+            await session.commit()
+            return result.attribution_id, result.transfer_token
+
+    first = asyncio.create_task(capture_once())
+    second = asyncio.create_task(capture_once())
+    await asyncio.sleep(0)
+    start.set()
+    first_result, second_result = await asyncio.gather(first, second)
+
+    assert first_result == second_result
+    async with pg_sessionmaker() as session:
+        session_count = await session.scalar(
+            select(func.count())
+            .select_from(PartnerAttributionSessionModel)
+            .where(PartnerAttributionSessionModel.partner_code_id == seed.code_id)
+        )
+        touchpoint_count = await session.scalar(
+            select(func.count())
+            .select_from(AttributionTouchpointModel)
+            .where(AttributionTouchpointModel.partner_code_id == seed.code_id)
+        )
+        capture_event_count = await session.scalar(
+            select(func.count())
+            .select_from(OutboxEventModel)
+            .where(
+                OutboxEventModel.event_name == "partner.attribution.captured",
+                OutboxEventModel.aggregate_id == str(first_result[0]),
+            )
+        )
+    assert session_count == 1
+    assert touchpoint_count == 1
+    assert capture_event_count == 1
+
+
+@pytest.mark.asyncio
+async def test_capture_same_browser_link_can_reclick_after_transfer(
+    pg_sessionmaker: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_legacy_code_public_slug_enabled", True)
+    seed = await _seed_capture_fixture(pg_sessionmaker)
+    current_realm = RealmResolution(auth_realm=seed.realm, source="test")
+    browser_key = f"pg-reclick-browser-key-{uuid.uuid4()}"
+    idempotency_key = f"pg-reclick-idempotency-{uuid.uuid4()}"
+
+    async with pg_sessionmaker() as session:
+        first_capture = await CapturePartnerAttributionUseCase(session).execute(
+            CapturePartnerAttributionCommand(
+                public_token=seed.public_slug,
+                source_host="cyber-vpn.net",
+                source_path="/p/pg-reclick",
+                destination_path="/pricing",
+                locale="ru-RU",
+                sale_channel="content",
+                sub_ids={"creator": "pg"},
+                click_id="pg-click",
+                browser_key=browser_key,
+                capture_idempotency_key=idempotency_key,
+                campaign_params={"utm_source": "pg"},
+                current_realm=current_realm,
+            )
+        )
+        await ConsumePartnerAttributionTransferUseCase(session).execute(
+            ConsumePartnerAttributionTransferCommand(transfer_token=first_capture.transfer_token)
+        )
+        await session.commit()
+
+    async with pg_sessionmaker() as session:
+        second_capture = await CapturePartnerAttributionUseCase(session).execute(
+            CapturePartnerAttributionCommand(
+                public_token=seed.public_slug,
+                source_host="cyber-vpn.net",
+                source_path="/p/pg-reclick",
+                destination_path="/pricing",
+                locale="ru-RU",
+                sale_channel="content",
+                sub_ids={"creator": "pg"},
+                click_id="pg-click",
+                browser_key=browser_key,
+                capture_idempotency_key=idempotency_key,
+                campaign_params={"utm_source": "pg"},
+                current_realm=current_realm,
+            )
+        )
+        await session.commit()
+
+    assert second_capture.attribution_id != first_capture.attribution_id
+    idempotency_hash = hash_partner_attribution_token(idempotency_key)
+    async with pg_sessionmaker() as session:
+        rows = (
+            await session.execute(
+                select(
+                    PartnerAttributionSessionModel.id,
+                    PartnerAttributionSessionModel.status,
+                    PartnerAttributionSessionModel.transfer_consumed_at,
+                    PartnerAttributionSessionModel.capture_idempotency_key_hash,
+                    PartnerAttributionSessionModel.destination_url,
+                )
+                .where(PartnerAttributionSessionModel.partner_code_id == seed.code_id)
+                .order_by(PartnerAttributionSessionModel.created_at.asc())
+            )
+        ).all()
+
+    assert [row.id for row in rows] == [first_capture.attribution_id, second_capture.attribution_id]
+    assert rows[0].status == "transferred"
+    assert rows[0].transfer_consumed_at is not None
+    assert rows[0].capture_idempotency_key_hash is None
+    assert rows[1].capture_idempotency_key_hash == idempotency_hash
+    assert "pat=" not in rows[0].destination_url
+    assert "pat=" not in rows[1].destination_url
+    assert first_capture.transfer_token not in rows[0].destination_url
+    assert second_capture.transfer_token not in rows[1].destination_url
+
+
+@pytest.mark.asyncio
+async def test_capture_same_browser_link_can_reclick_after_expiry(
+    pg_sessionmaker: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_legacy_code_public_slug_enabled", True)
+    seed = await _seed_capture_fixture(pg_sessionmaker)
+    current_realm = RealmResolution(auth_realm=seed.realm, source="test")
+    browser_key = f"pg-expired-browser-key-{uuid.uuid4()}"
+    idempotency_key = f"pg-expired-idempotency-{uuid.uuid4()}"
+
+    async with pg_sessionmaker() as session:
+        first_capture = await CapturePartnerAttributionUseCase(session).execute(
+            CapturePartnerAttributionCommand(
+                public_token=seed.public_slug,
+                source_host="cyber-vpn.net",
+                source_path="/p/pg-expired",
+                destination_path="/pricing",
+                locale="ru-RU",
+                sale_channel="content",
+                sub_ids={"creator": "pg"},
+                click_id="pg-click",
+                browser_key=browser_key,
+                capture_idempotency_key=idempotency_key,
+                campaign_params={"utm_source": "pg"},
+                current_realm=current_realm,
+            )
+        )
+        await session.execute(
+            text(
+                """
+                update partner_attribution_sessions
+                set expires_at = now() - interval '1 second'
+                where id = :session_id
+                """
+            ),
+            {"session_id": first_capture.attribution_id},
+        )
+        await session.commit()
+
+    async with pg_sessionmaker() as session:
+        second_capture = await CapturePartnerAttributionUseCase(session).execute(
+            CapturePartnerAttributionCommand(
+                public_token=seed.public_slug,
+                source_host="cyber-vpn.net",
+                source_path="/p/pg-expired",
+                destination_path="/pricing",
+                locale="ru-RU",
+                sale_channel="content",
+                sub_ids={"creator": "pg"},
+                click_id="pg-click",
+                browser_key=browser_key,
+                capture_idempotency_key=idempotency_key,
+                campaign_params={"utm_source": "pg"},
+                current_realm=current_realm,
+            )
+        )
+        await session.commit()
+
+    assert second_capture.attribution_id != first_capture.attribution_id
+    idempotency_hash = hash_partner_attribution_token(idempotency_key)
+    async with pg_sessionmaker() as session:
+        rows = (
+            await session.execute(
+                select(
+                    PartnerAttributionSessionModel.id,
+                    PartnerAttributionSessionModel.expires_at,
+                    PartnerAttributionSessionModel.capture_idempotency_key_hash,
+                    PartnerAttributionSessionModel.destination_url,
+                )
+                .where(PartnerAttributionSessionModel.partner_code_id == seed.code_id)
+                .order_by(PartnerAttributionSessionModel.created_at.asc())
+            )
+        ).all()
+
+    assert [row.id for row in rows] == [first_capture.attribution_id, second_capture.attribution_id]
+    assert rows[0].expires_at < datetime.now(UTC)
+    assert rows[0].capture_idempotency_key_hash is None
+    assert rows[1].capture_idempotency_key_hash == idempotency_hash
+    assert "pat=" not in rows[0].destination_url
+    assert "pat=" not in rows[1].destination_url
+
+
+@pytest.mark.asyncio
+async def test_capture_same_browser_link_can_reclick_after_transfer_token_expiry(
+    pg_sessionmaker: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_legacy_code_public_slug_enabled", True)
+    seed = await _seed_capture_fixture(pg_sessionmaker)
+    current_realm = RealmResolution(auth_realm=seed.realm, source="test")
+    browser_key = f"pg-transfer-expired-browser-key-{uuid.uuid4()}"
+    idempotency_key = f"pg-transfer-expired-idempotency-{uuid.uuid4()}"
+
+    async with pg_sessionmaker() as session:
+        first_capture = await CapturePartnerAttributionUseCase(session).execute(
+            CapturePartnerAttributionCommand(
+                public_token=seed.public_slug,
+                source_host="cyber-vpn.net",
+                source_path="/p/pg-transfer-expired",
+                destination_path="/pricing",
+                locale="ru-RU",
+                sale_channel="content",
+                sub_ids={"creator": "pg"},
+                click_id="pg-click",
+                browser_key=browser_key,
+                capture_idempotency_key=idempotency_key,
+                campaign_params={"utm_source": "pg"},
+                current_realm=current_realm,
+            )
+        )
+        await session.execute(
+            text(
+                """
+                update partner_attribution_sessions
+                set transfer_expires_at = now() - interval '1 second'
+                where id = :session_id
+                """
+            ),
+            {"session_id": first_capture.attribution_id},
+        )
+        await session.commit()
+
+    async with pg_sessionmaker() as session:
+        second_capture = await CapturePartnerAttributionUseCase(session).execute(
+            CapturePartnerAttributionCommand(
+                public_token=seed.public_slug,
+                source_host="cyber-vpn.net",
+                source_path="/p/pg-transfer-expired",
+                destination_path="/pricing",
+                locale="ru-RU",
+                sale_channel="content",
+                sub_ids={"creator": "pg"},
+                click_id="pg-click",
+                browser_key=browser_key,
+                capture_idempotency_key=idempotency_key,
+                campaign_params={"utm_source": "pg"},
+                current_realm=current_realm,
+            )
+        )
+        transfer = await ConsumePartnerAttributionTransferUseCase(session).execute(
+            ConsumePartnerAttributionTransferCommand(transfer_token=second_capture.transfer_token)
+        )
+        await session.commit()
+
+    assert second_capture.attribution_id != first_capture.attribution_id
+    assert transfer.attribution_id == second_capture.attribution_id
+    idempotency_hash = hash_partner_attribution_token(idempotency_key)
+    async with pg_sessionmaker() as session:
+        rows = (
+            await session.execute(
+                select(
+                    PartnerAttributionSessionModel.id,
+                    PartnerAttributionSessionModel.transfer_expires_at,
+                    PartnerAttributionSessionModel.capture_idempotency_key_hash,
+                    PartnerAttributionSessionModel.destination_url,
+                )
+                .where(PartnerAttributionSessionModel.partner_code_id == seed.code_id)
+                .order_by(PartnerAttributionSessionModel.created_at.asc())
+            )
+        ).all()
+
+    assert [row.id for row in rows] == [first_capture.attribution_id, second_capture.attribution_id]
+    assert rows[0].transfer_expires_at < datetime.now(UTC)
+    assert rows[0].capture_idempotency_key_hash is None
+    assert rows[1].capture_idempotency_key_hash == idempotency_hash
+    assert "pat=" not in rows[0].destination_url
+    assert "pat=" not in rows[1].destination_url
+
+
+@pytest.mark.asyncio
+async def test_capture_blocks_new_session_when_browser_has_five_active_pending_sessions(
+    pg_sessionmaker: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_legacy_code_public_slug_enabled", True)
+    seed = await _seed_capture_fixture(pg_sessionmaker)
+    now = datetime.now(UTC)
+    browser_key = f"pg-active-limit-browser-key-{uuid.uuid4()}"
+    browser_key_hash = hash_partner_attribution_token(browser_key)
+
+    async with pg_sessionmaker() as session:
+        for index in range(5):
+            code_value = f"PGACT{index}{uuid.uuid4().hex[:12]}".upper()
+            public_slug = f"pg-active-limit-{index}-{uuid.uuid4().hex}"
+            extra_code = PartnerCodeModel(
+                id=uuid.uuid4(),
+                code=code_value,
+                code_normalized=code_value,
+                public_slug=public_slug,
+                public_token_hash=hash_partner_attribution_token(public_slug),
+                partner_account_id=seed.account_id,
+                partner_user_id=seed.owner_id,
+                markup_pct=7,
+                is_active=True,
+                lifecycle_status="active",
+                approval_status="approved",
+                owner_type="affiliate",
+                lane_key="creator_affiliate",
+                attribution_model="last_eligible_touch",
+                attribution_window_seconds=30 * 24 * 60 * 60,
+                allowed_channels=["content"],
+                allowed_storefront_ids=["*"],
+                allowed_geographies=["*"],
+                sub_id_schema={},
+            )
+            session.add(extra_code)
+            await session.flush()
+            session.add(
+                PartnerAttributionSessionModel(
+                    session_token_hash=None,
+                    transfer_token_hash=hash_partner_attribution_token(f"pg-active-transfer-{index}-{uuid.uuid4()}"),
+                    transfer_expires_at=now + timedelta(minutes=15),
+                    partner_code_id=extra_code.id,
+                    partner_account_id=seed.account_id,
+                    auth_realm_id=seed.realm.id,
+                    status="pending",
+                    owner_type="affiliate",
+                    attribution_model="last_eligible_touch",
+                    commission_contract_id=extra_code.commission_contract_id,
+                    source_host="cyber-vpn.net",
+                    source_path=f"/p/pg-active-{index}",
+                    destination_path="/pricing",
+                    locale="ru-RU",
+                    sale_channel="content",
+                    sub_ids={},
+                    browser_key_hash=browser_key_hash,
+                    capture_idempotency_key_hash=hash_partner_attribution_token(
+                        f"pg-active-idempotency-{index}-{uuid.uuid4()}"
+                    ),
+                    destination_url="https://my.cyber-vpn.net/ru-RU/pricing",
+                    campaign_params={},
+                    evidence_payload={},
+                    policy_snapshot={},
+                    expires_at=now + timedelta(days=30),
+                    first_seen_at=now,
+                    last_seen_at=now,
+                )
+            )
+        await session.commit()
+
+    async with pg_sessionmaker() as session:
+        with pytest.raises(PartnerAttributionError) as exc_info:
+            await CapturePartnerAttributionUseCase(session).execute(
+                CapturePartnerAttributionCommand(
+                    public_token=seed.public_slug,
+                    source_host="cyber-vpn.net",
+                    source_path="/p/pg-active-limit",
+                    destination_path="/pricing",
+                    locale="ru-RU",
+                    sale_channel="content",
+                    sub_ids={"creator": "pg"},
+                    click_id="pg-click",
+                    browser_key=browser_key,
+                    capture_idempotency_key="pg-active-limit-new-idempotency",
+                    campaign_params={"utm_source": "pg"},
+                    current_realm=RealmResolution(auth_realm=seed.realm, source="test"),
+                )
+            )
+
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.code == "PARTNER_BROWSER_ACTIVE_SESSION_LIMIT"
+
+
+@pytest.mark.asyncio
+async def test_capture_active_session_limit_ignores_transfer_expired_pending_sessions(
+    pg_sessionmaker: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_legacy_code_public_slug_enabled", True)
+    seed = await _seed_capture_fixture(pg_sessionmaker)
+    now = datetime.now(UTC)
+    browser_key = f"pg-expired-active-limit-browser-key-{uuid.uuid4()}"
+    browser_key_hash = hash_partner_attribution_token(browser_key)
+
+    async with pg_sessionmaker() as session:
+        for index in range(5):
+            session.add(
+                PartnerAttributionSessionModel(
+                    session_token_hash=None,
+                    transfer_token_hash=hash_partner_attribution_token(f"pg-expired-transfer-{index}-{uuid.uuid4()}"),
+                    transfer_expires_at=now - timedelta(minutes=1),
+                    partner_code_id=seed.code_id,
+                    partner_account_id=seed.account_id,
+                    auth_realm_id=seed.realm.id,
+                    status="pending",
+                    owner_type="affiliate",
+                    attribution_model="last_eligible_touch",
+                    source_host="cyber-vpn.net",
+                    source_path=f"/p/pg-expired-active-{index}",
+                    destination_path="/pricing",
+                    locale="ru-RU",
+                    sale_channel="content",
+                    sub_ids={},
+                    browser_key_hash=browser_key_hash,
+                    capture_idempotency_key_hash=hash_partner_attribution_token(
+                        f"pg-expired-active-idempotency-{index}-{uuid.uuid4()}"
+                    ),
+                    destination_url="https://my.cyber-vpn.net/ru-RU/pricing",
+                    campaign_params={},
+                    evidence_payload={},
+                    policy_snapshot={},
+                    expires_at=now + timedelta(days=30),
+                    first_seen_at=now,
+                    last_seen_at=now,
+                )
+            )
+        await session.commit()
+
+    async with pg_sessionmaker() as session:
+        capture = await CapturePartnerAttributionUseCase(session).execute(
+            CapturePartnerAttributionCommand(
+                public_token=seed.public_slug,
+                source_host="cyber-vpn.net",
+                source_path="/p/pg-expired-active-limit",
+                destination_path="/pricing",
+                locale="ru-RU",
+                sale_channel="content",
+                sub_ids={"creator": "pg"},
+                click_id="pg-click",
+                browser_key=browser_key,
+                capture_idempotency_key=f"pg-expired-active-limit-new-idempotency-{uuid.uuid4()}",
+                campaign_params={"utm_source": "pg"},
+                current_realm=RealmResolution(auth_realm=seed.realm, source="test"),
+            )
+        )
+        await session.commit()
+
+    assert capture.transfer_token
+    async with pg_sessionmaker() as session:
+        active_count = await session.scalar(
+            select(func.count())
+            .select_from(PartnerAttributionSessionModel)
+            .where(
+                PartnerAttributionSessionModel.partner_code_id == seed.code_id,
+                PartnerAttributionSessionModel.browser_key_hash == browser_key_hash,
+                PartnerAttributionSessionModel.transfer_expires_at > datetime.now(UTC),
+                PartnerAttributionSessionModel.transfer_consumed_at.is_(None),
+                PartnerAttributionSessionModel.status == "pending",
+            )
+        )
+    assert active_count == 1
 
 
 async def _cleanup_claim_fixture(maker: async_sessionmaker[AsyncSession], seed: _ClaimSeed) -> None:

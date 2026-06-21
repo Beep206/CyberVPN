@@ -7,8 +7,12 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.dto.payment_dto import InvoiceResponseDTO
+from src.application.events import EventOutboxService
 from src.application.use_cases.payment_attempts.snapshot_adapter import build_checkout_result_from_order
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
+from src.application.use_cases.payments.payment_completed_earnings import (
+    append_payment_completed_partner_earning_publication,
+)
 from src.domain.enums import PaymentAttemptStatus
 from src.infrastructure.database.models.payment_attempt_model import PaymentAttemptModel
 from src.infrastructure.database.repositories.order_repo import OrderRepository
@@ -37,6 +41,7 @@ class CreatePaymentAttemptUseCase:
         self._crypto_client = crypto_client
         self._orders = OrderRepository(session)
         self._attempts = PaymentAttemptRepository(session)
+        self._outbox = EventOutboxService(session)
 
     async def execute(
         self,
@@ -90,6 +95,7 @@ class CreatePaymentAttemptUseCase:
                 "origin_checkout_session_id": str(order.checkout_session_id),
                 "attempt_number": attempt_number,
             },
+            publish_completed_payment_event=False,
         )
 
         status = (
@@ -110,9 +116,7 @@ class CreatePaymentAttemptUseCase:
             wallet_amount=float(order.wallet_amount),
             gateway_amount=float(order.gateway_amount),
             external_reference=(
-                commit_result.invoice.invoice_id
-                if commit_result.invoice
-                else commit_result.payment.external_id
+                commit_result.invoice.invoice_id if commit_result.invoice else commit_result.payment.external_id
             ),
             idempotency_key=idempotency_key,
             provider_snapshot=_snapshot_from_invoice(commit_result.invoice),
@@ -129,6 +133,13 @@ class CreatePaymentAttemptUseCase:
         )
         created_attempt = await self._attempts.create(attempt)
         order.settlement_status = "paid" if status == PaymentAttemptStatus.SUCCEEDED.value else "pending_payment"
+        if status == PaymentAttemptStatus.SUCCEEDED.value:
+            await append_payment_completed_partner_earning_publication(
+                self._outbox,
+                payment=commit_result.payment,
+                payment_attempt=created_attempt,
+                source="zero_gateway_order_payment_attempt",
+            )
 
         await self._session.commit()
         refreshed_attempt = await self._attempts.get_by_id(created_attempt.id)
@@ -167,9 +178,7 @@ def _invoice_from_snapshot(snapshot: dict | None) -> InvoiceResponseDTO | None:
         return None
     expires_at = snapshot.get("expires_at")
     expires_at_value = (
-        datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
-        if isinstance(expires_at, str)
-        else datetime.now(UTC)
+        datetime.fromisoformat(expires_at.replace("Z", "+00:00")) if isinstance(expires_at, str) else datetime.now(UTC)
     )
     return InvoiceResponseDTO(
         invoice_id=str(snapshot["invoice_id"]),

@@ -184,7 +184,7 @@ async def test_partner_statement_lifecycle_close_reopen_and_adjustments(async_cl
                 db.add_all([payment, attempt])
                 db.commit()
 
-                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id)
+                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id, process_cash_rewards=True)
                 db.commit()
                 event_id = results["settlement_earning_event_id"]
                 assert event_id is not None

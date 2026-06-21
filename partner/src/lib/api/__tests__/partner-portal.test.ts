@@ -9,6 +9,18 @@ const API_BASE = '*/api/v1';
 const ORIGINAL_SEND_BEACON = navigator.sendBeacon;
 const sendBeacon = vi.fn();
 
+function assertJsonObject(body: unknown): asserts body is Record<string, unknown> {
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    throw new Error('Expected request body to be a JSON object.');
+  }
+}
+
+async function readJsonObject(request: Request): Promise<Record<string, unknown>> {
+  const body = await request.json();
+  assertJsonObject(body);
+  return body;
+}
+
 beforeEach(() => {
   sendBeacon.mockClear();
   Object.defineProperty(window.navigator, 'sendBeacon', {
@@ -231,7 +243,11 @@ describe('partnerPortalApi', () => {
 
     expect(response.status).toBe(200);
     expect(response.data.primary_lane_key).toBe('creator_affiliate');
-    expect(response.data.lane_memberships[0]?.pilot_cohort_status).toBe('active');
+    expect(response.data.lane_memberships).toEqual([
+      expect.objectContaining({
+        pilot_cohort_status: 'active',
+      }),
+    ]);
   });
 
   it('lists workspace payout accounts from the workspace-scoped finance route', async () => {
@@ -406,11 +422,9 @@ describe('partnerPortalApi', () => {
       'workspace_001',
       {
         payout_status_emails: true,
-        prefer_passkeys: true,
         preferred_currency: 'USD',
         preferred_language: 'en-EN',
         product_announcements: false,
-        require_mfa_for_workspace: true,
         reviewed_active_sessions: true,
         workspace_security_alerts: true,
       },
@@ -844,7 +858,7 @@ describe('partnerPortalApi', () => {
       http.post(
         `${API_BASE}/partner-workspaces/workspace_001/report-exports/statement-export/schedule`,
         async ({ request }) => {
-          scheduleBody = await request.json();
+          scheduleBody = await readJsonObject(request);
           return HttpResponse.json(
             {
               id: 'statement-export',
@@ -883,7 +897,11 @@ describe('partnerPortalApi', () => {
 
     expect(response.status).toBe(201);
     expect(response.data.last_requested_at).toBe('2026-04-19T12:40:00Z');
-    expect(response.data.thread_events[0]?.action_kind).toBe('partner_export_requested');
+    expect(response.data.thread_events).toEqual([
+      expect.objectContaining({
+        action_kind: 'partner_export_requested',
+      }),
+    ]);
     expect(scheduleBody).toEqual({
       message: 'Please prepare the next statement export snapshot.',
       request_payload: {
@@ -901,7 +919,7 @@ describe('partnerPortalApi', () => {
       http.post(
         `${API_BASE}/partner-workspaces/workspace_001/review-requests/finance-profile:workspace_001/responses`,
         async ({ request }) => {
-          reviewRequestBody = await request.json();
+          reviewRequestBody = await readJsonObject(request);
           return HttpResponse.json(
             {
               id: 'event_001',
@@ -917,7 +935,7 @@ describe('partnerPortalApi', () => {
       http.post(
         `${API_BASE}/partner-workspaces/workspace_001/cases/case:finance-profile:workspace_001/responses`,
         async ({ request }) => {
-          caseReplyBody = await request.json();
+          caseReplyBody = await readJsonObject(request);
           return HttpResponse.json(
             {
               id: 'event_002',
@@ -933,7 +951,7 @@ describe('partnerPortalApi', () => {
       http.post(
         `${API_BASE}/partner-workspaces/workspace_001/cases/case:finance-profile:workspace_001/ready-for-ops`,
         async ({ request }) => {
-          readyForOpsBody = await request.json();
+          readyForOpsBody = await readJsonObject(request);
           return HttpResponse.json(
             {
               id: 'event_003',
@@ -1150,7 +1168,7 @@ describe('partnerPortalApi', () => {
       http.post(
         `${API_BASE}/partner-workspaces/workspace_001/traffic-declarations`,
         async ({ request }) => {
-          trafficBody = await request.json();
+          trafficBody = await readJsonObject(request);
           return HttpResponse.json(
             {
               id: 'decl_001',
@@ -1173,7 +1191,7 @@ describe('partnerPortalApi', () => {
       http.post(
         `${API_BASE}/partner-workspaces/workspace_001/creative-approvals`,
         async ({ request }) => {
-          creativeBody = await request.json();
+          creativeBody = await readJsonObject(request);
           return HttpResponse.json(
             {
               id: 'creative_001',
@@ -1235,7 +1253,7 @@ describe('partnerPortalApi', () => {
       http.post(
         `${API_BASE}/partner-workspaces/workspace_001/reseller-voucher-batches/request`,
         async ({ request }) => {
-          voucherBody = await request.json();
+          voucherBody = await readJsonObject(request);
           return HttpResponse.json(
             {
               batch: {
@@ -1337,9 +1355,11 @@ describe('partnerPortalApi', () => {
     expect(response.data.commissionability_evaluation.commissionability_status).toBe(
       'eligible',
     );
-    expect(
-      response.data.explainability.commercial_resolution_summary.resolved_owner_source,
-    ).toBe('persistent_reseller_binding');
+    expect(response.data.explainability).toMatchObject({
+      commercial_resolution_summary: {
+        resolved_owner_source: 'persistent_reseller_binding',
+      },
+    });
   });
 
   it('loads workspace integration overlays from canonical subresources', async () => {

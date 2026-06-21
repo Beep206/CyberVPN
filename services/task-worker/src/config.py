@@ -11,14 +11,18 @@ from urllib.parse import urlparse
 from pydantic import SecretStr, field_validator, model_validator
 
 try:
-    from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+    from pydantic_settings import NoDecode as _NoDecode
 except ImportError:  # pragma: no cover - compatibility with older local pydantic-settings builds
     from pydantic_settings import BaseSettings, SettingsConfigDict
 
-    class NoDecode:
+    class _NoDecode:  # type: ignore[no-redef]
         """Compatibility shim for pydantic-settings versions without NoDecode."""
 
         pass
+
+
+NoDecode = _NoDecode
 
 
 class Settings(BaseSettings):
@@ -58,6 +62,7 @@ class Settings(BaseSettings):
     remnawave_api_token: SecretStr
     backend_api_url: str | None = None
     backend_internal_secret: SecretStr | None = None
+    payment_settlement_worker_secret: SecretStr | None = None
     helix_enabled: bool = False
     helix_adapter_url: str = "http://localhost:8090"
     helix_adapter_token: SecretStr = SecretStr("")
@@ -75,6 +80,8 @@ class Settings(BaseSettings):
     result_ttl_seconds: int = 3600
     stage1_provisioning_retry_claiming_enabled: bool = False
     stage1_provisioning_retry_batch_limit: int = 25
+    payment_completed_partner_earnings_enabled: bool = True
+    payment_completed_partner_earnings_batch_limit: int = 25
 
     # Notification Settings
     notification_max_retries: int = 5
@@ -251,6 +258,9 @@ class Settings(BaseSettings):
         has_backend_secret = self.backend_internal_secret is not None and bool(
             self.backend_internal_secret.get_secret_value().strip()
         )
+        has_payment_settlement_worker_secret = self.payment_settlement_worker_secret is not None and bool(
+            self.payment_settlement_worker_secret.get_secret_value().strip()
+        )
         if self.environment.lower() == "production" and self.cryptobot_network != "mainnet":
             msg = "CRYPTOBOT_NETWORK=testnet is not allowed in production"
             raise ValueError(msg)
@@ -334,6 +344,22 @@ class Settings(BaseSettings):
         if has_backend_url != has_backend_secret:
             msg = "BACKEND_API_URL and BACKEND_INTERNAL_SECRET must be configured together"
             raise ValueError(msg)
+        if self.payment_completed_partner_earnings_enabled and self.environment.lower() == "production":
+            if not has_backend_url:
+                msg = "BACKEND_API_URL is required when payment completed partner earnings worker is enabled"
+                raise ValueError(msg)
+            if not has_payment_settlement_worker_secret:
+                msg = (
+                    "PAYMENT_SETTLEMENT_WORKER_SECRET is required when payment completed partner earnings worker "
+                    "is enabled"
+                )
+                raise ValueError(msg)
+            self._reject_placeholder_provider_secret(
+                field_name="PAYMENT_SETTLEMENT_WORKER_SECRET",
+                secret=self.payment_settlement_worker_secret.get_secret_value().strip()
+                if self.payment_settlement_worker_secret is not None
+                else "",
+            )
         if self.metrics_basic_auth_user is None and self.metrics_basic_auth_password is not None:
             msg = "METRICS_BASIC_AUTH_USER is required when password is set"
             raise ValueError(msg)
@@ -349,4 +375,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance. Returns singleton loaded from environment."""
-    return Settings()
+    return Settings()  # type: ignore[call-arg]

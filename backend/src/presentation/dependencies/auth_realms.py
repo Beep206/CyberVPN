@@ -18,8 +18,12 @@ _LOOPBACK_TRUSTED_PROXY_IPS = ("127.0.0.1", "::1")
 
 
 def _request_host(request: Request) -> str:
-    raw_host = request.headers.get("X-Forwarded-Host") or request.headers.get("Host") or ""
-    return raw_host.split(",", 1)[0].split(":", 1)[0].strip().lower()
+    raw_forwarded_host = request.headers.get("X-Forwarded-Host")
+    raw_host = request.headers.get("Host")
+    environment = settings.environment.strip().lower()
+    if raw_forwarded_host and (environment != "production" or _request_from_trusted_proxy(request)):
+        return _normalize_host(raw_forwarded_host) or ""
+    return _normalize_host(raw_host) or ""
 
 
 def _web_realm_hint_for_host(request: Request) -> str:

@@ -57,29 +57,43 @@ def _reserve_amount_for_event(total_amount: Decimal) -> Decimal:
 
 
 def _serialize_phase4_snapshot(db, *, partner_account_id: uuid.UUID) -> dict:
-    earning_events = db.execute(
-        select(EarningEventModel).where(EarningEventModel.partner_account_id == partner_account_id)
-    ).scalars().all()
-    earning_holds = db.execute(
-        select(EarningHoldModel).where(EarningHoldModel.partner_account_id == partner_account_id)
-    ).scalars().all()
-    reserves = db.execute(
-        select(ReserveModel).where(ReserveModel.partner_account_id == partner_account_id)
-    ).scalars().all()
-    partner_statements = db.execute(
-        select(PartnerStatementModel).where(PartnerStatementModel.partner_account_id == partner_account_id)
-    ).scalars().all()
+    earning_events = (
+        db.execute(select(EarningEventModel).where(EarningEventModel.partner_account_id == partner_account_id))
+        .scalars()
+        .all()
+    )
+    earning_holds = (
+        db.execute(select(EarningHoldModel).where(EarningHoldModel.partner_account_id == partner_account_id))
+        .scalars()
+        .all()
+    )
+    reserves = (
+        db.execute(select(ReserveModel).where(ReserveModel.partner_account_id == partner_account_id)).scalars().all()
+    )
+    partner_statements = (
+        db.execute(select(PartnerStatementModel).where(PartnerStatementModel.partner_account_id == partner_account_id))
+        .scalars()
+        .all()
+    )
     statement_ids = [item.id for item in partner_statements]
-    payout_instructions = db.execute(
-        select(PayoutInstructionModel).where(PayoutInstructionModel.partner_account_id == partner_account_id)
-    ).scalars().all()
-    payout_executions = db.execute(
-        select(PayoutExecutionModel).where(PayoutExecutionModel.partner_account_id == partner_account_id)
-    ).scalars().all()
+    payout_instructions = (
+        db.execute(
+            select(PayoutInstructionModel).where(PayoutInstructionModel.partner_account_id == partner_account_id)
+        )
+        .scalars()
+        .all()
+    )
+    payout_executions = (
+        db.execute(select(PayoutExecutionModel).where(PayoutExecutionModel.partner_account_id == partner_account_id))
+        .scalars()
+        .all()
+    )
     statement_adjustments = (
         db.execute(
             select(StatementAdjustmentModel).where(StatementAdjustmentModel.partner_statement_id.in_(statement_ids))
-        ).scalars().all()
+        )
+        .scalars()
+        .all()
         if statement_ids
         else []
     )
@@ -349,7 +363,7 @@ async def test_phase4_settlement_foundations_end_to_end(
                 )
                 db.add_all([payment, attempt])
                 db.commit()
-                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id)
+                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id, process_cash_rewards=True)
                 db.commit()
                 earning_event_id = results["settlement_earning_event_id"]
                 assert earning_event_id is not None
@@ -559,12 +573,14 @@ async def test_phase4_settlement_foundations_end_to_end(
                 event_total_amount
             )
             assert report["liability_views"][0]["reserve_totals"]["total_active_reserve_amount"] == 0.0
-            assert report["liability_views"][0]["statement_totals"]["closed_statement_available_amount"] == (
-                closed_statement["available_amount"]
+            assert (
+                report["liability_views"][0]["statement_totals"]["closed_statement_available_amount"]
+                == (closed_statement["available_amount"])
             )
             assert report["liability_views"][0]["payout_totals"]["completed_amount"] == 0.0
-            assert report["liability_views"][0]["liability_totals"]["outstanding_statement_liability_amount"] == (
-                closed_statement["available_amount"]
+            assert (
+                report["liability_views"][0]["liability_totals"]["outstanding_statement_liability_amount"]
+                == (closed_statement["available_amount"])
             )
             assert report["statement_views"][0]["statement_status"] == "closed"
             assert report["payout_views"][0]["instruction_status"] == "approved"

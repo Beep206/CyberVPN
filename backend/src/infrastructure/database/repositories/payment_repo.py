@@ -19,6 +19,12 @@ class PaymentRepository:
         result = await self._session.execute(select(PaymentModel).where(PaymentModel.external_id == external_id))
         return result.scalar_one_or_none()
 
+    async def get_by_external_id_for_update(self, external_id: str) -> PaymentModel | None:
+        result = await self._session.execute(
+            select(PaymentModel).where(PaymentModel.external_id == external_id).with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def get_telegram_stars_by_charge_id(self, charge_id: str) -> PaymentModel | None:
         result = await self._session.execute(
             select(PaymentModel).where(

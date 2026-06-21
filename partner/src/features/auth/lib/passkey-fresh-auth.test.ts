@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { passkeysApi } from '@/lib/api/passkeys';
+import { AxiosHeaders, type AxiosResponse } from 'axios';
+import {
+  passkeysApi,
+  type PasskeyOptionsResponse,
+  type PasskeyReauthenticationVerifyResponse,
+} from '@/lib/api/passkeys';
 import { startPasskeyAuthentication } from './passkey-webauthn';
 import { requestPasskeyFreshAuthGrant } from './passkey-fresh-auth';
 
@@ -14,28 +19,40 @@ vi.mock('./passkey-webauthn', () => ({
   startPasskeyAuthentication: vi.fn(),
 }));
 
+function axiosResponse<T>(data: T): AxiosResponse<T> {
+  return {
+    config: {
+      headers: new AxiosHeaders(),
+    },
+    data,
+    headers: new AxiosHeaders(),
+    status: 200,
+    statusText: 'OK',
+  };
+}
+
 describe('requestPasskeyFreshAuthGrant', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   it('requests reauthentication options, uses browser WebAuthn, and returns the verified grant', async () => {
-    vi.mocked(passkeysApi.createReauthenticationOptions).mockResolvedValue({
-      data: {
+    vi.mocked(passkeysApi.createReauthenticationOptions).mockResolvedValue(
+      axiosResponse<PasskeyOptionsResponse>({
         challengeId: 'reauth-partner-001',
         expiresAt: '2026-06-03T12:05:00Z',
         publicKey: { challenge: 'cGFydG5lcg' },
-      },
-    });
+      }),
+    );
     vi.mocked(startPasskeyAuthentication).mockResolvedValue({
       id: 'partner-assertion',
     });
-    vi.mocked(passkeysApi.verifyReauthentication).mockResolvedValue({
-      data: {
+    vi.mocked(passkeysApi.verifyReauthentication).mockResolvedValue(
+      axiosResponse<PasskeyReauthenticationVerifyResponse>({
         expiresAt: '2026-06-03T12:10:00Z',
         freshAuthGrantId: 'fresh-partner-grant',
-      },
-    });
+      }),
+    );
 
     const grantId = await requestPasskeyFreshAuthGrant(
       'partner.passkeys.policy.update:workspace_001',

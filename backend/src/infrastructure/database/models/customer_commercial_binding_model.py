@@ -55,7 +55,11 @@ class CustomerCommercialBindingModel(Base):
         nullable=True,
         index=True,
     )
-    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_commission_contracts.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
     attribution_session_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("partner_attribution_sessions.id", ondelete="SET NULL"),
         nullable=True,

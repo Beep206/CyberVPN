@@ -13,6 +13,13 @@ def _settings(**overrides: object) -> Settings:
         "remnawave_api_token": SecretStr("remnawave-token-for-s1-pay-002"),
         "telegram_bot_token": SecretStr("123456:telegram-token-for-s1-pay-002"),
         "cryptobot_token": SecretStr("cryptobot-token-for-s1-pay-002"),
+        "backend_api_url": "https://api.cyber-vpn.net/api/v1",
+        "backend_internal_secret": SecretStr("InternalBackendCredentialForChecksOnly"),
+        "payment_settlement_worker_secret": SecretStr("SettlementWorkerCredentialForChecksOnly"),
+        "email_dev_mode": False,
+        "resend_api_key": None,
+        "brevo_api_key": None,
+        "email_resend_fallback_enabled": False,
         "metrics_protect": False,
     }
     values.update(overrides)
@@ -51,6 +58,51 @@ def test_task_worker_production_accepts_non_placeholder_provider_shaped_token() 
     assert settings.cryptobot_token.get_secret_value() == "ValidProviderTokenValueForChecksOnly"
 
 
+def test_task_worker_production_rejects_enabled_payment_earnings_without_backend_url() -> None:
+    with pytest.raises(ValidationError, match="BACKEND_API_URL"):
+        _settings(
+            environment="production",
+            backend_api_url=None,
+            backend_internal_secret=None,
+            cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+            email_dev_mode=False,
+            magic_link_base_url="https://cyber-vpn.net",
+            smtp_auth_username="noreply@cyber-vpn.net",
+            smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+            email_verified_sender_domains=["cyber-vpn.net"],
+        )
+
+
+def test_task_worker_production_rejects_enabled_payment_earnings_without_worker_secret() -> None:
+    with pytest.raises(ValidationError, match="PAYMENT_SETTLEMENT_WORKER_SECRET"):
+        _settings(
+            environment="production",
+            payment_settlement_worker_secret=None,
+            cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+            email_dev_mode=False,
+            magic_link_base_url="https://cyber-vpn.net",
+            smtp_auth_username="noreply@cyber-vpn.net",
+            smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+            email_verified_sender_domains=["cyber-vpn.net"],
+        )
+
+
+def test_task_worker_production_allows_disabled_payment_earnings_without_worker_secret() -> None:
+    settings = _settings(
+        environment="production",
+        payment_completed_partner_earnings_enabled=False,
+        payment_settlement_worker_secret=None,
+        cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+        email_dev_mode=False,
+        magic_link_base_url="https://cyber-vpn.net",
+        smtp_auth_username="noreply@cyber-vpn.net",
+        smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+        email_verified_sender_domains=["cyber-vpn.net"],
+    )
+
+    assert settings.payment_completed_partner_earnings_enabled is False
+
+
 def _production_mail_settings(**overrides: object) -> Settings:
     values = {
         "environment": "production",
@@ -59,6 +111,11 @@ def _production_mail_settings(**overrides: object) -> Settings:
         "email_dev_mode": False,
         "smtp_auth_username": "noreply@cyber-vpn.net",
         "smtp_auth_password": SecretStr("ValidSmtpMailboxPasswordForMailChecks"),
+        "smtp_system_from_email": "CyberVPN <noreply@cyber-vpn.net>",
+        "smtp_billing_from_email": "CyberVPN Billing <billing@cyber-vpn.net>",
+        "smtp_support_from_email": "CyberVPN Support <support@cyber-vpn.net>",
+        "resend_from_email": "CyberVPN <verify@email.cyber-vpn.net>",
+        "brevo_from_email": "CyberVPN <noreply@email.cyber-vpn.net>",
         "email_verified_sender_domains": ["cyber-vpn.net"],
     }
     values.update(overrides)

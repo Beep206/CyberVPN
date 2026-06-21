@@ -172,7 +172,7 @@ async def test_refund_and_dispute_create_typed_settlement_side_effects(async_cli
                 db.add_all([payment, attempt])
                 db.commit()
 
-                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id)
+                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id, process_cash_rewards=True)
                 db.commit()
                 event_id = results["settlement_earning_event_id"]
                 assert event_id is not None
@@ -353,10 +353,7 @@ async def test_refund_and_dispute_create_typed_settlement_side_effects(async_cli
             assert adjustments_after_reversal.status_code == 200
             final_adjustments = adjustments_after_reversal.json()
             assert len(final_adjustments) == 3
-            assert {
-                (item["adjustment_type"], item["adjustment_direction"])
-                for item in final_adjustments
-            } == {
+            assert {(item["adjustment_type"], item["adjustment_direction"]) for item in final_adjustments} == {
                 ("refund_clawback", "debit"),
                 ("dispute_clawback", "debit"),
                 ("reserve_release", "credit"),

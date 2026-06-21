@@ -85,6 +85,25 @@ def _error_response(exc: PartnerAttributionError) -> JSONResponse:
     return response
 
 
+def _require_capture_replay_guards(*, payload: PartnerAttributionCaptureRequest, idempotency_key: str | None) -> None:
+    if not str(idempotency_key or "").strip():
+        raise HTTPException(
+            status_code=status.HTTP_428_PRECONDITION_REQUIRED,
+            detail={
+                "code": "PARTNER_CAPTURE_IDEMPOTENCY_KEY_REQUIRED",
+                "message": "Idempotency-Key is required for partner attribution capture.",
+            },
+        )
+    if not str(payload.browser_key or "").strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "PARTNER_CAPTURE_BROWSER_KEY_REQUIRED",
+                "message": "browser_key is required for partner attribution capture.",
+            },
+        )
+
+
 @router.post("/capture", response_model=PartnerAttributionCaptureResponse)
 async def capture_partner_attribution(
     payload: PartnerAttributionCaptureRequest,
@@ -94,6 +113,7 @@ async def capture_partner_attribution(
     redis_client=Depends(get_redis),
     current_realm: RealmResolution = Depends(get_request_public_customer_realm),
 ) -> PartnerAttributionCaptureResponse | JSONResponse:
+    _require_capture_replay_guards(payload=payload, idempotency_key=idempotency_key)
     await check_partner_attribution_capture_rate_limit(
         request=request,
         payload=payload,

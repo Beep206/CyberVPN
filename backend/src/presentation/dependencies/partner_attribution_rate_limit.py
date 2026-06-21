@@ -11,6 +11,7 @@ from uuid import uuid4
 import redis.asyncio as redis
 from fastapi import HTTPException, Request, status
 
+from src.application.use_cases.partner_attribution.utils import PARTNER_ATTRIBUTION_BROWSER_ACTIVE_SESSION_LIMIT
 from src.config.settings import settings
 from src.infrastructure.monitoring.partner_runtime_metrics import partner_attribution_rate_limited_total
 from src.presentation.api.v1.partner_attribution.schemas import PartnerAttributionCaptureRequest
@@ -23,8 +24,7 @@ CAPTURE_IP_LIMIT = 30
 CAPTURE_SLUG_LIMIT = 100
 TRANSFER_IP_LIMIT = 10
 CLAIM_USER_LIMIT = 10
-BROWSER_ACTIVE_SESSION_LIMIT = 5
-BROWSER_ACTIVE_SESSION_WINDOW_SECONDS = 30 * 24 * 60 * 60
+BROWSER_ACTIVE_SESSION_LIMIT = PARTNER_ATTRIBUTION_BROWSER_ACTIVE_SESSION_LIMIT
 
 
 @dataclass(frozen=True)
@@ -56,16 +56,6 @@ async def check_partner_attribution_capture_rate_limit(
             limit=CAPTURE_SLUG_LIMIT,
         ),
     ]
-    if payload.browser_key:
-        rules.append(
-            _RateLimitRule(
-                scope="browser_active_sessions",
-                key=(f"cybervpn:partner_attribution:rate:capture:browser:{_hash_key_part(payload.browser_key)}"),
-                limit=BROWSER_ACTIVE_SESSION_LIMIT,
-                window_seconds=BROWSER_ACTIVE_SESSION_WINDOW_SECONDS,
-                member=token_hash,
-            )
-        )
     await _check_rules(redis_client, rules)
 
 

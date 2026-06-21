@@ -10,12 +10,18 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.config_service import ConfigService
 from src.application.use_cases.growth_codes.hashing import hash_growth_code
 from src.application.use_cases.growth_codes.registry import GrowthCodeRegistryService
 from src.application.use_cases.partner_attribution.eligibility import (
     EvaluatePartnerCodeEligibilityCommand,
-    EvaluatePartnerCodeEligibilityUseCase,
+    EvaluatePartnerCodeEligibilityWithContextUseCase,
     PartnerCodeEligibilityResult,
+)
+from src.application.use_cases.settlement.commission_terms import (
+    build_commission_contract_model,
+    build_commission_contract_snapshot,
+    build_commission_contract_snapshot_for_code,
 )
 from src.config.settings import settings
 from src.domain.enums import (
@@ -37,6 +43,7 @@ from src.infrastructure.database.repositories.growth_code_repo import GrowthCode
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
 from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRepository
+from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.monitoring.instrumentation.growth_codes import (
     CUSTOMER_COMMERCE_SURFACE,
     observe_growth_code_resolution_duration,
@@ -77,6 +84,8 @@ class ResolveGrowthCodeUseCase:
         self._bindings = CustomerCommercialBindingRepository(session)
         self._growth_codes = GrowthCodeRepository(session)
         self._registry = GrowthCodeRegistryService(session)
+        self._config = ConfigService(SystemConfigRepository(session))
+        self._partner_eligibility = EvaluatePartnerCodeEligibilityWithContextUseCase(session)
 
     async def execute(
         self,
@@ -700,12 +709,17 @@ class ResolveGrowthCodeUseCase:
             if partner_code.partner_account_id is not None
             else None
         )
-        eligibility = EvaluatePartnerCodeEligibilityUseCase().execute(
+        commission_contract_snapshot = await self._ensure_commission_contract_snapshot(
+            partner_code,
+            source="growth_code_partner_resolution",
+        )
+        eligibility = await self._partner_eligibility.execute(
             EvaluatePartnerCodeEligibilityCommand(
                 code_model=partner_code,
                 account=account,
                 sale_channel=sale_channel,
                 storefront_id=storefront_id,
+                commission_contract_snapshot=commission_contract_snapshot,
             )
         )
         owner_type = eligibility.owner_type or owner_type
@@ -777,6 +791,48 @@ class ResolveGrowthCodeUseCase:
             partner_code_id=partner_code.id,
             policy_snapshot=eligibility.policy_snapshot,
         )
+
+    async def _ensure_commission_contract_snapshot(
+        self,
+        partner_code: PartnerCodeModel,
+        *,
+        source: str,
+    ) -> dict:
+        get_contract = getattr(self._partners, "get_commission_contract_by_id", None)
+        contract = None
+        existing_contract_id = getattr(partner_code, "commission_contract_id", None)
+        if existing_contract_id is not None and callable(get_contract):
+            contract = await get_contract(existing_contract_id)
+        if contract is None:
+            attach_contract = getattr(self._partners, "attach_commission_contract_to_code", None)
+            if not callable(attach_contract) or not hasattr(partner_code, "version"):
+                payout_hold_days = 45 if partner_code.owner_type == CommercialOwnerType.PERFORMANCE.value else 30
+                return build_commission_contract_snapshot_for_code(
+                    code_model=partner_code,
+                    commission_pct=Decimal("20"),
+                    payout_hold_days=payout_hold_days,
+                    snapshot_source=source,
+                )
+            commission_pct, payout_hold_days = await self._partner_commission_defaults(partner_code.owner_type)
+            contract = build_commission_contract_model(
+                code_model=partner_code,
+                commission_pct=commission_pct,
+                payout_hold_days=payout_hold_days,
+                source=source,
+            )
+            await attach_contract(partner_code, contract)
+        return build_commission_contract_snapshot(contract, snapshot_source=source)
+
+    async def _partner_commission_defaults(self, owner_type: str | None) -> tuple[Decimal, int]:
+        try:
+            tiers = await self._config.get_partner_tiers()
+        except (AttributeError, StopAsyncIteration, TypeError):
+            tiers = [{"min_clients": 0, "commission_pct": 20}]
+        try:
+            payout_hold_days = await self._config.get_partner_payout_hold_days(owner_type=owner_type)
+        except (AttributeError, StopAsyncIteration, TypeError):
+            payout_hold_days = 45 if owner_type == CommercialOwnerType.PERFORMANCE.value else 30
+        return _resolve_base_commission_pct(tiers), payout_hold_days
 
     async def _is_partner_code_self_referral(self, *, partner_code, user_id: UUID | None) -> bool:
         if user_id is None:
@@ -883,3 +939,11 @@ def _growth_reject_for_partner_eligibility(
     if reason_codes.intersection({"sale_channel_not_allowed", "storefront_not_allowed", "geography_not_allowed"}):
         return GrowthCodeRejectReason.CODE_NOT_ELIGIBLE_FOR_SURFACE, "growth_codes.partner.not_eligible_for_surface"
     return GrowthCodeRejectReason.CODE_NOT_ACTIVE, "growth_codes.partner.inactive"
+
+
+def _resolve_base_commission_pct(tiers: list[dict]) -> Decimal:
+    commission = Decimal("0")
+    for tier in sorted(tiers or [], key=lambda item: int(item.get("min_clients", 0) or 0)):
+        if int(tier.get("min_clients", 0) or 0) <= 0:
+            commission = Decimal(str(tier.get("commission_pct", 0) or 0))
+    return commission

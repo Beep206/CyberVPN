@@ -113,6 +113,7 @@ from src.infrastructure.database.models.partner_model import (
     PartnerCodeEventModel,
     PartnerCodeLinkModel,
     PartnerCodeModel,
+    PartnerCommissionContractModel,
     PartnerEarningModel,
 )
 from src.infrastructure.database.models.partner_notification_read_state_model import (
@@ -264,6 +265,7 @@ __all__ = [
     "PartnerCodeEventModel",
     "PartnerCodeLinkModel",
     "PartnerCodeModel",
+    "PartnerCommissionContractModel",
     "PartnerEarningModel",
     "PartnerLaneApplicationModel",
     "PartnerPayoutAccountModel",

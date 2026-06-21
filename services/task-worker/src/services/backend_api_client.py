@@ -28,24 +28,34 @@ class BackendAPIClient:
             and self._settings.backend_internal_secret is not None
             and self._settings.backend_internal_secret.get_secret_value().strip()
         )
+        self._payment_settlement_enabled = bool(
+            self._settings.backend_api_url
+            and self._settings.payment_settlement_worker_secret is not None
+            and self._settings.payment_settlement_worker_secret.get_secret_value().strip()
+        )
         self._client: httpx.AsyncClient | None = None
 
     @property
     def enabled(self) -> bool:
         return self._enabled
 
+    @property
+    def payment_settlement_enabled(self) -> bool:
+        return self._payment_settlement_enabled
+
     async def __aenter__(self) -> BackendAPIClient:
-        if not self._enabled:
+        if not self._enabled and not self._payment_settlement_enabled:
             return self
+
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "CyberVPN-TaskWorker/1.0",
+        }
 
         self._client = httpx.AsyncClient(
             base_url=str(self._settings.backend_api_url).rstrip("/"),
             timeout=httpx.Timeout(connect=5.0, read=20.0, write=10.0, pool=5.0),
-            headers={
-                "Content-Type": "application/json",
-                "User-Agent": "CyberVPN-TaskWorker/1.0",
-                "X-Telegram-Bot-Secret": self._settings.backend_internal_secret.get_secret_value().strip(),
-            },
+            headers=headers,
         )
         return self
 
@@ -53,13 +63,22 @@ class BackendAPIClient:
         if self._client is not None:
             await self._client.aclose()
 
+    def _telegram_bot_secret_headers(self) -> dict[str, str]:
+        secret = self._settings.backend_internal_secret
+        value = secret.get_secret_value().strip() if secret is not None else ""
+        return {"X-Telegram-Bot-Secret": value}
+
     async def reconcile_telegram_stars_refund(self, payload: dict[str, Any]) -> dict[str, Any]:
         if not self._enabled:
             raise BackendAPIError("Internal backend reconciliation API is not configured")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.post("telegram/payments/stars/reconcile-refund", json=payload)
+        response = await self._client.post(
+            "telegram/payments/stars/reconcile-refund",
+            json=payload,
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_reconciliation_failed",
@@ -75,7 +94,11 @@ class BackendAPIClient:
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.post("payments/internal/reconciliation/run", params=payload)
+        response = await self._client.post(
+            "payments/internal/reconciliation/run",
+            params=payload,
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_stage1_payment_reconciliation_failed",
@@ -90,7 +113,11 @@ class BackendAPIClient:
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.post("subscriptions/internal/provisioning-retries/run", params=payload)
+        response = await self._client.post(
+            "subscriptions/internal/provisioning-retries/run",
+            params=payload,
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_stage1_provisioning_retries_failed",
@@ -99,13 +126,40 @@ class BackendAPIClient:
             raise BackendAPIError(f"Stage 1 provisioning retries failed: {response.status_code}")
         return response.json()
 
+    async def run_payment_completed_partner_earnings(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if not self._payment_settlement_enabled:
+            raise BackendAPIError("Internal backend partner earning API is not configured")
+        if self._client is None:
+            raise RuntimeError("BackendAPIClient must be used as a context manager")
+
+        settlement_secret = self._settings.payment_settlement_worker_secret
+        response = await self._client.post(
+            "payments/internal/partner-earnings/run",
+            params=payload,
+            headers={
+                "X-Payment-Settlement-Worker-Secret": (
+                    settlement_secret.get_secret_value().strip() if settlement_secret is not None else ""
+                )
+            },
+        )
+        if response.status_code >= 400:
+            logger.error(
+                "backend_payment_completed_partner_earnings_failed",
+                status_code=response.status_code,
+            )
+            raise BackendAPIError(f"Payment completed partner earnings failed: {response.status_code}")
+        return response.json()
+
     async def get_public_network_regions(self) -> dict[str, Any]:
         if not self._enabled:
             raise BackendAPIError("Internal backend reconciliation API is not configured")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.get("public/network/regions")
+        response = await self._client.get(
+            "public/network/regions",
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_public_network_regions_failed",
@@ -121,7 +175,11 @@ class BackendAPIClient:
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.post("public/network/internal/dpi-score/publish", json=payload)
+        response = await self._client.post(
+            "public/network/internal/dpi-score/publish",
+            json=payload,
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_public_network_dpi_publish_failed",
@@ -137,7 +195,11 @@ class BackendAPIClient:
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.post("partner-bots/internal/provisioning-jobs/claim", json=payload)
+        response = await self._client.post(
+            "partner-bots/internal/provisioning-jobs/claim",
+            json=payload,
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_partner_bot_claim_failed",
@@ -161,6 +223,7 @@ class BackendAPIClient:
         response = await self._client.post(
             f"partner-bots/internal/provisioning-jobs/{provisioning_job_id}/finalize",
             json=payload,
+            headers=self._telegram_bot_secret_headers(),
         )
         if response.status_code >= 400:
             logger.error(
@@ -178,7 +241,11 @@ class BackendAPIClient:
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.post("admin/growth-reporting/internal/refresh", params=payload)
+        response = await self._client.post(
+            "admin/growth-reporting/internal/refresh",
+            params=payload,
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_growth_reporting_refresh_failed",
@@ -194,7 +261,11 @@ class BackendAPIClient:
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.post("admin/growth-reporting/internal/deliveries/claim", params=payload)
+        response = await self._client.post(
+            "admin/growth-reporting/internal/deliveries/claim",
+            params=payload,
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_growth_reporting_claim_failed",
@@ -218,6 +289,7 @@ class BackendAPIClient:
         response = await self._client.post(
             f"admin/growth-reporting/internal/deliveries/{delivery_id}/complete",
             json=payload,
+            headers=self._telegram_bot_secret_headers(),
         )
         if response.status_code >= 400:
             logger.error(
@@ -235,7 +307,10 @@ class BackendAPIClient:
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.post("admin/growth-reporting/internal/cleanup")
+        response = await self._client.post(
+            "admin/growth-reporting/internal/cleanup",
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_growth_reporting_cleanup_failed",
@@ -251,7 +326,10 @@ class BackendAPIClient:
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
-        response = await self._client.post("admin/growth-reporting/internal/governance/followups/process")
+        response = await self._client.post(
+            "admin/growth-reporting/internal/governance/followups/process",
+            headers=self._telegram_bot_secret_headers(),
+        )
         if response.status_code >= 400:
             logger.error(
                 "backend_growth_reporting_governance_followups_failed",

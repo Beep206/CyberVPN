@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import httpx
 import pytest
 
 # Set required environment variables before importing modules
@@ -14,6 +15,7 @@ os.environ.setdefault("CRYPTOBOT_TOKEN", "test-crypto")
 os.environ.setdefault("METRICS_PROTECT", "false")
 
 from src.tasks.payments.process_completion import process_payment_completion
+from src.tasks.payments.process_partner_earnings import process_partner_earning_from_payment
 from src.tasks.payments.provisioning_retries import process_stage1_provisioning_retries
 from src.tasks.payments.reconcile_stage1 import reconcile_stage1_payments
 from src.tasks.payments.reconcile_telegram_stars import reconcile_telegram_stars_refunds
@@ -410,6 +412,159 @@ async def test_stage1_provisioning_retry_worker_calls_backend_and_updates_metric
         before_errors + 1
     )
     assert _metric_value(STAGE1_PROVISIONING_RETRY_JOBS_CURRENT, state="queued") == 3
+
+
+@pytest.mark.asyncio
+async def test_partner_earning_from_payment_worker_calls_internal_backend_job(mock_settings):
+    """Test payment.completed partner earning worker calls the internal backend runner."""
+    from src.metrics import (
+        PAYMENT_COMPLETED_PARTNER_EARNINGS_ACTIONS_TOTAL,
+        PAYMENT_COMPLETED_PARTNER_EARNINGS_RUNS_TOTAL,
+    )
+
+    mock_settings.payment_completed_partner_earnings_enabled = True
+    mock_settings.payment_completed_partner_earnings_batch_limit = 11
+    report = {
+        "claimed": 2,
+        "succeeded": 1,
+        "retrying": 1,
+        "dead_letter": 0,
+        "skipped": 0,
+        "failures": [{"publication_id": "pub-safe", "status": "failed", "retry_after_seconds": 60}],
+    }
+    before_success = _metric_value(PAYMENT_COMPLETED_PARTNER_EARNINGS_RUNS_TOTAL, result="success")
+    before_retrying = _metric_value(PAYMENT_COMPLETED_PARTNER_EARNINGS_ACTIONS_TOTAL, action="retrying")
+
+    with (
+        patch("src.tasks.payments.process_partner_earnings.get_settings", return_value=mock_settings),
+        patch("src.tasks.payments.process_partner_earnings.BackendAPIClient") as mock_backend_cls,
+    ):
+        backend = AsyncMock()
+        backend.payment_settlement_enabled = True
+        backend.run_payment_completed_partner_earnings.return_value = report
+        mock_backend_cls.return_value.__aenter__ = AsyncMock(return_value=backend)
+        mock_backend_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        result = await process_partner_earning_from_payment()
+
+    assert result == report
+    backend.run_payment_completed_partner_earnings.assert_awaited_once()
+    payload = backend.run_payment_completed_partner_earnings.await_args.args[0]
+    assert payload["limit"] == 11
+    assert payload["worker_id"].endswith(":partner-earning-worker")
+    assert _metric_value(PAYMENT_COMPLETED_PARTNER_EARNINGS_RUNS_TOTAL, result="success") == before_success + 1
+    assert _metric_value(PAYMENT_COMPLETED_PARTNER_EARNINGS_ACTIONS_TOTAL, action="retrying") == (before_retrying + 1)
+
+
+@pytest.mark.asyncio
+async def test_partner_earning_from_payment_worker_fails_without_backend_config(mock_settings):
+    """Test enabled payment.completed partner earning worker fails retryably when backend API is not configured."""
+    from src.metrics import PAYMENT_COMPLETED_PARTNER_EARNINGS_RUNS_TOTAL
+    from src.services.backend_api_client import BackendAPIError
+
+    mock_settings.payment_completed_partner_earnings_enabled = True
+    mock_settings.backend_api_url = None
+    mock_settings.backend_internal_secret = None
+    mock_settings.payment_settlement_worker_secret = None
+    before_failure = _metric_value(PAYMENT_COMPLETED_PARTNER_EARNINGS_RUNS_TOTAL, result="failure")
+
+    with (
+        patch("src.tasks.payments.process_partner_earnings.get_settings", return_value=mock_settings),
+        pytest.raises(BackendAPIError, match="not configured"),
+    ):
+        await process_partner_earning_from_payment()
+
+    assert _metric_value(PAYMENT_COMPLETED_PARTNER_EARNINGS_RUNS_TOTAL, result="failure") == before_failure + 1
+
+
+@pytest.mark.asyncio
+async def test_partner_earning_from_payment_worker_skips_when_explicitly_disabled(mock_settings):
+    """Test explicit worker disable remains a non-error operational skip."""
+    mock_settings.payment_completed_partner_earnings_enabled = False
+    mock_settings.backend_api_url = None
+    mock_settings.backend_internal_secret = None
+    mock_settings.payment_settlement_worker_secret = None
+
+    with patch("src.tasks.payments.process_partner_earnings.get_settings", return_value=mock_settings):
+        result = await process_partner_earning_from_payment()
+
+    assert result == {"skipped": True, "reason": "disabled"}
+
+
+def test_partner_earning_from_payment_task_contract_and_schedule() -> None:
+    """Test TaskIQ routing, retry, and scheduler labels for durable payment earnings."""
+    from src.schedules.definitions import process_partner_earning_from_payment as scheduled_task
+    from src.utils.constants import RETRY_POLICIES, SCHEDULE_PAYMENT_COMPLETED_PARTNER_EARNINGS
+
+    assert process_partner_earning_from_payment.task_name == "process_partner_earning_from_payment"
+    assert process_partner_earning_from_payment.labels["queue"] == "payments"
+    assert process_partner_earning_from_payment.labels["retry_policy"] == "payments"
+    assert RETRY_POLICIES["payments"]["delays"] == [60, 300, 900, 3600, 21600]
+    assert scheduled_task.labels["schedule"] == [{"cron": SCHEDULE_PAYMENT_COMPLETED_PARTNER_EARNINGS}]
+
+
+@pytest.mark.asyncio
+async def test_partner_earning_backend_client_uses_dedicated_worker_secret(mock_settings):
+    """Test the payment settlement runner uses its dedicated backend audience credential."""
+    from src.services.backend_api_client import BackendAPIClient
+
+    mock_settings.backend_api_url = "https://backend.example.test/api/v1"
+    mock_settings.backend_internal_secret.get_secret_value.return_value = "telegram-shared-secret"
+    mock_settings.payment_settlement_worker_secret.get_secret_value.return_value = "settlement-worker-secret"
+
+    with (
+        patch("src.services.backend_api_client.get_settings", return_value=mock_settings),
+        patch("src.services.backend_api_client.httpx.AsyncClient") as client_cls,
+    ):
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"claimed": 0}
+        http_client = AsyncMock()
+        http_client.post.return_value = response
+        client_cls.return_value = http_client
+
+        async with BackendAPIClient() as backend:
+            assert backend.payment_settlement_enabled is True
+            result = await backend.run_payment_completed_partner_earnings({"limit": 1, "worker_id": "unit"})
+
+    assert result == {"claimed": 0}
+    request_headers = http_client.post.await_args.kwargs["headers"]
+    assert request_headers == {"X-Payment-Settlement-Worker-Secret": "settlement-worker-secret"}
+    assert "X-Telegram-Bot-Secret" not in request_headers
+
+
+@pytest.mark.asyncio
+async def test_partner_earning_backend_client_final_request_excludes_telegram_secret(mock_settings):
+    """Test final merged HTTP headers for settlement runner exclude broad Telegram bot secret."""
+    from src.services.backend_api_client import BackendAPIClient
+
+    mock_settings.backend_api_url = "https://backend.example.test/api/v1"
+    mock_settings.backend_internal_secret.get_secret_value.return_value = "telegram-shared-secret"
+    mock_settings.payment_settlement_worker_secret.get_secret_value.return_value = "settlement-worker-secret"
+    captured_requests: list[httpx.Request] = []
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        captured_requests.append(request)
+        return httpx.Response(200, json={"claimed": 0})
+
+    transport = httpx.MockTransport(_handler)
+    real_async_client = httpx.AsyncClient
+
+    def _client_with_transport(*args, **kwargs):
+        kwargs["transport"] = transport
+        return real_async_client(*args, **kwargs)
+
+    with (
+        patch("src.services.backend_api_client.get_settings", return_value=mock_settings),
+        patch("src.services.backend_api_client.httpx.AsyncClient", side_effect=_client_with_transport),
+    ):
+        async with BackendAPIClient() as backend:
+            result = await backend.run_payment_completed_partner_earnings({"limit": 1, "worker_id": "unit"})
+
+    assert result == {"claimed": 0}
+    assert len(captured_requests) == 1
+    assert captured_requests[0].headers["X-Payment-Settlement-Worker-Secret"] == "settlement-worker-secret"
+    assert "X-Telegram-Bot-Secret" not in captured_requests[0].headers
 
 
 @pytest.mark.asyncio

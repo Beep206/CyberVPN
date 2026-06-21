@@ -35538,9 +35538,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
+                  "additionalProperties": true,
                   "type": "object",
                   "title": "Response Cryptobot Webhook Api V1 Webhooks Cryptobot Post"
                 }
@@ -70323,6 +70321,11 @@
             "type": "integer",
             "title": "Event Count"
           },
+          "pending_amount": {
+            "type": "string",
+            "title": "Pending Amount",
+            "default": "0.00"
+          },
           "on_hold_amount": {
             "type": "string",
             "title": "On Hold Amount"
@@ -70345,9 +70348,74 @@
             "title": "Reversed Amount",
             "default": "0.00"
           },
+          "adjustment_amount": {
+            "type": "string",
+            "title": "Adjustment Amount",
+            "default": "0.00"
+          },
           "total_amount": {
             "type": "string",
             "title": "Total Amount"
+          },
+          "statement_count": {
+            "type": "integer",
+            "title": "Statement Count",
+            "default": 0
+          },
+          "statement_event_count": {
+            "type": "integer",
+            "title": "Statement Event Count",
+            "default": 0
+          },
+          "statement_included_amount": {
+            "type": "string",
+            "title": "Statement Included Amount",
+            "default": "0.00"
+          },
+          "statement_on_hold_amount": {
+            "type": "string",
+            "title": "Statement On Hold Amount",
+            "default": "0.00"
+          },
+          "statement_available_amount": {
+            "type": "string",
+            "title": "Statement Available Amount",
+            "default": "0.00"
+          },
+          "statement_reserved_amount": {
+            "type": "string",
+            "title": "Statement Reserved Amount",
+            "default": "0.00"
+          },
+          "statement_adjustment_amount": {
+            "type": "string",
+            "title": "Statement Adjustment Amount",
+            "default": "0.00"
+          },
+          "payout_instruction_count": {
+            "type": "integer",
+            "title": "Payout Instruction Count",
+            "default": 0
+          },
+          "payout_instruction_amount": {
+            "type": "string",
+            "title": "Payout Instruction Amount",
+            "default": "0.00"
+          },
+          "payout_pending_amount": {
+            "type": "string",
+            "title": "Payout Pending Amount",
+            "default": "0.00"
+          },
+          "payout_approved_amount": {
+            "type": "string",
+            "title": "Payout Approved Amount",
+            "default": "0.00"
+          },
+          "payout_completed_amount": {
+            "type": "string",
+            "title": "Payout Completed Amount",
+            "default": "0.00"
           },
           "next_payout_forecast_amount": {
             "type": "string",

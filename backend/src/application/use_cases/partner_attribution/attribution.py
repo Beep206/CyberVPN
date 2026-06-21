@@ -2,31 +2,37 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService
+from src.application.services.config_service import ConfigService
 from src.application.use_cases.attribution.record_touchpoint import RecordAttributionTouchpointUseCase
 from src.application.use_cases.commercial_bindings.create_binding import (
     CreateCustomerCommercialBindingUseCase,
 )
 from src.application.use_cases.partner_attribution.eligibility import (
     EvaluatePartnerCodeEligibilityCommand,
-    EvaluatePartnerCodeEligibilityUseCase,
+    EvaluatePartnerCodeEligibilityWithContextUseCase,
     PartnerCodeEligibilityResult,
 )
 from src.application.use_cases.partner_attribution.utils import (
+    PARTNER_ATTRIBUTION_BROWSER_ACTIVE_SESSION_LIMIT,
     PARTNER_ATTRIBUTION_STORAGE_VERSION,
     PARTNER_ATTRIBUTION_TRANSFER_TTL_SECONDS,
     build_customer_destination_url,
+    build_customer_public_url,
     build_public_token_for_code_id,
     clamp_optional,
     generate_transfer_token,
@@ -34,6 +40,10 @@ from src.application.use_cases.partner_attribution.utils import (
     mask_partner_code,
     normalize_customer_destination_path,
     normalize_customer_locale,
+)
+from src.application.use_cases.settlement.commission_terms import (
+    build_commission_contract_model,
+    build_commission_contract_snapshot,
 )
 from src.config.settings import settings
 from src.domain.enums import (
@@ -60,6 +70,7 @@ from src.infrastructure.database.repositories.partner_attribution_session_repo i
     PartnerAttributionSessionRepository,
 )
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
+from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.monitoring.partner_runtime_metrics import partner_attribution_legacy_public_token_total
 from src.presentation.dependencies.auth_realms import RealmResolution
 
@@ -189,7 +200,9 @@ class CapturePartnerAttributionUseCase:
         self._session = session
         self._partners = PartnerRepository(session)
         self._sessions = PartnerAttributionSessionRepository(session)
+        self._config = ConfigService(SystemConfigRepository(session))
         self._outbox = EventOutboxService(session)
+        self._eligibility = EvaluatePartnerCodeEligibilityWithContextUseCase(session)
 
     async def execute(self, command: CapturePartnerAttributionCommand) -> CapturePartnerAttributionResult:
         if not settings.partner_attribution_enabled:
@@ -211,6 +224,20 @@ class CapturePartnerAttributionUseCase:
             if command.capture_idempotency_key
             else None
         )
+        await self._lock_capture_creation(
+            code_model=code_model,
+            current_realm=command.current_realm,
+            browser_key_hash=browser_key_hash,
+            idempotency_key_hash=idempotency_key_hash,
+        )
+        await self._session.refresh(code_model)
+        commission_contract_snapshot = await _ensure_commission_contract_snapshot(
+            partners=self._partners,
+            config=self._config,
+            code_model=code_model,
+            now=now,
+            source="partner_attribution_capture",
+        )
         locale = normalize_customer_locale(link_model.locale if link_model and link_model.locale else command.locale)
         if link_model is not None:
             raw_destination_path = link_model.destination_path
@@ -220,13 +247,14 @@ class CapturePartnerAttributionUseCase:
         sale_channel = link_model.sale_channel if link_model and link_model.sale_channel else command.sale_channel
         campaign_params = link_model.campaign_params if link_model is not None else command.campaign_params
         sub_ids = link_model.sub_ids if link_model is not None else command.sub_ids
-        eligibility = EvaluatePartnerCodeEligibilityUseCase().execute(
+        eligibility = await self._eligibility.execute(
             EvaluatePartnerCodeEligibilityCommand(
                 code_model=code_model,
                 account=partner_account,
                 link_model=link_model,
                 sale_channel=sale_channel,
                 storefront_id=code_model.default_storefront_id,
+                commission_contract_snapshot=commission_contract_snapshot,
                 now=now,
             )
         )
@@ -243,29 +271,55 @@ class CapturePartnerAttributionUseCase:
             existing.last_seen_at = now
             existing.updated_at = now
             await self._session.flush()
-            transfer_token = _extract_transfer_token_from_destination_url(existing.destination_url)
-            if transfer_token is not None:
-                return CapturePartnerAttributionResult(
-                    attribution_id=existing.id,
-                    captured_at=existing.created_at,
-                    expires_at=existing.expires_at,
-                    masked_code=mask_partner_code(code_model.code),
-                    transfer_token=transfer_token,
-                    redirect_url=existing.destination_url,
+            existing_result = _capture_result_from_existing(existing=existing, code_model=code_model)
+            if existing_result is not None:
+                return existing_result
+        if idempotency_key_hash:
+            await self._release_stale_capture_idempotency(
+                code_model=code_model,
+                current_realm=command.current_realm,
+                browser_key_hash=browser_key_hash,
+                idempotency_key_hash=idempotency_key_hash,
+                now=now,
+            )
+        if browser_key_hash:
+            active_session_count = await self._sessions.count_active_for_browser(
+                auth_realm_id=UUID(command.current_realm.realm_id),
+                browser_key_hash=browser_key_hash,
+                now=now,
+            )
+            if active_session_count >= PARTNER_ATTRIBUTION_BROWSER_ACTIVE_SESSION_LIMIT:
+                _logger.warning(
+                    "partner_attribution_browser_active_session_limit",
+                    extra={
+                        "limit": PARTNER_ATTRIBUTION_BROWSER_ACTIVE_SESSION_LIMIT,
+                        "active_session_count": active_session_count,
+                    },
+                )
+                raise PartnerAttributionError(
+                    code="PARTNER_BROWSER_ACTIVE_SESSION_LIMIT",
+                    message="Too many active partner attribution sessions for this browser.",
+                    status_code=429,
                 )
 
-        transfer_token = generate_transfer_token()
+        session_id = uuid4()
+        transfer_token = _derive_transfer_token(session_id)
         transfer_hash = hash_partner_attribution_token(transfer_token)
         window_seconds = max(int(code_model.attribution_window_seconds or 0), PARTNER_ATTRIBUTION_TRANSFER_TTL_SECONDS)
         expires_at = now + timedelta(seconds=window_seconds)
         transfer_expires_at = now + timedelta(seconds=min(PARTNER_ATTRIBUTION_TRANSFER_TTL_SECONDS, window_seconds))
-        destination_url = build_customer_destination_url(
+        persisted_destination_url = build_customer_public_url(
+            locale=locale,
+            destination_path=destination_path,
+        )
+        redirect_url = build_customer_destination_url(
             transfer_token,
             locale=locale,
             destination_path=destination_path,
         )
         policy_snapshot = eligibility.policy_snapshot
         session_model = PartnerAttributionSessionModel(
+            id=session_id,
             session_token_hash=None,
             transfer_token_hash=transfer_hash,
             transfer_expires_at=transfer_expires_at,
@@ -288,7 +342,7 @@ class CapturePartnerAttributionUseCase:
             click_id=clamp_optional(command.click_id, 160),
             browser_key_hash=browser_key_hash,
             capture_idempotency_key_hash=idempotency_key_hash,
-            destination_url=destination_url,
+            destination_url=persisted_destination_url,
             campaign_params=_sanitize_campaign_params(campaign_params),
             evidence_payload={
                 "public_token_hash": hash_partner_attribution_token(command.public_token),
@@ -304,47 +358,65 @@ class CapturePartnerAttributionUseCase:
             first_seen_at=now,
             last_seen_at=now,
         )
-        created = await self._sessions.create(session_model)
-        touchpoint = await RecordAttributionTouchpointUseCase(self._session).execute(
-            current_realm=command.current_realm,
-            touchpoint_type=AttributionTouchpointType.PASSIVE_CLICK.value,
-            partner_code_id=code_model.id,
-            partner_attribution_session_id=created.id,
-            policy_version_id=code_model.policy_version_id,
-            source_event_id=f"partner_public_click:{created.id}",
-            idempotency_key=f"partner-public-click:{created.id}",
-            source_host=created.source_host,
-            source_path=created.source_path,
-            sale_channel=created.sale_channel,
-            campaign_params=created.campaign_params,
-            evidence_payload={
-                "partner_attribution_session_id": str(created.id),
-                "partner_account_id": str(created.partner_account_id) if created.partner_account_id else None,
-                "partner_code_link_id": str(link_model.id) if link_model is not None else None,
-                "owner_type": created.owner_type,
-                "destination_path": created.destination_path,
-                "locale": created.locale,
-                "sub_ids": dict(created.sub_ids or {}),
-                "click_id": created.click_id,
-                "policy_snapshot": policy_snapshot,
-            },
-            commit=False,
-        )
-        created.touchpoint_id = touchpoint.id
-        await self._outbox.append_event(
-            event_name="partner.attribution.captured",
-            aggregate_type="partner_attribution_session",
-            aggregate_id=str(created.id),
-            partition_key=str(code_model.partner_account_id or code_model.partner_user_id or code_model.id),
-            event_payload={
-                "partner_code_id": str(code_model.id),
-                "partner_account_id": str(code_model.partner_account_id) if code_model.partner_account_id else None,
-                "masked_code": mask_partner_code(code_model.code),
-                "expires_at": expires_at.isoformat(),
-                "transfer_expires_at": transfer_expires_at.isoformat(),
-            },
-            source_context={"source_use_case": "CapturePartnerAttributionUseCase"},
-        )
+        try:
+            async with self._session.begin_nested():
+                created = await self._sessions.create(session_model)
+                touchpoint = await RecordAttributionTouchpointUseCase(self._session).execute(
+                    current_realm=command.current_realm,
+                    touchpoint_type=AttributionTouchpointType.PASSIVE_CLICK.value,
+                    partner_code_id=code_model.id,
+                    partner_attribution_session_id=created.id,
+                    policy_version_id=code_model.policy_version_id,
+                    source_event_id=f"partner_public_click:{created.id}",
+                    idempotency_key=f"partner-public-click:{created.id}",
+                    source_host=created.source_host,
+                    source_path=created.source_path,
+                    sale_channel=created.sale_channel,
+                    campaign_params=created.campaign_params,
+                    evidence_payload={
+                        "partner_attribution_session_id": str(created.id),
+                        "partner_account_id": str(created.partner_account_id) if created.partner_account_id else None,
+                        "partner_code_link_id": str(link_model.id) if link_model is not None else None,
+                        "owner_type": created.owner_type,
+                        "destination_path": created.destination_path,
+                        "locale": created.locale,
+                        "sub_ids": dict(created.sub_ids or {}),
+                        "click_id": created.click_id,
+                        "policy_snapshot": policy_snapshot,
+                    },
+                    commit=False,
+                )
+                created.touchpoint_id = touchpoint.id
+                await self._outbox.append_event(
+                    event_name="partner.attribution.captured",
+                    aggregate_type="partner_attribution_session",
+                    aggregate_id=str(created.id),
+                    partition_key=str(code_model.partner_account_id or code_model.partner_user_id or code_model.id),
+                    event_payload={
+                        "partner_code_id": str(code_model.id),
+                        "partner_account_id": (
+                            str(code_model.partner_account_id) if code_model.partner_account_id else None
+                        ),
+                        "masked_code": mask_partner_code(code_model.code),
+                        "expires_at": expires_at.isoformat(),
+                        "transfer_expires_at": transfer_expires_at.isoformat(),
+                    },
+                    source_context={"source_use_case": "CapturePartnerAttributionUseCase"},
+                )
+        except Exception as exc:
+            if not isinstance(exc, IntegrityError):
+                raise
+            existing = await self._find_existing_capture(
+                code_model=code_model,
+                current_realm=command.current_realm,
+                browser_key_hash=browser_key_hash,
+                idempotency_key_hash=idempotency_key_hash,
+                now=now,
+            )
+            existing_result = _capture_result_from_existing(existing=existing, code_model=code_model)
+            if existing_result is None:
+                raise
+            return existing_result
         await self._session.flush()
         return CapturePartnerAttributionResult(
             attribution_id=created.id,
@@ -352,7 +424,7 @@ class CapturePartnerAttributionUseCase:
             expires_at=created.expires_at,
             masked_code=mask_partner_code(code_model.code),
             transfer_token=transfer_token,
-            redirect_url=destination_url,
+            redirect_url=redirect_url,
         )
 
     async def _find_code_by_public_token(self, public_token: str) -> _ResolvedPublicToken:
@@ -447,10 +519,11 @@ class CapturePartnerAttributionUseCase:
             result="resolved",
             public_token_hash=token_hash,
         )
-        if not code_model.public_token_hash:
-            code_model.public_token_hash = hash_partner_attribution_token(build_public_token_for_code_id(code_model.id))
-        if not code_model.public_slug:
-            code_model.public_slug = build_public_token_for_code_id(code_model.id)
+        deterministic_token = build_public_token_for_code_id(code_model.id)
+        deterministic_hash = hash_partner_attribution_token(deterministic_token)
+        if not code_model.public_token_hash or code_model.public_token_hash == deterministic_hash:
+            code_model.public_slug = deterministic_token
+            code_model.public_token_hash = deterministic_hash
             await self._session.flush()
         return _ResolvedPublicToken(code_model=code_model, link_model=None, source="partner_code_deterministic_legacy")
 
@@ -465,6 +538,36 @@ class CapturePartnerAttributionUseCase:
         if await self._partners.get_code_by_public_token_hash(token_hash) is not None:
             return "code_public_token_hash"
         return None
+
+    async def _lock_capture_creation(
+        self,
+        *,
+        code_model: PartnerCodeModel,
+        current_realm: RealmResolution,
+        browser_key_hash: str | None,
+        idempotency_key_hash: str | None,
+    ) -> None:
+        get_bind = getattr(self._session, "get_bind", None)
+        if get_bind is None:
+            return
+        bind = get_bind()
+        if getattr(bind.dialect, "name", None) != "postgresql":
+            return
+
+        lock_sources: set[str] = {f"partner-capture:code:{code_model.id}:{current_realm.realm_id}"}
+        if idempotency_key_hash:
+            lock_sources.add(f"partner-capture:idempotency:{idempotency_key_hash}")
+        if browser_key_hash:
+            lock_sources.add(
+                "partner-capture:browser:"
+                f"{code_model.id}:{current_realm.realm_id}:{code_model.default_storefront_id}:{browser_key_hash}"
+            )
+        for lock_source in sorted(lock_sources):
+            lock_key = _advisory_lock_key(lock_source)
+            await self._session.execute(
+                text("select pg_advisory_xact_lock(:lock_key)"),
+                {"lock_key": lock_key},
+            )
 
     async def _find_existing_capture(
         self,
@@ -495,12 +598,36 @@ class CapturePartnerAttributionUseCase:
                 return existing
         return None
 
+    async def _release_stale_capture_idempotency(
+        self,
+        *,
+        code_model: PartnerCodeModel,
+        current_realm: RealmResolution,
+        browser_key_hash: str | None,
+        idempotency_key_hash: str,
+        now: datetime,
+    ) -> None:
+        existing = await self._sessions.get_by_capture_idempotency_key(idempotency_key_hash, for_update=True)
+        if not _is_stale_capture_idempotency_for_current_browser(
+            existing,
+            code_model=code_model,
+            current_realm=current_realm,
+            browser_key_hash=browser_key_hash,
+            now=now,
+        ):
+            return
+        existing.capture_idempotency_key_hash = None
+        existing.updated_at = now
+        await self._session.flush()
+
 
 class ConsumePartnerAttributionTransferUseCase:
     def __init__(self, session: AsyncSession) -> None:
         self._sessions = PartnerAttributionSessionRepository(session)
         self._session = session
         self._partners = PartnerRepository(session)
+        self._config = ConfigService(SystemConfigRepository(session))
+        self._eligibility = EvaluatePartnerCodeEligibilityWithContextUseCase(session)
 
     async def execute(
         self,
@@ -565,22 +692,32 @@ class ConsumePartnerAttributionTransferUseCase:
             if code_model.partner_account_id is not None
             else None
         )
+        commission_contract_snapshot = await _ensure_commission_contract_snapshot(
+            partners=self._partners,
+            config=self._config,
+            code_model=code_model,
+            now=now,
+            source="partner_attribution_transfer_consume",
+        )
         link_model = (
             await self._partners.get_code_link_by_id(attribution.partner_code_link_id)
             if attribution.partner_code_link_id is not None
             else None
         )
-        eligibility = EvaluatePartnerCodeEligibilityUseCase().execute(
+        eligibility = await self._eligibility.execute(
             EvaluatePartnerCodeEligibilityCommand(
                 code_model=code_model,
                 account=partner_account,
                 link_model=link_model,
                 sale_channel=attribution.sale_channel,
                 storefront_id=attribution.storefront_id,
+                commission_contract_snapshot=commission_contract_snapshot,
                 now=now,
             )
         )
         _assert_eligibility_allowed(eligibility)
+        attribution.policy_snapshot = dict(eligibility.policy_snapshot or {})
+        attribution.commission_contract_id = code_model.commission_contract_id
 
         session_token = generate_transfer_token()
         attribution.consumed_transfer_token_hash = attribution.transfer_token_hash
@@ -609,7 +746,9 @@ class ClaimPartnerAttributionUseCase:
         self._sessions = PartnerAttributionSessionRepository(session)
         self._bindings = CustomerCommercialBindingRepository(session)
         self._partners = PartnerRepository(session)
+        self._config = ConfigService(SystemConfigRepository(session))
         self._outbox = EventOutboxService(session)
+        self._eligibility = EvaluatePartnerCodeEligibilityWithContextUseCase(session)
 
     async def execute(self, command: ClaimPartnerAttributionCommand) -> ClaimPartnerAttributionResult:
         if not settings.partner_attribution_enabled:
@@ -677,22 +816,32 @@ class ClaimPartnerAttributionUseCase:
                 clear_cookie=True,
             )
         partner_account = await self._load_partner_account(code_model)
+        commission_contract_snapshot = await _ensure_commission_contract_snapshot(
+            partners=self._partners,
+            config=self._config,
+            code_model=code_model,
+            now=now,
+            source="partner_attribution_claim",
+        )
         link_model = (
             await self._partners.get_code_link_by_id(attribution.partner_code_link_id)
             if attribution.partner_code_link_id is not None
             else None
         )
-        eligibility = EvaluatePartnerCodeEligibilityUseCase().execute(
+        eligibility = await self._eligibility.execute(
             EvaluatePartnerCodeEligibilityCommand(
                 code_model=code_model,
                 account=partner_account,
                 link_model=link_model,
                 sale_channel=attribution.sale_channel,
                 storefront_id=attribution.storefront_id,
+                commission_contract_snapshot=commission_contract_snapshot,
                 now=now,
             )
         )
         _assert_eligibility_allowed(eligibility)
+        attribution.policy_snapshot = dict(eligibility.policy_snapshot or {})
+        attribution.commission_contract_id = code_model.commission_contract_id
         _assert_not_self_attribution(user, code_model, partner_account)
 
         active_bindings = await self._bindings.list_active_for_user(
@@ -1045,19 +1194,110 @@ def _is_reusable_capture(
         and attribution.partner_code_id == code_model.id
         and str(attribution.auth_realm_id) == current_realm.realm_id
         and attribution.status == "pending"
+        and attribution.transfer_token_hash is not None
+        and attribution.transfer_expires_at is not None
+        and _coerce_utc(attribution.transfer_expires_at) > now
         and attribution.transfer_consumed_at is None
         and _coerce_utc(attribution.expires_at) > now
     )
 
 
-def _extract_transfer_token_from_destination_url(destination_url: str | None) -> str | None:
-    if not destination_url:
+def _is_stale_capture_idempotency_for_current_browser(
+    attribution: PartnerAttributionSessionModel | None,
+    *,
+    code_model: PartnerCodeModel,
+    current_realm: RealmResolution,
+    browser_key_hash: str | None,
+    now: datetime,
+) -> bool:
+    if attribution is None:
+        return False
+    if attribution.partner_code_id != code_model.id or str(attribution.auth_realm_id) != current_realm.realm_id:
+        return False
+    if browser_key_hash and attribution.browser_key_hash != browser_key_hash:
+        return False
+    if _is_reusable_capture(attribution, code_model=code_model, current_realm=current_realm, now=now):
+        return False
+    return (
+        attribution.transfer_consumed_at is not None
+        or attribution.status in _TERMINAL_STATUSES
+        or attribution.transfer_token_hash is None
+        or attribution.transfer_expires_at is None
+        or _coerce_utc(attribution.transfer_expires_at) <= now
+        or _coerce_utc(attribution.expires_at) <= now
+    )
+
+
+def _capture_result_from_existing(
+    *,
+    existing: PartnerAttributionSessionModel | None,
+    code_model: PartnerCodeModel,
+) -> CapturePartnerAttributionResult | None:
+    if existing is None:
         return None
-    values = parse_qs(urlsplit(destination_url).query).get("pat")
-    if not values:
-        return None
-    token = values[0].strip()
-    return token or None
+    transfer_token = _derive_transfer_token(existing.id)
+    existing.transfer_token_hash = hash_partner_attribution_token(transfer_token)
+    persisted_destination_url = build_customer_public_url(
+        locale=existing.locale,
+        destination_path=existing.destination_path,
+    )
+    existing.destination_url = persisted_destination_url
+    return CapturePartnerAttributionResult(
+        attribution_id=existing.id,
+        captured_at=existing.created_at,
+        expires_at=existing.expires_at,
+        masked_code=mask_partner_code(code_model.code),
+        transfer_token=transfer_token,
+        redirect_url=build_customer_destination_url(
+            transfer_token,
+            locale=existing.locale,
+            destination_path=existing.destination_path,
+        ),
+    )
+
+
+def _advisory_lock_key(value: str) -> int:
+    digest = hashlib.blake2b(value.encode("utf-8"), digest_size=8).digest()
+    return int.from_bytes(digest, byteorder="big", signed=False) & 0x7FFFFFFFFFFFFFFF
+
+
+def _derive_transfer_token(session_id: UUID) -> str:
+    secret = settings.jwt_secret.get_secret_value().encode()
+    digest = hmac.new(secret, f"partner-transfer:v1:{session_id}".encode(), hashlib.sha256).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+async def _ensure_commission_contract_snapshot(
+    *,
+    partners: PartnerRepository,
+    config: ConfigService,
+    code_model: PartnerCodeModel,
+    now: datetime,
+    source: str,
+) -> dict[str, Any]:
+    contract = (
+        await partners.get_commission_contract_by_id(code_model.commission_contract_id)
+        if code_model.commission_contract_id is not None
+        else None
+    )
+    if contract is None:
+        contract = build_commission_contract_model(
+            code_model=code_model,
+            commission_pct=_resolve_base_commission_pct(await config.get_partner_tiers()),
+            payout_hold_days=await config.get_partner_payout_hold_days(owner_type=code_model.owner_type),
+            source=source,
+            now=now,
+        )
+        await partners.attach_commission_contract_to_code(code_model, contract)
+    return build_commission_contract_snapshot(contract, snapshot_source=source)
+
+
+def _resolve_base_commission_pct(tiers: list[dict[str, Any]]) -> Decimal:
+    commission = Decimal("0")
+    for tier in sorted(tiers or [], key=lambda item: int(item.get("min_clients", 0) or 0)):
+        if int(tier.get("min_clients", 0) or 0) <= 0:
+            commission = Decimal(str(tier.get("commission_pct", 0) or 0))
+    return commission
 
 
 def _assert_eligibility_allowed(result: PartnerCodeEligibilityResult) -> None:

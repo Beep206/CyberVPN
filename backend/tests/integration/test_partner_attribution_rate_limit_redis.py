@@ -101,7 +101,7 @@ async def test_partner_attribution_rate_limits_against_real_redis() -> None:
         await redis_client.flushdb()
 
         browser_key = "runtime-browser-key"
-        for index in range(BROWSER_ACTIVE_SESSION_LIMIT):
+        for index in range(BROWSER_ACTIVE_SESSION_LIMIT + 1):
             await check_partner_attribution_capture_rate_limit(
                 request=_request(ip=f"203.0.113.{index + 1}"),
                 payload=PartnerAttributionCaptureRequest(
@@ -115,17 +115,13 @@ async def test_partner_attribution_rate_limits_against_real_redis() -> None:
             payload=PartnerAttributionCaptureRequest(public_token="rt-browser-token-0", browser_key=browser_key),
             redis_client=redis_client,
         )
-        await _assert_limited(
-            check_partner_attribution_capture_rate_limit(
-                request=_request(ip="203.0.113.201"),
-                payload=PartnerAttributionCaptureRequest(
-                    public_token="rt-browser-token-over",
-                    browser_key=browser_key,
-                ),
-                redis_client=redis_client,
+        await check_partner_attribution_capture_rate_limit(
+            request=_request(ip="203.0.113.201"),
+            payload=PartnerAttributionCaptureRequest(
+                public_token="rt-browser-token-over",
+                browser_key=browser_key,
             ),
-            scope="browser_active_sessions",
-            retry_after="2592000",
+            redis_client=redis_client,
         )
 
         await redis_client.flushdb()

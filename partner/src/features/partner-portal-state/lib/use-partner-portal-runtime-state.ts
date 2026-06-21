@@ -1,15 +1,29 @@
 'use client';
 
-import { startTransition, useEffect, useEffectEvent, useMemo } from 'react';
+import {
+  createContext,
+  createElement,
+  startTransition,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useLocale } from 'next-intl';
 import { useProductFeatureFlag } from '@/app/providers/product-intelligence-provider';
+import { RateLimitError } from '@/lib/api/client';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
 import {
   buildPartnerPortalRuntimeState,
   mapWorkspaceProgramsSnapshot,
 } from '@/features/partner-portal-state/lib/runtime-state';
+import {
+  normalizePartnerPortalResourceState,
+  normalizePortalResourceError,
+} from '@/features/partner-portal-state/lib/resource-state';
 import { usePartnerPortalBootstrapState } from '@/features/partner-portal-state/lib/use-partner-portal-bootstrap-state';
 
 const WORKSPACE_QUERY_PREFIXES = [
@@ -50,14 +64,25 @@ async function resolveOptionalPortalResource<T>(loader: () => Promise<{ data: T 
   }
 }
 
-function boundedWorkspaceRetry(failureCount: number, error: unknown): boolean {
-  if (error instanceof AxiosError) {
-    const status = error.response?.status;
-    if (status === 401 || status === 403 || status === 404) {
-      return false;
-    }
+export function boundedWorkspaceRetry(failureCount: number, error: unknown): boolean {
+  const normalizedError = normalizePortalResourceError(error);
+  if (
+    normalizedError.statusCode === 401
+    || normalizedError.statusCode === 403
+    || normalizedError.statusCode === 404
+  ) {
+    return false;
   }
+
   return failureCount < 2;
+}
+
+export function boundedWorkspaceRetryDelay(attemptIndex: number, error: unknown): number {
+  if (error instanceof RateLimitError) {
+    return Math.min(error.retryAfter * 1000, 120_000);
+  }
+
+  return Math.min(1000 * 2 ** attemptIndex, 30_000);
 }
 
 type WorkspaceFeedEntry = {
@@ -98,7 +123,7 @@ function subscribeWorkspaceFeed(
   };
 }
 
-export function usePartnerPortalRuntimeState() {
+function usePartnerPortalRuntimeStateValue() {
   const bootstrapState = usePartnerPortalBootstrapState();
   const locale = useLocale();
   const queryClient = useQueryClient();
@@ -163,6 +188,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceCommercialCapabilitiesQuery = useQuery({
@@ -177,6 +203,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 60_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceFinanceSummaryQuery = useQuery({
@@ -191,6 +218,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceCampaignAssetsQuery = useQuery({
@@ -206,6 +234,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceStatementsQuery = useQuery({
@@ -224,6 +253,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const payoutAccountsQuery = useQuery({
@@ -242,6 +272,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceResellerVoucherBatchesQuery = useQuery({
@@ -257,6 +288,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceConversionRecordsQuery = useQuery({
@@ -275,6 +307,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceAnalyticsMetricsQuery = useQuery({
@@ -290,6 +323,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceReportExportsQuery = useQuery({
@@ -305,6 +339,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceReviewRequestsQuery = useQuery({
@@ -320,6 +355,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceCasesQuery = useQuery({
@@ -335,6 +371,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceIntegrationCredentialsQuery = useQuery({
@@ -350,6 +387,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceIntegrationDeliveryLogsQuery = useQuery({
@@ -365,6 +403,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceTrafficDeclarationsQuery = useQuery({
@@ -380,6 +419,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 30_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const workspaceNotificationsQuery = useQuery({
@@ -398,6 +438,7 @@ export function usePartnerPortalRuntimeState() {
     enabled: Boolean(activeWorkspace?.id),
     staleTime: 15_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const notificationPreferencesQuery = useQuery({
@@ -408,6 +449,7 @@ export function usePartnerPortalRuntimeState() {
     },
     staleTime: 60_000,
     retry: boundedWorkspaceRetry,
+    retryDelay: boundedWorkspaceRetryDelay,
   });
 
   const state = useMemo(
@@ -468,6 +510,19 @@ export function usePartnerPortalRuntimeState() {
     counters: bootstrap?.counters ?? null,
     pendingTasks: bootstrap?.pending_tasks ?? [],
     blockedReasons: bootstrap?.blocked_reasons ?? [],
+    resources: {
+      workspaceCodes: normalizePartnerPortalResourceState(workspaceCodesQuery, {
+        enabled: Boolean(activeWorkspace?.id),
+        isEmpty: (codes) => codes.length === 0,
+      }),
+      workspaceCommercialCapabilities: normalizePartnerPortalResourceState(
+        workspaceCommercialCapabilitiesQuery,
+        { enabled: Boolean(activeWorkspace?.id) },
+      ),
+      workspaceFinanceSummary: normalizePartnerPortalResourceState(workspaceFinanceSummaryQuery, {
+        enabled: Boolean(activeWorkspace?.id),
+      }),
+    },
     queries: {
       bootstrapQuery,
       workspacesQuery,
@@ -490,4 +545,21 @@ export function usePartnerPortalRuntimeState() {
       notificationPreferencesQuery,
     },
   };
+}
+
+export type PartnerPortalRuntimeStateValue = ReturnType<typeof usePartnerPortalRuntimeStateValue>;
+
+const PartnerPortalRuntimeContext = createContext<PartnerPortalRuntimeStateValue | null>(null);
+
+export function PartnerPortalRuntimeProvider({ children }: { children: ReactNode }) {
+  const value = usePartnerPortalRuntimeStateValue();
+  return createElement(PartnerPortalRuntimeContext.Provider, { value }, children);
+}
+
+export function usePartnerPortalRuntimeState(): PartnerPortalRuntimeStateValue {
+  const value = useContext(PartnerPortalRuntimeContext);
+  if (!value) {
+    throw new Error('usePartnerPortalRuntimeState must be used within PartnerPortalRuntimeProvider');
+  }
+  return value;
 }

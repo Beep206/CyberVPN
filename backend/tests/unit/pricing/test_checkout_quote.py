@@ -197,6 +197,40 @@ async def test_checkout_quote_prefers_explicit_partner_code_over_legacy_bound_pa
 
 
 @pytest.mark.asyncio
+async def test_checkout_quote_rejects_self_attribution_before_checkout_side_effects() -> None:
+    partner_user_id = uuid4()
+    user = SimpleNamespace(id=partner_user_id, partner_account_id=None)
+    account = SimpleNamespace(status="active", legacy_owner_user_id=uuid4())
+    session = SimpleNamespace(get=AsyncMock(return_value=user))
+    use_case = CheckoutUseCase(session)
+    plan = _build_plan(price_usd=Decimal("100.00"))
+    explicit_code = _build_partner_code(partner_user_id=partner_user_id)
+    wallet = SimpleNamespace(
+        get_balance=AsyncMock(return_value=SimpleNamespace(balance=Decimal("0"), frozen=Decimal("0")))
+    )
+
+    use_case._plan_repo = SimpleNamespace(get_by_id=AsyncMock(return_value=plan))
+    use_case._addon_repo = SimpleNamespace(get_by_codes=AsyncMock(return_value=[]))
+    use_case._promo_repo = SimpleNamespace(get_active_by_code=AsyncMock(return_value=None))
+    use_case._partner_repo = SimpleNamespace(
+        get_code_by_code=AsyncMock(return_value=explicit_code),
+        get_account_by_id=AsyncMock(return_value=account),
+        get_codes_by_partner=AsyncMock(return_value=[]),
+    )
+    use_case._wallet = wallet
+
+    with pytest.raises(ValueError, match="Partner code self-referral is blocked"):
+        await use_case.execute(
+            user_id=partner_user_id,
+            plan_id=plan.id,
+            partner_code="NEBULA20",
+            sale_channel="web",
+        )
+
+    wallet.get_balance.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_checkout_quote_rejects_explicit_partner_code_when_policy_disallows_channel() -> None:
     session = SimpleNamespace(get=AsyncMock(return_value=SimpleNamespace(id=uuid4())))
     use_case = CheckoutUseCase(session)

@@ -8,11 +8,19 @@ import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.settlement.commission_terms import build_commission_contract_model
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.creative_approval_model import CreativeApprovalModel
-from src.infrastructure.database.models.partner_model import PartnerCodeLinkModel, PartnerCodeModel
+from src.infrastructure.database.models.earning_event_model import EarningEventModel
+from src.infrastructure.database.models.partner_model import (
+    PartnerCodeLinkModel,
+    PartnerCodeModel,
+    PartnerCommissionContractModel,
+)
+from src.infrastructure.database.models.partner_payout_account_model import PartnerPayoutAccountModel
 from src.infrastructure.database.models.partner_statement_model import PartnerStatementModel
+from src.infrastructure.database.models.payout_instruction_model import PayoutInstructionModel
 from src.infrastructure.database.models.pilot_cohort_model import (
     PilotCohortModel,
     PilotGoNoGoDecisionModel,
@@ -20,7 +28,9 @@ from src.infrastructure.database.models.pilot_cohort_model import (
     PilotRollbackDrillModel,
     PilotRolloutWindowModel,
 )
+from src.infrastructure.database.models.reserve_model import ReserveModel
 from src.infrastructure.database.models.settlement_period_model import SettlementPeriodModel
+from src.infrastructure.database.models.statement_adjustment_model import StatementAdjustmentModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
@@ -286,18 +296,28 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
             )
 
             with sessionmaker() as db:
+                workspace_uuid = uuid.UUID(workspace_id)
                 settlement_period = SettlementPeriodModel(
                     id=uuid.uuid4(),
-                    partner_account_id=uuid.UUID(workspace_id),
+                    partner_account_id=workspace_uuid,
                     period_key="2026-04",
                     period_status="closed",
                     currency_code="USD",
                     window_start=datetime(2026, 4, 1, tzinfo=UTC),
                     window_end=datetime(2026, 5, 1, tzinfo=UTC),
                 )
+                eur_settlement_period = SettlementPeriodModel(
+                    id=uuid.uuid4(),
+                    partner_account_id=workspace_uuid,
+                    period_key="2026-05-eur",
+                    period_status="closed",
+                    currency_code="EUR",
+                    window_start=datetime(2026, 5, 1, tzinfo=UTC),
+                    window_end=datetime(2026, 6, 1, tzinfo=UTC),
+                )
                 statement = PartnerStatementModel(
                     id=uuid.uuid4(),
-                    partner_account_id=uuid.UUID(workspace_id),
+                    partner_account_id=workspace_uuid,
                     settlement_period_id=settlement_period.id,
                     statement_key="portal-workspace-2026-04-v1",
                     statement_version=1,
@@ -314,16 +334,211 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
                     adjustment_count=0,
                     statement_snapshot={"source": "portal-test"},
                 )
+                eur_statement = PartnerStatementModel(
+                    id=uuid.uuid4(),
+                    partner_account_id=workspace_uuid,
+                    settlement_period_id=eur_settlement_period.id,
+                    statement_key="portal-workspace-2026-05-eur-v1",
+                    statement_version=1,
+                    statement_status="closed",
+                    currency_code="EUR",
+                    accrual_amount=Decimal("50.00"),
+                    on_hold_amount=Decimal("6.00"),
+                    reserve_amount=Decimal("0.00"),
+                    adjustment_net_amount=Decimal("-2.00"),
+                    available_amount=Decimal("42.00"),
+                    source_event_count=2,
+                    held_event_count=1,
+                    active_reserve_count=0,
+                    adjustment_count=1,
+                    statement_snapshot={"source": "portal-test-eur"},
+                )
+                usd_on_hold_event_id = uuid.uuid4()
+                earning_events = [
+                    EarningEventModel(
+                        id=usd_on_hold_event_id,
+                        partner_account_id=workspace_uuid,
+                        client_user_id=uuid.uuid4(),
+                        order_id=uuid.uuid4(),
+                        owner_type="affiliate",
+                        event_status="on_hold",
+                        commission_base_amount=Decimal("150.00"),
+                        markup_amount=Decimal("0.00"),
+                        commission_pct=Decimal("10.0000"),
+                        commission_amount=Decimal("15.00"),
+                        total_amount=Decimal("15.00"),
+                        currency_code="USD",
+                        calculation_snapshot={"source": "finance-summary-test"},
+                        source_snapshot={"source": "finance-summary-test"},
+                    ),
+                    EarningEventModel(
+                        id=uuid.uuid4(),
+                        partner_account_id=workspace_uuid,
+                        client_user_id=uuid.uuid4(),
+                        order_id=uuid.uuid4(),
+                        owner_type="affiliate",
+                        event_status="available",
+                        commission_base_amount=Decimal("200.00"),
+                        markup_amount=Decimal("0.00"),
+                        commission_pct=Decimal("10.0000"),
+                        commission_amount=Decimal("20.00"),
+                        total_amount=Decimal("20.00"),
+                        currency_code="USD",
+                        calculation_snapshot={"source": "finance-summary-test"},
+                        source_snapshot={"source": "finance-summary-test"},
+                    ),
+                    EarningEventModel(
+                        id=uuid.uuid4(),
+                        partner_account_id=workspace_uuid,
+                        client_user_id=uuid.uuid4(),
+                        order_id=uuid.uuid4(),
+                        owner_type="affiliate",
+                        event_status="reversed",
+                        commission_base_amount=Decimal("50.00"),
+                        markup_amount=Decimal("0.00"),
+                        commission_pct=Decimal("10.0000"),
+                        commission_amount=Decimal("5.00"),
+                        total_amount=Decimal("5.00"),
+                        currency_code="USD",
+                        calculation_snapshot={"source": "finance-summary-test"},
+                        source_snapshot={"source": "finance-summary-test"},
+                    ),
+                    EarningEventModel(
+                        id=uuid.uuid4(),
+                        partner_account_id=workspace_uuid,
+                        client_user_id=uuid.uuid4(),
+                        order_id=uuid.uuid4(),
+                        owner_type="affiliate",
+                        event_status="blocked",
+                        commission_base_amount=Decimal("75.00"),
+                        markup_amount=Decimal("0.00"),
+                        commission_pct=Decimal("10.0000"),
+                        commission_amount=Decimal("7.50"),
+                        total_amount=Decimal("7.50"),
+                        currency_code="USD",
+                        calculation_snapshot={"source": "finance-summary-test"},
+                        source_snapshot={"source": "finance-summary-test"},
+                    ),
+                    EarningEventModel(
+                        id=uuid.uuid4(),
+                        partner_account_id=workspace_uuid,
+                        client_user_id=uuid.uuid4(),
+                        order_id=uuid.uuid4(),
+                        owner_type="affiliate",
+                        event_status="available",
+                        commission_base_amount=Decimal("400.00"),
+                        markup_amount=Decimal("0.00"),
+                        commission_pct=Decimal("10.0000"),
+                        commission_amount=Decimal("40.00"),
+                        total_amount=Decimal("40.00"),
+                        currency_code="EUR",
+                        calculation_snapshot={"source": "finance-summary-test"},
+                        source_snapshot={"source": "finance-summary-test"},
+                    ),
+                    EarningEventModel(
+                        id=uuid.uuid4(),
+                        partner_account_id=workspace_uuid,
+                        client_user_id=uuid.uuid4(),
+                        order_id=uuid.uuid4(),
+                        owner_type="affiliate",
+                        event_status="reversed",
+                        commission_base_amount=Decimal("30.00"),
+                        markup_amount=Decimal("0.00"),
+                        commission_pct=Decimal("10.0000"),
+                        commission_amount=Decimal("3.00"),
+                        total_amount=Decimal("3.00"),
+                        currency_code="EUR",
+                        calculation_snapshot={"source": "finance-summary-test"},
+                        source_snapshot={"source": "finance-summary-test"},
+                    ),
+                ]
+                payout_account = PartnerPayoutAccountModel(
+                    id=uuid.uuid4(),
+                    partner_account_id=workspace_uuid,
+                    payout_rail="manual",
+                    display_label="Finance summary route",
+                    destination_reference="finance-summary@example.test",
+                    masked_destination="finance-summary@example.test",
+                    verification_status="verified",
+                    approval_status="approved",
+                    account_status="active",
+                    is_default=True,
+                    created_by_admin_user_id=owner_user.id,
+                )
+                reserve = ReserveModel(
+                    id=uuid.uuid4(),
+                    partner_account_id=workspace_uuid,
+                    source_earning_event_id=usd_on_hold_event_id,
+                    reserve_scope="earning_event",
+                    reserve_reason_type="risk_buffer",
+                    reserve_status="active",
+                    amount=Decimal("8.00"),
+                    currency_code="USD",
+                    reason_code="finance_summary_test",
+                    reserve_payload={"source": "finance-summary-test"},
+                    created_by_admin_user_id=owner_user.id,
+                )
+                usd_adjustment = StatementAdjustmentModel(
+                    id=uuid.uuid4(),
+                    partner_statement_id=statement.id,
+                    partner_account_id=workspace_uuid,
+                    adjustment_type="refund_clawback",
+                    adjustment_direction="debit",
+                    amount=Decimal("4.00"),
+                    currency_code="USD",
+                    reason_code="finance_summary_refund",
+                    adjustment_payload={"source": "finance-summary-test"},
+                    created_by_admin_user_id=owner_user.id,
+                )
+                usd_instruction = PayoutInstructionModel(
+                    id=uuid.uuid4(),
+                    partner_account_id=workspace_uuid,
+                    partner_statement_id=statement.id,
+                    partner_payout_account_id=payout_account.id,
+                    instruction_key=f"statement:{statement.id}",
+                    instruction_status="pending_approval",
+                    payout_amount=Decimal("30.00"),
+                    currency_code="USD",
+                    instruction_snapshot={"source": "finance-summary-test"},
+                    created_by_admin_user_id=owner_user.id,
+                )
+                eur_instruction = PayoutInstructionModel(
+                    id=uuid.uuid4(),
+                    partner_account_id=workspace_uuid,
+                    partner_statement_id=eur_statement.id,
+                    partner_payout_account_id=payout_account.id,
+                    instruction_key=f"statement:{eur_statement.id}",
+                    instruction_status="completed",
+                    payout_amount=Decimal("12.00"),
+                    currency_code="EUR",
+                    instruction_snapshot={"source": "finance-summary-test"},
+                    created_by_admin_user_id=owner_user.id,
+                    completed_at=datetime(2026, 5, 20, tzinfo=UTC),
+                )
                 code = PartnerCodeModel(
                     id=uuid.uuid4(),
-                    partner_account_id=uuid.UUID(workspace_id),
+                    partner_account_id=workspace_uuid,
                     partner_user_id=uuid.uuid4(),
                     code="PORTAL42",
                     markup_pct=Decimal("15.00"),
                     is_active=True,
                 )
                 code_id = code.id
-                db.add_all([settlement_period, statement, code])
+                db.add_all(
+                    [
+                        settlement_period,
+                        eur_settlement_period,
+                        statement,
+                        eur_statement,
+                        *earning_events,
+                        payout_account,
+                        reserve,
+                        usd_adjustment,
+                        usd_instruction,
+                        eur_instruction,
+                        code,
+                    ]
+                )
                 db.commit()
 
             workspace_response = await async_client.get(
@@ -387,10 +602,55 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
             )
             assert statements_response.status_code == 200
             statements_payload = statements_response.json()
-            assert len(statements_payload) == 1
-            assert statements_payload[0]["statement_key"] == "portal-workspace-2026-04-v1"
-            assert statements_payload[0]["partner_account_id"] == workspace_id
-            assert statements_payload[0]["available_amount"] == 100.0
+            assert len(statements_payload) == 2
+            statements_by_key = {item["statement_key"]: item for item in statements_payload}
+            assert statements_by_key["portal-workspace-2026-04-v1"]["partner_account_id"] == workspace_id
+            assert statements_by_key["portal-workspace-2026-04-v1"]["available_amount"] == 100.0
+            assert statements_by_key["portal-workspace-2026-05-eur-v1"]["currency_code"] == "EUR"
+
+            finance_summary_response = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}/finance-summary",
+                headers=owner_headers,
+            )
+            assert finance_summary_response.status_code == 200
+            finance_summary = finance_summary_response.json()
+            assert "partner_statements" in finance_summary["source_of_truth"]
+            assert "payout_instructions" in finance_summary["source_of_truth"]
+            currency_summary = {item["currency_code"]: item for item in finance_summary["currencies"]}
+            assert set(currency_summary) == {"EUR", "USD"}
+
+            usd_summary = currency_summary["USD"]
+            assert usd_summary["event_count"] == 4
+            assert usd_summary["pending_amount"] == "7.50"
+            assert usd_summary["on_hold_amount"] == "15.00"
+            assert usd_summary["available_amount"] == "20.00"
+            assert usd_summary["reserved_amount"] == "8.00"
+            assert usd_summary["statement_reserved_amount"] == "10.00"
+            assert usd_summary["reversed_amount"] == "5.00"
+            assert usd_summary["adjustment_amount"] == "-4.00"
+            assert usd_summary["statement_count"] == 1
+            assert usd_summary["statement_event_count"] == 4
+            assert usd_summary["statement_included_amount"] == "125.00"
+            assert usd_summary["statement_available_amount"] == "100.00"
+            assert usd_summary["payout_instruction_count"] == 1
+            assert usd_summary["payout_instruction_amount"] == "30.00"
+            assert usd_summary["payout_pending_amount"] == "30.00"
+            assert usd_summary["payout_completed_amount"] == "0.00"
+            assert usd_summary["next_payout_forecast_amount"] == "100.00"
+
+            eur_summary = currency_summary["EUR"]
+            assert eur_summary["event_count"] == 2
+            assert eur_summary["pending_amount"] == "0.00"
+            assert eur_summary["available_amount"] == "40.00"
+            assert eur_summary["paid_amount"] == "12.00"
+            assert eur_summary["reversed_amount"] == "3.00"
+            assert eur_summary["adjustment_amount"] == "-2.00"
+            assert eur_summary["statement_count"] == 1
+            assert eur_summary["statement_included_amount"] == "50.00"
+            assert eur_summary["statement_available_amount"] == "42.00"
+            assert eur_summary["payout_instruction_amount"] == "12.00"
+            assert eur_summary["payout_completed_amount"] == "12.00"
+            assert eur_summary["next_payout_forecast_amount"] == "30.00"
 
             outsider_codes_response = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}/codes",
@@ -410,6 +670,136 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
                 headers=outsider_headers,
             )
             assert outsider_statements_response.status_code == 403
+
+            outsider_finance_response = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}/finance-summary",
+                headers=outsider_headers,
+            )
+            assert outsider_finance_response.status_code == 403
+            assert "currencies" not in outsider_finance_response.json()
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_partner_workspace_code_markup_update_rotates_commission_contract(
+    async_client: AsyncClient,
+) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            with sessionmaker() as db:
+                realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
+                admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                await _create_admin_user(
+                    session=db,
+                    auth_service=auth_service,
+                    auth_realm_id=admin_realm.id,
+                    login="contract_admin",
+                    email="contract-admin@example.com",
+                    password="ContractAdmin123!",
+                    role="admin",
+                )
+                owner_user = await _create_admin_user(
+                    session=db,
+                    auth_service=auth_service,
+                    auth_realm_id=admin_realm.id,
+                    login="contract_owner",
+                    email="contract-owner@example.com",
+                    password="ContractOwner123!",
+                    role="viewer",
+                )
+
+            admin_token = await _login(async_client, "contract-admin@example.com", "ContractAdmin123!")
+            owner_token = await _login(async_client, "contract-owner@example.com", "ContractOwner123!")
+            admin_headers = {"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
+
+            workspace_id = await _create_workspace(
+                async_client,
+                admin_headers=admin_headers,
+                owner_admin_user_id=str(owner_user.id),
+            )
+
+            with sessionmaker() as db:
+                code_model = PartnerCodeModel(
+                    id=uuid.uuid4(),
+                    partner_account_id=uuid.UUID(workspace_id),
+                    partner_user_id=owner_user.id,
+                    code="CONTRACT42",
+                    code_normalized="CONTRACT42",
+                    markup_pct=Decimal("10.00"),
+                    is_active=True,
+                    version=1,
+                )
+                db.add(code_model)
+                db.flush()
+                first_contract = build_commission_contract_model(
+                    code_model=code_model,
+                    commission_pct=Decimal("20.00"),
+                    payout_hold_days=30,
+                    source="test_seed",
+                    contract_id=uuid.uuid4(),
+                )
+                db.add(first_contract)
+                db.flush()
+                code_model.commission_contract_id = first_contract.id
+                first_contract_id = first_contract.id
+                code_id = code_model.id
+                db.commit()
+                assert first_contract.terms_snapshot["markup_pct"] == "10.00"
+                assert first_contract.terms_snapshot["contract_version"] == 1
+
+            destination_response = await async_client.patch(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}",
+                headers={**owner_headers, "If-Match": '"1"'},
+                json={"destination_path": "/pricing"},
+            )
+            assert destination_response.status_code == 200
+            destination_payload = destination_response.json()
+            assert destination_payload["commission_contract_id"] == str(first_contract_id)
+            assert destination_payload["version"] == 2
+
+            markup_response = await async_client.patch(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}",
+                headers={**owner_headers, "If-Match": '"2"'},
+                json={"markup_pct": 25},
+            )
+            assert markup_response.status_code == 200, markup_response.text
+            markup_payload = markup_response.json()
+            second_contract_id = uuid.UUID(markup_payload["commission_contract_id"])
+            assert second_contract_id != first_contract_id
+            assert markup_payload["version"] == 3
+
+            with sessionmaker() as db:
+                code_model = db.get(PartnerCodeModel, code_id)
+                assert code_model is not None
+                assert code_model.commission_contract_id == second_contract_id
+                old_contract = db.get(PartnerCommissionContractModel, first_contract_id)
+                new_contract = db.get(PartnerCommissionContractModel, second_contract_id)
+                assert old_contract is not None
+                assert new_contract is not None
+                assert old_contract.terms_snapshot["markup_pct"] == "10.00"
+                assert old_contract.terms_snapshot["contract_version"] == 1
+                assert new_contract.terms_snapshot["markup_pct"] == "25.0"
+                assert new_contract.terms_snapshot["contract_version"] == 3
+                assert (
+                    db.query(PartnerCommissionContractModel)
+                    .filter(PartnerCommissionContractModel.partner_code_id == code_model.id)
+                    .count()
+                    == 2
+                )
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()

@@ -217,9 +217,11 @@ async def test_issue_gift_batch_assigns_shared_batch_id() -> None:
                 assert len({item.growth_code.id for item in issued_batch.items}) == 3
                 assert {item.growth_code.batch_id for item in issued_batch.items} == {issued_batch.batch_id}
 
-                persisted_codes = db.execute(
-                    select(GrowthCodeModel).where(GrowthCodeModel.batch_id == issued_batch.batch_id)
-                ).scalars().all()
+                persisted_codes = (
+                    db.execute(select(GrowthCodeModel).where(GrowthCodeModel.batch_id == issued_batch.batch_id))
+                    .scalars()
+                    .all()
+                )
                 assert len(persisted_codes) == 3
     finally:
         engine.dispose()
@@ -347,7 +349,10 @@ async def test_post_payment_gift_purchase_issues_gift_without_legacy_payout_side
                 db.add_all([payment, attempt])
                 db.commit()
 
-                results = await PostPaymentProcessingUseCase(SyncSessionAdapter(db)).execute(payment.id)
+                results = await PostPaymentProcessingUseCase(SyncSessionAdapter(db)).execute(
+                    payment.id,
+                    process_cash_rewards=True,
+                )
                 db.commit()
 
                 assert results["gift_code_issued"] is True
@@ -355,16 +360,23 @@ async def test_post_payment_gift_purchase_issues_gift_without_legacy_payout_side
                 assert results["referral_commission"] is None
                 assert results["partner_earning"] is None
 
-                gift_codes = db.execute(
-                    select(GrowthCodeModel).where(
-                        GrowthCodeModel.code_type == "gift",
-                        GrowthCodeModel.owner_user_id == uuid.UUID(seeded["customer_user_id"]),
+                gift_codes = (
+                    db.execute(
+                        select(GrowthCodeModel).where(
+                            GrowthCodeModel.code_type == "gift",
+                            GrowthCodeModel.owner_user_id == uuid.UUID(seeded["customer_user_id"]),
+                        )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
                 assert len(gift_codes) == 1
-                assert db.execute(
-                    select(InviteCodeModel).where(InviteCodeModel.source_payment_id == payment.id)
-                ).scalars().all() == []
+                assert (
+                    db.execute(select(InviteCodeModel).where(InviteCodeModel.source_payment_id == payment.id))
+                    .scalars()
+                    .all()
+                    == []
+                )
                 assert db.execute(select(ReferralCommissionModel)).scalars().all() == []
                 assert db.execute(select(PartnerEarningModel)).scalars().all() == []
     finally:

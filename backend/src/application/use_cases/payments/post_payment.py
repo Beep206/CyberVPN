@@ -27,6 +27,11 @@ from src.application.use_cases.referrals.process_referral_reward import (
     ProcessReferralRewardUseCase,
 )
 from src.application.use_cases.settlement import CreatePartnerEarningEventFromPaymentUseCase, RecordEarningEventUseCase
+from src.application.use_cases.settlement.commission_terms import (
+    PARTNER_EARNING_SNAPSHOT_INCOMPLETE_CODE,
+    PartnerEarningSnapshotIncompleteError,
+)
+from src.config.settings import settings
 from src.domain.enums import WalletTxReason
 from src.infrastructure.database.models.plan_addon_model import SubscriptionAddonModel
 from src.infrastructure.database.models.promo_code_model import PromoCodeUsageModel
@@ -57,6 +62,8 @@ from src.infrastructure.database.repositories.system_config_repo import (
 from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 
 logger = logging.getLogger(__name__)
+
+_LEGACY_PARTNER_EARNING_METADATA_MODE = "legacy"
 
 
 class PostPaymentProcessingUseCase:
@@ -110,11 +117,12 @@ class PostPaymentProcessingUseCase:
         self._policy_evaluator = EvaluateOrderPolicyUseCase(session)
         self._outbox = EventOutboxService(session)
 
-    async def execute(self, payment_id: UUID) -> dict:
+    async def execute(self, payment_id: UUID, *, process_cash_rewards: bool = False) -> dict:
         """Run all post-payment processing for a completed payment.
 
         Returns a dict summarising the outcome of each step for
-        logging and debugging purposes.
+        logging and debugging purposes. Cash rewards are opt-in so payment
+        completion paths publish durable payment.completed work by default.
         """
         payment = await self._payment_repo.get_by_id(payment_id)
         if payment is None:
@@ -160,14 +168,15 @@ class PostPaymentProcessingUseCase:
                             source_context={"source_use_case": "PostPaymentProcessingUseCase"},
                         )
                 renewal_order = await self._renewal_orders.get_by_order_id(payment_attempt.order_id)
-                policy_evaluation = await self._policy_evaluator.execute(order_id=payment_attempt.order_id)
-                results["policy_evaluation"] = {
-                    "order_id": str(payment_attempt.order_id),
-                    "qualifying_first_payment": policy_evaluation.qualifying_event.qualifying_first_payment,
-                    "referral_cash_payout_allowed": policy_evaluation.payout_rules.referral_cash_payout_allowed,
-                    "partner_cash_payout_allowed": policy_evaluation.payout_rules.partner_cash_payout_allowed,
-                    "no_double_payout": policy_evaluation.payout_rules.no_double_payout,
-                }
+                if process_cash_rewards:
+                    policy_evaluation = await self._policy_evaluator.execute(order_id=payment_attempt.order_id)
+                    results["policy_evaluation"] = {
+                        "order_id": str(payment_attempt.order_id),
+                        "qualifying_first_payment": policy_evaluation.qualifying_event.qualifying_first_payment,
+                        "referral_cash_payout_allowed": policy_evaluation.payout_rules.referral_cash_payout_allowed,
+                        "partner_cash_payout_allowed": policy_evaluation.payout_rules.partner_cash_payout_allowed,
+                        "no_double_payout": policy_evaluation.payout_rules.no_double_payout,
+                    }
             except Exception:
                 policy_evaluation_failed = True
                 logger.exception(
@@ -177,6 +186,10 @@ class PostPaymentProcessingUseCase:
 
         # Look up the paying user once for referral/partner resolution.
         user = await self._user_repo.get_by_id(payment.user_uuid)
+        has_order_reference = payment_attempt is not None and payment_attempt.order_id is not None
+        canonical_commission_base_amount = Decimal("0") if has_order_reference else commission_base_amount
+        if resolved_order is not None:
+            canonical_commission_base_amount = Decimal(str(resolved_order.commission_base_amount))
 
         # ------------------------------------------------------------------
         # 1. Activate purchased add-ons
@@ -314,12 +327,31 @@ class PostPaymentProcessingUseCase:
         # 3. Process referral reward
         # ------------------------------------------------------------------
         referrer_id = user.referred_by_user_id if user else None
-        if gift_flow:
+        if not process_cash_rewards:
+            results["cash_rewards_deferred"] = True
             results["referral_reward_amount"] = None
             results["referral_reward_status"] = None
             results["referral_commission"] = None
-        elif referrer_id is not None and commission_base_amount > 0:
-            if policy_evaluation is not None and not policy_evaluation.payout_rules.referral_cash_payout_allowed:
+        elif gift_flow:
+            results["referral_reward_amount"] = None
+            results["referral_reward_status"] = None
+            results["referral_commission"] = None
+        elif referrer_id is not None and canonical_commission_base_amount > 0:
+            if policy_evaluation_failed:
+                logger.error(
+                    "post_payment_referral_reward_blocked_by_policy_failure",
+                    extra={
+                        "payment_id": str(payment_id),
+                        "order_id": (
+                            str(payment_attempt.order_id) if payment_attempt and payment_attempt.order_id else None
+                        ),
+                    },
+                )
+                results["referral_reward_amount"] = None
+                results["referral_reward_status"] = None
+                results["referral_commission"] = None
+                results["referral_policy_block_reasons"] = ["policy_evaluation_failed"]
+            elif policy_evaluation is not None and not policy_evaluation.payout_rules.referral_cash_payout_allowed:
                 logger.info(
                     "post_payment_referral_reward_blocked_by_policy",
                     extra={
@@ -340,7 +372,7 @@ class PostPaymentProcessingUseCase:
                         referrer_user_id=referrer_id,
                         referred_user_id=payment.user_uuid,
                         payment_id=payment.id,
-                        base_amount=commission_base_amount,
+                        base_amount=canonical_commission_base_amount,
                         duration_days=payment.subscription_days,
                         order_id=payment_attempt.order_id if payment_attempt is not None else None,
                         storefront_id=resolved_order.storefront_id if resolved_order is not None else None,
@@ -376,11 +408,20 @@ class PostPaymentProcessingUseCase:
                 resolved_partner_user_id = resolved_partner_code.partner_user_id
 
         canonical_partner_event_attempted = False
-        if gift_flow:
+        if not process_cash_rewards:
+            results["cash_rewards_deferred"] = True
             results["partner_earning"] = None
             results["settlement_earning_event_id"] = None
             results["settlement_earning_event_status"] = None
-        elif payment_attempt is not None and payment_attempt.order_id is not None and commission_base_amount > 0:
+        elif gift_flow:
+            results["partner_earning"] = None
+            results["settlement_earning_event_id"] = None
+            results["settlement_earning_event_status"] = None
+        elif (
+            payment_attempt is not None
+            and payment_attempt.order_id is not None
+            and canonical_commission_base_amount > 0
+        ):
             canonical_partner_event_attempted = True
             if policy_evaluation_failed:
                 logger.error(
@@ -405,7 +446,7 @@ class PostPaymentProcessingUseCase:
                     earning_event, _earning_hold = await self._create_partner_earning_event.execute(
                         order_id=payment_attempt.order_id,
                         payment_id=payment.id,
-                        commission_base_amount=commission_base_amount,
+                        commission_base_amount=canonical_commission_base_amount,
                         source_event_id=str(payment.external_id or payment.id),
                         commit=False,
                     )
@@ -415,14 +456,71 @@ class PostPaymentProcessingUseCase:
                         results["settlement_earning_event_status"] = earning_event.event_status
                     else:
                         results["partner_earning"] = None
+                except PartnerEarningSnapshotIncompleteError as exc:
+                    manual_review_event = await self._record_partner_snapshot_incomplete(
+                        payment=payment,
+                        order_id=payment_attempt.order_id,
+                        missing_terms=exc.missing_terms,
+                        reason_code=exc.code,
+                    )
+                    logger.warning(
+                        "post_payment_partner_earning_snapshot_incomplete",
+                        extra={
+                            "payment_id": str(payment_id),
+                            "order_id": str(payment_attempt.order_id),
+                            "reason_code": exc.code,
+                            "missing_terms": exc.missing_terms,
+                        },
+                    )
+                    results["partner_earning"] = None
+                    results["settlement_earning_event_id"] = None
+                    results["settlement_earning_event_status"] = None
+                    results["partner_policy_block_reasons"] = [exc.code]
+                    results["partner_earning_snapshot_missing_terms"] = exc.missing_terms
+                    results["partner_earning_manual_review_event_id"] = str(manual_review_event.id)
                 except Exception:
                     logger.exception(
                         "post_payment_canonical_partner_earning_failed",
                         extra={"payment_id": str(payment_id), "order_id": str(payment_attempt.order_id)},
                     )
                     raise
-        elif resolved_partner_code_id and user and resolved_partner_user_id and commission_base_amount > 0:
-            if policy_evaluation_failed:
+        elif (
+            not has_order_reference
+            and resolved_partner_code_id
+            and user
+            and resolved_partner_user_id
+            and commission_base_amount > 0
+        ):
+            if not settings.partner_legacy_partner_earning_enabled:
+                logger.warning(
+                    "post_payment_legacy_partner_earning_blocked_by_feature_flag",
+                    extra={
+                        "payment_id": str(payment_id),
+                        "partner_code_id": str(resolved_partner_code_id),
+                        "sunset_date": settings.partner_legacy_partner_earning_sunset_date,
+                    },
+                )
+                results["partner_earning"] = None
+                results["settlement_earning_event_id"] = None
+                results["settlement_earning_event_status"] = None
+                results["partner_policy_block_reasons"] = ["legacy_partner_earning_disabled"]
+            elif str(payment_metadata.get("partner_earning_mode") or "").strip().lower() != (
+                _LEGACY_PARTNER_EARNING_METADATA_MODE
+            ):
+                logger.warning(
+                    "post_payment_legacy_partner_earning_blocked_without_snapshot",
+                    extra={
+                        "payment_id": str(payment_id),
+                        "partner_code_id": str(resolved_partner_code_id),
+                        "reason_code": PARTNER_EARNING_SNAPSHOT_INCOMPLETE_CODE,
+                    },
+                )
+                results["partner_earning"] = None
+                results["settlement_earning_event_id"] = None
+                results["settlement_earning_event_status"] = None
+                results["partner_policy_block_reasons"] = [PARTNER_EARNING_SNAPSHOT_INCOMPLETE_CODE]
+                results["partner_earning_snapshot_missing_terms"] = ["order_attribution_result"]
+            elif policy_evaluation_failed:
                 logger.error(
                     "post_payment_legacy_partner_earning_blocked_by_policy_failure",
                     extra={"payment_id": str(payment_id)},
@@ -553,6 +651,36 @@ class PostPaymentProcessingUseCase:
 
         logger.info("post_payment_processing_completed", extra=results)
         return results
+
+    async def _record_partner_snapshot_incomplete(
+        self,
+        *,
+        payment,
+        order_id: UUID,
+        missing_terms: list[str],
+        reason_code: str,
+    ):
+        return await self._outbox.append_event(
+            event_name="settlement.earning.snapshot_incomplete",
+            aggregate_type="payment",
+            aggregate_id=str(payment.id),
+            partition_key=str(order_id),
+            event_key=f"settlement.earning.snapshot_incomplete:{payment.id}:{order_id}",
+            event_payload={
+                "payment_id": str(payment.id),
+                "order_id": str(order_id),
+                "reason_code": reason_code,
+                "missing_terms": sorted(set(missing_terms)),
+                "manual_review_required": True,
+                "retryable": True,
+                "cash_payout_created": False,
+            },
+            source_context={
+                "source": "post_payment_partner_earning",
+                "provider": str(payment.provider or ""),
+                "currency": str(payment.currency or "").upper(),
+            },
+        )
 
     async def _apply_selected_subscription_write(
         self,

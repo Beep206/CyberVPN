@@ -1,6 +1,53 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
+type MockSlot = {
+  char: string | null;
+  hasFakeCaret: boolean;
+  isActive: boolean;
+};
+
+vi.mock('input-otp', () => ({
+  REGEXP_ONLY_DIGITS: '^\\d+$',
+  OTPInput: ({
+    disabled,
+    maxLength,
+    onChange,
+    onKeyDown,
+    render: renderSlots,
+    value,
+    ...props
+  }: {
+    disabled?: boolean;
+    maxLength: number;
+    onChange: (value: string) => void;
+    onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+    render: (input: { slots: MockSlot[] }) => ReactNode;
+    value: string;
+    [key: string]: unknown;
+  }) => {
+    const slots = Array.from({ length: maxLength }, (_, index) => ({
+      char: value[index] ?? null,
+      hasFakeCaret: index === value.length,
+      isActive: index === value.length,
+    }));
+
+    return (
+      <>
+        <input
+          aria-label={props['aria-label'] as string}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={onKeyDown}
+          value={value}
+        />
+        {renderSlots({ slots })}
+      </>
+    );
+  },
+}));
+
 import { CyberOtpInput, normalizeOtpValue } from '../CyberOtpInput';
 
 function ControlledOtpInput({

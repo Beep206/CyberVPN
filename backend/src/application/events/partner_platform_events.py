@@ -25,6 +25,10 @@ PARTNER_PLATFORM_EVENT_FAMILIES = {
         "promo.applied_to_order",
         "promo.rejected",
     ),
+    "payment": (
+        "payment.completed",
+        "payment.completed.partner_earning.reconciliation_required",
+    ),
     "gift": (
         "gift.issued",
         "gift.redeemed",
@@ -81,6 +85,7 @@ PARTNER_PLATFORM_EVENT_FAMILIES = {
     ),
     "settlement": (
         "settlement.earning.created",
+        "settlement.earning.snapshot_incomplete",
         "settlement.earning_hold.released",
         "settlement.statement.generated",
         "settlement.statement.closed",

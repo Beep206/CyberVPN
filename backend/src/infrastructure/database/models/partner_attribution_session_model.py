@@ -63,7 +63,11 @@ class PartnerAttributionSessionModel(Base):
         nullable=True,
         index=True,
     )
-    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_commission_contracts.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
     source_host: Mapped[str | None] = mapped_column(String(255), nullable=True)
     source_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     destination_path: Mapped[str | None] = mapped_column(String(500), nullable=True)

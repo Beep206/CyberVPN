@@ -11,10 +11,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.dto.payment_dto import InvoiceResponseDTO
+from src.application.events import EventOutboxService
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
 from src.application.use_cases.payments.complete_zero_gateway import (
     CompleteZeroGatewayUseCase,
+)
+from src.application.use_cases.payments.payment_completed_earnings import (
+    append_payment_completed_partner_earning_publication,
 )
 from src.application.use_cases.payments.post_payment import (
     PostPaymentProcessingUseCase,
@@ -47,6 +51,7 @@ class CommitCheckoutUseCase:
         self._payments = PaymentRepository(session)
         wallet_repo = WalletRepository(session)
         self._wallet = WalletService(wallet_repo)
+        self._outbox = EventOutboxService(session)
 
     async def execute(
         self,
@@ -63,6 +68,7 @@ class CommitCheckoutUseCase:
         subscription_days_override: int | None = None,
         metadata_extra: dict | None = None,
         idempotency_key: str | None = None,
+        publish_completed_payment_event: bool = True,
     ) -> CommitCheckoutResult:
         normalized_idempotency_key = _normalize_idempotency_key(idempotency_key)
         if normalized_idempotency_key is not None:
@@ -159,7 +165,14 @@ class CommitCheckoutUseCase:
                 subscription_days_override=subscription_days_override,
             )
             post_payment = PostPaymentProcessingUseCase(self._session)
-            await post_payment.execute(payment.id)
+            await post_payment.execute(payment.id, process_cash_rewards=False)
+            if publish_completed_payment_event:
+                await append_payment_completed_partner_earning_publication(
+                    self._outbox,
+                    payment=payment,
+                    payment_attempt=None,
+                    source="zero_gateway_checkout",
+                )
             return CommitCheckoutResult(payment=payment, status="completed")
 
         if quote_result.wallet_amount > 0:

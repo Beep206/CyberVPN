@@ -194,7 +194,7 @@ async def test_phase4_finance_foundations_surface_and_reconciliation_gate(
                 )
                 db.add_all([payment, attempt])
                 db.commit()
-                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id)
+                results = await PostPaymentProcessingUseCase(adapter).execute(payment.id, process_cash_rewards=True)
                 db.commit()
                 earning_event_id = results["settlement_earning_event_id"]
                 assert earning_event_id is not None
@@ -475,8 +475,9 @@ async def test_phase4_finance_foundations_surface_and_reconciliation_gate(
             report = build_phase4_settlement_reconciliation_pack(snapshot)
             assert report["reconciliation"]["status"] == "green"
             assert report["liability_views"][0]["partner_account_id"] == str(partner_account.id)
-            assert report["liability_views"][0]["statement_totals"]["closed_statement_available_amount"] == (
-                closed_statement["available_amount"]
+            assert (
+                report["liability_views"][0]["statement_totals"]["closed_statement_available_amount"]
+                == (closed_statement["available_amount"])
             )
             assert report["payout_views"][0]["instruction_status"] == "approved"
             assert report["payout_views"][0]["linked_execution_ids"] == [dry_run_execution["id"]]

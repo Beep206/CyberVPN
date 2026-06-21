@@ -8,7 +8,7 @@ from src.application.services.auth_service import AuthService
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
-from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeLinkModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeLinkModel, PartnerCodeModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
 from tests.helpers.realm_auth import (
@@ -134,6 +134,15 @@ async def test_partner_workspace_scope_enforcement(
                     password="ScopeAnalystP@ssword123!",
                     role="viewer",
                 )
+                traffic_operator = await _create_admin_user(
+                    session=db,
+                    auth_service=auth_service,
+                    auth_realm_id=partner_realm.id,
+                    login="scope_traffic",
+                    email="scope-traffic@example.com",
+                    password="ScopeTrafficP@ssword123!",
+                    role="viewer",
+                )
                 outsider_operator = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
@@ -209,10 +218,34 @@ async def test_partner_workspace_scope_enforcement(
             )
             assert analyst_add_response.status_code == 201
 
+            traffic_add_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/members",
+                headers=await fresh_auth_headers(
+                    fake_redis=fake_redis,
+                    base_headers=_auth_headers(owner_token, realm="partner", host=PARTNER_AUTH_HOST),
+                    user=owner_operator,
+                    auth_realm_id=partner_realm.id,
+                    realm_key="partner",
+                    action=f"partner.member.create:{workspace_id}",
+                    principal_class="partner_operator",
+                ),
+                json={
+                    "admin_user_id": str(traffic_operator.id),
+                    "role_key": "traffic_manager",
+                },
+            )
+            assert traffic_add_response.status_code == 201
+
             analyst_token = await _login(
                 async_client,
                 "scope-analyst@example.com",
                 "ScopeAnalystP@ssword123!",
+                realm="partner",
+            )
+            traffic_token = await _login(
+                async_client,
+                "scope-traffic@example.com",
+                "ScopeTrafficP@ssword123!",
                 realm="partner",
             )
             analyst_detail = await async_client.get(
@@ -243,6 +276,48 @@ async def test_partner_workspace_scope_enforcement(
                     .all()
                 )
                 initial_link_count = len(existing_links)
+
+            traffic_update_response = await async_client.patch(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}",
+                headers=_auth_headers(traffic_token, realm="partner", host=PARTNER_AUTH_HOST),
+                json={"destination_path": "/docs"},
+            )
+            assert traffic_update_response.status_code == 200
+            assert traffic_update_response.json()["destination_path"] == "/docs"
+            with sessionmaker() as db:
+                code_after_traffic_update = db.get(PartnerCodeModel, uuid.UUID(code_id))
+                assert code_after_traffic_update is not None
+                contract_id_after_traffic_update = code_after_traffic_update.commission_contract_id
+                version_after_traffic_update = code_after_traffic_update.version
+                assert code_after_traffic_update.markup_pct == 0
+
+            traffic_markup_update_response = await async_client.patch(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes/{code_id}",
+                headers=_auth_headers(traffic_token, realm="partner", host=PARTNER_AUTH_HOST),
+                json={"markup_pct": 12.5},
+            )
+            assert traffic_markup_update_response.status_code == 403
+
+            traffic_markup_create_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes",
+                headers=_auth_headers(traffic_token, realm="partner", host=PARTNER_AUTH_HOST),
+                json={
+                    "code": "SCOPEMARKUP42",
+                    "destination_path": "/pricing",
+                    "markup_pct": 7.5,
+                },
+            )
+            assert traffic_markup_create_response.status_code == 403
+            with sessionmaker() as db:
+                code_after_denied_markup = db.get(PartnerCodeModel, uuid.UUID(code_id))
+                assert code_after_denied_markup is not None
+                assert code_after_denied_markup.markup_pct == 0
+                assert code_after_denied_markup.commission_contract_id == contract_id_after_traffic_update
+                assert code_after_denied_markup.version == version_after_traffic_update
+                forbidden_code = db.scalar(
+                    select(PartnerCodeModel).where(PartnerCodeModel.code_normalized == "SCOPEMARKUP42")
+                )
+                assert forbidden_code is None
 
             analyst_codes_response = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}/codes",

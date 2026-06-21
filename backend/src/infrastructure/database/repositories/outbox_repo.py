@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -34,6 +36,57 @@ class OutboxRepository:
         )
         return result.scalars().first()
 
+    async def get_event_by_key(self, event_key: str) -> OutboxEventModel | None:
+        result = await self._session.execute(
+            select(OutboxEventModel)
+            .execution_options(populate_existing=True)
+            .options(selectinload(OutboxEventModel.publications))
+            .where(OutboxEventModel.event_key == event_key)
+        )
+        return result.scalars().first()
+
+    async def ensure_publications(
+        self,
+        *,
+        event: OutboxEventModel,
+        consumer_keys: tuple[str, ...],
+        now: datetime | None = None,
+    ) -> OutboxEventModel:
+        now = now or datetime.now(UTC)
+        requested_consumers = tuple(dict.fromkeys(consumer_keys))
+        existing_consumers = {publication.consumer_key for publication in event.publications}
+        missing_consumers = [
+            consumer_key for consumer_key in requested_consumers if consumer_key not in existing_consumers
+        ]
+        if not missing_consumers:
+            return event
+
+        publications = [
+            OutboxPublicationModel(
+                id=uuid.uuid4(),
+                outbox_event_id=event.id,
+                consumer_key=consumer_key,
+                publication_status=OutboxPublicationStatus.PENDING.value,
+                attempts=0,
+                next_attempt_at=now,
+                publication_payload={},
+            )
+            for consumer_key in missing_consumers
+        ]
+        try:
+            async with self._session.begin_nested():
+                self._session.add_all(publications)
+                await self._session.flush()
+        except IntegrityError:
+            # A concurrent writer can win the same event/consumer insert race.
+            # The unique constraint is the source of truth; refresh and return
+            # the durable row instead of surfacing a duplicate failure.
+            pass
+
+        await self.refresh_event_status(event.id)
+        refreshed = await self.get_event_by_id(event.id)
+        return refreshed or event
+
     async def list_events(
         self,
         *,
@@ -45,8 +98,10 @@ class OutboxRepository:
         limit: int = 100,
         offset: int = 0,
     ) -> list[OutboxEventModel]:
-        query = select(OutboxEventModel).execution_options(populate_existing=True).options(
-            selectinload(OutboxEventModel.publications)
+        query = (
+            select(OutboxEventModel)
+            .execution_options(populate_existing=True)
+            .options(selectinload(OutboxEventModel.publications))
         )
         if event_family is not None:
             query = query.where(OutboxEventModel.event_family == event_family)
@@ -130,6 +185,7 @@ class OutboxRepository:
                 ),
             )
             .order_by(OutboxPublicationModel.next_attempt_at.asc(), OutboxPublicationModel.created_at.asc())
+            .with_for_update(skip_locked=True)
             .limit(batch_size)
         )
         items = list(result.scalars().unique().all())

@@ -224,8 +224,7 @@ async def test_renewal_order_inherits_affiliate_provenance_from_initial_acquisit
             assert explainability_payload["explainability"]["renewal_order"]["effective_owner_type"] == "affiliate"
             assert explainability_payload["commissionability_evaluation"]["partner_context_present"] is True
             assert (
-                "missing_partner_context"
-                not in explainability_payload["commissionability_evaluation"]["reason_codes"]
+                "missing_partner_context" not in explainability_payload["commissionability_evaluation"]["reason_codes"]
             )
     finally:
         app.dependency_overrides.pop(get_redis, None)
@@ -505,7 +504,7 @@ async def test_post_payment_uses_renewal_order_effective_owner_as_partner_fallba
                 db.commit()
 
                 post_payment = PostPaymentProcessingUseCase(adapter)
-                results = await post_payment.execute(payment.id)
+                results = await post_payment.execute(payment.id, process_cash_rewards=True)
                 partner_repo = PartnerRepository(adapter)
                 earnings = await partner_repo.get_earnings_by_partner(partner_owner_id)
                 db.commit()

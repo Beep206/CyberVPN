@@ -57,7 +57,7 @@ class CryptoBotWebhookHandler:
         if not self.INVOICE_ID_PATTERN.match(invoice_id):
             logger.warning(
                 "Payment validation failed: invalid invoice_id format",
-                extra={"invoice_id": invoice_id[:50]},  # Truncate for safety
+                extra={"invoice_id_fingerprint": _provider_reference_fingerprint(invoice_id)},
             )
             return False
 
@@ -83,7 +83,7 @@ class CryptoBotWebhookHandler:
         except redis.RedisError:
             logger.exception(
                 "Payment idempotency check failed; falling back to database terminal-state guard",
-                extra={"invoice_id": invoice_id},
+                extra={"invoice_id_fingerprint": _provider_reference_fingerprint(invoice_id)},
             )
             return False
         return exists > 0
@@ -103,13 +103,13 @@ class CryptoBotWebhookHandler:
         except redis.RedisError:
             logger.exception(
                 "Payment idempotency mark failed; database terminal-state guard remains authoritative",
-                extra={"invoice_id": invoice_id},
+                extra={"invoice_id_fingerprint": _provider_reference_fingerprint(invoice_id)},
             )
             return
 
         logger.debug(
             "Invoice marked as processed",
-            extra={"invoice_id": invoice_id},
+            extra={"invoice_id_fingerprint": _provider_reference_fingerprint(invoice_id)},
         )
 
     async def validate_payment(
@@ -137,7 +137,7 @@ class CryptoBotWebhookHandler:
         if not self.validate_signature(body, signature):
             logger.warning(
                 "Payment validation failed: invalid signature",
-                extra={"invoice_id": invoice_id[:20] if invoice_id else "N/A"},
+                extra={"invoice_id_fingerprint": _provider_reference_fingerprint(invoice_id)},
             )
             return False, "Invalid webhook signature"
 
@@ -149,8 +149,17 @@ class CryptoBotWebhookHandler:
         if await self.is_duplicate_invoice(invoice_id):
             logger.info(
                 "Payment already processed (idempotency)",
-                extra={"invoice_id": invoice_id},
+                extra={"invoice_id_fingerprint": _provider_reference_fingerprint(invoice_id)},
             )
             return False, "Invoice already processed"
 
         return True, None
+
+
+def _provider_reference_fingerprint(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()

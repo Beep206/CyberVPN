@@ -8,6 +8,10 @@ import {
 } from '@/shared/lib/structured-data';
 import { SITE_URL } from '@/shared/lib/site-metadata';
 
+function expectSchemaArray(value: unknown): asserts value is readonly unknown[] {
+  expect(Array.isArray(value)).toBe(true);
+}
+
 describe('structured-data helpers', () => {
   it('builds localized FAQPage structured data from server FAQ content', () => {
     const data = buildFaqPageStructuredData({
@@ -30,8 +34,9 @@ describe('structured-data helpers', () => {
     expect(data['@type']).toBe('FAQPage');
     expect(data.url).toBe(`${SITE_URL}/ru-RU/help`);
     expect(data.inLanguage).toBe('ru-RU');
+    expectSchemaArray(data.mainEntity);
     expect(data.mainEntity).toHaveLength(2);
-    expect(data.mainEntity?.[0]).toMatchObject({
+    expect(data.mainEntity[0]).toMatchObject({
       '@type': 'Question',
       name: 'How do I connect?',
     });

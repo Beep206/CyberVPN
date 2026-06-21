@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Numeric, String, Uuid
@@ -64,14 +65,25 @@ class EarningEventModel(Base):
         nullable=True,
         index=True,
     )
-    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_commission_contracts.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
     owner_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    earning_component: Mapped[str] = mapped_column(
+        String(40),
+        nullable=False,
+        default="partner_cash",
+        server_default="partner_cash",
+        index=True,
+    )
     event_status: Mapped[str] = mapped_column(String(20), nullable=False, default="on_hold", server_default="on_hold")
-    commission_base_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
-    markup_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
-    commission_pct: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
-    commission_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
-    total_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    commission_base_amount: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
+    markup_amount: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
+    commission_pct: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
+    commission_amount: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False)
     currency_code: Mapped[str] = mapped_column(String(12), nullable=False, default="USD", server_default="USD")
     available_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     calculation_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)

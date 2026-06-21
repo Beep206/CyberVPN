@@ -12,6 +12,7 @@ PARTNER_ATTRIBUTION_COOKIE_NAME = "cv_partner_attribution"
 PARTNER_ATTRIBUTION_TTL_DAYS = 30
 PARTNER_ATTRIBUTION_MAX_AGE_SECONDS = PARTNER_ATTRIBUTION_TTL_DAYS * 24 * 60 * 60
 PARTNER_ATTRIBUTION_TRANSFER_TTL_SECONDS = 15 * 60
+PARTNER_ATTRIBUTION_BROWSER_ACTIVE_SESSION_LIMIT = 5
 PARTNER_ATTRIBUTION_STORAGE_VERSION = 1
 PARTNER_PUBLIC_ORIGIN = "https://cyber-vpn.net"
 CUSTOMER_PUBLIC_ORIGIN = "https://my.cyber-vpn.net"
@@ -89,7 +90,7 @@ def build_customer_destination_url(
     path = parsed.path or "/register"
     if not re.match(r"^/[a-z]{2}-[A-Z]{2}(/|$)", path):
         path = f"/{normalized_locale}{path}"
-    query_items = parse_qsl(parsed.query, keep_blank_values=False)
+    query_items = _query_items_without_transfer_token(parsed.query)
     query_items.append(("pat", transfer_token))
     return f"{CUSTOMER_PUBLIC_ORIGIN}{urlunsplit(('', '', path, urlencode(query_items), parsed.fragment))}"
 
@@ -101,7 +102,12 @@ def build_customer_public_url(*, locale: str | None = "ru-RU", destination_path:
     path = parsed.path or "/register"
     if not re.match(r"^/[a-z]{2}-[A-Z]{2}(/|$)", path):
         path = f"/{normalized_locale}{path}"
-    return f"{CUSTOMER_PUBLIC_ORIGIN}{urlunsplit(('', '', path, parsed.query, parsed.fragment))}"
+    query_items = _query_items_without_transfer_token(parsed.query)
+    return f"{CUSTOMER_PUBLIC_ORIGIN}{urlunsplit(('', '', path, urlencode(query_items), parsed.fragment))}"
+
+
+def _query_items_without_transfer_token(query: str) -> list[tuple[str, str]]:
+    return [(key, value) for key, value in parse_qsl(query, keep_blank_values=False) if key.lower() != "pat"]
 
 
 def mask_partner_code(code: str | None) -> str:

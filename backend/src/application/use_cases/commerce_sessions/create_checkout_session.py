@@ -337,9 +337,14 @@ def _extract_reservation_id(quote_snapshot: dict | None) -> UUID | None:
 def _sanitize_quote_snapshot(snapshot: dict | None) -> dict:
     sanitized = dict(snapshot or {})
     sanitized.pop("partner_attribution", None)
+    sanitized.pop("partner_commission_contract_snapshot", None)
     code_resolution = dict(sanitized.get("code_resolution") or {})
     if code_resolution:
         code_resolution["reservation_id"] = None
+        policy_snapshot = dict(code_resolution.get("policy_snapshot") or {})
+        if policy_snapshot:
+            policy_snapshot.pop("commission_contract_snapshot", None)
+            code_resolution["policy_snapshot"] = policy_snapshot
         sanitized["code_resolution"] = code_resolution
     return sanitized
 

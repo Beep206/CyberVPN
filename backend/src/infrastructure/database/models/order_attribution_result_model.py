@@ -59,7 +59,11 @@ class OrderAttributionResultModel(Base):
         nullable=True,
         index=True,
     )
-    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True)
+    commission_contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_commission_contracts.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
     winning_touchpoint_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("attribution_touchpoints.id", ondelete="SET NULL"),
         nullable=True,

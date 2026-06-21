@@ -212,14 +212,18 @@ class CreateQuoteSessionUseCase:
                     },
                     commit=False,
                 )
-                if normalized_partner_code and checkout_result.partner_code_id is not None:
+                explicit_partner_code = _explicit_partner_code_for_touchpoint(
+                    normalized_partner_code=normalized_partner_code,
+                    checkout_result=checkout_result,
+                )
+                if explicit_partner_code and checkout_result.partner_code_id is not None:
                     await self._touchpoints.execute(
                         current_realm=current_realm,
                         touchpoint_type=AttributionTouchpointType.EXPLICIT_CODE.value,
                         user_id=user_id,
                         storefront_id=resolved_context.storefront.id,
                         quote_session_id=created.id,
-                        partner_code=normalized_partner_code,
+                        partner_code=explicit_partner_code,
                         partner_code_id=checkout_result.partner_code_id,
                         sale_channel=channel,
                         source_host=source_host,
@@ -227,8 +231,9 @@ class CreateQuoteSessionUseCase:
                         campaign_params=dict(campaign_params or {}),
                         evidence_payload={
                             "source": "quote_session_create",
-                            "entry_mode": "request_payload",
+                            "entry_mode": ("request_payload" if normalized_partner_code else "unified_code_input"),
                             "storefront_key": resolved_context.storefront.storefront_key,
+                            "policy_snapshot": _build_partner_commission_policy_snapshot(checkout_result),
                         },
                         commit=False,
                     )
@@ -324,3 +329,31 @@ def _build_partner_attribution_snapshot(
         "claim_touchpoint_id": str(result.claim_touchpoint_id) if result.claim_touchpoint_id else None,
         "quote_touchpoint_id": str(result.quote_touchpoint_id) if result.quote_touchpoint_id else None,
     }
+
+
+def _explicit_partner_code_for_touchpoint(*, normalized_partner_code: str | None, checkout_result) -> str | None:
+    if normalized_partner_code:
+        return normalized_partner_code
+    if (
+        checkout_result.code_resolution is not None
+        and checkout_result.code_resolution.code_type == GrowthCodeType.PARTNER
+        and checkout_result.partner_code_id is not None
+    ):
+        return checkout_result.code_input
+    return None
+
+
+def _build_partner_commission_policy_snapshot(checkout_result) -> dict:
+    snapshot = dict(checkout_result.partner_commission_contract_snapshot or {})
+    policy_snapshot = {
+        "partner_account_id": snapshot.get("partner_account_id"),
+        "partner_user_id": snapshot.get("partner_user_id"),
+        "partner_code_id": snapshot.get("partner_code_id")
+        or (str(checkout_result.partner_code_id) if checkout_result.partner_code_id else None),
+        "commission_contract_id": snapshot.get("commission_contract_id"),
+        "owner_type": snapshot.get("owner_type"),
+        "attribution_model": "last_eligible_touch",
+    }
+    if snapshot:
+        policy_snapshot["commission_contract_snapshot"] = snapshot
+    return policy_snapshot

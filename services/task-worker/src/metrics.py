@@ -123,6 +123,18 @@ STAGE1_PROVISIONING_RETRY_CLAIMS_TOTAL = Counter(
     ["result"],
 )
 
+PAYMENT_COMPLETED_PARTNER_EARNINGS_RUNS_TOTAL = Counter(
+    "cybervpn_payment_completed_partner_earnings_runs_total",
+    "Total durable payment.completed partner earning worker runs",
+    ["result"],
+)
+
+PAYMENT_COMPLETED_PARTNER_EARNINGS_ACTIONS_TOTAL = Counter(
+    "cybervpn_payment_completed_partner_earnings_actions_total",
+    "Durable payment.completed partner earning worker actions",
+    ["action"],
+)
+
 # OTP Email metrics (for Grafana monitoring per PRD requirements)
 OTP_EMAILS_SENT = Counter(
     "cybervpn_otp_emails_sent_total",

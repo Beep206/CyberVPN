@@ -23,7 +23,11 @@ from src.domain.enums import InviteSource
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
-from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
+from src.infrastructure.database.models.partner_model import (
+    PartnerAccountModel,
+    PartnerCodeModel,
+    PartnerCommissionContractModel,
+)
 from src.infrastructure.database.models.promo_code_model import PromoCodeModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.main import app
@@ -519,6 +523,131 @@ class TestPartnerFlow:
         assert stored_code is None
 
     @pytest.mark.integration
+    async def test_non_partner_with_active_workspace_cannot_create_partner_code(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        stale_user = await _create_mobile_user(db, is_partner=False)
+        active_account = PartnerAccountModel(
+            account_key=f"active-stale-{secrets.token_hex(4)}",
+            display_name="Active Stale Partner Workspace",
+            status="active",
+            legacy_owner_user_id=stale_user.id,
+        )
+        db.add(active_account)
+        await db.flush()
+        stale_user.partner_account_id = active_account.id
+        await db.commit()
+        requested_code = f"STALEACTIVE{secrets.token_hex(3).upper()}"
+
+        _override_mobile_user(stale_user.id)
+        create_response = await async_client.post(
+            "/api/v1/partner/codes",
+            json={
+                "code": requested_code,
+                "markup_pct": 10.0,
+            },
+        )
+
+        assert create_response.status_code == 403
+        stored_code = await db.scalar(select(PartnerCodeModel).where(PartnerCodeModel.code == requested_code))
+        assert stored_code is None
+        stored_contract = await db.scalar(
+            select(PartnerCommissionContractModel).where(
+                PartnerCommissionContractModel.partner_user_id == stale_user.id,
+            )
+        )
+        assert stored_contract is None
+
+    @pytest.mark.integration
+    async def test_non_partner_with_active_workspace_cannot_read_partner_surfaces(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        stale_user = await _create_mobile_user(db, is_partner=False)
+        active_account = PartnerAccountModel(
+            account_key=f"read-stale-{secrets.token_hex(4)}",
+            display_name="Read Stale Partner Workspace",
+            status="active",
+            legacy_owner_user_id=stale_user.id,
+        )
+        db.add(active_account)
+        await db.flush()
+        stale_user.partner_account_id = active_account.id
+        await db.commit()
+
+        _override_mobile_user(stale_user.id)
+        for path in ("/api/v1/partner/codes", "/api/v1/partner/dashboard", "/api/v1/partner/earnings"):
+            response = await async_client.get(path)
+            assert response.status_code == 403
+
+    @pytest.mark.integration
+    async def test_inactive_partner_workspace_cannot_read_partner_surfaces(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        partner_user = await _create_mobile_user(db, is_partner=True)
+        suspended_account = PartnerAccountModel(
+            account_key=f"read-suspended-{secrets.token_hex(4)}",
+            display_name="Read Suspended Partner Workspace",
+            status="suspended",
+            legacy_owner_user_id=partner_user.id,
+        )
+        db.add(suspended_account)
+        await db.flush()
+        partner_user.partner_account_id = suspended_account.id
+        await db.commit()
+
+        _override_mobile_user(partner_user.id)
+        for path in ("/api/v1/partner/codes", "/api/v1/partner/dashboard", "/api/v1/partner/earnings"):
+            response = await async_client.get(path)
+            assert response.status_code == 403
+
+    @pytest.mark.integration
+    async def test_partner_with_active_workspace_can_create_partner_code(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        partner_user = await _create_mobile_user(db, is_partner=True)
+        active_account = PartnerAccountModel(
+            account_key=f"active-partner-{secrets.token_hex(4)}",
+            display_name="Active Partner Workspace",
+            status="active",
+            legacy_owner_user_id=partner_user.id,
+        )
+        db.add(active_account)
+        await db.flush()
+        partner_user.partner_account_id = active_account.id
+        await db.commit()
+        requested_code = f"ACTIVEPART{secrets.token_hex(3).upper()}"
+
+        _override_mobile_user(partner_user.id)
+        create_response = await async_client.post(
+            "/api/v1/partner/codes",
+            json={
+                "code": requested_code,
+                "markup_pct": 10.0,
+            },
+        )
+
+        assert create_response.status_code == 201
+        stored_code = await db.scalar(select(PartnerCodeModel).where(PartnerCodeModel.code == requested_code))
+        assert stored_code is not None
+        assert stored_code.partner_account_id == active_account.id
+        assert stored_code.commission_contract_id is not None
+        list_response = await async_client.get("/api/v1/partner/codes")
+        assert list_response.status_code == 200
+        assert any(item["id"] == str(stored_code.id) for item in list_response.json())
+        dashboard_response = await async_client.get("/api/v1/partner/dashboard")
+        assert dashboard_response.status_code == 200
+        earnings_response = await async_client.get("/api/v1/partner/earnings")
+        assert earnings_response.status_code == 200
+
+    @pytest.mark.integration
     async def test_partner_markup_exceeds_limit(
         self,
         async_client: AsyncClient,
@@ -537,6 +666,184 @@ class TestPartnerFlow:
 
         assert create_response.status_code == 422
         assert "markup" in create_response.json()["detail"].lower()
+
+    @pytest.mark.integration
+    async def test_active_partner_can_update_markup_and_rotates_commission_contract(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        partner_user = await _create_mobile_user(db, is_partner=True)
+        partner_code = PartnerCodeModel(
+            code=f"UPDACTIVE{secrets.token_hex(3).upper()}",
+            code_normalized=f"UPDACTIVEN{secrets.token_hex(3).upper()}",
+            partner_user_id=partner_user.id,
+            markup_pct=Decimal("10.0"),
+            is_active=True,
+            lifecycle_status="active",
+            approval_status="approved",
+        )
+        db.add(partner_code)
+        await db.commit()
+        await db.refresh(partner_code)
+
+        _override_mobile_user(partner_user.id)
+        update_response = await async_client.put(
+            f"/api/v1/partner/codes/{partner_code.id}",
+            json={"markup_pct": 18.5},
+        )
+
+        assert update_response.status_code == 200
+        assert Decimal(str(update_response.json()["markup_pct"])) == Decimal("18.5")
+        await db.refresh(partner_code)
+        assert partner_code.markup_pct == Decimal("18.50")
+        assert partner_code.commission_contract_id is not None
+        contract = await db.get(PartnerCommissionContractModel, partner_code.commission_contract_id)
+        assert contract is not None
+        assert contract.partner_code_id == partner_code.id
+        assert contract.terms_snapshot["markup_pct"] == "18.5"
+
+    @pytest.mark.integration
+    async def test_regular_customer_cannot_update_partner_code_markup(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        regular_user = await _create_mobile_user(db, is_partner=False)
+        partner_code = PartnerCodeModel(
+            code=f"UPDCUSTOMER{secrets.token_hex(3).upper()}",
+            code_normalized=f"UPDCUSTOMERN{secrets.token_hex(3).upper()}",
+            partner_user_id=regular_user.id,
+            markup_pct=Decimal("10.0"),
+            is_active=True,
+            lifecycle_status="active",
+            approval_status="approved",
+        )
+        db.add(partner_code)
+        await db.commit()
+        await db.refresh(partner_code)
+
+        _override_mobile_user(regular_user.id)
+        update_response = await async_client.put(
+            f"/api/v1/partner/codes/{partner_code.id}",
+            json={"markup_pct": 18.5},
+        )
+
+        assert update_response.status_code == 403
+        await db.refresh(partner_code)
+        assert partner_code.markup_pct == Decimal("10.00")
+        assert partner_code.commission_contract_id is None
+        contracts = (
+            await db.execute(
+                select(PartnerCommissionContractModel).where(
+                    PartnerCommissionContractModel.partner_code_id == partner_code.id,
+                )
+            )
+        ).scalars()
+        assert contracts.all() == []
+
+    @pytest.mark.integration
+    async def test_suspended_partner_account_cannot_update_partner_code_markup(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        partner_user = await _create_mobile_user(db, is_partner=True)
+        suspended_account = PartnerAccountModel(
+            account_key=f"update-suspended-{secrets.token_hex(4)}",
+            display_name="Suspended Partner Update Workspace",
+            status="suspended",
+            legacy_owner_user_id=partner_user.id,
+        )
+        db.add(suspended_account)
+        await db.flush()
+        partner_user.partner_account_id = suspended_account.id
+        partner_code = PartnerCodeModel(
+            code=f"UPDSUSP{secrets.token_hex(3).upper()}",
+            code_normalized=f"UPDSUSPN{secrets.token_hex(3).upper()}",
+            partner_account_id=suspended_account.id,
+            partner_user_id=partner_user.id,
+            markup_pct=Decimal("10.0"),
+            is_active=True,
+            lifecycle_status="active",
+            approval_status="approved",
+        )
+        db.add(partner_code)
+        await db.commit()
+        await db.refresh(partner_code)
+
+        _override_mobile_user(partner_user.id)
+        update_response = await async_client.put(
+            f"/api/v1/partner/codes/{partner_code.id}",
+            json={"markup_pct": 18.5},
+        )
+
+        assert update_response.status_code == 403
+        await db.refresh(partner_code)
+        assert partner_code.markup_pct == Decimal("10.00")
+        assert partner_code.commission_contract_id is None
+
+    @pytest.mark.integration
+    async def test_inactive_partner_code_cannot_update_markup(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        partner_user = await _create_mobile_user(db, is_partner=True)
+        partner_code = PartnerCodeModel(
+            code=f"UPDINACTIVE{secrets.token_hex(3).upper()}",
+            code_normalized=f"UPDINACTIVEN{secrets.token_hex(3).upper()}",
+            partner_user_id=partner_user.id,
+            markup_pct=Decimal("10.0"),
+            is_active=False,
+            lifecycle_status="revoked",
+            approval_status="approved",
+        )
+        db.add(partner_code)
+        await db.commit()
+        await db.refresh(partner_code)
+
+        _override_mobile_user(partner_user.id)
+        update_response = await async_client.put(
+            f"/api/v1/partner/codes/{partner_code.id}",
+            json={"markup_pct": 18.5},
+        )
+
+        assert update_response.status_code == 403
+        await db.refresh(partner_code)
+        assert partner_code.markup_pct == Decimal("10.00")
+        assert partner_code.commission_contract_id is None
+
+    @pytest.mark.integration
+    async def test_negative_partner_code_markup_update_is_rejected_before_mutation(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        partner_user = await _create_mobile_user(db, is_partner=True)
+        partner_code = PartnerCodeModel(
+            code=f"UPDNEG{secrets.token_hex(3).upper()}",
+            code_normalized=f"UPDNEGN{secrets.token_hex(3).upper()}",
+            partner_user_id=partner_user.id,
+            markup_pct=Decimal("10.0"),
+            is_active=True,
+            lifecycle_status="active",
+            approval_status="approved",
+        )
+        db.add(partner_code)
+        await db.commit()
+        await db.refresh(partner_code)
+
+        _override_mobile_user(partner_user.id)
+        update_response = await async_client.put(
+            f"/api/v1/partner/codes/{partner_code.id}",
+            json={"markup_pct": -1},
+        )
+
+        assert update_response.status_code == 422
+        await db.refresh(partner_code)
+        assert partner_code.markup_pct == Decimal("10.00")
+        assert partner_code.commission_contract_id is None
 
     @pytest.mark.integration
     async def test_bind_user_to_partner(

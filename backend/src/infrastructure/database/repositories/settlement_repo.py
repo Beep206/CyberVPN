@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.earning_event_model import EarningEventModel
@@ -15,6 +17,33 @@ from src.infrastructure.database.models.payout_instruction_model import PayoutIn
 from src.infrastructure.database.models.reserve_model import ReserveModel
 from src.infrastructure.database.models.settlement_period_model import SettlementPeriodModel
 from src.infrastructure.database.models.statement_adjustment_model import StatementAdjustmentModel
+
+
+@dataclass
+class SettlementFinanceCurrencyTotals:
+    currency_code: str
+    event_count: int = 0
+    pending_amount: Decimal = Decimal("0")
+    on_hold_amount: Decimal = Decimal("0")
+    available_amount: Decimal = Decimal("0")
+    paid_amount: Decimal = Decimal("0")
+    reversed_amount: Decimal = Decimal("0")
+    total_amount: Decimal = Decimal("0")
+    reserved_amount: Decimal = Decimal("0")
+    adjustment_amount: Decimal = Decimal("0")
+    statement_count: int = 0
+    statement_event_count: int = 0
+    statement_included_amount: Decimal = Decimal("0")
+    statement_on_hold_amount: Decimal = Decimal("0")
+    statement_available_amount: Decimal = Decimal("0")
+    statement_reserved_amount: Decimal = Decimal("0")
+    statement_adjustment_amount: Decimal = Decimal("0")
+    payout_instruction_count: int = 0
+    payout_instruction_amount: Decimal = Decimal("0")
+    payout_pending_amount: Decimal = Decimal("0")
+    payout_approved_amount: Decimal = Decimal("0")
+    payout_completed_amount: Decimal = Decimal("0")
+    last_event_at: datetime | None = None
 
 
 class SettlementRepository:
@@ -312,6 +341,214 @@ class SettlementRepository:
         result = await self._session.execute(query)
         return list(result.scalars().all())
 
+    async def get_partner_finance_currency_totals(
+        self,
+        *,
+        partner_account_id: UUID,
+    ) -> list[SettlementFinanceCurrencyTotals]:
+        totals_by_currency: dict[str, SettlementFinanceCurrencyTotals] = {}
+
+        def bucket(currency_code: str | None) -> SettlementFinanceCurrencyTotals:
+            normalized = str(currency_code or "USD").upper()
+            existing = totals_by_currency.get(normalized)
+            if existing is not None:
+                return existing
+            created = SettlementFinanceCurrencyTotals(currency_code=normalized)
+            totals_by_currency[normalized] = created
+            return created
+
+        zero = Decimal("0")
+        event_rows = await self._session.execute(
+            select(
+                EarningEventModel.currency_code.label("currency_code"),
+                func.count(EarningEventModel.id).label("event_count"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                ~EarningEventModel.event_status.in_(
+                                    ("on_hold", "available", "paid", "reversed"),
+                                ),
+                                EarningEventModel.total_amount,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    zero,
+                ).label("pending_amount"),
+                func.coalesce(
+                    func.sum(
+                        case((EarningEventModel.event_status == "on_hold", EarningEventModel.total_amount), else_=0)
+                    ),
+                    zero,
+                ).label("on_hold_amount"),
+                func.coalesce(
+                    func.sum(
+                        case((EarningEventModel.event_status == "available", EarningEventModel.total_amount), else_=0)
+                    ),
+                    zero,
+                ).label("available_amount"),
+                func.coalesce(
+                    func.sum(case((EarningEventModel.event_status == "paid", EarningEventModel.total_amount), else_=0)),
+                    zero,
+                ).label("paid_amount"),
+                func.coalesce(
+                    func.sum(
+                        case((EarningEventModel.event_status == "reversed", EarningEventModel.total_amount), else_=0)
+                    ),
+                    zero,
+                ).label("reversed_amount"),
+                func.coalesce(func.sum(EarningEventModel.total_amount), zero).label("total_amount"),
+                func.max(EarningEventModel.created_at).label("last_event_at"),
+            )
+            .where(EarningEventModel.partner_account_id == partner_account_id)
+            .group_by(EarningEventModel.currency_code)
+        )
+        for row in event_rows:
+            totals = bucket(row.currency_code)
+            totals.event_count = int(row.event_count or 0)
+            totals.pending_amount = _decimal(row.pending_amount)
+            totals.on_hold_amount = _decimal(row.on_hold_amount)
+            totals.available_amount = _decimal(row.available_amount)
+            totals.paid_amount = _decimal(row.paid_amount)
+            totals.reversed_amount = _decimal(row.reversed_amount)
+            totals.total_amount = _decimal(row.total_amount)
+            totals.last_event_at = row.last_event_at
+
+        reserve_rows = await self._session.execute(
+            select(
+                ReserveModel.currency_code.label("currency_code"),
+                func.coalesce(func.sum(ReserveModel.amount), zero).label("reserved_amount"),
+            )
+            .where(
+                ReserveModel.partner_account_id == partner_account_id,
+                ReserveModel.reserve_status == "active",
+            )
+            .group_by(ReserveModel.currency_code)
+        )
+        for row in reserve_rows:
+            bucket(row.currency_code).reserved_amount = _decimal(row.reserved_amount)
+
+        statement_rows = await self._session.execute(
+            select(
+                PartnerStatementModel.currency_code.label("currency_code"),
+                func.count(PartnerStatementModel.id).label("statement_count"),
+                func.coalesce(func.sum(PartnerStatementModel.source_event_count), 0).label("statement_event_count"),
+                func.coalesce(func.sum(PartnerStatementModel.accrual_amount), zero).label("statement_included_amount"),
+                func.coalesce(func.sum(PartnerStatementModel.on_hold_amount), zero).label("statement_on_hold_amount"),
+                func.coalesce(func.sum(PartnerStatementModel.available_amount), zero).label(
+                    "statement_available_amount"
+                ),
+                func.coalesce(func.sum(PartnerStatementModel.reserve_amount), zero).label("statement_reserved_amount"),
+                func.coalesce(func.sum(PartnerStatementModel.adjustment_net_amount), zero).label(
+                    "statement_adjustment_amount"
+                ),
+            )
+            .where(
+                PartnerStatementModel.partner_account_id == partner_account_id,
+                PartnerStatementModel.superseded_by_statement_id.is_(None),
+            )
+            .group_by(PartnerStatementModel.currency_code)
+        )
+        for row in statement_rows:
+            totals = bucket(row.currency_code)
+            totals.statement_count = int(row.statement_count or 0)
+            totals.statement_event_count = int(row.statement_event_count or 0)
+            totals.statement_included_amount = _decimal(row.statement_included_amount)
+            totals.statement_on_hold_amount = _decimal(row.statement_on_hold_amount)
+            totals.statement_available_amount = _decimal(row.statement_available_amount)
+            totals.statement_reserved_amount = _decimal(row.statement_reserved_amount)
+            totals.statement_adjustment_amount = _decimal(row.statement_adjustment_amount)
+
+        adjustment_rows = await self._session.execute(
+            select(
+                StatementAdjustmentModel.currency_code.label("currency_code"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                StatementAdjustmentModel.adjustment_direction == "credit",
+                                StatementAdjustmentModel.amount,
+                            ),
+                            else_=-StatementAdjustmentModel.amount,
+                        )
+                    ),
+                    zero,
+                ).label("adjustment_amount"),
+            )
+            .where(StatementAdjustmentModel.partner_account_id == partner_account_id)
+            .group_by(StatementAdjustmentModel.currency_code)
+        )
+        for row in adjustment_rows:
+            bucket(row.currency_code).adjustment_amount = _decimal(row.adjustment_amount)
+
+        payout_rows = await self._session.execute(
+            select(
+                PayoutInstructionModel.currency_code.label("currency_code"),
+                func.count(PayoutInstructionModel.id).label("payout_instruction_count"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                PayoutInstructionModel.instruction_status != "rejected",
+                                PayoutInstructionModel.payout_amount,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    zero,
+                ).label("payout_instruction_amount"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                PayoutInstructionModel.instruction_status == "pending_approval",
+                                PayoutInstructionModel.payout_amount,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    zero,
+                ).label("payout_pending_amount"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                PayoutInstructionModel.instruction_status == "approved",
+                                PayoutInstructionModel.payout_amount,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    zero,
+                ).label("payout_approved_amount"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                PayoutInstructionModel.instruction_status == "completed",
+                                PayoutInstructionModel.payout_amount,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    zero,
+                ).label("payout_completed_amount"),
+            )
+            .where(PayoutInstructionModel.partner_account_id == partner_account_id)
+            .group_by(PayoutInstructionModel.currency_code)
+        )
+        for row in payout_rows:
+            totals = bucket(row.currency_code)
+            totals.payout_instruction_count = int(row.payout_instruction_count or 0)
+            totals.payout_instruction_amount = _decimal(row.payout_instruction_amount)
+            totals.payout_pending_amount = _decimal(row.payout_pending_amount)
+            totals.payout_approved_amount = _decimal(row.payout_approved_amount)
+            totals.payout_completed_amount = _decimal(row.payout_completed_amount)
+            totals.paid_amount += totals.payout_completed_amount
+
+        return [totals_by_currency[currency] for currency in sorted(totals_by_currency)]
+
     async def get_open_partner_statement(
         self,
         *,
@@ -522,3 +759,11 @@ class SettlementRepository:
 
     async def flush(self) -> None:
         await self._session.flush()
+
+
+def _decimal(value: object) -> Decimal:
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))

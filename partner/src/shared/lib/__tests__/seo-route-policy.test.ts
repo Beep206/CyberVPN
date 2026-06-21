@@ -57,8 +57,8 @@ describe('seo-route-policy', () => {
     expect(guideDetailAlternates['hi-IN']).toBeUndefined();
     expect(guideDetailAlternates['ja-JP']).toBeUndefined();
     expect(guideDetailAlternates['fa-IR']).toBeUndefined();
-    expect(toAbsoluteLocalizedUrl('hi-IN', '/pricing')).toBe(
-      'https://partner.cyber-vpn.net/hi-IN/pricing',
+    expect(toAbsoluteLocalizedUrl('en-EN', '/pricing')).toBe(
+      'https://partner.cyber-vpn.net/en-EN/pricing',
     );
   });
 

@@ -175,6 +175,24 @@ async function preserveRateLimitResponse(response: Response): Promise<NextRespon
   return nextResponse;
 }
 
+async function preserveCaptureFailureResponse(response: Response): Promise<NextResponse> {
+  let payload: unknown = {
+    detail: {
+      code: 'PARTNER_ATTRIBUTION_CAPTURE_FAILED',
+      message: 'Partner attribution link cannot be used.',
+    },
+  };
+  try {
+    payload = await response.clone().json() as unknown;
+  } catch {
+    // Keep a stable public failure body when the backend sends a non-JSON error.
+  }
+  const status = response.status >= 400 && response.status < 500 ? response.status : 503;
+  const nextResponse = NextResponse.json(payload, { status });
+  nextResponse.headers.set('Cache-Control', 'no-store');
+  return nextResponse;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ publicToken: string }> },
@@ -219,7 +237,7 @@ export async function GET(
     if (response.status === 429) {
       return preserveRateLimitResponse(response);
     }
-    return withBrowserCookie(NextResponse.redirect(new URL('/ru-RU/register', SITE_URL)), browser.token);
+    return preserveCaptureFailureResponse(response);
   }
 
   const payload = await response.json() as CaptureResponse;

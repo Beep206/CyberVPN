@@ -115,6 +115,20 @@ export function FinanceOperationsPage() {
     () => payoutAccountsQuery.data ?? [],
     [payoutAccountsQuery.data],
   );
+  const financeCurrencySnapshots = useMemo(
+    () => (
+      state.financeCurrencySnapshots?.length
+        ? state.financeCurrencySnapshots
+        : [{
+            ...state.financeSnapshot,
+            paid: '0',
+            reversed: '0',
+            source: 'local' as const,
+            total: state.financeSnapshot.availableEarnings,
+          }]
+    ),
+    [state.financeCurrencySnapshots, state.financeSnapshot],
+  );
   const selectedAccount = useMemo(() => {
     const effectiveId = selectedAccountId ?? payoutAccounts[0]?.id ?? null;
     return payoutAccounts.find((item) => item.id === effectiveId) ?? null;
@@ -367,6 +381,73 @@ export function FinanceOperationsPage() {
                 </p>
               </article>
             </div>
+
+            <article className="rounded-[1.5rem] border border-grid-line/20 bg-terminal-surface/35 p-5 shadow-[0_0_24px_rgba(0,255,255,0.04)] md:p-6">
+              <div className="flex items-center gap-3">
+                <Wallet className="h-5 w-5 text-neon-cyan" />
+                <div>
+                  <h2 className="text-lg font-display uppercase tracking-[0.18em] text-white">
+                    {t('snapshot.currencyBreakdown')}
+                  </h2>
+                  <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
+                    {t('snapshot.currencyBreakdownDescription')}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                {financeCurrencySnapshots.map((snapshot) => (
+                  <article
+                    key={snapshot.currency}
+                    className="rounded-2xl border border-grid-line/20 bg-terminal-bg/55 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-display uppercase tracking-[0.16em] text-white">
+                        {snapshot.currency}
+                      </h3>
+                      <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-neon-cyan/80">
+                        {t('snapshot.source', { value: snapshot.source })}
+                      </span>
+                    </div>
+                    <dl className="mt-4 grid gap-3 text-sm font-mono text-muted-foreground md:grid-cols-2">
+                      <div>
+                        <dt>{t('snapshot.available')}</dt>
+                        <dd className="mt-1 text-foreground">{snapshot.availableEarnings}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('snapshot.onHold')}</dt>
+                        <dd className="mt-1 text-foreground">{snapshot.onHoldEarnings}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('snapshot.reserves')}</dt>
+                        <dd className="mt-1 text-foreground">{snapshot.reserves}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('snapshot.forecast')}</dt>
+                        <dd className="mt-1 text-foreground">{snapshot.nextPayoutForecast}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('snapshot.paid')}</dt>
+                        <dd className="mt-1 text-foreground">{snapshot.paid}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('snapshot.reversed')}</dt>
+                        <dd className="mt-1 text-foreground">{snapshot.reversed}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('snapshot.total')}</dt>
+                        <dd className="mt-1 text-foreground">{snapshot.total}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('snapshot.events')}</dt>
+                        <dd className="mt-1 text-foreground">
+                          {snapshot.eventCount ?? t('snapshot.notAvailable')}
+                        </dd>
+                      </div>
+                    </dl>
+                  </article>
+                ))}
+              </div>
+            </article>
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
               <article className="rounded-[1.5rem] border border-grid-line/20 bg-terminal-bg/85 p-5 shadow-[0_0_32px_rgba(0,255,255,0.04)] md:p-7">

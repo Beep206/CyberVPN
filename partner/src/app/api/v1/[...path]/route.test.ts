@@ -149,4 +149,60 @@ describe('partner API proxy route', () => {
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ detail: 'CSRF origin validation failed' });
   });
+
+  it('does not forward attacker-controlled unknown forwarded hosts to backend realm resolution', async () => {
+    vi.stubEnv('API_URL', 'http://backend.internal');
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ) as typeof fetch;
+
+    const request = new NextRequest('http://portal.localhost:3004/api/v1/auth/session', {
+      headers: {
+        'x-forwarded-host': 'evil.example',
+        'x-auth-realm': 'admin',
+      },
+    });
+
+    const response = await GET(request, createContext(['auth', 'session']));
+    const headers = getFetchInit().headers as Headers;
+
+    expect(headers.get('x-forwarded-host')).toBe('portal.localhost:3004');
+    expect(headers.get('x-forwarded-host')).not.toBe('evil.example');
+    expect(headers.get('x-auth-realm')).toBeNull();
+    expect(response.status).toBe(200);
+  });
+
+  it('rejects unknown request hosts before forwarding to the backend', async () => {
+    vi.stubEnv('API_URL', 'http://backend.internal');
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ) as typeof fetch;
+
+    const request = new NextRequest('https://unknown.example/api/v1/auth/session', {
+      headers: {
+        'x-forwarded-host': 'admin.cyber-vpn.net',
+      },
+    });
+
+    const response = await GET(request, createContext(['auth', 'session']));
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(response.status).toBe(421);
+    await expect(response.json()).resolves.toEqual({
+      detail: {
+        code: 'UNKNOWN_PARTNER_SURFACE_HOST',
+        message: 'Unknown partner surface host.',
+      },
+    });
+  });
 });
