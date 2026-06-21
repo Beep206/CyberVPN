@@ -13,6 +13,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 
+os.environ.setdefault("METRICS_PROTECT", "false")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def mock_settings_for_imports():
