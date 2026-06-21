@@ -1,170 +1,119 @@
-# Task Worker - Agent Rules
+# CyberVPN Task Worker Engineering Rules
 
-Rules for AI agents working on the task-worker service. This file supplements CLAUDE.md with the same critical constraints.
+Apply the root contract and `services/AGENTS.md`. This file is authoritative for
+`services/task-worker/`.
 
-## Email Template Rules (MANDATORY)
+Use `pyproject.toml`, current TaskIQ configuration, task registry, tests, and CI
+workflow as the version and command source of truth. Python 3.13 is required.
 
-All email HTML templates live in `src/services/email/templates.py`. **Never** duplicate templates into individual email clients.
+## TaskIQ and durable task behavior
 
-### Absolute Rules -- Zero Exceptions
+- Keep task names, queues, payload schemas, labels, and routing compatible.
+- Register tasks through the established broker/task modules. Do not create
+  hidden import-order registration or duplicate task names.
+- Treat delivery as at-least-once. Every state-changing task needs a stable
+  idempotency key and database/provider duplicate behavior.
+- Acknowledge only after intended durable state is committed or safely handed
+  off.
+- Use bounded retries with backoff/jitter. Validation, authorization, malformed
+  payload, and permanent provider failures are terminal.
+- Preserve retry attempt, correlation/task ID, and terminal reason in safe
+  diagnostics.
+- Test duplicate delivery, crash/restart boundaries, timeout, cancellation,
+  provider partial success, and dead-letter/terminal behavior.
+- Do not use arbitrary sleeps, unbounded polling, unbounded concurrency, or
+  unbounded batch/message sizes.
+- Graceful shutdown must stop intake, finish/cancel according to policy, release
+  resources, and close clients.
 
-1. **ALL text in `<td>` cells** -- never use `<p>`, `<h1>`-`<h6>`, `<div>` for text
-2. **ALL layout via `<table role="presentation">`** -- never use `<div>` for structure
-3. **ALL spacing via `padding` on `<td>`** -- never use `margin` on any element
-4. **ALL colors in hex** -- never use `rgba()`, `hsla()`, or named colors
-5. **`font-family` on every text element** -- repeat it on every `<td>` and `<a>` (inheritance breaks)
-6. **`bgcolor` HTML attribute alongside `background-color`** -- for Outlook compatibility
-7. **`<body>` is unreliable** -- most clients replace it with `<div>` or strip entirely
-8. **Outer `<table>` duplicates ALL body styles** -- `bgcolor`, `background-color`, `-webkit-text-size-adjust`, `-ms-text-size-adjust`
-9. **`border="0"` on every `<table>`** -- some clients add visible borders
-10. **`width` HTML attr ONLY on `<table>`** -- never on `<body>`, `<span>`, `<div>`, `<p>`, `<img>`
-11. **`max-width` CSS ONLY on `<table>`** -- Outlook only supports on tables; some clients don't support at all
-12. **Content table dual-width**: `width="600"` HTML attr + `style="width: 100%; max-width: 600px;"` (CSS for responsive, HTML attr as fallback)
-13. **MSO ghost table** wraps content for Outlook fixed-width -- `<!--[if mso]>...<![endif]-->`
+The established TaskIQ message shape and task names are compatibility
+boundaries. Do not rely on deprecated `.with_labels()` behavior; set labels in
+the task declaration/configuration pattern used by the service.
 
-### CSS Properties -- ALLOWED
+## Database, provider, and notification boundaries
 
-| Property | Notes |
-|----------|-------|
-| `background-color` | Always pair with `bgcolor` HTML attr |
-| `color` | Hex only (`#00ffff`) |
-| `font-size` | px values only |
-| `font-weight` | Keyword `bold` only (not `700`) |
-| `font-family` | Web-safe stacks, repeat on every element |
-| `line-height` | px only, always add `mso-line-height-rule: exactly` |
-| `padding` | On `<td>` only |
-| `border`, `border-top`, `border-bottom` | On `<table>` and `<td>` only, solid hex colors |
-| `text-align` | On `<td>` elements |
-| `text-decoration: none` | On `<a>` tags only. **NEVER `overline`** (Outlook strips). Only `none` is universally safe |
-| `width`, `max-width` | On `<table>` elements ONLY. Content table: `width="600"` + `style="width: 100%; max-width: 600px;"` |
-| `word-wrap: break-word` | Safe for long URLs |
+- Keep transaction and outbox/event ordering explicit.
+- Enforce idempotency/concurrency with durable constraints, not only an
+  in-memory check.
+- Reuse long-lived database, Redis, broker, and HTTP clients with explicit
+  timeouts and limits.
+- Preserve provider idempotency keys and classify failures before retry.
+- Never log full task kwargs, email bodies containing sensitive data, provider
+  payload secrets, tokens, cookies, payment data, VPN/subscription URLs, or PII.
+- Metrics/logs should include safe task name, task/correlation ID, attempt,
+  latency, duplicate result, and terminal outcome.
 
-### CSS Properties -- BANNED
+## Email template single source of truth
 
-| Property | Reason | Use Instead |
-|----------|--------|-------------|
-| `margin` | Inconsistent across all clients | `padding` on `<td>` |
-| `letter-spacing` | Buggy in Outlook, Gmail, Yahoo | Remove |
-| `word-break` | **CRITICAL** -- broken in most clients | `word-wrap: break-word` |
-| `display` (except `none`) | Outlook only supports `display: none` | Table structure |
-| `linear-gradient()` | Outlook strips it | Solid `background-color` |
-| `text-shadow` | Gmail strips entire style attr | Remove |
-| `rgba()` / `hsla()` | Gmail strips style block | Hex colors |
-| `border-radius` | Outlook ignores | Accept square corners |
-| `width` on non-table elements | Not supported on body/span/div/p/img (Outlook, Gmail, Yahoo) | `width` HTML attr on `<table>` only |
-| `max-width` on non-table | Outlook ignores on div/span | `<table width="N">` + `style="width: 100%; max-width: Npx"` |
-| `height` on body/span/div/p | Not supported | `padding` on `<td>` |
-| `text-decoration: overline` | Outlook strips overline | Only use `text-decoration: none` |
-| `background-image` inline | Gmail strips if `url()` present | VML or omit |
-| `@media` queries | Unreliable | Fixed 600px layout |
+All email HTML templates live in:
 
-### Banned HTML Tags in Email
+`src/services/email/templates.py`
 
-| Tag | Use Instead |
-|-----|-------------|
-| `<div>` | `<table>` + `<td>` |
-| `<p>` | `<td>` with padding |
-| `<h1>` - `<h6>` | `<td>` with font-size/font-weight |
-| `<img>` without `width`/`height` attrs | Always set both HTML attributes |
+Provider clients (`resend`, `brevo`, SMTP/Mailpit, and future adapters) call the
+shared renderer. Never duplicate or fork HTML templates in a client.
 
-### Bulletproof Button
+For production email HTML:
 
-```html
-<table role="presentation" align="center" cellspacing="0" cellpadding="0" border="0">
-    <tr>
-        <!--[if mso]>
-        <td align="center" bgcolor="#00ff88" style="padding: 0;">
-            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml"
-                xmlns:w="urn:schemas-microsoft-com:office:word"
-                href="URL"
-                style="height:52px;v-text-anchor:middle;width:240px;"
-                fillcolor="#00ff88" stroke="f">
-            <w:anchorlock/>
-            <center style="color:#0a0a0a;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:18px;font-weight:bold;">LABEL</center>
-            </v:roundrect>
-        </td>
-        <![endif]-->
-        <!--[if !mso]><!-->
-        <td align="center" bgcolor="#00ff88" style="background-color: #00ff88; padding: 16px 48px;">
-            <a href="URL" style="color: #0a0a0a; font-size: 18px; font-weight: bold; text-decoration: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-                LABEL
-            </a>
-        </td>
-        <!--<![endif]-->
-    </tr>
-</table>
+- Use table layout: `<table role="presentation">`, `<tr>`, and `<td>`.
+- Put textual content in `<td>`; do not use `<div>`, `<p>`, or heading tags for
+  text/layout.
+- Put spacing on `<td>` with `padding`; do not use `margin`.
+- Use hex colors only. Pair CSS `background-color` with the `bgcolor` attribute
+  where required for email-client compatibility.
+- Add `border="0"`, `cellspacing="0"`, and `cellpadding="0"` to presentation
+  tables according to the existing template pattern.
+- Repeat a web-safe `font-family` on each text-bearing `<td>` and `<a>`.
+- Use pixel `line-height` with `mso-line-height-rule: exactly` where the existing
+  compatibility pattern requires it.
+- Use HTML `width` and CSS `max-width` only on tables. The content container uses
+  the established fixed-width plus responsive-width pattern.
+- Preserve the MSO ghost table and VML button pattern used by the canonical
+  templates.
+- Do not use `rgba`, `hsla`, named colors, gradients, text shadows,
+  `letter-spacing`, `word-break`, unsupported display/layout CSS, inline remote
+  background images, or unreliable media-query-only layout.
+- Use `word-wrap: break-word` for long safe URLs.
+- Set explicit dimensions and meaningful alt behavior for images. Do not add
+  tracking pixels unless explicitly approved.
+- Escape all user/provider-derived text and validate every link scheme/host.
+- Keep locale, expiration, code, URL, and development-banner inputs explicit.
+- Do not include passwords, refresh tokens, session cookies, VPN configuration,
+  provider secrets, or unnecessary PII in email.
+
+When changing a template, test the shared renderer and every provider adapter.
+Verify at least plain link/text correctness, HTML escaping, locale variants,
+development-banner behavior, long values, and a representative Outlook-safe
+structure. Do not manually “fix” one provider's copy.
+
+## Testing
+
+Add relevant:
+
+- task registration and serialization contract tests;
+- handler unit tests;
+- duplicate/idempotency/concurrency tests;
+- Redis/broker/database integration tests;
+- provider adapter tests with `respx`/fakes;
+- retry classification and terminal/dead-letter tests;
+- graceful shutdown tests;
+- shared email renderer tests across locales and provider adapters;
+- HTML structural assertions for required/banned email patterns.
+
+Assert durable state, emitted/acknowledged messages, and rendered output rather
+than only mock calls.
+
+## Required validation
+
+Use a Python 3.13 virtual environment with `.[dev]`. From
+`services/task-worker/`:
+
+```bash
+python -m ruff check .
+python -m ruff format --check .
+python -m mypy src
+python -m pytest
 ```
 
-**NO `display: block`** on `<a>` -- Outlook ignores most display values.
-
-### Spacer Pattern
-
-```html
-<tr>
-    <td style="padding: 15px 0 0 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
-</tr>
-```
-
-### Design Tokens
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| bg-body | `#0a0a0a` | Email body background |
-| bg-card | `#111111` | Main content card |
-| bg-code | `#0d0d0d` | OTP code box background |
-| accent-green | `#00ff88` | Borders, button, URLs |
-| accent-cyan | `#00ffff` | Logo, OTP code text |
-| accent-red | `#ff6b6b` | Expiry warning, DEV banner |
-| text-primary | `#ffffff` | Headings |
-| text-secondary | `#cccccc` | Body text |
-| text-muted | `#888888` | Hints |
-| text-dim | `#666666` | Disclaimers |
-| text-footer | `#555555` | Copyright |
-| border-accent | `#00ff88` | Card border, OTP box |
-| border-subtle | `#333333` | Footer separator |
-
-### Template Architecture
-
-```
-src/services/email/
-  templates.py          # SINGLE SOURCE OF TRUTH for all HTML
-  resend_client.py      # Resend API -- calls templates.render_*()
-  brevo_client.py       # Brevo API -- calls templates.render_*()
-  smtp_client.py        # SMTP/Mailpit -- calls templates.render_*(dev_banner=True)
-```
-
-- `render_otp_template(code, expires_in, locale, *, dev_banner=False)`
-- `render_magic_link_template(url, expires_in, locale, otp_code, *, dev_banner=False)`
-- Future templates: add to `templates.py`, never inline HTML in client files
-
-### Pre-Commit Checklist for Email Templates
-
-Before committing any email template change, verify:
-
-- [ ] No `<div>`, `<p>`, `<h1>`-`<h6>` tags
-- [ ] No `margin` property anywhere
-- [ ] No `letter-spacing` property
-- [ ] No `word-break` property
-- [ ] No `display: block` or `display: inline-block`
-- [ ] No `rgba()` or `linear-gradient()`
-- [ ] No `text-shadow`
-- [ ] No `text-decoration: overline` (only `none` is safe)
-- [ ] No `width` on non-table elements (body/span/div/p/img)
-- [ ] No `max-width` on non-table elements
-- [ ] All `line-height` values in px with `mso-line-height-rule: exactly`
-- [ ] All `background-color` paired with `bgcolor` HTML attr
-- [ ] `<body>` has `bgcolor` HTML attribute (clients replace body with div)
-- [ ] Outer `<table>` duplicates ALL body styles: `bgcolor`, `background-color`, `-webkit-text-size-adjust`, `-ms-text-size-adjust`
-- [ ] Content table uses `width="600"` + `style="width: 100%; max-width: 600px;"`
-- [ ] `font-family` on every `<td>` and `<a>` with text
-- [ ] MSO ghost table around 600px container
-- [ ] VML button in `<!--[if mso]>` conditional
-- [ ] Outer `<table>` duplicates body styles (bgcolor, background-color, width="100%")
-
-## TaskIQ Patterns
-
-- **Message format**: `{"task_id": "...", "task_name": "...", "labels": {}, "args": [...], "kwargs": {}}`
-- **Broker**: Redis Streams via `redis.xadd("taskiq", {"data": message_bytes})`
-- **Task decorator**: `@broker.task(task_name="...", queue="...", retry_policy="...")`
-- **`with_labels` deprecated**: Set labels in decorator, not via `.with_labels()`
-- **Import tasks at module end** in `broker.py` to register them
+Coverage must satisfy the configured threshold. Run broker/database/provider
+integration tests and an email rendering/delivery smoke when those paths
+change. Rerun final gates after the last relevant modification.
