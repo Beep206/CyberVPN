@@ -161,11 +161,9 @@ fn derive_last_connection_options(
     if options.profile_id.is_none() {
         options.profile_id = store_data.active_profile_id.clone();
     }
-    options.favorite_profile_ids = options
+    options
         .favorite_profile_ids
-        .into_iter()
-        .filter(|profile_id| profile_exists(profile_id))
-        .collect();
+        .retain(|profile_id| profile_exists(profile_id));
     if options
         .last_stable_profile_id
         .as_deref()
@@ -1973,12 +1971,7 @@ pub async fn get_canonical_orders(
 #[tauri::command]
 pub async fn get_public_commercial_catalog(app: AppHandle) -> Result<serde_json::Value, AppError> {
     let (base_url, access_token, _) = helix::get_authenticated_backend_context(&app)?;
-    client::fetch_authenticated_get(
-        &base_url,
-        &access_token,
-        "/api/v1/catalog/?channel=web",
-    )
-    .await
+    client::fetch_authenticated_get(&base_url, &access_token, "/api/v1/catalog/?channel=web").await
 }
 
 #[tauri::command]
@@ -2935,8 +2928,8 @@ pub async fn run_stealth_diagnostics(
     let node = store
         .profiles
         .iter()
+        .find(|&p| p.id == node_id)
         .cloned()
-        .find(|p| p.id == node_id)
         .ok_or_else(|| AppError::System("Node not found".into()))?;
     let profiles = store.profiles.clone();
     let stealth_mode_enabled = store.stealth_mode_enabled;
@@ -3322,8 +3315,8 @@ pub async fn compare_stealth_strategies(
     let node = store_data
         .profiles
         .iter()
+        .find(|&profile| profile.id == node_id)
         .cloned()
-        .find(|profile| profile.id == node_id)
         .ok_or_else(|| AppError::System("Node not found".into()))?;
     let report = crate::engine::sys::diagnostics::run_stealth_diagnostics(
         node.clone(),

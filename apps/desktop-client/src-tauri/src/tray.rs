@@ -278,9 +278,9 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
             } = event
             {
                 let app = tray.app_handle();
-                let visible = current_window_visible(&app);
+                let visible = current_window_visible(app);
                 let _ = crate::engine::diagnostics::record_event(
-                    &app,
+                    app,
                     DiagnosticLevel::Info,
                     "tray.icon",
                     "Tray icon left-click received",
@@ -293,7 +293,7 @@ pub fn setup(app: &AppHandle) -> tauri::Result<()> {
                         let _ = window.set_focus();
                     }
                 } else {
-                    shell::show_main_window(&app, "tray-left-click");
+                    shell::show_main_window(app, "tray-left-click");
                 }
             }
         })

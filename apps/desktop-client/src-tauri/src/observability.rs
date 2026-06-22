@@ -21,7 +21,10 @@ impl NativeSentryConfig {
         );
         let enabled = read_bool(
             &["DESKTOP_SENTRY_ENABLED", "SENTRY_ENABLED"],
-            &[option_env!("DESKTOP_SENTRY_ENABLED"), option_env!("SENTRY_ENABLED")],
+            &[
+                option_env!("DESKTOP_SENTRY_ENABLED"),
+                option_env!("SENTRY_ENABLED"),
+            ],
         )
         .unwrap_or_else(|| dsn.is_some());
         let environment = first_non_empty(
@@ -41,11 +44,17 @@ impl NativeSentryConfig {
         .unwrap_or_else(default_environment);
         let release = first_non_empty(
             &["DESKTOP_SENTRY_RELEASE", "SENTRY_RELEASE"],
-            &[option_env!("DESKTOP_SENTRY_RELEASE"), option_env!("SENTRY_RELEASE")],
+            &[
+                option_env!("DESKTOP_SENTRY_RELEASE"),
+                option_env!("SENTRY_RELEASE"),
+            ],
         )
         .unwrap_or_else(|| DEFAULT_RELEASE.to_string());
         let traces_sample_rate = first_non_empty(
-            &["DESKTOP_SENTRY_TRACES_SAMPLE_RATE", "SENTRY_TRACES_SAMPLE_RATE"],
+            &[
+                "DESKTOP_SENTRY_TRACES_SAMPLE_RATE",
+                "SENTRY_TRACES_SAMPLE_RATE",
+            ],
             &[
                 option_env!("DESKTOP_SENTRY_TRACES_SAMPLE_RATE"),
                 option_env!("SENTRY_TRACES_SAMPLE_RATE"),

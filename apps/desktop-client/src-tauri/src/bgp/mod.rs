@@ -67,7 +67,7 @@ pub async fn check_is_admin() -> Result<bool, String> {
     {
         // For macOS and Linux, if euid == 0, we have root privileges.
         let is_root = unsafe { libc::geteuid() == 0 };
-        return Ok(is_root);
+        Ok(is_root)
     }
 
     #[cfg(windows)]

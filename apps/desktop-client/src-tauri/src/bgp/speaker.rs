@@ -70,3 +70,9 @@ impl BgpSessionState {
         self.routes.iter().cloned().collect()
     }
 }
+
+impl Default for BgpSessionState {
+    fn default() -> Self {
+        Self::new()
+    }
+}

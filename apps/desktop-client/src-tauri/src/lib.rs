@@ -290,7 +290,7 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                crate::engine::shell::hide_main_window(&window.app_handle(), "titlebar-close");
+                crate::engine::shell::hide_main_window(window.app_handle(), "titlebar-close");
                 api.prevent_close();
             }
         })

@@ -39,12 +39,14 @@ pub struct DesktopShellState {
 
 impl DesktopShellState {
     pub fn new(initial_hidden: bool) -> Self {
-        let mut snapshot = DesktopShellSnapshot::default();
-        snapshot.window_visible = !initial_hidden;
-        snapshot.state = if initial_hidden {
-            "hidden-to-tray".to_string()
-        } else {
-            "visible".to_string()
+        let snapshot = DesktopShellSnapshot {
+            state: if initial_hidden {
+                "hidden-to-tray".to_string()
+            } else {
+                "visible".to_string()
+            },
+            window_visible: !initial_hidden,
+            ..DesktopShellSnapshot::default()
         };
 
         Self {

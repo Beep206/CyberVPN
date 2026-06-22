@@ -562,16 +562,36 @@ fn build_preview_changes(
     changes
 }
 
+struct StrategyCopy {
+    title: String,
+    summary: String,
+    reason: String,
+    tradeoff: String,
+}
+
+impl StrategyCopy {
+    fn new(
+        title: impl Into<String>,
+        summary: impl Into<String>,
+        reason: impl Into<String>,
+        tradeoff: impl Into<String>,
+    ) -> Self {
+        Self {
+            title: title.into(),
+            summary: summary.into(),
+            reason: reason.into(),
+            tradeoff: tradeoff.into(),
+        }
+    }
+}
+
 fn build_strategy(
     tier: &str,
     current_node: &ProxyNode,
     target_node: &ProxyNode,
     current_stealth_mode_enabled: bool,
     target_stealth_mode_enabled: bool,
-    title: impl Into<String>,
-    summary: impl Into<String>,
-    reason: impl Into<String>,
-    tradeoff: impl Into<String>,
+    copy: StrategyCopy,
 ) -> StealthStrategy {
     let preview_changes = build_preview_changes(
         current_node,
@@ -593,10 +613,10 @@ fn build_strategy(
         id: build_strategy_id(tier, &target_node.id, target_stealth_mode_enabled),
         tier: tier.to_string(),
         rank: 0,
-        title: title.into(),
-        summary: summary.into(),
-        reason: reason.into(),
-        tradeoff: tradeoff.into(),
+        title: copy.title,
+        summary: copy.summary,
+        reason: copy.reason,
+        tradeoff: copy.tradeoff,
         readiness: readiness.to_string(),
         action_label: action_label.to_string(),
         target_node_id: target_node.id.clone(),
@@ -611,20 +631,17 @@ fn build_manual_strategy(
     tier: &str,
     current_node: &ProxyNode,
     current_stealth_mode_enabled: bool,
-    title: impl Into<String>,
-    summary: impl Into<String>,
-    reason: impl Into<String>,
-    tradeoff: impl Into<String>,
+    copy: StrategyCopy,
     action_label: impl Into<String>,
 ) -> StealthStrategy {
     StealthStrategy {
         id: build_strategy_id(tier, &current_node.id, current_stealth_mode_enabled),
         tier: tier.to_string(),
         rank: 0,
-        title: title.into(),
-        summary: summary.into(),
-        reason: reason.into(),
-        tradeoff: tradeoff.into(),
+        title: copy.title,
+        summary: copy.summary,
+        reason: copy.reason,
+        tradeoff: copy.tradeoff,
         readiness: "manual".to_string(),
         action_label: action_label.into(),
         target_node_id: current_node.id.clone(),
@@ -645,13 +662,15 @@ fn build_fast_strategy(
         selected_node,
         current_stealth_mode_enabled,
         false,
-        "Fast",
-        format!(
-            "Stay on '{}' with the standard transport path and the lowest possible overhead.",
-            selected_node.name
+        StrategyCopy::new(
+            "Fast",
+            format!(
+                "Stay on '{}' with the standard transport path and the lowest possible overhead.",
+                selected_node.name
+            ),
+            "Keeps the currently selected node and removes extra camouflage layers whenever they are active.",
+            "Best throughput and lowest overhead, but also the weakest posture if the network is filtering aggressively.",
         ),
-        "Keeps the currently selected node and removes extra camouflage layers whenever they are active.",
-        "Best throughput and lowest overhead, but also the weakest posture if the network is filtering aggressively.",
     )
 }
 
@@ -667,13 +686,15 @@ fn build_balanced_strategy(
             selected_node,
             current_stealth_mode_enabled,
             true,
-            "Balanced",
-            format!(
-                "Keep '{}' and add the built-in camouflage overlay for a moderate resistance bump.",
-                selected_node.name
+            StrategyCopy::new(
+                "Balanced",
+                format!(
+                    "Keep '{}' and add the built-in camouflage overlay for a moderate resistance bump.",
+                    selected_node.name
+                ),
+                "Prefers the selected node when it already supports the built-in camouflage path.",
+                "Moderate overhead and usually the safest first step before switching to a different node.",
             ),
-            "Prefers the selected node when it already supports the built-in camouflage path.",
-            "Moderate overhead and usually the safest first step before switching to a different node.",
         );
     }
 
@@ -687,13 +708,15 @@ fn build_balanced_strategy(
                 &candidate,
                 current_stealth_mode_enabled,
                 true,
-                "Balanced",
-                format!(
-                    "Switch to '{}' and reconnect with camouflage enabled.",
-                    candidate.name
+                StrategyCopy::new(
+                    "Balanced",
+                    format!(
+                        "Switch to '{}' and reconnect with camouflage enabled.",
+                        candidate.name
+                    ),
+                    "Chooses the closest compatible sibling node by affinity and latency before escalating harder.",
+                    "Moderate overhead with a likely node switch if the current one cannot use camouflage.",
                 ),
-                "Chooses the closest compatible sibling node by affinity and latency before escalating harder.",
-                "Moderate overhead with a likely node switch if the current one cannot use camouflage.",
             );
         }
     }
@@ -702,10 +725,12 @@ fn build_balanced_strategy(
         "balanced",
         selected_node,
         current_stealth_mode_enabled,
-        "Balanced",
-        "No camouflage-capable node is available for an automatic balanced fallback.",
-        "The current catalog does not expose a safe, automatically applicable balanced option.",
-        "Requires a compatible VLESS or REALITY-capable node before the client can apply camouflage.",
+        StrategyCopy::new(
+            "Balanced",
+            "No camouflage-capable node is available for an automatic balanced fallback.",
+            "The current catalog does not expose a safe, automatically applicable balanced option.",
+            "Requires a compatible VLESS or REALITY-capable node before the client can apply camouflage.",
+        ),
         "Pick a compatible node",
     )
 }
@@ -725,13 +750,15 @@ fn build_resistant_strategy(
                 &candidate,
                 current_stealth_mode_enabled,
                 true,
-                "Resistant",
-                format!(
-                    "Bias toward '{}' for a stronger anti-filtering posture.",
-                    candidate.name
+                StrategyCopy::new(
+                    "Resistant",
+                    format!(
+                        "Bias toward '{}' for a stronger anti-filtering posture.",
+                        candidate.name
+                    ),
+                    "Leans toward REALITY-capable or otherwise stronger camouflage-ready nodes, still preferring nearby affinity when possible.",
+                    "More resilient than Balanced, but usually slower and more likely to move you away from the selected route.",
                 ),
-                "Leans toward REALITY-capable or otherwise stronger camouflage-ready nodes, still preferring nearby affinity when possible.",
-                "More resilient than Balanced, but usually slower and more likely to move you away from the selected route.",
             );
         }
     }
@@ -740,10 +767,12 @@ fn build_resistant_strategy(
         "resistant",
         selected_node,
         current_stealth_mode_enabled,
-        "Resistant",
-        "No stronger camouflage-capable fallback is available automatically for this catalog.",
-        "The current profile set does not expose a stronger stealth-capable node than the one already selected.",
-        "Requires a compatible REALITY or VLESS node to provide a meaningfully more resistant path.",
+        StrategyCopy::new(
+            "Resistant",
+            "No stronger camouflage-capable fallback is available automatically for this catalog.",
+            "The current profile set does not expose a stronger stealth-capable node than the one already selected.",
+            "Requires a compatible REALITY or VLESS node to provide a meaningfully more resistant path.",
+        ),
         "Review nodes manually",
     )
 }
@@ -763,13 +792,15 @@ fn build_maximum_strategy(
                 &candidate,
                 current_stealth_mode_enabled,
                 true,
-                "Maximum Evasion",
-                format!(
-                    "Use '{}' as the strongest available automatic camouflage route.",
-                    candidate.name
+                StrategyCopy::new(
+                    "Maximum Evasion",
+                    format!(
+                        "Use '{}' as the strongest available automatic camouflage route.",
+                        candidate.name
+                    ),
+                    "Optimizes for the strongest available camouflage-capable node, regardless of how far it drifts from the originally selected route.",
+                    "Highest evasion bias in the current catalog and the biggest chance of a latency or geography tradeoff.",
                 ),
-                "Optimizes for the strongest available camouflage-capable node, regardless of how far it drifts from the originally selected route.",
-                "Highest evasion bias in the current catalog and the biggest chance of a latency or geography tradeoff.",
             );
         }
     }
@@ -778,10 +809,12 @@ fn build_maximum_strategy(
         "maximum",
         selected_node,
         current_stealth_mode_enabled,
-        "Maximum Evasion",
-        "The catalog does not currently contain a stronger automatic maximum-evasion route.",
-        "No compatible node scored high enough to produce a distinct maximum strategy automatically.",
-        "Needs a stronger REALITY or compatible VLESS route in the catalog before maximum mode can be applied.",
+        StrategyCopy::new(
+            "Maximum Evasion",
+            "The catalog does not currently contain a stronger automatic maximum-evasion route.",
+            "No compatible node scored high enough to produce a distinct maximum strategy automatically.",
+            "Needs a stronger REALITY or compatible VLESS route in the catalog before maximum mode can be applied.",
+        ),
         "Review nodes manually",
     )
 }
@@ -809,13 +842,15 @@ fn build_last_known_good_strategy(
         target_node,
         current_stealth_mode_enabled,
         target_stealth_mode_enabled,
-        title,
-        format!(
-            "Reuse '{}' because it was the last remembered working stealth route on this network.",
-            target_node.name
+        StrategyCopy::new(
+            title,
+            format!(
+                "Reuse '{}' because it was the last remembered working stealth route on this network.",
+                target_node.name
+            ),
+            "This network already has a memorized route that the client previously applied successfully.",
+            "Usually the fastest recovery option on a familiar network, but it may be stale if the network changed since the last successful run.",
         ),
-        "This network already has a memorized route that the client previously applied successfully.",
-        "Usually the fastest recovery option on a familiar network, but it may be stale if the network changed since the last successful run.",
     ))
 }
 
@@ -1884,7 +1919,7 @@ mod tests {
     #[test]
     fn balanced_strategy_prefers_selected_node_when_it_supports_camouflage() {
         let selected = sample_vless_node();
-        let strategy = build_balanced_strategy(&selected, &[selected.clone()], false);
+        let strategy = build_balanced_strategy(&selected, std::slice::from_ref(&selected), false);
         assert_eq!(strategy.target_node_id, selected.id);
         assert_eq!(strategy.readiness, "ready");
         assert!(strategy.enable_stealth_mode);
@@ -2135,10 +2170,7 @@ mod tests {
             &sample_reality_node(),
             false,
             true,
-            "Balanced",
-            "Summary",
-            "Reason",
-            "Tradeoff",
+            StrategyCopy::new("Balanced", "Summary", "Reason", "Tradeoff"),
         )
     }
 
