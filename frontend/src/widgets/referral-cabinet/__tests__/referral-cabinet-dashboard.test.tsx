@@ -98,7 +98,7 @@ const {
       friend_discount_pct: 10,
       reward_hold_days: 7,
     },
-  } satisfies Record<string, unknown>,
+  } as Record<string, unknown>,
   redeemGrowthCodeMock: vi.fn(),
   refetchMock: vi.fn(),
   translationMock: vi.fn(
