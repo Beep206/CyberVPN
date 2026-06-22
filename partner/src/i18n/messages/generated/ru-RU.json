@@ -3880,13 +3880,16 @@
           "currency": "Settlement currency: {value}"
         },
         "emptyState": "Payout account ещё не настроен. Finance onboarding останется заблокирован, пока не будет отправлен хотя бы один payout destination.",
+        "forbiddenState": "У этой роли нет доступа к payout accounts выбранной рабочей области.",
+        "loadingState": "Загружаем payout accounts из canonical finance domain...",
         "review": {
           "approval": "Статус approval",
           "approvedAt": "Approved at",
           "verification": "Статус verification",
           "verifiedAt": "Verified at"
         },
-        "title": "Payout accounts"
+        "title": "Payout accounts",
+        "unavailableState": "Payout accounts временно недоступны. Повторите попытку из finance surface после восстановления backend."
       },
       "blocked": {
         "description": "Эти блокировки приходят из canonical bootstrap и admin-driven finance controls.",

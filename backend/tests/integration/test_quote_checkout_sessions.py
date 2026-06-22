@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -7,6 +8,7 @@ import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.partner_attribution.attribution import EnsurePendingPartnerAttributionClaimedUseCase
 from src.application.use_cases.partner_attribution.utils import (
     PARTNER_ATTRIBUTION_COOKIE_NAME,
     hash_partner_attribution_token,
@@ -524,6 +526,9 @@ def _assert_attribution_cookie_deleted(response) -> None:
     deleted_header = attribution_headers[-1].lower()
     assert "max-age=0" in deleted_header
     assert "path=/" in deleted_header
+    assert "httponly" in deleted_header
+    assert "secure" in deleted_header
+    assert "samesite=lax" in deleted_header
     assert response.headers.get("cache-control") == "no-store"
 
 
@@ -899,6 +904,492 @@ async def test_quote_session_claims_partner_attribution_cookie_and_snapshots_own
 
 
 @pytest.mark.asyncio
+async def test_concurrent_quote_and_claim_share_single_partner_attribution_owner(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            cookie_token = "concurrent-quote-claim-cookie-token"
+            attribution_ids = _seed_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=cookie_token,
+                markup_pct=6,
+            )
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+                "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}",
+            }
+
+            async def create_quote():
+                return await async_client.post(
+                    "/api/v1/quotes/",
+                    headers=headers,
+                    json={
+                        "storefront_key": seeded["storefront_key"],
+                        "pricebook_key": seeded["pricebook_key"],
+                        "offer_key": seeded["offer_key"],
+                        "plan_id": seeded["plan_id"],
+                        "currency": "USD",
+                        "channel": "web",
+                        "use_wallet": 0,
+                        "addons": [],
+                    },
+                )
+
+            async def claim_attribution():
+                return await async_client.post(
+                    "/api/v1/partner-attribution/claim",
+                    headers=headers,
+                    json={},
+                )
+
+            quote_response, claim_response = await asyncio.gather(create_quote(), claim_attribution())
+            assert quote_response.status_code == 201, quote_response.text
+            assert claim_response.status_code == 200, claim_response.text
+            assert claim_response.json()["status"] in {"claimed", "already_claimed"}
+            _assert_attribution_cookie_deleted(quote_response)
+
+            quote_id = uuid.UUID(quote_response.json()["id"])
+            attribution_session_id = uuid.UUID(attribution_ids["attribution_session_id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                assert attribution.status == "claimed"
+                assert attribution.binding_id is not None
+                binding_count = (
+                    db.query(CustomerCommercialBindingModel)
+                    .filter(CustomerCommercialBindingModel.attribution_session_id == attribution_session_id)
+                    .count()
+                )
+                assert binding_count == 1
+                linked_touchpoints = (
+                    db.query(AttributionTouchpointModel)
+                    .filter(
+                        AttributionTouchpointModel.quote_session_id == quote_id,
+                        AttributionTouchpointModel.partner_attribution_session_id == attribution_session_id,
+                        AttributionTouchpointModel.touchpoint_type == AttributionTouchpointType.PARTNER_CLAIM.value,
+                    )
+                    .all()
+                )
+                assert len(linked_touchpoints) == 1
+                quote_session = db.get(QuoteSessionModel, quote_id)
+                assert quote_session is not None
+                snapshot = quote_session.quote_snapshot["partner_attribution"]
+                assert snapshot["binding_id"] == str(attribution.binding_id)
+                assert snapshot["quote_touchpoint_id"] == str(linked_touchpoints[0].id)
+                assert cookie_token not in str(snapshot)
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_transfer_consume_then_immediate_quote_claims_server_side_cookie(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            transfer_token = "transfer-immediate-quote-token"
+            seed_cookie_token = "placeholder-cookie-before-transfer"
+            attribution_ids = _seed_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=seed_cookie_token,
+                markup_pct=9,
+            )
+            attribution_session_id = uuid.UUID(attribution_ids["attribution_session_id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                attribution.status = "pending"
+                attribution.session_token_hash = None
+                attribution.transfer_token_hash = hash_partner_attribution_token(transfer_token)
+                attribution.consumed_transfer_token_hash = None
+                attribution.transfer_consumed_at = None
+                db.commit()
+
+            transfer_response = await async_client.post(
+                "/api/v1/partner-attribution/transfer/consume",
+                json={"transfer_token": transfer_token},
+            )
+            assert transfer_response.status_code == 200, transfer_response.text
+            cookie_token = transfer_response.cookies.get(PARTNER_ATTRIBUTION_COOKIE_NAME)
+            assert cookie_token
+
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "X-Auth-Realm": "customer",
+                    "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}",
+                },
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201, quote_response.text
+            _assert_attribution_cookie_deleted(quote_response)
+            quote_payload = quote_response.json()
+            assert quote_payload["quote"]["partner_markup"] == 6.75
+
+            quote_id = uuid.UUID(quote_payload["id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                assert attribution.status == "claimed"
+                assert attribution.transfer_token_hash is None
+                assert attribution.consumed_transfer_token_hash == hash_partner_attribution_token(transfer_token)
+                quote_session = db.get(QuoteSessionModel, quote_id)
+                assert quote_session is not None
+                snapshot = quote_session.quote_snapshot["partner_attribution"]
+                assert snapshot["attribution_session_id"] == str(attribution_session_id)
+                assert snapshot["binding_id"] == str(attribution.binding_id)
+                assert cookie_token not in str(snapshot)
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_quote_partner_attribution_retryable_failure_rolls_back_quote(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    async def fail_claim(*_args, **_kwargs):
+        raise RuntimeError("simulated transient attribution failure")
+
+    app.dependency_overrides[get_redis] = _override_redis
+    monkeypatch.setattr(EnsurePendingPartnerAttributionClaimedUseCase, "execute", fail_claim)
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            cookie_token = "retryable-quote-cookie-token"
+            _seed_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=cookie_token,
+            )
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "X-Auth-Realm": "customer",
+                    "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}",
+                },
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 503
+            detail = quote_response.json()["detail"]
+            assert detail["code"] == "PARTNER_ATTRIBUTION_TRANSIENT_FAILURE"
+            assert detail["retryable"] is True
+            assert quote_response.headers["cache-control"] == "no-store"
+            with sessionmaker() as db:
+                assert db.query(QuoteSessionModel).count() == 0
+                assert db.query(CustomerCommercialBindingModel).count() == 0
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_self_attribution_cookie_is_ignored_and_does_not_create_quote_owner(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            cookie_token = "self-attribution-cookie-token"
+            attribution_ids = _seed_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=cookie_token,
+            )
+            customer_user_id = uuid.UUID(seeded["customer_user_id"])
+            with sessionmaker() as db:
+                code = db.get(PartnerCodeModel, uuid.UUID(attribution_ids["partner_code_id"]))
+                account = db.get(PartnerAccountModel, uuid.UUID(attribution_ids["partner_account_id"]))
+                assert code is not None
+                assert account is not None
+                code.partner_user_id = customer_user_id
+                account.legacy_owner_user_id = customer_user_id
+                db.commit()
+
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "X-Auth-Realm": "customer",
+                    "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}",
+                },
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201, quote_response.text
+            _assert_attribution_cookie_deleted(quote_response)
+            quote_payload = quote_response.json()
+            assert quote_payload["quote"]["partner_markup"] == 0.0
+
+            attribution_session_id = uuid.UUID(attribution_ids["attribution_session_id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                assert attribution.status == "transferred"
+                assert attribution.binding_id is None
+                quote_session = db.get(QuoteSessionModel, uuid.UUID(quote_payload["id"]))
+                assert quote_session is not None
+                snapshot = quote_session.quote_snapshot["partner_attribution"]
+                assert snapshot["status"] == "ignored_partner_self_attribution_blocked"
+                assert snapshot["binding_id"] is None
+                assert snapshot["quote_touchpoint_id"] is None
+                assert (
+                    db.query(CustomerCommercialBindingModel)
+                    .filter(CustomerCommercialBindingModel.attribution_session_id == attribution_session_id)
+                    .count()
+                    == 0
+                )
+                assert (
+                    db.query(AttributionTouchpointModel)
+                    .filter(AttributionTouchpointModel.partner_attribution_session_id == attribution_session_id)
+                    .count()
+                    == 0
+                )
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_terminal_rejected_attribution_cookie_does_not_block_quote_or_create_owner(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            cookie_token = "terminal-rejected-cookie-token"
+            attribution_ids = _seed_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=cookie_token,
+            )
+            attribution_session_id = uuid.UUID(attribution_ids["attribution_session_id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                attribution.status = "rejected"
+                attribution.rejection_reason_code = "risk_review_block"
+                db.commit()
+
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "X-Auth-Realm": "customer",
+                    "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}",
+                },
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201, quote_response.text
+            _assert_attribution_cookie_deleted(quote_response)
+            quote_payload = quote_response.json()
+            assert quote_payload["quote"]["partner_markup"] == 0.0
+
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                assert attribution.status == "expired"
+                assert attribution.binding_id is None
+                quote_session = db.get(QuoteSessionModel, uuid.UUID(quote_payload["id"]))
+                assert quote_session is not None
+                snapshot = quote_session.quote_snapshot["partner_attribution"]
+                assert snapshot["status"] == "expired"
+                assert snapshot["binding_id"] is None
+                assert (
+                    db.query(CustomerCommercialBindingModel)
+                    .filter(CustomerCommercialBindingModel.attribution_session_id == attribution_session_id)
+                    .count()
+                    == 0
+                )
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
 async def test_checkout_safety_net_claims_legacy_quote_cookie_and_marks_stale(
     async_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -1089,6 +1580,77 @@ async def test_expired_partner_attribution_cookie_does_not_block_quote(
                         AttributionTouchpointModel.quote_session_id == uuid.UUID(quote_payload["id"]),
                         AttributionTouchpointModel.partner_attribution_session_id == attribution_session_id,
                     )
+                    .count()
+                    == 0
+                )
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_unauthenticated_quote_with_partner_attribution_cookie_does_not_mutate_state(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_attribution_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            cookie_token = "unauthenticated-quote-cookie-token"
+            attribution_ids = _seed_partner_attribution_cookie(
+                sessionmaker,
+                seeded=seeded,
+                cookie_token=cookie_token,
+            )
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers={
+                    "X-Auth-Realm": "customer",
+                    "Cookie": f"{PARTNER_ATTRIBUTION_COOKIE_NAME}={cookie_token}",
+                },
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code in {401, 403}
+
+            attribution_session_id = uuid.UUID(attribution_ids["attribution_session_id"])
+            with sessionmaker() as db:
+                attribution = db.get(PartnerAttributionSessionModel, attribution_session_id)
+                assert attribution is not None
+                assert attribution.status == "transferred"
+                assert attribution.user_id is None
+                assert attribution.binding_id is None
+                assert db.query(QuoteSessionModel).count() == 0
+                assert (
+                    db.query(CustomerCommercialBindingModel)
+                    .filter(CustomerCommercialBindingModel.attribution_session_id == attribution_session_id)
+                    .count()
+                    == 0
+                )
+                assert (
+                    db.query(AttributionTouchpointModel)
+                    .filter(AttributionTouchpointModel.partner_attribution_session_id == attribution_session_id)
                     .count()
                     == 0
                 )

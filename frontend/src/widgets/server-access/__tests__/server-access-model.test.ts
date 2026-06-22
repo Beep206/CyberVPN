@@ -51,20 +51,102 @@ const profile: ProfileResponse = {
   updated_at: '2026-04-24T00:00:00Z',
 };
 
-const serviceState = {
+const entitlementSnapshot: CurrentServiceState['entitlement_snapshot'] = {
+  addons: [],
+  display_name: 'Pro',
+  effective_entitlements: {},
+  expires_at: '2030-05-24T00:00:00Z',
+  invite_bundle: {},
+  is_trial: false,
+  period_days: 30,
+  plan_code: 'pro',
+  plan_uuid: 'plan-1',
+  status: 'active',
+};
+
+const accessDeliveryChannel = {
+  archived_at: null,
+  archived_by_admin_user_id: null,
+  archive_reason_code: null,
+  auth_realm_id: 'realm-1',
+  channel_status: 'active',
+  channel_subject_ref: 'web',
+  channel_type: 'shared_client',
+  created_at: '2026-04-24T00:00:00Z',
+  delivery_context: {},
+  delivery_key: 'delivery-1',
+  delivery_payload: {},
+  device_credential_id: 'credential-1',
+  id: 'channel-1',
+  last_accessed_at: null,
+  last_delivered_at: null,
+  origin_storefront_id: null,
+  provider_name: 'remnawave',
+  provisioning_profile_id: 'profile-1',
+  service_identity_id: 'service-1',
+  updated_at: '2026-04-24T00:00:00Z',
+} satisfies NonNullable<CurrentServiceState['access_delivery_channel']>;
+
+const serviceState: CurrentServiceState = {
   access_delivery_channel: {
-    channel_status: 'active',
+    ...accessDeliveryChannel,
   },
+  auth_realm_id: 'realm-1',
+  consumption_context: {},
+  customer_account_id: 'customer-1',
   device_credential: {
+    auth_realm_id: 'realm-1',
+    created_at: '2026-04-24T00:00:00Z',
+    credential_context: {},
+    credential_key: 'credential-1',
     credential_status: 'active',
+    credential_type: 'desktop_client',
+    id: 'credential-1',
+    issued_at: '2026-04-24T00:00:00Z',
+    last_used_at: null,
+    origin_storefront_id: null,
+    provider_credential_ref: null,
+    provider_name: 'remnawave',
+    provisioning_profile_id: 'profile-1',
+    revoked_at: null,
+    revoked_by_admin_user_id: null,
+    revoke_reason_code: null,
+    service_identity_id: 'service-1',
+    subject_key: 'official-web-dashboard',
+    updated_at: '2026-04-24T00:00:00Z',
   },
+  entitlement_snapshot: entitlementSnapshot,
+  provider_name: 'remnawave',
   provisioning_profile: {
+    created_at: '2026-04-24T00:00:00Z',
+    delivery_method: 'client',
+    id: 'profile-1',
     profile_key: 'default',
+    profile_status: 'active',
+    provider_name: 'remnawave',
+    provider_profile_ref: null,
+    provisioning_payload: {},
+    service_identity_id: 'service-1',
+    target_channel: 'shared_client',
+    updated_at: '2026-04-24T00:00:00Z',
   },
+  purchase_context: {},
   service_identity: {
+    auth_realm_id: 'realm-1',
+    created_at: '2026-04-24T00:00:00Z',
+    customer_account_id: 'customer-1',
+    id: 'service-1',
+    identity_scope: 'account',
     identity_status: 'active',
+    origin_storefront_id: null,
+    provider_name: 'remnawave',
+    provider_subject_ref: null,
+    service_context: {},
+    service_key: 'service-1',
+    source_order_id: null,
+    updated_at: '2026-04-24T00:00:00Z',
   },
-} as CurrentServiceState;
+};
 
 describe('server access model', () => {
   it('ranks usable low-load servers before fallbacks', () => {
@@ -133,17 +215,17 @@ describe('server access model', () => {
   });
 
   it('uses access delivery payload as a fallback config source', () => {
-    const deliveryState = {
+    const deliveryState: CurrentServiceState = {
       ...serviceState,
       access_delivery_channel: {
-        channel_status: 'active',
+        ...accessDeliveryChannel,
         delivery_payload: {
           connection_links: ['vless://payload-link'],
           raw_config: 'vless://payload-raw-config',
           subscription_url: 'https://delivery.example/sub/token',
         },
       },
-    } as CurrentServiceState;
+    };
 
     const links = extractConfigLinks(null, deliveryState);
     const bundle = getConfigDeliveryBundle(links);

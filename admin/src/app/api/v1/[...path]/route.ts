@@ -171,7 +171,7 @@ function normalizeSetCookieForRequest(headerValue: string, request: NextRequest)
     .join('; ');
 }
 
-function buildResponseHeaders(upstreamResponse: Response, request: NextRequest, path: string[]): Headers {
+function buildResponseHeaders(upstreamResponse: Response, request: NextRequest): Headers {
   const headers = new Headers();
 
   for (const [key, value] of upstreamResponse.headers.entries()) {
@@ -210,7 +210,7 @@ async function proxyApiRequest(
   return new Response(upstreamResponse.body, {
     status: upstreamResponse.status,
     statusText: upstreamResponse.statusText,
-    headers: buildResponseHeaders(upstreamResponse, request, path),
+    headers: buildResponseHeaders(upstreamResponse, request),
   });
 }
 

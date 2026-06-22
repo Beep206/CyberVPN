@@ -22394,7 +22394,7 @@ export interface components {
             /** Click Id */
             click_id?: string | null;
             /** Browser Key */
-            browser_key?: string | null;
+            browser_key: string;
             /** Campaign Params */
             campaign_params?: {
                 [key: string]: unknown;
@@ -38727,8 +38727,9 @@ export interface operations {
     capture_partner_attribution_api_v1_partner_attribution_capture_post: {
         parameters: {
             query?: never;
-            header?: {
-                "Idempotency-Key"?: string | null;
+            header: {
+                /** @description Opaque idempotency key for replay-safe partner attribution capture. */
+                "Idempotency-Key": string;
             };
             path?: never;
             cookie?: never;

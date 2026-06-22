@@ -62,7 +62,10 @@ async def test_partner_attribution_rate_limits_against_real_redis() -> None:
     try:
         await redis_client.flushdb()
 
-        payload = PartnerAttributionCaptureRequest(public_token="rt-capture-ip-token")
+        payload = PartnerAttributionCaptureRequest(
+            public_token="rt-capture-ip-token",
+            browser_key="rt-capture-ip-browser",
+        )
         for _ in range(CAPTURE_IP_LIMIT):
             await check_partner_attribution_capture_rate_limit(
                 request=_request(ip="203.0.113.10"),
@@ -81,7 +84,10 @@ async def test_partner_attribution_rate_limits_against_real_redis() -> None:
 
         await redis_client.flushdb()
 
-        payload = PartnerAttributionCaptureRequest(public_token="rt-shared-slug-token")
+        payload = PartnerAttributionCaptureRequest(
+            public_token="rt-shared-slug-token",
+            browser_key="rt-shared-slug-browser",
+        )
         for index in range(CAPTURE_SLUG_LIMIT):
             await check_partner_attribution_capture_rate_limit(
                 request=_request(ip=f"198.51.100.{(index % 200) + 1}"),

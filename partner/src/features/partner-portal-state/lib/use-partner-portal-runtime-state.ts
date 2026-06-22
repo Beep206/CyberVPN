@@ -11,7 +11,6 @@ import {
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { useLocale } from 'next-intl';
 import { useProductFeatureFlag } from '@/app/providers/product-intelligence-provider';
 import { RateLimitError } from '@/lib/api/client';
@@ -45,23 +44,9 @@ const WORKSPACE_QUERY_PREFIXES = [
   ['partner-portal', 'workspace-notifications'],
 ] as const;
 
-function isOptionalPortalAccessError(error: unknown): boolean {
-  if (!(error instanceof AxiosError)) {
-    return false;
-  }
-  return error.response?.status === 403 || error.response?.status === 404;
-}
-
-async function resolveOptionalPortalResource<T>(loader: () => Promise<{ data: T }>): Promise<T | null> {
-  try {
-    const response = await loader();
-    return response.data;
-  } catch (error) {
-    if (isOptionalPortalAccessError(error)) {
-      return null;
-    }
-    throw error;
-  }
+export async function resolvePortalResource<T>(loader: () => Promise<{ data: T }>): Promise<T> {
+  const response = await loader();
+  return response.data;
 }
 
 export function boundedWorkspaceRetry(failureCount: number, error: unknown): boolean {
@@ -227,7 +212,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceCampaignAssets(activeWorkspace.id),
       );
     },
@@ -243,7 +228,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceStatements(activeWorkspace.id, {
           limit: 20,
           offset: 0,
@@ -262,7 +247,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspacePayoutAccounts(activeWorkspace.id, {
           limit: 20,
           offset: 0,
@@ -281,7 +266,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceResellerVoucherBatches(activeWorkspace.id),
       );
     },
@@ -297,7 +282,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceConversionRecords(activeWorkspace.id, {
           limit: 50,
           offset: 0,
@@ -316,7 +301,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceAnalyticsMetrics(activeWorkspace.id),
       );
     },
@@ -332,7 +317,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceReportExports(activeWorkspace.id),
       );
     },
@@ -348,7 +333,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceReviewRequests(activeWorkspace.id),
       );
     },
@@ -364,7 +349,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceCases(activeWorkspace.id),
       );
     },
@@ -380,7 +365,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceIntegrationCredentials(activeWorkspace.id),
       );
     },
@@ -396,7 +381,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceIntegrationDeliveryLogs(activeWorkspace.id),
       );
     },
@@ -412,7 +397,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listWorkspaceTrafficDeclarations(activeWorkspace.id),
       );
     },
@@ -428,7 +413,7 @@ function usePartnerPortalRuntimeStateValue() {
       if (!activeWorkspace) {
         return null;
       }
-      return resolveOptionalPortalResource(() =>
+      return resolvePortalResource(() =>
         partnerPortalApi.listNotifications({
           workspace_id: activeWorkspace.id,
           include_archived: false,

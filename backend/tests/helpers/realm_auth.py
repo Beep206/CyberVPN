@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from http.cookies import SimpleCookie
@@ -65,10 +66,61 @@ async def fresh_auth_headers(
     return {**base_headers, FRESH_AUTH_GRANT_ID_HEADER: grant.grant_id}
 
 
+class _FakeRedisPipeline:
+    def __init__(self, sorted_sets: dict[str, dict[str, float]], expiry: dict[str, int]) -> None:
+        self._sorted_sets = sorted_sets
+        self._expiry = expiry
+        self._ops: list[tuple[str, tuple]] = []
+
+    async def __aenter__(self) -> _FakeRedisPipeline:
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        return None
+
+    def zremrangebyscore(self, key: str, minimum: float, maximum: float) -> None:
+        self._ops.append(("zremrangebyscore", (key, minimum, maximum)))
+
+    def zadd(self, key: str, mapping: dict[str, float]) -> None:
+        self._ops.append(("zadd", (key, mapping)))
+
+    def zcard(self, key: str) -> None:
+        self._ops.append(("zcard", (key,)))
+
+    def expire(self, key: str, seconds: int) -> None:
+        self._ops.append(("expire", (key, seconds)))
+
+    async def execute(self) -> list[int | bool]:
+        results: list[int | bool] = []
+        for op_name, args in self._ops:
+            if op_name == "zremrangebyscore":
+                key, minimum, maximum = args
+                bucket = self._sorted_sets[key]
+                removed = [
+                    member for member, score in bucket.items() if float(minimum) <= float(score) <= float(maximum)
+                ]
+                for member in removed:
+                    bucket.pop(member, None)
+                results.append(len(removed))
+            elif op_name == "zadd":
+                key, mapping = args
+                self._sorted_sets[key].update({str(member): float(score) for member, score in mapping.items()})
+                results.append(len(mapping))
+            elif op_name == "zcard":
+                (key,) = args
+                results.append(len(self._sorted_sets[key]))
+            elif op_name == "expire":
+                key, seconds = args
+                self._expiry[key] = int(seconds)
+                results.append(True)
+        return results
+
+
 class FakeRedis:
     def __init__(self) -> None:
         self._values: dict[str, object] = {}
         self._hashes: dict[str, dict[str, str]] = {}
+        self._sorted_sets: dict[str, dict[str, float]] = defaultdict(dict)
         self._expiry: dict[str, int] = {}
 
     async def incr(self, key: str) -> int:
@@ -142,6 +194,10 @@ class FakeRedis:
         for key in keys:
             if prefix is None or key.startswith(prefix):
                 yield key
+
+    def pipeline(self, transaction: bool = True) -> _FakeRedisPipeline:
+        _ = transaction
+        return _FakeRedisPipeline(self._sorted_sets, self._expiry)
 
 
 class SyncSessionAdapter:

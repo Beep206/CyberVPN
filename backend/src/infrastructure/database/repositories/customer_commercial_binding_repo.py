@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from builtins import list as builtin_list
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -34,7 +35,7 @@ class CustomerCommercialBindingRepository:
         binding_status: str | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> list[CustomerCommercialBindingModel]:
+    ) -> builtin_list[CustomerCommercialBindingModel]:
         stmt = select(CustomerCommercialBindingModel).order_by(
             CustomerCommercialBindingModel.effective_from.desc(),
             CustomerCommercialBindingModel.created_at.desc(),
@@ -54,8 +55,10 @@ class CustomerCommercialBindingRepository:
         self,
         *,
         user_id: UUID,
+        auth_realm_id: UUID | None = None,
         binding_type: str,
         storefront_id: UUID | None,
+        active_at: datetime | None = None,
         for_update: bool = False,
     ) -> CustomerCommercialBindingModel | None:
         stmt = (
@@ -74,6 +77,19 @@ class CustomerCommercialBindingRepository:
             stmt = stmt.where(CustomerCommercialBindingModel.storefront_id.is_(None))
         else:
             stmt = stmt.where(CustomerCommercialBindingModel.storefront_id == storefront_id)
+        if auth_realm_id is not None:
+            stmt = stmt.where(CustomerCommercialBindingModel.auth_realm_id == auth_realm_id)
+        if active_at is not None:
+            normalized_active_at = (
+                active_at.replace(tzinfo=UTC) if active_at.tzinfo is None else active_at.astimezone(UTC)
+            )
+            stmt = stmt.where(
+                CustomerCommercialBindingModel.effective_from <= normalized_active_at,
+                or_(
+                    CustomerCommercialBindingModel.effective_to.is_(None),
+                    CustomerCommercialBindingModel.effective_to > normalized_active_at,
+                ),
+            )
         if for_update:
             stmt = stmt.with_for_update()
         result = await self._session.execute(stmt)
@@ -99,8 +115,10 @@ class CustomerCommercialBindingRepository:
         *,
         user_id: UUID,
         storefront_id: UUID | None,
+        auth_realm_id: UUID | None = None,
+        active_at: datetime | None = None,
         for_update: bool = False,
-    ) -> list[CustomerCommercialBindingModel]:
+    ) -> builtin_list[CustomerCommercialBindingModel]:
         stmt = (
             select(CustomerCommercialBindingModel)
             .where(
@@ -112,6 +130,8 @@ class CustomerCommercialBindingRepository:
                 CustomerCommercialBindingModel.created_at.desc(),
             )
         )
+        if auth_realm_id is not None:
+            stmt = stmt.where(CustomerCommercialBindingModel.auth_realm_id == auth_realm_id)
         if storefront_id is None:
             stmt = stmt.where(CustomerCommercialBindingModel.storefront_id.is_(None))
         else:
@@ -121,6 +141,42 @@ class CustomerCommercialBindingRepository:
                     CustomerCommercialBindingModel.storefront_id.is_(None),
                 )
             )
+        if active_at is not None:
+            normalized_active_at = (
+                active_at.replace(tzinfo=UTC) if active_at.tzinfo is None else active_at.astimezone(UTC)
+            )
+            stmt = stmt.where(
+                CustomerCommercialBindingModel.effective_from <= normalized_active_at,
+                or_(
+                    CustomerCommercialBindingModel.effective_to.is_(None),
+                    CustomerCommercialBindingModel.effective_to > normalized_active_at,
+                ),
+            )
+        if for_update:
+            stmt = stmt.with_for_update()
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_active_candidates_for_user(
+        self,
+        *,
+        user_id: UUID,
+        auth_realm_id: UUID | None = None,
+        for_update: bool = False,
+    ) -> builtin_list[CustomerCommercialBindingModel]:
+        stmt = (
+            select(CustomerCommercialBindingModel)
+            .where(
+                CustomerCommercialBindingModel.user_id == user_id,
+                CustomerCommercialBindingModel.binding_status == CustomerCommercialBindingStatus.ACTIVE.value,
+            )
+            .order_by(
+                CustomerCommercialBindingModel.effective_from.desc(),
+                CustomerCommercialBindingModel.created_at.desc(),
+            )
+        )
+        if auth_realm_id is not None:
+            stmt = stmt.where(CustomerCommercialBindingModel.auth_realm_id == auth_realm_id)
         if for_update:
             stmt = stmt.with_for_update()
         result = await self._session.execute(stmt)

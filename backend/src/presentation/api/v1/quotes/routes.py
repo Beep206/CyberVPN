@@ -17,7 +17,13 @@ router = APIRouter(prefix="/quotes", tags=["quotes"])
 
 
 def _clear_attribution_cookie(response: Response) -> None:
-    response.delete_cookie(key=PARTNER_ATTRIBUTION_COOKIE_NAME, path="/")
+    response.delete_cookie(
+        key=PARTNER_ATTRIBUTION_COOKIE_NAME,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax",
+    )
     response.headers["Cache-Control"] = "no-store"
 
 

@@ -3880,13 +3880,16 @@
           "currency": "Settlement currency: {value}"
         },
         "emptyState": "No payout account is configured yet. Finance onboarding stays blocked until at least one payout destination is submitted.",
+        "forbiddenState": "This role cannot view payout accounts for the selected workspace.",
+        "loadingState": "Loading payout accounts from the canonical finance domain...",
         "review": {
           "approval": "Approval status",
           "approvedAt": "Approved at",
           "verification": "Verification status",
           "verifiedAt": "Verified at"
         },
-        "title": "Payout accounts"
+        "title": "Payout accounts",
+        "unavailableState": "Payout accounts are temporarily unavailable. Retry from the finance surface after the backend recovers."
       },
       "blocked": {
         "description": "These blockers come from the canonical bootstrap and admin-driven finance controls.",

@@ -107,7 +107,7 @@ def _request(*, ip: str = "203.0.113.10") -> Request:
 def _capture_payload(
     *,
     public_token: str = "public-token-123",
-    browser_key: str | None = None,
+    browser_key: str = "test-browser-key",
 ) -> PartnerAttributionCaptureRequest:
     return PartnerAttributionCaptureRequest(public_token=public_token, browser_key=browser_key)
 
@@ -331,5 +331,4 @@ async def test_capture_route_requires_browser_key_before_capture_use_case() -> N
             json={"public_token": "public-token-123"},
         )
 
-    assert response.status_code == 400
-    assert response.json()["detail"]["code"] == "PARTNER_CAPTURE_BROWSER_KEY_REQUIRED"
+    assert response.status_code == 422

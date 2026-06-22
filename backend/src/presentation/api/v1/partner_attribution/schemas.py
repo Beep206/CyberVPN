@@ -15,7 +15,7 @@ class PartnerAttributionCaptureRequest(BaseModel):
     sale_channel: str | None = Field(default=None, max_length=40)
     sub_ids: dict[str, str] | None = None
     click_id: str | None = Field(default=None, max_length=160)
-    browser_key: str | None = Field(default=None, max_length=160)
+    browser_key: str = Field(min_length=1, max_length=160)
     campaign_params: dict[str, Any] | None = None
 
 

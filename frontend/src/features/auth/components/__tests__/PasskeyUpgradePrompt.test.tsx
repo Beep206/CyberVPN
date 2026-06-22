@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ComponentPropsWithoutRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PasskeyUpgradePrompt } from '../PasskeyUpgradePrompt';
 
@@ -60,7 +61,7 @@ vi.mock('@/i18n/navigation', () => ({
     children,
     href,
     ...props
-  }: Record<string, unknown> & { href?: string }) => (
+  }: ComponentPropsWithoutRef<'a'>) => (
     <a href={href} {...props}>
       {children}
     </a>

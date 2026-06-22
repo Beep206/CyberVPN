@@ -1162,6 +1162,143 @@ async def test_postgres_storefront_claim_prefers_exact_storefront_owner_over_new
 
 
 @pytest.mark.asyncio
+async def test_postgres_storefront_claim_treats_same_owner_global_immutable_as_already_claimed(
+    pg_sessionmaker: async_sessionmaker[AsyncSession],
+) -> None:
+    seed = await _seed_claim_fixture(pg_sessionmaker, same_owner=False, session_count=1)
+    await _set_session_storefront(
+        pg_sessionmaker,
+        session_id=seed.session_ids[0],
+        storefront_id=seed.storefront_ids[0],
+    )
+    try:
+        async with pg_sessionmaker() as session:
+            global_manual = _binding(
+                seed=seed,
+                account_id=seed.account_ids[0],
+                code_id=seed.code_ids[0],
+                storefront_id=None,
+                binding_type=CustomerCommercialBindingType.MANUAL_OVERRIDE.value,
+                reason_code="postgres_same_owner_global_manual",
+            )
+            session.add(global_manual)
+            await session.commit()
+            global_manual_id = global_manual.id
+
+        result = await _claim_cookie(pg_sessionmaker, seed=seed, cookie_token=seed.cookie_tokens[0])
+
+        assert result.status == "already_claimed_same_owner"
+        assert result.binding_id == global_manual_id
+        active_bindings = await _active_bindings_for_seed(pg_sessionmaker, seed)
+        assert len(active_bindings) == 1
+
+        async with pg_sessionmaker() as session:
+            attribution = await session.get(PartnerAttributionSessionModel, seed.session_ids[0])
+            assert attribution is not None
+            assert attribution.status == "claimed"
+            assert attribution.binding_id == global_manual_id
+    finally:
+        await _cleanup_claim_fixture(pg_sessionmaker, seed)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("foreign_binding_type", "reason_code"),
+    [
+        (CustomerCommercialBindingType.MANUAL_OVERRIDE.value, "postgres_foreign_realm_global_manual"),
+        (CustomerCommercialBindingType.PARTNER_ATTRIBUTION.value, "postgres_foreign_realm_partner_attribution"),
+    ],
+)
+async def test_postgres_claim_ignores_foreign_realm_active_owner(
+    pg_sessionmaker: async_sessionmaker[AsyncSession],
+    foreign_binding_type: str,
+    reason_code: str,
+) -> None:
+    seed = await _seed_claim_fixture(pg_sessionmaker, same_owner=False, session_count=1)
+    foreign_realm = AuthRealmModel(
+        id=uuid.uuid4(),
+        realm_key=f"pg-claim-foreign-{uuid.uuid4().hex}",
+        realm_type="customer",
+        display_name="PG Claim Foreign Realm",
+        audience=f"cybervpn:pg-claim-foreign:{uuid.uuid4().hex}",
+        cookie_namespace=f"pgforeign{uuid.uuid4().hex[:16]}",
+        status="active",
+        is_default=False,
+    )
+    try:
+        async with pg_sessionmaker() as session:
+            foreign_binding = _binding(
+                seed=seed,
+                account_id=seed.account_ids[0],
+                code_id=seed.code_ids[0],
+                storefront_id=None,
+                binding_type=foreign_binding_type,
+                reason_code=reason_code,
+            )
+            foreign_binding.auth_realm_id = foreign_realm.id
+            session.add(foreign_realm)
+            session.add(foreign_binding)
+            await session.commit()
+            foreign_binding_id = foreign_binding.id
+
+        result = await _claim_cookie(pg_sessionmaker, seed=seed, cookie_token=seed.cookie_tokens[0])
+
+        assert result.status == "claimed"
+        assert result.binding_id is not None
+        assert result.binding_id != foreign_binding_id
+
+        active_bindings = await _active_bindings_for_seed(pg_sessionmaker, seed)
+        active_by_id = {binding.id: binding for binding in active_bindings}
+        assert set(active_by_id) == {foreign_binding_id, result.binding_id}
+        assert active_by_id[foreign_binding_id].auth_realm_id == foreign_realm.id
+        assert active_by_id[foreign_binding_id].binding_status == CustomerCommercialBindingStatus.ACTIVE.value
+        assert active_by_id[result.binding_id].auth_realm_id == seed.realm.id
+
+        async with pg_sessionmaker() as session:
+            attribution = await session.get(PartnerAttributionSessionModel, seed.session_ids[0])
+            assert attribution is not None
+            assert attribution.status == "claimed"
+            assert attribution.binding_id == result.binding_id
+    finally:
+        await _cleanup_claim_fixture(pg_sessionmaker, seed)
+        async with pg_sessionmaker() as session:
+            await session.execute(delete(AuthRealmModel).where(AuthRealmModel.id == foreign_realm.id))
+            await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_postgres_future_global_owner_does_not_block_current_claim_without_current_owner(
+    pg_sessionmaker: async_sessionmaker[AsyncSession],
+) -> None:
+    seed = await _seed_claim_fixture(pg_sessionmaker, same_owner=False, session_count=2)
+    try:
+        async with pg_sessionmaker() as session:
+            future_global_manual = _binding(
+                seed=seed,
+                account_id=seed.account_ids[1],
+                code_id=seed.code_ids[1],
+                storefront_id=None,
+                binding_type=CustomerCommercialBindingType.MANUAL_OVERRIDE.value,
+                owner_type="performance",
+                reason_code="postgres_future_global_manual_owner",
+            )
+            future_global_manual.effective_from = datetime.now(UTC) + timedelta(days=1)
+            session.add(future_global_manual)
+            await session.commit()
+            future_binding_id = future_global_manual.id
+
+        result = await _claim_cookie(pg_sessionmaker, seed=seed, cookie_token=seed.cookie_tokens[0])
+
+        assert result.status == "claimed"
+        assert result.binding_id is not None
+        assert result.binding_id != future_binding_id
+        active_bindings = await _active_bindings_for_seed(pg_sessionmaker, seed)
+        assert {binding.id for binding in active_bindings} == {future_binding_id, result.binding_id}
+    finally:
+        await _cleanup_claim_fixture(pg_sessionmaker, seed)
+
+
+@pytest.mark.asyncio
 async def test_postgres_claim_unique_conflict_maps_to_existing_owner_result(
     monkeypatch: pytest.MonkeyPatch,
     pg_sessionmaker: async_sessionmaker[AsyncSession],
@@ -1175,13 +1312,22 @@ async def test_postgres_claim_unique_conflict_maps_to_existing_owner_result(
         *,
         user_id: uuid.UUID,
         storefront_id: uuid.UUID | None,
+        auth_realm_id: uuid.UUID | None = None,
+        active_at: datetime | None = None,
         for_update: bool = False,
     ) -> list[CustomerCommercialBindingModel]:
         nonlocal calls
         calls += 1
         if calls == 1:
             return []
-        return await original_list_active(self, user_id=user_id, storefront_id=storefront_id, for_update=for_update)
+        return await original_list_active(
+            self,
+            user_id=user_id,
+            storefront_id=storefront_id,
+            auth_realm_id=auth_realm_id,
+            active_at=active_at,
+            for_update=for_update,
+        )
 
     monkeypatch.setattr(CustomerCommercialBindingRepository, "list_active_for_user", stale_preflight_once)
 
@@ -1232,13 +1378,22 @@ async def test_postgres_claim_unique_conflict_rolls_back_to_manual_review_withou
         *,
         user_id: uuid.UUID,
         storefront_id: uuid.UUID | None,
+        auth_realm_id: uuid.UUID | None = None,
+        active_at: datetime | None = None,
         for_update: bool = False,
     ) -> list[CustomerCommercialBindingModel]:
         nonlocal calls
         calls += 1
         if calls == 1:
             return []
-        return await original_list_active(self, user_id=user_id, storefront_id=storefront_id, for_update=for_update)
+        return await original_list_active(
+            self,
+            user_id=user_id,
+            storefront_id=storefront_id,
+            auth_realm_id=auth_realm_id,
+            active_at=active_at,
+            for_update=for_update,
+        )
 
     monkeypatch.setattr(CustomerCommercialBindingRepository, "list_active_for_user", stale_preflight_once)
 

@@ -9400,24 +9400,6 @@
         ],
         "summary": "Capture Partner Attribution",
         "operationId": "capture_partner_attribution_api_v1_partner_attribution_capture_post",
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Idempotency-Key"
-            }
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -9449,7 +9431,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Opaque idempotency key for replay-safe partner attribution capture."
+          }
+        ]
       }
     },
     "/api/v1/partner-attribution/transfer/consume": {
@@ -67297,15 +67291,9 @@
             "title": "Click Id"
           },
           "browser_key": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 160
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
             "title": "Browser Key"
           },
           "campaign_params": {
@@ -67323,7 +67311,8 @@
         },
         "type": "object",
         "required": [
-          "public_token"
+          "public_token",
+          "browser_key"
         ],
         "title": "PartnerAttributionCaptureRequest"
       },

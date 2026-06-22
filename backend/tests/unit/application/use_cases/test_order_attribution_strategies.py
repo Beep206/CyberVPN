@@ -88,7 +88,13 @@ def _touchpoint(
     )
 
 
-def _binding(*, code: PartnerCodeModel, binding_type: str, owner_type: str) -> CustomerCommercialBindingModel:
+def _binding(
+    *,
+    code: PartnerCodeModel,
+    binding_type: str,
+    owner_type: str,
+    storefront_id: uuid.UUID | None = None,
+) -> CustomerCommercialBindingModel:
     return CustomerCommercialBindingModel(
         id=uuid.uuid4(),
         user_id=uuid.uuid4(),
@@ -97,15 +103,15 @@ def _binding(*, code: PartnerCodeModel, binding_type: str, owner_type: str) -> C
         owner_type=owner_type,
         partner_account_id=code.partner_account_id,
         partner_code_id=code.id,
-        storefront_id=None,
+        storefront_id=storefront_id,
         reason_code="strategy-test",
         evidence_payload={"policy_snapshot": {"owner_type": owner_type, "attribution_model": "persistent"}},
         effective_from=datetime.now(UTC),
     )
 
 
-def _order():
-    return SimpleNamespace(storefront_id=None)
+def _order(*, storefront_id: uuid.UUID | None = None):
+    return SimpleNamespace(storefront_id=storefront_id)
 
 
 @pytest.mark.asyncio
@@ -356,3 +362,44 @@ async def test_explicit_priority_and_immutable_binding_precedence_are_preserved(
     assert manual_candidate is not None
     assert manual_candidate.partner_code_id == manual_code.id
     assert manual_candidate.owner_source == "manual_override"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("immutable_binding_type", "owner_source"),
+    [
+        (CustomerCommercialBindingType.MANUAL_OVERRIDE.value, "manual_override"),
+        (CustomerCommercialBindingType.CONTRACT_ASSIGNMENT.value, "contract_assignment"),
+    ],
+)
+async def test_global_immutable_binding_precedes_storefront_partner_attribution(
+    immutable_binding_type: str,
+    owner_source: str,
+) -> None:
+    storefront_id = uuid.uuid4()
+    partner_code = _code("SCOPEA")
+    manual_code = _code("SCOPEM", owner_type="performance")
+
+    candidate = await _resolver(partner_code, manual_code)._resolve_candidate(
+        order=_order(storefront_id=storefront_id),
+        touchpoints=[],
+        bindings=[
+            _binding(
+                code=manual_code,
+                binding_type=immutable_binding_type,
+                owner_type="performance",
+                storefront_id=None,
+            ),
+            _binding(
+                code=partner_code,
+                binding_type=CustomerCommercialBindingType.PARTNER_ATTRIBUTION.value,
+                owner_type="affiliate",
+                storefront_id=storefront_id,
+            ),
+        ],
+    )
+
+    assert candidate is not None
+    assert candidate.partner_code_id == manual_code.id
+    assert candidate.owner_source == owner_source
+    assert "global_immutable_binding_selected" in candidate.rule_path

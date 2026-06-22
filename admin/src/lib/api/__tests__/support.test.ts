@@ -101,12 +101,21 @@ describe('supportApi admin support operations', () => {
 
     expect(response.status).toBe(200);
     expect(response.data.tickets[0]?.public_id).toBe('sup_20260529_0001');
-    expect(capturedUrl?.searchParams.get('status')).toBe('pending_support');
-    expect(capturedUrl?.searchParams.get('priority')).toBe('high');
-    expect(capturedUrl?.searchParams.get('category')).toBe('setup');
-    expect(capturedUrl?.searchParams.get('source')).toBe('customer_web');
-    expect(capturedUrl?.searchParams.get('query')).toBe('sup_20260529_0001');
-    expect(capturedUrl?.searchParams.get('limit')).toBe('25');
+    const requestedUrl = getCapturedAdminTicketsUrl();
+    expect(requestedUrl.searchParams.get('status')).toBe('pending_support');
+    expect(requestedUrl.searchParams.get('priority')).toBe('high');
+    expect(requestedUrl.searchParams.get('category')).toBe('setup');
+    expect(requestedUrl.searchParams.get('source')).toBe('customer_web');
+    expect(requestedUrl.searchParams.get('query')).toBe('sup_20260529_0001');
+    expect(requestedUrl.searchParams.get('limit')).toBe('25');
+
+    function getCapturedAdminTicketsUrl() {
+      if (!capturedUrl) {
+        throw new Error('Expected admin tickets URL to be captured');
+      }
+
+      return capturedUrl;
+    }
   });
 
   it('keeps public replies and internal notes on separate endpoints', async () => {

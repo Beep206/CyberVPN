@@ -20,6 +20,9 @@ describe('i18n request config', () => {
     });
 
     expect(config.locale).toBe('ru-RU');
+    if (!config.messages) {
+      throw new Error('Expected i18n messages for ru-RU request config');
+    }
     expect(config.messages.Header).toMatchObject({
       netUplink: 'СЕТЬ_АПЛИНК',
     });
@@ -43,6 +46,9 @@ describe('i18n request config', () => {
     });
 
     expect(config.locale).toBe('ru-RU');
+    if (!config.messages) {
+      throw new Error('Expected default i18n messages for fallback locale');
+    }
     expect(config.messages.Header).toMatchObject({
       netUplink: 'СЕТЬ_АПЛИНК',
     });

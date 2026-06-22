@@ -43,6 +43,7 @@ class CreateCustomerCommercialBindingUseCase:
         evidence_payload: dict[str, Any] | None = None,
         created_by_admin_user_id: UUID | None = None,
         effective_from: datetime | None = None,
+        effective_to: datetime | None = None,
         commit: bool = True,
     ) -> CustomerCommercialBindingModel:
         if binding_type not in {member.value for member in CustomerCommercialBindingType}:
@@ -113,10 +114,15 @@ class CreateCustomerCommercialBindingUseCase:
             raise ValueError("Partner owner bindings must reference a partner_code or partner_account")
 
         effective_from_utc = _normalize_utc(effective_from)
+        effective_to_utc = _normalize_utc(effective_to) if effective_to is not None else None
+        if effective_to_utc is not None and effective_to_utc <= effective_from_utc:
+            raise ValueError("effective_to must be after effective_from")
         existing = await self._bindings.find_active_for_scope(
             user_id=user.id,
+            auth_realm_id=user.auth_realm_id,
             binding_type=binding_type_enum.value,
             storefront_id=resolved_storefront_id,
+            active_at=effective_from_utc,
             for_update=True,
         )
         if existing and _is_same_binding(
@@ -147,6 +153,7 @@ class CreateCustomerCommercialBindingUseCase:
             evidence_payload=payload,
             created_by_admin_user_id=created_by_admin_user_id,
             effective_from=effective_from_utc,
+            effective_to=effective_to_utc,
         )
         created = await self._bindings.create(model)
         if commit:

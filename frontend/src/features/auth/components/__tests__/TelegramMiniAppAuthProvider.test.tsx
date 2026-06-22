@@ -1,9 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TelegramMiniAppAuthProvider } from '../TelegramMiniAppAuthProvider';
 import { MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
+import {
+  cleanupTelegramWebAppMock,
+  setupTelegramWebAppMock,
+} from '@/test/mocks/telegram-webapp';
 
 const {
   mockPush,
@@ -74,7 +78,7 @@ function renderProvider(children: React.ReactNode) {
 describe('TelegramMiniAppAuthProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete (window as typeof window & { Telegram?: unknown }).Telegram;
+    cleanupTelegramWebAppMock();
     currentLocale = 'ru-RU';
     currentAuthState = {
       telegramMiniAppAuth: mockTelegramMiniAppAuth,
@@ -82,6 +86,10 @@ describe('TelegramMiniAppAuthProvider', () => {
       isMiniApp: true,
     };
     mockUsePathname.mockReturnValue('/miniapp/home');
+  });
+
+  afterEach(() => {
+    cleanupTelegramWebAppMock();
   });
 
   it('keeps successful mini app auth inside the current mini app namespace', async () => {
@@ -183,9 +191,9 @@ describe('TelegramMiniAppAuthProvider', () => {
       isAuthenticated: false,
       isMiniApp: false,
     };
-    (window as typeof window & { Telegram?: { WebApp: { initData: string } } }).Telegram = {
-      WebApp: { initData: 'query_id=late&user=owner&hash=signature' },
-    };
+    setupTelegramWebAppMock({
+      initData: 'query_id=late&user=owner&hash=signature',
+    });
     mockTelegramMiniAppAuth.mockResolvedValue({
       requires_2fa: false,
       is_new_user: false,
@@ -226,9 +234,9 @@ describe('TelegramMiniAppAuthProvider', () => {
       isMiniApp: true,
     };
     mockUsePathname.mockReturnValue('/miniapp/vpn');
-    (window as typeof window & { Telegram?: { WebApp: { initData: string } } }).Telegram = {
-      WebApp: { initData: 'query_id=restore&user=owner&hash=signature' },
-    };
+    setupTelegramWebAppMock({
+      initData: 'query_id=restore&user=owner&hash=signature',
+    });
     mockTelegramMiniAppAuth.mockResolvedValue({
       requires_2fa: false,
       is_new_user: false,

@@ -16,10 +16,10 @@ afterEach(() => {
 
 describe('supportTicketsApi', () => {
   it('lists current customer support tickets with filters', async () => {
-    let capturedUrl: URL | null = null;
+    const capturedRequest: { url: URL | null } = { url: null };
     server.use(
       http.get(`${API_BASE}/support/tickets`, ({ request }) => {
-        capturedUrl = new URL(request.url);
+        capturedRequest.url = new URL(request.url);
         return HttpResponse.json({
           tickets: [
             {
@@ -49,9 +49,12 @@ describe('supportTicketsApi', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(capturedUrl?.searchParams.get('category')).toBe('vpn_access');
-    expect(capturedUrl?.searchParams.get('limit')).toBe('25');
-    expect(capturedUrl?.searchParams.get('status')).toBe('pending_support');
+    if (!capturedRequest.url) {
+      throw new Error('Expected support ticket list request to be captured');
+    }
+    expect(capturedRequest.url.searchParams.get('category')).toBe('vpn_access');
+    expect(capturedRequest.url.searchParams.get('limit')).toBe('25');
+    expect(capturedRequest.url.searchParams.get('status')).toBe('pending_support');
     expect(response.data.tickets[0]?.public_id).toBe('SUP-20260529-001');
   });
 

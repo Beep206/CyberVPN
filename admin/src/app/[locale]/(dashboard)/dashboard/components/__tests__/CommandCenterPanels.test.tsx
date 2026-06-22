@@ -233,7 +233,7 @@ function getSectionCard(label: string) {
   const heading = screen.getByText(label);
   const card = heading.closest('a, article');
 
-  if (!card) {
+  if (!(card instanceof HTMLElement)) {
     throw new Error(`Missing section card: ${label}`);
   }
 

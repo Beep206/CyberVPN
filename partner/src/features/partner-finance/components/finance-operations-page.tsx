@@ -19,6 +19,8 @@ import { PartnerRouteGuard } from '@/features/partner-portal-state/components/pa
 import {
   getPartnerFinanceCapabilities,
   getPartnerFinanceSurfaceMode,
+  type PartnerFinanceCapabilityKey,
+  type PartnerOperationalCapability,
 } from '@/features/partner-operations/lib/reporting-finance-capabilities';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
 import {
@@ -26,6 +28,7 @@ import {
   getPartnerFinancePayoutAccountCurrency,
   getPartnerFinancePayoutHistoryTone,
 } from '@/features/partner-finance/lib/finance-contract';
+import { normalizePartnerPortalResourceState } from '@/features/partner-portal-state/lib/resource-state';
 
 const ACCOUNT_BADGE_STYLES = {
   blocked: 'text-neon-pink',
@@ -58,6 +61,17 @@ function getPayoutAccountMakeDefaultAction(
   payoutAccountId: string,
 ): string {
   return `partner.payout_account.make_default:${workspaceId}:${payoutAccountId}`;
+}
+
+export function canManagePartnerFinancePayoutAccounts(
+  access: 'read' | 'write' | 'admin' | 'none',
+  capabilities: PartnerOperationalCapability<PartnerFinanceCapabilityKey>[],
+): boolean {
+  const payoutAccountsCapability = capabilities.find((item) => item.key === 'payout_accounts');
+  return (
+    (access === 'write' || access === 'admin')
+    && payoutAccountsCapability?.availability === 'enabled'
+  );
 }
 
 function formatTimestamp(value: string | null | undefined): string {
@@ -100,20 +114,19 @@ export function FinanceOperationsPage() {
     makeDefault: true,
   });
 
-  const capabilityAvailability = useMemo(
-    () => new Map(capabilities.map((item) => [item.key, item.availability])),
-    [capabilities],
-  );
-
   const blockedFinanceReasons = useMemo(
     () => blockedReasons.filter((item) => item.route_slug === 'finance'),
     [blockedReasons],
   );
 
   const workspaceId = activeWorkspace?.id ?? state.activeWorkspaceId ?? null;
+  const payoutAccountsResource = normalizePartnerPortalResourceState(payoutAccountsQuery, {
+    enabled: Boolean(workspaceId),
+    isEmpty: (accounts) => accounts.length === 0,
+  });
   const payoutAccounts = useMemo(
-    () => payoutAccountsQuery.data ?? [],
-    [payoutAccountsQuery.data],
+    () => (payoutAccountsResource.status === 'ready' ? payoutAccountsResource.data : []),
+    [payoutAccountsResource],
   );
   const financeCurrencySnapshots = useMemo(
     () => (
@@ -264,10 +277,7 @@ export function FinanceOperationsPage() {
   return (
     <PartnerRouteGuard route="finance" title={t('title')}>
       {(access) => {
-        const canManageAccounts = (
-          access === 'write'
-          || access === 'admin'
-        ) && capabilityAvailability.get('payout_accounts') !== 'blocked';
+        const canManageAccounts = canManagePartnerFinancePayoutAccounts(access, capabilities);
         const payoutHistory = payoutHistoryQuery.data ?? [];
         const selectedAccountNotes = selectedAccount
           ? buildPartnerFinancePayoutAccountNotes({
@@ -529,7 +539,19 @@ export function FinanceOperationsPage() {
                   </div>
 
                   <div className="mt-4 space-y-3">
-                    {payoutAccounts.length > 0 ? payoutAccounts.map((account) => {
+                    {payoutAccountsResource.status === 'loading' ? (
+                      <div className="rounded-xl border border-dashed border-grid-line/20 bg-terminal-bg/40 p-4 text-sm font-mono text-muted-foreground">
+                        {t('accounts.loadingState')}
+                      </div>
+                    ) : payoutAccountsResource.status === 'forbidden' ? (
+                      <div className="rounded-xl border border-neon-pink/25 bg-neon-pink/10 p-4 text-sm font-mono text-neon-pink">
+                        {t('accounts.forbiddenState')}
+                      </div>
+                    ) : payoutAccountsResource.status === 'unavailable' || payoutAccountsResource.status === 'error' ? (
+                      <div className="rounded-xl border border-neon-pink/25 bg-neon-pink/10 p-4 text-sm font-mono text-neon-pink">
+                        {t('accounts.unavailableState')}
+                      </div>
+                    ) : payoutAccounts.length > 0 ? payoutAccounts.map((account) => {
                       const portalStateAccount = state.payoutAccounts.find((item) => item.id === account.id);
                       const badgeState = portalStateAccount?.status ?? 'pending_review';
                       const badgeClass = ACCOUNT_BADGE_STYLES[badgeState];

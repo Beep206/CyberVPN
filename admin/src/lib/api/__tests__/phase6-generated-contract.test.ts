@@ -8,7 +8,7 @@ const PHASE6_ADMIN_PATHS = [
   '/api/v1/orders/{order_id}/explainability',
   '/api/v1/payment-disputes/',
   '/api/v1/partner-statements/',
-  '/api/v1/payouts/',
+  '/api/v1/payouts/instructions',
   '/api/v1/service-identities/inspect/service-state',
 ] as const satisfies readonly (keyof paths)[];
 

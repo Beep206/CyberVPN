@@ -1505,7 +1505,10 @@
     "accounts": {
       "title": "Payout accounts",
       "description": "Payout destinations, verification posture и default selection теперь приходят из canonical finance domain.",
+      "loadingState": "Загружаем payout accounts из canonical finance domain...",
       "emptyState": "Payout account ещё не настроен. Finance onboarding останется заблокирован, пока не будет отправлен хотя бы один payout destination.",
+      "forbiddenState": "У этой роли нет доступа к payout accounts выбранной рабочей области.",
+      "unavailableState": "Payout accounts временно недоступны. Повторите попытку из finance surface после восстановления backend.",
       "detail": {
         "currency": "Settlement currency: {value}"
       },

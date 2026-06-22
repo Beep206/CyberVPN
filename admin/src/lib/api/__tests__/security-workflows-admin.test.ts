@@ -16,9 +16,13 @@ afterEach(() => {
 
 describe('securityApi review queue workflows', () => {
   it('lists the canonical risk review queue', async () => {
+    let capturedUrl: URL | null = null;
+
     server.use(
-      http.get(`${API_BASE}/security/risk-reviews/queue`, () =>
-        HttpResponse.json([
+      http.get(`${API_BASE}/security/risk-reviews/queue`, ({ request }) => {
+        capturedUrl = new URL(request.url);
+
+        return HttpResponse.json([
           {
             review: {
               id: 'review-1',
@@ -49,15 +53,29 @@ describe('securityApi review queue workflows', () => {
             attachment_count: 1,
             governance_action_count: 2,
           },
-        ]),
-      ),
+        ]);
+      }),
     );
 
-    const response = await securityApi.listRiskReviewQueue({ status: 'open', limit: 10, offset: 0 });
+    const response = await securityApi.listRiskReviewQueue({
+      review_type: 'payout_review',
+      status: 'open',
+    });
 
     expect(response.status).toBe(200);
     expect(response.data[0]?.review.review_type).toBe('payout_review');
     expect(response.data[0]?.governance_action_count).toBe(2);
+    const requestedUrl = getCapturedRiskReviewQueueUrl();
+    expect(requestedUrl.searchParams.get('status')).toBe('open');
+    expect(requestedUrl.searchParams.get('review_type')).toBe('payout_review');
+
+    function getCapturedRiskReviewQueueUrl() {
+      if (!capturedUrl) {
+        throw new Error('Expected risk review queue request URL to be captured');
+      }
+
+      return capturedUrl;
+    }
   });
 
   it('loads, annotates, and resolves a selected review', async () => {

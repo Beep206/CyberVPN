@@ -510,11 +510,17 @@ describe('CustomerOperationsInsight', () => {
 
   it('opens a canonical dispute case from the payment dispute workflow rail', async () => {
     const paymentDisputeId = '88dfdf63-dfa2-4827-b55d-64c318fefb07';
+    const baseOrderInsight = buildOperationsInsightResponse().order_insights?.[0];
+
+    if (!baseOrderInsight) {
+      throw new Error('Missing operations insight order fixture');
+    }
+
     mockGetOperationsInsight.mockResolvedValue({
       data: buildOperationsInsightResponse({
         order_insights: [
           {
-            ...buildOperationsInsightResponse().order_insights[0],
+            ...baseOrderInsight,
             payment_disputes: [
               {
                 id: paymentDisputeId,

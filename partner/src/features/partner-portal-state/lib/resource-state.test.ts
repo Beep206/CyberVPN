@@ -8,6 +8,7 @@ import {
 import {
   boundedWorkspaceRetry,
   boundedWorkspaceRetryDelay,
+  resolvePortalResource,
 } from './use-partner-portal-runtime-state';
 
 function axiosStatusError(status: number): unknown {
@@ -149,5 +150,21 @@ describe('partner portal workspace retry policy', () => {
     expect(boundedWorkspaceRetryDelay(0, new RateLimitError(180))).toBe(120_000);
     expect(boundedWorkspaceRetryDelay(0, realAxiosStatusError(503))).toBe(1_000);
     expect(boundedWorkspaceRetryDelay(10, realAxiosStatusError(503))).toBe(30_000);
+  });
+});
+
+describe('partner portal resource loading boundary', () => {
+  it('propagates forbidden and missing resources instead of converting them to empty data', async () => {
+    await expect(
+      resolvePortalResource(() => Promise.reject(realAxiosStatusError(403))),
+    ).rejects.toMatchObject({
+      response: { status: 403 },
+    });
+
+    await expect(
+      resolvePortalResource(() => Promise.reject(realAxiosStatusError(404))),
+    ).rejects.toMatchObject({
+      response: { status: 404 },
+    });
   });
 });

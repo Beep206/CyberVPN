@@ -48,9 +48,14 @@ jobs:
 
       - name: Run pip-audit
         run: |
-          pip-audit --format json --output audit-results.json || true
-          pip-audit --format columns
-        continue-on-error: true
+          set +e
+          pip-audit --skip-editable --format json --output audit-results.json
+          json_rc=$?
+          pip-audit --skip-editable --format columns
+          columns_rc=$?
+          if [ "${json_rc}" -ne 0 ] || [ "${columns_rc}" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Upload audit results
         uses: actions/upload-artifact@v4
@@ -60,14 +65,8 @@ jobs:
           path: backend/audit-results.json
           retention-days: 30
 
-      - name: Fail on critical vulnerabilities
-        run: |
-          if pip-audit --strict 2>/dev/null; then
-            echo "No vulnerabilities found"
-          else
-            echo "::warning::Vulnerabilities detected - review audit-results.json"
-            # Don't fail CI, just warn (can be changed to exit 1 for strict mode)
-          fi
+      - name: Confirm vulnerability gate passed
+        run: pip-audit --skip-editable --format columns
 
   code-security:
     name: Code Security Analysis
@@ -88,9 +87,14 @@ jobs:
 
       - name: Run Bandit security linter
         run: |
-          bandit -r src/ -f json -o bandit-results.json || true
-          bandit -r src/ -f txt
-        continue-on-error: true
+          set +e
+          bandit -r src/ -ll -f json -o bandit-results.json
+          json_rc=$?
+          bandit -r src/ -ll -f txt
+          text_rc=$?
+          if [ "${json_rc}" -ne 0 ] || [ "${text_rc}" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Upload Bandit results
         uses: actions/upload-artifact@v4
@@ -101,8 +105,7 @@ jobs:
           retention-days: 30
 
       - name: Run Ruff security rules
-        run: ruff check src/ --select S --output-format=json > ruff-security.json || true
-        continue-on-error: true
+        run: ruff check src/ --select S --output-format=json > ruff-security.json
 
       - name: Upload Ruff security results
         uses: actions/upload-artifact@v4

@@ -6,7 +6,7 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,7 +53,9 @@ router = APIRouter(prefix="/partner-attribution", tags=["partner-attribution"])
 
 
 def _cookie_secure() -> bool:
-    return settings.environment.strip().lower() == "production"
+    if settings.environment.strip().lower() == "production":
+        return True
+    return settings.cookie_secure
 
 
 def _set_attribution_cookie(response: Response, token: str, *, max_age_seconds: int) -> None:
@@ -70,8 +72,20 @@ def _set_attribution_cookie(response: Response, token: str, *, max_age_seconds: 
 
 
 def _clear_attribution_cookie(response: Response) -> None:
-    response.delete_cookie(key=PARTNER_ATTRIBUTION_COOKIE_NAME, path="/")
+    response.delete_cookie(
+        key=PARTNER_ATTRIBUTION_COOKIE_NAME,
+        path="/",
+        secure=_cookie_secure(),
+        httponly=True,
+        samesite="lax",
+    )
     response.headers["Cache-Control"] = "no-store"
+
+
+def _coerce_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _error_response(exc: PartnerAttributionError) -> JSONResponse:
@@ -104,15 +118,29 @@ def _require_capture_replay_guards(*, payload: PartnerAttributionCaptureRequest,
         )
 
 
-@router.post("/capture", response_model=PartnerAttributionCaptureResponse)
+@router.post(
+    "/capture",
+    response_model=PartnerAttributionCaptureResponse,
+    openapi_extra={
+        "parameters": [
+            {
+                "name": "Idempotency-Key",
+                "in": "header",
+                "required": True,
+                "schema": {"type": "string", "minLength": 1},
+                "description": "Opaque idempotency key for replay-safe partner attribution capture.",
+            }
+        ]
+    },
+)
 async def capture_partner_attribution(
     payload: PartnerAttributionCaptureRequest,
     request: Request,
-    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     db: AsyncSession = Depends(get_db),
     redis_client=Depends(get_redis),
     current_realm: RealmResolution = Depends(get_request_public_customer_realm),
 ) -> PartnerAttributionCaptureResponse | JSONResponse:
+    idempotency_key = request.headers.get("Idempotency-Key")
     _require_capture_replay_guards(payload=payload, idempotency_key=idempotency_key)
     await check_partner_attribution_capture_rate_limit(
         request=request,
@@ -188,7 +216,7 @@ async def consume_partner_attribution_transfer(
             },
         ) from exc
 
-    max_age_seconds = int(max((result.expires_at - datetime.now(UTC)).total_seconds(), 0))
+    max_age_seconds = int(max((_coerce_utc(result.expires_at) - datetime.now(UTC)).total_seconds(), 0))
     _set_attribution_cookie(response, result.cookie_token, max_age_seconds=max_age_seconds)
     return PartnerAttributionTransferConsumeResponse(
         attribution_id=result.attribution_id,

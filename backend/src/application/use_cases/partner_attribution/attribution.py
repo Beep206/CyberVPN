@@ -846,12 +846,19 @@ class ClaimPartnerAttributionUseCase:
 
         active_bindings = await self._bindings.list_active_for_user(
             user_id=user.id,
+            auth_realm_id=attribution.auth_realm_id,
             storefront_id=attribution.storefront_id,
             for_update=True,
         )
-        existing_binding = _find_active_owner(active_bindings, storefront_id=attribution.storefront_id)
+        current_bindings = _effective_bindings_at(active_bindings, active_at=now)
+        existing_binding = _find_active_owner(current_bindings, storefront_id=attribution.storefront_id)
         if existing_binding is not None:
             return await self._claim_existing_owner(attribution=attribution, existing_binding=existing_binding, now=now)
+        next_scheduled_owner = _find_next_scheduled_owner(
+            active_bindings,
+            storefront_id=attribution.storefront_id,
+            after=now,
+        )
 
         try:
             async with self._session.begin_nested():
@@ -870,6 +877,7 @@ class ClaimPartnerAttributionUseCase:
                         "campaign_params": dict(attribution.campaign_params or {}),
                     },
                     effective_from=now,
+                    effective_to=next_scheduled_owner.effective_from if next_scheduled_owner is not None else None,
                     commit=False,
                 )
                 binding.policy_version_id = attribution.policy_version_id
@@ -929,10 +937,12 @@ class ClaimPartnerAttributionUseCase:
                 raise
             active_bindings = await self._bindings.list_active_for_user(
                 user_id=user.id,
+                auth_realm_id=attribution.auth_realm_id,
                 storefront_id=attribution.storefront_id,
                 for_update=True,
             )
-            existing_binding = _find_active_owner(active_bindings, storefront_id=attribution.storefront_id)
+            current_bindings = _effective_bindings_at(active_bindings, active_at=now)
+            existing_binding = _find_active_owner(current_bindings, storefront_id=attribution.storefront_id)
             if existing_binding is None:
                 raise
             return await self._claim_existing_owner(attribution=attribution, existing_binding=existing_binding, now=now)
@@ -1347,6 +1357,68 @@ _IMMUTABLE_GLOBAL_BINDING_TYPES = frozenset(
 )
 
 
+def _normalize_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _effective_bindings_at(
+    bindings: list[CustomerCommercialBindingModel],
+    *,
+    active_at: datetime,
+) -> list[CustomerCommercialBindingModel]:
+    normalized_active_at = _normalize_utc(active_at)
+    return [
+        binding
+        for binding in bindings
+        if _normalize_utc(binding.effective_from) <= normalized_active_at
+        and (binding.effective_to is None or _normalize_utc(binding.effective_to) > normalized_active_at)
+    ]
+
+
+def _find_next_scheduled_owner(
+    bindings: list[CustomerCommercialBindingModel],
+    *,
+    storefront_id: UUID | None,
+    after: datetime,
+) -> CustomerCommercialBindingModel | None:
+    normalized_after = _normalize_utc(after)
+    candidates = [
+        binding
+        for binding in bindings
+        if (
+            binding.binding_status == CustomerCommercialBindingStatus.ACTIVE.value
+            and binding.owner_type != CommercialOwnerType.NONE.value
+            and _normalize_utc(binding.effective_from) > normalized_after
+            and _binding_applies_to_claim_scope(binding, storefront_id=storefront_id)
+        )
+    ]
+    if not candidates:
+        return None
+    return sorted(
+        candidates,
+        key=lambda binding: (
+            _normalize_utc(binding.effective_from),
+            _normalize_utc(binding.created_at)
+            if isinstance(binding.created_at, datetime)
+            else datetime.min.replace(tzinfo=UTC),
+        ),
+    )[0]
+
+
+def _binding_applies_to_claim_scope(
+    binding: CustomerCommercialBindingModel,
+    *,
+    storefront_id: UUID | None,
+) -> bool:
+    if storefront_id is None:
+        return binding.storefront_id is None
+    if binding.storefront_id == storefront_id:
+        return True
+    return binding.storefront_id is None and binding.binding_type in _IMMUTABLE_GLOBAL_BINDING_TYPES
+
+
 def _find_active_owner(
     bindings: list[CustomerCommercialBindingModel],
     *,
@@ -1381,11 +1453,19 @@ def _is_same_owner_binding(
     binding: CustomerCommercialBindingModel,
     attribution: PartnerAttributionSessionModel,
 ) -> bool:
+    storefront_matches = binding.storefront_id == attribution.storefront_id
+    if (
+        attribution.storefront_id is not None
+        and binding.storefront_id is None
+        and binding.binding_type in _IMMUTABLE_GLOBAL_BINDING_TYPES
+    ):
+        storefront_matches = True
     return (
-        binding.owner_type == attribution.owner_type
+        binding.auth_realm_id == attribution.auth_realm_id
+        and binding.owner_type == attribution.owner_type
         and binding.partner_account_id == attribution.partner_account_id
         and binding.partner_code_id == attribution.partner_code_id
-        and binding.storefront_id == attribution.storefront_id
+        and storefront_matches
     )
 
 

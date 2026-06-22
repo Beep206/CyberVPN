@@ -197,7 +197,8 @@ class Settings(BaseSettings):
     json_logs: bool = True  # Enable JSON structured logging (False = human-readable console)
 
     # API server runtime
-    api_host: str = "0.0.0.0"
+    # Container ingress/firewall controls exposure for deployed API bind addresses.
+    api_host: str = "0.0.0.0"  # nosec B104
     api_port: int = 8000
     uvicorn_access_log: bool = False
     uvicorn_server_header: bool = False
@@ -305,7 +306,8 @@ class Settings(BaseSettings):
 
     # Metrics (SEC-02)
     enable_metrics: bool = True  # Enable HTTP Prometheus middleware metrics
-    metrics_host: str = "0.0.0.0"
+    # Deployment network policy controls metrics endpoint exposure.
+    metrics_host: str = "0.0.0.0"  # nosec B104
     metrics_port: int = 9091  # Separate port for /metrics, not exposed publicly
 
     # Partner event backbone / realtime

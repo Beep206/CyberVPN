@@ -31,7 +31,11 @@ describe('structured-data helpers', () => {
     expect(data.url).toBe(`${SITE_URL}/ru-RU/help`);
     expect(data.inLanguage).toBe('ru-RU');
     expect(data.mainEntity).toHaveLength(2);
-    expect(data.mainEntity?.[0]).toMatchObject({
+    const mainEntity = data.mainEntity;
+    if (!Array.isArray(mainEntity)) {
+      throw new Error('Expected FAQ mainEntity to be an array');
+    }
+    expect(mainEntity[0]).toMatchObject({
       '@type': 'Question',
       name: 'How do I connect?',
     });

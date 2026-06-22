@@ -313,8 +313,15 @@ describe('customersApi mobile user admin operations', () => {
 
     expect(response.status).toBe(200);
     expect(response.data.section_access.finance_visible).toBe(true);
-    expect(response.data.order_insights[0]?.order_explainability.order.sale_channel).toBe('web');
-    expect(response.data.settlement_workspaces[0]?.partner_account_id).toBe('5d4c6d90-32aa-4a81-b430-b390f5684d7d');
+    const firstOrderInsight = response.data.order_insights?.[0];
+    const firstSettlementWorkspace = response.data.settlement_workspaces?.[0];
+
+    if (!firstOrderInsight || !firstSettlementWorkspace) {
+      throw new Error('Missing operations insight finance fixtures');
+    }
+
+    expect(firstOrderInsight.order_explainability.order.sale_channel).toBe('web');
+    expect(firstSettlementWorkspace.partner_account_id).toBe('5d4c6d90-32aa-4a81-b430-b390f5684d7d');
   });
 
   it('submits customer operations actions through the consolidated admin rail', async () => {

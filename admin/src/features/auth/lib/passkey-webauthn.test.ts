@@ -81,7 +81,11 @@ describe('passkey WebAuthn helper', () => {
   });
 
   it('normalizes request options and serializes authentication credentials', async () => {
-    const getMock = vi.fn(async () => buildAuthenticationCredential());
+    const getMock = vi.fn<(
+      options?: CredentialRequestOptions,
+    ) => Promise<Credential | null>>(
+      async () => buildAuthenticationCredential(),
+    );
     installWebAuthnMocks({ get: getMock });
 
     const payload = await startPasskeyAuthentication({
@@ -114,7 +118,11 @@ describe('passkey WebAuthn helper', () => {
   });
 
   it('normalizes creation options and serializes registration credentials through SimpleWebAuthn', async () => {
-    const createMock = vi.fn(async () => buildRegistrationCredential());
+    const createMock = vi.fn<(
+      options?: CredentialCreationOptions,
+    ) => Promise<Credential | null>>(
+      async () => buildRegistrationCredential(),
+    );
     installWebAuthnMocks({ create: createMock });
 
     const payload = await startPasskeyRegistration({

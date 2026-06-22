@@ -75,7 +75,9 @@ def _referral_attribution_error_response(exc: ReferralAttributionError) -> JSONR
 
 
 def _cookie_secure() -> bool:
-    return settings.environment.strip().lower() == "production"
+    if settings.environment.strip().lower() == "production":
+        return True
+    return settings.cookie_secure
 
 
 def _set_attribution_cookie(response: Response, token: str) -> None:
@@ -92,7 +94,13 @@ def _set_attribution_cookie(response: Response, token: str) -> None:
 
 
 def _clear_attribution_cookie(response: Response) -> None:
-    response.delete_cookie(key=REFERRAL_ATTRIBUTION_COOKIE_NAME, path="/")
+    response.delete_cookie(
+        key=REFERRAL_ATTRIBUTION_COOKIE_NAME,
+        path="/",
+        secure=_cookie_secure(),
+        httponly=True,
+        samesite="lax",
+    )
     response.headers["Cache-Control"] = "no-store"
 
 
@@ -119,9 +127,7 @@ def _serialize_referral_reward_compat(model) -> ReferralCommissionResponse:
     payment_id = reward_payload.get("payment_id")
     referred_user_id = reward_payload.get("referred_user_id")
     commission_rate = float(
-        reward_payload.get("legacy_commission_rate")
-        or reward_payload.get("friend_discount_value")
-        or 0
+        reward_payload.get("legacy_commission_rate") or reward_payload.get("friend_discount_value") or 0
     )
     return ReferralCommissionResponse(
         id=model.id,
