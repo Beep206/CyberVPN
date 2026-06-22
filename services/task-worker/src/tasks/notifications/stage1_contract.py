@@ -8,7 +8,7 @@ Telegram chat is available.
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Literal, cast
 
 from src.models.notification_queue import NotificationQueueModel
 from src.utils.constants import (
@@ -38,15 +38,18 @@ Stage1TelegramNotificationType = Literal[
     "provisioning_failed",
 ]
 
-STAGE1_TELEGRAM_NOTIFICATION_TYPES: frozenset[Stage1TelegramNotificationType] = frozenset(
-    {
-        NOTIFICATION_TYPE_SUBSCRIPTION_EXPIRING,
-        NOTIFICATION_TYPE_SUBSCRIPTION_EXPIRED,
-        NOTIFICATION_TYPE_PAYMENT_RECEIVED,
-        NOTIFICATION_TYPE_PAYMENT_FAILED,
-        NOTIFICATION_TYPE_PROVISIONING_READY,
-        NOTIFICATION_TYPE_PROVISIONING_FAILED,
-    }
+STAGE1_TELEGRAM_NOTIFICATION_TYPES = cast(
+    frozenset[Stage1TelegramNotificationType],
+    frozenset(
+        {
+            NOTIFICATION_TYPE_SUBSCRIPTION_EXPIRING,
+            NOTIFICATION_TYPE_SUBSCRIPTION_EXPIRED,
+            NOTIFICATION_TYPE_PAYMENT_RECEIVED,
+            NOTIFICATION_TYPE_PAYMENT_FAILED,
+            NOTIFICATION_TYPE_PROVISIONING_READY,
+            NOTIFICATION_TYPE_PROVISIONING_FAILED,
+        }
+    ),
 )
 
 

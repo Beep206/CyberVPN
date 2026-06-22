@@ -4,6 +4,8 @@ Periodic task that collects connection pool metrics and exposes them as Promethe
 for monitoring resource utilization and detecting connection leaks.
 """
 
+from typing import Any, cast
+
 import structlog
 from prometheus_client import Gauge
 
@@ -62,7 +64,7 @@ async def monitor_connection_pools() -> dict:
     # Monitor database connection pool
     try:
         engine = get_engine()
-        pool = engine.pool
+        pool = cast(Any, engine.pool)
 
         # Get pool status
         size = pool.size()

@@ -21,6 +21,7 @@ transactions and excessive memory consumption.
 """
 
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 from uuid import UUID
 
 import structlog
@@ -93,14 +94,14 @@ async def purge_deleted_accounts() -> dict:
         # ------------------------------------------------------------------
         otp_stmt = delete(OtpCodeModel).where(OtpCodeModel.user_id.in_(user_ids))
         otp_result = await session.execute(otp_stmt)
-        total_otp_deleted = otp_result.rowcount or 0  # type: ignore[union-attr]
+        total_otp_deleted = cast(Any, otp_result).rowcount or 0
 
         # ------------------------------------------------------------------
         # 3. Delete related refresh tokens
         # ------------------------------------------------------------------
         token_stmt = delete(RefreshTokenModel).where(RefreshTokenModel.user_id.in_(user_ids))
         token_result = await session.execute(token_stmt)
-        total_tokens_deleted = token_result.rowcount or 0  # type: ignore[union-attr]
+        total_tokens_deleted = cast(Any, token_result).rowcount or 0
 
         # ------------------------------------------------------------------
         # 4. Anonymise the user records (PII removal)

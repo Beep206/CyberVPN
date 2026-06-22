@@ -1,6 +1,7 @@
 """Cleanup old database records per retention policy."""
 
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 import structlog
 from sqlalchemy import delete
@@ -28,12 +29,12 @@ async def cleanup_old_records() -> dict:
         # Delete old audit logs
         audit_stmt = delete(AuditLogModel).where(AuditLogModel.created_at < audit_cutoff)
         audit_result = await session.execute(audit_stmt)
-        audit_deleted = audit_result.rowcount
+        audit_deleted = cast(Any, audit_result).rowcount or 0
 
         # Delete old webhook logs
         webhook_stmt = delete(WebhookLogModel).where(WebhookLogModel.created_at < webhook_cutoff)
         webhook_result = await session.execute(webhook_stmt)
-        webhook_deleted = webhook_result.rowcount
+        webhook_deleted = cast(Any, webhook_result).rowcount or 0
 
         await session.commit()
 

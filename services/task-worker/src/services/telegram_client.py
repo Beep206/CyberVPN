@@ -121,6 +121,8 @@ class TelegramClient:
                         result = response.json()
                         if result.get("ok"):
                             return result.get("result", {})
+                        error_description = result.get("description", "Unknown error")
+                        raise TelegramAPIError(f"Telegram API retry failed: {error_description}")
                     except Exception as retry_error:
                         logger.error("telegram_retry_failed", endpoint=endpoint, error=str(retry_error))
                         raise TelegramAPIError(f"Telegram API retry failed: {retry_error}") from retry_error

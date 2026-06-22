@@ -82,8 +82,8 @@ jobs:
         if: always()
         run: |
           if [ -f sarif-results/javascript-typescript.sarif ]; then
-            CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level == "error" or .ruleId | contains("critical"))] | length' sarif-results/javascript-typescript.sarif)
-            HIGH_COUNT=$(jq '[.runs[].results[] | select(.level == "warning" and (.ruleId | contains("high")))] | length' sarif-results/javascript-typescript.sarif)
+            CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level == "error" or (((.ruleId // "") | tostring | ascii_downcase) | contains("critical")))] | length' sarif-results/javascript-typescript.sarif)
+            HIGH_COUNT=$(jq '[.runs[].results[] | select(.level == "warning" and ((((.ruleId // "") | tostring | ascii_downcase) | contains("high"))))] | length' sarif-results/javascript-typescript.sarif)
 
             echo "Critical findings: $CRITICAL_COUNT"
             echo "High severity findings: $HIGH_COUNT"
@@ -144,8 +144,8 @@ jobs:
         if: always()
         run: |
           if [ -f sarif-results/python.sarif ]; then
-            CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level == "error" or .ruleId | contains("critical"))] | length' sarif-results/python.sarif)
-            HIGH_COUNT=$(jq '[.runs[].results[] | select(.level == "warning" and (.ruleId | contains("high")))] | length' sarif-results/python.sarif)
+            CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level == "error" or (((.ruleId // "") | tostring | ascii_downcase) | contains("critical")))] | length' sarif-results/python.sarif)
+            HIGH_COUNT=$(jq '[.runs[].results[] | select(.level == "warning" and ((((.ruleId // "") | tostring | ascii_downcase) | contains("high"))))] | length' sarif-results/python.sarif)
 
             echo "Critical findings: $CRITICAL_COUNT"
             echo "High severity findings: $HIGH_COUNT"

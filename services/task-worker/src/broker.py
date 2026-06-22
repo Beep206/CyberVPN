@@ -5,10 +5,13 @@ Uses lazy initialization pattern to defer expensive operations until broker star
 Implements production-grade error handling and resource cleanup.
 """
 
+from __future__ import annotations
+
 import asyncio
 import os
 import platform
 from contextlib import suppress
+from typing import Any, cast
 
 import httpx
 import structlog
@@ -41,7 +44,7 @@ settings = get_settings()
 broker = RedisStreamBroker(url=settings.redis_url)
 
 # Configure async result backend with TTL
-result_backend = RedisAsyncResultBackend(
+result_backend: RedisAsyncResultBackend[Any] = RedisAsyncResultBackend(
     redis_url=settings.redis_url,
     result_ex_time=settings.result_ttl_seconds,
 )
@@ -95,7 +98,7 @@ async def startup_event(state) -> None:
                 send_default_pii=False,
                 max_request_body_size="never",
                 include_local_variables=False,
-                before_send=before_send,
+                before_send=cast(Any, before_send),
             )
             logger.info(
                 "sentry_initialized",

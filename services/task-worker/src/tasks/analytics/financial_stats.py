@@ -1,6 +1,8 @@
 """Daily financial statistics aggregation."""
 
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import structlog
 from sqlalchemy import func, select
@@ -13,6 +15,13 @@ from src.services.redis_client import get_redis_client
 from src.utils.constants import STATS_PAYMENTS_KEY
 
 logger = structlog.get_logger(__name__)
+
+
+def _row_value(row: Any, key: str) -> Any:
+    mapping = getattr(row, "_mapping", None)
+    if isinstance(mapping, Mapping) and key in mapping:
+        return mapping[key]
+    return getattr(row, key)
 
 
 @broker.task(task_name="aggregate_financial_stats", queue="analytics")
@@ -73,20 +82,26 @@ async def aggregate_financial_stats() -> dict:
             provider_rows = result_provider.all()
             totals_row = result_totals.one()
 
-        stats = {
+        stats: dict[str, Any] = {
             "date": str(today - timedelta(days=1)),
             "by_currency": {},
             "by_provider": {},
-            "total_count": int(totals_row.count or 0),
-            "total_revenue": float(totals_row.total or 0),
-            "avg_amount": float(totals_row.avg or 0),
+            "total_count": int(_row_value(totals_row, "count") or 0),
+            "total_revenue": float(_row_value(totals_row, "total") or 0),
+            "avg_amount": float(_row_value(totals_row, "avg") or 0),
         }
 
         for row in currency_rows:
-            stats["by_currency"][row.currency] = {"count": row.count, "total": float(row.total or 0)}
+            stats["by_currency"][_row_value(row, "currency")] = {
+                "count": _row_value(row, "count"),
+                "total": float(_row_value(row, "total") or 0),
+            }
 
         for row in provider_rows:
-            stats["by_provider"][row.provider] = {"count": row.count, "total": float(row.total or 0)}
+            stats["by_provider"][_row_value(row, "provider")] = {
+                "count": _row_value(row, "count"),
+                "total": float(_row_value(row, "total") or 0),
+            }
 
         key = STATS_PAYMENTS_KEY.format(date=stats["date"])
         await cache.set(key, stats, ttl=90 * 24 * 3600)

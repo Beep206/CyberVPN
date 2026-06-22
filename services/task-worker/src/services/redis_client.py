@@ -8,6 +8,7 @@ Provides Redis connectivity with lazy initialization:
 """
 
 from functools import lru_cache
+from inspect import isawaitable
 
 import structlog
 from redis.asyncio import ConnectionPool, Redis
@@ -53,7 +54,9 @@ async def check_redis() -> bool:
     """
     client = get_redis_client()
     try:
-        await client.ping()
+        ping_result = client.ping()
+        if isawaitable(ping_result):
+            await ping_result
         return True
     except Exception as exc:
         logger.warning("redis_health_check_failed", error=str(exc))

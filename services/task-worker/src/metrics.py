@@ -135,6 +135,17 @@ PAYMENT_COMPLETED_PARTNER_EARNINGS_ACTIONS_TOTAL = Counter(
     ["action"],
 )
 
+GDPR_PURGE_TOTAL = Counter(
+    "cybervpn_gdpr_purge_total",
+    "Total soft-deleted accounts permanently purged by the task worker",
+)
+
+GDPR_PURGE_RELATED_RECORDS = Counter(
+    "cybervpn_gdpr_purge_related_records_total",
+    "Related records permanently deleted during GDPR account purge",
+    ["record_type"],
+)
+
 # OTP Email metrics (for Grafana monitoring per PRD requirements)
 OTP_EMAILS_SENT = Counter(
     "cybervpn_otp_emails_sent_total",

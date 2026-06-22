@@ -131,7 +131,7 @@ class CryptoBotClient:
             raise RuntimeError("CryptoBotClient must be used as async context manager")
         return self.client
 
-    async def _request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
+    async def _request(self, method: str, endpoint: str, **kwargs) -> Any:
         """Execute HTTP request with error handling.
 
         Args:

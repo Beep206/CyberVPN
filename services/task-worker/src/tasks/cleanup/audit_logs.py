@@ -1,6 +1,7 @@
 """Archive and delete audit logs older than retention period."""
 
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 import structlog
 from sqlalchemy import delete
@@ -38,7 +39,7 @@ async def cleanup_audit_logs() -> dict:
             )
 
             result = await session.execute(stmt)
-            deleted_count = result.rowcount
+            deleted_count = cast(Any, result).rowcount or 0
             await session.commit()
 
             total_deleted += deleted_count

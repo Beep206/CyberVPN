@@ -1,6 +1,7 @@
 """Cleanup sent and failed notifications older than 7 days."""
 
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 import structlog
 from sqlalchemy import delete
@@ -41,7 +42,7 @@ async def cleanup_notifications() -> dict:
             )
 
             result = await session.execute(stmt)
-            deleted_count = result.rowcount
+            deleted_count = cast(Any, result).rowcount or 0
             await session.commit()
 
             total_deleted += deleted_count

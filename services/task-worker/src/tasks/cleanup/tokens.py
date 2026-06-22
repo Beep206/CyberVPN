@@ -1,6 +1,7 @@
 """Cleanup expired and revoked refresh tokens from database."""
 
 from datetime import UTC, datetime
+from typing import Any, cast
 
 import structlog
 from sqlalchemy import delete, or_, select
@@ -44,7 +45,7 @@ async def cleanup_expired_tokens() -> dict:
             stmt = delete(RefreshTokenModel).where(RefreshTokenModel.id.in_(ids_subquery))
 
             result = await session.execute(stmt)
-            deleted_count = result.rowcount
+            deleted_count = cast(Any, result).rowcount or 0
             await session.commit()
 
             total_deleted += deleted_count

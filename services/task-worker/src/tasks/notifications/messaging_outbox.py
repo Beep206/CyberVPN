@@ -251,7 +251,7 @@ class MessagingOutboxProcessor:
         row = result.one_or_none()
         if row is None:
             raise LookupError("Outbox publication not found")
-        return row
+        return row[0], row[1]
 
     def _assert_valid_lease(self, publication: MessagingOutboxPublicationModel) -> None:
         if publication.lease_owner != self.lease_owner:

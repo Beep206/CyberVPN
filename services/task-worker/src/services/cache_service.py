@@ -4,7 +4,7 @@ Provides a high-level wrapper around Redis operations with automatic key prefixi
 JSON serialization using orjson, and structured logging for all cache operations.
 """
 
-from typing import Any
+from typing import Any, Protocol, cast
 
 import structlog
 from redis.asyncio import Redis
@@ -12,8 +12,15 @@ from redis.exceptions import RedisError
 
 from src.utils.constants import REDIS_PREFIX
 
+
+class JsonCodec(Protocol):
+    def dumps(self, value: dict | list) -> bytes: ...
+
+    def loads(self, data: bytes | str) -> dict: ...
+
+
 try:
-    import orjson
+    import orjson as _orjson
 except ImportError:  # pragma: no cover - exercised only in reduced local environments
     import json
 
@@ -28,7 +35,9 @@ except ImportError:  # pragma: no cover - exercised only in reduced local enviro
                 data = data.decode("utf-8")
             return json.loads(data)
 
-    orjson = _OrjsonFallback()
+    _json_codec: JsonCodec = _OrjsonFallback()
+else:
+    _json_codec = cast(JsonCodec, _orjson)
 
 logger = structlog.get_logger(__name__)
 
@@ -70,7 +79,7 @@ class CacheService:
         Returns:
             JSON bytes
         """
-        return orjson.dumps(value)
+        return _json_codec.dumps(value)
 
     def _deserialize(self, data: bytes | str | None) -> dict | None:
         """Deserialize JSON bytes to dict using orjson.
@@ -83,7 +92,7 @@ class CacheService:
         """
         if data is None:
             return None
-        return orjson.loads(data)
+        return _json_codec.loads(data)
 
     async def get(self, key: str) -> dict | None:
         """Get value from cache with JSON deserialization.

@@ -11,7 +11,7 @@ import structlog
 from taskiq import NoResultError, TaskiqMessage, TaskiqMiddleware, TaskiqResult
 from taskiq.kicker import AsyncKicker
 
-from src.utils.constants import RETRY_POLICIES
+from src.utils.constants import RETRY_POLICIES, RetryPolicy
 
 logger = structlog.get_logger(__name__)
 
@@ -28,7 +28,7 @@ class RetryMiddleware(TaskiqMiddleware):
     intermediate attempt.
     """
 
-    def _get_policy(self, message: TaskiqMessage) -> dict[str, int | str | list[int]] | None:
+    def _get_policy(self, message: TaskiqMessage) -> RetryPolicy | None:
         """Resolve retry policy from the task's queue label."""
         policy_name = message.labels.get("retry_policy")
         if policy_name:
@@ -52,7 +52,7 @@ class RetryMiddleware(TaskiqMiddleware):
             return
 
         current_retry = int(message.labels.get("_retry_count", 0))
-        max_retries: int = policy["max_retries"]
+        max_retries = policy["max_retries"]
 
         if current_retry >= max_retries:
             logger.warning(
@@ -66,7 +66,7 @@ class RetryMiddleware(TaskiqMiddleware):
             return
 
         # Calculate delay from policy delays list
-        delays: list[int] = policy["delays"]
+        delays = policy["delays"]
         delay = delays[min(current_retry, len(delays) - 1)]
 
         next_retry = current_retry + 1

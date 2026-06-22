@@ -20,6 +20,7 @@ import redis.asyncio as redis_async
 from sqlalchemy.ext.asyncio import AsyncSession
 from taskiq import Context, TaskiqDepends
 
+from src.config import Settings as AppSettings
 from src.config import get_settings
 
 
@@ -87,7 +88,7 @@ async def get_redis_client(
 
 async def get_settings_dependency(
     context: Annotated[Context, TaskiqDepends()],
-) -> get_settings:
+) -> AppSettings:
     """Return the cached settings instance.
 
     Provides access to application configuration in task functions.
@@ -105,4 +106,4 @@ async def get_settings_dependency(
 DbSession = Annotated[AsyncSession, TaskiqDepends(get_db_session)]
 HttpClient = Annotated[httpx.AsyncClient, TaskiqDepends(get_http_client)]
 RedisClient = Annotated[redis_async.Redis, TaskiqDepends(get_redis_client)]
-Settings = Annotated[get_settings, TaskiqDepends(get_settings_dependency)]
+Settings = Annotated[AppSettings, TaskiqDepends(get_settings_dependency)]

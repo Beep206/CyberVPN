@@ -74,15 +74,14 @@ class RemnawaveClient:
 
         self._base_url = self._normalize_base_url(settings.remnawave_url)
         self._api_token = settings.remnawave_api_token.get_secret_value()
+        self._token_bucket: AsyncTokenBucket | None = rate_limiter
+        self._semaphore: asyncio.Semaphore | None = None
 
         # Rate limiting: Use token bucket if provided, otherwise fallback to semaphore
         if rate_limiter:
-            self._rate_limiter = rate_limiter
-            self._use_token_bucket = True
             logger.info("remnawave_client_using_token_bucket", rate=rate_limiter.rate, capacity=rate_limiter.capacity)
         else:
-            self._rate_limiter = asyncio.Semaphore(10)
-            self._use_token_bucket = False
+            self._semaphore = asyncio.Semaphore(10)
             logger.info("remnawave_client_using_semaphore", max_concurrent=10)
 
         # Configure timeouts: connect, read, write, pool
@@ -149,11 +148,11 @@ class RemnawaveClient:
         start_time = time.perf_counter()
 
         # Apply rate limiting based on limiter type
-        if self._use_token_bucket:
-            await self._rate_limiter.acquire()  # type: ignore
+        if self._token_bucket is not None:
+            await self._token_bucket.acquire()
 
         # Use context manager for semaphore-based rate limiting
-        rate_limit_ctx = self._rate_limiter if not self._use_token_bucket else None  # type: ignore
+        rate_limit_ctx = self._semaphore
 
         async with rate_limit_ctx if rate_limit_ctx else _dummy_context():
             try:

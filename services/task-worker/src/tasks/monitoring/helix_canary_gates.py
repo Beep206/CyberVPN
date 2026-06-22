@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Literal, cast
 
 import structlog
 
@@ -140,7 +140,7 @@ async def audit_helix_canary_gates() -> dict:
 
                 rollouts_checked += 1
                 canary_evidence = await helix.get_rollout_canary_evidence(rollout.rollout_id)
-                decision = canary_evidence.decision
+                decision = cast(GateDecision, canary_evidence.decision)
                 reasons = canary_evidence.reasons
                 evidence_gaps = canary_evidence.evidence_gaps
 
