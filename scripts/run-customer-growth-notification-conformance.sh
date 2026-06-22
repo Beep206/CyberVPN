@@ -239,18 +239,18 @@ run_assets() {
     cd "${REPO_ROOT}"
     jq -e '.panels[] | select(.title=="Unresolved Backlog Delta (24h)")' infra/grafana/dashboards/customer-growth-notification-delivery-dashboard.json >/dev/null
     jq -e '.panels[] | select(.title=="Recovery Ratio (24h)")' infra/grafana/dashboards/customer-growth-notification-delivery-dashboard.json >/dev/null
-    rg -q 'CustomerGrowthNotificationUnresolvedBacklogHigh' infra/prometheus/rules/customer_growth_notification_alerts.yml
-    rg -q 'CustomerGrowthNotificationRecoveryRatioLow' infra/prometheus/rules/customer_growth_notification_alerts.yml
-    rg -q 'conformance:customer-growth-notifications' package.json
-    rg -q 'evidence:customer-growth-notifications:init' package.json
-    rg -q 'staging:customer-growth-notifications:smoke' package.json
+    grep -q 'CustomerGrowthNotificationUnresolvedBacklogHigh' infra/prometheus/rules/customer_growth_notification_alerts.yml
+    grep -q 'CustomerGrowthNotificationRecoveryRatioLow' infra/prometheus/rules/customer_growth_notification_alerts.yml
+    grep -q 'conformance:customer-growth-notifications' package.json
+    grep -q 'evidence:customer-growth-notifications:init' package.json
+    grep -q 'staging:customer-growth-notifications:smoke' package.json
     test -f docs/evidence/customer-growth/templates/customer-growth-notification-rollout-evidence-template.md
     test -f docs/runbooks/CUSTOMER_GROWTH_NOTIFICATION_DELIVERY_RUNBOOK.md
     test -f docs/runbooks/CUSTOMER_GROWTH_NOTIFICATION_STAGING_ROLLOUT_RUNBOOK.md
     test -f docs/runbooks/CUSTOMER_GROWTH_NOTIFICATION_GITHUB_PROTECTION_HANDOFF.md
     test -f .github/workflows/customer-growth-notification-conformance.yml
     test -f .github/rulesets/customer-growth-notification-main-gate.disabled.json
-    rg -q 'All Customer Growth Notification Checks Passed' docs/runbooks/CUSTOMER_GROWTH_NOTIFICATION_GITHUB_PROTECTION_HANDOFF.md
+    grep -q 'All Customer Growth Notification Checks Passed' docs/runbooks/CUSTOMER_GROWTH_NOTIFICATION_GITHUB_PROTECTION_HANDOFF.md
   )
   ok "Growth-notification rollout assets passed."
 }

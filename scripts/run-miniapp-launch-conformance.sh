@@ -106,9 +106,9 @@ run_assets() {
   info "Checking required Mini App launch assets..."
   (
     cd "${REPO_ROOT}"
-    rg -q 'conformance:miniapp-launch' package.json
-    rg -q 'evidence:miniapp-launch:init' package.json
-    rg -q 'staging:miniapp-launch:smoke' package.json
+    grep -q 'conformance:miniapp-launch' package.json
+    grep -q 'evidence:miniapp-launch:init' package.json
+    grep -q 'staging:miniapp-launch:smoke' package.json
     test -f docs/evidence/miniapp/templates/miniapp-launch-rollout-evidence-template.md
     test -f docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md
     test -f docs/runbooks/MINIAPP_LAUNCH_CONTROL_RUNBOOK.md

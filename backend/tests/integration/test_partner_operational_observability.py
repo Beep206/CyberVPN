@@ -14,6 +14,7 @@ from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.order_attribution_result_model import OrderAttributionResultModel
 from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from src.infrastructure.database.models.partner_payout_account_model import PartnerPayoutAccountModel
 from src.infrastructure.database.models.partner_statement_model import PartnerStatementModel
@@ -355,28 +356,24 @@ async def test_partner_finance_and_outbox_metrics_increment_for_statement_and_pa
             assert failed_response.status_code == 200
 
         assert (
-            _metric_value("cybervpn_partner_statements_closed_total", statement_close_labels)
-            > before_statement_close
+            _metric_value("cybervpn_partner_statements_closed_total", statement_close_labels) > before_statement_close
         )
         assert (
             _metric_value("cybervpn_partner_payout_instructions_created_total", payout_instruction_labels)
             > before_payout_instruction
         )
         assert (
-            _metric_value("cybervpn_partner_payout_executions_total", payout_execution_labels)
-            > before_payout_execution
+            _metric_value("cybervpn_partner_payout_executions_total", payout_execution_labels) > before_payout_execution
         )
         assert (
-            _metric_value("cybervpn_partner_outbox_events_created_total", outbox_created_labels)
-            > before_outbox_created
+            _metric_value("cybervpn_partner_outbox_events_created_total", outbox_created_labels) > before_outbox_created
         )
         assert (
             _metric_value("cybervpn_partner_outbox_events_published_total", outbox_published_labels)
             > before_outbox_published
         )
         assert (
-            _metric_value("cybervpn_partner_outbox_publish_failures_total", outbox_failed_labels)
-            > before_outbox_failed
+            _metric_value("cybervpn_partner_outbox_publish_failures_total", outbox_failed_labels) > before_outbox_failed
         )
     finally:
         app.dependency_overrides.pop(get_redis, None)
@@ -450,6 +447,7 @@ async def test_partner_attribution_metrics_increment_for_checkout_and_order_comm
                     code="OBS03CODE",
                     partner_account_id=partner_account.id,
                     partner_user_id=partner_owner.id,
+                    owner_type="reseller",
                     markup_pct=14,
                     is_active=True,
                 )
@@ -482,12 +480,19 @@ async def test_partner_attribution_metrics_increment_for_checkout_and_order_comm
                 json={"checkout_session_id": checkout_payload["id"]},
             )
             assert order_response.status_code == 201
+            order_payload = order_response.json()
+
+            with sessionmaker() as db:
+                attribution_result = (
+                    db.query(OrderAttributionResultModel)
+                    .filter(OrderAttributionResultModel.order_id == uuid.UUID(order_payload["id"]))
+                    .one()
+                )
+                assert attribution_result.owner_type == attribution_labels["owner_type"]
+                assert attribution_result.owner_source == attribution_labels["owner_source"]
 
         assert _metric_value("cybervpn_partner_touchpoints_recorded_total", touchpoint_labels) > before_touchpoints
-        assert (
-            _metric_value("cybervpn_partner_attribution_resolutions_total", attribution_labels)
-            > before_resolutions
-        )
+        assert _metric_value("cybervpn_partner_attribution_resolutions_total", attribution_labels) > before_resolutions
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()

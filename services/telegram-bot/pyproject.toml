@@ -23,7 +23,7 @@ classifiers = [
 dependencies = [
     "aiogram==3.28.2",
     "pydantic>=2.10,<3.0",
-    "pydantic-settings>=2.12",
+    "pydantic-settings>=2.14.2",
     "httpx>=0.28.1",
     "redis[hiredis]>=7.1",
     "sentry-sdk>=2.54.0",
@@ -73,7 +73,7 @@ packages = ["src"]
 [tool.uv]
 override-dependencies = [
     # aiogram 3.28.2 still caps aiohttp below the first fixed CVE release.
-    "aiohttp==3.14.0",
+    "aiohttp==3.14.1",
 ]
 
 # ── Ruff ─────────────────────────────────────────────────────────────────────

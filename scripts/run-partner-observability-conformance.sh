@@ -327,16 +327,16 @@ run_assets() {
     jq -e '.panels[] | select(.title=="LCP P75 (30m)")' infra/grafana/dashboards/partner-platform-frontend-ux-dashboard.json >/dev/null
     jq -e '.panels[] | select(.title=="INP P75 (30m)")' infra/grafana/dashboards/partner-platform-frontend-ux-dashboard.json >/dev/null
     jq -e '.paths["/api/v1/monitoring/frontend-web-vitals"]' backend/docs/api/openapi.json >/dev/null
-    rg -q 'PartnerPlatformFrontendLCPHigh' infra/prometheus/rules/partner_platform_alerts.yml
-    rg -q 'PartnerPlatformFrontendINPHigh' infra/prometheus/rules/partner_platform_alerts.yml
-    rg -q 'staging:partner-observability:smoke' package.json
-    rg -q 'evidence:partner-observability:init' package.json
+    grep -q 'PartnerPlatformFrontendLCPHigh' infra/prometheus/rules/partner_platform_alerts.yml
+    grep -q 'PartnerPlatformFrontendINPHigh' infra/prometheus/rules/partner_platform_alerts.yml
+    grep -q 'staging:partner-observability:smoke' package.json
+    grep -q 'evidence:partner-observability:init' package.json
     test -f docs/evidence/partner-platform/templates/partner-observability-evidence-template.md
     test -f scripts/bootstrap-partner-observability-evidence.sh
     test -f docs/runbooks/PARTNER_OBSERVABILITY_GITHUB_PROTECTION_HANDOFF.md
     test -f .github/rulesets/partner-observability-main-gate.disabled.json
     test -f scripts/sync-partner-observability-ruleset.sh
-    rg -q 'All Partner Observability Checks Passed' docs/runbooks/PARTNER_OBSERVABILITY_GITHUB_PROTECTION_HANDOFF.md
+    grep -q 'All Partner Observability Checks Passed' docs/runbooks/PARTNER_OBSERVABILITY_GITHUB_PROTECTION_HANDOFF.md
   )
   ok "Observability assets passed."
 }
