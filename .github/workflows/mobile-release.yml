@@ -11,6 +11,9 @@ on:
         required: false
         type: string
 
+env:
+  HAS_SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN != '' && 'true' || 'false' }}
+
 defaults:
   run:
     working-directory: cybervpn_mobile
@@ -38,7 +41,7 @@ jobs:
         env:
           SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
           SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
-          SENTRY_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+          SENTRY_UPLOAD_ENABLED: ${{ env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
         run: |
           {
             echo "### Android release metadata"
@@ -127,7 +130,7 @@ jobs:
             --dart-define=SENTRY_RELEASE="$SENTRY_RELEASE"
 
       - name: Upload Android debug symbols to Sentry
-        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        if: env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
@@ -203,7 +206,7 @@ jobs:
         env:
           SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
           SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
-          SENTRY_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+          SENTRY_UPLOAD_ENABLED: ${{ env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
         run: |
           {
             echo "### iOS release metadata"
@@ -244,7 +247,7 @@ jobs:
             --dart-define=SENTRY_RELEASE="$SENTRY_RELEASE"
 
       - name: Upload iOS debug symbols to Sentry
-        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        if: env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
@@ -338,7 +341,7 @@ jobs:
         env:
           SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
           SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
-          SENTRY_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+          SENTRY_UPLOAD_ENABLED: ${{ env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
         run: |
           {
             echo "### TestFlight release metadata"
@@ -402,7 +405,7 @@ jobs:
             --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload IPA debug symbols to Sentry
-        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        if: env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}

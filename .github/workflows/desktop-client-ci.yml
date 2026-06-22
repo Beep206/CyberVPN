@@ -17,6 +17,9 @@ on:
       - '.github/workflows/desktop-release.yml'
       - 'scripts/validate-sentry-contract.py'
 
+env:
+  HAS_SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN != '' && 'true' || 'false' }}
+
 jobs:
   desktop_client:
     runs-on: ubuntu-latest
@@ -127,7 +130,7 @@ jobs:
           apps/desktop-client/scripts/run-desktop-sentry-smoke.sh
 
       - name: Upload desktop native debug files to Sentry
-        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_NATIVE_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        if: env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_NATIVE_PROJECT != '' || vars.SENTRY_PROJECT != '')
         shell: bash
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -143,8 +146,8 @@ jobs:
           SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
           RENDERER_PROJECT: ${{ vars.DESKTOP_SENTRY_RENDERER_PROJECT || vars.SENTRY_PROJECT }}
           NATIVE_PROJECT: ${{ vars.DESKTOP_SENTRY_NATIVE_PROJECT || vars.SENTRY_PROJECT }}
-          RENDERER_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_RENDERER_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
-          NATIVE_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_NATIVE_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+          RENDERER_UPLOAD_ENABLED: ${{ env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_RENDERER_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+          NATIVE_UPLOAD_ENABLED: ${{ env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_NATIVE_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
         run: |
           {
             echo "### Desktop client Sentry CI metadata"

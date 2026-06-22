@@ -12,6 +12,9 @@ on:
       - 'cybervpn_mobile/**'
       - '.github/workflows/ci.yml'
 
+env:
+  HAS_SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN != '' && 'true' || 'false' }}
+
 # Cancel in-progress runs for the same branch/PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -205,7 +208,7 @@ jobs:
         if: matrix.flavor != 'dev'
         run: |
           echo "$KEYSTORE_DATA" | base64 --decode > android/app/release.keystore
-          echo "ANDROID_KEYSTORE_PATH=$WORKSPACE/cybervpn_mobile/android/app/release.keystore" >> $GITHUB_ENV
+          echo "ANDROID_KEYSTORE_PATH=$WORKSPACE/cybervpn_mobile/android/app/release.keystore" >> "$GITHUB_ENV"
         env:
           KEYSTORE_DATA: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           WORKSPACE: ${{ github.workspace }}
@@ -239,7 +242,7 @@ jobs:
           SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
 
       - name: Upload Dart debug symbols to Sentry (release builds only)
-        if: matrix.build-type == 'release' && secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        if: matrix.build-type == 'release' && env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
@@ -257,7 +260,7 @@ jobs:
         env:
           SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
           SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
-          SENTRY_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+          SENTRY_UPLOAD_ENABLED: ${{ env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
         run: |
           {
             echo "### Mobile Android Sentry build metadata"
@@ -323,7 +326,7 @@ jobs:
             --split-debug-info=build/debug-info/
 
       - name: Upload iOS debug symbols to Sentry
-        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        if: env.HAS_SENTRY_AUTH_TOKEN == 'true' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
