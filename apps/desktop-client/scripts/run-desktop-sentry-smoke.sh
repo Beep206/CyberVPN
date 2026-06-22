@@ -2,8 +2,8 @@
 set -euo pipefail
 
 BINARY_PATH="${1:-apps/desktop-client/src-tauri/target/release/desktop-client}"
-SMOKE_DELAY_MS="${DESKTOP_SMOKE_DELAY_MS:-1500}"
-SMOKE_TIMEOUT_SECONDS="${DESKTOP_SMOKE_TIMEOUT_SECONDS:-30}"
+SMOKE_DELAY_MS="${DESKTOP_SMOKE_DELAY_MS:-2500}"
+SMOKE_TIMEOUT_SECONDS="${DESKTOP_SMOKE_TIMEOUT_SECONDS:-60}"
 
 if [[ ! -x "${BINARY_PATH}" ]]; then
   echo "desktop smoke binary not found or not executable: ${BINARY_PATH}" >&2
@@ -28,9 +28,14 @@ export DESKTOP_SENTRY_DSN="${DESKTOP_SENTRY_DSN:-https://desktop-native@example.
 export DESKTOP_SENTRY_ENVIRONMENT="${DESKTOP_SENTRY_ENVIRONMENT:-staging}"
 export DESKTOP_SENTRY_RELEASE="${DESKTOP_SENTRY_RELEASE:-desktop@0.1.5+smoke}"
 
+export NO_AT_BRIDGE="${NO_AT_BRIDGE:-1}"
+export GDK_BACKEND="${GDK_BACKEND:-x11}"
+export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
+export WEBKIT_DISABLE_DMABUF_RENDERER="${WEBKIT_DISABLE_DMABUF_RENDERER:-1}"
+
 RUNNER=()
 if [[ -z "${DISPLAY:-}" ]] && command -v xvfb-run >/dev/null 2>&1; then
-  RUNNER=(xvfb-run -a)
+  RUNNER=(xvfb-run -a -s "-screen 0 1280x720x24 -ac +extension GLX +render -noreset")
 fi
 
 run_smoke_case() {
