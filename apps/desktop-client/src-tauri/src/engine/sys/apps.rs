@@ -120,7 +120,7 @@ pub fn get_installed_apps_impl() -> Result<Vec<AppInfo>, AppError> {
         }
     }
 
-    apps.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    apps.sort_by_key(|app| app.name.to_lowercase());
     Ok(apps)
 }
 
