@@ -11,7 +11,7 @@ import asyncio
 import os
 import platform
 from contextlib import suppress
-from typing import Any, cast
+from typing import Any
 
 import httpx
 import structlog
@@ -98,7 +98,7 @@ async def startup_event(state) -> None:
                 send_default_pii=False,
                 max_request_body_size="never",
                 include_local_variables=False,
-                before_send=cast(Any, before_send),
+                before_send=before_send,  # type: ignore[arg-type]
             )
             logger.info(
                 "sentry_initialized",
