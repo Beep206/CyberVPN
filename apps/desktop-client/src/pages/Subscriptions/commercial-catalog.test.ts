@@ -119,6 +119,6 @@ describe("desktop commercial catalog", () => {
 
   it("formats catalog money using Intl with a plain fallback", () => {
     expect(formatCatalogPrice(9.99, "USD", "en-US")).toBe("$9.99");
-    expect(formatCatalogPrice(9.99, "BAD", "en-US")).toBe("9.99 BAD");
+    expect(formatCatalogPrice(9.99, "INVALID", "en-US")).toBe("9.99 INVALID");
   });
 });
