@@ -41,6 +41,7 @@ PUBLIC_PREFIXES = (
     "/api/v1/auth",
     "/api/v1/mobile/auth",
     "/api/v1/oauth",
+    "/api/v1/partner-attribution",
     "/api/v1/plans",
     "/api/v1/addons/catalog",
     "/api/v1/catalog",
@@ -51,6 +52,7 @@ PUBLIC_PREFIXES = (
     "/api/v1/billing-descriptors/resolve",
     "/api/v1/legal-documents/sets/resolve",
     "/api/v1/realms/resolve",
+    "/api/v1/referral/attribution",
     "/api/v1/public/network",
     "/api/v1/storefronts",
 )
@@ -95,7 +97,11 @@ def classify_route_boundary(route: APIRoute) -> str:
         return "principal-protected"
     if "require_partner_reporting_token" in dependency_names:
         return "partner-reporting-token"
-    if "_require_telegram_bot_secret" in source or "_require_frontend_observability_secret" in source:
+    if (
+        "_require_telegram_bot_secret" in source
+        or "_require_frontend_observability_secret" in source
+        or "_require_payment_settlement_worker_secret" in source
+    ):
         return "header-secret-protected"
     if route.path.startswith("/api/v1/webhooks") and ("signature" in source or "webhook_secret" in source):
         return "webhook-signature-protected"

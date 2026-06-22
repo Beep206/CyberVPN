@@ -188,7 +188,8 @@ describe('MSW API Mocking', () => {
 
     expect(response.status).toBe(202);
     expect(data.request_type).toBe('data_export');
-    expect(data.target_contact).toBe('privacy@cyber-vpn.net');
+    expect(data.privacy_request_reference).toContain('PRV-');
+    expect(data.ticket_reference).toContain('SUP-');
   });
 
   it('test_msw_servers_list_returns_all_servers', async () => {

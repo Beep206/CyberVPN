@@ -112,21 +112,29 @@ const {
   ),
 }));
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: ({
-    enabled = true,
-    queryKey,
-  }: {
-    enabled?: boolean;
-    queryKey: readonly unknown[];
-  }) => ({
-    data: enabled === false ? undefined : queryFixtures[JSON.stringify(queryKey)],
-    isError: false,
-    isLoading: false,
-    isPending: false,
-    refetch: refetchMock,
-  }),
-}));
+vi.mock('@tanstack/react-query', () => {
+  const reactQueryMock = {
+    useQuery: ({
+      enabled = true,
+      queryKey,
+    }: {
+      enabled?: boolean;
+      queryKey: readonly unknown[];
+    }) => ({
+      data:
+        enabled === false ? undefined : queryFixtures[JSON.stringify(queryKey)],
+      isError: false,
+      isLoading: false,
+      isPending: false,
+      refetch: refetchMock,
+    }),
+  };
+
+  return {
+    ...reactQueryMock,
+    default: reactQueryMock,
+  };
+});
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'en-EN',
@@ -317,7 +325,7 @@ describe('ReferralCabinetDashboard', () => {
       'share.message',
       expect.objectContaining({
         code: 'CYBER42',
-        link: expect.stringContaining('/referral?code=CYBER42'),
+        link: expect.stringContaining('/r/CYBER42'),
       }),
     );
 

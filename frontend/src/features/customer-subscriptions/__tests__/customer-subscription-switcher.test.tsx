@@ -17,6 +17,7 @@ const { contextMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en-EN',
   useTranslations:
     () =>
     (key: string) => {
@@ -95,17 +96,18 @@ describe('CustomerSubscriptionSwitcher', () => {
     render(<CustomerSubscriptionSwitcher />);
 
     const selector = screen.getByRole('combobox', { name: 'Subscription selector' });
-    const selectedLabel = screen
-      .getAllByText(/Pro Plan \/ Unlimited \/ 2026-05-18/i)
-      .find((element) => element.tagName.toLowerCase() === 'p');
 
     expect(selector).toBeInTheDocument();
-    expect(selector).toHaveClass('min-w-0');
-    expect(selectedLabel).toHaveClass('whitespace-normal');
-    expect(selectedLabel).toHaveClass('break-normal');
-    expect(selectedLabel).not.toHaveClass('truncate');
+    expect(selector).toHaveValue('grant:pro');
+    expect(
+      screen.getByRole('option', {
+        name: 'Trial Plan / Unlimited / 2026-05-18',
+      }),
+    ).toHaveValue('trial:trial-1');
     expect(screen.getByText('Selected')).toBeInTheDocument();
-    expect(screen.getAllByText(/Pro Plan \/ Unlimited \/ 2026-05-18/i).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/Pro Plan \/ Unlimited \/ 2026-05-18/i).length,
+    ).toBeGreaterThan(0);
 
     fireEvent.change(selector, {
       target: { value: 'trial:trial-1' },
@@ -114,7 +116,7 @@ describe('CustomerSubscriptionSwitcher', () => {
     expect(contextMock.setSelectedSubscriptionKey).toHaveBeenCalledWith('trial:trial-1');
   });
 
-  it('dims account-scoped subscriptions and explains the limitation', () => {
+  it('explains account-scoped subscriptions while keeping status visible', () => {
     contextMock.limitations = ['account_scoped_config'];
     contextMock.selectedSubscription = subscription({
       can_manage: false,
@@ -129,7 +131,7 @@ describe('CustomerSubscriptionSwitcher', () => {
         'VPN config is account-scoped for now; the selected subscription controls the commercial context.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Status: active/i)).toHaveClass('text-amber-200');
+    expect(screen.getByText(/Status: active/i)).toBeVisible();
   });
 
   it('offers a localized refresh action when the list is empty', () => {
