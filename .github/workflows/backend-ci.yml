@@ -138,12 +138,13 @@ jobs:
           SENTRY_SMOKE_EXPECT_ENV: staging
           SENTRY_SMOKE_EXPECT_DSN: https://backend@example.com/1
           SENTRY_SMOKE_EXPECT_RELEASE: backend@${{ github.sha }}
+          SWAGGER_ENABLED: 'false'
         run: |
           pytest \
             tests/e2e/test_critical_flows.py \
             tests/integration/test_observability.py \
             -k "health_check_flow or sentry_runtime_contract_smoke" \
-            -v --tb=short
+            -v --tb=short --no-cov
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
