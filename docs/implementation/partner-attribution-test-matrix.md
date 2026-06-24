@@ -18,6 +18,9 @@ runtime evidence on 2026-06-24.
 | Clean migration cycle | Clean PostgreSQL database: `alembic upgrade head`, `alembic downgrade -1`, `alembic upgrade head` | Passed, exit 0; upgraded to `20260622_partner_owner_ranges`, downgraded to `20260621_partner_slug_required`, re-upgraded to head |
 | PostgreSQL partner attribution/commission tests | `CYBERVPN_TEST_POSTGRES_URL=<clean-temp-postgres> .venv/bin/python -m pytest tests/integration/test_partner_attribution_claim_postgres.py tests/integration/test_partner_commission_contracts_migration_postgres.py -q --tb=short --no-cov` from `backend/` | Passed, exit 0, reached 100% |
 | Previously unstable backend group | `pytest tests/integration/api/v1/auth/test_telegram_miniapp_flow.py tests/integration/test_auth_realm_sessions.py tests/integration/test_passkey_webauthn_api.py tests/integration/test_reporting_outbox.py tests/integration/api/v1/codes/test_codes_system_flows.py tests/load/test_helix_canary_evidence_budget.py tests/e2e/test_all_endpoints.py tests/integration/test_service_access_observability.py tests/security/test_jwt_revocation.py -q --tb=short --no-cov` from `backend/` | Passed, exit 0 |
+| Pip-equivalent backend typecheck | Temporary clean venv, `pip install -e '.[dev]'`, then `PAYMENT_SETTLEMENT_WORKER_SECRET=codex-local-secret mypy src/ --ignore-missing-imports --no-strict-optional` from `backend/` | Passed, exit 0, no issues in 1032 source files |
+| GitHub Backend CI | GitHub Actions Backend CI run `28112021874` on SHA `5fa1adf9a71c8d375dd86cc8e037a9d5e84ec860` | Passed, all backend jobs successful |
+| Remote parity | `git ls-remote` for GitHub and GitLab `main` plus local `git rev-parse HEAD` | Passed for delivered code SHA `5fa1adf9a71c8d375dd86cc8e037a9d5e84ec860`; final docs-only evidence commit parity is recorded in `.codex/current-task.json` and the delivery response |
 
 ## Business-State Coverage
 

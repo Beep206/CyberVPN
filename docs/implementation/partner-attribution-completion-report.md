@@ -2,9 +2,9 @@
 
 Task: `PARTNER-ATTRIBUTION-HARDENING`
 
-Current repository status for this run: local verification passed; final
-delivery evidence is pending commit, GitHub/GitLab remote parity, and CI
-retrieval.
+Current repository status for this run: local verification passed, GitHub and
+GitLab `main` are synchronized on the delivered code SHA, and GitHub CI for the
+code delivery SHA passed.
 
 ## Delivered Behavior
 
@@ -52,15 +52,16 @@ gate correctness.
 
 ## Review Resolution
 
-- Final verifier found no local blocker before commit/push; it noted remote CI
-  evidence must be retrieved after push.
+- Final verifier found no local blocker before commit/push; post-push evidence
+  confirmed GitHub/GitLab remote parity and passing GitHub CI on the delivered
+  code SHA.
 - Final security reviewer found no blocker in the current diff. The JWT leeway
   remains bounded, signature/issuer/audience/revocation checks are unchanged,
   and no new secret/PII logging was introduced.
 - Final adversarial reviewer found stale evidence documents and task-contract
-  text that still declared an incomplete status; this report, the test matrix, migration
-  preflight, and `.codex/current-task.json` were reconciled with the final
-  command evidence.
+  text that still declared an incomplete status; this report, the test matrix,
+  migration preflight, and `.codex/current-task.json` were reconciled with the
+  final command evidence.
 
 ## Scope Notes
 
