@@ -9,6 +9,7 @@ from sqlalchemy import select
 from src.application.services.auth_service import AuthService
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.models.user_device_model import UserDeviceModel
@@ -40,6 +41,40 @@ def _reset_rate_limit_circuit_breaker():
         cb._failure_count = 0
         cb._state = cb.CLOSED
     yield
+
+
+@pytest.mark.integration
+async def test_default_realm_selection_prefers_well_known_realm_when_legacy_defaults_exist() -> None:
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    try:
+        with sessionmaker() as db:
+            realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
+            official_customer_realm = await realm_repo.get_or_create_default_realm("customer")
+            legacy_customer_realm = AuthRealmModel(
+                id=uuid4(),
+                realm_key="legacy-customer-default",
+                realm_type="customer",
+                display_name="Legacy Customer Default",
+                audience="cybervpn:legacy-customer-default",
+                cookie_namespace="legacy_customer_default",
+                status="active",
+                is_default=True,
+                created_at=official_customer_realm.created_at - timedelta(days=1),
+                updated_at=official_customer_realm.updated_at - timedelta(days=1),
+            )
+            db.add(legacy_customer_realm)
+            db.commit()
+
+            selected_realm = await AuthRealmRepository(SyncSessionAdapter(db)).get_default_realm("customer")
+
+            assert selected_realm is not None
+            assert selected_realm.id == official_customer_realm.id
+            assert selected_realm.realm_key == "customer"
+    finally:
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
 
 
 async def _seed_admin_realm_user(

@@ -345,9 +345,7 @@ def reconcile_stage1_payment_attempt_snapshot(
         )
         decision_age_minutes = orphan_decision.age_minutes if orphan_decision is not None else age_minutes
         decision_payment_state = (
-            orphan_decision.payment_state
-            if orphan_decision is not None
-            else Stage1PaymentState.ORPHAN_REVIEW_REQUIRED
+            orphan_decision.payment_state if orphan_decision is not None else Stage1PaymentState.ORPHAN_REVIEW_REQUIRED
         )
         decision_actions = (
             tuple(action.value for action in orphan_decision.actions)
@@ -410,6 +408,7 @@ def reconcile_stage1_payment_without_attempt(
     }:
         return ()
 
+    actions: tuple[str, ...]
     if payment_status == PaymentStatus.REFUNDED.value:
         payment_state = Stage1PaymentState.REFUNDED
         actions = (
@@ -493,9 +492,7 @@ def build_stage1_payment_reconciliation_report(
             }
             for item in item_tuple
         ),
-        p0_blocker_items=sum(
-            item.severity == Stage1PaymentReconciliationSeverity.P0_BLOCKER for item in item_tuple
-        ),
+        p0_blocker_items=sum(item.severity == Stage1PaymentReconciliationSeverity.P0_BLOCKER for item in item_tuple),
         max_age_minutes=max((item.age_minutes for item in item_tuple), default=0),
         launch_blocked=any(item.launch_blocker for item in item_tuple),
         mismatch_counts=dict(sorted(counts.items())),
@@ -721,10 +718,7 @@ def _item(
         message=message,
         details=details,
         actions=tuple(
-            dict.fromkeys(
-                str(action.value if isinstance(action, StrEnum) else action)
-                for action in actions
-            )
+            dict.fromkeys(str(action.value if isinstance(action, StrEnum) else action) for action in actions)
         ),
     )
 

@@ -19,9 +19,7 @@ class FCMTokenModel(Base):
 
     __tablename__ = "fcm_tokens"
 
-    __table_args__ = (
-        UniqueConstraint("user_id", "device_id", name="uq_fcm_tokens_user_device"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "device_id", name="uq_fcm_tokens_user_device"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True,

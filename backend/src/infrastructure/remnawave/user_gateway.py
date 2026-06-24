@@ -52,11 +52,7 @@ class RemnawaveUserGateway:
             self._default_internal_squad_uuids = []
             return self._default_internal_squad_uuids
 
-        named_match = [
-            str(squad.uuid)
-            for squad in squads
-            if squad.uuid and squad.name == configured_name
-        ]
+        named_match = [str(squad.uuid) for squad in squads if squad.uuid and squad.name == configured_name]
         if named_match:
             self._default_internal_squad_uuids = named_match[:1]
             return self._default_internal_squad_uuids

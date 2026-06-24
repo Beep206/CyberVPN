@@ -63,9 +63,8 @@ class GetReferralStatsUseCase:
 
         commission_rate: float = await self._config_service.get_referral_commission_rate()
         reward_stats_map = await self._growth_reward_repo.get_referral_reward_stats_map([user_id])
-        qualifying_orders = int(
-            reward_stats_map.get(user_id, {}).get("reward_count", 0) or 0
-        )
+        reward_count = reward_stats_map.get(user_id, {}).get("reward_count", 0)
+        qualifying_orders = 0 if isinstance(reward_count, datetime) else int(reward_count or 0)
         month_start = datetime.now(UTC).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         monthly_cap_used = Decimal(
             str(

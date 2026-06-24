@@ -214,9 +214,10 @@ async def test_phase5_service_access_foundations_cross_channel_gate(async_client
             assert desktop_state_payload["entitlement_snapshot"]["status"] == "active"
             assert desktop_state_payload["purchase_context"]["source_order_id"] == order_payload["id"]
             assert desktop_state_payload["consumption_context"]["channel_type"] == "desktop_manifest"
-            assert desktop_state_payload["access_delivery_channel"]["id"] == desktop_resolve_payload[
-                "access_delivery_channel"
-            ]["id"]
+            assert (
+                desktop_state_payload["access_delivery_channel"]["id"]
+                == desktop_resolve_payload["access_delivery_channel"]["id"]
+            )
 
             telegram_resolve_response = await async_client.post(
                 "/api/v1/access-delivery-channels/resolve/current",
@@ -251,9 +252,10 @@ async def test_phase5_service_access_foundations_cross_channel_gate(async_client
             assert observability_payload["active_entitlement_grant"]["id"] == grant_payload["id"]
             assert observability_payload["purchase_context"]["source_order_id"] == order_payload["id"]
             assert observability_payload["selected_device_credential"]["credential_type"] == "telegram_bot"
-            assert observability_payload["selected_access_delivery_channel"]["id"] == telegram_resolve_payload[
-                "access_delivery_channel"
-            ]["id"]
+            assert (
+                observability_payload["selected_access_delivery_channel"]["id"]
+                == telegram_resolve_payload["access_delivery_channel"]["id"]
+            )
 
             list_channels_response = await async_client.get(
                 f"/api/v1/access-delivery-channels/?service_identity_id={service_identity_payload['id']}",

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.dto.mobile_auth import LogoutRequestDTO
 from src.application.services.auth_service import AuthService
 from src.application.services.mobile_session import MobileSessionService
+from src.application.use_cases.auth.logout import LogoutResult
 from src.domain.exceptions import InvalidTokenError
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
@@ -33,7 +34,7 @@ class MobileLogoutUseCase:
     session: AsyncSession | None = None
     mobile_session_service: MobileSessionService | None = None
 
-    async def execute(self, request: LogoutRequestDTO, remove_device: bool = False) -> None:
+    async def execute(self, request: LogoutRequestDTO, remove_device: bool = False) -> LogoutResult:
         """Logout a mobile user.
 
         Args:
@@ -44,7 +45,7 @@ class MobileLogoutUseCase:
             InvalidTokenError: If refresh token is invalid or device mismatch.
         """
         try:
-            await self._mobile_sessions().logout(
+            return await self._mobile_sessions().logout(
                 refresh_token=request.refresh_token,
                 device_id=request.device_id,
             )

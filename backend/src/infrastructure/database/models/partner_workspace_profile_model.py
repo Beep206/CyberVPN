@@ -57,4 +57,3 @@ class PartnerWorkspaceProfileModel(Base):
         onupdate=func.now(),
         nullable=False,
     )
-

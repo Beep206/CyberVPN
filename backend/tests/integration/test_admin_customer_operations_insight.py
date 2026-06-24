@@ -431,8 +431,9 @@ async def test_admin_customer_operations_insight_returns_full_role_scoped_payloa
             assert len(payload["settlement_workspaces"][0]["payout_instructions"]) == 1
             assert len(payload["settlement_workspaces"][0]["payout_executions"]) == 1
             assert len(payload["service_access_insights"]) == 1
-            assert payload["service_access_insights"][0]["service_state"]["purchase_context"]["source_order_id"] == (
-                seeded["order_id"]
+            assert (
+                payload["service_access_insights"][0]["service_state"]["purchase_context"]["source_order_id"]
+                == (seeded["order_id"])
             )
             assert len(payload["risk_subject_insights"]) == 1
             assert len(payload["risk_subject_insights"][0]["reviews"]) == 1

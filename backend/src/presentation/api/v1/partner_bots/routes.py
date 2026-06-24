@@ -363,9 +363,7 @@ async def claim_partner_bot_provisioning_job(
         processor_id=payload.processor_id,
         max_scan_count=payload.max_scan_count,
     )
-    return ClaimPartnerBotProvisioningJobResponse(
-        bot=_serialize_partner_bot_bundle(item) if item is not None else None
-    )
+    return ClaimPartnerBotProvisioningJobResponse(bot=_serialize_partner_bot_bundle(item) if item is not None else None)
 
 
 @router.post(

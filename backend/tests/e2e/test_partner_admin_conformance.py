@@ -252,9 +252,7 @@ async def test_e2e_partner_001_application_review_probation_legal_and_notificati
             assert bootstrap_needs_info["principal"]["auth_realm_key"] == "partner"
             assert bootstrap_needs_info["active_workspace"]["status"] == "needs_info"
             assert bootstrap_needs_info["counters"]["open_review_requests"] >= 1
-            assert any(
-                task["source_id"] == review_request_id for task in bootstrap_needs_info["pending_tasks"]
-            )
+            assert any(task["source_id"] == review_request_id for task in bootstrap_needs_info["pending_tasks"])
 
             notifications_before_read_response = await async_client.get(
                 "/api/v1/partner-notifications",
@@ -364,9 +362,7 @@ async def test_e2e_partner_001_application_review_probation_legal_and_notificati
             )
             assert legal_documents_response.status_code == 200
             pending_documents = [
-                item["kind"]
-                for item in legal_documents_response.json()
-                if item["status"] == "pending_acceptance"
+                item["kind"] for item in legal_documents_response.json() if item["status"] == "pending_acceptance"
             ]
             assert pending_documents
 
@@ -486,10 +482,7 @@ async def test_e2e_partner_002_application_reject_state_is_visible(
             assert bootstrap_response.status_code == 200
             bootstrap_payload = bootstrap_response.json()
             assert bootstrap_payload["active_workspace"]["status"] == "rejected"
-            assert any(
-                reason["code"] == "workspace_status:rejected"
-                for reason in bootstrap_payload["blocked_reasons"]
-            )
+            assert any(reason["code"] == "workspace_status:rejected" for reason in bootstrap_payload["blocked_reasons"])
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()

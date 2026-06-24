@@ -96,6 +96,7 @@ from src.presentation.dependencies.auth_realms import get_request_customer_realm
 from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
+from src.shared.async_compat import resolve_maybe_awaitable
 from src.shared.security.fingerprint import generate_client_fingerprint
 
 logger = logging.getLogger(__name__)
@@ -332,12 +333,14 @@ async def _restore_magic_link_completed_payload(
     payload: str,
 ) -> None:
     try:
-        await redis_client.eval(
-            _TELEGRAM_MAGIC_LINK_RESTORE_COMPLETED_SCRIPT,
-            1,
-            redis_key,
-            processing_value,
-            payload,
+        await resolve_maybe_awaitable(
+            redis_client.eval(
+                _TELEGRAM_MAGIC_LINK_RESTORE_COMPLETED_SCRIPT,
+                1,
+                redis_key,
+                processing_value,
+                payload,
+            )
         )
     except Exception:
         logger.exception("Failed to restore Telegram Magic Link payload after processing error")
@@ -349,11 +352,13 @@ async def _release_magic_link_completed_payload(
     processing_value: str,
 ) -> None:
     try:
-        await redis_client.eval(
-            _TELEGRAM_MAGIC_LINK_RELEASE_COMPLETED_SCRIPT,
-            1,
-            redis_key,
-            processing_value,
+        await resolve_maybe_awaitable(
+            redis_client.eval(
+                _TELEGRAM_MAGIC_LINK_RELEASE_COMPLETED_SCRIPT,
+                1,
+                redis_key,
+                processing_value,
+            )
         )
     except Exception:
         logger.exception("Failed to release Telegram Magic Link payload after successful processing")
@@ -365,12 +370,14 @@ async def _restore_account_link_payload(
     processing_token: str,
 ) -> None:
     try:
-        await redis_client.eval(
-            _TELEGRAM_ACCOUNT_LINK_RESTORE_SCRIPT,
-            1,
-            redis_key,
-            _TELEGRAM_ACCOUNT_LINK_FLOW,
-            processing_token,
+        await resolve_maybe_awaitable(
+            redis_client.eval(
+                _TELEGRAM_ACCOUNT_LINK_RESTORE_SCRIPT,
+                1,
+                redis_key,
+                _TELEGRAM_ACCOUNT_LINK_FLOW,
+                processing_token,
+            )
         )
     except Exception:
         logger.exception("Failed to restore Telegram account-link payload after processing error")
@@ -385,14 +392,16 @@ async def _set_account_link_terminal_state(
     provider_user_id: str | None,
 ) -> None:
     try:
-        await redis_client.eval(
-            _TELEGRAM_ACCOUNT_LINK_TERMINAL_SCRIPT,
-            1,
-            redis_key,
-            _TELEGRAM_ACCOUNT_LINK_FLOW,
-            processing_token,
-            status_value,
-            provider_user_id or "",
+        await resolve_maybe_awaitable(
+            redis_client.eval(
+                _TELEGRAM_ACCOUNT_LINK_TERMINAL_SCRIPT,
+                1,
+                redis_key,
+                _TELEGRAM_ACCOUNT_LINK_FLOW,
+                processing_token,
+                status_value,
+                provider_user_id or "",
+            )
         )
     except Exception:
         logger.exception("Failed to store Telegram account-link terminal state")
@@ -915,12 +924,14 @@ async def complete_telegram_magic_link(
 
     redis_key = _get_magic_link_key(payload.token)
     completion_status = int(
-        await redis_client.eval(
-            _TELEGRAM_MAGIC_LINK_COMPLETE_SCRIPT,
-            1,
-            redis_key,
-            "pending",
-            json.dumps(_build_magic_link_user_info(payload)),
+        await resolve_maybe_awaitable(
+            redis_client.eval(
+                _TELEGRAM_MAGIC_LINK_COMPLETE_SCRIPT,
+                1,
+                redis_key,
+                "pending",
+                json.dumps(_build_magic_link_user_info(payload)),
+            )
         )
     )
 
@@ -999,7 +1010,7 @@ async def complete_telegram_account_link_magic_link(
         )
 
     redis_key = _get_account_link_key(payload.token)
-    raw_session_payload = await redis_client.get(redis_key)
+    raw_session_payload = await resolve_maybe_awaitable(redis_client.get(redis_key))
     session_payload = _parse_account_link_payload(
         _decode_redis_string(raw_session_payload) if raw_session_payload else None
     )
@@ -1011,12 +1022,14 @@ async def complete_telegram_account_link_magic_link(
         )
 
     completion_status = int(
-        await redis_client.eval(
-            _TELEGRAM_ACCOUNT_LINK_COMPLETE_SCRIPT,
-            1,
-            redis_key,
-            _TELEGRAM_ACCOUNT_LINK_FLOW,
-            json.dumps(_build_account_link_user_info(payload)),
+        await resolve_maybe_awaitable(
+            redis_client.eval(
+                _TELEGRAM_ACCOUNT_LINK_COMPLETE_SCRIPT,
+                1,
+                redis_key,
+                _TELEGRAM_ACCOUNT_LINK_FLOW,
+                json.dumps(_build_account_link_user_info(payload)),
+            )
         )
     )
 
@@ -1053,12 +1066,14 @@ async def check_telegram_account_link_magic_link_status(
     redis_key = _get_account_link_key(token)
     processing_token = uuid.uuid4().hex
     claim_status, raw_payload = _parse_account_link_claim_result(
-        await redis_client.eval(
-            _TELEGRAM_ACCOUNT_LINK_CLAIM_SCRIPT,
-            1,
-            redis_key,
-            _TELEGRAM_ACCOUNT_LINK_FLOW,
-            processing_token,
+        await resolve_maybe_awaitable(
+            redis_client.eval(
+                _TELEGRAM_ACCOUNT_LINK_CLAIM_SCRIPT,
+                1,
+                redis_key,
+                _TELEGRAM_ACCOUNT_LINK_FLOW,
+                processing_token,
+            )
         )
     )
 
@@ -1187,13 +1202,15 @@ async def check_telegram_magic_link_status(
     redis_key = _get_magic_link_key(token)
     processing_token = f"{_TELEGRAM_MAGIC_LINK_PROCESSING_PREFIX}{uuid.uuid4().hex}:"
     claim_status, claimed_payload = _parse_magic_link_claim_result(
-        await redis_client.eval(
-            _TELEGRAM_MAGIC_LINK_CLAIM_COMPLETED_SCRIPT,
-            1,
-            redis_key,
-            "pending",
-            _TELEGRAM_MAGIC_LINK_PROCESSING_PREFIX,
-            processing_token,
+        await resolve_maybe_awaitable(
+            redis_client.eval(
+                _TELEGRAM_MAGIC_LINK_CLAIM_COMPLETED_SCRIPT,
+                1,
+                redis_key,
+                "pending",
+                _TELEGRAM_MAGIC_LINK_PROCESSING_PREFIX,
+                processing_token,
+            )
         )
     )
     if claim_status == 0:
@@ -1429,11 +1446,11 @@ async def unlink_provider(
     Provider must be one of: telegram, github
     """
     if provider.value == "telegram":
-        uc = TelegramAccountLinkingUseCase(db)
-        await uc.unlink_account(user_id=user.id)
+        telegram_uc = TelegramAccountLinkingUseCase(db)
+        await telegram_uc.unlink_account(user_id=user.id)
     else:
-        uc = AccountLinkingUseCase(db)
-        await uc.unlink_account(user.id, provider.value)
+        account_uc = AccountLinkingUseCase(db)
+        await account_uc.unlink_account(user.id, provider.value)
 
     logger.info(
         "OAuth provider unlinked",

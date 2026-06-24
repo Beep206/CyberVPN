@@ -62,18 +62,18 @@ class GetAdminGrowthSignalsOverviewUseCase:
         reward_type_breakdown = await self._rewards.summarize_by_type()
         recent_events = await self._load_recent_lifecycle_events()
 
-        total_codes = sum(int(item["count"]) for item in code_status_breakdown)
+        total_codes = sum(_row_int(item, "count") for item in code_status_breakdown)
         active_codes = sum(
-            int(item["count"])
+            _row_int(item, "count")
             for item in code_status_breakdown
-            if str(item["status"]) in {"active", "reserved"}
+            if _row_str(item, "status") in {"active", "reserved"}
         )
-        total_redemptions = sum(int(item["count"]) for item in redemption_breakdown)
+        total_redemptions = sum(_row_int(item, "count") for item in redemption_breakdown)
         active_reservations = await self._codes.count_active_reservations()
         blocked_reward_count = sum(
-            int(item["count"])
+            _row_int(item, "count")
             for item in reward_status_breakdown
-            if str(item["allocation_status"]) == "blocked_by_risk"
+            if _row_str(item, "allocation_status") == "blocked_by_risk"
         )
 
         return AdminGrowthSignalsOverview(
@@ -128,20 +128,18 @@ class ListAdminGrowthAbuseSignalsUseCase:
                 else "repeated_resolution_rejection"
             )
             severity = (
-                "danger"
-                if reject_reason in {"invite_self_redemption_blocked", "code_blocked_by_risk"}
-                else "warning"
+                "danger" if reject_reason in {"invite_self_redemption_blocked", "code_blocked_by_risk"} else "warning"
             )
             signals.append(
                 AdminGrowthAbuseSignal(
-                    signal_key=f"resolution:{row['raw_code_hash']}:{reject_reason}",
+                    signal_key=f"resolution:{_row_str(row, 'raw_code_hash')}:{reject_reason}",
                     signal_type=signal_type,
                     severity=severity,
-                    code_type=row.get("code_type"),
+                    code_type=_row_str(row, "code_type"),
                     reason_code=reject_reason,
-                    count=int(row["attempt_count"]),
-                    unique_users=int(row["unique_users"]),
-                    latest_event_at=row["latest_event_at"],
+                    count=_row_int(row, "attempt_count"),
+                    unique_users=_row_int(row, "unique_users"),
+                    latest_event_at=_row_datetime(row, "latest_event_at"),
                     review_hint="Use Growth Code Lookup, then escalate to Security if the cluster looks intentional.",
                 )
             )
@@ -159,8 +157,7 @@ class ListAdminGrowthAbuseSignalsUseCase:
                     unique_users=1,
                     latest_event_at=reward.allocated_at,
                     review_hint=(
-                        "Inspect the linked reward and open a formal risk review "
-                        "when manual action is required."
+                        "Inspect the linked reward and open a formal risk review when manual action is required."
                     ),
                     reward_allocation_id=str(reward.id),
                     beneficiary_user_id=str(reward.beneficiary_user_id),
@@ -170,3 +167,21 @@ class ListAdminGrowthAbuseSignalsUseCase:
 
         signals.sort(key=lambda item: item.latest_event_at, reverse=True)
         return signals[:limit]
+
+
+def _row_int(row: dict[str, Any], key: str) -> int:
+    value = row.get(key, 0)
+    if isinstance(value, datetime):
+        raise TypeError(f"{key} is a datetime, not an integer")
+    return int(value or 0)
+
+
+def _row_str(row: dict[str, Any], key: str) -> str:
+    return str(row.get(key) or "")
+
+
+def _row_datetime(row: dict[str, Any], key: str) -> datetime:
+    value = row.get(key)
+    if not isinstance(value, datetime):
+        raise TypeError(f"{key} is not a datetime")
+    return value

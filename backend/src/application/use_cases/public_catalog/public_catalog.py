@@ -443,7 +443,7 @@ def _build_catalog_items(
     metadata_by_key: dict[str, dict[str, Any]] = {}
     for plan in plans:
         key = str(plan.name or f"{plan.plan_code}_{plan.duration_days}")
-        prices: dict[str, Decimal] = {"USD": _decimal(plan.price_usd)}
+        prices: dict[str, Decimal | int | float | str | None] = {"USD": _decimal(plan.price_usd)}
         if getattr(plan, "price_rub", None) is not None and _decimal(plan.price_rub) > 0:
             prices["RUB"] = _decimal(plan.price_rub)
 

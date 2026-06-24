@@ -193,9 +193,7 @@ async def test_s3_partner_codes_attribution_and_abuse_controls(
             )
             assert abuse_queue_response.status_code == 200, abuse_queue_response.text
             abuse_queue = abuse_queue_response.json()["items"]
-            self_referral_signal = next(
-                item for item in abuse_queue if item["reason_code"] == "code_blocked_by_risk"
-            )
+            self_referral_signal = next(item for item in abuse_queue if item["reason_code"] == "code_blocked_by_risk")
             assert self_referral_signal["code_type"] == "partner"
             assert self_referral_signal["severity"] == "danger"
             assert self_referral_signal["count"] == 3

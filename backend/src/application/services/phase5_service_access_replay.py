@@ -225,8 +225,7 @@ def build_phase5_service_access_replay_pack(snapshot: dict[str, Any]) -> dict[st
                     object_family="access_delivery_channel",
                     source_reference=str(access_delivery_channel.get("id", "unknown")),
                     message=(
-                        "Access delivery channel references a provisioning profile "
-                        "that is missing from the snapshot."
+                        "Access delivery channel references a provisioning profile that is missing from the snapshot."
                     ),
                     details={"provisioning_profile_id": provisioning_profile_id},
                 )
@@ -573,9 +572,7 @@ def _parity_mismatch_message(code: str) -> str:
         "parity_channel_status_mismatch": (
             "Resolved access delivery channel status does not match the expected status."
         ),
-        "parity_delivery_payload_key_missing": (
-            "Resolved access delivery channel payload is missing a required key."
-        ),
+        "parity_delivery_payload_key_missing": ("Resolved access delivery channel payload is missing a required key."),
     }
     return messages.get(code, "Unknown channel parity mismatch.")
 
@@ -614,11 +611,7 @@ def _default_parity_key(expectation: dict[str, Any]) -> str:
 
 
 def _rows_by_id(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {
-        str(row["id"]): row
-        for row in rows
-        if row.get("id") is not None
-    }
+    return {str(row["id"]): row for row in rows if row.get("id") is not None}
 
 
 def _sorted_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

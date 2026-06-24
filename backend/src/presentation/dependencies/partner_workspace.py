@@ -18,7 +18,8 @@ from src.infrastructure.database.repositories.partner_account_repository import 
 from src.infrastructure.database.repositories.partner_workspace_profile_repository import (
     PartnerWorkspaceProfileRepository,
 )
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth import get_current_active_web_user
+from src.presentation.dependencies.auth_realms import RealmResolution, get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 
 _WORKSPACE_WRITE_PERMISSIONS = frozenset(
@@ -49,13 +50,20 @@ def _is_internal_admin(user: AdminUserModel) -> bool:
 
 async def get_partner_workspace_access(
     workspace_id: UUID,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceAccess:
+    if current_realm.realm_type != "partner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Partner realm session is required for partner workspace routes",
+        )
     return await resolve_partner_workspace_access(
         workspace_id=workspace_id,
         current_user=current_user,
         db=db,
+        allow_internal_admin_override=False,
     )
 
 
@@ -64,13 +72,14 @@ async def resolve_partner_workspace_access(
     workspace_id: UUID,
     current_user: AdminUserModel,
     db: AsyncSession,
+    allow_internal_admin_override: bool = True,
 ) -> PartnerWorkspaceAccess:
     repo = PartnerAccountRepository(db)
     workspace = await repo.get_account_by_id(workspace_id)
     if workspace is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner workspace not found")
 
-    if _is_internal_admin(current_user):
+    if allow_internal_admin_override and _is_internal_admin(current_user):
         return PartnerWorkspaceAccess(
             workspace=workspace,
             membership=None,
@@ -99,7 +108,7 @@ async def resolve_partner_workspace_access(
 def require_partner_workspace_permission(permission: PartnerPermission):
     async def permission_checker(
         access: PartnerWorkspaceAccess = Depends(get_partner_workspace_access),
-        current_user: AdminUserModel = Depends(get_current_active_user),
+        current_user: AdminUserModel = Depends(get_current_active_web_user),
         db: AsyncSession = Depends(get_db),
     ) -> PartnerWorkspaceAccess:
         await enforce_partner_workspace_permission(

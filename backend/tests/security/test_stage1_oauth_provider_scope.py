@@ -81,14 +81,8 @@ def test_web_callback_uri_uses_primary_s1_domain(monkeypatch):
     monkeypatch.setattr(routes.settings, "oauth_web_base_url", "https://cyber-vpn.net")
     monkeypatch.setattr(routes.settings, "oauth_allowed_redirect_uris", ["cybervpn://oauth/callback"])
 
-    assert (
-        routes._resolve_oauth_login_redirect_uri("google", None)
-        == "https://cyber-vpn.net/api/oauth/callback/google"
-    )
-    assert (
-        routes._resolve_oauth_login_redirect_uri("github", None)
-        == "https://cyber-vpn.net/api/oauth/callback/github"
-    )
+    assert routes._resolve_oauth_login_redirect_uri("google", None) == "https://cyber-vpn.net/api/oauth/callback/google"
+    assert routes._resolve_oauth_login_redirect_uri("github", None) == "https://cyber-vpn.net/api/oauth/callback/github"
 
 
 def test_oauth_redirect_override_must_be_exact_native_uri(monkeypatch):

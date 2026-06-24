@@ -163,9 +163,7 @@ def test_phase2_reconciliation_summary_script_prints_compact_status(tmp_path: Pa
 
 def test_phase2_reconciliation_doc_covers_deterministic_replay_and_mismatch_vocabulary() -> None:
     repo_root = _repo_root()
-    content = (
-        repo_root / "docs/testing/partner-platform-phase2-reconciliation-pack.md"
-    ).read_text(encoding="utf-8")
+    content = (repo_root / "docs/testing/partner-platform-phase2-reconciliation-pack.md").read_text(encoding="utf-8")
 
     for required_term in (
         "replay_generated_at",

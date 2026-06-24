@@ -120,6 +120,7 @@ class RemnawaveClient:
                     },
                 )
                 raise
+        raise RuntimeError("Remnawave request retry loop exhausted unexpectedly")
 
     async def get(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """GET request without validation (legacy - use get_validated instead)."""
@@ -195,7 +196,7 @@ class RemnawaveClient:
         Returns:
             List of validated response objects
         """
-        data = await self.get(path, **kwargs)
+        data: Any = await self.get(path, **kwargs)
         return response_validator.validate_list(data, schema, f"GET {path}")
 
     async def get_collection_validated(

@@ -67,9 +67,7 @@ def _panel_index(dashboard: dict) -> dict[str, str]:
         if not title:
             continue
         panels[title] = "\n".join(
-            target["expr"]
-            for target in panel.get("targets", [])
-            if isinstance(target, dict) and "expr" in target
+            target["expr"] for target in panel.get("targets", []) if isinstance(target, dict) and "expr" in target
         )
     return panels
 
@@ -92,9 +90,7 @@ def test_stage1_launch_dashboard_covers_required_s1_surfaces() -> None:
 def test_stage1_recording_rules_are_loaded_by_prometheus_config() -> None:
     root = _repo_root()
     prometheus_config = (root / "infra/prometheus/prometheus.yml").read_text(encoding="utf-8")
-    rules_text = (root / "infra/prometheus/rules/stage1_dashboard_recording_rules.yml").read_text(
-        encoding="utf-8"
-    )
+    rules_text = (root / "infra/prometheus/rules/stage1_dashboard_recording_rules.yml").read_text(encoding="utf-8")
 
     assert "stage1_dashboard_recording_rules.yml" in prometheus_config
     records = set(re.findall(r"^\s*-\s*record:\s*([^\s]+)\s*$", rules_text, re.MULTILINE))

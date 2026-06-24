@@ -179,8 +179,7 @@ def evaluate_s2_subscription_delivery(
     ):
         issues.append("subscription_url_must_use_api_sub_path")
     if any(
-        host and not host.endswith(S2_NODE_HOST_SUFFIX) and host != S2_SUBSCRIPTION_PUBLIC_HOST
-        for host in node_hosts
+        host and not host.endswith(S2_NODE_HOST_SUFFIX) and host != S2_SUBSCRIPTION_PUBLIC_HOST for host in node_hosts
     ):
         issues.append("node_links_must_use_org_hostnames")
 

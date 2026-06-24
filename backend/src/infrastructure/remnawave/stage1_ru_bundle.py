@@ -14,9 +14,7 @@ def is_stage1_ru_bundle_plan(plan_code: str | None) -> bool:
     if not normalized_plan_code:
         return False
     configured_plan_codes = {
-        item.strip().lower()
-        for item in settings.remnawave_ru_bundle_plan_codes.split(",")
-        if item.strip()
+        item.strip().lower() for item in settings.remnawave_ru_bundle_plan_codes.split(",") if item.strip()
     }
     return normalized_plan_code in configured_plan_codes
 

@@ -185,8 +185,7 @@ async def test_invite_redeem_creates_entitlement_grant_instead_of_bonus_days_rew
 
 
 @pytest.mark.asyncio
-async def test_referral_reward_creates_pending_growth_reward_without_wallet_credit(
-) -> None:
+async def test_referral_reward_creates_pending_growth_reward_without_wallet_credit() -> None:
     auth_service = AuthService()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
     await initialize_realm_test_database(engine)

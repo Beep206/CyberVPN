@@ -256,9 +256,7 @@ def test_phase7_reporting_marts_builder_and_summary_are_deterministic(tmp_path: 
     assert partner_one["refund_rate"] == 100.0
     assert partner_one["statement_liability_amount"] == 28.0
 
-    consumer_health = {
-        item["consumer_key"]: item for item in report["reporting_health_views"]["consumer_health_views"]
-    }
+    consumer_health = {item["consumer_key"]: item for item in report["reporting_health_views"]["consumer_health_views"]}
     assert consumer_health["analytics_mart"]["failed_count"] == 1
     assert report["reconciliation"]["mismatch_counts"]["reporting_publication_failed"] == 1
     assert report["reconciliation"]["mismatch_counts"]["committed_order_missing_attribution_result"] == 1

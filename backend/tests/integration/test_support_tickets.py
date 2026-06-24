@@ -33,8 +33,13 @@ from src.infrastructure.database.models.support_ticket_model import (
     SupportTicketModel,
 )
 from src.main import app
-from src.presentation.dependencies.auth import get_current_active_user, get_current_mobile_user_id
+from src.presentation.dependencies.auth import (
+    get_current_active_user,
+    get_current_active_web_user,
+    get_current_mobile_user_id,
+)
 from tests.helpers.realm_auth import (
+    PARTNER_AUTH_REALM_HEADERS,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -44,6 +49,7 @@ from tests.helpers.realm_auth import (
 pytestmark = [pytest.mark.integration]
 
 ADMIN_HOST_HEADERS = {"host": "testserver"}
+PARTNER_HOST_HEADERS = PARTNER_AUTH_REALM_HEADERS
 
 
 @pytest.fixture(autouse=True)
@@ -51,6 +57,7 @@ def _clear_dependency_overrides():
     yield
     app.dependency_overrides.pop(get_current_mobile_user_id, None)
     app.dependency_overrides.pop(get_current_active_user, None)
+    app.dependency_overrides.pop(get_current_active_web_user, None)
 
 
 def _create_support_ticket_tables(engine) -> None:
@@ -100,6 +107,7 @@ def _override_mobile_user(user_id: uuid.UUID) -> None:
 
 def _override_admin_user(user: AdminUserModel) -> None:
     app.dependency_overrides[get_current_active_user] = lambda: user
+    app.dependency_overrides[get_current_active_web_user] = lambda: user
 
 
 def _admin_user(role: AdminRole | str) -> AdminUserModel:
@@ -427,6 +435,7 @@ async def test_public_support_ticket_create_rejects_metadata_and_source_spoofing
             _override_admin_user(admin)
             partner_metadata_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_a_id}/support/tickets",
+                headers=PARTNER_HOST_HEADERS,
                 json={
                     "category": "account",
                     "subject": "Partner metadata",
@@ -677,6 +686,7 @@ async def test_admin_public_reply_on_partner_ticket_does_not_create_customer_mes
             _override_admin_user(admin)
             create_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_a_id}/support/tickets",
+                headers=PARTNER_HOST_HEADERS,
                 json={
                     "category": "account",
                     "subject": "Partner-only support bridge",
@@ -762,6 +772,7 @@ async def test_malformed_partner_ticket_with_customer_id_does_not_create_custome
             _override_admin_user(admin)
             create_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_a_id}/support/tickets",
+                headers=PARTNER_HOST_HEADERS,
                 json={
                     "category": "account",
                     "subject": "Malformed partner ownership",
@@ -812,6 +823,7 @@ async def test_partner_support_ticket_is_workspace_scoped(async_client: AsyncCli
             _override_admin_user(admin)
             create_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_a_id}/support/tickets",
+                headers=PARTNER_HOST_HEADERS,
                 json={
                     "category": "account",
                     "subject": "Partner workspace support",
@@ -822,14 +834,16 @@ async def test_partner_support_ticket_is_workspace_scoped(async_client: AsyncCli
             public_id = create_response.json()["public_id"]
 
             own_response = await async_client.get(
-                f"/api/v1/partner-workspaces/{workspace_a_id}/support/tickets/{public_id}"
+                f"/api/v1/partner-workspaces/{workspace_a_id}/support/tickets/{public_id}",
+                headers=PARTNER_HOST_HEADERS,
             )
             assert own_response.status_code == 200
             _assert_public_ticket_payload_is_minimized(own_response.json())
             assert own_response.json()["public_id"] == public_id
 
             other_workspace_response = await async_client.get(
-                f"/api/v1/partner-workspaces/{workspace_b_id}/support/tickets/{public_id}"
+                f"/api/v1/partner-workspaces/{workspace_b_id}/support/tickets/{public_id}",
+                headers=PARTNER_HOST_HEADERS,
             )
             assert other_workspace_response.status_code == 404
     finally:

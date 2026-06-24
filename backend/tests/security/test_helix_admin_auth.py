@@ -100,9 +100,7 @@ async def test_helix_admin_canary_evidence_requires_auth(async_client: AsyncClie
 
     app.dependency_overrides[get_helix_service] = _service_override
 
-    response = await async_client.get(
-        "/api/v1/helix/admin/rollouts/rollout-canary-1/canary-evidence"
-    )
+    response = await async_client.get("/api/v1/helix/admin/rollouts/rollout-canary-1/canary-evidence")
     assert response.status_code == 401
 
 
@@ -121,8 +119,6 @@ async def test_helix_admin_canary_evidence_rejects_viewer_role(
     app.dependency_overrides[get_current_active_user] = _auth_override
     app.dependency_overrides[get_helix_service] = _service_override
 
-    response = await async_client.get(
-        "/api/v1/helix/admin/rollouts/rollout-canary-1/canary-evidence"
-    )
+    response = await async_client.get("/api/v1/helix/admin/rollouts/rollout-canary-1/canary-evidence")
 
     assert response.status_code == 403

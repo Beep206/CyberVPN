@@ -6,13 +6,13 @@ Tracks query duration and connection pool metrics using SQLAlchemy event listene
 import time
 
 from sqlalchemy import event
-from sqlalchemy.engine import Engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.pool import Pool
 
 from src.infrastructure.monitoring.metrics import db_connections_active, db_query_duration_seconds
 
 
-def instrument_database(engine: Engine) -> None:
+def instrument_database(engine: AsyncEngine) -> None:
     """Instrument SQLAlchemy engine with Prometheus metrics.
 
     Args:
@@ -40,9 +40,7 @@ def instrument_database(engine: Engine) -> None:
                 try:
                     parts = statement_lower.split("from")[1].split()
                     if parts:
-                        table = parts[0].strip().split(".")[
-                            -1
-                        ]  # Handle schema.table
+                        table = parts[0].strip().split(".")[-1]  # Handle schema.table
                 except (IndexError, AttributeError):
                     pass
             elif "into" in statement_lower:
@@ -50,9 +48,7 @@ def instrument_database(engine: Engine) -> None:
                 try:
                     parts = statement_lower.split("into")[1].split()
                     if parts:
-                        table = parts[0].strip().split(".")[
-                            -1
-                        ]  # Handle schema.table
+                        table = parts[0].strip().split(".")[-1]  # Handle schema.table
                 except (IndexError, AttributeError):
                     pass
             elif "update" in statement_lower:
@@ -60,9 +56,7 @@ def instrument_database(engine: Engine) -> None:
                 try:
                     parts = statement_lower.split("update")[1].split()
                     if parts:
-                        table = parts[0].strip().split(".")[
-                            -1
-                        ]  # Handle schema.table
+                        table = parts[0].strip().split(".")[-1]  # Handle schema.table
                 except (IndexError, AttributeError):
                     pass
 
@@ -77,9 +71,7 @@ def instrument_database(engine: Engine) -> None:
             elif statement_lower.startswith("delete"):
                 operation = "delete"
 
-            db_query_duration_seconds.labels(operation=operation, table=table).observe(
-                duration
-            )
+            db_query_duration_seconds.labels(operation=operation, table=table).observe(duration)
 
     @event.listens_for(Pool, "connect")
     def on_connect(dbapi_conn, connection_record):

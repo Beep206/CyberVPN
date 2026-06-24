@@ -22,8 +22,7 @@ def test_partner_statement_and_settlement_period_routes_exist_in_openapi() -> No
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/codes" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/conversion-records" in paths
     assert (
-        f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/conversion-records/{{order_id}}/explainability"
-        in paths
+        f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/conversion-records/{{order_id}}/explainability" in paths
     )
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/analytics-metrics" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/reporting-summary" in paths
@@ -32,10 +31,7 @@ def test_partner_statement_and_settlement_period_routes_exist_in_openapi() -> No
     assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/payout-review-queue" in paths
     assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/codes/{{code_id}}/status" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/report-exports" in paths
-    assert (
-        f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/report-exports/{{export_id}}/schedule"
-        in paths
-    )
+    assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/report-exports/{{export_id}}/schedule" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/review-requests" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/traffic-declarations" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/cases" in paths

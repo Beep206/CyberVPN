@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.use_cases.pilots.pilot_cohorts import GetPilotCohortReadinessUseCase
 from src.application.use_cases.settlement import ListPartnerPayoutAccountsUseCase
 from src.domain.enums import PilotCohortStatus, PilotLaneKey
+from src.infrastructure.database.models.pilot_cohort_model import PilotCohortModel
 from src.infrastructure.database.repositories.governance_repo import GovernanceRepository
 from src.infrastructure.database.repositories.pilot_cohort_repo import PilotCohortRepository
 
@@ -119,7 +120,7 @@ class BuildPartnerWorkspaceProgramsUseCase:
             limit=200,
             offset=0,
         )
-        latest_cohort_by_portal_lane = _select_latest_lane_cohorts(cohorts)
+        latest_cohort_by_portal_lane: dict[str, PilotCohortModel] = _select_latest_lane_cohorts(cohorts)
         traffic_declarations = await self._governance.list_traffic_declarations(
             partner_account_id=partner_account_id,
             limit=500,
@@ -179,10 +180,7 @@ class BuildPartnerWorkspaceProgramsUseCase:
                 postback_readiness=postback_readiness,
             ),
         ]
-        updated_at = max(
-            [lane.updated_at for lane in lane_memberships]
-            + [datetime.now(UTC)]
-        )
+        updated_at = max([lane.updated_at for lane in lane_memberships] + [datetime.now(UTC)])
 
         return PartnerWorkspaceProgramsView(
             canonical_source="pilot_cohorts",
@@ -193,8 +191,8 @@ class BuildPartnerWorkspaceProgramsUseCase:
         )
 
 
-def _select_latest_lane_cohorts(cohorts: list) -> dict[str, object]:
-    grouped: dict[str, object] = {}
+def _select_latest_lane_cohorts(cohorts: list[PilotCohortModel]) -> dict[str, PilotCohortModel]:
+    grouped: dict[str, PilotCohortModel] = {}
     for cohort in sorted(
         cohorts,
         key=lambda item: (
@@ -267,11 +265,7 @@ def _build_lane_view_from_readiness(
     readiness_notes = [
         *readiness_notes,
         f"Owner context: {_humanize_owner_context(cohort.owner_team)}.",
-        *(
-            [f"Runbook gate: {readiness.runbook_gate_status}."]
-            if readiness.runbook_gate_status
-            else []
-        ),
+        *([f"Runbook gate: {readiness.runbook_gate_status}."] if readiness.runbook_gate_status else []),
     ]
 
     return PartnerWorkspaceProgramLaneView(
@@ -344,7 +338,8 @@ def _build_compliance_readiness_item(
             code
             for lane in lane_memberships
             for code in lane.blocking_reason_codes
-            if code in {
+            if code
+            in {
                 "traffic_declaration_incomplete",
                 "creative_approval_incomplete",
                 "governance_action_blocking",
@@ -356,12 +351,8 @@ def _build_compliance_readiness_item(
             blocking_codes.extend(sorted(compliance_blockers))
             notes = _notes_for_reason_codes(sorted(compliance_blockers))
         elif traffic_declarations or creative_approvals:
-            has_complete_declaration = any(
-                item.declaration_status == "complete" for item in traffic_declarations
-            )
-            has_complete_approval = any(
-                item.approval_status == "complete" for item in creative_approvals
-            )
+            has_complete_declaration = any(item.declaration_status == "complete" for item in traffic_declarations)
+            has_complete_approval = any(item.approval_status == "complete" for item in creative_approvals)
             if has_complete_declaration or has_complete_approval:
                 status = "approved"
                 notes = ["Canonical compliance evidence exists for the current workspace lanes."]
@@ -406,11 +397,7 @@ def _build_technical_readiness_item(
         status = "in_progress"
 
     blocking_codes = (
-        ["postback_blocked"]
-        if status == "blocked"
-        else ["postback_pending"]
-        if status == "in_progress"
-        else []
+        ["postback_blocked"] if status == "blocked" else ["postback_pending"] if status == "in_progress" else []
     )
     return PartnerWorkspaceProgramReadinessItemView(
         key="technical",

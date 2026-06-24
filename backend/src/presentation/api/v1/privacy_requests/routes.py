@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import NoReturn
 from uuid import UUID
 
 import redis.asyncio as redis
@@ -188,7 +189,7 @@ async def _detail_for_summary(service: PrivacyRequestService, reference: str) ->
     return await service.get_admin_request(reference=reference)
 
 
-def _raise_http(exc: Exception) -> None:
+def _raise_http(exc: Exception) -> NoReturn:
     if isinstance(exc, PrivacyRequestNotFoundError):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Privacy request not found") from exc
     if isinstance(exc, InvalidPrivacyRequestTransitionError):

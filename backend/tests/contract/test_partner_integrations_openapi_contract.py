@@ -9,8 +9,7 @@ def test_partner_integrations_and_reporting_snapshot_routes_exist_in_openapi() -
 
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/integration-credentials" in paths
     assert (
-        f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/integration-credentials/"
-        "{credential_kind}/rotate"
+        f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/integration-credentials/{{credential_kind}}/rotate"
     ) in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/integration-delivery-logs" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/postback-readiness" in paths

@@ -245,9 +245,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
                 for item in settlement_events_response.json()
                 if item["event_name"].startswith("settlement.statement.")
             ]
-            assert {
-                item["event_name"] for item in settlement_statement_events
-            } >= {
+            assert {item["event_name"] for item in settlement_statement_events} >= {
                 "settlement.statement.generated",
                 "settlement.statement.closed",
                 "settlement.statement.reopened",
@@ -390,9 +388,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
                 headers=support_headers,
             )
             assert published_publications_response.status_code == 200
-            assert any(
-                item["id"] == analytics_publication["id"] for item in published_publications_response.json()
-            )
+            assert any(item["id"] == analytics_publication["id"] for item in published_publications_response.json())
 
             failed_publications_response = await async_client.get(
                 "/api/v1/reporting/outbox-publications?consumer_key=operational_replay&publication_status=failed",

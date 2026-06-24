@@ -101,8 +101,7 @@ def enable_smoke_feature_flags():
 def require_docker_backed_db() -> None:
     if os.environ.get(TEST_DB_AVAILABLE_ENV) == "0":
         pytest.skip(
-            "Docker-backed test database is unavailable. "
-            "Start the local stack or run targeted sqlite-backed packs."
+            "Docker-backed test database is unavailable. Start the local stack or run targeted sqlite-backed packs."
         )
 
 
@@ -139,6 +138,9 @@ async def _issue_access_token(
             jti=jti,
             user_id=subject,
             expires_at=expires_at,
+            auth_realm_id=str(realm.id),
+            principal_class=principal_type,
+            principal_subject=subject,
         )
     finally:
         await redis_client.aclose()
@@ -369,7 +371,13 @@ class TestAuthEndpoints:
             headers=ADMIN_HOST_HEADERS,
         )
         assert response.status_code == 200
-        assert "access_token" in response.json()
+        payload = response.json()
+        assert "access_token" not in payload
+        assert "refresh_token" not in payload
+        assert response.cookies.get("access_token")
+        assert response.cookies.get("refresh_token")
+        set_cookie_headers = "\n".join(response.headers.get_list("set-cookie")).lower()
+        assert "httponly" in set_cookie_headers
 
     @pytest.mark.asyncio
     async def test_logout(self, async_client: AsyncClient, admin_api_session: dict[str, str]):

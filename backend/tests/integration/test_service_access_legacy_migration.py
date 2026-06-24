@@ -122,10 +122,7 @@ async def test_legacy_service_access_shadow_and_migration_bridge_are_idempotent(
             assert first_migrate_payload["service_identity_created"] is True
             assert first_migrate_payload["provisioning_profile_created"] is True
             assert first_migrate_payload["access_delivery_channel_created"] is True
-            assert (
-                first_migrate_payload["service_identity"]["provider_subject_ref"]
-                == "legacy-remnawave-subject-001"
-            )
+            assert first_migrate_payload["service_identity"]["provider_subject_ref"] == "legacy-remnawave-subject-001"
             assert first_migrate_payload["provisioning_profile"]["profile_key"] == "subscription_url-default"
             assert first_migrate_payload["access_delivery_channel"]["channel_type"] == "subscription_url"
             assert (
@@ -153,10 +150,7 @@ async def test_legacy_service_access_shadow_and_migration_bridge_are_idempotent(
             assert second_migrate_payload["service_identity_created"] is False
             assert second_migrate_payload["provisioning_profile_created"] is False
             assert second_migrate_payload["access_delivery_channel_created"] is False
-            assert (
-                second_migrate_payload["service_identity"]["id"]
-                == first_migrate_payload["service_identity"]["id"]
-            )
+            assert second_migrate_payload["service_identity"]["id"] == first_migrate_payload["service_identity"]["id"]
             assert (
                 second_migrate_payload["provisioning_profile"]["id"]
                 == first_migrate_payload["provisioning_profile"]["id"]

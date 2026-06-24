@@ -54,4 +54,3 @@ class ClientCapabilityResponse(BaseModel):
     growth: ClientGrowthCapabilities
     subscriptions: ClientSubscriptionCapabilities
     partner: ClientPartnerCapabilities
-

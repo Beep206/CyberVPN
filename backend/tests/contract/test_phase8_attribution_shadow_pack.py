@@ -346,9 +346,9 @@ def test_phase8_attribution_shadow_builder_and_summary_are_deterministic(tmp_pat
 
 def test_phase8_attribution_shadow_doc_covers_vocabulary_and_tolerances() -> None:
     repo_root = _repo_root()
-    content = (
-        repo_root / "docs/testing/partner-platform-phase8-attribution-shadow-pack.md"
-    ).read_text(encoding="utf-8")
+    content = (repo_root / "docs/testing/partner-platform-phase8-attribution-shadow-pack.md").read_text(
+        encoding="utf-8"
+    )
 
     for required_term in (
         "replay_generated_at",

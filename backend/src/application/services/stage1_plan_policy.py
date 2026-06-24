@@ -126,11 +126,7 @@ def filter_stage1_public_addons(
 ) -> list[Any]:
     """Filter arbitrary add-on rows down to the S1 public add-on policy."""
 
-    return [
-        addon
-        for addon in addons
-        if is_stage1_public_addon(addon, sale_channel=sale_channel, enabled=enabled)
-    ]
+    return [addon for addon in addons if is_stage1_public_addon(addon, sale_channel=sale_channel, enabled=enabled)]
 
 
 def assert_stage1_paid_plan_purchasable(plan: Any, *, sale_channel: str) -> None:

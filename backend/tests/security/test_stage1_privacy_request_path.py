@@ -43,10 +43,7 @@ def test_stage1_privacy_request_builds_safe_manual_review_path(
             channel=Stage1SupportChannel.WEB_CONTACT_FORM,
             user_reference="user-safe-ref",
             contact="customer@example.com",
-            notes=(
-                "Here is my subscription URL https://cyber-vpn.net/config/secret "
-                "and raw config vless://secret"
-            ),
+            notes=("Here is my subscription URL https://cyber-vpn.net/config/secret and raw config vless://secret"),
         )
     )
 

@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -93,7 +94,7 @@ async def quote_gift_purchase(
             storefront_key=payload.storefront_key,
             host=request.headers.get("X-Forwarded-Host") or request.headers.get("Host"),
             plan_id=payload.plan_id,
-            use_wallet=payload.use_wallet,
+            use_wallet=Decimal(str(payload.use_wallet)),
             currency=payload.currency,
             channel=payload.channel,
         )
@@ -120,7 +121,7 @@ async def commit_gift_purchase(
             storefront_key=payload.storefront_key,
             host=request.headers.get("X-Forwarded-Host") or request.headers.get("Host"),
             plan_id=payload.plan_id,
-            use_wallet=payload.use_wallet,
+            use_wallet=Decimal(str(payload.use_wallet)),
             currency=payload.currency,
             channel=payload.channel,
         )
@@ -168,10 +169,7 @@ async def list_my_gifts(
 ) -> list[GiftCodeResponse]:
     _assert_gift_public_flow_enabled()
     items = await ListGiftCodesUseCase(db).execute(owner_user_id=user_id)
-    return [
-        _serialize_gift_code(code, policy, issuance, redemption)
-        for code, policy, issuance, redemption in items
-    ]
+    return [_serialize_gift_code(code, policy, issuance, redemption) for code, policy, issuance, redemption in items]
 
 
 @router.post("/redeem", response_model=GiftRedeemResponse)

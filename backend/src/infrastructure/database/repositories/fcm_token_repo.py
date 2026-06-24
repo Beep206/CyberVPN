@@ -75,11 +75,7 @@ class FCMTokenRepositoryImpl(FCMTokenRepository):
         user_id: UUID,
     ) -> list[FCMToken]:
         """Get all FCM tokens for a user (all devices)."""
-        stmt = (
-            select(FCMTokenModel)
-            .where(FCMTokenModel.user_id == user_id)
-            .order_by(FCMTokenModel.created_at.desc())
-        )
+        stmt = select(FCMTokenModel).where(FCMTokenModel.user_id == user_id).order_by(FCMTokenModel.created_at.desc())
         result = await self._session.execute(stmt)
         models = result.scalars().all()
 

@@ -70,10 +70,7 @@ class PurchaseAddonsUseCase:
             raise ValueError("Active plan not found")
 
         active_addon_lines = await self._entitlements.list_active_addon_lines(user_id)
-        existing_quantities = {
-            str(line["code"]): int(line.get("qty", 1))
-            for line in active_addon_lines
-        }
+        existing_quantities = {str(line["code"]): int(line.get("qty", 1)) for line in active_addon_lines}
         addon_lines = await self._checkout._resolve_addons(
             plan=plan,
             addon_inputs=addons,

@@ -284,9 +284,12 @@ async def test_phase2_commerce_foundations_end_to_end(async_client: AsyncClient)
             evaluation = explainability_payload["commissionability_evaluation"]
             assert evaluation["commissionability_status"] == "ineligible"
             assert "open_payment_dispute" in evaluation["reason_codes"]
-            assert explainability_payload["explainability"]["merchant_snapshot"]["billing_descriptor"][
-                "statement_descriptor"
-            ] == "PARTNER VPN"
+            assert (
+                explainability_payload["explainability"]["merchant_snapshot"]["billing_descriptor"][
+                    "statement_descriptor"
+                ]
+                == "PARTNER VPN"
+            )
             assert len(explainability_payload["explainability"]["linked_refunds"]) == 1
             assert len(explainability_payload["explainability"]["linked_payment_disputes"]) == 1
     finally:

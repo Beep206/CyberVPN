@@ -139,12 +139,8 @@ class OAuthLoginUseCase:
             provider in S1_TRUSTED_EMAIL_LINK_PROVIDER_ALLOWLIST
             and provider in settings.oauth_trusted_email_link_providers
         )
-        email_verified = bool(
-            user_info.get("email_verified", bool(email and trusted_provider))
-        )
-        email_trusted = bool(
-            user_info.get("email_trusted", bool(email and trusted_provider))
-        ) and trusted_provider
+        email_verified = bool(user_info.get("email_verified", bool(email and trusted_provider)))
+        email_trusted = bool(user_info.get("email_trusted", bool(email and trusted_provider))) and trusted_provider
 
         is_telegram = provider == "telegram"
         telegram_user_id: int | None = None

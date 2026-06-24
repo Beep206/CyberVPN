@@ -26,9 +26,7 @@ def test_plan_seed_contains_full_canonical_matrix() -> None:
 
 
 def test_public_plan_seed_matches_stage1_beta_matrix() -> None:
-    public_specs = [
-        spec for spec in build_plan_seed_specs() if spec.catalog_visibility == "public" and spec.is_active
-    ]
+    public_specs = [spec for spec in build_plan_seed_specs() if spec.catalog_visibility == "public" and spec.is_active]
 
     assert len(public_specs) == 16
     assert {spec.plan_code for spec in public_specs} == {"basic", "plus", "pro", "max"}

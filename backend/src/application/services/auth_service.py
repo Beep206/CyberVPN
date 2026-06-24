@@ -14,6 +14,7 @@ from typing import Any
 import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
+from jwt.types import Options
 
 from src.config.settings import settings
 
@@ -28,6 +29,7 @@ _hasher = PasswordHasher(
 class AuthService:
     # MED-5: JWT algorithm allowlist - only these algorithms are permitted
     ALLOWED_ALGORITHMS = frozenset({"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256"})
+    JWT_CLOCK_SKEW_LEEWAY_SECONDS = 5
 
     def __init__(self) -> None:
         self._secret = settings.jwt_secret.get_secret_value()
@@ -188,31 +190,30 @@ class AuthService:
         self,
         token: str,
         *,
-        audience: str | list[str] | None | object = None,
-        issuer: str | None | object = None,
-    ) -> dict:
+        audience: str | list[str] | None = None,
+        issuer: str | None = None,
+    ) -> dict[str, Any]:
         """Decode and validate a JWT token.
 
         Note: This does NOT check the revocation list. Use validate_token()
         from the dependency layer for full validation including revocation check.
         """
-        expected_audience: Any = self._audience if audience is None else audience
-        expected_issuer: Any = self._issuer if issuer is None else issuer
+        expected_audience: str | list[str] | None = self._audience if audience is None else audience
+        expected_issuer: str | None = self._issuer if issuer is None else issuer
 
-        options = {"require": ["exp", "sub"]}
+        options: Options = {"require": ["exp", "sub"]}
         if not expected_audience:
             options["verify_aud"] = False
 
-        decode_kwargs: dict[str, object] = {
-            "algorithms": [self._algorithm],
-            "options": options,
-        }
-        if expected_audience:
-            decode_kwargs["audience"] = expected_audience
-        if expected_issuer:
-            decode_kwargs["issuer"] = expected_issuer
-
-        return jwt.decode(token, self._secret, **decode_kwargs)
+        return jwt.decode(
+            token,
+            self._secret,
+            algorithms=[self._algorithm],
+            options=options,
+            audience=expected_audience if expected_audience else None,
+            issuer=expected_issuer if expected_issuer else None,
+            leeway=self.JWT_CLOCK_SKEW_LEEWAY_SECONDS,
+        )
 
     def get_token_jti(self, token: str) -> str | None:
         """Extract JTI from a token without full validation.

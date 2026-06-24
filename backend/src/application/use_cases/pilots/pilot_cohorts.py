@@ -226,8 +226,8 @@ class CreatePilotCohortUseCase:
         )
         await self._session.commit()
         await self._session.refresh(created)
-        for window in windows:
-            await self._session.refresh(window)
+        for rollout_window in windows:
+            await self._session.refresh(rollout_window)
         return PilotCohortSnapshot(cohort=created, windows=windows)
 
     async def _validate_admin_user(self, admin_user_id: UUID) -> None:
@@ -287,10 +287,7 @@ class ListPilotCohortsUseCase:
             repo=self._repo,
             cohort_ids=[item.id for item in cohorts],
         )
-        return [
-            PilotCohortSnapshot(cohort=item, windows=windows_by_cohort.get(item.id, []))
-            for item in cohorts
-        ]
+        return [PilotCohortSnapshot(cohort=item, windows=windows_by_cohort.get(item.id, [])) for item in cohorts]
 
 
 class GetPilotCohortUseCase:
@@ -510,10 +507,7 @@ class RecordPilotGoNoGoDecisionUseCase:
 
         if status_value == PilotGoNoGoStatus.APPROVED.value:
             if missing_owner_teams:
-                raise ValueError(
-                    "Approved go/no-go requires owner acknowledgements: "
-                    + ", ".join(missing_owner_teams)
-                )
+                raise ValueError("Approved go/no-go requires owner acknowledgements: " + ", ".join(missing_owner_teams))
             if latest_rollback_drill is None:
                 raise ValueError("Approved go/no-go requires a recorded rollback drill")
             if latest_rollback_drill.drill_status != PilotRollbackDrillStatus.PASSED.value:
@@ -655,7 +649,8 @@ class GetPilotCohortReadinessUseCase:
         blocking_governance_actions = [
             item
             for item in governance_actions
-            if item.action_status in {
+            if item.action_status
+            in {
                 GovernanceActionStatus.REQUESTED.value,
                 GovernanceActionStatus.APPLIED.value,
             }
@@ -667,22 +662,17 @@ class GetPilotCohortReadinessUseCase:
 
         if cohort.lane_key == PilotLaneKey.PERFORMANCE_MEDIA_BUYER.value:
             if not any(
-                item.declaration_status == TrafficDeclarationStatus.COMPLETE.value
-                for item in traffic_declarations
+                item.declaration_status == TrafficDeclarationStatus.COMPLETE.value for item in traffic_declarations
             ):
                 blocking_reason_codes.add("traffic_declaration_incomplete")
             if not any(item.approval_status == "complete" for item in creative_approvals):
                 blocking_reason_codes.add("creative_approval_incomplete")
 
-        active_window_count = sum(
-            1 for item in windows if item.window_status == PilotRolloutWindowStatus.ACTIVE.value
-        )
+        active_window_count = sum(1 for item in windows if item.window_status == PilotRolloutWindowStatus.ACTIVE.value)
         scheduled_window_count = sum(
             1 for item in windows if item.window_status == PilotRolloutWindowStatus.SCHEDULED.value
         )
-        paused_window_count = sum(
-            1 for item in windows if item.window_status == PilotRolloutWindowStatus.PAUSED.value
-        )
+        paused_window_count = sum(1 for item in windows if item.window_status == PilotRolloutWindowStatus.PAUSED.value)
         if scheduled_window_count == 0 and active_window_count == 0 and paused_window_count == 0:
             blocking_reason_codes.add("no_schedulable_rollout_window")
 
@@ -729,9 +719,7 @@ class GetPilotCohortReadinessUseCase:
             "workspace_active": workspace.status == PartnerAccountStatus.ACTIVE.value if workspace else None,
             "traffic_declaration_count": len(traffic_declarations),
             "complete_traffic_declaration_count": sum(
-                1
-                for item in traffic_declarations
-                if item.declaration_status == TrafficDeclarationStatus.COMPLETE.value
+                1 for item in traffic_declarations if item.declaration_status == TrafficDeclarationStatus.COMPLETE.value
             ),
             "creative_approval_count": len(creative_approvals),
             "complete_creative_approval_count": sum(

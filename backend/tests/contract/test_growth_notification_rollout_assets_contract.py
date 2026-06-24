@@ -43,9 +43,7 @@ def _load_rules_pack() -> dict:
 
 
 def _load_dashboard() -> dict:
-    dashboard_path = (
-        _repo_root() / "infra/grafana/dashboards/customer-growth-notification-delivery-dashboard.json"
-    )
+    dashboard_path = _repo_root() / "infra/grafana/dashboards/customer-growth-notification-delivery-dashboard.json"
     return json.loads(dashboard_path.read_text(encoding="utf-8"))
 
 
@@ -77,11 +75,7 @@ def _panel_index(dashboard: dict) -> dict[str, list[str]]:
         title = panel.get("title")
         if not title:
             continue
-        exprs = [
-            target["expr"]
-            for target in panel.get("targets", [])
-            if isinstance(target, dict) and "expr" in target
-        ]
+        exprs = [target["expr"] for target in panel.get("targets", []) if isinstance(target, dict) and "expr" in target]
         index[title] = exprs
     return index
 
@@ -180,10 +174,7 @@ def test_growth_notification_runbook_and_evidence_assets_exist() -> None:
     assert (repo_root / "scripts/run-customer-growth-notification-staging-smoke.sh").exists()
     assert (repo_root / "scripts/sync-customer-growth-notification-ruleset.sh").exists()
     assert (
-        repo_root
-        / "docs/evidence/customer-growth/templates/customer-growth-notification-rollout-evidence-template.md"
+        repo_root / "docs/evidence/customer-growth/templates/customer-growth-notification-rollout-evidence-template.md"
     ).exists()
     assert (repo_root / ".github/workflows/customer-growth-notification-conformance.yml").exists()
-    assert (
-        repo_root / ".github/rulesets/customer-growth-notification-main-gate.disabled.json"
-    ).exists()
+    assert (repo_root / ".github/rulesets/customer-growth-notification-main-gate.disabled.json").exists()

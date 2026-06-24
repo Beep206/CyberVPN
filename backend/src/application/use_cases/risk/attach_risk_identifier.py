@@ -99,4 +99,3 @@ class AttachRiskIdentifierUseCase:
             )
 
         return created_identifier, created_links
-

@@ -87,7 +87,5 @@ class WalletService:
         except ValueError as e:
             raise WalletNotFoundError(identifier=str(e)) from e
 
-    async def get_transactions(
-        self, user_id: UUID, offset: int = 0, limit: int = 50
-    ) -> list[WalletTransactionModel]:
+    async def get_transactions(self, user_id: UUID, offset: int = 0, limit: int = 50) -> list[WalletTransactionModel]:
         return await self._repo.get_transactions(user_id, offset=offset, limit=limit)

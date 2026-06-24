@@ -202,16 +202,15 @@ class MobileUserRepository:
 
     async def count_all_referred_users(self) -> int:
         result = await self._session.execute(
-            select(func.count())
-            .select_from(MobileUserModel)
-            .where(MobileUserModel.referred_by_user_id.is_not(None))
+            select(func.count()).select_from(MobileUserModel).where(MobileUserModel.referred_by_user_id.is_not(None))
         )
         return int(result.scalar_one() or 0)
 
     async def count_distinct_referrers(self) -> int:
         result = await self._session.execute(
-            select(func.count(func.distinct(MobileUserModel.referred_by_user_id)))
-            .where(MobileUserModel.referred_by_user_id.is_not(None))
+            select(func.count(func.distinct(MobileUserModel.referred_by_user_id))).where(
+                MobileUserModel.referred_by_user_id.is_not(None)
+            )
         )
         return int(result.scalar_one() or 0)
 

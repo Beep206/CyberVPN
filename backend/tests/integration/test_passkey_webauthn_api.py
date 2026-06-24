@@ -374,9 +374,7 @@ async def test_passkey_registration_and_authentication_issue_realm_cookie_sessio
 
             with sessionmaker() as db:
                 sessions = list(
-                    db.execute(
-                        select(PrincipalSessionModel).where(PrincipalSessionModel.principal_subject == user_id)
-                    )
+                    db.execute(select(PrincipalSessionModel).where(PrincipalSessionModel.principal_subject == user_id))
                     .scalars()
                     .all()
                 )

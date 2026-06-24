@@ -156,7 +156,7 @@ async def capture_referral_attribution(
     response: Response,
     db: AsyncSession = Depends(get_db),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
-) -> ReferralAttributionCaptureResponse:
+) -> ReferralAttributionCaptureResponse | JSONResponse:
     """Capture an anonymous referral attribution session before signup."""
     command = CaptureReferralAttributionCommand(
         referral_code=payload.referral_code,
@@ -207,7 +207,7 @@ async def claim_referral_attribution(
     user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
-) -> ReferralAttributionClaimResponse:
+) -> ReferralAttributionClaimResponse | JSONResponse:
     """Claim a pending referral attribution for the authenticated customer."""
     command = ClaimReferralAttributionCommand(
         user_id=user_id,

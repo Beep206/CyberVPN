@@ -50,4 +50,3 @@ class PartnerWorkspaceLegalAcceptanceModel(Base):
         nullable=False,
         index=True,
     )
-

@@ -134,8 +134,7 @@ class PartnerAccountRepository:
             statement = statement.where(PartnerAccountModel.status == normalized_status)
 
         result = await self._session.execute(
-            statement
-            .order_by(PartnerAccountModel.updated_at.desc(), PartnerAccountModel.display_name.asc())
+            statement.order_by(PartnerAccountModel.updated_at.desc(), PartnerAccountModel.display_name.asc())
             .limit(limit)
             .offset(offset)
         )

@@ -68,4 +68,3 @@ def is_blocking_identifier_type(identifier_type: str) -> bool:
 
 def reason_code_for_identifier(identifier_type: str) -> str:
     return f"shared_{identifier_type}_link_detected"
-

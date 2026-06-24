@@ -286,11 +286,14 @@ class CreatePayoutExecutionUseCase:
             if execution.execution_status in _ACTIVE_PAYOUT_EXECUTION_STATUSES:
                 raise ValueError("An active payout execution already exists for this instruction")
 
-        sequence = len(
-            await self._settlement.list_payout_executions_for_instruction(
-                payout_instruction_id=payout_instruction_id,
+        sequence = (
+            len(
+                await self._settlement.list_payout_executions_for_instruction(
+                    payout_instruction_id=payout_instruction_id,
+                )
             )
-        ) + 1
+            + 1
+        )
         execution = PayoutExecutionModel(
             payout_instruction_id=instruction.id,
             partner_account_id=instruction.partner_account_id,

@@ -9,6 +9,8 @@ from datetime import UTC, datetime
 import redis.asyncio as redis
 from redis.exceptions import RedisError
 
+from src.shared.async_compat import resolve_maybe_awaitable
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,9 +40,9 @@ class MessagingPresenceRegistry:
         index_key = self._index_key(identity)
         payload = self._payload(identity)
         try:
-            await self._redis.set(key, payload, ex=self._ttl_seconds)
-            await self._redis.sadd(index_key, identity.connection_id)
-            await self._redis.expire(index_key, self._ttl_seconds)
+            await resolve_maybe_awaitable(self._redis.set(key, payload, ex=self._ttl_seconds))
+            await resolve_maybe_awaitable(self._redis.sadd(index_key, identity.connection_id))
+            await resolve_maybe_awaitable(self._redis.expire(index_key, self._ttl_seconds))
         except RedisError:
             logger.warning("Messaging presence Redis register failed", exc_info=True)
             return False
@@ -50,8 +52,8 @@ class MessagingPresenceRegistry:
         key = self._connection_key(identity)
         index_key = self._index_key(identity)
         try:
-            await self._redis.expire(key, self._ttl_seconds)
-            await self._redis.expire(index_key, self._ttl_seconds)
+            await resolve_maybe_awaitable(self._redis.expire(key, self._ttl_seconds))
+            await resolve_maybe_awaitable(self._redis.expire(index_key, self._ttl_seconds))
         except RedisError:
             logger.warning("Messaging presence Redis refresh failed", exc_info=True)
             return False
@@ -59,8 +61,8 @@ class MessagingPresenceRegistry:
 
     async def disconnect(self, identity: MessagingPresenceIdentity) -> bool:
         try:
-            await self._redis.delete(self._connection_key(identity))
-            await self._redis.srem(self._index_key(identity), identity.connection_id)
+            await resolve_maybe_awaitable(self._redis.delete(self._connection_key(identity)))
+            await resolve_maybe_awaitable(self._redis.srem(self._index_key(identity), identity.connection_id))
         except RedisError:
             logger.warning("Messaging presence Redis disconnect failed", exc_info=True)
             return False
@@ -69,7 +71,7 @@ class MessagingPresenceRegistry:
     async def connection_count(self, *, participant_type: str, participant_id: str) -> int:
         index_key = self._index_key_for(participant_type=participant_type, participant_id=participant_id)
         try:
-            connection_ids = await self._redis.smembers(index_key)
+            connection_ids = await resolve_maybe_awaitable(self._redis.smembers(index_key))
             count = 0
             stale: list[str] = []
             for raw_connection_id in connection_ids:
@@ -81,12 +83,12 @@ class MessagingPresenceRegistry:
                     participant_id=participant_id,
                     connection_id=str(connection_id),
                 )
-                if await self._redis.exists(key):
+                if await resolve_maybe_awaitable(self._redis.exists(key)):
                     count += 1
                 else:
                     stale.append(str(connection_id))
             if stale:
-                await self._redis.srem(index_key, *stale)
+                await resolve_maybe_awaitable(self._redis.srem(index_key, *stale))
             return count
         except RedisError:
             logger.warning("Messaging presence Redis count failed", exc_info=True)

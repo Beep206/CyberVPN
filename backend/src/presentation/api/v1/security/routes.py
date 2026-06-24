@@ -249,7 +249,7 @@ async def create_risk_subject(
         extra={"admin_user_id": str(current_user.id), "risk_subject_id": str(created.id)},
     )
     route_operations_total.labels(route="security", action="create_risk_subject", status="success").inc()
-    return created
+    return RiskSubjectResponse.model_validate(created)
 
 
 @router.post(
@@ -298,7 +298,8 @@ async def list_risk_links(
 ) -> list[RiskLinkResponse]:
     use_case = ListRiskLinksUseCase(db)
     try:
-        return await use_case.execute(risk_subject_id=risk_subject_id)
+        links = await use_case.execute(risk_subject_id=risk_subject_id)
+        return [RiskLinkResponse.model_validate(link) for link in links]
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
@@ -322,7 +323,7 @@ async def create_risk_review(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     route_operations_total.labels(route="security", action="create_risk_review", status="success").inc()
-    return review
+    return RiskReviewResponse.model_validate(review)
 
 
 @router.get(
@@ -437,7 +438,7 @@ async def resolve_risk_review(
         },
     )
     route_operations_total.labels(route="security", action="resolve_risk_review", status="success").inc()
-    return review
+    return RiskReviewResponse.model_validate(review)
 
 
 @router.get(
@@ -455,7 +456,7 @@ async def list_risk_reviews(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     route_operations_total.labels(route="security", action="list_risk_reviews", status="success").inc()
-    return reviews
+    return [RiskReviewResponse.model_validate(review) for review in reviews]
 
 
 @router.post(

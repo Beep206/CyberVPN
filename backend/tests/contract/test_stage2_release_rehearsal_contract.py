@@ -7,16 +7,9 @@ def _repo_root() -> Path:
 
 def test_stage2_release_rehearsal_docs_exist_and_cover_required_surfaces() -> None:
     root = _repo_root()
-    stage_doc = (
-        root / "docs/cybervpn_stage2_launch_docs/14_STAGE2_RELEASE_REHEARSAL.md"
-    ).read_text(encoding="utf-8")
-    runbook = (root / "docs/runbooks/STAGE2_RELEASE_REHEARSAL.md").read_text(
-        encoding="utf-8"
-    )
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md"
-    ).read_text(encoding="utf-8")
+    stage_doc = (root / "docs/cybervpn_stage2_launch_docs/14_STAGE2_RELEASE_REHEARSAL.md").read_text(encoding="utf-8")
+    runbook = (root / "docs/runbooks/STAGE2_RELEASE_REHEARSAL.md").read_text(encoding="utf-8")
+    evidence = (root / "docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md").read_text(encoding="utf-8")
 
     for fragment in (
         "stage2-public-rc.1",
@@ -48,16 +41,9 @@ def test_stage2_release_rehearsal_docs_exist_and_cover_required_surfaces() -> No
 
 def test_stage2_release_rehearsal_preserves_domain_and_node_boundaries() -> None:
     root = _repo_root()
-    stage_doc = (
-        root / "docs/cybervpn_stage2_launch_docs/14_STAGE2_RELEASE_REHEARSAL.md"
-    ).read_text(encoding="utf-8")
-    runbook = (root / "docs/runbooks/STAGE2_RELEASE_REHEARSAL.md").read_text(
-        encoding="utf-8"
-    )
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md"
-    ).read_text(encoding="utf-8")
+    stage_doc = (root / "docs/cybervpn_stage2_launch_docs/14_STAGE2_RELEASE_REHEARSAL.md").read_text(encoding="utf-8")
+    runbook = (root / "docs/runbooks/STAGE2_RELEASE_REHEARSAL.md").read_text(encoding="utf-8")
+    evidence = (root / "docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md").read_text(encoding="utf-8")
 
     for content in (stage_doc, runbook, evidence):
         assert "cyber-vpn.org" in content
@@ -74,16 +60,9 @@ def test_stage2_release_rehearsal_preserves_domain_and_node_boundaries() -> None
 
 def test_stage2_release_rehearsal_preserves_quic_and_secret_boundaries() -> None:
     root = _repo_root()
-    stage_doc = (
-        root / "docs/cybervpn_stage2_launch_docs/14_STAGE2_RELEASE_REHEARSAL.md"
-    ).read_text(encoding="utf-8")
-    runbook = (root / "docs/runbooks/STAGE2_RELEASE_REHEARSAL.md").read_text(
-        encoding="utf-8"
-    )
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md"
-    ).read_text(encoding="utf-8")
+    stage_doc = (root / "docs/cybervpn_stage2_launch_docs/14_STAGE2_RELEASE_REHEARSAL.md").read_text(encoding="utf-8")
+    runbook = (root / "docs/runbooks/STAGE2_RELEASE_REHEARSAL.md").read_text(encoding="utf-8")
+    evidence = (root / "docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md").read_text(encoding="utf-8")
 
     for content in (stage_doc, runbook, evidence):
         assert "HTTP/3/QUIC" in content
@@ -96,13 +75,8 @@ def test_stage2_release_rehearsal_preserves_quic_and_secret_boundaries() -> None
 
 def test_stage2_release_rehearsal_classifies_live_mutation_gaps() -> None:
     root = _repo_root()
-    stage_doc = (
-        root / "docs/cybervpn_stage2_launch_docs/14_STAGE2_RELEASE_REHEARSAL.md"
-    ).read_text(encoding="utf-8")
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md"
-    ).read_text(encoding="utf-8")
+    stage_doc = (root / "docs/cybervpn_stage2_launch_docs/14_STAGE2_RELEASE_REHEARSAL.md").read_text(encoding="utf-8")
+    evidence = (root / "docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md").read_text(encoding="utf-8")
 
     for fragment in (
         "live real-money payment",

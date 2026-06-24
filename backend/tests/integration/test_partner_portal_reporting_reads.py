@@ -48,6 +48,8 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.main import app
 from tests.helpers.realm_auth import (
     ADMIN_AUTH_REALM_HEADERS,
+    PARTNER_ACCESS_COOKIE_NAME,
+    PARTNER_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
     access_token_from_client_cookies,
@@ -88,14 +90,21 @@ async def _create_admin_user(
     return user
 
 
-async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
+async def _login(
+    async_client: AsyncClient,
+    login_or_email: str,
+    password: str,
+    *,
+    headers: dict[str, str] = ADMIN_AUTH_REALM_HEADERS,
+    cookie_name: str = "access_token",
+) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers=ADMIN_AUTH_REALM_HEADERS,
+        headers=headers,
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return access_token_from_client_cookies(async_client, response=response)
+    return access_token_from_client_cookies(async_client, cookie_name=cookie_name, response=response)
 
 
 async def _create_workspace(
@@ -365,9 +374,7 @@ def _seed_renewal_lineage_override(
     created_at: datetime,
 ) -> None:
     attribution_result = (
-        session.query(OrderAttributionResultModel)
-        .filter(OrderAttributionResultModel.order_id == order_id)
-        .one()
+        session.query(OrderAttributionResultModel).filter(OrderAttributionResultModel.order_id == order_id).one()
     )
     attribution_result.partner_account_id = provenance_partner_account_id
     attribution_result.partner_code_id = provenance_partner_code_id
@@ -537,6 +544,7 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
                 customer_realm = await realm_repo.get_or_create_default_realm("customer")
 
                 await _create_admin_user(
@@ -551,7 +559,7 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                 owner_user = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="portal_reporting_owner",
                     email="portal-reporting-owner@example.com",
                     password="PortalReportingOwner123!",
@@ -560,7 +568,7 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                 await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="portal_reporting_outsider",
                     email="portal-reporting-outsider@example.com",
                     password="PortalReportingOutsider123!",
@@ -586,11 +594,19 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                 )
 
             admin_token = await _login(async_client, "portal-reporting-admin@example.com", "PortalReportingAdmin123!")
-            owner_token = await _login(async_client, "portal-reporting-owner@example.com", "PortalReportingOwner123!")
+            owner_token = await _login(
+                async_client,
+                "portal-reporting-owner@example.com",
+                "PortalReportingOwner123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+            )
             outsider_token = await _login(
                 async_client,
                 "portal-reporting-outsider@example.com",
                 "PortalReportingOutsider123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
             )
             support_token = await _login(
                 async_client,
@@ -615,8 +631,8 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                 "Authorization": f"Bearer {finance_token}",
                 **ADMIN_AUTH_REALM_HEADERS,
             }
-            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
-            outsider_headers = {"Authorization": f"Bearer {outsider_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **PARTNER_AUTH_REALM_HEADERS}
+            outsider_headers = {"Authorization": f"Bearer {outsider_token}", **PARTNER_AUTH_REALM_HEADERS}
 
             workspace_id = await _create_workspace(
                 async_client,
@@ -857,9 +873,7 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
             assert conversions_payload[0]["id"] == str(chargeback_order.id)
             assert conversions_payload[0]["code_label"] == "REPORT42"
             assert conversions_payload[0]["customer_scope"] == "workspace_scoped"
-            renewal_conversion = next(
-                item for item in conversions_payload if item["id"] == str(renewal_order.id)
-            )
+            renewal_conversion = next(item for item in conversions_payload if item["id"] == str(renewal_order.id))
             assert renewal_conversion["kind"] == "repeat_paid"
             assert renewal_conversion["code_label"] == "REPORT42"
             assert any("Renewal lineage keeps this paid conversion" in note for note in renewal_conversion["notes"])
@@ -889,9 +903,7 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
             assert reporting_summary_response.status_code == 200
             reporting_summary_payload = reporting_summary_response.json()
             assert reporting_summary_payload["workspace_id"] == workspace_id
-            summary_metrics = {
-                item["key"]: item for item in reporting_summary_payload["metrics"]
-            }
+            summary_metrics = {item["key"]: item for item in reporting_summary_payload["metrics"]}
             assert summary_metrics["active_users"]["value"] == "1"
             assert summary_metrics["paid_users"]["value"] == "1"
             assert summary_metrics["paid_conversions"]["value"] == "3"
@@ -899,9 +911,7 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
             assert summary_metrics["trial_users"]["source_of_truth"] == "not_available_in_s3_stage_10"
             assert reporting_summary_payload["reconciliation"]["status"] == "yellow"
             assert (
-                reporting_summary_payload["reconciliation"]["mismatch_counts"][
-                    "reporting_publication_backlog_present"
-                ]
+                reporting_summary_payload["reconciliation"]["mismatch_counts"]["reporting_publication_backlog_present"]
                 == 1
             )
             assert "email" in reporting_summary_payload["export_redaction"]["pii_fields_excluded"]
@@ -919,9 +929,7 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
             settlement_sandbox_payload = settlement_sandbox_response.json()
             assert settlement_sandbox_payload["workspace_id"] == workspace_id
             assert settlement_sandbox_payload["currency_code"] == "USD"
-            settlement_metrics = {
-                item["key"]: item for item in settlement_sandbox_payload["metrics"]
-            }
+            settlement_metrics = {item["key"]: item for item in settlement_sandbox_payload["metrics"]}
             assert settlement_metrics["available_statement_amount"]["value"] == "125.00 USD"
             assert settlement_metrics["on_hold_amount"]["value"] == "15.00 USD"
             assert settlement_metrics["reserve_amount"]["value"] == "10.00 USD"
@@ -1016,9 +1024,7 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                 headers=owner_headers,
             )
             assert traffic_declarations_response.status_code == 200
-            traffic_declarations_payload = {
-                item["kind"]: item for item in traffic_declarations_response.json()
-            }
+            traffic_declarations_payload = {item["kind"]: item for item in traffic_declarations_response.json()}
             assert traffic_declarations_payload["approved_sources"]["status"] == "action_required"
             assert traffic_declarations_payload["approved_sources"]["scope_label"] == "Workspace-owned traffic sources"
             assert traffic_declarations_payload["postback_readiness"]["status"] == "action_required"
@@ -1054,9 +1060,7 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
             assert support_ops_payload["waiting_on_ops_cases"] >= 2
             assert support_ops_payload["payout_review_items"] >= 1
             assert support_ops_payload["frozen"] is False
-            admin_actions = {
-                item["key"]: item for item in support_ops_payload["available_admin_actions"]
-            }
+            admin_actions = {item["key"]: item for item in support_ops_payload["available_admin_actions"]}
             assert admin_actions["freeze_workspace"]["status"] == "available"
             assert admin_actions["disable_partner_code"]["required_role"] == "admin"
             assert admin_actions["review_payout_queue"]["required_role"] == "finance"
@@ -1064,29 +1068,38 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
             finance_onboarding_review_item = next(
                 item for item in support_ops_payload["payout_review_queue"] if item["kind"] == "finance_onboarding"
             )
-            assert _metric_value(
-                "cybervpn_partner_admin_ops_overview_requests_total",
-                {
-                    "surface": "partner_admin",
-                    "workspace_status": "needs_info",
-                    "result": "success",
-                },
-            ) > 0
-            assert _metric_value(
-                "cybervpn_partner_support_cases_open",
-                {
-                    "surface": "partner_admin",
-                    "case_status": "waiting_on_ops",
-                },
-            ) >= 2
-            assert _metric_value(
-                "cybervpn_partner_payout_review_queue_items",
-                {
-                    "surface": "partner_admin",
-                    "kind": "finance_onboarding",
-                    "status": finance_onboarding_review_item["status"],
-                },
-            ) >= 1
+            assert (
+                _metric_value(
+                    "cybervpn_partner_admin_ops_overview_requests_total",
+                    {
+                        "surface": "partner_admin",
+                        "workspace_status": "needs_info",
+                        "result": "success",
+                    },
+                )
+                > 0
+            )
+            assert (
+                _metric_value(
+                    "cybervpn_partner_support_cases_open",
+                    {
+                        "surface": "partner_admin",
+                        "case_status": "waiting_on_ops",
+                    },
+                )
+                >= 2
+            )
+            assert (
+                _metric_value(
+                    "cybervpn_partner_payout_review_queue_items",
+                    {
+                        "surface": "partner_admin",
+                        "kind": "finance_onboarding",
+                        "status": finance_onboarding_review_item["status"],
+                    },
+                )
+                >= 1
+            )
 
             finance_queue_response = await async_client.get(
                 f"/api/v1/admin/partner-workspaces/{workspace_id}/payout-review-queue",
@@ -1132,24 +1145,23 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
             assert frozen_ops_response.status_code == 200
             frozen_ops_payload = frozen_ops_response.json()
             assert frozen_ops_payload["frozen"] is True
-            frozen_actions = {
-                item["key"]: item for item in frozen_ops_payload["available_admin_actions"]
-            }
+            frozen_actions = {item["key"]: item for item in frozen_ops_payload["available_admin_actions"]}
             assert frozen_actions["freeze_workspace"]["status"] == "blocked"
             assert frozen_actions["unfreeze_workspace"]["status"] == "available"
-            audit_action_kinds = {
-                item["action_kind"] for item in frozen_ops_payload["recent_audit_events"]
-            }
+            audit_action_kinds = {item["action_kind"] for item in frozen_ops_payload["recent_audit_events"]}
             assert "partner_code_status_changed" in audit_action_kinds
             assert "workspace_status_changed" in audit_action_kinds
-            assert _metric_value(
-                "cybervpn_partner_audit_events_observed_total",
-                {
-                    "surface": "partner_admin",
-                    "action_kind": "workspace_status_changed",
-                    "result": "observed",
-                },
-            ) > 0
+            assert (
+                _metric_value(
+                    "cybervpn_partner_audit_events_observed_total",
+                    {
+                        "surface": "partner_admin",
+                        "action_kind": "workspace_status_changed",
+                        "result": "observed",
+                    },
+                )
+                > 0
+            )
 
             for suffix in (
                 "conversion-records",

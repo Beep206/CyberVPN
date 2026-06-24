@@ -210,8 +210,7 @@ async def test_order_explainability_persists_commissionability_preconditions_wit
             assert evaluation["open_payment_dispute_present"] is False
             assert evaluation["risk_allowed"] is True
             assert (
-                explainability_payload["explainability"]["future_phase_placeholders"]["payout_owner_computed"]
-                is False
+                explainability_payload["explainability"]["future_phase_placeholders"]["payout_owner_computed"] is False
             )
 
             evaluation_id = evaluation["id"]

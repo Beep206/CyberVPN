@@ -17,11 +17,13 @@ from src.infrastructure.database.models.customer_commercial_binding_model import
     CustomerCommercialBindingModel,
 )
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.order_attribution_result_model import OrderAttributionResultModel
 from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from src.infrastructure.database.models.payment_attempt_model import PaymentAttemptModel
 from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
+from src.infrastructure.database.repositories.settlement_repo import SettlementRepository
 from src.main import app
 from tests.helpers.realm_auth import (
     FakeRedis,
@@ -292,19 +294,6 @@ async def test_renewal_order_reseller_binding_overrides_inherited_affiliate_owne
                     markup_pct=8,
                     is_active=True,
                 )
-                reseller_binding = CustomerCommercialBindingModel(
-                    id=uuid.uuid4(),
-                    user_id=uuid.UUID(seeded["customer_user_id"]),
-                    auth_realm_id=customer_realm.id,
-                    storefront_id=uuid.UUID(seeded["storefront_id"]),
-                    binding_type=CustomerCommercialBindingType.RESELLER_BINDING.value,
-                    binding_status="active",
-                    owner_type=CommercialOwnerType.RESELLER.value,
-                    partner_account_id=reseller_account.id,
-                    partner_code_id=reseller_code.id,
-                    reason_code="test_reseller_override",
-                    evidence_payload={"source": "test"},
-                )
                 db.add_all(
                     [
                         affiliate_owner,
@@ -312,7 +301,6 @@ async def test_renewal_order_reseller_binding_overrides_inherited_affiliate_owne
                         reseller_owner,
                         reseller_account,
                         reseller_code,
-                        reseller_binding,
                     ]
                 )
                 db.commit()
@@ -342,6 +330,25 @@ async def test_renewal_order_reseller_binding_overrides_inherited_affiliate_owne
                 partner_code=affiliate_code.code,
                 idempotency_key="renewal-override-initial",
             )
+
+            with sessionmaker() as db:
+                db.add(
+                    CustomerCommercialBindingModel(
+                        id=uuid.uuid4(),
+                        user_id=uuid.UUID(seeded["customer_user_id"]),
+                        auth_realm_id=customer_realm.id,
+                        storefront_id=uuid.UUID(seeded["storefront_id"]),
+                        binding_type=CustomerCommercialBindingType.RESELLER_BINDING.value,
+                        binding_status="active",
+                        owner_type=CommercialOwnerType.RESELLER.value,
+                        partner_account_id=reseller_account.id,
+                        partner_code_id=reseller_code.id,
+                        reason_code="test_reseller_override",
+                        evidence_payload={"source": "test"},
+                    )
+                )
+                db.commit()
+
             renewal_candidate = await _commit_order(
                 async_client=async_client,
                 headers=customer_headers,
@@ -471,6 +478,18 @@ async def test_post_payment_uses_renewal_order_effective_owner_as_partner_fallba
                     prior_order_id=uuid.UUID(initial_order["id"]),
                     renewal_mode="manual",
                 )
+                originating_result = (
+                    db.query(OrderAttributionResultModel)
+                    .filter(OrderAttributionResultModel.order_id == uuid.UUID(initial_order["id"]))
+                    .one()
+                )
+                policy_snapshot = dict(originating_result.policy_snapshot)
+                commercial_snapshot = dict(policy_snapshot["commercial_policy_snapshot"])
+                commission_snapshot = dict(commercial_snapshot["commission_contract_snapshot"])
+                commission_snapshot["payout_hold_days"] = 3
+                commercial_snapshot["commission_contract_snapshot"] = commission_snapshot
+                policy_snapshot["commercial_policy_snapshot"] = commercial_snapshot
+                originating_result.policy_snapshot = policy_snapshot
 
                 payment = PaymentModel(
                     id=uuid.uuid4(),
@@ -507,6 +526,15 @@ async def test_post_payment_uses_renewal_order_effective_owner_as_partner_fallba
                 results = await post_payment.execute(payment.id, process_cash_rewards=True)
                 partner_repo = PartnerRepository(adapter)
                 earnings = await partner_repo.get_earnings_by_partner(partner_owner_id)
+                settlement_repo = SettlementRepository(adapter)
+                earning_event = await settlement_repo.get_earning_event_by_id(
+                    uuid.UUID(results["settlement_earning_event_id"])
+                )
+                assert earning_event is not None
+                active_holds = await settlement_repo.list_active_holds_for_event(earning_event.id)
+                replay_results = await post_payment.execute(payment.id, process_cash_rewards=True)
+                replay_events = await settlement_repo.list_earning_events(order_id=uuid.UUID(renewal_candidate["id"]))
+                replay_holds = await settlement_repo.list_earning_holds(earning_event_id=earning_event.id)
                 db.commit()
 
                 assert renewal_order.effective_partner_code_id == affiliate_code_id
@@ -514,8 +542,15 @@ async def test_post_payment_uses_renewal_order_effective_owner_as_partner_fallba
                 assert results["partner_earning"] is not None
                 assert results["referral_commission"] is None
                 assert "commercial_owner_already_resolved" in results["referral_policy_block_reasons"]
-                assert len(earnings) == 1
-                assert earnings[0].partner_code_id == affiliate_code_id
+                assert earnings == []
+                assert earning_event.partner_code_id == affiliate_code_id
+                assert earning_event.source_snapshot["renewal_order_id"] == str(renewal_order.id)
+                assert len(active_holds) == 1
+                assert active_holds[0].hold_payload["owner_type"] == CommercialOwnerType.AFFILIATE.value
+                assert active_holds[0].hold_payload["hold_days"] == 3
+                assert replay_results["settlement_earning_event_id"] == str(earning_event.id)
+                assert len(replay_events) == 1
+                assert len(replay_holds) == 1
     finally:
         app.dependency_overrides.pop(get_redis, None)
         cleanup_sqlite_file(sqlite_path)

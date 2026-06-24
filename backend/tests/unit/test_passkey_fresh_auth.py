@@ -202,21 +202,24 @@ async def test_consume_matching_fresh_auth_grant_accepts_once_then_rejects_reuse
 
 
 def test_partner_integration_credential_rotation_requires_fresh_auth() -> None:
-    routes_source = (
-        Path(__file__).resolve().parents[2]
-        / "src/presentation/api/v1/partners/routes.py"
-    ).read_text(encoding="utf-8")
+    routes_source = (Path(__file__).resolve().parents[2] / "src/presentation/api/v1/partners/routes.py").read_text(
+        encoding="utf-8"
+    )
     handler = routes_source.split("async def rotate_partner_workspace_integration_credential", 1)[1]
     handler = handler.split("@router.", 1)[0]
+    helper = routes_source.split("async def _enforce_partner_passkey_fresh_auth", 1)[1]
+    helper = helper.split("\n\nasync def ", 1)[0]
 
     assert "request: Request" in handler
-    assert "current_realm: RealmResolution = Depends(get_request_admin_realm)" in handler
+    assert "current_realm: RealmResolution = Depends(get_request_web_auth_realm)" in handler
     assert "redis_client: redis.Redis = Depends(get_redis)" in handler
     assert "await _enforce_partner_passkey_fresh_auth(" in handler
     assert "partner.integration_credential.rotate:" in handler
     assert handler.index("await _enforce_partner_passkey_fresh_auth(") < handler.index(
         "RotatePartnerWorkspaceIntegrationCredentialUseCase(db).execute("
     )
+    assert "_require_partner_realm(current_realm)" in helper
+    assert helper.index("_require_partner_realm(current_realm)") < helper.index("await enforce_passkey_fresh_auth(")
 
 
 @pytest.mark.asyncio

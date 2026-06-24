@@ -161,8 +161,7 @@ def build_phase7_reporting_marts_pack(snapshot: dict[str, Any]) -> dict[str, Any
                     object_family="earning_event",
                     source_reference=str(item.get("id", "unknown")),
                     message=(
-                        "Earning event is missing partner_account_id and cannot "
-                        "be mapped into partner reporting marts."
+                        "Earning event is missing partner_account_id and cannot be mapped into partner reporting marts."
                     ),
                     details={},
                 )
@@ -180,8 +179,7 @@ def build_phase7_reporting_marts_pack(snapshot: dict[str, Any]) -> dict[str, Any
                     object_family="partner_statement",
                     source_reference=str(item.get("id", "unknown")),
                     message=(
-                        "Partner statement is missing partner_account_id and cannot "
-                        "be mapped into reporting marts."
+                        "Partner statement is missing partner_account_id and cannot be mapped into reporting marts."
                     ),
                     details={},
                 )
@@ -242,21 +240,14 @@ def build_phase7_reporting_marts_pack(snapshot: dict[str, Any]) -> dict[str, Any
         is_renewal = renewal is not None
 
         partner_account_id = _string_or_none(
-            (renewal or {}).get("effective_partner_account_id")
-            or (attribution or {}).get("partner_account_id")
+            (renewal or {}).get("effective_partner_account_id") or (attribution or {}).get("partner_account_id")
         )
         partner_code_id = _string_or_none(
-            (renewal or {}).get("effective_partner_code_id")
-            or (attribution or {}).get("partner_code_id")
+            (renewal or {}).get("effective_partner_code_id") or (attribution or {}).get("partner_code_id")
         )
-        owner_type = str(
-            (renewal or {}).get("effective_owner_type")
-            or (attribution or {}).get("owner_type")
-            or "none"
-        )
+        owner_type = str((renewal or {}).get("effective_owner_type") or (attribution or {}).get("owner_type") or "none")
         owner_source = _string_or_none(
-            (renewal or {}).get("effective_owner_source")
-            or (attribution or {}).get("owner_source")
+            (renewal or {}).get("effective_owner_source") or (attribution or {}).get("owner_source")
         )
         commissionability_status = _string_or_none((evaluation or {}).get("commissionability_status"))
         qualifying_candidate = (
@@ -460,8 +451,7 @@ def _build_reporting_health_views(
                         object_family="outbox_event",
                         source_reference=event_id,
                         message=(
-                            "Outbox event is missing a required consumer "
-                            "publication row for analytical processing."
+                            "Outbox event is missing a required consumer publication row for analytical processing."
                         ),
                         details={"missing_consumer_key": required_consumer},
                     )
@@ -514,8 +504,7 @@ def _build_reporting_health_views(
         for consumer_key, counts in sorted(consumer_counts.items())
     ]
     family_views = [
-        {"event_family": event_family, "event_count": count}
-        for event_family, count in sorted(family_counts.items())
+        {"event_family": event_family, "event_count": count} for event_family, count in sorted(family_counts.items())
     ]
     return {
         "consumer_health_views": consumer_views,

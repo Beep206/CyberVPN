@@ -26,9 +26,7 @@ def build_stored_oauth_tokens(
     normalized_provider = provider.strip().lower()
 
     stored_access_token = (
-        access_token
-        if normalized_provider in settings.oauth_retained_access_token_providers and access_token
-        else None
+        access_token if normalized_provider in settings.oauth_retained_access_token_providers and access_token else None
     )
     stored_refresh_token = (
         refresh_token

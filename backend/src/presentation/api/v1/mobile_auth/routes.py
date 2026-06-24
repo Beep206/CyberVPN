@@ -4,9 +4,11 @@ Endpoints for mobile app authentication: register, login, refresh, logout, me, d
 """
 
 import logging
+from collections.abc import Iterable
 from time import perf_counter
 from uuid import UUID
 
+import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +25,7 @@ from src.application.dto.mobile_auth import (
 )
 from src.application.services.auth_service import AuthService
 from src.application.services.cache_service import CacheService
+from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.application.services.public_registration_policy import PublicRegistrationDisabledError
 from src.application.services.telegram_auth import (
     InvalidTelegramAuthError,
@@ -33,6 +36,7 @@ from src.application.services.telegram_oidc_auth import (
     InvalidTelegramOIDCTokenError,
     TelegramOIDCAuthService,
 )
+from src.application.use_cases.auth.logout import RevokedAccessToken
 from src.application.use_cases.auth.refresh_token import RefreshTokenReplayError
 from src.application.use_cases.growth_notifications.automation import (
     AutomateCustomerGrowthNotificationRepairUseCase,
@@ -144,6 +148,18 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # Helper functions for DTO conversion
 # ============================================================================
+
+
+async def _revoke_mobile_access_tokens(
+    redis_client: redis.Redis,
+    access_tokens: Iterable[RevokedAccessToken],
+) -> int:
+    revoked_count = 0
+    revocation_service = JWTRevocationService(redis_client)
+    for access_token in access_tokens:
+        await revocation_service.revoke_token(access_token.jti, access_token.expires_at)
+        revoked_count += 1
+    return revoked_count
 
 
 def _device_dto(device) -> DeviceInfoDTO:
@@ -550,6 +566,7 @@ async def refresh_token(
 async def logout(
     request: LogoutRequest,
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> None:
     """Logout a mobile app user.
 
@@ -574,7 +591,8 @@ async def logout(
             refresh_token=request.refresh_token,
             device_id=request.device_id,
         )
-        await use_case.execute(dto_request)
+        result = await use_case.execute(dto_request)
+        await _revoke_mobile_access_tokens(redis_client, result.access_tokens)
         await db.commit()
         track_auth_session_operation("logout", "success")
         track_auth_session_detail(
@@ -764,6 +782,7 @@ async def remove_device(
     device_id: str,
     user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> None:
     """Remove a mobile device registration owned by the current user."""
     user_repo = MobileUserRepository(db)
@@ -777,7 +796,8 @@ async def remove_device(
     )
 
     try:
-        await use_case.execute(user_id=user_id, device_id=device_id)
+        result = await use_case.execute(user_id=user_id, device_id=device_id)
+        await _revoke_mobile_access_tokens(redis_client, result.access_tokens)
         await db.commit()
         await sync_auth_security_posture(db)
     except UserNotFoundError:

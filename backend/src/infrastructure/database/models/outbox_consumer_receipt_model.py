@@ -12,9 +12,7 @@ from src.infrastructure.database.session import Base
 
 class OutboxConsumerReceiptModel(Base):
     __tablename__ = "outbox_consumer_receipts"
-    __table_args__ = (
-        UniqueConstraint("consumer_key", "event_key", name="uq_outbox_consumer_receipts_consumer_event"),
-    )
+    __table_args__ = (UniqueConstraint("consumer_key", "event_key", name="uq_outbox_consumer_receipts_consumer_event"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     consumer_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)

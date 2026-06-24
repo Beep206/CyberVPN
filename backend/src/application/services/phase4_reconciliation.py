@@ -75,10 +75,7 @@ def build_phase4_settlement_reconciliation_pack(snapshot: dict[str, Any]) -> dic
             continue
         if reserve.get("source_earning_event_id") is not None:
             active_reserves_by_event[str(reserve["source_earning_event_id"])].append(reserve)
-        if (
-            reserve.get("partner_account_id") is not None
-            and str(reserve.get("reserve_scope")) == "partner_account"
-        ):
+        if reserve.get("partner_account_id") is not None and str(reserve.get("reserve_scope")) == "partner_account":
             active_partner_reserves_by_account[str(reserve["partner_account_id"])].append(reserve)
 
     adjustments_by_statement: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -347,8 +344,7 @@ def _build_payout_views(
 ) -> list[dict[str, Any]]:
     instruction_by_id = _rows_by_id(payout_instructions)
     execution_by_instruction_id = {
-        instruction_id: sorted(items, key=_row_sort_key)
-        for instruction_id, items in executions_by_instruction.items()
+        instruction_id: sorted(items, key=_row_sort_key) for instruction_id, items in executions_by_instruction.items()
     }
     payout_views: list[dict[str, Any]] = []
 
@@ -568,8 +564,7 @@ def _build_liability_views(
             [
                 item
                 for item in partner_events
-                if str(item.get("id")) not in covered_event_ids
-                and str(item.get("event_status")) == "on_hold"
+                if str(item.get("id")) not in covered_event_ids and str(item.get("event_status")) == "on_hold"
             ],
             "total_amount",
         )
@@ -577,23 +572,18 @@ def _build_liability_views(
             [
                 item
                 for item in partner_events
-                if str(item.get("id")) not in covered_event_ids
-                and str(item.get("event_status")) == "blocked"
+                if str(item.get("id")) not in covered_event_ids and str(item.get("event_status")) == "blocked"
             ],
             "total_amount",
         )
         available_unstatemented_events = [
             item
             for item in partner_events
-            if str(item.get("id")) not in covered_event_ids
-            and str(item.get("event_status")) == "available"
+            if str(item.get("id")) not in covered_event_ids and str(item.get("event_status")) == "available"
         ]
         available_unstatemented_amount = _sum_amount(available_unstatemented_events, "total_amount")
         active_event_reserve_amount = _round_money(
-            sum(
-                _sum_amount(active_reserves_by_event.get(str(item.get("id")), []), "amount")
-                for item in partner_events
-            )
+            sum(_sum_amount(active_reserves_by_event.get(str(item.get("id")), []), "amount") for item in partner_events)
         )
         active_partner_reserve_amount = _sum_amount(
             active_partner_reserves_by_account.get(partner_account_id, []),
@@ -641,8 +631,7 @@ def _build_liability_views(
             1
             for instruction in partner_instructions
             for execution in payout_execution_ids_by_instruction.get(str(instruction["id"]), [])
-            if str(execution.get("execution_mode")) == "live"
-            and str(execution.get("execution_status")) == "reconciled"
+            if str(execution.get("execution_mode")) == "live" and str(execution.get("execution_status")) == "reconciled"
         )
 
         adjustment_credit_amount = _round_money(

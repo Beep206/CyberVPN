@@ -22397,7 +22397,7 @@ export interface components {
             browser_key: string;
             /** Campaign Params */
             campaign_params?: {
-                [key: string]: unknown;
+                [key: string]: string;
             } | null;
         };
         /** PartnerAttributionCaptureResponse */
@@ -22438,6 +22438,21 @@ export interface components {
             binding_id?: string | null;
             /** Claimed At */
             claimed_at?: string | null;
+        };
+        /** PartnerAttributionErrorDetail */
+        PartnerAttributionErrorDetail: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Retryable */
+            retryable?: boolean | null;
+            /** Scope */
+            scope?: string | null;
+        };
+        /** PartnerAttributionErrorResponse */
+        PartnerAttributionErrorResponse: {
+            detail: components["schemas"]["PartnerAttributionErrorDetail"];
         };
         /** PartnerAttributionTransferConsumeRequest */
         PartnerAttributionTransferConsumeRequest: {
@@ -38749,6 +38764,15 @@ export interface operations {
                     "application/json": components["schemas"]["PartnerAttributionCaptureResponse"];
                 };
             };
+            /** @description Capture request is missing required browser replay guard data. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerAttributionErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -38756,6 +38780,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Capture request is missing the required Idempotency-Key header. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerAttributionErrorResponse"];
+                };
+            };
+            /** @description Capture request exceeded the configured partner attribution rate limit. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerAttributionErrorResponse"];
+                };
+            };
+            /** @description Partner attribution capture is temporarily unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerAttributionErrorResponse"];
                 };
             };
         };

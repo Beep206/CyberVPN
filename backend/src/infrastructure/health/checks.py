@@ -1,12 +1,14 @@
 import asyncio
 import logging
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.shared.async_compat import resolve_maybe_awaitable
 
 logger = logging.getLogger("cybervpn")
 
@@ -49,10 +51,10 @@ async def check_redis(redis_client: Redis) -> dict[str, Any]:
     """
     try:
         # Ping Redis
-        await redis_client.ping()
+        await resolve_maybe_awaitable(redis_client.ping())
 
         # Get info
-        info = await redis_client.info()
+        info = await resolve_maybe_awaitable(redis_client.info())
 
         return {
             "status": "healthy",
@@ -117,14 +119,24 @@ async def perform_all_checks(db_session: AsyncSession, redis_client: Redis, remn
         Combined health check results
     """
     # Run all checks concurrently
-    db_check, redis_check, remnawave_check = await asyncio.gather(
-        check_database(db_session), check_redis(redis_client), check_remnawave(remnawave_url), return_exceptions=True
+    check_results = cast(
+        tuple[dict[str, Any] | BaseException, dict[str, Any] | BaseException, dict[str, Any] | BaseException],
+        await asyncio.gather(
+            check_database(db_session),
+            check_redis(redis_client),
+            check_remnawave(remnawave_url),
+            return_exceptions=True,
+        ),
     )
+    db_check_raw, redis_check_raw, remnawave_check_raw = check_results
+    db_check = _normalize_check_result(db_check_raw)
+    redis_check = _normalize_check_result(redis_check_raw)
+    remnawave_check = _normalize_check_result(remnawave_check_raw)
 
     # Determine overall status
     checks = [db_check, redis_check, remnawave_check]
-    unhealthy = any(isinstance(c, Exception) or c.get("status") == "unhealthy" for c in checks)
-    degraded = any(c.get("status") == "degraded" for c in checks if not isinstance(c, Exception))
+    unhealthy = any(c.get("status") == "unhealthy" or c.get("status") == "error" for c in checks)
+    degraded = any(c.get("status") == "degraded" for c in checks)
 
     if unhealthy:
         overall_status = "unhealthy"
@@ -137,18 +149,14 @@ async def perform_all_checks(db_session: AsyncSession, redis_client: Redis, remn
         "status": overall_status,
         "timestamp": _utc_timestamp(),
         "checks": {
-            "database": (
-                db_check if not isinstance(db_check, Exception) else {"status": "error", "error": str(db_check)}
-            ),
-            "redis": (
-                redis_check
-                if not isinstance(redis_check, Exception)
-                else {"status": "error", "error": str(redis_check)}
-            ),
-            "remnawave": (
-                remnawave_check
-                if not isinstance(remnawave_check, Exception)
-                else {"status": "error", "error": str(remnawave_check)}
-            ),
+            "database": db_check,
+            "redis": redis_check,
+            "remnawave": remnawave_check,
         },
     }
+
+
+def _normalize_check_result(result: dict[str, Any] | BaseException) -> dict[str, Any]:
+    if isinstance(result, BaseException):
+        return {"status": "error", "error": str(result)}
+    return result

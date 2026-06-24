@@ -63,9 +63,7 @@ def build_phase3_explainability_replay_pack(snapshot: dict[str, Any]) -> dict[st
     metadata = dict(snapshot.get("metadata") or {})
     orders = sorted((dict(item) for item in snapshot.get("orders", [])), key=lambda item: str(item.get("id", "")))
     partner_codes = {
-        str(item["id"]): dict(item)
-        for item in snapshot.get("partner_codes", [])
-        if item.get("id") is not None
+        str(item["id"]): dict(item) for item in snapshot.get("partner_codes", []) if item.get("id") is not None
     }
     touchpoints_by_order: dict[str, list[dict[str, Any]]] = defaultdict(list)
     bindings_by_user: dict[str, list[dict[str, Any]]] = defaultdict(list)

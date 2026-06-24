@@ -291,8 +291,10 @@ class AdminPricebookLifecycleUseCase:
                 continue
 
             plan_channels = set(plan.sale_channels or [])
-            if not plan.server_pool or not plan.connection_modes or (
-                active_channels and plan_channels.isdisjoint(active_channels)
+            if (
+                not plan.server_pool
+                or not plan.connection_modes
+                or (active_channels and plan_channels.isdisjoint(active_channels))
             ):
                 issues.append(
                     PricebookValidationIssue(

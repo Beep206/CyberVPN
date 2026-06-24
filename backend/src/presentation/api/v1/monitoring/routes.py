@@ -49,10 +49,7 @@ def _sanitize_token(value: str | None, *, fallback: str = "unknown") -> str:
     if not value:
         return fallback
 
-    normalized = "".join(
-        char if char.isalnum() or char in "._/-" else "_"
-        for char in value.strip().lower()
-    )[:80]
+    normalized = "".join(char if char.isalnum() or char in "._/-" else "_" for char in value.strip().lower())[:80]
     return normalized or fallback
 
 
@@ -75,20 +72,14 @@ def _require_frontend_observability_secret(secret: str | None) -> None:
 
 def _sanitize_frontend_runtime_payload(payload: FrontendRuntimeEventRequest) -> dict[str, Any]:
     return {
-        "blocked_reason": _sanitize_token(payload.blocked_reason, fallback="none")
-        if payload.blocked_reason
-        else None,
+        "blocked_reason": _sanitize_token(payload.blocked_reason, fallback="none") if payload.blocked_reason else None,
         "connection_type": _sanitize_token(payload.connection_type),
         "device_bucket": _sanitize_token(payload.device_bucket),
-        "duration_ms": max(payload.duration_ms, 0.0)
-        if isinstance(payload.duration_ms, (int, float))
-        else None,
+        "duration_ms": max(payload.duration_ms, 0.0) if isinstance(payload.duration_ms, (int, float)) else None,
         "endpoint_template": _sanitize_path(payload.endpoint_template, fallback="/")
         if payload.endpoint_template
         else None,
-        "error_code": _sanitize_token(payload.error_code, fallback="none")
-        if payload.error_code
-        else None,
+        "error_code": _sanitize_token(payload.error_code, fallback="none") if payload.error_code else None,
         "event": payload.event,
         "form_name": _sanitize_token(payload.form_name, fallback="none") if payload.form_name else None,
         "lane": _sanitize_token(payload.lane, fallback="none") if payload.lane else None,
@@ -96,9 +87,7 @@ def _sanitize_frontend_runtime_payload(payload: FrontendRuntimeEventRequest) -> 
         "method": _sanitize_token(payload.method, fallback="unknown") if payload.method else None,
         "path": _sanitize_path(payload.path),
         "reduced_motion": _sanitize_token(payload.reduced_motion),
-        "release_ring": _sanitize_token(payload.release_ring, fallback="none")
-        if payload.release_ring
-        else None,
+        "release_ring": _sanitize_token(payload.release_ring, fallback="none") if payload.release_ring else None,
         "request_id": (payload.request_id or "").strip()[:128] or None,
         "result": _sanitize_token(payload.result, fallback="none") if payload.result else None,
         "route_group": payload.route_group,

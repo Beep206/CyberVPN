@@ -6,6 +6,7 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any, cast
 
 import jwt
 from jwt.algorithms import RSAAlgorithm
@@ -135,7 +136,7 @@ class TelegramOIDCAuthService:
         try:
             claims = jwt.decode(
                 id_token,
-                key=signing_key,
+                key=cast(Any, signing_key),
                 algorithms=[self.SUPPORTED_ALGORITHM],
                 audience=self._allowed_audience,
                 issuer=self._issuer,
@@ -217,6 +218,11 @@ class TelegramOIDCAuthService:
     def _parse_optional_telegram_id(value: object) -> int | None:
         if value in (None, ""):
             return None
+        if not isinstance(value, str | bytes | bytearray | int):
+            raise InvalidTelegramOIDCTokenError(
+                "Telegram ID token contains an invalid numeric Telegram ID",
+                reason="telegram_id_invalid",
+            )
         try:
             return int(value)
         except (TypeError, ValueError) as exc:

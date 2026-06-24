@@ -26,6 +26,7 @@ def _fresh_app_env(repo_root: Path, overrides: dict[str, str]) -> dict[str, str]
         "REMNAWAVE_TOKEN": _non_secret_test_value("remnawave"),
         "JWT_SECRET": _non_secret_test_value("jwt"),
         "CRYPTOBOT_TOKEN": _non_secret_test_value("cryptobot"),
+        "PAYMENT_SETTLEMENT_WORKER_SECRET": _non_secret_test_value("payment-settlement-worker"),
         "TOTP_ENCRYPTION_KEY": _non_secret_test_value("totp"),
         "OAUTH_TOKEN_ENCRYPTION_KEY": _non_secret_test_value("oauth"),
         "OAUTH_ENABLED_LOGIN_PROVIDERS": "",
@@ -272,14 +273,12 @@ def local_stage_app_security_snapshot() -> dict[str, Any]:
             "ENVIRONMENT": "local-stage",
             "RATE_LIMIT_ENABLED": "false",
             "CORS_ORIGINS": (
-                "http://localhost:13000,http://localhost:13001,"
-                "http://127.0.0.1:13000,http://127.0.0.1:13001"
+                "http://localhost:13000,http://localhost:13001,http://127.0.0.1:13000,http://127.0.0.1:13001"
             ),
             "PASSKEY_ENABLED": "true",
             "PASSKEY_RP_ID": "localhost",
             "PASSKEY_ALLOWED_ORIGINS": (
-                "http://localhost:13000,http://localhost:13001,"
-                "http://127.0.0.1:13000,http://127.0.0.1:13001"
+                "http://localhost:13000,http://localhost:13001,http://127.0.0.1:13000,http://127.0.0.1:13001"
             ),
             "COOKIE_DOMAIN": "",
             "COOKIE_SECURE": "false",

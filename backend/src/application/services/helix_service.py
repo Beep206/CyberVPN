@@ -76,27 +76,19 @@ class HelixService:
 
     def _ensure_user_feature_enabled(self) -> None:
         if not settings.helix_enabled:
-            raise HelixDisabledError(
-                "Helix user routes are disabled"
-            )
+            raise HelixDisabledError("Helix user routes are disabled")
 
     def _ensure_admin_feature_enabled(self) -> None:
         if not settings.helix_admin_enabled:
-            raise HelixDisabledError(
-                "Helix admin routes are disabled"
-            )
+            raise HelixDisabledError("Helix admin routes are disabled")
 
     async def _ensure_entitled(self, user_id: UUID) -> str:
-        subscription = await GetActiveSubscriptionUseCase(
-            self._subscription_client
-        ).execute(user_id)
+        subscription = await GetActiveSubscriptionUseCase(self._subscription_client).execute(user_id)
         if subscription.status not in {
             SubscriptionStatus.ACTIVE,
             SubscriptionStatus.TRIAL,
         }:
-            raise HelixAccessDeniedError(
-                "user is not entitled to Helix"
-            )
+            raise HelixAccessDeniedError("user is not entitled to Helix")
         return f"subscription:{user_id}"
 
     async def get_capability_defaults_for_user(
@@ -152,9 +144,7 @@ class HelixService:
             route_count=command.route_count,
             reason=command.reason,
             observed_at=datetime.now(UTC),
-            payload=AdapterDesktopRuntimeEventPayload.model_validate(
-                command.payload or {}
-            ),
+            payload=AdapterDesktopRuntimeEventPayload.model_validate(command.payload or {}),
         )
         return await self._adapter_client.report_runtime_event(request)
 
@@ -192,8 +182,6 @@ class HelixService:
         self._ensure_admin_feature_enabled()
         return await self._adapter_client.revoke_manifest(manifest_version_id)
 
-    async def preview_node_assignment(
-        self, node_id: str
-    ) -> AdapterNodeAssignmentResponse:
+    async def preview_node_assignment(self, node_id: str) -> AdapterNodeAssignmentResponse:
         self._ensure_admin_feature_enabled()
         return await self._adapter_client.resolve_node_assignment(node_id)

@@ -220,10 +220,7 @@ async def test_helix_manifest_resolution_shapes_response(
     assert response.status_code == 200
     data = response.json()
     assert data["manifest"]["subject"]["desktop_client_id"] == "desktop-win11-primary"
-    assert (
-        data["manifest"]["transport_profile"]["transport_profile_id"]
-        == "ptp-lab-edge-v2"
-    )
+    assert data["manifest"]["transport_profile"]["transport_profile_id"] == "ptp-lab-edge-v2"
 
 
 @pytest.mark.integration
@@ -277,15 +274,8 @@ async def test_helix_runtime_event_is_forwarded_through_backend(
     assert data["event_kind"] == "ready"
     assert stub_service.last_runtime_event_command is not None
     assert stub_service.last_runtime_event_command.payload is not None
-    assert (
-        stub_service.last_runtime_event_command.payload.recovery.ready_recovery_latency_ms
-        == 37
-    )
-    assert (
-        stub_service.last_runtime_event_command.payload.continuity
-        .successful_continuity_recovers
-        == 1
-    )
+    assert stub_service.last_runtime_event_command.payload.recovery.ready_recovery_latency_ms == 37
+    assert stub_service.last_runtime_event_command.payload.continuity.successful_continuity_recovers == 1
 
 
 @pytest.mark.integration
@@ -345,20 +335,9 @@ async def test_helix_runtime_benchmark_event_is_forwarded_through_backend(
     assert stub_service.last_runtime_event_command.event_kind == "benchmark"
     assert stub_service.last_runtime_event_command.payload is not None
     assert stub_service.last_runtime_event_command.payload.benchmark is not None
-    assert (
-        stub_service.last_runtime_event_command.payload.benchmark.baseline_core
-        == "sing-box"
-    )
-    assert (
-        stub_service.last_runtime_event_command.payload.benchmark
-        .relative_throughput_ratio_vs_baseline
-        == 1.18
-    )
-    assert (
-        stub_service.last_runtime_event_command.payload.benchmark
-        .median_open_to_first_byte_gap_ms
-        == 72
-    )
+    assert stub_service.last_runtime_event_command.payload.benchmark.baseline_core == "sing-box"
+    assert stub_service.last_runtime_event_command.payload.benchmark.relative_throughput_ratio_vs_baseline == 1.18
+    assert stub_service.last_runtime_event_command.payload.benchmark.median_open_to_first_byte_gap_ms == 72
 
 
 @pytest.mark.integration
@@ -376,9 +355,7 @@ async def test_helix_rollout_canary_evidence_is_exposed_through_admin_api(
     app.dependency_overrides[get_current_active_user] = _auth_override
     app.dependency_overrides[get_helix_service] = _service_override
 
-    response = await async_client.get(
-        "/api/v1/helix/admin/rollouts/rollout-canary-1/canary-evidence"
-    )
+    response = await async_client.get("/api/v1/helix/admin/rollouts/rollout-canary-1/canary-evidence")
 
     assert response.status_code == 200
     data = response.json()

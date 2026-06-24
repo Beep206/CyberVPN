@@ -326,11 +326,7 @@ def build_phase8_settlement_shadow_pack(snapshot: dict[str, Any]) -> dict[str, A
         "pilot_finance_gate": {
             "status": status,
             "blocking_statement_ids": sorted(
-                {
-                    item["statement_id"]
-                    for item in statement_shadow_views
-                    if item.get("blocking_mismatch_codes")
-                }
+                {item["statement_id"] for item in statement_shadow_views if item.get("blocking_mismatch_codes")}
             ),
             "blocking_partner_account_ids": sorted(
                 {
@@ -340,11 +336,7 @@ def build_phase8_settlement_shadow_pack(snapshot: dict[str, Any]) -> dict[str, A
                 }
             ),
             "blocking_payout_instruction_ids": sorted(
-                {
-                    item["payout_instruction_id"]
-                    for item in payout_dry_run_views
-                    if item.get("blocking_mismatch_codes")
-                }
+                {item["payout_instruction_id"] for item in payout_dry_run_views if item.get("blocking_mismatch_codes")}
             ),
         },
         "reconciliation": {
@@ -519,8 +511,7 @@ def _build_liability_shadow_view(
             tolerance_map=tolerance_map,
             mismatch_code="liability_outstanding_statement_amount_delta_exceeded",
             message=(
-                "Observed outstanding statement liability differs from canonical "
-                "settlement truth beyond tolerance."
+                "Observed outstanding statement liability differs from canonical settlement truth beyond tolerance."
             ),
         )
     )
@@ -584,8 +575,7 @@ def _build_payout_dry_run_view(
                 source_family="payout_dry_run",
                 source_reference=instruction_id,
                 message=(
-                    "Canonical settlement snapshot is missing a dry-run execution "
-                    "for the observed payout instruction."
+                    "Canonical settlement snapshot is missing a dry-run execution for the observed payout instruction."
                 ),
                 details={},
             )
@@ -651,11 +641,7 @@ def _build_payout_dry_run_view(
         )
 
     expected_execution_statuses = sorted(
-        {
-            str(item.get("execution_status"))
-            for item in dry_run_executions
-            if item.get("execution_status") is not None
-        }
+        {str(item.get("execution_status")) for item in dry_run_executions if item.get("execution_status") is not None}
     )
     observed_execution_statuses = sorted(
         {str(item) for item in observation.get("observed_execution_statuses") or [] if item is not None}
@@ -687,8 +673,7 @@ def _build_payout_dry_run_view(
             tolerance_map=tolerance_map,
             mismatch_code="payout_dry_run_completed_payout_amount_delta_exceeded",
             message=(
-                "Observed dry-run completed payout amount differs from canonical "
-                "settlement liability beyond tolerance."
+                "Observed dry-run completed payout amount differs from canonical settlement liability beyond tolerance."
             ),
         )
     )
@@ -703,8 +688,7 @@ def _build_payout_dry_run_view(
             tolerance_map=tolerance_map,
             mismatch_code="payout_dry_run_outstanding_liability_amount_delta_exceeded",
             message=(
-                "Observed dry-run outstanding liability differs from canonical "
-                "settlement liability beyond tolerance."
+                "Observed dry-run outstanding liability differs from canonical settlement liability beyond tolerance."
             ),
         )
     )
@@ -793,8 +777,7 @@ def _build_partner_export_view(
             tolerance_map=tolerance_map,
             mismatch_code="partner_export_available_earnings_amount_mismatch",
             message=(
-                "Partner export available earnings amount differs from canonical "
-                "partner reporting beyond tolerance."
+                "Partner export available earnings amount differs from canonical partner reporting beyond tolerance."
             ),
         )
     )
@@ -809,8 +792,7 @@ def _build_partner_export_view(
             tolerance_map=tolerance_map,
             mismatch_code="partner_export_statement_liability_amount_mismatch",
             message=(
-                "Partner export statement liability amount differs from canonical "
-                "partner reporting beyond tolerance."
+                "Partner export statement liability amount differs from canonical partner reporting beyond tolerance."
             ),
         )
     )

@@ -92,4 +92,3 @@ async def get_client_capabilities(
             referral_runtime_enabled = False
 
     return _build_client_capabilities(referral_runtime_enabled=referral_runtime_enabled)
-

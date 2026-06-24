@@ -38,4 +38,3 @@ class RiskIdentifierModel(Base):
         nullable=False,
         default=lambda: datetime.now(UTC),
     )
-

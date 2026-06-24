@@ -10,6 +10,7 @@ from src.application.services.otp_service import (
     OtpRateLimitError,
     OtpService,
 )
+from src.config.settings import settings
 from src.infrastructure.database.models.otp_code_model import OtpCodeModel
 
 
@@ -215,6 +216,31 @@ class TestCanResend:
 
         assert can_resend is True
         assert remaining == 3
+
+
+class TestResendExistingOtp:
+    """Tests for OtpService.resend_existing_otp."""
+
+    async def test_resend_existing_otp_skips_cooldown_when_disabled(
+        self,
+        monkeypatch,
+        mock_otp_repo,
+        user_id,
+        valid_otp,
+    ):
+        """Test that zero cooldown disables time-window throttling while count limits remain active."""
+        monkeypatch.setattr(settings, "otp_resend_cooldown_seconds", 0)
+        otp_service = OtpService(mock_otp_repo)
+        valid_otp.resend_count = 1
+        valid_otp.last_resend_at = datetime.now(UTC) + timedelta(seconds=30)
+        mock_otp_repo.get_active_by_user_id.return_value = valid_otp
+        mock_otp_repo.update.return_value = valid_otp
+
+        result = await otp_service.resend_existing_otp(user_id, "email_verification")
+
+        assert result == valid_otp
+        assert valid_otp.resend_count == 2
+        mock_otp_repo.update.assert_called_once_with(valid_otp)
 
 
 class TestGetActiveOtp:

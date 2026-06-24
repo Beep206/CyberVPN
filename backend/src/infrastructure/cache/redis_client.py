@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator
 import redis.asyncio as redis
 
 from src.config.settings import settings
+from src.shared.async_compat import resolve_maybe_awaitable
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ async def check_redis_connection() -> tuple[bool, float | None]:
 
     try:
         start = time.time()
-        await client.ping()
+        await resolve_maybe_awaitable(client.ping())
         response_time = (time.time() - start) * 1000  # Convert to ms
         return True, response_time
     except Exception as e:

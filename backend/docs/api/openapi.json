@@ -9421,6 +9421,46 @@
               }
             }
           },
+          "400": {
+            "description": "Capture request is missing required browser replay guard data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerAttributionErrorResponse"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Capture request is missing the required Idempotency-Key header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerAttributionErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Capture request exceeded the configured partner attribution rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerAttributionErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Partner attribution capture is temporarily unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerAttributionErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -67270,7 +67310,8 @@
                 "additionalProperties": {
                   "type": "string"
                 },
-                "type": "object"
+                "type": "object",
+                "maxProperties": 16
               },
               {
                 "type": "null"
@@ -67299,8 +67340,11 @@
           "campaign_params": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object",
+                "maxProperties": 24
               },
               {
                 "type": "null"
@@ -67422,6 +67466,58 @@
           "status"
         ],
         "title": "PartnerAttributionClaimResponse"
+      },
+      "PartnerAttributionErrorDetail": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "retryable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retryable"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "PartnerAttributionErrorDetail"
+      },
+      "PartnerAttributionErrorResponse": {
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/PartnerAttributionErrorDetail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "PartnerAttributionErrorResponse"
       },
       "PartnerAttributionTransferConsumeRequest": {
         "properties": {

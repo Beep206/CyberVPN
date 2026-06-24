@@ -185,9 +185,9 @@ def test_phase3_explainability_replay_builder_and_summary_are_deterministic(tmp_
 
 def test_phase3_explainability_doc_covers_lane_views_and_replay_generated_at() -> None:
     repo_root = _repo_root()
-    content = (
-        repo_root / "docs/testing/partner-platform-phase3-explainability-and-replay-pack.md"
-    ).read_text(encoding="utf-8")
+    content = (repo_root / "docs/testing/partner-platform-phase3-explainability-and-replay-pack.md").read_text(
+        encoding="utf-8"
+    )
 
     for required_term in (
         "replay_generated_at",

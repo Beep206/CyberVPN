@@ -4,6 +4,7 @@ Removes sensitive information from URLs and headers before logging.
 """
 
 import re
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 # Sensitive query parameter names to redact
@@ -137,7 +138,7 @@ def sanitize_headers(
         >>> sanitize_headers({"Authorization": "Bearer secret", "Content-Type": "json"})
         {"Authorization": "[REDACTED]", "Content-Type": "json"}
     """
-    sanitized = {}
+    sanitized: dict[str, Any] = {}
 
     for key, value in headers.items():
         if key.lower() in SENSITIVE_HEADERS:
@@ -237,7 +238,7 @@ def sanitize_username(username: str) -> str:
     return username[:3] + "***"
 
 
-def sanitize_pii(data: dict, *, fields: set[str] | None = None) -> dict:
+def sanitize_pii(data: dict[str, Any], *, fields: set[str] | None = None) -> dict[str, Any]:
     """Sanitize PII fields in a dictionary for audit logging.
 
     SEC-007: Removes or masks PII from audit log entries.
@@ -256,7 +257,7 @@ def sanitize_pii(data: dict, *, fields: set[str] | None = None) -> dict:
     if fields is None:
         fields = {"email", "login", "username", "user_email", "user_login"}
 
-    sanitized = {}
+    sanitized: dict[str, Any] = {}
     for key, value in data.items():
         if key.lower() in fields:
             if "email" in key.lower() and isinstance(value, str):

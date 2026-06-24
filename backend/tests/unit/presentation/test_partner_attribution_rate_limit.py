@@ -332,3 +332,104 @@ async def test_capture_route_requires_browser_key_before_capture_use_case() -> N
         )
 
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_capture_route_rejects_oversized_sub_id_map_before_rate_limit() -> None:
+    redis_client = _FakeRedisClient()
+    app = _capture_route_app(redis_client=redis_client)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://cyber-vpn.net") as client:
+        response = await client.post(
+            "/partner-attribution/capture",
+            headers={"Idempotency-Key": "route-capture-idempotency"},
+            json={
+                "public_token": "public-token-123",
+                "browser_key": "route-browser-key",
+                "sub_ids": {f"sub_{index}": "value" for index in range(17)},
+            },
+        )
+
+    assert response.status_code == 422
+    assert redis_client.store == {}
+
+
+@pytest.mark.asyncio
+async def test_capture_route_rejects_nested_campaign_params_before_rate_limit() -> None:
+    redis_client = _FakeRedisClient()
+    app = _capture_route_app(redis_client=redis_client)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://cyber-vpn.net") as client:
+        response = await client.post(
+            "/partner-attribution/capture",
+            headers={"Idempotency-Key": "route-capture-idempotency"},
+            json={
+                "public_token": "public-token-123",
+                "browser_key": "route-browser-key",
+                "campaign_params": {"utm_source": {"nested": "value"}},
+            },
+        )
+
+    assert response.status_code == 422
+    assert redis_client.store == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "field,payload",
+    [
+        ("campaign_params", {"campaign_params": {f"utm_{index}": "value" for index in range(25)}}),
+        ("sub_ids", {"sub_ids": {"s" * 49: "value"}}),
+        ("sub_ids", {"sub_ids": {"sub": "v" * 161}}),
+        ("campaign_params", {"campaign_params": {"u" * 65: "value"}}),
+        ("campaign_params", {"campaign_params": {"utm_source": "v" * 201}}),
+    ],
+)
+async def test_capture_route_rejects_unbounded_campaign_and_sub_id_fields_before_rate_limit(
+    field: str,
+    payload: dict[str, dict[str, str]],
+) -> None:
+    redis_client = _FakeRedisClient()
+    app = _capture_route_app(redis_client=redis_client)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://cyber-vpn.net") as client:
+        response = await client.post(
+            "/partner-attribution/capture",
+            headers={"Idempotency-Key": f"route-capture-{field}"},
+            json={
+                "public_token": "public-token-123",
+                "browser_key": "route-browser-key",
+                **payload,
+            },
+        )
+
+    assert response.status_code == 422
+    assert redis_client.store == {}
+
+
+def test_capture_request_accepts_campaign_and_sub_id_boundary_values() -> None:
+    request = PartnerAttributionCaptureRequest(
+        public_token="public-token-123",
+        browser_key="route-browser-key",
+        sub_ids={f"sub_{index:02d}": "v" * 160 for index in range(16)},
+        campaign_params={f"utm_{index:02d}": "v" * 200 for index in range(24)},
+    )
+
+    assert len(request.sub_ids or {}) == 16
+    assert len(request.campaign_params or {}) == 24
+
+
+def test_capture_request_coerces_scalar_campaign_and_sub_id_values_for_compatibility() -> None:
+    request = PartnerAttributionCaptureRequest(
+        public_token="public-token-123",
+        browser_key="route-browser-key",
+        sub_ids={"creator": 42},
+        campaign_params={"utm_source": "newsletter", "utm_term": 7, "utm_paid": False},
+    )
+
+    assert request.sub_ids == {"creator": "42"}
+    assert request.campaign_params == {
+        "utm_source": "newsletter",
+        "utm_term": "7",
+        "utm_paid": "False",
+    }

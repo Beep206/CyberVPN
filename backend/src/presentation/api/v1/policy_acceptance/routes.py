@@ -31,7 +31,7 @@ async def create_policy_acceptance(
 ) -> AcceptedLegalDocumentResponse:
     use_case = CreateAcceptedLegalDocumentUseCase(db)
     try:
-        return await use_case.execute(
+        acceptance = await use_case.execute(
             **payload.model_dump(),
             auth_realm_id=current_actor.auth_realm_id,
             actor_principal_id=current_actor.principal_id,
@@ -39,6 +39,7 @@ async def create_policy_acceptance(
             source_ip=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
         )
+        return AcceptedLegalDocumentResponse.model_validate(acceptance)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -49,7 +50,8 @@ async def list_my_policy_acceptance(
     db: AsyncSession = Depends(get_db),
 ) -> list[AcceptedLegalDocumentResponse]:
     use_case = ListAcceptedLegalDocumentsUseCase(db)
-    return await use_case.execute(actor_principal_id=current_actor.principal_id)
+    acceptances = await use_case.execute(actor_principal_id=current_actor.principal_id)
+    return [AcceptedLegalDocumentResponse.model_validate(acceptance) for acceptance in acceptances]
 
 
 @router.get("/", response_model=list[AcceptedLegalDocumentResponse])
@@ -65,7 +67,7 @@ async def list_policy_acceptance(
     db: AsyncSession = Depends(get_db),
 ) -> list[AcceptedLegalDocumentResponse]:
     use_case = ListAcceptedLegalDocumentsUseCase(db)
-    return await use_case.execute(
+    acceptances = await use_case.execute(
         actor_principal_id=actor_principal_id,
         storefront_id=storefront_id,
         auth_realm_id=auth_realm_id,
@@ -74,6 +76,7 @@ async def list_policy_acceptance(
         limit=limit,
         offset=offset,
     )
+    return [AcceptedLegalDocumentResponse.model_validate(acceptance) for acceptance in acceptances]
 
 
 @router.get("/{acceptance_id}", response_model=AcceptedLegalDocumentResponse)
@@ -85,4 +88,4 @@ async def get_policy_acceptance(
     item = await GetAcceptedLegalDocumentUseCase(db).execute(acceptance_id=acceptance_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Policy acceptance not found")
-    return item
+    return AcceptedLegalDocumentResponse.model_validate(item)

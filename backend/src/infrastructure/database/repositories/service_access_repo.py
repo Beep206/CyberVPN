@@ -337,10 +337,12 @@ class ServiceAccessRepository:
         auth_realm_id: UUID,
     ) -> bool:
         result = await self._session.execute(
-            select(EntitlementGrantModel.id).where(
+            select(EntitlementGrantModel.id)
+            .where(
                 EntitlementGrantModel.customer_account_id == customer_account_id,
                 EntitlementGrantModel.auth_realm_id == auth_realm_id,
-            ).limit(1)
+            )
+            .limit(1)
         )
         return result.scalar_one_or_none() is not None
 
@@ -352,14 +354,17 @@ class ServiceAccessRepository:
         now,
     ) -> EntitlementGrantModel | None:
         result = await self._session.execute(
-            select(EntitlementGrantModel).where(
+            select(EntitlementGrantModel)
+            .where(
                 EntitlementGrantModel.customer_account_id == customer_account_id,
                 EntitlementGrantModel.auth_realm_id == auth_realm_id,
                 EntitlementGrantModel.grant_status == "active",
                 (EntitlementGrantModel.expires_at.is_(None) | (EntitlementGrantModel.expires_at > now)),
-            ).order_by(
+            )
+            .order_by(
                 EntitlementGrantModel.effective_from.desc(),
                 EntitlementGrantModel.created_at.desc(),
-            ).limit(1)
+            )
+            .limit(1)
         )
         return result.scalar_one_or_none()

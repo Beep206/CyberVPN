@@ -24,6 +24,8 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.main import app
 from tests.helpers.realm_auth import (
     ADMIN_AUTH_REALM_HEADERS,
+    PARTNER_ACCESS_COOKIE_NAME,
+    PARTNER_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
     access_token_from_client_cookies,
@@ -60,14 +62,21 @@ async def _create_admin_user(
     return user
 
 
-async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
+async def _login(
+    async_client: AsyncClient,
+    login_or_email: str,
+    password: str,
+    *,
+    headers: dict[str, str] = ADMIN_AUTH_REALM_HEADERS,
+    cookie_name: str = "access_token",
+) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers=ADMIN_AUTH_REALM_HEADERS,
+        headers=headers,
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return access_token_from_client_cookies(async_client, response=response)
+    return access_token_from_client_cookies(async_client, cookie_name=cookie_name, response=response)
 
 
 async def _create_workspace(
@@ -299,6 +308,7 @@ async def test_partner_workspace_programs_surface_prefers_canonical_lane_and_rea
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
 
                 admin_user = await _create_admin_user(
                     session=db,
@@ -312,7 +322,7 @@ async def test_partner_workspace_programs_surface_prefers_canonical_lane_and_rea
                 owner_user = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="rb003_owner",
                     email="rb003-owner@example.com",
                     password="RB003Owner123!",
@@ -320,10 +330,16 @@ async def test_partner_workspace_programs_surface_prefers_canonical_lane_and_rea
                 )
 
             admin_token = await _login(async_client, admin_user.email, "RB003Admin123!")
-            owner_token = await _login(async_client, owner_user.email, "RB003Owner123!")
+            owner_token = await _login(
+                async_client,
+                owner_user.email,
+                "RB003Owner123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+            )
 
             admin_headers = {"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS}
-            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **PARTNER_AUTH_REALM_HEADERS}
 
             workspace_id = await _create_workspace(
                 async_client,
@@ -366,9 +382,7 @@ async def test_partner_workspace_programs_surface_prefers_canonical_lane_and_rea
             assert payload["canonical_source"] == "pilot_cohorts"
             assert payload["primary_lane_key"] == "creator_affiliate"
 
-            creator_lane = next(
-                item for item in payload["lane_memberships"] if item["lane_key"] == "creator_affiliate"
-            )
+            creator_lane = next(item for item in payload["lane_memberships"] if item["lane_key"] == "creator_affiliate")
             performance_lane = next(
                 item for item in payload["lane_memberships"] if item["lane_key"] == "performance_media"
             )
@@ -389,9 +403,7 @@ async def test_partner_workspace_programs_surface_prefers_canonical_lane_and_rea
             assert "go_no_go_missing" in performance_lane["blocking_reason_codes"]
             assert "settlement_shadow_requires_caution" in performance_lane["warning_reason_codes"]
 
-            readiness_by_key = {
-                item["key"]: item for item in payload["readiness_items"]
-            }
+            readiness_by_key = {item["key"]: item for item in payload["readiness_items"]}
             assert readiness_by_key["finance"]["status"] == "ready"
             assert readiness_by_key["compliance"]["status"] == "evidence_requested"
             assert "traffic_declaration_incomplete" in readiness_by_key["compliance"]["blocking_reason_codes"]

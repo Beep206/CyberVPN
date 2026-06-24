@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -24,6 +24,7 @@ _ALLOWED_OWNER_TYPES = frozenset(
 _ALLOWED_WORKSPACE_STATUSES = frozenset({"active", "approved_probation"})
 _ALLOWED_LANE_STATUSES = frozenset({"active", "approved_active", "approved_probation"})
 _BLOCKING_RISK_DECISIONS = frozenset({"hold", "block"})
+_COMMISSION_CONTRACT_EFFECTIVE_FROM_LEEWAY = timedelta(seconds=5)
 
 
 @dataclass(frozen=True)
@@ -293,7 +294,7 @@ def _evaluate_commission_contract_context(
         reason_codes.append("commission_contract_code_mismatch")
 
     effective_from = _parse_snapshot_datetime(commission_contract_snapshot.get("effective_from"))
-    if effective_from is not None and effective_from > now:
+    if effective_from is not None and effective_from - now > _COMMISSION_CONTRACT_EFFECTIVE_FROM_LEEWAY:
         failure.set(
             "PARTNER_COMMISSION_CONTRACT_NOT_ACTIVE",
             "Partner commission contract is not active yet.",

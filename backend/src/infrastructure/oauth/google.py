@@ -146,9 +146,7 @@ class GoogleOAuthProvider:
                                 "status": token_response.status_code,
                                 "error": error_payload.get("error") if isinstance(error_payload, dict) else None,
                                 "description": (
-                                    error_payload.get("error_description")
-                                    if isinstance(error_payload, dict)
-                                    else None
+                                    error_payload.get("error_description") if isinstance(error_payload, dict) else None
                                 ),
                                 "attempt": attempt,
                             },

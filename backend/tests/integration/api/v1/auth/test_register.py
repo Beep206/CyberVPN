@@ -18,11 +18,7 @@ class TestRegisterRoutes:
         """POST /api/v1/auth/register with email creates inactive user."""
         response = await async_client.post(
             "/api/v1/auth/register",
-            json={
-                "email": "newuser@example.com",
-                "password": "SecurePassword123!",
-                "username": "newuser"
-            }
+            json={"email": "newuser@example.com", "password": "SecurePassword123!", "username": "newuser"},
         )
         assert response.status_code in [201, 200, 404, 422]
 
@@ -30,11 +26,7 @@ class TestRegisterRoutes:
     async def test_register_without_email_returns_201_active(self, async_client):
         """POST /api/v1/auth/register without email creates active user with tokens."""
         response = await async_client.post(
-            "/api/v1/auth/register",
-            json={
-                "username": "usernameonly",
-                "password": "SecurePassword123!"
-            }
+            "/api/v1/auth/register", json={"username": "usernameonly", "password": "SecurePassword123!"}
         )
         assert response.status_code in [201, 200, 404, 422]
 
@@ -44,21 +36,13 @@ class TestRegisterRoutes:
         # First registration
         await async_client.post(
             "/api/v1/auth/register",
-            json={
-                "email": "duplicate@example.com",
-                "password": "SecurePassword123!",
-                "username": "duplicate1"
-            }
+            json={"email": "duplicate@example.com", "password": "SecurePassword123!", "username": "duplicate1"},
         )
 
         # Second registration with same email
         response = await async_client.post(
             "/api/v1/auth/register",
-            json={
-                "email": "duplicate@example.com",
-                "password": "SecurePassword123!",
-                "username": "duplicate2"
-            }
+            json={"email": "duplicate@example.com", "password": "SecurePassword123!", "username": "duplicate2"},
         )
         assert response.status_code in [409, 400, 422, 404]
 
@@ -70,8 +54,8 @@ class TestRegisterRoutes:
             json={
                 "email": "weakpass@example.com",
                 "password": "123",  # Weak password
-                "username": "weakpassuser"
-            }
+                "username": "weakpassuser",
+            },
         )
         assert response.status_code in [422, 400, 404]
 
@@ -85,8 +69,8 @@ class TestRegisterRoutes:
                 json={
                     "email": f"ratelimit{i}@example.com",
                     "password": "SecurePassword123!",
-                    "username": f"ratelimit{i}"
-                }
+                    "username": f"ratelimit{i}",
+                },
             )
             # Should eventually hit rate limit (429)
             assert response.status_code in [201, 200, 404, 422, 429, 409]

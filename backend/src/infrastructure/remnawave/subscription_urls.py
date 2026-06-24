@@ -38,7 +38,7 @@ def normalize_public_subscription_url(url: str | None) -> str | None:
     if not public.scheme or not public.netloc:
         return url
 
-    suffix = parsed.path[len(_SUBSCRIPTION_PATH_PREFIX):]
+    suffix = parsed.path[len(_SUBSCRIPTION_PATH_PREFIX) :]
     public_path = f"{public.path.rstrip('/')}{suffix}"
     return urlunsplit((public.scheme, public.netloc, public_path, parsed.query, parsed.fragment))
 

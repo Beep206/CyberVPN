@@ -17,6 +17,8 @@ from datetime import UTC, datetime
 
 import redis.asyncio as redis
 
+from src.shared.async_compat import resolve_maybe_awaitable
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_WS_TICKET_SCOPE = "admin_ws"
@@ -85,8 +87,8 @@ class WebSocketTicketService:
         }
 
         # Store with short TTL
-        await self._redis.hset(key, mapping=data)  # type: ignore[arg-type]
-        await self._redis.expire(key, self.TTL_SECONDS)  # type: ignore[misc]
+        await resolve_maybe_awaitable(self._redis.hset(key, mapping=data))  # type: ignore[arg-type]
+        await resolve_maybe_awaitable(self._redis.expire(key, self.TTL_SECONDS))
 
         logger.info(
             "WebSocket ticket created",

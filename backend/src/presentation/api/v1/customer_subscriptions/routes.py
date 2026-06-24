@@ -177,12 +177,8 @@ async def get_customer_subscription_service_state(
         purchase_context=_serialize_purchase_context(result.active_entitlement_grant),
         consumption_context=CurrentServiceStateConsumptionContextResponse(
             channel_type=payload.channel_type,
-            channel_subject_ref=(
-                result.resolved_channel_subject_ref or payload.channel_subject_ref
-            ),
-            provisioning_profile_key=(
-                result.resolved_provisioning_profile_key or payload.provisioning_profile_key
-            ),
+            channel_subject_ref=(result.resolved_channel_subject_ref or payload.channel_subject_ref),
+            provisioning_profile_key=(result.resolved_provisioning_profile_key or payload.provisioning_profile_key),
             credential_type=payload.credential_type,
             credential_subject_key=payload.credential_subject_key,
         ),
@@ -198,12 +194,13 @@ async def get_customer_subscription_config(
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> RemnawaveSubscriptionConfigResponse:
     try:
-        return await CustomerSubscriptionServiceAccessUseCase(db).get_config(
+        config = await CustomerSubscriptionServiceAccessUseCase(db).get_config(
             customer_account_id=customer_account_id,
             auth_realm_id=current_realm.auth_realm.id,
             subscription_key=subscription_key,
             remnawave_client=remnawave_client,
         )
+        return RemnawaveSubscriptionConfigResponse.model_validate(config)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except PermissionError as exc:

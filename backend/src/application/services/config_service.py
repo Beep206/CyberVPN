@@ -94,6 +94,8 @@ class PasskeyAdminPolicyConfig:
 
 
 def _bounded_int(value: object, *, default: int, minimum: int, maximum: int) -> int:
+    if not isinstance(value, str | bytes | bytearray | int | float):
+        return default
     try:
         candidate = int(value)
     except (TypeError, ValueError):
@@ -146,9 +148,7 @@ class ConfigService:
         return float(val.get("rate", 0.10))
 
     async def get_referral_duration_mode(self) -> dict[str, Any]:
-        return await self._repo.get_value(
-            "referral.duration_mode", {"mode": "indefinite"}
-        )
+        return await self._repo.get_value("referral.duration_mode", {"mode": "indefinite"})
 
     # --- Partner config ---
 
@@ -212,9 +212,7 @@ class ConfigService:
     # --- Wallet config ---
 
     async def get_wallet_min_withdrawal(self) -> dict[str, Any]:
-        return await self._repo.get_value(
-            "wallet.min_withdrawal", {"amount": 5.0, "currency": "USD"}
-        )
+        return await self._repo.get_value("wallet.min_withdrawal", {"amount": 5.0, "currency": "USD"})
 
     async def is_withdrawal_enabled(self) -> bool:
         val = await self._repo.get_value("wallet.withdrawal_enabled", {"enabled": False})
@@ -245,14 +243,8 @@ class ConfigService:
             trial_enabled=bool(val.get("trial_enabled", True)),
             checkout_enabled=bool(val.get("checkout_enabled", True)),
             config_enabled=bool(val.get("config_enabled", True)),
-            maintenance_message=(
-                str(val["maintenance_message"]).strip()
-                if val.get("maintenance_message")
-                else None
-            ),
-            canary_telegram_user_ids=_normalize_telegram_user_id_list(
-                val.get("canary_telegram_user_ids", [])
-            ),
+            maintenance_message=(str(val["maintenance_message"]).strip() if val.get("maintenance_message") else None),
+            canary_telegram_user_ids=_normalize_telegram_user_id_list(val.get("canary_telegram_user_ids", [])),
         )
 
     async def get_miniapp_launch_readiness_config(self) -> MiniAppLaunchReadinessConfig:
@@ -282,24 +274,10 @@ class ConfigService:
             support_window_confirmed=bool(val.get("support_window_confirmed", False)),
             customer_comms_ready=bool(val.get("customer_comms_ready", False)),
             status_page_template_ready=bool(val.get("status_page_template_ready", False)),
-            incident_channel=(
-                str(val["incident_channel"]).strip()
-                if val.get("incident_channel")
-                else None
-            ),
-            rollback_commander=(
-                str(val["rollback_commander"]).strip()
-                if val.get("rollback_commander")
-                else None
-            ),
+            incident_channel=(str(val["incident_channel"]).strip() if val.get("incident_channel") else None),
+            rollback_commander=(str(val["rollback_commander"]).strip() if val.get("rollback_commander") else None),
             primary_oncall_contact=(
-                str(val["primary_oncall_contact"]).strip()
-                if val.get("primary_oncall_contact")
-                else None
+                str(val["primary_oncall_contact"]).strip() if val.get("primary_oncall_contact") else None
             ),
-            release_window_note=(
-                str(val["release_window_note"]).strip()
-                if val.get("release_window_note")
-                else None
-            ),
+            release_window_note=(str(val["release_window_note"]).strip() if val.get("release_window_note") else None),
         )

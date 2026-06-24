@@ -377,9 +377,7 @@ async def get_pilot_cohort_readiness(
             readiness.latest_go_no_go_decision.id if readiness.latest_go_no_go_decision else None
         ),
         latest_go_no_go_status=(
-            readiness.latest_go_no_go_decision.decision_status
-            if readiness.latest_go_no_go_decision
-            else None
+            readiness.latest_go_no_go_decision.decision_status if readiness.latest_go_no_go_decision else None
         ),
         live_monitoring_snapshot=readiness.live_monitoring_snapshot,
         checked_at=readiness.checked_at,

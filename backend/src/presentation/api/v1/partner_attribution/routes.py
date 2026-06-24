@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -43,6 +44,7 @@ from .schemas import (
     PartnerAttributionCaptureResponse,
     PartnerAttributionClaimRequest,
     PartnerAttributionClaimResponse,
+    PartnerAttributionErrorResponse,
     PartnerAttributionTransferConsumeRequest,
     PartnerAttributionTransferConsumeResponse,
 )
@@ -50,6 +52,25 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/partner-attribution", tags=["partner-attribution"])
+
+_CAPTURE_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    400: {
+        "model": PartnerAttributionErrorResponse,
+        "description": "Capture request is missing required browser replay guard data.",
+    },
+    428: {
+        "model": PartnerAttributionErrorResponse,
+        "description": "Capture request is missing the required Idempotency-Key header.",
+    },
+    429: {
+        "model": PartnerAttributionErrorResponse,
+        "description": "Capture request exceeded the configured partner attribution rate limit.",
+    },
+    503: {
+        "model": PartnerAttributionErrorResponse,
+        "description": "Partner attribution capture is temporarily unavailable.",
+    },
+}
 
 
 def _cookie_secure() -> bool:
@@ -121,6 +142,7 @@ def _require_capture_replay_guards(*, payload: PartnerAttributionCaptureRequest,
 @router.post(
     "/capture",
     response_model=PartnerAttributionCaptureResponse,
+    responses=_CAPTURE_ERROR_RESPONSES,
     openapi_extra={
         "parameters": [
             {

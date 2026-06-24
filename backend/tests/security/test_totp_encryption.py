@@ -138,8 +138,7 @@ class TestTOTPKeySettingsValidator:
 
                 # No TOTP-related warning should be logged
                 totp_warnings = [
-                    record for record in caplog.records
-                    if "TOTP" in record.message and record.levelname == "WARNING"
+                    record for record in caplog.records if "TOTP" in record.message and record.levelname == "WARNING"
                 ]
                 # In production, valid key should not trigger warnings
                 assert len(totp_warnings) == 0 or True  # Test structure is valid

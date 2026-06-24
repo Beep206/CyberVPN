@@ -1,5 +1,4 @@
 import inspect
-import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -9,6 +8,7 @@ import structlog
 from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
 from starlette.datastructures import Headers
 from starlette.types import ExceptionHandler
@@ -65,8 +65,7 @@ from src.presentation.middleware.security_headers import SecurityHeadersMiddlewa
 from src.shared.observability import before_send, before_send_transaction
 from src.version import __version__
 
-logger = logging.getLogger(__name__)
-logger = structlog.get_logger("cybervpn")
+logger: Any = structlog.get_logger("cybervpn")
 READINESS_QUEUE_STREAM = "taskiq:stream"
 READINESS_QUEUE_MAX_DEPTH = 1000
 
@@ -117,8 +116,8 @@ async def lifespan(app: FastAPI):
             max_request_body_size="never",
             include_local_variables=False,
             integrations=[StarletteIntegration(), FastApiIntegration()],
-            before_send=before_send,
-            before_send_transaction=before_send_transaction,
+            before_send=cast(Any, before_send),
+            before_send_transaction=cast(Any, before_send_transaction),
         )
         logger.info(
             "Sentry SDK initialized",
@@ -204,9 +203,9 @@ async def lifespan(app: FastAPI):
         try:
             from opentelemetry import trace
 
-            tracer_provider = trace.get_tracer_provider()
-            if hasattr(tracer_provider, "shutdown"):
-                tracer_provider.shutdown()
+            current_tracer_provider = trace.get_tracer_provider()
+            if hasattr(current_tracer_provider, "shutdown"):
+                current_tracer_provider.shutdown()
                 logger.info("OpenTelemetry tracer provider shut down")
         except Exception as e:
             logger.warning("Shutdown error in OpenTelemetry: %s", e, exc_info=True)
@@ -405,7 +404,7 @@ if "*" in settings.cors_origins:
     logger.warning("CORS '*' origin with credentials is unsafe; disabling credentials.")
     allow_credentials = False
 
-cors_middleware_kwargs = {
+cors_middleware_kwargs: dict[str, object] = {
     "allow_origins": settings.cors_origins,
     "allow_credentials": allow_credentials,
     "allow_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -423,7 +422,7 @@ else:
     logger.warning("Installed CORSMiddleware does not support allow_private_network; using compatibility middleware.")
 
 app.add_middleware(
-    cors_middleware_cls,
+    cast(Any, cors_middleware_cls),
     **cors_middleware_kwargs,
 )
 
@@ -520,8 +519,8 @@ async def health_check() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/readiness")
-async def readiness_check() -> dict:
+@app.get("/readiness", response_model=dict[str, Any])
+async def readiness_check() -> JSONResponse:
     """Readiness check for Kubernetes and orchestrators (unauthenticated).
 
     Checks if the service is ready to accept traffic by verifying:
@@ -534,9 +533,8 @@ async def readiness_check() -> dict:
         503 Service Unavailable if any check fails
     """
     from fastapi import status as http_status
-    from fastapi.responses import JSONResponse
 
-    checks = {
+    checks: dict[str, bool | int] = {
         "database": False,
         "redis": False,
         "queue": False,

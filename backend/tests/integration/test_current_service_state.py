@@ -325,10 +325,7 @@ async def test_current_service_state_shows_purchase_and_consumption_context(
             assert payload["service_identity"]["id"] == service_identity_payload["id"]
             assert payload["provisioning_profile"]["profile_key"] == "shared_client-default"
             assert payload["device_credential"]["subject_key"] == "desktop-shared-state-primary"
-            assert (
-                payload["access_delivery_channel"]["id"]
-                == resolve_payload["access_delivery_channel"]["id"]
-            )
+            assert payload["access_delivery_channel"]["id"] == resolve_payload["access_delivery_channel"]["id"]
             assert payload["purchase_context"]["active_entitlement_grant_id"] == grant_payload["id"]
             assert payload["purchase_context"]["source_type"] == "order"
             assert payload["purchase_context"]["source_order_id"] == order_payload["id"]

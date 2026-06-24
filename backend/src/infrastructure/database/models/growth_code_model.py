@@ -26,9 +26,7 @@ from src.infrastructure.database.types.encrypted_text import EncryptedText
 
 class GrowthCodeModel(Base):
     __tablename__ = "growth_codes"
-    __table_args__ = (
-        UniqueConstraint("code_hash", "code_type", name="uq_growth_codes_hash_type"),
-    )
+    __table_args__ = (UniqueConstraint("code_hash", "code_type", name="uq_growth_codes_hash_type"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     code_hash: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
@@ -200,9 +198,7 @@ class GrowthCodeTouchpointModel(Base):
 
 class GrowthSignupAttributionModel(Base):
     __tablename__ = "growth_signup_attributions"
-    __table_args__ = (
-        UniqueConstraint("user_id", name="uq_growth_signup_attributions_user_id"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", name="uq_growth_signup_attributions_user_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(

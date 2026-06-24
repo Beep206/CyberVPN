@@ -116,9 +116,7 @@ class SelectedSubscriptionCheckoutUseCase:
 
         active_addon_lines = await self._addon_lines_from_snapshot(snapshot)
         existing_quantities = {
-            str(line["code"]): int(line.get("qty", 1))
-            for line in active_addon_lines
-            if line.get("code")
+            str(line["code"]): int(line.get("qty", 1)) for line in active_addon_lines if line.get("code")
         }
         addon_lines = await self._checkout._resolve_addons(
             plan=plan,
@@ -246,8 +244,7 @@ class SelectedSubscriptionCheckoutUseCase:
         if not raw_addons:
             return []
         catalog = {
-            addon.code: addon
-            for addon in await self._addons.get_by_codes([str(item["code"]) for item in raw_addons])
+            addon.code: addon for addon in await self._addons.get_by_codes([str(item["code"]) for item in raw_addons])
         }
         lines: list[dict] = []
         for item in raw_addons:

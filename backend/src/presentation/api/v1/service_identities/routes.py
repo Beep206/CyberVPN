@@ -143,7 +143,9 @@ def _build_purchase_context(result) -> ServiceAccessPurchaseContextResponse:
         origin_storefront_id=(
             active_entitlement_grant.origin_storefront_id
             if active_entitlement_grant is not None
-            else result.service_identity.origin_storefront_id if result.service_identity is not None else None
+            else result.service_identity.origin_storefront_id
+            if result.service_identity is not None
+            else None
         ),
     )
 

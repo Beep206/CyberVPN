@@ -151,9 +151,7 @@ async def test_helix_canary_evidence_route_under_concurrent_load_meets_internal_
         async def _request_once(sequence: int) -> None:
             async with semaphore:
                 started_at = time.perf_counter()
-                response = await client.get(
-                    f"/api/v1/helix/admin/rollouts/rollout-canary-{sequence}/canary-evidence"
-                )
+                response = await client.get(f"/api/v1/helix/admin/rollouts/rollout-canary-{sequence}/canary-evidence")
                 latencies_ms.append((time.perf_counter() - started_at) * 1000)
                 assert response.status_code == 200
                 payload = response.json()
@@ -163,9 +161,7 @@ async def test_helix_canary_evidence_route_under_concurrent_load_meets_internal_
 
         try:
             suite_started_at = time.perf_counter()
-            await asyncio.gather(
-                *[_request_once(index) for index in range(total_requests)]
-            )
+            await asyncio.gather(*[_request_once(index) for index in range(total_requests)])
             suite_elapsed_ms = (time.perf_counter() - suite_started_at) * 1000
         finally:
             await adapter_client.close()

@@ -104,9 +104,7 @@ class OrderModel(Base):
     wallet_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
     gateway_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
     partner_markup: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
-    commission_base_amount: Mapped[float] = mapped_column(
-        Numeric(12, 2), nullable=False, default=0, server_default="0"
-    )
+    commission_base_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
     merchant_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     pricing_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     policy_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)

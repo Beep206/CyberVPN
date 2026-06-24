@@ -39,6 +39,7 @@ class RecordingDB:
 def _request():
     return SimpleNamespace(
         client=SimpleNamespace(host="203.0.113.55"),
+        state=SimpleNamespace(),
         headers={
             "user-agent": "pytest-agent",
             "x-request-id": "req-commercial-catalog",

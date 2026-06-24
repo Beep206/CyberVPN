@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
@@ -42,12 +44,18 @@ class AuthRealmRepository:
         return result.scalar_one_or_none()
 
     async def get_default_realm(self, realm_type: str) -> AuthRealmModel | None:
+        default_definition = DEFAULT_AUTH_REALMS.get(realm_type)
+        default_key = str(default_definition["realm_key"]) if default_definition else None
+        order_by_clauses: list[Any] = []
+        if default_key:
+            order_by_clauses.append(case((func.lower(AuthRealmModel.realm_key) == default_key.lower(), 0), else_=1))
+        order_by_clauses.extend([AuthRealmModel.created_at.asc(), AuthRealmModel.id.asc()])
         result = await self._session.execute(
             select(AuthRealmModel)
             .where(AuthRealmModel.realm_type == realm_type, AuthRealmModel.is_default.is_(True))
-            .order_by(AuthRealmModel.created_at.asc())
+            .order_by(*order_by_clauses)
         )
-        return result.scalar_one_or_none()
+        return result.scalars().first()
 
     async def get_or_create_default_realm(self, realm_type: str) -> AuthRealmModel:
         existing = await self.get_default_realm(realm_type)
@@ -68,9 +76,19 @@ class AuthRealmRepository:
             is_default=bool(definition["is_default"]),
             status="active",
         )
-        self._session.add(model)
-        await self._session.flush()
-        return model
+        try:
+            async with self._session.begin_nested():
+                self._session.add(model)
+                await self._session.flush()
+            return model
+        except IntegrityError:
+            concurrent_existing = await self.get_realm_by_key(str(definition["realm_key"]))
+            if concurrent_existing is not None:
+                return concurrent_existing
+            concurrent_default = await self.get_default_realm(realm_type)
+            if concurrent_default is not None:
+                return concurrent_default
+            raise
 
     async def create_realm(self, model: AuthRealmModel) -> AuthRealmModel:
         self._session.add(model)

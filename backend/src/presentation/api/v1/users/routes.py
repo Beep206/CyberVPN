@@ -171,7 +171,7 @@ async def update_user(
 
     use_case = UpdateUserUseCase(gateway=gateway)
 
-    update_data = {}
+    update_data: dict[str, object] = {}
     if request.username is not None:
         update_data["username"] = request.username
     if request.password is not None:

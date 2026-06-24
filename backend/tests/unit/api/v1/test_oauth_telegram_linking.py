@@ -137,9 +137,7 @@ async def test_telegram_callback_returns_409_when_identity_is_linked_elsewhere()
         patch(
             "src.presentation.api.v1.oauth.routes.TelegramAccountLinkingUseCase.link_account",
             new=AsyncMock(
-                side_effect=TelegramAccountLinkConflictError(
-                    "Provider account is already linked to another user."
-                )
+                side_effect=TelegramAccountLinkConflictError("Provider account is already linked to another user.")
             ),
         ),
     ):

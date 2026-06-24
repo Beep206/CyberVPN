@@ -147,11 +147,7 @@ async def _validate_token(
                     and raw_payload.get("realm_key") != expected_realm_key
                 ):
                     _record_partner_realm_denial(reason="realm_key_mismatch", token_payload=raw_payload)
-                elif (
-                    expected_audience
-                    and raw_payload.get("aud")
-                    and raw_payload.get("aud") != expected_audience
-                ):
+                elif expected_audience and raw_payload.get("aud") and raw_payload.get("aud") != expected_audience:
                     _record_partner_realm_denial(reason="audience_mismatch", token_payload=raw_payload)
         if not allow_legacy_without_realm:
             raise
@@ -307,9 +303,13 @@ async def get_current_pending_2fa_user(
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> AdminUserModel:
     """Resolve a user from a short-lived pending-2FA token."""
-    token = credentials.credentials if credentials else get_access_token_cookie(
-        request.cookies,
-        current_realm.cookie_namespace,
+    token = (
+        credentials.credentials
+        if credentials
+        else get_access_token_cookie(
+            request.cookies,
+            current_realm.cookie_namespace,
+        )
     )
     if not token:
         raise HTTPException(
@@ -441,9 +441,13 @@ async def get_current_mobile_user_id(
     Raises:
         HTTPException: 401 if token is invalid, expired, revoked, or user inactive.
     """
-    token: str | None = credentials.credentials if credentials else get_access_token_cookie(
-        request.cookies,
-        current_realm.cookie_namespace,
+    token: str | None = (
+        credentials.credentials
+        if credentials
+        else get_access_token_cookie(
+            request.cookies,
+            current_realm.cookie_namespace,
+        )
     )
     if not token:
         raise HTTPException(
@@ -521,9 +525,13 @@ async def get_current_pending_mobile_2fa_context(
     current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> PendingMobile2FAContext:
     """Resolve a mobile user and device snapshot from a short-lived pending-2FA token."""
-    token: str | None = credentials.credentials if credentials else get_access_token_cookie(
-        request.cookies,
-        current_realm.cookie_namespace,
+    token: str | None = (
+        credentials.credentials
+        if credentials
+        else get_access_token_cookie(
+            request.cookies,
+            current_realm.cookie_namespace,
+        )
     )
     if not token:
         raise HTTPException(
@@ -607,9 +615,13 @@ async def get_current_principal_actor(
     redis_client: redis.Redis = Depends(get_redis),
     current_realm: RealmResolution = Depends(get_request_auth_realm),
 ) -> CurrentPrincipalActor:
-    token: str | None = credentials.credentials if credentials else get_access_token_cookie(
-        request.cookies,
-        current_realm.cookie_namespace,
+    token: str | None = (
+        credentials.credentials
+        if credentials
+        else get_access_token_cookie(
+            request.cookies,
+            current_realm.cookie_namespace,
+        )
     )
     if not token:
         raise HTTPException(
@@ -639,9 +651,10 @@ async def get_current_principal_actor(
         )
 
     principal_id = UUID(result.user_id)
+    actor: AdminUserModel | MobileUserModel | None
     if current_realm.realm_type in {"admin", "partner"}:
-        repo = AdminUserRepository(db)
-        actor = await repo.get_by_id(principal_id)
+        admin_repo = AdminUserRepository(db)
+        actor = await admin_repo.get_by_id(principal_id)
         if not actor or not actor.is_active:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -653,8 +666,8 @@ async def get_current_principal_actor(
             else PrincipalClass.ADMIN.value
         )
     elif current_realm.realm_type == "customer":
-        repo = MobileUserRepository(db)
-        actor = await repo.get_by_id(principal_id)
+        mobile_repo = MobileUserRepository(db)
+        actor = await mobile_repo.get_by_id(principal_id)
         if not actor or not actor.is_active:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

@@ -63,16 +63,25 @@ class _AuthService:
 
 @pytest.mark.asyncio
 async def test_passkey_session_success_returns_tokenless_json_and_http_only_cookies(monkeypatch) -> None:
-    stored_refresh_tokens: list[dict] = []
+    issued_session_requests: list[object] = []
     sync_calls: list[object] = []
 
-    async def store_refresh_token_stub(*_args, **kwargs) -> None:
-        stored_refresh_tokens.append(kwargs)
+    class AuthSessionIssuerStub:
+        def __init__(self, *, auth_service, session) -> None:
+            self.auth_service = auth_service
+            self.session = session
+
+        async def issue_auth_session(self, issue_request):
+            issued_session_requests.append(issue_request)
+            return SimpleNamespace(
+                access_token="browser-access-token",
+                refresh_token="browser-refresh-token",
+            )
 
     async def sync_active_sessions_stub(db) -> None:
         sync_calls.append(db)
 
-    monkeypatch.setattr(passkeys, "store_refresh_token", store_refresh_token_stub)
+    monkeypatch.setattr(passkeys, "AuthSessionIssuer", AuthSessionIssuerStub)
     monkeypatch.setattr(passkeys, "sync_active_sessions", sync_active_sessions_stub)
 
     user = _user()
@@ -99,28 +108,27 @@ async def test_passkey_session_success_returns_tokenless_json_and_http_only_cook
     assert body["tfa_token"] is None
 
     set_cookie_headers = [
-        value.decode("latin-1")
-        for key, value in response.raw_headers
-        if key.decode("latin-1").lower() == "set-cookie"
+        value.decode("latin-1") for key, value in response.raw_headers if key.decode("latin-1").lower() == "set-cookie"
     ]
     joined_cookies = "\n".join(set_cookie_headers)
     assert "customer_access_token=browser-access-token" in joined_cookies
     assert "customer_refresh_token=browser-refresh-token" in joined_cookies
     assert "HttpOnly" in joined_cookies
-    assert stored_refresh_tokens[0]["refresh_token"] == "browser-refresh-token"
-    assert stored_refresh_tokens[0]["access_token_jti"] == "access-jti"
+    assert issued_session_requests[0].access_extra == {"auth_method": "passkey"}
+    assert issued_session_requests[0].principal_class == "customer"
     assert sync_calls
 
 
 @pytest.mark.asyncio
 async def test_passkey_session_pending_2fa_returns_tokenless_json_and_pending_cookie(monkeypatch) -> None:
-    async def store_refresh_token_stub(*_args, **_kwargs) -> None:
-        raise AssertionError("2FA-pending passkey auth must not store a refresh token")
+    class AuthSessionIssuerStub:
+        def __init__(self, **_kwargs) -> None:
+            raise AssertionError("2FA-pending passkey auth must not issue a refresh session")
 
     async def sync_active_sessions_stub(_db) -> None:
         raise AssertionError("2FA-pending passkey auth must not sync active sessions")
 
-    monkeypatch.setattr(passkeys, "store_refresh_token", store_refresh_token_stub)
+    monkeypatch.setattr(passkeys, "AuthSessionIssuer", AuthSessionIssuerStub)
     monkeypatch.setattr(passkeys, "sync_active_sessions", sync_active_sessions_stub)
 
     auth_service = _AuthService()
@@ -148,9 +156,7 @@ async def test_passkey_session_pending_2fa_returns_tokenless_json_and_pending_co
     assert body["tfa_token"] == "pending-2fa-token"
     assert auth_service.refresh_calls == 0
     set_cookie_headers = [
-        value.decode("latin-1")
-        for key, value in response.raw_headers
-        if key.decode("latin-1").lower() == "set-cookie"
+        value.decode("latin-1") for key, value in response.raw_headers if key.decode("latin-1").lower() == "set-cookie"
     ]
     joined_cookies = "\n".join(set_cookie_headers)
     assert "customer_access_token=pending-2fa-token" in joined_cookies

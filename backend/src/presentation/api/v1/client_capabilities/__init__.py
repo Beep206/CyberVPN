@@ -1,2 +1,1 @@
 """Client runtime capability API."""
-

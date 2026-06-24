@@ -159,6 +159,27 @@ async def test_partner_workspace_scope_enforcement(
                 "ScopeAdminP@ssword123!",
                 realm="admin",
             )
+            monkeypatch.setattr(settings, "environment", "production")
+            misdirected_admin_attempt = await async_client.post(
+                "/api/v1/admin/partner-workspaces",
+                headers={
+                    "Authorization": f"Bearer {admin_token}",
+                    "Host": "partner.cyber-vpn.net",
+                    "X-Auth-Realm": "admin",
+                },
+                json={
+                    "display_name": "Spoofed Admin Workspace",
+                    "owner_admin_user_id": str(owner_operator.id),
+                },
+            )
+            assert misdirected_admin_attempt.status_code in {403, 404, 421}
+            with sessionmaker() as db:
+                spoofed_workspace = db.scalar(
+                    select(PartnerAccountModel).where(PartnerAccountModel.display_name == "Spoofed Admin Workspace")
+                )
+                assert spoofed_workspace is None
+            monkeypatch.setattr(settings, "environment", "test")
+
             partner_admin_token = await _login(
                 async_client,
                 "scope-partner-admin@example.com",
@@ -173,8 +194,7 @@ async def test_partner_workspace_scope_enforcement(
                     "owner_admin_user_id": str(owner_operator.id),
                 },
             )
-            assert partner_admin_attempt.status_code == 403
-            assert partner_admin_attempt.json()["detail"] == "Admin realm required"
+            assert partner_admin_attempt.status_code in {401, 403}
             with sessionmaker() as db:
                 forged_workspace = db.scalar(
                     select(PartnerAccountModel).where(
@@ -193,6 +213,33 @@ async def test_partner_workspace_scope_enforcement(
             )
             assert create_response.status_code == 201
             workspace_id = create_response.json()["id"]
+
+            admin_realm_partner_detail = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}",
+                headers=_auth_headers(admin_token, realm="admin", host=ADMIN_AUTH_HOST),
+            )
+            assert admin_realm_partner_detail.status_code == 403
+
+            admin_realm_partner_code_attempt = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/codes",
+                headers=_auth_headers(admin_token, realm="admin", host=ADMIN_AUTH_HOST),
+                json={
+                    "code": "ADMINREALM42",
+                    "destination_path": "/pricing",
+                },
+            )
+            assert admin_realm_partner_code_attempt.status_code == 403
+            with sessionmaker() as db:
+                admin_realm_code = db.scalar(
+                    select(PartnerCodeModel).where(PartnerCodeModel.code_normalized == "ADMINREALM42")
+                )
+                assert admin_realm_code is None
+
+            partner_realm_admin_without_membership_detail = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}",
+                headers=_auth_headers(partner_admin_token, realm="partner", host=PARTNER_AUTH_HOST),
+            )
+            assert partner_realm_admin_without_membership_detail.status_code == 403
 
             owner_token = await _login(
                 async_client,
@@ -254,6 +301,49 @@ async def test_partner_workspace_scope_enforcement(
             )
             assert analyst_detail.status_code == 200
             assert analyst_detail.json()["current_role_key"] == "analyst"
+
+            monkeypatch.setattr(settings, "environment", "development")
+            local_partner_detail = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}",
+                headers={
+                    "Authorization": f"Bearer {analyst_token}",
+                    "Host": "testserver",
+                    "X-Auth-Realm": "partner",
+                },
+            )
+            assert local_partner_detail.status_code == 200
+            assert local_partner_detail.json()["current_role_key"] == "analyst"
+
+            local_without_partner_hint = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}",
+                headers={
+                    "Authorization": f"Bearer {analyst_token}",
+                    "Host": "testserver",
+                },
+            )
+            assert local_without_partner_hint.status_code == 401
+
+            monkeypatch.setattr(settings, "environment", "production")
+            production_partner_detail = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}",
+                headers={
+                    "Authorization": f"Bearer {analyst_token}",
+                    "Host": "partner.cyber-vpn.net",
+                },
+            )
+            assert production_partner_detail.status_code == 200
+            assert production_partner_detail.json()["current_role_key"] == "analyst"
+
+            production_spoofed_partner_hint = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}",
+                headers={
+                    "Authorization": f"Bearer {analyst_token}",
+                    "Host": ADMIN_AUTH_HOST,
+                    "X-Auth-Realm": "partner",
+                },
+            )
+            assert production_spoofed_partner_hint.status_code in {401, 403}
+            monkeypatch.setattr(settings, "environment", "test")
 
             owner_code_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/codes",

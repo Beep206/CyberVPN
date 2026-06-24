@@ -326,14 +326,10 @@ def sync_miniapp_launch_control_metrics(
         "maintenance",
         "blocked",
     ):
-        miniapp_launch_state_current.labels(launch_state=candidate).set(
-            1 if candidate == launch_state else 0
-        )
+        miniapp_launch_state_current.labels(launch_state=candidate).set(1 if candidate == launch_state else 0)
 
     for candidate in ("live", "canary", "maintenance", "rollback"):
-        miniapp_runtime_rollout_mode_current.labels(mode=candidate).set(
-            1 if candidate == runtime_mode else 0
-        )
+        miniapp_runtime_rollout_mode_current.labels(mode=candidate).set(1 if candidate == runtime_mode else 0)
 
     miniapp_launch_live_switch_allowed.set(1 if live_switch_allowed else 0)
     miniapp_launch_blockers_current.set(max(blockers_count, 0))
@@ -690,8 +686,7 @@ async def sync_auth_security_posture(
     now = datetime.now(UTC)
 
     risk_rows = await session.execute(
-        select(AdminUserModel.risk_level, func.count())
-        .group_by(AdminUserModel.risk_level)
+        select(AdminUserModel.risk_level, func.count()).group_by(AdminUserModel.risk_level)
     )
     risk_counts = {risk_level: 0 for risk_level in RISK_LEVELS}
     for risk_level, count in risk_rows.all():
@@ -701,8 +696,7 @@ async def sync_auth_security_posture(
         auth_users_risk_level_total.labels(risk_level=risk_level).set(risk_counts[risk_level])
 
     verification_rows = await session.execute(
-        select(AdminUserModel.is_email_verified, func.count())
-        .group_by(AdminUserModel.is_email_verified)
+        select(AdminUserModel.is_email_verified, func.count()).group_by(AdminUserModel.is_email_verified)
     )
     verification_counts = {state: 0 for state in VERIFICATION_STATES}
     for is_verified, count in verification_rows.all():

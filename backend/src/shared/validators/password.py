@@ -11,6 +11,7 @@ Requirements:
 """
 
 import re
+from typing import Literal, overload
 
 # Top 100 most common passwords (subset of 10K list)
 # Full list can be loaded from file in production
@@ -76,6 +77,14 @@ class PasswordValidationError(ValueError):
     def __init__(self, errors: list[str]) -> None:
         self.errors = errors
         super().__init__("; ".join(errors))
+
+
+@overload
+def validate_password_strength(password: str, *, raise_on_error: Literal[True] = True) -> str: ...
+
+
+@overload
+def validate_password_strength(password: str, *, raise_on_error: Literal[False]) -> list[str]: ...
 
 
 def validate_password_strength(password: str, *, raise_on_error: bool = True) -> str | list[str]:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from src.application.use_cases.subscriptions.stage1_paid_provisioning import (
     Stage1PaidProvisioningGateway,
@@ -77,10 +78,10 @@ class Stage1PaymentProvisioningResult:
             details=self._flow_details(),
         )
 
-    def to_safe_dict(self) -> dict[str, JsonScalar | dict[str, JsonScalar]]:
+    def to_safe_dict(self) -> dict[str, Any]:
         """Serialize orchestration evidence without raw payment ids, PII or config links."""
 
-        payload: dict[str, JsonScalar | dict[str, JsonScalar]] = {
+        payload: dict[str, Any] = {
             "access_state": self.access_state.value,
             "payment_state": self.payment_state.value,
             "provisioning_state": self.provisioning_state.value,
@@ -140,7 +141,7 @@ class Stage1PaymentProvisioningResult:
             )
         return details
 
-    def _safe_retry_job_payload(self) -> dict[str, JsonScalar]:
+    def _safe_retry_job_payload(self) -> dict[str, JsonScalar | dict[str, JsonScalar]]:
         safe = self.retry_job.to_safe_dict() if self.retry_job else {}
         return {
             "job_id": safe.get("job_id"),

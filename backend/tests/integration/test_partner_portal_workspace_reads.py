@@ -36,6 +36,8 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.main import app
 from tests.helpers.realm_auth import (
     ADMIN_AUTH_REALM_HEADERS,
+    PARTNER_ACCESS_COOKIE_NAME,
+    PARTNER_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
     access_token_from_client_cookies,
@@ -72,14 +74,21 @@ async def _create_admin_user(
     return user
 
 
-async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
+async def _login(
+    async_client: AsyncClient,
+    login_or_email: str,
+    password: str,
+    *,
+    headers: dict[str, str] = ADMIN_AUTH_REALM_HEADERS,
+    cookie_name: str = "access_token",
+) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers=ADMIN_AUTH_REALM_HEADERS,
+        headers=headers,
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return access_token_from_client_cookies(async_client, response=response)
+    return access_token_from_client_cookies(async_client, cookie_name=cookie_name, response=response)
 
 
 async def _create_workspace(
@@ -252,6 +261,7 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
 
                 await _create_admin_user(
                     session=db,
@@ -265,7 +275,7 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
                 owner_user = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="portal_owner",
                     email="portal-owner@example.com",
                     password="PortalOwner123!",
@@ -274,7 +284,7 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
                 await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="portal_outsider",
                     email="portal-outsider@example.com",
                     password="PortalOutsider123!",
@@ -282,12 +292,24 @@ async def test_partner_workspace_codes_and_statements_are_visible_to_workspace_m
                 )
 
             admin_token = await _login(async_client, "portal-admin@example.com", "PortalAdmin123!")
-            owner_token = await _login(async_client, "portal-owner@example.com", "PortalOwner123!")
-            outsider_token = await _login(async_client, "portal-outsider@example.com", "PortalOutsider123!")
+            owner_token = await _login(
+                async_client,
+                "portal-owner@example.com",
+                "PortalOwner123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+            )
+            outsider_token = await _login(
+                async_client,
+                "portal-outsider@example.com",
+                "PortalOutsider123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+            )
 
             admin_headers = {"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS}
-            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
-            outsider_headers = {"Authorization": f"Bearer {outsider_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **PARTNER_AUTH_REALM_HEADERS}
+            outsider_headers = {"Authorization": f"Bearer {outsider_token}", **PARTNER_AUTH_REALM_HEADERS}
 
             workspace_id = await _create_workspace(
                 async_client,
@@ -702,6 +724,7 @@ async def test_partner_workspace_code_markup_update_rotates_commission_contract(
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
                 await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
@@ -714,7 +737,7 @@ async def test_partner_workspace_code_markup_update_rotates_commission_contract(
                 owner_user = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="contract_owner",
                     email="contract-owner@example.com",
                     password="ContractOwner123!",
@@ -722,9 +745,15 @@ async def test_partner_workspace_code_markup_update_rotates_commission_contract(
                 )
 
             admin_token = await _login(async_client, "contract-admin@example.com", "ContractAdmin123!")
-            owner_token = await _login(async_client, "contract-owner@example.com", "ContractOwner123!")
+            owner_token = await _login(
+                async_client,
+                "contract-owner@example.com",
+                "ContractOwner123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+            )
             admin_headers = {"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS}
-            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **PARTNER_AUTH_REALM_HEADERS}
 
             workspace_id = await _create_workspace(
                 async_client,
@@ -825,6 +854,7 @@ async def test_partner_workspace_campaign_assets_and_reseller_voucher_batches_ar
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
 
                 admin_user = await _create_admin_user(
                     session=db,
@@ -838,7 +868,7 @@ async def test_partner_workspace_campaign_assets_and_reseller_voucher_batches_ar
                 owner_user = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="voucher_owner",
                     email="voucher-owner@example.com",
                     password="VoucherOwner123!",
@@ -846,10 +876,16 @@ async def test_partner_workspace_campaign_assets_and_reseller_voucher_batches_ar
                 )
 
             admin_token = await _login(async_client, "voucher-admin@example.com", "VoucherAdmin123!")
-            owner_token = await _login(async_client, "voucher-owner@example.com", "VoucherOwner123!")
+            owner_token = await _login(
+                async_client,
+                "voucher-owner@example.com",
+                "VoucherOwner123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+            )
 
             admin_headers = {"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS}
-            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **PARTNER_AUTH_REALM_HEADERS}
 
             workspace_id = await _create_workspace(
                 async_client,

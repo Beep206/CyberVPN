@@ -97,9 +97,7 @@ class StorefrontRepository:
     async def get_communication_profile_by_id(self, id: UUID) -> CommunicationProfileModel | None:
         return await self._session.get(CommunicationProfileModel, id)
 
-    async def create_communication_profile(
-        self, model: CommunicationProfileModel
-    ) -> CommunicationProfileModel:
+    async def create_communication_profile(self, model: CommunicationProfileModel) -> CommunicationProfileModel:
         self._session.add(model)
         await self._session.flush()
         return model

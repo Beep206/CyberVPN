@@ -59,9 +59,7 @@ class PilotCohortRepository:
         return await self._session.get(PilotCohortModel, cohort_id)
 
     async def get_pilot_cohort_by_key(self, cohort_key: str) -> PilotCohortModel | None:
-        result = await self._session.execute(
-            select(PilotCohortModel).where(PilotCohortModel.cohort_key == cohort_key)
-        )
+        result = await self._session.execute(select(PilotCohortModel).where(PilotCohortModel.cohort_key == cohort_key))
         return result.scalar_one_or_none()
 
     async def list_pilot_cohorts(
@@ -83,10 +81,14 @@ class PilotCohortRepository:
             query = query.where(PilotCohortModel.surface_key == surface_key)
         if cohort_status is not None:
             query = query.where(PilotCohortModel.cohort_status == cohort_status)
-        query = query.order_by(
-            PilotCohortModel.scheduled_start_at.asc(),
-            PilotCohortModel.created_at.asc(),
-        ).offset(offset).limit(limit)
+        query = (
+            query.order_by(
+                PilotCohortModel.scheduled_start_at.asc(),
+                PilotCohortModel.created_at.asc(),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
         result = await self._session.execute(query)
         return list(result.scalars().all())
 

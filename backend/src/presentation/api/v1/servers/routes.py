@@ -157,7 +157,7 @@ async def update_server(
     gateway = RemnawaveServerGateway(client=client)
     use_case = ManageServersUseCase(gateway=gateway)
 
-    update_kwargs = {}
+    update_kwargs: dict[str, object] = {}
     if request.name is not None:
         update_kwargs["name"] = request.name
     if request.address is not None:

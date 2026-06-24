@@ -203,9 +203,9 @@ def test_phase4_reconciliation_builder_and_summary_are_deterministic(tmp_path: P
 
 def test_phase4_reconciliation_doc_covers_liability_views_and_mismatch_vocabulary() -> None:
     repo_root = _repo_root()
-    content = (
-        repo_root / "docs/testing/partner-platform-phase4-settlement-reconciliation-pack.md"
-    ).read_text(encoding="utf-8")
+    content = (repo_root / "docs/testing/partner-platform-phase4-settlement-reconciliation-pack.md").read_text(
+        encoding="utf-8"
+    )
 
     for required_term in (
         "replay_generated_at",

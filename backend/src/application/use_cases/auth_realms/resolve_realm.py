@@ -50,6 +50,7 @@ class ResolveRealmContextUseCase:
         *,
         realm_type_hint: str | None = None,
         allow_header: bool = True,
+        host_override: str | None = None,
     ) -> RealmResolution:
         if allow_header:
             header_key = request.headers.get(AUTH_REALM_HEADER)
@@ -58,7 +59,11 @@ class ResolveRealmContextUseCase:
                 if realm:
                     return RealmResolution(auth_realm=realm, source="header")
 
-        host_header = request.headers.get("X-Forwarded-Host") or request.headers.get("Host")
+        host_header = (
+            host_override
+            if host_override is not None
+            else request.headers.get("X-Forwarded-Host") or request.headers.get("Host")
+        )
         if host_header:
             realm = await self._repo.get_realm_by_storefront_host(host_header)
             if realm:

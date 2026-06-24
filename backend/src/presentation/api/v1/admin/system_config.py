@@ -36,13 +36,9 @@ from src.presentation.dependencies.roles import require_role
 router = APIRouter(prefix="/admin/system-config", tags=["admin", "system-config"])
 
 MINIAPP_RUNTIME_CONFIG_KEY = "miniapp.runtime"
-MINIAPP_RUNTIME_CONFIG_DESCRIPTION = (
-    "Operator-controlled rollout policy for Telegram Mini App runtime."
-)
+MINIAPP_RUNTIME_CONFIG_DESCRIPTION = "Operator-controlled rollout policy for Telegram Mini App runtime."
 MINIAPP_LAUNCH_READINESS_CONFIG_KEY = "miniapp.launch_readiness"
-MINIAPP_LAUNCH_READINESS_CONFIG_DESCRIPTION = (
-    "Production launch readiness gates for Telegram Mini App runtime."
-)
+MINIAPP_LAUNCH_READINESS_CONFIG_DESCRIPTION = "Production launch readiness gates for Telegram Mini App runtime."
 MINIAPP_LAUNCH_TIMELINE_ACTIONS = (
     "system_config.miniapp_runtime.updated",
     "system_config.miniapp_launch_readiness.updated",
@@ -111,11 +107,7 @@ def _serialize_launch_readiness_response(
     return AdminMiniAppLaunchReadinessConfigResponse(
         key=MINIAPP_LAUNCH_READINESS_CONFIG_KEY,
         readiness=_serialize_launch_readiness(config),
-        description=(
-            model.description
-            if model is not None
-            else MINIAPP_LAUNCH_READINESS_CONFIG_DESCRIPTION
-        ),
+        description=(model.description if model is not None else MINIAPP_LAUNCH_READINESS_CONFIG_DESCRIPTION),
         updated_at=model.updated_at if model is not None else None,
         updated_by=model.updated_by if model is not None else None,
     )

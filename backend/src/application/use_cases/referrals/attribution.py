@@ -391,17 +391,13 @@ class ClaimReferralAttributionUseCase:
 
     async def _lock_user(self, user_id: UUID) -> MobileUserModel | None:
         result = await self._session.execute(
-            select(MobileUserModel)
-            .where(MobileUserModel.id == user_id)
-            .with_for_update()
+            select(MobileUserModel).where(MobileUserModel.id == user_id).with_for_update()
         )
         return result.scalars().one_or_none()
 
     async def _load_existing_signup_attribution(self, user_id: UUID) -> GrowthSignupAttributionModel | None:
         result = await self._session.execute(
-            select(GrowthSignupAttributionModel)
-            .where(GrowthSignupAttributionModel.user_id == user_id)
-            .limit(1)
+            select(GrowthSignupAttributionModel).where(GrowthSignupAttributionModel.user_id == user_id).limit(1)
         )
         return result.scalars().first()
 
@@ -543,9 +539,7 @@ class ClaimReferralAttributionUseCase:
 
 async def _find_referral_owner(session: AsyncSession, referral_code: str) -> MobileUserModel:
     result = await session.execute(
-        select(MobileUserModel)
-        .where(MobileUserModel.referral_code == referral_code)
-        .limit(1)
+        select(MobileUserModel).where(MobileUserModel.referral_code == referral_code).limit(1)
     )
     owner = result.scalars().first()
     if owner is None:

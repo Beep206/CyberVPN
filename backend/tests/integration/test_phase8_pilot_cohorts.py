@@ -405,8 +405,7 @@ async def test_phase8_pilot_cohorts_enforce_green_posture_and_allow_reversible_p
                     "trigger_code": "shadow_divergence_exceeded",
                     "drill_status": "passed",
                     "runbook_reference": (
-                        "docs/plans/"
-                        "2026-04-17-partner-platform-environment-specific-cutover-runbooks.md"
+                        "docs/plans/2026-04-17-partner-platform-environment-specific-cutover-runbooks.md"
                     ),
                     "observed_metric_payload": {
                         "attribution_divergence_rate": 0.0,

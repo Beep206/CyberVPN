@@ -232,9 +232,7 @@ def bind_partner_frontend_runtime_context(
         surface=normalized_surface,
         realm_type=ADMIN_REALM_TYPE if normalized_surface == ADMIN_PORTAL_SURFACE else PARTNER_REALM_TYPE,
         principal_class=(
-            ADMIN_PRINCIPAL_CLASS
-            if normalized_surface == ADMIN_PORTAL_SURFACE
-            else PARTNER_PRINCIPAL_CLASS
+            ADMIN_PRINCIPAL_CLASS if normalized_surface == ADMIN_PORTAL_SURFACE else PARTNER_PRINCIPAL_CLASS
         ),
         route_group=route_group,
         workspace_status=workspace_status,

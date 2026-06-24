@@ -33,7 +33,8 @@ async def list_legal_documents(
     db: AsyncSession = Depends(get_db),
 ) -> list[LegalDocumentResponse]:
     use_case = ListLegalDocumentsUseCase(db)
-    return await use_case.execute(document_type=document_type, locale=locale)
+    documents = await use_case.execute(document_type=document_type, locale=locale)
+    return [LegalDocumentResponse.model_validate(document) for document in documents]
 
 
 @router.post("/", response_model=LegalDocumentResponse, status_code=status.HTTP_201_CREATED)
@@ -44,7 +45,8 @@ async def create_legal_document(
 ) -> LegalDocumentResponse:
     use_case = CreateLegalDocumentUseCase(db)
     try:
-        return await use_case.execute(**payload.model_dump())
+        document = await use_case.execute(**payload.model_dump())
+        return LegalDocumentResponse.model_validate(document)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -57,7 +59,8 @@ async def create_legal_document_set(
 ) -> LegalDocumentSetResponse:
     use_case = CreateLegalDocumentSetUseCase(db)
     try:
-        return await use_case.execute(**payload.model_dump())
+        document_set = await use_case.execute(**payload.model_dump())
+        return LegalDocumentSetResponse.model_validate(document_set)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -75,4 +78,4 @@ async def resolve_legal_document_set(
         resolved = await use_case.execute(storefront_key=storefront_key, at=at)
     if resolved is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Legal document set not found")
-    return resolved
+    return LegalDocumentSetResponse.model_validate(resolved)

@@ -149,8 +149,7 @@ class TestOAuthLoginRedirectContract:
             mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
 
             assert (
-                _resolve_oauth_login_redirect_uri("github", "cybervpn://oauth/callback")
-                == "cybervpn://oauth/callback"
+                _resolve_oauth_login_redirect_uri("github", "cybervpn://oauth/callback") == "cybervpn://oauth/callback"
             )
 
     def test_rejects_browser_supplied_web_redirect_uri_override(self):

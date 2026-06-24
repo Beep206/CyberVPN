@@ -41,9 +41,7 @@ async def test_create_assigns_default_squad_by_name(monkeypatch):
 
     client.get_collection_validated.assert_awaited_once()
     _, kwargs = client.post_validated.await_args
-    assert kwargs["json"]["activeInternalSquads"] == [
-        client.get_collection_validated.return_value[1].uuid
-    ]
+    assert kwargs["json"]["activeInternalSquads"] == [client.get_collection_validated.return_value[1].uuid]
 
 
 @pytest.mark.unit

@@ -62,6 +62,7 @@ def test_attribution_touchpoint_type_values_are_frozen() -> None:
     assert [member.value for member in AttributionTouchpointType] == [
         "explicit_code",
         "passive_click",
+        "partner_claim",
         "deep_link",
         "qr_scan",
         "storefront_origin",
@@ -86,6 +87,7 @@ def test_commercial_owner_source_values_are_frozen() -> None:
     assert [member.value for member in CommercialOwnerSource] == [
         "explicit_code",
         "passive_click",
+        "claimed_commercial_binding",
         "persistent_reseller_binding",
         "storefront_default",
         "manual_override",
@@ -95,6 +97,7 @@ def test_commercial_owner_source_values_are_frozen() -> None:
 
 def test_customer_commercial_binding_values_are_frozen() -> None:
     assert [member.value for member in CustomerCommercialBindingType] == [
+        "partner_attribution",
         "reseller_binding",
         "storefront_default_owner",
         "manual_override",

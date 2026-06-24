@@ -400,9 +400,7 @@ class TestGoogleOAuthProvider:
                     GoogleOAuthProvider,
                     "_verify_id_token",
                     AsyncMock(
-                        side_effect=OAuthProviderUnavailableError(
-                            "OIDC provider metadata is temporarily unavailable"
-                        )
+                        side_effect=OAuthProviderUnavailableError("OIDC provider metadata is temporarily unavailable")
                     ),
                 ),
             ):

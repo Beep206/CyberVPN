@@ -35,26 +35,20 @@ class TestPrometheusMetricsE2E:
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app), base_url="http://test"
-        ) as client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as client:
             response = await client.get("/metrics")
             assert response.status_code == 200
             assert "text/plain" in response.headers.get("content-type", "").lower()
 
     @pytest.mark.e2e
-    async def test_metrics_contains_all_expected_metrics(
-        self, async_client: AsyncClient
-    ):
+    async def test_metrics_contains_all_expected_metrics(self, async_client: AsyncClient):
         """Verify all expected metric names are present in /metrics."""
         from httpx import ASGITransport
         from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app), base_url="http://test"
-        ) as client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as client:
             response = await client.get("/metrics")
             assert response.status_code == 200
 
@@ -75,23 +69,17 @@ class TestPrometheusMetricsE2E:
             ]
 
             for metric in expected_metrics:
-                assert (
-                    metric in body
-                ), f"Expected metric '{metric}' not found in /metrics"
+                assert metric in body, f"Expected metric '{metric}' not found in /metrics"
 
     @pytest.mark.e2e
-    async def test_metrics_includes_help_and_type_comments(
-        self, async_client: AsyncClient
-    ):
+    async def test_metrics_includes_help_and_type_comments(self, async_client: AsyncClient):
         """Verify Prometheus format with HELP and TYPE comments."""
         from httpx import ASGITransport
         from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app), base_url="http://test"
-        ) as client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as client:
             response = await client.get("/metrics")
             assert response.status_code == 200
 
@@ -164,13 +152,9 @@ class TestDetailedHealthEndpointE2E:
         assert response.status_code in [401, 403]
 
     @pytest.mark.e2e
-    async def test_health_detailed_with_auth_returns_all_services(
-        self, async_client: AsyncClient, auth_headers: dict
-    ):
+    async def test_health_detailed_with_auth_returns_all_services(self, async_client: AsyncClient, auth_headers: dict):
         """Verify /monitoring/health returns all service statuses with auth."""
-        response = await async_client.get(
-            "/api/v1/monitoring/health", headers=auth_headers
-        )
+        response = await async_client.get("/api/v1/monitoring/health", headers=auth_headers)
 
         # Note: This test assumes auth_headers fixture provides valid auth.
         # If auth is not set up, this test may be skipped or modified.
@@ -204,9 +188,7 @@ class TestHTTPRequestCounterE2E:
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app), base_url="http://test"
-        ) as metrics_client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as metrics_client:
             # Get initial metrics
             response_before = await metrics_client.get("/metrics")
             assert response_before.status_code == 200
@@ -216,8 +198,7 @@ class TestHTTPRequestCounterE2E:
             lines_before = [
                 line
                 for line in body_before.split("\n")
-                if line.startswith("http_requests_total")
-                and not line.startswith("#")
+                if line.startswith("http_requests_total") and not line.startswith("#")
             ]
             initial_count = len(lines_before)
 
@@ -233,15 +214,12 @@ class TestHTTPRequestCounterE2E:
             lines_after = [
                 line
                 for line in body_after.split("\n")
-                if line.startswith("http_requests_total")
-                and not line.startswith("#")
+                if line.startswith("http_requests_total") and not line.startswith("#")
             ]
             final_count = len(lines_after)
 
             # Verify counter increased (we made at least 10 requests)
-            assert final_count >= initial_count, (
-                "http_requests_total did not increment after making requests"
-            )
+            assert final_count >= initial_count, "http_requests_total did not increment after making requests"
 
 
 # ===========================================================================
@@ -308,9 +286,7 @@ class TestMetricsReliabilityE2E:
     """End-to-end tests for metrics endpoint reliability."""
 
     @pytest.mark.e2e
-    async def test_metrics_endpoint_handles_concurrent_requests(
-        self, async_client: AsyncClient
-    ):
+    async def test_metrics_endpoint_handles_concurrent_requests(self, async_client: AsyncClient):
         """Verify metrics endpoint handles multiple concurrent requests."""
         import asyncio
 
@@ -319,9 +295,7 @@ class TestMetricsReliabilityE2E:
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app), base_url="http://test"
-        ) as metrics_client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as metrics_client:
             # Make 20 concurrent requests to /metrics
             tasks = [metrics_client.get("/metrics") for _ in range(20)]
             responses = await asyncio.gather(*tasks, return_exceptions=True)
@@ -333,14 +307,10 @@ class TestMetricsReliabilityE2E:
                     if hasattr(r, "status_code") and r.status_code == 200:
                         successful_responses.append(r)
 
-            assert (
-                len(successful_responses) == 20
-            ), "Not all concurrent metrics requests succeeded"
+            assert len(successful_responses) == 20, "Not all concurrent metrics requests succeeded"
 
     @pytest.mark.e2e
-    async def test_metrics_endpoint_response_time_acceptable(
-        self, async_client: AsyncClient
-    ):
+    async def test_metrics_endpoint_response_time_acceptable(self, async_client: AsyncClient):
         """Verify metrics endpoint responds within acceptable time."""
         import time
 
@@ -349,9 +319,7 @@ class TestMetricsReliabilityE2E:
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app), base_url="http://test"
-        ) as metrics_client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as metrics_client:
             start_time = time.time()
             response = await metrics_client.get("/metrics")
             elapsed = time.time() - start_time
@@ -359,6 +327,4 @@ class TestMetricsReliabilityE2E:
             assert response.status_code == 200
 
             # Metrics endpoint should respond quickly (< 1 second)
-            assert (
-                elapsed < 1.0
-            ), f"Metrics endpoint took {elapsed:.2f}s (should be < 1.0s)"
+            assert elapsed < 1.0, f"Metrics endpoint took {elapsed:.2f}s (should be < 1.0s)"

@@ -138,12 +138,15 @@ class AdminMiniAppLaunchSummaryResponse(BaseModel):
         "hold_maintenance",
         "stabilize_runtime",
     ]
-    primary_action: Literal[
-        "promote_to_live",
-        "enter_maintenance",
-        "start_rollback",
-        "return_to_canary",
-    ] | None = None
+    primary_action: (
+        Literal[
+            "promote_to_live",
+            "enter_maintenance",
+            "start_rollback",
+            "return_to_canary",
+        ]
+        | None
+    ) = None
     available_actions: list[
         Literal[
             "promote_to_live",
@@ -167,21 +170,27 @@ class AdminMiniAppLaunchTimelineEntryResponse(BaseModel):
         "launch_readiness_update",
         "launch_action",
     ]
-    action_name: Literal[
-        "promote_to_live",
-        "enter_maintenance",
-        "start_rollback",
-        "return_to_canary",
-    ] | None = None
+    action_name: (
+        Literal[
+            "promote_to_live",
+            "enter_maintenance",
+            "start_rollback",
+            "return_to_canary",
+        ]
+        | None
+    ) = None
     resulting_runtime_mode: Literal["live", "canary", "maintenance", "rollback"] | None = None
-    resulting_launch_state: Literal[
-        "live",
-        "ready_for_live",
-        "canary_in_progress",
-        "rollback_in_progress",
-        "maintenance",
-        "blocked",
-    ] | None = None
+    resulting_launch_state: (
+        Literal[
+            "live",
+            "ready_for_live",
+            "canary_in_progress",
+            "rollback_in_progress",
+            "maintenance",
+            "blocked",
+        ]
+        | None
+    ) = None
     readiness_ready: bool | None = None
     change_reason: str | None = None
     entity_id: str | None = None

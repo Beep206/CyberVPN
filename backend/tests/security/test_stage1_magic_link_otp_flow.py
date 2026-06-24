@@ -171,9 +171,7 @@ async def test_stage1_magic_link_request_dispatches_link_and_token_login_sets_se
             json={"email": email.upper(), "locale": "ru-RU"},
         )
         assert request_response.status_code == 200
-        assert request_response.json() == {
-            "message": "If this email is registered, a login link has been sent."
-        }
+        assert request_response.json() == {"message": "If this email is registered, a login link has been sent."}
         assert len(dispatcher.magic_link_emails) == 1
         email_payload = dispatcher.magic_link_emails[0]
         assert email_payload["email"] == email
@@ -331,9 +329,7 @@ async def test_stage1_magic_link_request_rate_limit_is_enforced_without_extra_di
                 json={"email": email, "locale": "en-EN"},
             )
             assert response.status_code == 200, index
-            assert response.json() == {
-                "message": "If this email is registered, a login link has been sent."
-            }
+            assert response.json() == {"message": "If this email is registered, a login link has been sent."}
 
         rate_limited_response = await async_client.post(
             "/api/v1/auth/magic-link",

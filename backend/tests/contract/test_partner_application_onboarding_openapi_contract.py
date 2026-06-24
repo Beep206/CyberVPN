@@ -15,10 +15,7 @@ def test_partner_application_onboarding_routes_exist_in_openapi() -> None:
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/lane-applications" in paths
     assert f"{API_V1_PREFIX}/admin/partner-applications" in paths
     assert f"{API_V1_PREFIX}/admin/partner-applications/{{workspace_id}}" in paths
-    assert (
-        f"{API_V1_PREFIX}/admin/partner-applications/{{workspace_id}}/request-info"
-        in paths
-    )
+    assert f"{API_V1_PREFIX}/admin/partner-applications/{{workspace_id}}/request-info" in paths
 
     assert "PartnerApplicationDraftDetailResponse" in components
     assert "PartnerApplicationDraftResponse" in components

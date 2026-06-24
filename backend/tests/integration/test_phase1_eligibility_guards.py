@@ -150,4 +150,3 @@ async def test_phase1_partner_payout_eligibility_respects_open_hold_reviews(
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)
-

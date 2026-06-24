@@ -85,4 +85,3 @@ def resolve_mobile_client_context(platform: str | None) -> AuthClientContext:
         os_family=normalized_platform if normalized_platform != "unknown" else "unknown",
         client_app="mobile_app",
     )
-

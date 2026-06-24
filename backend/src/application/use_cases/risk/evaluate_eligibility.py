@@ -92,4 +92,3 @@ class EvaluateEligibilityUseCase:
             linked_subject_ids=sorted(linked_subject_ids, key=str),
             checked_at=datetime.now(UTC),
         )
-

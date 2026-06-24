@@ -43,9 +43,7 @@ class PartnerStatementModel(Base):
     accrual_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
     on_hold_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
     reserve_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
-    adjustment_net_amount: Mapped[float] = mapped_column(
-        Numeric(12, 2), nullable=False, default=0, server_default="0"
-    )
+    adjustment_net_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
     available_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
     source_event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     held_event_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")

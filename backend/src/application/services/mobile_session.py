@@ -17,7 +17,7 @@ from src.application.services.auth_session_issuer import (
     AuthSessionIssueRequest,
     hash_device_key,
 )
-from src.application.use_cases.auth.logout import LogoutUseCase
+from src.application.use_cases.auth.logout import LogoutResult, LogoutScopeResult, LogoutUseCase
 from src.application.use_cases.auth.refresh_token import RefreshTokenReplayError, RefreshTokenUseCase
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS
 from src.domain.exceptions import InvalidCredentialsError, InvalidTokenError, UserNotFoundError, ValidationError
@@ -121,12 +121,13 @@ class MobileSessionService:
             expires_in=int(result["expires_in"]),
         )
 
-    async def logout(self, *, refresh_token: str, device_id: str) -> None:
+    async def logout(self, *, refresh_token: str, device_id: str) -> LogoutResult:
         context = await self._validate_refresh_token_device(refresh_token=refresh_token, device_id=device_id)
         result = await LogoutUseCase(session=self._session).execute(refresh_token)
         if not result.refresh_token_revoked:
             raise InvalidTokenError()
         await self._touch_legacy_device(user_id=context.token_record.user_id, device_id=device_id, clear_push=True)
+        return result
 
     async def list_devices(self, *, user_id: UUID) -> list[DeviceSessionDTO]:
         user = await self._user_repo.get_by_id(user_id)
@@ -161,7 +162,7 @@ class MobileSessionService:
             if hash_device_key(device.device_id) in active_device_hashes
         ]
 
-    async def revoke_device(self, *, user_id: UUID, device_id: str) -> None:
+    async def revoke_device(self, *, user_id: UUID, device_id: str) -> LogoutScopeResult:
         user = await self._user_repo.get_by_id(user_id)
         if not user or not user.is_active:
             raise UserNotFoundError(identifier=str(user_id))
@@ -175,7 +176,7 @@ class MobileSessionService:
         if user_device is None:
             raise ValidationError("Device not found")
 
-        await LogoutUseCase(session=self._session).execute_device(
+        result = await LogoutUseCase(session=self._session).execute_device(
             auth_realm_id=realm.id,
             principal_subject=str(user_id),
             principal_class=MOBILE_PRINCIPAL_CLASS,
@@ -186,6 +187,7 @@ class MobileSessionService:
         legacy_device = await self._device_repo.get_by_device_id_and_user(device_id=device_id, user_id=user_id)
         if legacy_device is not None:
             await self._device_repo.delete(legacy_device)
+        return result
 
     async def _resolve_customer_realm(self, user: MobileUserModel) -> AuthRealmModel:
         repo = AuthRealmRepository(self._session)

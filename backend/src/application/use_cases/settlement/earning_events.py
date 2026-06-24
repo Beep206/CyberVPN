@@ -21,6 +21,7 @@ from src.infrastructure.database.repositories.order_attribution_result_repo impo
 )
 from src.infrastructure.database.repositories.order_repo import OrderRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
+from src.infrastructure.database.repositories.renewal_order_repo import RenewalOrderRepository
 from src.infrastructure.database.repositories.settlement_repo import SettlementRepository
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 
@@ -118,6 +119,7 @@ class CreatePartnerEarningEventFromPaymentUseCase:
         self._orders = OrderRepository(session)
         self._payments = PaymentRepository(session)
         self._attribution = OrderAttributionResultRepository(session)
+        self._renewals = RenewalOrderRepository(session)
 
     async def execute(
         self,
@@ -144,18 +146,46 @@ class CreatePartnerEarningEventFromPaymentUseCase:
         if payment is None:
             raise ValueError("Payment not found")
         attribution_result = await self._attribution.get_by_order_id(order_id)
+        renewal_order = None
+        terms_source_result = attribution_result
+        owner_type = attribution_result.owner_type if attribution_result is not None else "none"
+        owner_source = attribution_result.owner_source if attribution_result is not None else None
+        partner_account_id = attribution_result.partner_account_id if attribution_result is not None else None
+        partner_code_id = attribution_result.partner_code_id if attribution_result is not None else None
+        policy_snapshot = dict(attribution_result.policy_snapshot or {}) if attribution_result is not None else {}
+        policy_version_id = attribution_result.policy_version_id if attribution_result is not None else None
+        commission_contract_id = attribution_result.commission_contract_id if attribution_result is not None else None
+
         if attribution_result is None or attribution_result.owner_type == "none":
-            return None, None
+            renewal_order = await self._renewals.get_by_order_id(order_id)
+            if (
+                renewal_order is None
+                or renewal_order.effective_owner_type == "none"
+                or not renewal_order.payout_eligible
+            ):
+                return None, None
+            if renewal_order.originating_attribution_result_id is None:
+                raise PartnerEarningSnapshotIncompleteError(["renewal_originating_attribution_result"])
+            terms_source_result = await self._attribution.get_by_id(renewal_order.originating_attribution_result_id)
+            if terms_source_result is None:
+                raise PartnerEarningSnapshotIncompleteError(["renewal_originating_attribution_result"])
+            owner_type = renewal_order.effective_owner_type
+            owner_source = renewal_order.effective_owner_source
+            partner_account_id = renewal_order.effective_partner_account_id or terms_source_result.partner_account_id
+            partner_code_id = renewal_order.effective_partner_code_id or terms_source_result.partner_code_id
+            policy_snapshot = dict(terms_source_result.policy_snapshot or {})
+            policy_version_id = terms_source_result.policy_version_id
+            commission_contract_id = terms_source_result.commission_contract_id
 
         terms = extract_partner_commission_terms(
-            attribution_result.policy_snapshot,
-            expected_partner_account_id=attribution_result.partner_account_id,
+            policy_snapshot,
+            expected_partner_account_id=partner_account_id,
             expected_partner_user_id=None,
-            expected_partner_code_id=attribution_result.partner_code_id,
-            expected_owner_type=attribution_result.owner_type,
-            expected_commission_contract_id=attribution_result.commission_contract_id,
+            expected_partner_code_id=partner_code_id,
+            expected_owner_type=owner_type,
+            expected_commission_contract_id=commission_contract_id,
         )
-        partner_account_id = attribution_result.partner_account_id or terms.partner_account_id
+        partner_account_id = partner_account_id or terms.partner_account_id
         partner_user_id = terms.partner_user_id
         if partner_account_id is None and partner_user_id is None:
             raise PartnerEarningSnapshotIncompleteError(["partner_owner"])
@@ -163,7 +193,7 @@ class CreatePartnerEarningEventFromPaymentUseCase:
         if payment_currency != terms.currency_code:
             raise PartnerEarningSnapshotIncompleteError(["currency_code_mismatch"])
 
-        commercial_snapshot = dict((attribution_result.policy_snapshot or {}).get("commercial_policy_snapshot") or {})
+        commercial_snapshot = dict(policy_snapshot.get("commercial_policy_snapshot") or {})
         base_amount = Decimal(str(order.commission_base_amount))
         requested_commission_base_amount = Decimal(str(commission_base_amount))
         calculated = calculate_partner_earning_amounts(base_amount=base_amount, terms=terms)
@@ -178,12 +208,12 @@ class CreatePartnerEarningEventFromPaymentUseCase:
             payment_id=payment.id,
             source_event_id=event_id,
             source_event_key=source_event_key,
-            partner_code_id=attribution_result.partner_code_id,
+            partner_code_id=partner_code_id,
             legacy_partner_earning_id=None,
-            order_attribution_result_id=attribution_result.id,
-            policy_version_id=attribution_result.policy_version_id,
-            commission_contract_id=attribution_result.commission_contract_id,
-            owner_type=attribution_result.owner_type,
+            order_attribution_result_id=terms_source_result.id if terms_source_result is not None else None,
+            policy_version_id=policy_version_id,
+            commission_contract_id=commission_contract_id,
+            owner_type=owner_type,
             earning_component="partner_cash",
             event_status=(EarningEventStatus.ON_HOLD.value if hold_days > 0 else EarningEventStatus.AVAILABLE.value),
             commission_base_amount=calculated["commission_base_amount"],
@@ -213,7 +243,7 @@ class CreatePartnerEarningEventFromPaymentUseCase:
                 "refund_policy": dict(terms.refund_policy),
                 "commission_contract_snapshot": dict(terms.snapshot),
                 "commercial_snapshot": commercial_snapshot,
-                "policy_snapshot": dict(attribution_result.policy_snapshot or {}),
+                "policy_snapshot": dict(policy_snapshot or {}),
             },
             source_snapshot={
                 "order_id": str(order.id),
@@ -221,16 +251,21 @@ class CreatePartnerEarningEventFromPaymentUseCase:
                 "source_event_key": source_event_key,
                 "requested_commission_base_amount": str(requested_commission_base_amount),
                 "order_commission_base_amount": str(order.commission_base_amount),
-                "owner_type": attribution_result.owner_type,
-                "owner_source": attribution_result.owner_source,
+                "owner_type": owner_type,
+                "owner_source": owner_source,
                 "partner_account_id": str(partner_account_id) if partner_account_id else None,
-                "partner_code_id": (
-                    str(attribution_result.partner_code_id) if attribution_result.partner_code_id else None
-                ),
+                "partner_code_id": str(partner_code_id) if partner_code_id else None,
                 "attribution_session_id": (
-                    str(attribution_result.attribution_session_id)
-                    if attribution_result.attribution_session_id
+                    str(terms_source_result.attribution_session_id)
+                    if terms_source_result is not None and terms_source_result.attribution_session_id
                     else None
+                ),
+                "renewal_order_id": str(renewal_order.id) if renewal_order is not None else None,
+                "renewal_sequence_number": (
+                    renewal_order.renewal_sequence_number if renewal_order is not None else None
+                ),
+                "originating_attribution_result_id": (
+                    str(renewal_order.originating_attribution_result_id) if renewal_order is not None else None
                 ),
             },
         )
@@ -246,7 +281,7 @@ class CreatePartnerEarningEventFromPaymentUseCase:
                     reason_code="partner_payout_hold_policy",
                     hold_until=created_at + timedelta(days=hold_days),
                     hold_payload={
-                        "owner_type": attribution_result.owner_type,
+                        "owner_type": owner_type,
                         "hold_days": hold_days,
                         "commission_contract_id": str(terms.commission_contract_id),
                     },

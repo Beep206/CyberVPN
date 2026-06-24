@@ -32,7 +32,7 @@ async def list_policy_versions(
     db: AsyncSession = Depends(get_db),
 ) -> list[PolicyVersionResponse]:
     use_case = ListPolicyVersionsUseCase(db)
-    return await use_case.execute(
+    policy_versions = await use_case.execute(
         policy_family=policy_family,
         policy_key=policy_key,
         subject_type=subject_type,
@@ -41,6 +41,7 @@ async def list_policy_versions(
         include_inactive=include_inactive,
         at=at,
     )
+    return [PolicyVersionResponse.model_validate(policy_version) for policy_version in policy_versions]
 
 
 @router.post("/", response_model=PolicyVersionResponse, status_code=status.HTTP_201_CREATED)
@@ -51,10 +52,11 @@ async def create_policy_version(
 ) -> PolicyVersionResponse:
     use_case = CreatePolicyVersionUseCase(db)
     try:
-        return await use_case.execute(
+        policy_version = await use_case.execute(
             **payload.model_dump(),
             created_by_admin_user_id=current_user.id,
         )
+        return PolicyVersionResponse.model_validate(policy_version)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -68,10 +70,11 @@ async def approve_policy_version(
 ) -> PolicyVersionResponse:
     use_case = ApprovePolicyVersionUseCase(db)
     try:
-        return await use_case.execute(
+        policy_version = await use_case.execute(
             policy_version_id,
             approved_by_admin_user_id=current_user.id,
             **payload.model_dump(),
         )
+        return PolicyVersionResponse.model_validate(policy_version)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

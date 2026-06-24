@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -26,7 +27,7 @@ class WalletModel(Base):
         index=True,
     )
 
-    balance: Mapped[float] = mapped_column(
+    balance: Mapped[Decimal] = mapped_column(
         Numeric(20, 8),
         nullable=False,
         default=0,
@@ -38,7 +39,7 @@ class WalletModel(Base):
         default="USD",
     )
 
-    frozen: Mapped[float] = mapped_column(
+    frozen: Mapped[Decimal] = mapped_column(
         Numeric(20, 8),
         nullable=False,
         default=0,
@@ -93,7 +94,7 @@ class WalletTransactionModel(Base):
         nullable=False,
     )
 
-    amount: Mapped[float] = mapped_column(
+    amount: Mapped[Decimal] = mapped_column(
         Numeric(20, 8),
         nullable=False,
     )
@@ -104,7 +105,7 @@ class WalletTransactionModel(Base):
         default="USD",
     )
 
-    balance_after: Mapped[float] = mapped_column(
+    balance_after: Mapped[Decimal] = mapped_column(
         Numeric(20, 8),
         nullable=False,
     )

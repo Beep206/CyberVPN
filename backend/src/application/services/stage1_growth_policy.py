@@ -5,9 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 S1_GROWTH_POLICY_ID = "stage1_beta_growth_flows_disabled_by_default_v1"
-S1_GROWTH_DISABLED_MESSAGE = (
-    "Public promo, gift, referral, and checkout code flows are disabled for S1 beta"
-)
+S1_GROWTH_DISABLED_MESSAGE = "Public promo, gift, referral, and checkout code flows are disabled for S1 beta"
 
 
 class Stage1GrowthPolicyError(ValueError):

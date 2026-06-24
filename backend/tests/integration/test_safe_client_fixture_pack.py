@@ -135,8 +135,9 @@ async def test_safe_client_fixture_pack_exercises_business_flows_without_secret_
             service_state_payload = service_state.json()
             assert service_state_payload["device_credential"]["subject_key"] == pack.active.device_subject_key
             assert service_state_payload["device_credential"]["credential_status"] == "active"
-            assert service_state_payload["access_delivery_channel"]["device_credential_id"] == (
-                service_state_payload["device_credential"]["id"]
+            assert (
+                service_state_payload["access_delivery_channel"]["device_credential_id"]
+                == (service_state_payload["device_credential"]["id"])
             )
             assert service_state_payload["access_delivery_channel"]["channel_subject_ref"] == (
                 pack.active.device_subject_key

@@ -496,9 +496,7 @@ class TestPaymentHistory:
         await db.commit()
 
         _override_mobile_user(mobile_user_id)
-        history_response = await async_client.get(
-            f"/api/v1/payments/history?user_uuid={other_user_id}&limit=3"
-        )
+        history_response = await async_client.get(f"/api/v1/payments/history?user_uuid={other_user_id}&limit=3")
 
         assert history_response.status_code == 200
         history_data = history_response.json()

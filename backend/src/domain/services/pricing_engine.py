@@ -233,7 +233,7 @@ class EffectiveCatalogResolver:
         overrides: tuple[CatalogOverride, ...],
     ) -> _ResolvedItemState:
         state = _ResolvedItemState(
-            prices=dict(item.prices),
+            prices=_normalize_prices(item.prices, allow_missing=True),
             addons=tuple(item.addons),
             billing_periods=tuple(item.billing_periods),
             availability=tuple(item.availability),

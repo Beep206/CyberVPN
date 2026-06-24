@@ -68,11 +68,7 @@ async def build_statement_snapshot(
     adjustment_net_amount = round(adjustment_net_amount, 2)
 
     available_amount = round(accrual_amount - on_hold_amount - reserve_amount + adjustment_net_amount, 2)
-    currency_code = (
-        earning_events[0].currency_code
-        if earning_events
-        else settlement_period.currency_code
-    )
+    currency_code = earning_events[0].currency_code if earning_events else settlement_period.currency_code
 
     snapshot = {
         "window_start": window_start.isoformat(),

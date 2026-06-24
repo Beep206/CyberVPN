@@ -5,11 +5,15 @@ Stores device information for mobile app authentication and session management.
 
 import uuid
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.database.session import Base
+
+if TYPE_CHECKING:
+    from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 
 
 class MobileDeviceModel(Base):

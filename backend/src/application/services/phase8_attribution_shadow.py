@@ -135,8 +135,7 @@ def build_phase8_attribution_shadow_pack(snapshot: dict[str, Any]) -> dict[str, 
                 order_id=None,
                 lane_key=None,
                 message=(
-                    "Phase 3 explainability reference is red and cannot support "
-                    "Phase 8 attribution shadow sign-off."
+                    "Phase 3 explainability reference is red and cannot support Phase 8 attribution shadow sign-off."
                 ),
                 details={"phase3_status": phase3_status},
             )
@@ -502,8 +501,7 @@ def _compare_binding_shadow(
                 order_id=order_id,
                 lane_key=lane_key,
                 message=(
-                    "Canonical replay selected a winning binding, but "
-                    "legacy/reference shadow omitted binding context."
+                    "Canonical replay selected a winning binding, but legacy/reference shadow omitted binding context."
                 ),
                 details={"canonical_binding_id": canonical_binding.get("id")},
             )
@@ -603,8 +601,7 @@ def _compare_renewal_shadow(
                 order_id=order_id,
                 lane_key=lane_key,
                 message=(
-                    "Legacy/reference shadow includes renewal ownership for an "
-                    "order without canonical renewal lineage."
+                    "Legacy/reference shadow includes renewal ownership for an order without canonical renewal lineage."
                 ),
                 details={},
             )

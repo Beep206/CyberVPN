@@ -41,9 +41,7 @@ class HelixResolveManifestRequest(BaseModel):
     channel: str | None = Field(default=None, pattern="^(lab|canary|stable)$")
     supported_protocol_versions: list[int] | None = None
     supported_transport_profiles: list[AdapterSupportedTransportProfile] | None = None
-    preferred_fallback_core: str | None = Field(
-        default=None, pattern="^(sing-box|xray)$"
-    )
+    preferred_fallback_core: str | None = Field(default=None, pattern="^(sing-box|xray)$")
 
 
 class HelixPublishRolloutRequest(BaseModel):
@@ -100,16 +98,12 @@ class HelixRuntimeEventRequest(BaseModel):
     rollout_id: str = Field(..., pattern="^rollout-[a-z0-9-]+$")
     transport_profile_id: str = Field(..., min_length=3, max_length=128)
     event_kind: str = Field(..., pattern="^(ready|fallback|disconnect|benchmark)$")
-    active_core: str = Field(
-        ..., pattern="^(helix|private-transport|sing-box|xray)$"
-    )
+    active_core: str = Field(..., pattern="^(helix|private-transport|sing-box|xray)$")
     fallback_core: str | None = Field(default=None, pattern="^(sing-box|xray)$")
     latency_ms: int | None = Field(default=None, ge=0)
     route_count: int | None = Field(default=None, ge=0)
     reason: str | None = Field(default=None, max_length=512)
-    payload: AdapterDesktopRuntimeEventPayload = Field(
-        default_factory=AdapterDesktopRuntimeEventPayload
-    )
+    payload: AdapterDesktopRuntimeEventPayload = Field(default_factory=AdapterDesktopRuntimeEventPayload)
 
 
 HelixCapabilityDefaultsResponse = AdapterClientCapabilityDefaults

@@ -44,15 +44,15 @@ class CreateRiskSubjectUseCase:
 
         principal_realm_id: UUID | None = None
         if normalized_principal_class == PrincipalClass.CUSTOMER:
-            principal = await self._mobile_user_repo.get_by_id(principal_subject)
-            if principal is None:
+            customer_principal = await self._mobile_user_repo.get_by_id(principal_subject)
+            if customer_principal is None:
                 raise ValueError("Customer principal not found")
-            principal_realm_id = principal.auth_realm_id
+            principal_realm_id = customer_principal.auth_realm_id
         elif normalized_principal_class in {PrincipalClass.ADMIN, PrincipalClass.PARTNER_OPERATOR}:
-            principal = await self._admin_user_repo.get_by_id(principal_subject)
-            if principal is None:
+            admin_principal = await self._admin_user_repo.get_by_id(principal_subject)
+            if admin_principal is None:
                 raise ValueError("Admin principal not found")
-            principal_realm_id = principal.auth_realm_id
+            principal_realm_id = admin_principal.auth_realm_id
         else:
             raise ValueError("Unsupported principal_class for risk subjects")
 

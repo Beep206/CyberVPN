@@ -393,6 +393,7 @@ class ClaimPartnerBotProvisioningJobUseCase:
             },
         )
 
+
 class FinalizePartnerBotProvisioningJobUseCase:
     def __init__(self, session: AsyncSession) -> None:
         self._repo = PartnerBotRepository(session)

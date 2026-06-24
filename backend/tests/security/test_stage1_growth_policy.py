@@ -64,9 +64,7 @@ def test_referral_config_respects_database_default_off(monkeypatch: pytest.Monke
     monkeypatch.setattr(settings, "referral_enabled", True)
 
     result = asyncio.run(
-        ConfigService(
-            StaticConfigRepository({"referral.enabled": {"enabled": False}})
-        ).is_referral_enabled()
+        ConfigService(StaticConfigRepository({"referral.enabled": {"enabled": False}})).is_referral_enabled()
     )
 
     assert result is False

@@ -4,10 +4,11 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.growth_codes.reporting import (
@@ -570,8 +571,7 @@ class GetGrowthReportingGovernanceOverviewUseCase:
             if item.status_reason in {"delivery_suppressed", "recipient_domain_blocked"}
         ][:delivery_limit]
         recent_audit_events = [
-            _serialize_governance_audit_event(audit_row, actor)
-            for audit_row, actor in audit_rows[:audit_limit]
+            _serialize_governance_audit_event(audit_row, actor) for audit_row, actor in audit_rows[:audit_limit]
         ]
         coverage_gap_count = (
             coverage_counts_map["delivery_suppressed"] + coverage_counts_map["recipient_domain_blocked"]
@@ -586,12 +586,8 @@ class GetGrowthReportingGovernanceOverviewUseCase:
         )
         return GrowthReportingGovernanceOverview(
             generated_at=now,
-            active_subscription_count=sum(
-                1 for item in subscriptions if item.subscription_status == "active"
-            ),
-            paused_subscription_count=sum(
-                1 for item in subscriptions if item.subscription_status != "active"
-            ),
+            active_subscription_count=sum(1 for item in subscriptions if item.subscription_status == "active"),
+            paused_subscription_count=sum(1 for item in subscriptions if item.subscription_status != "active"),
             coverage_gap_count=coverage_gap_count,
             followup_open_count=followup_open_count,
             followup_overdue_count=followup_overdue_count,
@@ -1025,9 +1021,7 @@ class CompleteGrowthReportingDeliveryUseCase:
         delivery.provider_message_id = provider_message_id
         delivery.failure_message = failure_message
         delivery.status_reason = (
-            None
-            if delivery_status == "delivered"
-            else (delivery.status_reason or "delivery_failed")
+            None if delivery_status == "delivered" else (delivery.status_reason or "delivery_failed")
         )
         delivery.delivered_at = now if delivery_status == "delivered" else None
 
@@ -1193,18 +1187,24 @@ class CleanupGrowthReportingArtifactsUseCase:
         )
 
     async def _delete_refresh_runs(self, *, older_than: datetime) -> int:
-        result = await self._session.execute(
-            delete(GrowthReportingRefreshRunModel).where(
-                GrowthReportingRefreshRunModel.finished_at < older_than,
-            )
+        result = cast(
+            CursorResult,
+            await self._session.execute(
+                delete(GrowthReportingRefreshRunModel).where(
+                    GrowthReportingRefreshRunModel.finished_at < older_than,
+                )
+            ),
         )
         return int(result.rowcount or 0)
 
     async def _delete_rollups(self, *, older_than: date) -> int:
-        result = await self._session.execute(
-            delete(GrowthReportingDailyRollupModel).where(
-                GrowthReportingDailyRollupModel.report_date < older_than,
-            )
+        result = cast(
+            CursorResult,
+            await self._session.execute(
+                delete(GrowthReportingDailyRollupModel).where(
+                    GrowthReportingDailyRollupModel.report_date < older_than,
+                )
+            ),
         )
         return int(result.rowcount or 0)
 
@@ -1297,9 +1297,7 @@ def _followup_summary_from_subscription(
     due_at = _coerce_utc(item.governance_followup_due_at) if item.governance_followup_due_at else None
     opened_at = _coerce_utc(item.governance_followup_opened_at) if item.governance_followup_opened_at else None
     last_notified_at = (
-        _coerce_utc(item.governance_followup_last_notified_at)
-        if item.governance_followup_last_notified_at
-        else None
+        _coerce_utc(item.governance_followup_last_notified_at) if item.governance_followup_last_notified_at else None
     )
     resolved_at = _coerce_utc(item.governance_followup_resolved_at) if item.governance_followup_resolved_at else None
     status = item.governance_followup_status or "none"
@@ -1529,9 +1527,7 @@ def _build_governance_notes(
 ) -> list[str]:
     notes: list[str] = []
     if coverage_counts_map["delivery_suppressed"] > 0:
-        notes.append(
-            f"{coverage_counts_map['delivery_suppressed']} active subscriptions are currently suppressed."
-        )
+        notes.append(f"{coverage_counts_map['delivery_suppressed']} active subscriptions are currently suppressed.")
     if coverage_counts_map["recipient_domain_blocked"] > 0:
         notes.append(
             f"{coverage_counts_map['recipient_domain_blocked']} active subscriptions are "
@@ -1645,11 +1641,7 @@ def _serialize_delivery(item: GrowthReportingDeliveryModel) -> GrowthReportingDe
 async def _count_overdue_subscriptions(session: AsyncSession, *, now: datetime) -> int:
     result = await session.execute(select(GrowthReportingSubscriptionModel))
     subscriptions = list(result.scalars().all())
-    return sum(
-        1
-        for item in subscriptions
-        if _governance_state_for_subscription(item, now=now) == "overdue"
-    )
+    return sum(1 for item in subscriptions if _governance_state_for_subscription(item, now=now) == "overdue")
 
 
 def _advance_next_delivery_at(*, current_due_at: datetime, cadence: str, now: datetime) -> datetime:

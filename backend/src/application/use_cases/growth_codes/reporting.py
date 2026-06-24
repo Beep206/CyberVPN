@@ -778,9 +778,7 @@ def _build_reporting_health(
     now = datetime.now(UTC)
     latest_success_at = latest_success.refreshed_at if latest_success is not None else None
     refresh_age_seconds = (
-        max(int((now - latest_success_at).total_seconds()), 0)
-        if latest_success_at is not None
-        else None
+        max(int((now - latest_success_at).total_seconds()), 0) if latest_success_at is not None else None
     )
 
     freshness_status = "fresh"

@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -718,6 +718,7 @@ class TestBruteForceProtection:
             login=f"timinguser{secrets.token_hex(4)}",
             email=user_email,
             password_hash=password_hash,
+            auth_realm_id=await _customer_realm_id(db),
             role="viewer",
             is_active=True,
             is_email_verified=True,
@@ -856,49 +857,53 @@ class TestLogoutAllDevices:
         device1_access = async_client.cookies["customer_access_token"]
         device1_refresh = async_client.cookies["customer_refresh_token"]
 
-        # Login from "device 2"
-        login2_response = await async_client.post(
-            "/api/v1/auth/login",
-            json={"login_or_email": user_email, "password": password},
-        )
-        assert login2_response.status_code == 200
-        device2_access = async_client.cookies["customer_access_token"]
-        device2_refresh = async_client.cookies["customer_refresh_token"]
+        async with AsyncClient(
+            transport=ASGITransport(app=app, client=(f"pytest-device2-{secrets.token_hex(8)}", 123)),
+            base_url="http://test",
+        ) as device2_client:
+            # Login from "device 2" with an isolated cookie jar.
+            login2_response = await device2_client.post(
+                "/api/v1/auth/login",
+                json={"login_or_email": user_email, "password": password},
+            )
+            assert login2_response.status_code == 200
+            device2_access = device2_client.cookies["customer_access_token"]
+            device2_refresh = device2_client.cookies["customer_refresh_token"]
 
-        # Both tokens work
-        me1_response = await async_client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {device1_access}"},
-        )
-        assert me1_response.status_code == 200
+            # Both tokens work
+            me1_response = await async_client.get(
+                "/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {device1_access}"},
+            )
+            assert me1_response.status_code == 200
 
-        me2_response = await async_client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {device2_access}"},
-        )
-        assert me2_response.status_code == 200
+            me2_response = await device2_client.get(
+                "/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {device2_access}"},
+            )
+            assert me2_response.status_code == 200
 
-        # Logout from all devices using device 1
-        logout_all_response = await async_client.post(
-            "/api/v1/auth/logout-all",
-            headers={"Authorization": f"Bearer {device1_access}"},
-        )
-        assert logout_all_response.status_code == 200
-        logout_data = logout_all_response.json()
-        assert logout_data["sessions_revoked"] >= 2  # At least 2 sessions
+            # Logout from all devices using device 1
+            logout_all_response = await async_client.post(
+                "/api/v1/auth/logout-all",
+                headers={"Authorization": f"Bearer {device1_access}"},
+            )
+            assert logout_all_response.status_code == 200
+            logout_data = logout_all_response.json()
+            assert logout_data["sessions_revoked"] >= 2  # At least 2 devices
 
-        # Both refresh tokens should be invalidated
-        refresh1_response = await async_client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": device1_refresh},
-        )
-        assert refresh1_response.status_code == 401
+            # Both refresh tokens should be invalidated
+            refresh1_response = await async_client.post(
+                "/api/v1/auth/refresh",
+                json={"refresh_token": device1_refresh},
+            )
+            assert refresh1_response.status_code == 401
 
-        refresh2_response = await async_client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": device2_refresh},
-        )
-        assert refresh2_response.status_code == 401
+            refresh2_response = await device2_client.post(
+                "/api/v1/auth/refresh",
+                json={"refresh_token": device2_refresh},
+            )
+            assert refresh2_response.status_code == 401
 
         # Access tokens should also be revoked (if JWT revocation is enabled)
         # Note: This depends on whether JWT revocation service is checking Redis

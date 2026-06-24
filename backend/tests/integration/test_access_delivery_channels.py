@@ -139,10 +139,7 @@ async def test_resolve_current_access_delivery_channel_auto_bridges_customer_rea
             repeated_payload = repeated_resolve_response.json()
             assert repeated_payload["service_identity_id"] == payload["service_identity_id"]
             assert repeated_payload["device_credential"]["id"] == payload["device_credential"]["id"]
-            assert (
-                repeated_payload["access_delivery_channel"]["id"]
-                == payload["access_delivery_channel"]["id"]
-            )
+            assert repeated_payload["access_delivery_channel"]["id"] == payload["access_delivery_channel"]["id"]
 
             list_device_credentials_response = await async_client.get(
                 f"/api/v1/device-credentials/?service_identity_id={payload['service_identity_id']}",

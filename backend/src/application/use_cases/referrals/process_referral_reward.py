@@ -79,9 +79,7 @@ class ProcessReferralRewardUseCase:
             hold_days=int(referral_policy.hold_days or 0),
             reward_value=Decimal(str(referral_policy.reward_value or 0)),
             monthly_cap=(
-                Decimal(str(referral_policy.monthly_cap or 0))
-                if referral_policy.monthly_cap is not None
-                else None
+                Decimal(str(referral_policy.monthly_cap or 0)) if referral_policy.monthly_cap is not None else None
             ),
             lifetime_cap=Decimal(str(referral_policy.lifetime_cap or 0))
             if referral_policy.lifetime_cap is not None
@@ -118,11 +116,7 @@ class ProcessReferralRewardUseCase:
                 if reward_decision.status == GrowthRewardAllocationStatus.PENDING.value
                 else None
             ),
-            available_at=(
-                None
-                if reward_decision.status == GrowthRewardAllocationStatus.PENDING.value
-                else now
-            ),
+            available_at=(None if reward_decision.status == GrowthRewardAllocationStatus.PENDING.value else now),
             commit=False,
         )
         return allocation

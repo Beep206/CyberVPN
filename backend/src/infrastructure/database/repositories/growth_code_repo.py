@@ -212,10 +212,7 @@ class GrowthCodeRepository:
         result = await self._session.execute(
             select(GiftCodePolicyModel).where(GiftCodePolicyModel.growth_code_id.in_(growth_code_ids))
         )
-        return {
-            item.growth_code_id: item
-            for item in result.scalars().all()
-        }
+        return {item.growth_code_id: item for item in result.scalars().all()}
 
     async def create_resolution_event(
         self,
@@ -321,10 +318,7 @@ class GrowthCodeRepository:
             .where(GrowthCodeRedemptionModel.growth_code_id.in_(growth_code_ids))
             .group_by(GrowthCodeRedemptionModel.growth_code_id)
         )
-        return {
-            growth_code_id: int(count)
-            for growth_code_id, count in result.all()
-        }
+        return {growth_code_id: int(count) for growth_code_id, count in result.all()}
 
     async def summarize_codes_by_type_status(self) -> list[dict[str, object]]:
         result = await self._session.execute(
@@ -354,10 +348,7 @@ class GrowthCodeRepository:
             .group_by(GrowthCodeResolutionEventModel.result)
             .order_by(GrowthCodeResolutionEventModel.result.asc())
         )
-        return [
-            {"result": result_key, "count": int(count)}
-            for result_key, count in result.all()
-        ]
+        return [{"result": result_key, "count": int(count)} for result_key, count in result.all()]
 
     async def summarize_resolution_rejections(self) -> list[dict[str, object]]:
         result = await self._session.execute(
@@ -369,10 +360,7 @@ class GrowthCodeRepository:
             .group_by(GrowthCodeResolutionEventModel.reject_reason)
             .order_by(func.count(GrowthCodeResolutionEventModel.id).desc())
         )
-        return [
-            {"reject_reason": reject_reason, "count": int(count)}
-            for reject_reason, count in result.all()
-        ]
+        return [{"reject_reason": reject_reason, "count": int(count)} for reject_reason, count in result.all()]
 
     async def summarize_redemptions_by_code_type(self) -> list[dict[str, object]]:
         result = await self._session.execute(
@@ -383,16 +371,11 @@ class GrowthCodeRepository:
             .group_by(GrowthCodeRedemptionModel.code_type)
             .order_by(GrowthCodeRedemptionModel.code_type.asc())
         )
-        return [
-            {"code_type": code_type, "count": int(count)}
-            for code_type, count in result.all()
-        ]
+        return [{"code_type": code_type, "count": int(count)} for code_type, count in result.all()]
 
     async def count_active_reservations(self) -> int:
         result = await self._session.execute(
-            select(func.count(GrowthCodeReservationModel.id)).where(
-                GrowthCodeReservationModel.status == "reserved"
-            )
+            select(func.count(GrowthCodeReservationModel.id)).where(GrowthCodeReservationModel.status == "reserved")
         )
         return int(result.scalar_one())
 

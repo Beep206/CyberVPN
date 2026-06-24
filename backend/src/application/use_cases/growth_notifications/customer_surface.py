@@ -378,9 +378,7 @@ def _build_repair_target(*, state: dict[str, Any]) -> CustomerGrowthNotification
             kind="profile_review",
             summary="Review your account profile and support routing before trying email delivery again.",
         )
-    if troubleshooting_state in {"paused_admin", "revoked_admin", "unknown"} or bool(
-        state.get("support_required")
-    ):
+    if troubleshooting_state in {"paused_admin", "revoked_admin", "unknown"} or bool(state.get("support_required")):
         return CustomerGrowthNotificationRepairTarget(
             kind="support_contact",
             summary="Open official support with the structured reference below.",

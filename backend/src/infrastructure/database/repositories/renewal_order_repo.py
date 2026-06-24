@@ -22,9 +22,7 @@ class RenewalOrderRepository:
         return await self._session.get(RenewalOrderModel, renewal_order_id)
 
     async def get_by_order_id(self, order_id: UUID) -> RenewalOrderModel | None:
-        result = await self._session.execute(
-            select(RenewalOrderModel).where(RenewalOrderModel.order_id == order_id)
-        )
+        result = await self._session.execute(select(RenewalOrderModel).where(RenewalOrderModel.order_id == order_id))
         return result.scalars().first()
 
     async def list_for_initial_order(self, initial_order_id: UUID) -> list[RenewalOrderModel]:

@@ -45,7 +45,7 @@ class TestTelegramMiniAppUseCase:
             "photo_url": None,
             "language_code": "en",
             "auth_date": "1760000000",
-            "replay_canonical_init_data": "auth_date=1760000000\nuser={\"id\":123456789}",
+            "replay_canonical_init_data": 'auth_date=1760000000\nuser={"id":123456789}',
         }
         provider.max_auth_age_seconds = 86400
         return provider
@@ -107,7 +107,7 @@ class TestTelegramMiniAppUseCase:
         await use_case.execute("valid_init_data")
 
         mock_replay_guard.accept.assert_awaited_once_with(
-            canonical_init_data="auth_date=1760000000\nuser={\"id\":123456789}",
+            canonical_init_data='auth_date=1760000000\nuser={"id":123456789}',
             telegram_id="123456789",
             auth_date=1760000000,
             max_age_seconds=86400,
@@ -170,7 +170,7 @@ class TestTelegramMiniAppUseCase:
             "photo_url": None,
             "language_code": None,
             "auth_date": "1760000000",
-            "replay_canonical_init_data": "auth_date=1760000000\nuser={\"id\":\"\"}",
+            "replay_canonical_init_data": 'auth_date=1760000000\nuser={"id":""}',
         }
 
         with pytest.raises(ValueError, match="user ID missing"):

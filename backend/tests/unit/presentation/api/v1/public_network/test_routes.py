@@ -359,21 +359,25 @@ def test_get_public_network_dpi_score_returns_truthful_disabled_contract(monkeyp
 
 
 def test_get_public_network_dpi_score_prefers_published_snapshot(monkeypatch) -> None:
-    published_snapshot = _build_published_dpi_snapshot(countries_tracked=1).model_copy(
-        update={
-            "confidence": "medium",
-            "countries": [
-                PublicNetworkDpiCountryResponse(
-                    country_code="de",
-                    public_name="DE",
-                    score=0,
-                    confidence="low",
-                    last_updated_at=None,
-                    protocols=[],
-                )
-            ],
-        }
-    ).model_dump(by_alias=True, mode="json")
+    published_snapshot = (
+        _build_published_dpi_snapshot(countries_tracked=1)
+        .model_copy(
+            update={
+                "confidence": "medium",
+                "countries": [
+                    PublicNetworkDpiCountryResponse(
+                        country_code="de",
+                        public_name="DE",
+                        score=0,
+                        confidence="low",
+                        last_updated_at=None,
+                        protocols=[],
+                    )
+                ],
+            }
+        )
+        .model_dump(by_alias=True, mode="json")
+    )
 
     async def fake_cache_get(_key):
         return published_snapshot

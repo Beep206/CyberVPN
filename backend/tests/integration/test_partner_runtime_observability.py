@@ -166,12 +166,15 @@ async def test_partner_runtime_metrics_increment_for_login_draft_submit_and_boot
     before_drafts = _metric_value("cybervpn_partner_application_drafts_created_total", draft_labels)
     before_submissions = _metric_value("cybervpn_partner_application_submissions_total", submit_labels)
     before_bootstrap = _metric_value("cybervpn_partner_bootstrap_requests_total", bootstrap_labels)
-    before_submit_histogram = _metric_value("cybervpn_partner_application_submit_duration_seconds_count", {
-        "surface": "partner_portal",
-        "lane": "creator_affiliate",
-        "workspace_status": "submitted",
-        "result": "success",
-    })
+    before_submit_histogram = _metric_value(
+        "cybervpn_partner_application_submit_duration_seconds_count",
+        {
+            "surface": "partner_portal",
+            "lane": "creator_affiliate",
+            "workspace_status": "submitted",
+            "result": "success",
+        },
+    )
 
     try:
         async with override_realm_test_db(sessionmaker):
@@ -237,15 +240,18 @@ async def test_partner_runtime_metrics_increment_for_login_draft_submit_and_boot
         assert _metric_value("cybervpn_partner_application_drafts_created_total", draft_labels) > before_drafts
         assert _metric_value("cybervpn_partner_application_submissions_total", submit_labels) > before_submissions
         assert _metric_value("cybervpn_partner_bootstrap_requests_total", bootstrap_labels) > before_bootstrap
-        assert _metric_value(
-            "cybervpn_partner_application_submit_duration_seconds_count",
-            {
-                "surface": "partner_portal",
-                "lane": "creator_affiliate",
-                "workspace_status": "submitted",
-                "result": "success",
-            },
-        ) > before_submit_histogram
+        assert (
+            _metric_value(
+                "cybervpn_partner_application_submit_duration_seconds_count",
+                {
+                    "surface": "partner_portal",
+                    "lane": "creator_affiliate",
+                    "workspace_status": "submitted",
+                    "result": "success",
+                },
+            )
+            > before_submit_histogram
+        )
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()
@@ -315,8 +321,7 @@ async def test_partner_cross_realm_denial_metrics_increment_for_admin_token_on_p
 
         assert _metric_value("cybervpn_partner_auth_cross_realm_denied_total", mismatch_labels) > before_cross_realm
         assert (
-            _metric_value("cybervpn_partner_auth_wrong_host_token_rejected_total", mismatch_labels)
-            > before_wrong_host
+            _metric_value("cybervpn_partner_auth_wrong_host_token_rejected_total", mismatch_labels) > before_wrong_host
         )
     finally:
         app.dependency_overrides.pop(get_redis, None)
@@ -415,18 +420,27 @@ async def test_frontend_runtime_ingest_updates_frontend_observability_metrics(
         )
         assert render_error_response.status_code == 202
 
-        assert _metric_value(
-            "cybervpn_partner_frontend_route_load_duration_seconds_count",
-            route_load_labels,
-        ) > before_route_load
-        assert _metric_value(
-            "cybervpn_partner_frontend_submit_failures_total",
-            submit_failure_labels,
-        ) > before_submit_failures
-        assert _metric_value(
-            "cybervpn_partner_frontend_render_errors_total",
-            render_error_labels,
-        ) > before_render_errors
+        assert (
+            _metric_value(
+                "cybervpn_partner_frontend_route_load_duration_seconds_count",
+                route_load_labels,
+            )
+            > before_route_load
+        )
+        assert (
+            _metric_value(
+                "cybervpn_partner_frontend_submit_failures_total",
+                submit_failure_labels,
+            )
+            > before_submit_failures
+        )
+        assert (
+            _metric_value(
+                "cybervpn_partner_frontend_render_errors_total",
+                render_error_labels,
+            )
+            > before_render_errors
+        )
     finally:
         settings.frontend_observability_internal_secret = previous_secret
 
@@ -524,14 +538,20 @@ async def test_frontend_web_vital_ingest_updates_frontend_vital_metrics(
         )
         assert cls_response.status_code == 202
 
-        assert _metric_value(
-            "cybervpn_partner_frontend_lcp_seconds_count",
-            lcp_labels,
-        ) > before_lcp
-        assert _metric_value(
-            "cybervpn_partner_frontend_cls_ratio_count",
-            cls_labels,
-        ) > before_cls
+        assert (
+            _metric_value(
+                "cybervpn_partner_frontend_lcp_seconds_count",
+                lcp_labels,
+            )
+            > before_lcp
+        )
+        assert (
+            _metric_value(
+                "cybervpn_partner_frontend_cls_ratio_count",
+                cls_labels,
+            )
+            > before_cls
+        )
     finally:
         settings.frontend_observability_internal_secret = previous_secret
 

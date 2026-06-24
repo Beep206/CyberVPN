@@ -404,19 +404,14 @@ class ManageCustomerGrowthNotificationDeliveryUseCase:
         channel_label = delivery.delivery_channel.replace("_", " ").title()
         if closure_kind == "support_resolved":
             title = "Delivery issue resolved"
-            message = (
-                f"Support restored {channel_label.lower()} delivery for "
-                f"\"{delivery.title}\"."
-            )
+            message = f'Support restored {channel_label.lower()} delivery for "{delivery.title}".'
             notes = [
                 f"Channel: {channel_label}.",
                 "Future growth updates can now continue on this route.",
             ]
         else:
             title = "Delivery channel restored"
-            message = (
-                f"{channel_label} delivery for \"{delivery.title}\" is available again."
-            )
+            message = f'{channel_label} delivery for "{delivery.title}" is available again.'
             notes = [f"Channel: {channel_label}."]
 
         locale = str((delivery.delivery_payload or {}).get("locale") or "en-EN")

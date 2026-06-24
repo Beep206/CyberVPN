@@ -201,9 +201,7 @@ async def get_current_service_state(
             channel_subject_ref=(
                 result.resolved_channel_subject_ref or payload.channel_subject_ref or payload.credential_subject_key
             ),
-            provisioning_profile_key=(
-                result.resolved_provisioning_profile_key or payload.provisioning_profile_key
-            ),
+            provisioning_profile_key=(result.resolved_provisioning_profile_key or payload.provisioning_profile_key),
             credential_type=payload.credential_type,
             credential_subject_key=payload.credential_subject_key,
         ),

@@ -14,10 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService, OutboxActorContext
 from src.application.services.entitlements_service import EntitlementsService
-from src.application.use_cases.commerce_sessions.context_resolution import ResolveQuoteContextUseCase
+from src.application.use_cases.commerce_sessions.context_resolution import (
+    ResolvedQuoteContext,
+    ResolveQuoteContextUseCase,
+)
 from src.application.use_cases.growth_notifications.catalog import gift_issued_notification_key
 from src.application.use_cases.growth_notifications.fanout import PlanCustomerGrowthNotificationFanoutUseCase
-from src.application.use_cases.payments.checkout import CheckoutUseCase
+from src.application.use_cases.payments.checkout import CheckoutResult, CheckoutUseCase
 from src.application.use_cases.service_access.entitlements import (
     ActivateEntitlementGrantUseCase,
     CreateEntitlementGrantUseCase,
@@ -60,13 +63,13 @@ class IssuedGiftCode:
 
 @dataclass(frozen=True)
 class GiftPurchaseQuoteResult:
-    resolved_context: object
-    checkout_result: object
+    resolved_context: ResolvedQuoteContext
+    checkout_result: CheckoutResult
 
 
 @dataclass(frozen=True)
 class GiftPurchaseCommitResult:
-    quote_result: object
+    quote_result: CheckoutResult
     commit_result: CommitCheckoutResult
     issued_gift: IssuedGiftCode | None
 
@@ -276,15 +279,9 @@ class IssueGiftCodeUseCase:
             owner_user_id=str(growth_code.owner_user_id) if growth_code.owner_user_id else None,
         )
         if growth_code.owner_user_id is not None:
-            notification_kind = (
-                "gift_purchased"
-                if issuance.issuance_type == "gift_purchase"
-                else "gift_available"
-            )
+            notification_kind = "gift_purchased" if issuance.issuance_type == "gift_purchase" else "gift_available"
             notification_title = (
-                "Gift purchase completed"
-                if notification_kind == "gift_purchased"
-                else "Gift code available"
+                "Gift purchase completed" if notification_kind == "gift_purchased" else "Gift code available"
             )
             notification_message = (
                 f"Your {policy.plan_family} gift for {policy.duration_days} days is ready to share."
@@ -417,7 +414,7 @@ class CommitGiftPurchaseUseCase:
         *,
         user_id: UUID,
         plan_id: UUID,
-        quote_result,
+        quote_result: CheckoutResult,
         currency: str,
         channel: str,
         recipient_hint: str | None,

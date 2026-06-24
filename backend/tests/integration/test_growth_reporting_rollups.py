@@ -65,7 +65,7 @@ async def _create_admin_user(sessionmaker, auth_service: AuthService) -> tuple[A
 
 
 def _seed_growth_reporting_fixtures(sessionmaker, seeded: dict[str, str]) -> None:
-    now = datetime.now(UTC).replace(microsecond=0)
+    now = datetime.now(UTC).replace(hour=12, minute=0, second=0, microsecond=0)
     yesterday = now - timedelta(days=1)
     two_days_ago = now - timedelta(days=2)
 
@@ -341,9 +341,13 @@ async def test_growth_reporting_overview_marks_stale_and_failed_refresh_health()
                 db.commit()
 
             with sessionmaker() as db:
-                success_run = db.query(GrowthReportingRefreshRunModel).order_by(
-                    GrowthReportingRefreshRunModel.finished_at.desc(),
-                ).first()
+                success_run = (
+                    db.query(GrowthReportingRefreshRunModel)
+                    .order_by(
+                        GrowthReportingRefreshRunModel.finished_at.desc(),
+                    )
+                    .first()
+                )
                 assert success_run is not None
                 success_run.started_at = stale_timestamp - timedelta(seconds=10)
                 success_run.finished_at = stale_timestamp

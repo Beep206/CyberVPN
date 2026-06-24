@@ -197,7 +197,7 @@ async def get_admin_commercial_pricebook_audit(
         limit=limit,
     )
     route_operations_total.labels(route="admin_pricebooks", action="audit", status="success").inc()
-    return entries
+    return [AuditLogResponse.model_validate(entry) for entry in entries]
 
 
 @router.post("/pricebooks/{pricebook_id}/validate", response_model=AdminPricebookValidationResponse)

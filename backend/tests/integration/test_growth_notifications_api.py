@@ -299,9 +299,7 @@ async def test_growth_notifications_can_be_marked_read_and_archived(async_client
             assert counters_response.status_code == 200
             assert counters_response.json()["unread_notifications"] == 0
 
-            archive_response = await async_client.post(
-                f"/api/v1/growth-notifications/{notification_id}/archive"
-            )
+            archive_response = await async_client.post(f"/api/v1/growth-notifications/{notification_id}/archive")
             assert archive_response.status_code == 200
             assert archive_response.json()["archived_at"] is not None
 

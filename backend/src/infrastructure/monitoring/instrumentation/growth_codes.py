@@ -519,9 +519,9 @@ def update_growth_reporting_governance_metrics(
         "overdue",
         "paused",
     ):
-        cybervpn_growth_reporting_governance_subscription_coverage.labels(
-            coverage_state=coverage_state
-        ).set(float(counts[coverage_state]))
+        cybervpn_growth_reporting_governance_subscription_coverage.labels(coverage_state=coverage_state).set(
+            float(counts[coverage_state])
+        )
     cybervpn_growth_reporting_governance_gap_subscriptions.set(
         float(counts["delivery_suppressed"] + counts["recipient_domain_blocked"])
     )
@@ -533,6 +533,4 @@ def update_growth_reporting_governance_metrics(
         cybervpn_growth_reporting_governance_followup_subscriptions.labels(
             followup_kind=followup_kind,
         ).set(float(count))
-    cybervpn_growth_reporting_governance_followup_overdue_subscriptions.set(
-        float(max(followup_overdue, 0))
-    )
+    cybervpn_growth_reporting_governance_followup_overdue_subscriptions.set(float(max(followup_overdue, 0)))

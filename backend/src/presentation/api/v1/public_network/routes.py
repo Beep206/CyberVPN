@@ -258,13 +258,14 @@ async def _get_public_network_snapshot(*, client) -> dict[str, Any]:
             ),
         ).model_dump(by_alias=True, mode="json")
 
-        current_availability_pct = round(
-            (
-                (int(stats.get("online_servers") or 0) / int(stats.get("total_servers") or 1))
-                * 100
-            ),
-            2,
-        ) if int(stats.get("total_servers") or 0) > 0 else 0.0
+        current_availability_pct = (
+            round(
+                ((int(stats.get("online_servers") or 0) / int(stats.get("total_servers") or 1)) * 100),
+                2,
+            )
+            if int(stats.get("total_servers") or 0) > 0
+            else 0.0
+        )
 
         leaderboard = [
             PublicNetworkLeaderboardEntryResponse(

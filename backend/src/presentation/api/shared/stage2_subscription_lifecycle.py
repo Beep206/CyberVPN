@@ -388,9 +388,7 @@ def _evaluate_non_refund_lifecycle(
             else S2SubscriptionLifecycleState.ACTIVE
         )
         access_state = (
-            Stage1AccessState.TRIAL_ACTIVE
-            if access_kind == S2LifecycleAccessKind.TRIAL
-            else Stage1AccessState.ACTIVE
+            Stage1AccessState.TRIAL_ACTIVE if access_kind == S2LifecycleAccessKind.TRIAL else Stage1AccessState.ACTIVE
         )
         return _decision(
             state=state,

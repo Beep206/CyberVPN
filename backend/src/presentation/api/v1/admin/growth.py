@@ -1,10 +1,11 @@
 """Admin routes for referral, gift-code, and partner analytics."""
 
 import hmac
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from decimal import Decimal
 from time import perf_counter
-from typing import Any
+from typing import Any, TypedDict, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
@@ -163,6 +164,14 @@ from .growth_schemas import (
 
 router = APIRouter(prefix="/admin", tags=["admin", "growth"])
 
+_NumericCell = int | float | Decimal | str
+
+
+class _ReferrerAggregateRow(TypedDict):
+    commission_count: int
+    total_earned: float
+    last_commission_at: datetime | None
+
 
 def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
     configured = settings.telegram_bot_internal_secret.get_secret_value().strip()
@@ -287,6 +296,35 @@ def _uuid_or_none(value: object) -> UUID | None:
         return None
 
 
+def _row_int(row: Mapping[str, object], key: str) -> int:
+    value = cast(_NumericCell | None, row.get(key))
+    return int(value or 0)
+
+
+def _row_float(row: Mapping[str, object], key: str) -> float:
+    value = cast(_NumericCell | None, row.get(key))
+    return float(value or 0)
+
+
+def _row_datetime(row: Mapping[str, object], key: str) -> datetime | None:
+    return cast(datetime | None, row.get(key))
+
+
+def _row_uuid(row: Mapping[str, object], key: str) -> UUID | None:
+    value = row.get(key)
+    if isinstance(value, UUID):
+        return value
+    return _uuid_or_none(value)
+
+
+def _empty_referrer_aggregate() -> _ReferrerAggregateRow:
+    return {
+        "commission_count": 0,
+        "total_earned": 0.0,
+        "last_commission_at": None,
+    }
+
+
 def _serialize_referral_reward_record(
     allocation,
     users_by_id: dict[UUID, MobileUserModel],
@@ -295,9 +333,7 @@ def _serialize_referral_reward_record(
     referred_user_id = _uuid_or_none(reward_payload.get("referred_user_id"))
     payment_id = _uuid_or_none(reward_payload.get("payment_id"))
     commission_rate = float(
-        reward_payload.get("legacy_commission_rate")
-        or reward_payload.get("friend_discount_value")
-        or 0
+        reward_payload.get("legacy_commission_rate") or reward_payload.get("friend_discount_value") or 0
     )
     return AdminReferralCommissionRecord(
         id=allocation.id,
@@ -321,17 +357,17 @@ def _serialize_referral_reward_record(
 
 def _serialize_partner_list_item(
     user: MobileUserModel,
-    stats: dict[str, object] | None,
+    stats: Mapping[str, object] | None,
 ) -> AdminPartnerListItemResponse:
     resolved_stats = stats or {}
     return AdminPartnerListItemResponse(
         user=_serialize_user_summary(user),
         promoted_at=user.partner_promoted_at,
-        code_count=int(resolved_stats.get("code_count", 0) or 0),
-        active_code_count=int(resolved_stats.get("active_code_count", 0) or 0),
-        total_clients=int(resolved_stats.get("total_clients", 0) or 0),
-        total_earned=float(resolved_stats.get("total_earned", 0) or 0),
-        last_activity_at=resolved_stats.get("last_activity_at"),
+        code_count=_row_int(resolved_stats, "code_count"),
+        active_code_count=_row_int(resolved_stats, "active_code_count"),
+        total_clients=_row_int(resolved_stats, "total_clients"),
+        total_earned=_row_float(resolved_stats, "total_earned"),
+        last_activity_at=_row_datetime(resolved_stats, "last_activity_at"),
     )
 
 
@@ -383,7 +419,7 @@ def _serialize_growth_signal_breakdown(items: list[dict[str, object]]) -> list[A
         serialized.append(
             AdminGrowthSignalCountResponse(
                 key=key,
-                count=int(item.get("count", 0) or 0),
+                count=_row_int(item, "count"),
             )
         )
     return serialized
@@ -590,20 +626,14 @@ def _serialize_growth_reporting_governance_overview(
         followup_open_count=item.followup_open_count,
         followup_overdue_count=item.followup_overdue_count,
         coverage_counts=[
-            _serialize_growth_reporting_governance_coverage_count(entry)
-            for entry in item.coverage_counts
+            _serialize_growth_reporting_governance_coverage_count(entry) for entry in item.coverage_counts
         ],
         followup_queue=[
-            _serialize_growth_reporting_governance_followup_queue_item(entry)
-            for entry in item.followup_queue
+            _serialize_growth_reporting_governance_followup_queue_item(entry) for entry in item.followup_queue
         ],
-        recent_decisions=[
-            _serialize_growth_reporting_governance_decision(entry)
-            for entry in item.recent_decisions
-        ],
+        recent_decisions=[_serialize_growth_reporting_governance_decision(entry) for entry in item.recent_decisions],
         recent_audit_events=[
-            _serialize_growth_reporting_governance_audit_event(entry)
-            for entry in item.recent_audit_events
+            _serialize_growth_reporting_governance_audit_event(entry) for entry in item.recent_audit_events
         ],
         notes=list(item.notes),
     )
@@ -724,14 +754,8 @@ def _serialize_growth_reporting_overview(
         window_end=overview.window_end,
         latest_rollup_date=overview.latest_rollup_date,
         refreshed_at=overview.refreshed_at,
-        family_summaries=[
-            _serialize_growth_reporting_family_summary(item)
-            for item in overview.family_summaries
-        ],
-        daily_points=[
-            _serialize_growth_reporting_daily_point(item)
-            for item in overview.daily_points
-        ],
+        family_summaries=[_serialize_growth_reporting_family_summary(item) for item in overview.family_summaries],
+        daily_points=[_serialize_growth_reporting_daily_point(item) for item in overview.daily_points],
         totals=_serialize_growth_reporting_family_summary(overview.totals),
         health=_serialize_growth_reporting_health(overview.health),
         executive_summary=_serialize_growth_reporting_executive_summary(overview.executive_summary),
@@ -759,9 +783,7 @@ def _serialize_growth_reporting_export_payload(export: GrowthReportingExport) ->
         "window_start": export.overview.window_start.isoformat(),
         "window_end": export.overview.window_end.isoformat(),
         "latest_rollup_date": (
-            export.overview.latest_rollup_date.isoformat()
-            if export.overview.latest_rollup_date is not None
-            else None
+            export.overview.latest_rollup_date.isoformat() if export.overview.latest_rollup_date is not None else None
         ),
         "refreshed_at": export.overview.refreshed_at.isoformat() if export.overview.refreshed_at else None,
         "coverage_notes": list(export.overview.coverage_notes),
@@ -788,9 +810,7 @@ def _serialize_growth_delivery(
 ) -> AdminGrowthNotificationDeliveryResponse:
     payload = dict(delivery.delivery_payload or {})
     queue_entry = (
-        queues_by_id.get(delivery.notification_queue_id)
-        if delivery.notification_queue_id is not None
-        else None
+        queues_by_id.get(delivery.notification_queue_id) if delivery.notification_queue_id is not None else None
     )
     current_status = delivery.delivery_status
     if delivery.delivery_channel == "telegram" and queue_entry is not None:
@@ -801,11 +821,7 @@ def _serialize_growth_delivery(
         elif queue_entry.status == "cancelled" and current_status not in {"paused", "revoked"}:
             current_status = "revoked"
 
-    notes = [
-        str(item)
-        for item in list(payload.get("notes") or [])
-        if str(item).strip()
-    ]
+    notes = [str(item) for item in list(payload.get("notes") or []) if str(item).strip()]
     can_resend = delivery.delivery_channel in {"email", "telegram"}
     can_pause = current_status in {"planned", "queued", "processing", "failed"}
     can_revoke = current_status in {"planned", "queued", "processing", "failed", "paused"}
@@ -879,19 +895,13 @@ def _serialize_growth_notification_source_summary(
         source_kind=str(source_summary.get("source_kind") or "unknown"),
         source_id=str(source_summary.get("source_id")) if source_summary.get("source_id") is not None else None,
         source_label=(
-            str(source_summary.get("source_label"))
-            if source_summary.get("source_label") is not None
-            else None
+            str(source_summary.get("source_label")) if source_summary.get("source_label") is not None else None
         ),
         source_status=(
-            str(source_summary.get("source_status"))
-            if source_summary.get("source_status") is not None
-            else None
+            str(source_summary.get("source_status")) if source_summary.get("source_status") is not None else None
         ),
         owner_user_id=(
-            str(source_summary.get("owner_user_id"))
-            if source_summary.get("owner_user_id") is not None
-            else None
+            str(source_summary.get("owner_user_id")) if source_summary.get("owner_user_id") is not None else None
         ),
         beneficiary_user_id=(
             str(source_summary.get("beneficiary_user_id"))
@@ -965,14 +975,10 @@ def _build_growth_delivery_export_response(
 
 def _publish_growth_reporting_health(overview: GrowthReportingOverview) -> None:
     latest_attempt_unix = (
-        overview.health.latest_attempt_at.timestamp()
-        if overview.health.latest_attempt_at is not None
-        else None
+        overview.health.latest_attempt_at.timestamp() if overview.health.latest_attempt_at is not None else None
     )
     latest_success_unix = (
-        overview.health.latest_success_at.timestamp()
-        if overview.health.latest_success_at is not None
-        else None
+        overview.health.latest_success_at.timestamp() if overview.health.latest_success_at is not None else None
     )
     latest_rows_written = (
         overview.health.latest_run.rows_written
@@ -1008,81 +1014,57 @@ async def get_referral_overview(
     top_referrers_stats = await referral_repo.get_top_referrer_stats(limit=25)
     top_reward_referrers = await reward_repo.get_top_referrer_reward_stats(limit=25)
 
-    user_ids = {
-        commission.referrer_user_id
-        for commission in recent_commissions
-    } | {
-        commission.referred_user_id
-        for commission in recent_commissions
-    } | {
-        stat["referrer_user_id"]
-        for stat in top_referrers_stats
-    } | {
-        reward.beneficiary_user_id
-        for reward in recent_rewards
-    } | {
-        _uuid_or_none(reward.reward_payload.get("referred_user_id"))
-        for reward in recent_rewards
-    } | {
-        stat["beneficiary_user_id"]
-        for stat in top_reward_referrers
+    user_ids: set[UUID] = {
+        *[commission.referrer_user_id for commission in recent_commissions],
+        *[commission.referred_user_id for commission in recent_commissions],
+        *[reward.beneficiary_user_id for reward in recent_rewards],
     }
-    user_ids.discard(None)
+    referrer_ids_for_counts: set[UUID] = set()
+    for stat in top_referrers_stats:
+        referrer_user_id = _row_uuid(stat, "referrer_user_id")
+        if referrer_user_id is not None:
+            user_ids.add(referrer_user_id)
+            referrer_ids_for_counts.add(referrer_user_id)
+    for reward in recent_rewards:
+        referred_user_id = _uuid_or_none(reward.reward_payload.get("referred_user_id"))
+        if referred_user_id is not None:
+            user_ids.add(referred_user_id)
+    for stat in top_reward_referrers:
+        referrer_user_id = _row_uuid(stat, "beneficiary_user_id")
+        if referrer_user_id is not None:
+            user_ids.add(referrer_user_id)
+            referrer_ids_for_counts.add(referrer_user_id)
 
     users = await mobile_user_repo.list_by_ids(list(user_ids))
     users_by_id = {user.id: user for user in users}
-    referred_user_count_map = await mobile_user_repo.count_referred_users_map(
-        [
-            user_id
-            for user_id in {
-                *[stat["referrer_user_id"] for stat in top_referrers_stats],
-                *[stat["beneficiary_user_id"] for stat in top_reward_referrers],
-            }
-            if user_id is not None
-        ]
-    )
+    referred_user_count_map = await mobile_user_repo.count_referred_users_map(list(referrer_ids_for_counts))
 
-    top_referrers_map: dict[UUID, dict[str, object]] = {}
+    top_referrers_map: dict[UUID, _ReferrerAggregateRow] = {}
     for stat in top_referrers_stats:
-        referrer_user_id = stat["referrer_user_id"]
-        row = top_referrers_map.setdefault(
-            referrer_user_id,
-            {
-                "commission_count": 0,
-                "total_earned": 0.0,
-                "last_commission_at": None,
-            },
-        )
-        row["commission_count"] = int(row["commission_count"]) + int(stat["commission_count"])
-        row["total_earned"] = float(row["total_earned"]) + float(stat["total_earned"])
+        referrer_user_id = _row_uuid(stat, "referrer_user_id")
+        if referrer_user_id is None:
+            continue
+        row = top_referrers_map.setdefault(referrer_user_id, _empty_referrer_aggregate())
+        row["commission_count"] += _row_int(stat, "commission_count")
+        row["total_earned"] += _row_float(stat, "total_earned")
         last_activity = row["last_commission_at"]
-        if last_activity is None or (
-            stat["last_commission_at"] is not None and stat["last_commission_at"] > last_activity
-        ):
-            row["last_commission_at"] = stat["last_commission_at"]
+        last_commission_at = _row_datetime(stat, "last_commission_at")
+        if last_activity is None or (last_commission_at is not None and last_commission_at > last_activity):
+            row["last_commission_at"] = last_commission_at
     for stat in top_reward_referrers:
-        referrer_user_id = stat["beneficiary_user_id"]
-        row = top_referrers_map.setdefault(
-            referrer_user_id,
-            {
-                "commission_count": 0,
-                "total_earned": 0.0,
-                "last_commission_at": None,
-            },
-        )
-        row["commission_count"] = int(row["commission_count"]) + int(stat["reward_count"])
-        row["total_earned"] = float(row["total_earned"]) + float(stat["total_earned"])
+        referrer_user_id = _row_uuid(stat, "beneficiary_user_id")
+        if referrer_user_id is None:
+            continue
+        row = top_referrers_map.setdefault(referrer_user_id, _empty_referrer_aggregate())
+        row["commission_count"] += _row_int(stat, "reward_count")
+        row["total_earned"] += _row_float(stat, "total_earned")
         last_activity = row["last_commission_at"]
-        if last_activity is None or (
-            stat["last_reward_at"] is not None and stat["last_reward_at"] > last_activity
-        ):
-            row["last_commission_at"] = stat["last_reward_at"]
+        last_reward_at = _row_datetime(stat, "last_reward_at")
+        if last_activity is None or (last_reward_at is not None and last_reward_at > last_activity):
+            row["last_commission_at"] = last_reward_at
 
-    recent_items = [
-        *[
-            _serialize_referral_commission(commission, users_by_id)
-            for commission in recent_commissions
-        ],
+    recent_items: list[AdminReferralCommissionRecord] = [
+        *[_serialize_referral_commission(commission, users_by_id) for commission in recent_commissions],
         *[_serialize_referral_reward_record(reward, users_by_id) for reward in recent_rewards],
     ]
     recent_items.sort(key=lambda item: item.created_at, reverse=True)
@@ -1101,16 +1083,16 @@ async def get_referral_overview(
         top_referrers=[
             AdminReferralReferrerRow(
                 user=_serialize_user_summary(users_by_id.get(referrer_user_id)),
-                commission_count=int(stat["commission_count"]),
+                commission_count=stat["commission_count"],
                 referred_users=int(referred_user_count_map.get(referrer_user_id, 0)),
-                total_earned=float(stat["total_earned"]),
+                total_earned=stat["total_earned"],
                 last_commission_at=stat["last_commission_at"],
             )
             for referrer_user_id, stat in sorted(
                 top_referrers_map.items(),
                 key=lambda item: (
-                    float(item[1]["total_earned"]),
-                    int(item[1]["commission_count"]),
+                    item[1]["total_earned"],
+                    item[1]["commission_count"],
                 ),
                 reverse=True,
             )[:10]
@@ -1140,8 +1122,7 @@ async def get_growth_signals_overview(
         reward_status_breakdown=_serialize_growth_signal_breakdown(overview.reward_status_breakdown),
         reward_type_breakdown=_serialize_growth_signal_breakdown(overview.reward_type_breakdown),
         recent_lifecycle_events=[
-            AdminGrowthLifecycleEventResponse(**item)
-            for item in overview.recent_lifecycle_events
+            AdminGrowthLifecycleEventResponse(**item) for item in overview.recent_lifecycle_events
         ],
     )
 
@@ -1582,9 +1563,7 @@ async def export_growth_reporting_overview(
     route_operations_total.labels(route="admin_growth_reporting", action="export", status="success").inc()
     payload = _serialize_growth_reporting_export_payload(export)
     filename = (
-        "growth-reporting-"
-        f"{export.overview.window_start.isoformat()}-"
-        f"{export.overview.window_end.isoformat()}.json"
+        f"growth-reporting-{export.overview.window_start.isoformat()}-{export.overview.window_end.isoformat()}.json"
     )
     return JSONResponse(
         content=payload,
@@ -1734,7 +1713,7 @@ async def get_referral_user_detail(
     recent_rewards = await reward_repo.list_recent_referral_rewards(beneficiary_user_id=user_id, limit=20)
     stats_map = await referral_repo.get_referrer_stats_map([user_id])
     reward_stats_map = await reward_repo.get_referral_reward_stats_map([user_id])
-    stats = stats_map.get(
+    stats: Mapping[str, object] = stats_map.get(
         user_id,
         {
             "commission_count": 0,
@@ -1743,7 +1722,7 @@ async def get_referral_user_detail(
             "last_commission_at": None,
         },
     )
-    reward_stats = reward_stats_map.get(
+    reward_stats: Mapping[str, object] = reward_stats_map.get(
         user_id,
         {
             "reward_count": 0,
@@ -1757,8 +1736,7 @@ async def get_referral_user_detail(
     related_user_ids.update(
         referred_user_id
         for referred_user_id in (
-            _uuid_or_none(reward.reward_payload.get("referred_user_id"))
-            for reward in recent_rewards
+            _uuid_or_none(reward.reward_payload.get("referred_user_id")) for reward in recent_rewards
         )
         if referred_user_id is not None
     )
@@ -1766,11 +1744,8 @@ async def get_referral_user_detail(
     users_by_id = {item.id: item for item in users}
     referred_users = await mobile_user_repo.count_referred_users(user_id)
 
-    recent_items = [
-        *[
-            _serialize_referral_commission(commission, users_by_id)
-            for commission in recent_commissions
-        ],
+    recent_items: list[AdminReferralCommissionRecord] = [
+        *[_serialize_referral_commission(commission, users_by_id) for commission in recent_commissions],
         *[_serialize_referral_reward_record(reward, users_by_id) for reward in recent_rewards],
     ]
     recent_items.sort(key=lambda item: item.created_at, reverse=True)
@@ -1779,9 +1754,9 @@ async def get_referral_user_detail(
     return AdminReferralUserDetailResponse(
         user=_serialize_user_summary(user),
         referred_by_user_id=user.referred_by_user_id,
-        commission_count=int(stats["commission_count"]) + int(reward_stats["reward_count"]),
+        commission_count=_row_int(stats, "commission_count") + _row_int(reward_stats, "reward_count"),
         referred_users=referred_users,
-        total_earned=float(stats["total_earned"]) + float(reward_stats["total_earned"]),
+        total_earned=_row_float(stats, "total_earned") + _row_float(reward_stats, "total_earned"),
         recent_commissions=recent_items[:20],
     )
 
@@ -1808,10 +1783,7 @@ async def list_partners(
 
     route_operations_total.labels(route="admin_partners", action="list", status="success").inc()
     return AdminPartnersListResponse(
-        items=[
-            _serialize_partner_list_item(user, stats_map.get(user.id))
-            for user in users
-        ],
+        items=[_serialize_partner_list_item(user, stats_map.get(user.id)) for user in users],
         total=total,
         offset=offset,
         limit=limit,
@@ -1832,7 +1804,7 @@ async def get_partner_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner not found")
 
     stats_map = await partner_repo.get_partner_stats_map([user_id])
-    stats = stats_map.get(user_id, {})
+    stats = stats_map.get(user_id)
     codes = await partner_repo.get_codes_by_partner(user_id)
     earnings = await partner_repo.get_earnings_by_partner(user_id, limit=20)
 
@@ -2301,9 +2273,7 @@ async def get_growth_notification_delivery_detail(
     _: None = Depends(require_permission(Permission.VIEW_ANALYTICS)),
 ) -> AdminGrowthNotificationDeliveryDetailResponse:
     try:
-        forensics = await GetCustomerGrowthNotificationDeliveryForensicsUseCase(db).execute(
-            delivery_id=delivery_id
-        )
+        forensics = await GetCustomerGrowthNotificationDeliveryForensicsUseCase(db).execute(delivery_id=delivery_id)
     except ValueError as exc:
         if str(exc) == "delivery_not_found":
             raise HTTPException(
@@ -2313,15 +2283,9 @@ async def get_growth_notification_delivery_detail(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     sibling_items = [forensics.delivery, *forensics.sibling_deliveries]
-    users = await MobileUserRepository(db).list_by_ids(
-        list({item.mobile_user_id for item in sibling_items})
-    )
+    users = await MobileUserRepository(db).list_by_ids(list({item.mobile_user_id for item in sibling_items}))
     users_by_id = {user.id: user for user in users}
-    queue_ids = [
-        item.notification_queue_id
-        for item in sibling_items
-        if item.notification_queue_id is not None
-    ]
+    queue_ids = [item.notification_queue_id for item in sibling_items if item.notification_queue_id is not None]
     if forensics.queue_snapshot is not None:
         queue_ids.append(forensics.queue_snapshot.id)
     queues: list[NotificationQueue] = []
@@ -2349,9 +2313,7 @@ async def export_growth_notification_delivery_detail(
     _: None = Depends(require_permission(Permission.VIEW_ANALYTICS)),
 ) -> JSONResponse:
     try:
-        forensics = await GetCustomerGrowthNotificationDeliveryForensicsUseCase(db).execute(
-            delivery_id=delivery_id
-        )
+        forensics = await GetCustomerGrowthNotificationDeliveryForensicsUseCase(db).execute(delivery_id=delivery_id)
     except ValueError as exc:
         if str(exc) == "delivery_not_found":
             raise HTTPException(
@@ -2361,15 +2323,9 @@ async def export_growth_notification_delivery_detail(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     sibling_items = [forensics.delivery, *forensics.sibling_deliveries]
-    users = await MobileUserRepository(db).list_by_ids(
-        list({item.mobile_user_id for item in sibling_items})
-    )
+    users = await MobileUserRepository(db).list_by_ids(list({item.mobile_user_id for item in sibling_items}))
     users_by_id = {user.id: user for user in users}
-    queue_ids = [
-        item.notification_queue_id
-        for item in sibling_items
-        if item.notification_queue_id is not None
-    ]
+    queue_ids = [item.notification_queue_id for item in sibling_items if item.notification_queue_id is not None]
     if forensics.queue_snapshot is not None:
         queue_ids.append(forensics.queue_snapshot.id)
     queues: list[NotificationQueue] = []

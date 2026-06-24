@@ -37,10 +37,7 @@ class TestMagicLinkRoutes:
         email = f"request-{secrets.token_hex(4)}@example.com"
         await _clear_magic_link_state(email)
 
-        response = await async_client.post(
-            "/api/v1/auth/magic-link",
-            json={"email": email}
-        )
+        response = await async_client.post("/api/v1/auth/magic-link", json={"email": email})
         assert response.status_code == 200
 
     @pytest.mark.integration
@@ -90,18 +87,14 @@ class TestMagicLinkRoutes:
     @pytest.mark.integration
     async def test_verify_expired_token_returns_400(self, async_client):
         """Verify with expired token returns 400."""
-        response = await async_client.post(
-            "/api/v1/auth/magic-link/verify",
-            json={"token": "expired-token"}
-        )
+        response = await async_client.post("/api/v1/auth/magic-link/verify", json={"token": "expired-token"})
         assert response.status_code == 400
 
     @pytest.mark.integration
     async def test_verify_invalid_token_returns_400(self, async_client):
         """Verify with non-existent token returns 400."""
         response = await async_client.post(
-            "/api/v1/auth/magic-link/verify",
-            json={"token": "invalid-nonexistent-token"}
+            "/api/v1/auth/magic-link/verify", json={"token": "invalid-nonexistent-token"}
         )
         assert response.status_code == 400
 
@@ -120,18 +113,9 @@ class TestMagicLinkRoutes:
 
         monkeypatch.setattr(settings, "registration_enabled", True)
 
-        response1 = await async_client.post(
-            "/api/v1/auth/magic-link/verify",
-            json={"token": token}
-        )
-        response2 = await async_client.post(
-            "/api/v1/auth/magic-link/verify",
-            json={"token": token}
-        )
-        response3 = await async_client.post(
-            "/api/v1/auth/magic-link/verify",
-            json={"token": token}
-        )
+        response1 = await async_client.post("/api/v1/auth/magic-link/verify", json={"token": token})
+        response2 = await async_client.post("/api/v1/auth/magic-link/verify", json={"token": token})
+        response3 = await async_client.post("/api/v1/auth/magic-link/verify", json={"token": token})
 
         assert response1.status_code == 200
         assert response2.status_code == 200
@@ -144,15 +128,9 @@ class TestMagicLinkRoutes:
         await _clear_magic_link_state(email)
 
         for _ in range(5):
-            response = await async_client.post(
-                "/api/v1/auth/magic-link",
-                json={"email": email}
-            )
+            response = await async_client.post("/api/v1/auth/magic-link", json={"email": email})
             assert response.status_code == 200
 
-        response = await async_client.post(
-            "/api/v1/auth/magic-link",
-            json={"email": email}
-        )
+        response = await async_client.post("/api/v1/auth/magic-link", json={"email": email})
         assert response.status_code == 429
         assert "too many requests" in response.json()["detail"].lower()

@@ -164,10 +164,7 @@ def test_stage1_support_staff_note_and_api_dict_are_redacted() -> None:
         Stage1SupportTicketInput(
             channel=Stage1SupportChannel.ADMIN_MANUAL,
             category=Stage1SupportTicketCategory.ACCOUNT_ACCESS,
-            summary=(
-                f"User pasted token {fake_telegram_token} "
-                f"and secret {fake_long_secret}"
-            ),
+            summary=(f"User pasted token {fake_telegram_token} and secret {fake_long_secret}"),
         )
     )
     serialized = str(ticket.to_api_dict())

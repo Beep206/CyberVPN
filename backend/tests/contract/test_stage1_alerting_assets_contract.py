@@ -67,9 +67,7 @@ def test_stage1_alertmanager_routes_to_telegram_and_backup_email() -> None:
     root = _repo_root()
     template = (root / "infra/alertmanager/alertmanager.yml.template").read_text(encoding="utf-8")
     entrypoint = (root / "infra/alertmanager/docker-entrypoint.sh").read_text(encoding="utf-8")
-    message_template = (root / "infra/alertmanager/templates/telegram.tmpl").read_text(
-        encoding="utf-8"
-    )
+    message_template = (root / "infra/alertmanager/templates/telegram.tmpl").read_text(encoding="utf-8")
 
     for receiver in REQUIRED_RECEIVERS:
         assert f"name: '{receiver}'" in template
@@ -81,8 +79,8 @@ def test_stage1_alertmanager_routes_to_telegram_and_backup_email() -> None:
         "bot_token:",
         "smtp_auth_password_file:",
         "${ALERTMANAGER_BACKUP_EMAIL}",
-        "priority=\"p0\"",
-        "priority=\"p1\"",
+        'priority="p0"',
+        'priority="p1"',
     ):
         assert fragment in template
 

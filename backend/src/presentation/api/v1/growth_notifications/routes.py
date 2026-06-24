@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
@@ -77,7 +78,7 @@ def _normalize_utc(value: datetime | None) -> datetime:
     return value.astimezone(UTC)
 
 
-def _notification_state_by_key(read_states: list[object]) -> dict[str, object]:
+def _notification_state_by_key(read_states: Sequence[object]) -> dict[str, object]:
     return {
         normalize_growth_notification_key(getattr(item, "notification_key", "")): item
         for item in read_states

@@ -149,11 +149,7 @@ class GetCustomerGrowthNotificationDeliveryForensicsUseCase:
                 "source_label": f"{code.code_prefix}••••",
                 "source_status": code.status,
                 "owner_user_id": str(code.owner_user_id) if code.owner_user_id else None,
-                "beneficiary_user_id": (
-                    str(redemptions[0].beneficiary_user_id)
-                    if redemptions
-                    else None
-                ),
+                "beneficiary_user_id": (str(redemptions[0].beneficiary_user_id) if redemptions else None),
                 "metadata": {
                     "issuer_type": code.issuer_type,
                     "plan_family": policy.plan_family if policy is not None else None,

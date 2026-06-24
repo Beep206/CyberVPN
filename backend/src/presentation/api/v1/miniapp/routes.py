@@ -393,9 +393,7 @@ def _build_config_response_from_remnawave_result(
     subscription_url_fallback: str | None = None,
 ) -> MiniAppConfigResponse:
     subscription_url = normalize_public_subscription_url(result.get("subscription_url")) or (
-        normalize_public_subscription_url(subscription_url_fallback)
-        if subscription_url_fallback
-        else None
+        normalize_public_subscription_url(subscription_url_fallback) if subscription_url_fallback else None
     )
     config_string = subscription_url or result.get("config_string", "")
     return MiniAppConfigResponse(
@@ -798,15 +796,12 @@ async def get_miniapp_bootstrap(
             ),
             serviceState=MiniAppBootstrapServiceStateResponse(
                 providerName=(
-                    "remnawave"
-                    if (selected_service_state is not None or current_service_state is not None)
-                    else None
+                    "remnawave" if (selected_service_state is not None or current_service_state is not None) else None
                 ),
                 channelType=(
                     selected_service_state.access_delivery_channel.channel_type
                     if selected_service_state and selected_service_state.access_delivery_channel is not None
-                    else
-                    current_service_state.access_delivery_channel.channel_type
+                    else current_service_state.access_delivery_channel.channel_type
                     if current_service_state and current_service_state.access_delivery_channel is not None
                     else "telegram_bot"
                     if mobile_user.telegram_id is not None

@@ -9,6 +9,7 @@ import secrets
 from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from time import perf_counter
+from typing import cast
 from uuid import UUID
 
 import redis.asyncio as redis
@@ -47,6 +48,7 @@ from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.application.use_cases.auth_realms import RealmResolution
 from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
+from src.domain.enums import AdminRole
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
 from src.infrastructure.cache.redis_client import get_redis
@@ -206,7 +208,7 @@ def _build_admin_user_response(
         id=user.id,
         login=user.login,
         email=user.email,
-        role=user.role,
+        role=cast(AdminRole, user.role),
         telegram_id=user.telegram_id,
         is_active=user.is_active,
         is_email_verified=user.is_email_verified,
@@ -458,7 +460,7 @@ def _build_miniapp_mobile_user_response(mobile_user: MobileUserModel) -> AdminUs
         id=mobile_user.id,
         login=mobile_user.username or f"tg{mobile_user.telegram_id or mobile_user.id}",
         email=mobile_user.email,
-        role="viewer",
+        role=AdminRole.VIEWER,
         telegram_id=mobile_user.telegram_id,
         is_active=mobile_user.is_active,
         is_email_verified=True,
@@ -1190,8 +1192,26 @@ async def logout_all_devices(
     )
 
     revocation_service = JWTRevocationService(redis_client)
-    access_sessions_revoked = await _revoke_access_tokens(revocation_service, logout_result.access_tokens)
-    sessions_revoked = logout_result.principal_sessions_revoked
+    auth_service = AuthService()
+    presented_access_token = _resolve_logout_access_token(http_request, current_realm, auth_service)
+    access_tokens = list(logout_result.access_tokens)
+    if presented_access_token is not None and not any(
+        token.jti == presented_access_token.jti for token in access_tokens
+    ):
+        access_tokens.append(presented_access_token)
+    access_sessions_revoked = await _revoke_access_tokens(revocation_service, access_tokens)
+    indexed_access_tokens_revoked = await revocation_service.revoke_principal_tokens(
+        user_id=str(current_user.id),
+        auth_realm_id=str(current_realm.auth_realm.id),
+        principal_class=principal_class,
+        principal_subject=str(current_user.id),
+        revoke_unscoped_legacy=current_realm.realm_key == "admin" and principal_class == "admin",
+    )
+    sessions_revoked = max(
+        logout_result.principal_sessions_revoked,
+        access_sessions_revoked,
+        indexed_access_tokens_revoked,
+    )
     await sync_active_sessions(db)
     track_auth_session_operation("logout_all", "success")
     track_auth_session_detail(
@@ -1213,6 +1233,7 @@ async def logout_all_devices(
             "sessions_revoked": sessions_revoked,
             "refresh_tokens_revoked": logout_result.refresh_tokens_revoked,
             "access_tokens_revoked": access_sessions_revoked,
+            "indexed_access_tokens_revoked": indexed_access_tokens_revoked,
         },
     )
     observe_partner_auth_logout(result="success", reason="logout_all")
@@ -2419,6 +2440,8 @@ async def telegram_miniapp_auth(
 
     response_access_token = result.access_token
     response_refresh_token = result.refresh_token
+    response_token_type = result.token_type
+    response_expires_in = result.expires_in
     response_user = AdminUserResponse.model_validate(result.user)
 
     if result.access_token and result.refresh_token and result.user.telegram_id is not None:
@@ -2430,25 +2453,33 @@ async def telegram_miniapp_auth(
         )
         customer_realm = DEFAULT_AUTH_REALMS["customer"]
         customer_realm_id = mobile_user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))
-        response_access_token, _access_jti, _access_exp = auth_service.create_access_token(
-            subject=str(mobile_user.id),
-            role="mobile_user",
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(customer_realm_id),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
-            extra={"auth_method": "telegram_miniapp"},
+        device_key, set_device_cookie = get_or_create_web_device_cookie_value(http_request.cookies)
+        client_ip = resolve_client_ip(http_request)
+        issued_mobile_session = await AuthSessionIssuer(auth_service=auth_service, session=db).issue_auth_session(
+            AuthSessionIssueRequest(
+                user_id=mobile_user.id,
+                role="mobile_user",
+                device_key=device_key,
+                refresh_fingerprint=generate_client_fingerprint(http_request),
+                ip_address=client_ip.ip,
+                ip_source=client_ip.ip_source,
+                proxy_peer=client_ip.proxy_peer,
+                user_agent=http_request.headers.get("User-Agent"),
+                auth_realm_id=customer_realm_id,
+                auth_realm_key=str(customer_realm["realm_key"]),
+                audience=str(customer_realm["audience"]),
+                principal_class="customer",
+                principal_subject=str(mobile_user.id),
+                scope_family="customer",
+                access_extra={"auth_method": "telegram_miniapp"},
+                device_label="Telegram Mini App",
+                platform="telegram_miniapp",
+            )
         )
-        response_refresh_token, _refresh_jti, _refresh_exp = auth_service.create_refresh_token(
-            subject=str(mobile_user.id),
-            fingerprint=generate_client_fingerprint(http_request),
-            audience=str(customer_realm["audience"]),
-            principal_type="customer",
-            realm_id=str(customer_realm_id),
-            realm_key=str(customer_realm["realm_key"]),
-            scope_family="customer",
-        )
+        response_access_token = issued_mobile_session.access_token
+        response_refresh_token = issued_mobile_session.refresh_token
+        response_token_type = issued_mobile_session.token_type
+        response_expires_in = issued_mobile_session.expires_in
         set_auth_cookies(
             response,
             response_access_token,
@@ -2456,6 +2487,13 @@ async def telegram_miniapp_auth(
             request=http_request,
             cookie_namespace=str(customer_realm["cookie_namespace"]),
         )
+        if set_device_cookie:
+            set_web_device_cookie(
+                response,
+                device_key,
+                request=http_request,
+                cookie_namespace=str(customer_realm["cookie_namespace"]),
+            )
         response_user = _build_miniapp_mobile_user_response(mobile_user)
 
     await sync_active_sessions(db)
@@ -2465,8 +2503,8 @@ async def telegram_miniapp_auth(
     return TelegramMiniAppResponse(
         access_token=response_access_token,
         refresh_token=response_refresh_token,
-        token_type=result.token_type,
-        expires_in=result.expires_in,
+        token_type=response_token_type,
+        expires_in=response_expires_in,
         user=response_user,
         is_new_user=result.is_new_user,
         requires_2fa=result.requires_2fa,
@@ -2661,8 +2699,6 @@ async def telegram_web_auth(
         expires_in=result.expires_in,
         user=AdminUserResponse.model_validate(result.user),
         is_new_user=result.is_new_user,
-        requires_2fa=result.requires_2fa,
-        tfa_token=result.tfa_token,
     )
 
 

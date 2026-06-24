@@ -184,11 +184,7 @@ class MobileTelegramOIDCAuthUseCase:
             changed = True
 
         generated_username = self._generate_username(telegram_user)
-        if (
-            generated_username
-            and generated_username != user.username
-            and self._should_refresh_username(user)
-        ):
+        if generated_username and generated_username != user.username and self._should_refresh_username(user):
             existing_username = await self.user_repo.get_by_username(generated_username)
             if existing_username is None or existing_username.id == user.id:
                 user.username = generated_username

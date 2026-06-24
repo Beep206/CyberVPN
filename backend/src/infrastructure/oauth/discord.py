@@ -58,9 +58,7 @@ class DiscordOAuthProvider:
             params["code_challenge_method"] = code_challenge_method
         return f"{self.AUTHORIZE_URL}?{urlencode(params)}"
 
-    async def exchange_code(
-        self, code: str, redirect_uri: str, code_verifier: str | None = None
-    ) -> dict | None:
+    async def exchange_code(self, code: str, redirect_uri: str, code_verifier: str | None = None) -> dict | None:
         """Exchange authorization code for access token and retrieve user info.
 
         Args:

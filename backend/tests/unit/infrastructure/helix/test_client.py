@@ -301,10 +301,7 @@ async def test_get_rollout_status_parses_policy_recommendations():
 @pytest.mark.asyncio
 async def test_get_rollout_canary_evidence_parses_snapshot():
     def handler(request: httpx.Request) -> httpx.Response:
-        assert (
-            request.url.path
-            == "/internal/rollouts/rollout-canary-1/canary-evidence"
-        )
+        assert request.url.path == "/internal/rollouts/rollout-canary-1/canary-evidence"
         return httpx.Response(
             200,
             json={

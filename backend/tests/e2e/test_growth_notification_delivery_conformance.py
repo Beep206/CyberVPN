@@ -117,15 +117,11 @@ async def test_growth_notification_conformance_preferences_reenabled_and_support
                 )
                 db.commit()
 
-                email_delivery_id = next(
-                    item.id for item in planned if item.delivery_channel == "email"
-                )
+                email_delivery_id = next(item.id for item in planned if item.delivery_channel == "email")
 
             _override_mobile_user(customer.id)
 
-            customer_detail_response = await async_client.get(
-                f"/api/v1/growth-notifications/{notification_key}"
-            )
+            customer_detail_response = await async_client.get(f"/api/v1/growth-notifications/{notification_key}")
             assert customer_detail_response.status_code == 200
             detail_payload = customer_detail_response.json()
             email_detail = next(item for item in detail_payload["deliveries"] if item["delivery_channel"] == "email")
@@ -140,9 +136,7 @@ async def test_growth_notification_conformance_preferences_reenabled_and_support
             assert update_response.status_code == 200
             assert update_response.json()["growth_email_admin_updates"] is True
 
-            repaired_detail_response = await async_client.get(
-                f"/api/v1/growth-notifications/{notification_key}"
-            )
+            repaired_detail_response = await async_client.get(f"/api/v1/growth-notifications/{notification_key}")
             assert repaired_detail_response.status_code == 200
             repaired_payload = repaired_detail_response.json()
             repaired_email = next(
@@ -193,9 +187,11 @@ async def test_growth_notification_conformance_preferences_reenabled_and_support
             assert admin_detail_response.status_code == 200
             admin_detail_payload = admin_detail_response.json()
             assert admin_detail_payload["delivery"]["status_reason"] == "support_resolved"
-            assert {
-                item["event_type"] for item in admin_detail_payload["event_timeline"]
-            } >= {"repair_completed", "delivery_recovered", "support_resolved"}
+            assert {item["event_type"] for item in admin_detail_payload["event_timeline"]} >= {
+                "repair_completed",
+                "delivery_recovered",
+                "support_resolved",
+            }
 
             export_response = await async_client.get(
                 f"/api/v1/admin/growth-notification-deliveries/{email_delivery_id}/export",
@@ -263,12 +259,8 @@ async def test_growth_notification_conformance_contact_data_corrected_and_telegr
                 )
                 db.commit()
 
-                email_delivery_id = next(
-                    item.id for item in planned if item.delivery_channel == "email"
-                )
-                telegram_delivery_id = next(
-                    item.id for item in planned if item.delivery_channel == "telegram"
-                )
+                email_delivery_id = next(item.id for item in planned if item.delivery_channel == "email")
+                telegram_delivery_id = next(item.id for item in planned if item.delivery_channel == "telegram")
 
             login_response = await async_client.post(
                 "/api/v1/auth/login",
@@ -304,9 +296,10 @@ async def test_growth_notification_conformance_contact_data_corrected_and_telegr
             email_detail_payload = email_detail_response.json()
             assert email_detail_payload["delivery"]["delivery_status"] == "planned"
             assert email_detail_payload["delivery"]["status_reason"] == "contact_data_corrected"
-            assert {
-                item["event_type"] for item in email_detail_payload["event_timeline"]
-            } >= {"repair_completed", "delivery_recovered"}
+            assert {item["event_type"] for item in email_detail_payload["event_timeline"]} >= {
+                "repair_completed",
+                "delivery_recovered",
+            }
 
             telegram_detail_response = await async_client.get(
                 f"/api/v1/admin/growth-notification-deliveries/{telegram_delivery_id}",
@@ -316,9 +309,10 @@ async def test_growth_notification_conformance_contact_data_corrected_and_telegr
             telegram_detail_payload = telegram_detail_response.json()
             assert telegram_detail_payload["delivery"]["delivery_status"] == "queued"
             assert telegram_detail_payload["delivery"]["status_reason"] == "telegram_linked"
-            assert {
-                item["event_type"] for item in telegram_detail_payload["event_timeline"]
-            } >= {"repair_completed", "delivery_recovered"}
+            assert {item["event_type"] for item in telegram_detail_payload["event_timeline"]} >= {
+                "repair_completed",
+                "delivery_recovered",
+            }
 
     finally:
         engine.dispose()

@@ -33,9 +33,7 @@ def test_s2_trial_contract_is_one_time_three_days_two_gb_one_device() -> None:
     now = datetime(2026, 5, 22, 9, 0, tzinfo=UTC)
 
     available = evaluate_s2_subscription_lifecycle(S2SubscriptionLifecycleSnapshot(observed_at=now))
-    spent = evaluate_s2_subscription_lifecycle(
-        S2SubscriptionLifecycleSnapshot(observed_at=now, trial_used=True)
-    )
+    spent = evaluate_s2_subscription_lifecycle(S2SubscriptionLifecycleSnapshot(observed_at=now, trial_used=True))
 
     assert S2_TRIAL_DURATION_DAYS == 3
     assert S2_TRIAL_TRAFFIC_LIMIT_GB == 2

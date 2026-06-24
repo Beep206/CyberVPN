@@ -13,6 +13,9 @@ from src.infrastructure.database.models.payment_dispute_model import PaymentDisp
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
 from tests.helpers.realm_auth import (
+    ADMIN_AUTH_REALM_HEADERS,
+    PARTNER_ACCESS_COOKIE_NAME,
+    PARTNER_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
     access_token_from_client_cookies,
@@ -49,18 +52,21 @@ async def _create_admin_user(
     return user
 
 
-async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
+async def _login(
+    async_client: AsyncClient,
+    login_or_email: str,
+    password: str,
+    *,
+    headers: dict[str, str] = ADMIN_AUTH_REALM_HEADERS,
+    cookie_name: str = "access_token",
+) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={
-            "Host": "testserver",
-            "X-Forwarded-Host": "admin.cyber-vpn.net",
-            "X-Auth-Realm": "admin",
-        },
+        headers=headers,
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return access_token_from_client_cookies(async_client, response=response)
+    return access_token_from_client_cookies(async_client, cookie_name=cookie_name, response=response)
 
 
 async def _create_workspace(
@@ -99,6 +105,7 @@ async def test_phase8_operational_overlays_are_canonical_and_workspace_visible(
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
 
                 admin_user = await _create_admin_user(
                     session=db,
@@ -112,7 +119,7 @@ async def test_phase8_operational_overlays_are_canonical_and_workspace_visible(
                 owner_user = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="phase8_overlay_owner",
                     email="phase8-overlay-owner@example.com",
                     password="Phase8OverlayOwner123!",
@@ -120,18 +127,16 @@ async def test_phase8_operational_overlays_are_canonical_and_workspace_visible(
                 )
 
             admin_token = await _login(async_client, admin_user.email, "Phase8OverlayAdmin123!")
-            owner_token = await _login(async_client, owner_user.email, "Phase8OverlayOwner123!")
+            owner_token = await _login(
+                async_client,
+                owner_user.email,
+                "Phase8OverlayOwner123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+            )
 
-            admin_headers = {
-                "Authorization": f"Bearer {admin_token}",
-                "Host": "testserver",
-                "X-Auth-Realm": "admin",
-            }
-            owner_headers = {
-                "Authorization": f"Bearer {owner_token}",
-                "Host": "testserver",
-                "X-Auth-Realm": "admin",
-            }
+            admin_headers = {"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **PARTNER_AUTH_REALM_HEADERS}
 
             workspace_id = await _create_workspace(
                 async_client,
@@ -220,7 +225,7 @@ async def test_phase8_operational_overlays_are_canonical_and_workspace_visible(
 
             traffic_list_response = await async_client.get(
                 "/api/v1/traffic-declarations/",
-                headers=owner_headers,
+                headers=admin_headers,
                 params={"partner_account_id": workspace_id},
             )
             assert traffic_list_response.status_code == 200
@@ -310,9 +315,7 @@ async def test_phase8_operational_overlays_are_canonical_and_workspace_visible(
                 headers=owner_headers,
             )
             assert review_requests_after_response.status_code == 200
-            review_requests_after_payload = {
-                item["id"]: item for item in review_requests_after_response.json()
-            }
+            review_requests_after_payload = {item["id"]: item for item in review_requests_after_response.json()}
             assert review_requests_after_payload[finance_request_id]["status"] == "submitted"
             assert (
                 review_requests_after_payload[finance_request_id]["thread_events"][0]["message"]
@@ -334,8 +337,7 @@ async def test_phase8_operational_overlays_are_canonical_and_workspace_visible(
             assert "chargeback_review" in workspace_cases_by_kind
             assert workspace_cases_by_kind["chargeback_review"]["status"] == "waiting_on_ops"
             assert any(
-                "Collect provider evidence before reserve release."
-                in note
+                "Collect provider evidence before reserve release." in note
                 for note in workspace_cases_by_kind["chargeback_review"]["notes"]
             )
     finally:

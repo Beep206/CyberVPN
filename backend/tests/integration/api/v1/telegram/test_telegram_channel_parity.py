@@ -117,15 +117,19 @@ class TestTelegramChannelParity:
         monkeypatch.setattr(settings, "telegram_bot_internal_secret", SecretStr("telegram-test-secret"))
         mobile_user = SimpleNamespace(id=uuid4(), auth_realm_id=None)
 
-        with patch(
-            "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
-            AsyncMock(return_value=mobile_user),
-        ), patch(
-            "src.presentation.api.v1.telegram.routes._resolve_bot_customer_realm",
-            AsyncMock(return_value=SimpleNamespace(auth_realm=SimpleNamespace(id=uuid4()))),
-        ), patch(
-            "src.presentation.api.v1.telegram.routes.ListCustomerSubscriptionsUseCase.execute",
-            AsyncMock(return_value=_fake_subscription_list()),
+        with (
+            patch(
+                "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
+                AsyncMock(return_value=mobile_user),
+            ),
+            patch(
+                "src.presentation.api.v1.telegram.routes._resolve_bot_customer_realm",
+                AsyncMock(return_value=SimpleNamespace(auth_realm=SimpleNamespace(id=uuid4()))),
+            ),
+            patch(
+                "src.presentation.api.v1.telegram.routes.ListCustomerSubscriptionsUseCase.execute",
+                AsyncMock(return_value=_fake_subscription_list()),
+            ),
         ):
             response = await async_client.get(
                 "/api/v1/telegram/bot/user/123456/subscriptions",
@@ -158,12 +162,15 @@ class TestTelegramChannelParity:
         mobile_user = SimpleNamespace(id=uuid4(), auth_realm_id=None)
         fake_order = _fake_order()
 
-        with patch(
-            "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
-            AsyncMock(return_value=mobile_user),
-        ), patch(
-            "src.presentation.api.v1.telegram.routes.ListOrdersUseCase.execute",
-            AsyncMock(return_value=[fake_order]),
+        with (
+            patch(
+                "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
+                AsyncMock(return_value=mobile_user),
+            ),
+            patch(
+                "src.presentation.api.v1.telegram.routes.ListOrdersUseCase.execute",
+                AsyncMock(return_value=[fake_order]),
+            ),
         ):
             response = await async_client.get(
                 "/api/v1/telegram/bot/user/123456/orders?limit=10&offset=0",
@@ -196,15 +203,19 @@ class TestTelegramChannelParity:
             resolved_provisioning_profile_key=None,
         )
 
-        with patch(
-            "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
-            AsyncMock(return_value=mobile_user),
-        ), patch(
-            "src.presentation.api.v1.telegram.routes._resolve_bot_customer_realm",
-            AsyncMock(return_value=SimpleNamespace(auth_realm=SimpleNamespace(id=uuid4()))),
-        ), patch(
-            "src.presentation.api.v1.telegram.routes.GetCurrentServiceStateUseCase.execute",
-            AsyncMock(return_value=service_state),
+        with (
+            patch(
+                "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
+                AsyncMock(return_value=mobile_user),
+            ),
+            patch(
+                "src.presentation.api.v1.telegram.routes._resolve_bot_customer_realm",
+                AsyncMock(return_value=SimpleNamespace(auth_realm=SimpleNamespace(id=uuid4()))),
+            ),
+            patch(
+                "src.presentation.api.v1.telegram.routes.GetCurrentServiceStateUseCase.execute",
+                AsyncMock(return_value=service_state),
+            ),
         ):
             response = await async_client.get(
                 "/api/v1/telegram/bot/user/123456/service-state",
@@ -231,13 +242,16 @@ class TestTelegramChannelParity:
         mobile_user = SimpleNamespace(id=user_id, auth_realm_id=None)
         created_note = SimpleNamespace(id=note_id)
 
-        with patch(
-            "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
-            AsyncMock(return_value=mobile_user),
-        ), patch(
-            "src.presentation.api.v1.telegram.routes.CustomerStaffNoteRepository.create",
-            AsyncMock(return_value=created_note),
-        ) as create_note:
+        with (
+            patch(
+                "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
+                AsyncMock(return_value=mobile_user),
+            ),
+            patch(
+                "src.presentation.api.v1.telegram.routes.CustomerStaffNoteRepository.create",
+                AsyncMock(return_value=created_note),
+            ) as create_note,
+        ):
             response = await async_client.post(
                 "/api/v1/telegram/bot/user/123456/support/escalations",
                 headers=_bot_headers(),

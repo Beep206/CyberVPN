@@ -3,6 +3,7 @@
 import logging
 from uuid import UUID
 
+from src.domain.entities.user import User
 from src.domain.enums import UserStatus
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 
@@ -20,40 +21,38 @@ class BulkUserOperationsUseCase:
         """
         self.gateway = gateway
 
-    async def disable_users(self, uuids: list[UUID]) -> int:
+    async def disable_users(self, uuids: list[UUID]) -> list[User]:
         """Disable multiple users.
 
         Args:
             uuids: List of user UUIDs to disable
 
         Returns:
-            The number of users successfully disabled
+            The users successfully disabled
         """
-        success_count = 0
+        updated_users: list[User] = []
         for uuid in uuids:
             try:
-                await self.gateway.update(uuid, status=UserStatus.DISABLED)
-                success_count += 1
+                updated_users.append(await self.gateway.update(uuid, status=UserStatus.DISABLED))
             except Exception as e:
                 logger.warning("Failed to disable user %s: %s", uuid, e)
                 continue
-        return success_count
+        return updated_users
 
-    async def enable_users(self, uuids: list[UUID]) -> int:
+    async def enable_users(self, uuids: list[UUID]) -> list[User]:
         """Enable multiple users.
 
         Args:
             uuids: List of user UUIDs to enable
 
         Returns:
-            The number of users successfully enabled
+            The users successfully enabled
         """
-        success_count = 0
+        updated_users: list[User] = []
         for uuid in uuids:
             try:
-                await self.gateway.update(uuid, status=UserStatus.ACTIVE)
-                success_count += 1
+                updated_users.append(await self.gateway.update(uuid, status=UserStatus.ACTIVE))
             except Exception as e:
                 logger.warning("Failed to enable user %s: %s", uuid, e)
                 continue
-        return success_count
+        return updated_users

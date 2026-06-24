@@ -174,9 +174,7 @@ class BuildPartnerWorkspacePostbackReadinessUseCase:
         else:
             delivery_status = PartnerIntegrationDeliveryStatus.PAUSED.value
         notes = [
-            (
-                "Portal visibility stays anchored to canonical order, attribution, and settlement truth."
-            ),
+            ("Portal visibility stays anchored to canonical order, attribution, and settlement truth."),
             (
                 "Workspace restrictions block postback rollout until governance posture is restored."
                 if readiness_status == "blocked"
@@ -224,27 +222,25 @@ class BuildPartnerWorkspaceIntegrationDeliveryLogsUseCase:
                 payout_offset=0,
             )
         ).report_pack
-        credentials = await self._credential_repo.list_for_workspace(
-            partner_account_id=partner_account_id
-        )
+        credentials = await self._credential_repo.list_for_workspace(partner_account_id=partner_account_id)
         credential_by_kind = {item.credential_kind: item for item in credentials}
         partner_row = _get_partner_reporting_row(
             report_pack=report_pack,
             partner_account_id=partner_account_id,
         )
         generated_at = _generated_at(report_pack)
-        consumer_views = report_pack.get("reporting_health_views", {}).get("consumer_health_views", [])
-        analytics_consumer = next(
+        consumer_views: list[dict[str, Any]] = list(
+            report_pack.get("reporting_health_views", {}).get("consumer_health_views", [])
+        )
+        analytics_consumer: dict[str, Any] = next(
             (item for item in consumer_views if item.get("consumer_key") == "analytics_mart"),
             {},
         )
-        replay_consumer = next(
+        replay_consumer: dict[str, Any] = next(
             (item for item in consumer_views if item.get("consumer_key") == "operational_replay"),
             {},
         )
-        reporting_credential = credential_by_kind.get(
-            PartnerIntegrationCredentialKind.REPORTING_API_TOKEN.value
-        )
+        reporting_credential = credential_by_kind.get(PartnerIntegrationCredentialKind.REPORTING_API_TOKEN.value)
         reporting_status = _reporting_delivery_status(
             workspace_status=workspace_status,
             credential=reporting_credential,
@@ -333,9 +329,7 @@ class GetPartnerWorkspaceReportingApiSnapshotUseCase:
                 report_pack=report_pack,
                 partner_account_id=partner_account_id,
             ),
-            consumer_health_views=list(
-                report_pack.get("reporting_health_views", {}).get("consumer_health_views", [])
-            ),
+            consumer_health_views=list(report_pack.get("reporting_health_views", {}).get("consumer_health_views", [])),
             delivery_logs=delivery_logs,
             postback_readiness=postback_readiness,
         )

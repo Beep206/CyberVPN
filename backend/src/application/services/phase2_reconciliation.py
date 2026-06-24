@@ -9,6 +9,9 @@ from decimal import Decimal
 from typing import Any
 
 REPORT_VERSION = "phase2-order-reconciliation-v1"
+SummaryBucket = dict[str, int | str]
+CountParityBucket = dict[str, int | bool]
+AmountParityBucket = dict[str, str | bool]
 
 BLOCKING_MISMATCH_CODES = {
     "orphan_refund_without_payment",
@@ -222,7 +225,7 @@ def build_phase2_reconciliation_pack(snapshot: dict[str, Any]) -> dict[str, Any]
                 }
             )
 
-    legacy_summary = {
+    legacy_summary: dict[str, SummaryBucket] = {
         "payments": {
             "count": len(payments),
             "completed_count": sum(1 for payment in payments if str(payment.get("status")) == "completed"),
@@ -244,7 +247,7 @@ def build_phase2_reconciliation_pack(snapshot: dict[str, Any]) -> dict[str, Any]
         },
     }
 
-    replayed_summary = {
+    replayed_summary: dict[str, SummaryBucket] = {
         "orders": {
             "count": len(replayed_orders),
             "gross_amount_total": _decimal_string(
@@ -254,9 +257,7 @@ def build_phase2_reconciliation_pack(snapshot: dict[str, Any]) -> dict[str, Any]
         "payment_attempts": {"count": len(replayed_payment_attempts)},
         "refunds": {
             "count": len(replayed_refunds),
-            "amount_total": _decimal_string(
-                sum((Decimal(item["amount"]) for item in replayed_refunds), Decimal("0"))
-            ),
+            "amount_total": _decimal_string(sum((Decimal(item["amount"]) for item in replayed_refunds), Decimal("0"))),
         },
         "payment_disputes": {
             "count": len(replayed_payment_disputes),
@@ -265,59 +266,64 @@ def build_phase2_reconciliation_pack(snapshot: dict[str, Any]) -> dict[str, Any]
             ),
         },
     }
+    legacy_payments_count = len(payments)
+    legacy_refunds_count = len(refunds)
+    legacy_payment_disputes_count = len(payment_disputes)
+    replayed_orders_count = len(replayed_orders)
+    replayed_payment_attempts_count = len(replayed_payment_attempts)
+    replayed_refunds_count = len(replayed_refunds)
+    replayed_payment_disputes_count = len(replayed_payment_disputes)
+    legacy_gross_amount_total = str(legacy_summary["payments"]["gross_amount_total"])
+    replayed_gross_amount_total = str(replayed_summary["orders"]["gross_amount_total"])
+    legacy_refund_amount_total = str(legacy_summary["refunds"]["amount_total"])
+    replayed_refund_amount_total = str(replayed_summary["refunds"]["amount_total"])
+    legacy_dispute_amount_total = str(legacy_summary["payment_disputes"]["amount_total"])
+    replayed_dispute_amount_total = str(replayed_summary["payment_disputes"]["amount_total"])
 
-    count_parity = {
+    count_parity: dict[str, CountParityBucket] = {
         "orders_vs_payments": {
-            "expected": legacy_summary["payments"]["count"],
-            "actual": replayed_summary["orders"]["count"],
-            "matches": legacy_summary["payments"]["count"] == replayed_summary["orders"]["count"],
+            "expected": legacy_payments_count,
+            "actual": replayed_orders_count,
+            "matches": legacy_payments_count == replayed_orders_count,
         },
         "payment_attempts_vs_payments": {
-            "expected": legacy_summary["payments"]["count"],
-            "actual": replayed_summary["payment_attempts"]["count"],
-            "matches": legacy_summary["payments"]["count"] == replayed_summary["payment_attempts"]["count"],
+            "expected": legacy_payments_count,
+            "actual": replayed_payment_attempts_count,
+            "matches": legacy_payments_count == replayed_payment_attempts_count,
         },
         "refunds_vs_legacy_refunds": {
-            "expected": legacy_summary["refunds"]["count"]
-            - _count_mismatches(mismatches, "orphan_refund_without_payment"),
-            "actual": replayed_summary["refunds"]["count"],
+            "expected": legacy_refunds_count - _count_mismatches(mismatches, "orphan_refund_without_payment"),
+            "actual": replayed_refunds_count,
             "matches": (
-                legacy_summary["refunds"]["count"] - _count_mismatches(mismatches, "orphan_refund_without_payment")
-                == replayed_summary["refunds"]["count"]
+                legacy_refunds_count - _count_mismatches(mismatches, "orphan_refund_without_payment")
+                == replayed_refunds_count
             ),
         },
         "payment_disputes_vs_legacy_payment_disputes": {
-            "expected": legacy_summary["payment_disputes"]["count"]
+            "expected": legacy_payment_disputes_count
             - _count_mismatches(mismatches, "orphan_payment_dispute_without_payment"),
-            "actual": replayed_summary["payment_disputes"]["count"],
+            "actual": replayed_payment_disputes_count,
             "matches": (
-                legacy_summary["payment_disputes"]["count"]
-                - _count_mismatches(mismatches, "orphan_payment_dispute_without_payment")
-                == replayed_summary["payment_disputes"]["count"]
+                legacy_payment_disputes_count - _count_mismatches(mismatches, "orphan_payment_dispute_without_payment")
+                == replayed_payment_disputes_count
             ),
         },
     }
-    amount_parity = {
+    amount_parity: dict[str, AmountParityBucket] = {
         "gross_amount_total": {
-            "legacy": legacy_summary["payments"]["gross_amount_total"],
-            "replayed": replayed_summary["orders"]["gross_amount_total"],
-            "matches": (
-                legacy_summary["payments"]["gross_amount_total"]
-                == replayed_summary["orders"]["gross_amount_total"]
-            ),
+            "legacy": legacy_gross_amount_total,
+            "replayed": replayed_gross_amount_total,
+            "matches": legacy_gross_amount_total == replayed_gross_amount_total,
         },
         "refund_amount_total": {
-            "legacy": legacy_summary["refunds"]["amount_total"],
-            "replayed": replayed_summary["refunds"]["amount_total"],
-            "matches": legacy_summary["refunds"]["amount_total"] == replayed_summary["refunds"]["amount_total"],
+            "legacy": legacy_refund_amount_total,
+            "replayed": replayed_refund_amount_total,
+            "matches": legacy_refund_amount_total == replayed_refund_amount_total,
         },
         "payment_dispute_amount_total": {
-            "legacy": legacy_summary["payment_disputes"]["amount_total"],
-            "replayed": replayed_summary["payment_disputes"]["amount_total"],
-            "matches": (
-                legacy_summary["payment_disputes"]["amount_total"]
-                == replayed_summary["payment_disputes"]["amount_total"]
-            ),
+            "legacy": legacy_dispute_amount_total,
+            "replayed": replayed_dispute_amount_total,
+            "matches": legacy_dispute_amount_total == replayed_dispute_amount_total,
         },
     }
 

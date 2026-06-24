@@ -109,10 +109,20 @@ async def test_risk_review_queue_and_governance_workflow_are_canonical_and_repla
                     realm=partner_admin_realm,
                     principal_type="admin",
                 )
+                admin_headers = {
+                    "Authorization": f"Bearer {admin_token}",
+                    "X-Auth-Realm": "admin",
+                    "Host": "testserver",
+                }
+                operator_headers = {
+                    "Authorization": f"Bearer {operator_token}",
+                    "X-Auth-Realm": "partner-admin",
+                    "Host": "testserver",
+                }
 
             subject_response = await async_client.post(
                 "/api/v1/security/risk-subjects",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=admin_headers,
                 json={
                     "principal_class": "admin",
                     "principal_subject": str(subject_principal.id),
@@ -125,7 +135,7 @@ async def test_risk_review_queue_and_governance_workflow_are_canonical_and_repla
 
             review_response = await async_client.post(
                 "/api/v1/security/risk-reviews",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=admin_headers,
                 json={
                     "risk_subject_id": risk_subject["id"],
                     "review_type": "payout_review",
@@ -139,7 +149,7 @@ async def test_risk_review_queue_and_governance_workflow_are_canonical_and_repla
 
             queue_response = await async_client.get(
                 "/api/v1/security/risk-reviews/queue",
-                headers={"Authorization": f"Bearer {operator_token}", "X-Auth-Realm": "partner-admin"},
+                headers=operator_headers,
                 params={"status": "open"},
             )
             assert queue_response.status_code == 200
@@ -151,7 +161,7 @@ async def test_risk_review_queue_and_governance_workflow_are_canonical_and_repla
 
             attachment_response = await async_client.post(
                 f"/api/v1/security/risk-reviews/{review['id']}/attachments",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=admin_headers,
                 json={
                     "attachment_type": "screenshot",
                     "storage_key": "risk/reviews/phase8-proof.png",
@@ -166,7 +176,7 @@ async def test_risk_review_queue_and_governance_workflow_are_canonical_and_repla
 
             governance_action_response = await async_client.post(
                 "/api/v1/security/governance-actions",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=admin_headers,
                 json={
                     "risk_subject_id": risk_subject["id"],
                     "risk_review_id": review["id"],
@@ -185,7 +195,7 @@ async def test_risk_review_queue_and_governance_workflow_are_canonical_and_repla
 
             detail_response = await async_client.get(
                 f"/api/v1/security/risk-reviews/{review['id']}",
-                headers={"Authorization": f"Bearer {operator_token}", "X-Auth-Realm": "partner-admin"},
+                headers=operator_headers,
             )
             assert detail_response.status_code == 200
             detail = detail_response.json()
@@ -197,7 +207,7 @@ async def test_risk_review_queue_and_governance_workflow_are_canonical_and_repla
 
             resolve_response = await async_client.post(
                 f"/api/v1/security/risk-reviews/{review['id']}/resolve",
-                headers={"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"},
+                headers=admin_headers,
                 json={
                     "decision": "block",
                     "resolution_status": "resolved",
@@ -213,7 +223,7 @@ async def test_risk_review_queue_and_governance_workflow_are_canonical_and_repla
 
             resolved_queue_response = await async_client.get(
                 "/api/v1/security/risk-reviews/queue",
-                headers={"Authorization": f"Bearer {operator_token}", "X-Auth-Realm": "partner-admin"},
+                headers=operator_headers,
                 params={"status": "resolved"},
             )
             assert resolved_queue_response.status_code == 200
@@ -225,7 +235,7 @@ async def test_risk_review_queue_and_governance_workflow_are_canonical_and_repla
 
             governance_actions_response = await async_client.get(
                 "/api/v1/security/governance-actions",
-                headers={"Authorization": f"Bearer {operator_token}", "X-Auth-Realm": "partner-admin"},
+                headers=operator_headers,
                 params={"risk_subject_id": risk_subject["id"]},
             )
             assert governance_actions_response.status_code == 200

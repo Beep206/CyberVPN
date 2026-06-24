@@ -9,7 +9,9 @@ Tests that:
 
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
+from uuid import uuid4
 
+import jwt
 import pytest
 
 
@@ -68,6 +70,34 @@ class TestJTIClaims:
         payload = auth.decode_token(token)
         assert "jti" in payload
         assert payload["jti"] == expected_jti
+
+    def test_decode_token_allows_small_clock_skew_for_iat(self):
+        """Small clock rollback does not reject a just-issued token."""
+        from src.application.services.auth_service import AuthService
+        from src.config.settings import settings
+
+        auth = AuthService()
+        issued_at = datetime.now(UTC) + timedelta(seconds=3)
+        payload = {
+            "sub": "user-123",
+            "role": "admin",
+            "exp": datetime.now(UTC) + timedelta(minutes=5),
+            "iat": issued_at,
+            "jti": str(uuid4()),
+            "type": "access",
+            "aud": settings.jwt_audience,
+        }
+        if settings.jwt_issuer:
+            payload["iss"] = settings.jwt_issuer
+        token = jwt.encode(
+            payload,
+            settings.jwt_secret.get_secret_value(),
+            algorithm=settings.jwt_algorithm,
+        )
+
+        payload = auth.decode_token(token)
+
+        assert payload["sub"] == "user-123"
 
 
 class TestRevocationService:

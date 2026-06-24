@@ -219,11 +219,15 @@ async def test_codes_resolve_accepts_promo_for_checkout(async_client: AsyncClien
                         GrowthCodeModel.code_type == "promo",
                     )
                 ).scalar_one()
-                resolution_events = db.execute(
-                    select(GrowthCodeResolutionEventModel).where(
-                        GrowthCodeResolutionEventModel.growth_code_id == shadow_code.id
+                resolution_events = (
+                    db.execute(
+                        select(GrowthCodeResolutionEventModel).where(
+                            GrowthCodeResolutionEventModel.growth_code_id == shadow_code.id
+                        )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
 
                 assert shadow_code.status == "active"
                 assert shadow_code.issuer_type == "admin"
@@ -357,16 +361,22 @@ async def test_codes_resolve_records_not_found_attempt_without_shadow_code(async
             assert payload["reject_reason"] == "code_not_found"
 
             with sessionmaker() as db:
-                shadow_codes = db.execute(
-                    select(GrowthCodeModel).where(
-                        GrowthCodeModel.code_hash == hash_growth_code("NOTREALWB0201")
+                shadow_codes = (
+                    db.execute(
+                        select(GrowthCodeModel).where(GrowthCodeModel.code_hash == hash_growth_code("NOTREALWB0201"))
                     )
-                ).scalars().all()
-                resolution_events = db.execute(
-                    select(GrowthCodeResolutionEventModel).where(
-                        GrowthCodeResolutionEventModel.raw_code_hash == hash_growth_code("NOTREALWB0201")
+                    .scalars()
+                    .all()
+                )
+                resolution_events = (
+                    db.execute(
+                        select(GrowthCodeResolutionEventModel).where(
+                            GrowthCodeResolutionEventModel.raw_code_hash == hash_growth_code("NOTREALWB0201")
+                        )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
 
                 assert shadow_codes == []
                 assert len(resolution_events) == 1
@@ -810,11 +820,15 @@ async def test_quote_accepts_referral_code_without_creating_reservation(async_cl
                         GrowthCodeModel.code_type == "referral",
                     )
                 ).scalar_one()
-                reservations = db.execute(
-                    select(GrowthCodeReservationModel).where(
-                        GrowthCodeReservationModel.growth_code_id == shadow_code.id
+                reservations = (
+                    db.execute(
+                        select(GrowthCodeReservationModel).where(
+                            GrowthCodeReservationModel.growth_code_id == shadow_code.id
+                        )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
 
                 assert reservations == []
     finally:

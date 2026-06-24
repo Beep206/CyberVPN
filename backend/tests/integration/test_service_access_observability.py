@@ -276,9 +276,7 @@ async def test_service_access_observability_shows_purchase_vs_consumption_contex
             assert inspect_lookup_payload["purchase_context"]["source_type"] == "order"
             assert inspect_lookup_payload["purchase_context"]["source_order_id"] == order_payload["id"]
             assert inspect_lookup_payload["purchase_context"]["source_order_sale_channel"] == "web"
-            assert (
-                inspect_lookup_payload["purchase_context"]["source_order_settlement_status"] == "paid"
-            )
+            assert inspect_lookup_payload["purchase_context"]["source_order_settlement_status"] == "paid"
             assert inspect_lookup_payload["selected_provisioning_profile"]["profile_key"] == "desktop_manifest-default"
             assert (
                 inspect_lookup_payload["selected_access_delivery_channel"]["id"]

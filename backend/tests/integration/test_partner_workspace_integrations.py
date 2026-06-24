@@ -12,6 +12,8 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.main import app
 from tests.helpers.realm_auth import (
     ADMIN_AUTH_REALM_HEADERS,
+    PARTNER_ACCESS_COOKIE_NAME,
+    PARTNER_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
     access_token_from_client_cookies,
@@ -49,14 +51,21 @@ async def _create_admin_user(
     return user
 
 
-async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
+async def _login(
+    async_client: AsyncClient,
+    login_or_email: str,
+    password: str,
+    *,
+    headers: dict[str, str] = ADMIN_AUTH_REALM_HEADERS,
+    cookie_name: str | None = None,
+) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers=ADMIN_AUTH_REALM_HEADERS,
+        headers=headers,
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return access_token_from_client_cookies(async_client, response=response)
+    return access_token_from_client_cookies(async_client, cookie_name=cookie_name or "access_token", response=response)
 
 
 async def _create_workspace(
@@ -96,6 +105,7 @@ async def test_partner_workspace_integration_credentials_and_reporting_snapshot(
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
                 await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
@@ -108,7 +118,7 @@ async def test_partner_workspace_integration_credentials_and_reporting_snapshot(
                 owner_user = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="integrations_owner",
                     email="integrations-owner@example.com",
                     password="IntegrationsOwner123!",
@@ -116,10 +126,16 @@ async def test_partner_workspace_integration_credentials_and_reporting_snapshot(
                 )
 
             admin_token = await _login(async_client, "integrations-admin@example.com", "IntegrationsAdmin123!")
-            owner_token = await _login(async_client, "integrations-owner@example.com", "IntegrationsOwner123!")
+            owner_token = await _login(
+                async_client,
+                "integrations-owner@example.com",
+                "IntegrationsOwner123!",
+                headers=PARTNER_AUTH_REALM_HEADERS,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+            )
 
             admin_headers = {"Authorization": f"Bearer {admin_token}", **ADMIN_AUTH_REALM_HEADERS}
-            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **PARTNER_AUTH_REALM_HEADERS}
 
             workspace_id = await _create_workspace(
                 async_client,
@@ -135,17 +151,14 @@ async def test_partner_workspace_integration_credentials_and_reporting_snapshot(
             assert credentials_response.json() == []
 
             reporting_rotate_response = await async_client.post(
-                (
-                    f"/api/v1/partner-workspaces/{workspace_id}/integration-credentials/"
-                    "reporting_api_token/rotate"
-                ),
+                (f"/api/v1/partner-workspaces/{workspace_id}/integration-credentials/reporting_api_token/rotate"),
                 headers=await fresh_auth_headers(
                     fake_redis=fake_redis,
                     base_headers=owner_headers,
                     user=owner_user,
-                    auth_realm_id=admin_realm.id,
-                    realm_key="admin",
-                    principal_class="admin",
+                    auth_realm_id=partner_realm.id,
+                    realm_key="partner",
+                    principal_class="partner_operator",
                     action=f"partner.integration_credential.rotate:{workspace_id}:reporting_api_token",
                 ),
                 json={"credential_metadata": {"surface": "partner_portal"}},
@@ -157,17 +170,14 @@ async def test_partner_workspace_integration_credentials_and_reporting_snapshot(
             assert reporting_payload["issued_secret"].startswith("rpt_")
 
             postback_rotate_response = await async_client.post(
-                (
-                    f"/api/v1/partner-workspaces/{workspace_id}/integration-credentials/"
-                    "postback_secret/rotate"
-                ),
+                (f"/api/v1/partner-workspaces/{workspace_id}/integration-credentials/postback_secret/rotate"),
                 headers=await fresh_auth_headers(
                     fake_redis=fake_redis,
                     base_headers=owner_headers,
                     user=owner_user,
-                    auth_realm_id=admin_realm.id,
-                    realm_key="admin",
-                    principal_class="admin",
+                    auth_realm_id=partner_realm.id,
+                    realm_key="partner",
+                    principal_class="partner_operator",
                     action=f"partner.integration_credential.rotate:{workspace_id}:postback_secret",
                 ),
                 json={"destination_ref": "https://partner.example.com/postback"},

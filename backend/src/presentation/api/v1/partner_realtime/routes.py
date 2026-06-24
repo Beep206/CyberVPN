@@ -44,15 +44,15 @@ async def stream_partner_workspace_feed(
         queue = partner_workspace_feed_broker.subscribe(access.workspace.id)
         try:
             yield "retry: 5000\n\n"
-            for item in backlog:
-                yield _format_model_event(item)
+            for backlog_item in backlog:
+                yield _format_model_event(backlog_item)
             while True:
                 try:
-                    item = await asyncio.wait_for(queue.get(), timeout=15)
+                    broker_event = await asyncio.wait_for(queue.get(), timeout=15)
                 except TimeoutError:
                     yield ": keep-alive\n\n"
                     continue
-                yield _format_broker_event(item)
+                yield _format_broker_event(broker_event)
         finally:
             partner_workspace_feed_broker.unsubscribe(access.workspace.id, queue)
 
@@ -96,8 +96,4 @@ def _format_broker_event(item) -> str:
 
 
 def _encode_sse(*, data: dict[str, object], event_key: str) -> str:
-    return (
-        f"id: {event_key}\n"
-        "event: partner.workspace.feed\n"
-        f"data: {json.dumps(data, separators=(',', ':'))}\n\n"
-    )
+    return f"id: {event_key}\nevent: partner.workspace.feed\ndata: {json.dumps(data, separators=(',', ':'))}\n\n"

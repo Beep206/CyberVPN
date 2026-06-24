@@ -83,9 +83,7 @@ class GetOrderExplainabilityUseCase:
             else None
         )
         active_growth_allocations = [
-            allocation
-            for allocation in growth_reward_allocations
-            if allocation.allocation_status == "allocated"
+            allocation for allocation in growth_reward_allocations if allocation.allocation_status == "allocated"
         ]
         growth_reward_types = sorted({allocation.reward_type for allocation in growth_reward_allocations})
         active_growth_reward_types = sorted({allocation.reward_type for allocation in active_growth_allocations})
@@ -369,10 +367,7 @@ class GetOrderExplainabilityUseCase:
                 "growth_reward_allocation_count": len(growth_reward_allocations),
                 "renewal_order_present": renewal_order is not None,
                 "payout_owner_computed": (
-                    (
-                        attribution_result is not None
-                        and attribution_result.owner_type != CommercialOwnerType.NONE.value
-                    )
+                    (attribution_result is not None and attribution_result.owner_type != CommercialOwnerType.NONE.value)
                     or (
                         renewal_order is not None
                         and renewal_order.effective_owner_type != CommercialOwnerType.NONE.value

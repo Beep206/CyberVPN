@@ -1,6 +1,7 @@
 """System health use case."""
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 
 class SystemHealthUseCase:
@@ -8,10 +9,10 @@ class SystemHealthUseCase:
 
     def __init__(
         self,
-        db_check: Callable,
-        redis_check: Callable,
-        remnawave_check: Callable,
-    ):
+        db_check: Callable[[], Awaitable[Any]],
+        redis_check: Callable[[], Awaitable[Any]],
+        remnawave_check: Callable[[], Awaitable[Any]],
+    ) -> None:
         """Initialize the use case with health check functions.
 
         Args:
@@ -23,13 +24,13 @@ class SystemHealthUseCase:
         self.redis_check = redis_check
         self.remnawave_check = remnawave_check
 
-    async def execute(self) -> dict:
+    async def execute(self) -> dict[str, Any]:
         """Execute the system health check.
 
         Returns:
             A dictionary containing health status of all components
         """
-        health_status = {
+        health_status: dict[str, Any] = {
             "status": "healthy",
             "components": {},
         }

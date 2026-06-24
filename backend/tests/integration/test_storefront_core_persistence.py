@@ -86,9 +86,15 @@ def test_storefront_core_persists_with_optional_profile_bindings() -> None:
         )
         session.commit()
 
-        storefronts = session.execute(
-            select(StorefrontModel).where(StorefrontModel.brand_id == brand_id).order_by(StorefrontModel.storefront_key)
-        ).scalars().all()
+        storefronts = (
+            session.execute(
+                select(StorefrontModel)
+                .where(StorefrontModel.brand_id == brand_id)
+                .order_by(StorefrontModel.storefront_key)
+            )
+            .scalars()
+            .all()
+        )
 
         assert len(storefronts) == 2
         assert storefronts[0].storefront_key == "official-web"

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.growth_reporting_delivery_model import GrowthReportingDeliveryModel
@@ -160,10 +161,12 @@ class GrowthReportingDistributionRepository:
 
     async def list_deliveries(self, *, limit: int = 20) -> list[GrowthReportingDeliveryModel]:
         result = await self._session.execute(
-            select(GrowthReportingDeliveryModel).order_by(
+            select(GrowthReportingDeliveryModel)
+            .order_by(
                 GrowthReportingDeliveryModel.created_at.desc(),
                 GrowthReportingDeliveryModel.planned_at.desc(),
-            ).limit(limit)
+            )
+            .limit(limit)
         )
         return list(result.scalars().all())
 
@@ -171,11 +174,14 @@ class GrowthReportingDistributionRepository:
         return await self._session.get(GrowthReportingDeliveryModel, delivery_id)
 
     async def delete_old_deliveries(self, *, older_than: datetime) -> int:
-        result = await self._session.execute(
-            delete(GrowthReportingDeliveryModel).where(
-                GrowthReportingDeliveryModel.created_at < _coerce_utc(older_than),
-                GrowthReportingDeliveryModel.delivery_status.in_(("delivered", "failed", "skipped")),
-            )
+        result = cast(
+            CursorResult,
+            await self._session.execute(
+                delete(GrowthReportingDeliveryModel).where(
+                    GrowthReportingDeliveryModel.created_at < _coerce_utc(older_than),
+                    GrowthReportingDeliveryModel.delivery_status.in_(("delivered", "failed", "skipped")),
+                )
+            ),
         )
         return int(result.rowcount or 0)
 

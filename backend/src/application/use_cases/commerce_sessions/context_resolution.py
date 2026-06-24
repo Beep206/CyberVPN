@@ -184,10 +184,7 @@ class ResolveQuoteContextUseCase:
             entry
             for entry in entries
             if entry.offer.subscription_plan_id == subscription_plan_id
-            and (
-                not entry.offer.sale_channels
-                or sale_channel in entry.offer.sale_channels
-            )
+            and (not entry.offer.sale_channels or sale_channel in entry.offer.sale_channels)
         ]
         if offer_key is not None:
             matching_entries = [entry for entry in matching_entries if entry.offer.offer_key == offer_key]

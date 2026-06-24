@@ -123,7 +123,7 @@ class OtpService:
 
             if existing:
                 # Check resend cooldown
-                if existing.last_resend_at:
+                if self._resend_cooldown_seconds > 0 and existing.last_resend_at:
                     cooldown_expires = existing.last_resend_at + timedelta(seconds=self._resend_cooldown_seconds)
                     if now < cooldown_expires:
                         raise OtpRateLimitError(
@@ -303,7 +303,7 @@ class OtpService:
             return False, 0, window_end
 
         # Check cooldown
-        if otp.last_resend_at:
+        if self._resend_cooldown_seconds > 0 and otp.last_resend_at:
             cooldown_expires = otp.last_resend_at + timedelta(seconds=self._resend_cooldown_seconds)
             now = datetime.now(UTC)
             if now < cooldown_expires:
@@ -347,7 +347,7 @@ class OtpService:
             return None
 
         # Check resend cooldown
-        if existing.last_resend_at:
+        if self._resend_cooldown_seconds > 0 and existing.last_resend_at:
             cooldown_expires = existing.last_resend_at + timedelta(seconds=self._resend_cooldown_seconds)
             if now < cooldown_expires:
                 raise OtpRateLimitError(

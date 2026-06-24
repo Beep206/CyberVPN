@@ -149,6 +149,9 @@ class TestLogoutAllDevices:
                 jti=jti2,
                 user_id=str(user.id),
                 expires_at=access_exp2,
+                auth_realm_id=str(user.auth_realm_id),
+                principal_class="admin",
+                principal_subject=str(user.id),
             )
         finally:
             await redis_client.aclose()

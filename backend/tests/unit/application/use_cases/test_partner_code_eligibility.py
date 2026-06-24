@@ -212,3 +212,52 @@ def test_partner_code_eligibility_rejects_contract_mismatch_and_incomplete_snaps
         "commission_contract_mismatch",
         "commission_contract_snapshot_incomplete",
     }
+
+
+def test_partner_code_eligibility_allows_new_contract_with_small_clock_skew() -> None:
+    code_id = uuid.uuid4()
+    contract_id = uuid.uuid4()
+    now = datetime(2026, 6, 21, tzinfo=UTC)
+
+    result = EvaluatePartnerCodeEligibilityUseCase().execute(
+        EvaluatePartnerCodeEligibilityCommand(
+            code_model=_code(id=code_id, commission_contract_id=contract_id),
+            account=_account(),
+            sale_channel="content",
+            commission_contract_snapshot=_contract_snapshot(
+                commission_contract_id=str(contract_id),
+                partner_code_id=str(code_id),
+                effective_from=(now + timedelta(seconds=5)).isoformat(),
+                effective_to=None,
+            ),
+            now=now,
+        )
+    )
+
+    assert result.allowed is True
+    assert "commission_contract_not_yet_active" not in result.reason_codes
+
+
+def test_partner_code_eligibility_rejects_contract_effective_from_beyond_clock_skew() -> None:
+    code_id = uuid.uuid4()
+    contract_id = uuid.uuid4()
+    now = datetime(2026, 6, 21, tzinfo=UTC)
+
+    result = EvaluatePartnerCodeEligibilityUseCase().execute(
+        EvaluatePartnerCodeEligibilityCommand(
+            code_model=_code(id=code_id, commission_contract_id=contract_id),
+            account=_account(),
+            sale_channel="content",
+            commission_contract_snapshot=_contract_snapshot(
+                commission_contract_id=str(contract_id),
+                partner_code_id=str(code_id),
+                effective_from=(now + timedelta(days=1)).isoformat(),
+                effective_to=None,
+            ),
+            now=now,
+        )
+    )
+
+    assert result.allowed is False
+    assert result.error_code == "PARTNER_COMMISSION_CONTRACT_NOT_ACTIVE"
+    assert result.reason_codes == ["commission_contract_not_yet_active"]

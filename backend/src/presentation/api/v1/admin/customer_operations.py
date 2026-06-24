@@ -126,17 +126,13 @@ async def _collect_customer_partner_account_ids(
         explainability_result = await explainability_use_case.execute(order_id=order.id)
         attribution_result = await attribution_use_case.execute(order_id=order.id)
         resolved_partner_account_id = _parse_uuid_or_none(
-            (
-                explainability_result.explainability_payload.get("commercial_resolution_summary", {})
-                or {}
-            ).get("resolved_partner_account_id"),
+            (explainability_result.explainability_payload.get("commercial_resolution_summary", {}) or {}).get(
+                "resolved_partner_account_id"
+            ),
         )
         if resolved_partner_account_id is None and attribution_result is not None:
             resolved_partner_account_id = attribution_result.partner_account_id
-        if (
-            resolved_partner_account_id is not None
-            and resolved_partner_account_id not in partner_account_ids
-        ):
+        if resolved_partner_account_id is not None and resolved_partner_account_id not in partner_account_ids:
             partner_account_ids.append(resolved_partner_account_id)
     return partner_account_ids
 
@@ -160,11 +156,7 @@ async def _collect_customer_order_insights(
     for order in orders:
         explainability_result = await explainability_use_case.execute(order_id=order.id)
         attribution_result = await attribution_use_case.execute(order_id=order.id)
-        payment_disputes = (
-            await disputes_use_case.execute(order_id=order.id)
-            if finance_visible
-            else []
-        )
+        payment_disputes = await disputes_use_case.execute(order_id=order.id) if finance_visible else []
         dispute_cases = []
         if finance_visible:
             for payment_dispute in payment_disputes:
@@ -176,9 +168,9 @@ async def _collect_customer_order_insights(
                     )
                 )
         resolved_partner_account_id = _parse_uuid_or_none(
-            (
-                explainability_result.explainability_payload.get("commercial_resolution_summary", {}) or {}
-            ).get("resolved_partner_account_id"),
+            (explainability_result.explainability_payload.get("commercial_resolution_summary", {}) or {}).get(
+                "resolved_partner_account_id"
+            ),
         )
         if resolved_partner_account_id is None and attribution_result is not None:
             resolved_partner_account_id = attribution_result.partner_account_id
@@ -197,14 +189,10 @@ async def _collect_customer_order_insights(
                 auth_realm_id=order.auth_realm_id,
                 storefront_id=order.storefront_id,
                 attribution_result=(
-                    _serialize_order_attribution_result(attribution_result)
-                    if attribution_result is not None
-                    else None
+                    _serialize_order_attribution_result(attribution_result) if attribution_result is not None else None
                 ),
                 payment_disputes=[_serialize_payment_dispute(item) for item in payment_disputes],
-                dispute_cases=[
-                    DisputeCaseResponse.model_validate(item) for item in dispute_cases
-                ],
+                dispute_cases=[DisputeCaseResponse.model_validate(item) for item in dispute_cases],
                 resolved_partner_account_id=resolved_partner_account_id,
             )
         )
@@ -436,11 +424,7 @@ async def export_customer_workspace_finance_evidence(
         export_kind=AdminCustomerOperationsExportKind.WORKSPACE_FINANCE_EVIDENCE,
         resource_id=partner_account_id,
     )
-    scoped_order_insights = [
-        item
-        for item in order_insights
-        if item.resolved_partner_account_id == partner_account_id
-    ]
+    scoped_order_insights = [item for item in order_insights if item.resolved_partner_account_id == partner_account_id]
     return _build_export_response(
         export_kind=AdminCustomerOperationsExportKind.WORKSPACE_FINANCE_EVIDENCE,
         filename=filename,
@@ -493,7 +477,7 @@ async def export_customer_partner_statement_evidence(
         limit=_SETTLEMENT_LIMIT,
         offset=0,
     )
-    order_insights, _ = await _collect_customer_order_insights(
+    order_insights, _partner_account_ids_for_orders = await _collect_customer_order_insights(
         user_id=user_id,
         finance_visible=True,
         db=db,
@@ -516,21 +500,11 @@ async def export_customer_partner_statement_evidence(
         },
         evidence={
             "statement": _serialize_statement(statement),
-            "statement_adjustments": [
-                _serialize_adjustment(item) for item in adjustments
-            ],
-            "payout_instructions": [
-                _serialize_instruction(item) for item in instructions
-            ],
-            "payout_executions": [
-                _serialize_execution(item) for item in executions
-            ],
+            "statement_adjustments": [_serialize_adjustment(item) for item in adjustments],
+            "payout_instructions": [_serialize_instruction(item) for item in instructions],
+            "payout_executions": [_serialize_execution(item) for item in executions],
             "order_insights": jsonable_encoder(
-                [
-                    item
-                    for item in order_insights
-                    if item.resolved_partner_account_id == statement.partner_account_id
-                ]
+                [item for item in order_insights if item.resolved_partner_account_id == statement.partner_account_id]
             ),
         },
     )
@@ -586,17 +560,11 @@ async def export_customer_payout_instruction_evidence(
         },
         evidence={
             "payout_instruction": _serialize_instruction(instruction),
-            "partner_statement": (
-                _serialize_statement(statement) if statement is not None else None
-            ),
+            "partner_statement": (_serialize_statement(statement) if statement is not None else None),
             "partner_payout_account": (
-                _serialize_payout_account(payout_account)
-                if payout_account is not None
-                else None
+                _serialize_payout_account(payout_account) if payout_account is not None else None
             ),
-            "payout_executions": [
-                _serialize_execution(item) for item in executions
-            ],
+            "payout_executions": [_serialize_execution(item) for item in executions],
         },
     )
 
@@ -649,16 +617,10 @@ async def export_customer_payout_execution_evidence(
         },
         evidence={
             "payout_execution": _serialize_execution(execution),
-            "payout_instruction": (
-                _serialize_instruction(instruction) if instruction is not None else None
-            ),
-            "partner_statement": (
-                _serialize_statement(statement) if statement is not None else None
-            ),
+            "payout_instruction": (_serialize_instruction(instruction) if instruction is not None else None),
+            "partner_statement": (_serialize_statement(statement) if statement is not None else None),
             "partner_payout_account": (
-                _serialize_payout_account(payout_account)
-                if payout_account is not None
-                else None
+                _serialize_payout_account(payout_account) if payout_account is not None else None
             ),
         },
     )
@@ -702,15 +664,15 @@ async def perform_customer_operations_action(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Partner payout account not linked to customer",
                 )
-            updated = await VerifyPartnerPayoutAccountUseCase(db).execute(
+            updated_payout_account = await VerifyPartnerPayoutAccountUseCase(db).execute(
                 payout_account_id=payout_account.id,
                 verified_by_admin_user_id=current_admin.id,
             )
             response = AdminCustomerOperationsActionResponse(
                 action_kind=payload.action_kind,
                 target_kind="payout_account",
-                target_id=updated.id,
-                payout_account=_serialize_payout_account(updated),
+                target_id=updated_payout_account.id,
+                payout_account=_serialize_payout_account(updated_payout_account),
             )
         elif payload.action_kind == AdminCustomerOperationsActionKind.SUSPEND_PAYOUT_ACCOUNT:
             if payload.payout_account_id is None:
@@ -726,7 +688,7 @@ async def perform_customer_operations_action(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Partner payout account not linked to customer",
                 )
-            updated = await SuspendPartnerPayoutAccountUseCase(db).execute(
+            updated_payout_account = await SuspendPartnerPayoutAccountUseCase(db).execute(
                 payout_account_id=payout_account.id,
                 suspended_by_admin_user_id=current_admin.id,
                 reason_code=payload.reason_code,
@@ -734,8 +696,8 @@ async def perform_customer_operations_action(
             response = AdminCustomerOperationsActionResponse(
                 action_kind=payload.action_kind,
                 target_kind="payout_account",
-                target_id=updated.id,
-                payout_account=_serialize_payout_account(updated),
+                target_id=updated_payout_account.id,
+                payout_account=_serialize_payout_account(updated_payout_account),
             )
         elif payload.action_kind == AdminCustomerOperationsActionKind.APPROVE_PAYOUT_INSTRUCTION:
             if payload.payout_instruction_id is None:
@@ -751,15 +713,15 @@ async def perform_customer_operations_action(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Payout instruction not linked to customer",
                 )
-            updated = await ApprovePayoutInstructionUseCase(db).execute(
+            updated_instruction = await ApprovePayoutInstructionUseCase(db).execute(
                 payout_instruction_id=instruction.id,
                 approved_by_admin_user_id=current_admin.id,
             )
             response = AdminCustomerOperationsActionResponse(
                 action_kind=payload.action_kind,
                 target_kind="payout_instruction",
-                target_id=updated.id,
-                payout_instruction=_serialize_instruction(updated),
+                target_id=updated_instruction.id,
+                payout_instruction=_serialize_instruction(updated_instruction),
             )
         else:
             if payload.payout_instruction_id is None:
@@ -775,7 +737,7 @@ async def perform_customer_operations_action(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Payout instruction not linked to customer",
                 )
-            updated = await RejectPayoutInstructionUseCase(db).execute(
+            updated_instruction = await RejectPayoutInstructionUseCase(db).execute(
                 payout_instruction_id=instruction.id,
                 rejected_by_admin_user_id=current_admin.id,
                 rejection_reason_code=payload.reason_code or "",
@@ -783,8 +745,8 @@ async def perform_customer_operations_action(
             response = AdminCustomerOperationsActionResponse(
                 action_kind=payload.action_kind,
                 target_kind="payout_instruction",
-                target_id=updated.id,
-                payout_instruction=_serialize_instruction(updated),
+                target_id=updated_instruction.id,
+                payout_instruction=_serialize_instruction(updated_instruction),
             )
     except ValueError as exc:
         detail = str(exc)

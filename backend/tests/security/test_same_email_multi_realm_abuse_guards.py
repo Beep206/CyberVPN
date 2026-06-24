@@ -176,4 +176,3 @@ async def test_same_email_multi_realm_links_block_trial_and_referral_eligibility
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)
-

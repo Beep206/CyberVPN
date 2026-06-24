@@ -53,9 +53,7 @@ async def get_capability_defaults(
         HelixManifestUnavailableError,
     ):
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="capabilities", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="capabilities", status="success").inc()
     return response
 
 
@@ -83,9 +81,7 @@ async def resolve_manifest(
         HelixManifestUnavailableError,
     ):
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="resolve_manifest", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="resolve_manifest", status="success").inc()
     return response
 
 
@@ -114,9 +110,7 @@ async def report_runtime_event(
         )
     except (HelixDisabledError, HelixAccessDeniedError):
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="runtime_event", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="runtime_event", status="success").inc()
     return response
 
 
@@ -129,15 +123,11 @@ async def list_nodes(
         response = await service.list_nodes()
     except HelixDisabledError:
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="list_nodes", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="list_nodes", status="success").inc()
     return response
 
 
-@router.get(
-    "/admin/rollouts/{rollout_id}", response_model=HelixRolloutStateResponse
-)
+@router.get("/admin/rollouts/{rollout_id}", response_model=HelixRolloutStateResponse)
 async def get_rollout_status(
     rollout_id: str,
     _current_user=Depends(require_role(AdminRole.OPERATOR)),
@@ -147,9 +137,7 @@ async def get_rollout_status(
         response = await service.get_rollout_status(rollout_id)
     except HelixDisabledError:
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="get_rollout", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="get_rollout", status="success").inc()
     return response
 
 
@@ -166,9 +154,7 @@ async def get_rollout_canary_evidence(
         response = await service.get_rollout_canary_evidence(rollout_id)
     except HelixDisabledError:
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="get_rollout_canary_evidence", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="get_rollout_canary_evidence", status="success").inc()
     return response
 
 
@@ -184,9 +170,7 @@ async def list_transport_profiles(
         response = await service.list_transport_profiles()
     except HelixDisabledError:
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="list_profiles", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="list_profiles", status="success").inc()
     return response
 
 
@@ -203,9 +187,7 @@ async def preview_node_assignment(
         response = await service.preview_node_assignment(node_id)
     except HelixDisabledError:
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="node_assignment", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="node_assignment", status="success").inc()
     return response
 
 
@@ -216,14 +198,10 @@ async def publish_rollout(
     service: HelixService = Depends(get_helix_service),
 ) -> HelixRolloutBatchResponse:
     try:
-        response = await service.publish_rollout(
-            AdapterPublishRolloutRequest.model_validate(request.model_dump())
-        )
+        response = await service.publish_rollout(AdapterPublishRolloutRequest.model_validate(request.model_dump()))
     except HelixDisabledError:
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="publish_rollout", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="publish_rollout", status="success").inc()
     return response
 
 
@@ -240,9 +218,7 @@ async def pause_rollout(
         response = await service.pause_rollout(rollout_id)
     except HelixDisabledError:
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="pause_rollout", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="pause_rollout", status="success").inc()
     return response
 
 
@@ -259,7 +235,5 @@ async def revoke_manifest(
         response = await service.revoke_manifest(manifest_version_id)
     except HelixDisabledError:
         _raise_hidden_not_found()
-    route_operations_total.labels(
-        route="helix", action="revoke_manifest", status="success"
-    ).inc()
+    route_operations_total.labels(route="helix", action="revoke_manifest", status="success").inc()
     return response

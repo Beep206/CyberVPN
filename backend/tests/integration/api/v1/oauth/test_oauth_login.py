@@ -10,11 +10,14 @@ from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.auth.oauth_login import OAuthLoginResult
+from src.application.use_cases.auth_realms import RealmResolution
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.oauth.errors import OAuthProviderUnavailableError
 from src.infrastructure.remnawave.adapters import get_remnawave_adapter
 from src.main import app
+from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 from src.presentation.middleware.rate_limit import RateLimitMiddleware
@@ -39,12 +42,25 @@ def oauth_route_dependencies():
     def override_auth_service():
         return auth_service
 
+    def override_web_auth_realm():
+        realm = AuthRealmModel(
+            id=uuid4(),
+            realm_key="customer",
+            realm_type="customer",
+            display_name="Customer",
+            audience="cybervpn:customer",
+            cookie_namespace="customer",
+            is_default=True,
+        )
+        return RealmResolution(auth_realm=realm, source="test_override", host="testserver")
+
     def override_remnawave_adapter():
         return remnawave_adapter
 
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_redis] = override_redis
     app.dependency_overrides[get_auth_service] = override_auth_service
+    app.dependency_overrides[get_request_web_auth_realm] = override_web_auth_realm
     app.dependency_overrides[get_remnawave_adapter] = override_remnawave_adapter
 
     yield {
@@ -343,9 +359,7 @@ class TestOAuthLoginRoutes:
             patch(
                 "src.infrastructure.oauth.google.GoogleOAuthProvider.exchange_code",
                 new=AsyncMock(
-                    side_effect=OAuthProviderUnavailableError(
-                        "Google OAuth provider is temporarily unavailable"
-                    )
+                    side_effect=OAuthProviderUnavailableError("Google OAuth provider is temporarily unavailable")
                 ),
             ),
         ):

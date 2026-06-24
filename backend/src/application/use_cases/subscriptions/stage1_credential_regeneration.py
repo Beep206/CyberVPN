@@ -52,9 +52,7 @@ class Stage1CredentialRegenerationResult:
         """Return whether Remnawave rotated the subscription short UUID."""
 
         return bool(
-            self.current_short_uuid
-            and self.previous_short_uuid
-            and self.current_short_uuid != self.previous_short_uuid
+            self.current_short_uuid and self.previous_short_uuid and self.current_short_uuid != self.previous_short_uuid
         )
 
     def to_safe_dict(self) -> dict[str, str | bool | None]:

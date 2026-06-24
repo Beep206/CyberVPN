@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.mobile_session import MobileSessionService
+from src.application.use_cases.auth.logout import LogoutScopeResult
 from src.domain.exceptions import UserNotFoundError, ValidationError
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
@@ -26,9 +27,9 @@ class MobileRemoveDeviceUseCase:
     session: AsyncSession | None = None
     mobile_session_service: MobileSessionService | None = None
 
-    async def execute(self, *, user_id: UUID, device_id: str) -> None:
+    async def execute(self, *, user_id: UUID, device_id: str) -> LogoutScopeResult:
         try:
-            await self._mobile_sessions().revoke_device(user_id=user_id, device_id=device_id)
+            return await self._mobile_sessions().revoke_device(user_id=user_id, device_id=device_id)
         except UserNotFoundError:
             raise
         except ValidationError:

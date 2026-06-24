@@ -56,9 +56,8 @@ def _build_checkout_payment_captured(event: PostHogBridgeInput) -> PostHogCaptur
 
 
 def _build_partner_user_activated(event: PostHogBridgeInput) -> PostHogCaptureRecord | None:
-    distinct_id = (
-        _coerce_str(event.event_payload.get("redeemer_user_id"))
-        or _coerce_str(event.actor_context.get("principal_id"))
+    distinct_id = _coerce_str(event.event_payload.get("redeemer_user_id")) or _coerce_str(
+        event.actor_context.get("principal_id")
     )
     if distinct_id is None:
         return None

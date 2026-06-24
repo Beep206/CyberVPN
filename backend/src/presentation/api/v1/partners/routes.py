@@ -4,9 +4,11 @@ import hashlib
 import io
 import json
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from time import perf_counter
+from typing import Protocol, TypedDict
 from uuid import UUID, uuid4
 
 import redis.asyncio as redis
@@ -152,11 +154,10 @@ from src.presentation.api.v1.orders.explainability.schemas import OrderExplainab
 from src.presentation.api.v1.partner_statements.schemas import PartnerStatementResponse
 from src.presentation.api.v1.traffic_declarations.schemas import TrafficDeclarationResponse
 from src.presentation.dependencies.auth import (
-    get_current_active_user,
     get_current_active_web_user,
     get_current_mobile_user_id,
 )
-from src.presentation.dependencies.auth_realms import get_request_admin_realm, get_request_web_auth_realm
+from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.partner_workspace import (
     PartnerWorkspaceAccess,
@@ -331,6 +332,32 @@ _WORKSPACE_LEGAL_DOCUMENT_DEFINITIONS = (
     ("traffic_policy", "Traffic Policy", "2026.04"),
     ("disclosure_guidelines", "Disclosure Guidelines", "2026.04"),
 )
+
+
+class _WorkspaceReportExportDefinition(TypedDict):
+    id: str
+    kind: str
+    status: str
+    cadence: str
+    notes: list[str]
+
+
+class _WorkspaceTrafficDeclaration(Protocol):
+    id: UUID
+    declaration_kind: str
+    declaration_status: str
+    scope_label: str
+    updated_at: datetime
+    notes_payload: list[str] | None
+
+
+class _WorkspaceCreativeApproval(Protocol):
+    id: UUID
+    approval_kind: str
+    approval_status: str
+    scope_label: str
+    updated_at: datetime
+    notes_payload: list[str] | None
 
 
 def _serialize_workspace_member(
@@ -1634,6 +1661,7 @@ async def _enforce_partner_passkey_fresh_auth(
     current_realm: RealmResolution,
     action: str,
 ) -> None:
+    _require_partner_realm(current_realm)
     await enforce_passkey_fresh_auth(
         request=request,
         redis_client=redis_client,
@@ -2944,34 +2972,34 @@ def _build_partner_admin_payout_review_queue(
 ) -> list[PartnerAdminPayoutReviewItemResponse]:
     review_items: list[PartnerAdminPayoutReviewItemResponse] = []
     finance_case_kinds = {"finance_onboarding", "payout_dispute", "statement_question"}
-    for item in cases:
-        if item.kind not in finance_case_kinds or item.status == "resolved":
+    for case_item in cases:
+        if case_item.kind not in finance_case_kinds or case_item.status == "resolved":
             continue
         review_items.append(
             PartnerAdminPayoutReviewItemResponse(
-                id=f"case:{item.id}",
-                kind=item.kind,
-                status=item.status,
+                id=f"case:{case_item.id}",
+                kind=case_item.kind,
+                status=case_item.status,
                 source="workspace_case",
                 required_role=AdminRole.FINANCE.value,
-                updated_at=item.updated_at,
-                notes=list(item.notes or []),
+                updated_at=case_item.updated_at,
+                notes=list(case_item.notes or []),
             )
         )
 
-    for item in payout_history:
-        if item.lifecycle_status not in {"pending_review", "queued", "in_flight", "failed", "blocked"}:
+    for payout_item in payout_history:
+        if payout_item.lifecycle_status not in {"pending_review", "queued", "in_flight", "failed", "blocked"}:
             continue
         review_items.append(
             PartnerAdminPayoutReviewItemResponse(
-                id=item.id,
+                id=payout_item.id,
                 kind="payout_instruction",
-                status=item.lifecycle_status,
+                status=payout_item.lifecycle_status,
                 source="payout_workflow",
                 required_role=AdminRole.FINANCE.value,
-                updated_at=item.updated_at,
-                amount=_format_money(item.amount, item.currency_code),
-                notes=list(item.notes or []),
+                updated_at=payout_item.updated_at,
+                amount=_format_money(payout_item.amount, payout_item.currency_code),
+                notes=list(payout_item.notes or []),
             )
         )
 
@@ -3149,7 +3177,7 @@ def _build_workspace_report_exports(
             return "scheduled"
         return "available"
 
-    export_definitions = [
+    export_definitions: list[_WorkspaceReportExportDefinition] = [
         {
             "id": "code-report",
             "kind": "code_report",
@@ -3488,24 +3516,24 @@ def _map_workspace_traffic_status(
 
 def _build_workspace_traffic_declarations(
     *,
-    traffic_declarations: list,
-    creative_approvals: list,
+    traffic_declarations: Sequence[_WorkspaceTrafficDeclaration],
+    creative_approvals: Sequence[_WorkspaceCreativeApproval],
 ) -> list[PartnerWorkspaceTrafficDeclarationResponse]:
-    latest_declarations_by_kind: dict[str, object] = {}
-    for item in sorted(
+    latest_declarations_by_kind: dict[str, _WorkspaceTrafficDeclaration] = {}
+    for declaration_item in sorted(
         traffic_declarations,
         key=lambda declaration: _normalize_utc(declaration.updated_at),
         reverse=True,
     ):
-        latest_declarations_by_kind.setdefault(item.declaration_kind, item)
+        latest_declarations_by_kind.setdefault(declaration_item.declaration_kind, declaration_item)
 
-    latest_approvals_by_kind: dict[str, object] = {}
-    for item in sorted(
+    latest_approvals_by_kind: dict[str, _WorkspaceCreativeApproval] = {}
+    for approval_item in sorted(
         creative_approvals,
         key=lambda approval: _normalize_utc(approval.updated_at),
         reverse=True,
     ):
-        latest_approvals_by_kind.setdefault(item.approval_kind, item)
+        latest_approvals_by_kind.setdefault(approval_item.approval_kind, approval_item)
 
     items: list[PartnerWorkspaceTrafficDeclarationResponse] = []
     for declaration in latest_declarations_by_kind.values():
@@ -3737,7 +3765,7 @@ def _build_reseller_voucher_batch_summary(
     *,
     batch_id: UUID,
     codes: list,
-    policies_by_code_id: dict[UUID, object],
+    policies_by_code_id: Mapping[UUID, object],
     redemption_counts: dict[UUID, int],
 ) -> PartnerWorkspaceResellerVoucherBatchResponse:
     first_code = codes[0]
@@ -4767,7 +4795,7 @@ async def decline_admin_partner_lane_application(
 
 @router.get("/partner-workspaces/me", response_model=list[PartnerWorkspaceResponse])
 async def list_my_partner_workspaces(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceResponse]:
     partner_account_repo = PartnerAccountRepository(db)
@@ -4784,8 +4812,8 @@ async def list_my_partner_workspaces(
 )
 async def get_partner_session_bootstrap(
     workspace_id: UUID | None = Query(None),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerSessionBootstrapResponse:
     started_at = perf_counter()
@@ -4997,8 +5025,8 @@ async def get_partner_session_bootstrap(
 async def list_partner_notifications(
     workspace_id: UUID | None = Query(None),
     include_archived: bool = Query(False),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerNotificationFeedItemResponse]:
     _require_partner_realm(current_realm)
@@ -5022,8 +5050,8 @@ async def list_partner_notifications(
 )
 async def get_partner_notification_counters(
     workspace_id: UUID | None = Query(None),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerNotificationCountersResponse:
     _require_partner_realm(current_realm)
@@ -5047,8 +5075,8 @@ async def get_partner_notification_counters(
 async def mark_partner_notification_read(
     notification_id: str,
     workspace_id: UUID | None = Query(None),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerNotificationReadStateResponse:
     _require_partner_realm(current_realm)
@@ -5107,8 +5135,8 @@ async def mark_partner_notification_read(
 async def archive_partner_notification(
     notification_id: str,
     workspace_id: UUID | None = Query(None),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerNotificationReadStateResponse:
     _require_partner_realm(current_realm)
@@ -5166,8 +5194,8 @@ async def archive_partner_notification(
     response_model=PartnerNotificationPreferencesResponse,
 )
 async def get_partner_notification_preferences(
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> PartnerNotificationPreferencesResponse:
     _require_partner_realm(current_realm)
     track_partner_operation(operation="get_partner_notification_preferences")
@@ -5180,8 +5208,8 @@ async def get_partner_notification_preferences(
 )
 async def update_partner_notification_preferences(
     body: PartnerNotificationPreferencesUpdateRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerNotificationPreferencesResponse:
     _require_partner_realm(current_realm)
@@ -5202,8 +5230,8 @@ async def update_partner_notification_preferences(
     response_model=PartnerApplicationDraftDetailResponse,
 )
 async def get_current_partner_application_draft(
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerApplicationDraftDetailResponse:
     _require_partner_realm(current_realm)
@@ -5235,8 +5263,8 @@ async def get_current_partner_application_draft(
 )
 async def create_partner_application_draft(
     body: UpsertPartnerApplicationDraftRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerApplicationDraftDetailResponse:
     _require_partner_realm(current_realm)
@@ -5276,8 +5304,8 @@ async def create_partner_application_draft(
 async def update_partner_application_draft(
     draft_id: UUID,
     body: UpsertPartnerApplicationDraftRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerApplicationDraftDetailResponse:
     _require_partner_realm(current_realm)
@@ -5316,8 +5344,8 @@ async def update_partner_application_draft(
 async def create_partner_application_attachment(
     draft_id: UUID,
     body: CreatePartnerApplicationAttachmentRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerApplicationAttachmentResponse:
     _require_partner_realm(current_realm)
@@ -5345,8 +5373,8 @@ async def create_partner_application_attachment(
 )
 async def submit_partner_application_draft(
     draft_id: UUID,
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerApplicationDraftDetailResponse:
     _require_partner_realm(current_realm)
@@ -5381,8 +5409,8 @@ async def submit_partner_application_draft(
 )
 async def withdraw_partner_application_draft(
     draft_id: UUID,
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerApplicationDraftDetailResponse:
     _require_partner_realm(current_realm)
@@ -5418,8 +5446,8 @@ async def withdraw_partner_application_draft(
 )
 async def resubmit_partner_application_draft(
     draft_id: UUID,
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerApplicationDraftDetailResponse:
     _require_partner_realm(current_realm)
@@ -5456,7 +5484,7 @@ async def resubmit_partner_application_draft(
 async def list_partner_workspace_lane_applications(
     workspace_id: UUID,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerLaneApplicationResponse]:
     _require_partner_realm(current_realm)
@@ -5476,8 +5504,8 @@ async def create_partner_workspace_lane_application(
     workspace_id: UUID,
     body: CreatePartnerLaneApplicationRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerLaneApplicationResponse:
     _require_partner_realm(current_realm)
@@ -5507,7 +5535,7 @@ async def update_partner_workspace_lane_application(
     lane_application_id: UUID,
     body: UpdatePartnerLaneApplicationRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerLaneApplicationResponse:
     _require_partner_realm(current_realm)
@@ -5531,8 +5559,8 @@ async def submit_partner_workspace_lane_application(
     workspace_id: UUID,
     lane_application_id: UUID,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerLaneApplicationResponse:
     _require_partner_realm(current_realm)
@@ -5572,7 +5600,7 @@ async def get_partner_workspace(
 async def get_partner_workspace_organization_profile(
     workspace_id: UUID,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceOrganizationProfileResponse:
     profile_repo = PartnerWorkspaceProfileRepository(db)
@@ -5605,7 +5633,7 @@ async def update_partner_workspace_organization_profile(
     workspace_id: UUID,
     body: UpdatePartnerWorkspaceOrganizationProfileRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceOrganizationProfileResponse:
     updates = body.model_dump(exclude_unset=True)
@@ -5795,7 +5823,7 @@ async def accept_partner_workspace_legal_document(
     workspace_id: UUID,
     document_kind: str,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceLegalDocumentResponse:
     if not _can_accept_workspace_legal_document(access):
@@ -5865,7 +5893,7 @@ async def accept_partner_workspace_legal_document(
 async def get_partner_workspace_settings(
     workspace_id: UUID,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceSettingsResponse:
     profile = await PartnerWorkspaceProfileRepository(db).get_or_create(access.workspace.id)
@@ -5887,8 +5915,8 @@ async def update_partner_workspace_settings(
     body: UpdatePartnerWorkspaceSettingsRequest,
     request: Request,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspaceSettingsResponse:
@@ -6451,7 +6479,7 @@ async def request_partner_workspace_reseller_voucher_batch(
     workspace_id: UUID,
     body: RequestPartnerWorkspaceResellerVoucherBatchRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.CODES_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> RequestPartnerWorkspaceResellerVoucherBatchResponse:
     await _ensure_workspace_reseller_voucher_capability(access=access, db=db)
@@ -6786,7 +6814,7 @@ async def schedule_partner_workspace_report_export(
     export_id: str,
     payload: SchedulePartnerWorkspaceReportExportRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceReportExportResponse:
     exports = await _load_workspace_report_exports(access=access, db=db)
@@ -6858,8 +6886,8 @@ async def rotate_partner_workspace_integration_credential(
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.INTEGRATIONS_WRITE)
     ),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> RotatePartnerWorkspaceIntegrationCredentialResponse:
@@ -6948,7 +6976,7 @@ async def respond_partner_workspace_review_request(
     review_request_id: str,
     payload: SubmitPartnerWorkspaceReviewRequestResponseRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceThreadEventResponse:
     review_requests = await _load_workspace_review_requests(access=access, db=db)
@@ -7022,7 +7050,7 @@ async def submit_partner_workspace_traffic_declaration(
     workspace_id: UUID,
     payload: SubmitPartnerWorkspaceTrafficDeclarationRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.TRAFFIC_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> TrafficDeclarationResponse:
     try:
@@ -7049,7 +7077,7 @@ async def submit_partner_workspace_creative_approval(
     workspace_id: UUID,
     payload: SubmitPartnerWorkspaceCreativeApprovalRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.TRAFFIC_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> CreativeApprovalResponse:
     try:
@@ -7113,7 +7141,7 @@ async def respond_partner_workspace_case(
     case_id: str,
     payload: SubmitPartnerWorkspaceCaseResponseRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceThreadEventResponse:
     cases = await _load_workspace_cases(access=access, db=db)
@@ -7151,7 +7179,7 @@ async def mark_partner_workspace_case_ready_for_ops(
     case_id: str,
     payload: MarkPartnerWorkspaceCaseReadyForOpsRequest,
     access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspaceThreadEventResponse:
     cases = await _load_workspace_cases(access=access, db=db)

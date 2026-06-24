@@ -39,6 +39,7 @@ class TestMetricsWired:
         user_email = f"metricstest{secrets.token_hex(4)}@example.com"
 
         from src.application.services.auth_service import AuthService
+
         auth_service = AuthService()
         password_hash = await auth_service.hash_password(password)
 
@@ -54,10 +55,7 @@ class TestMetricsWired:
         await db.commit()
 
         # Get metric value before login
-        before = REGISTRY.get_sample_value(
-            'auth_attempts_total',
-            {'method': 'password', 'status': 'success'}
-        ) or 0
+        before = REGISTRY.get_sample_value("auth_attempts_total", {"method": "password", "status": "success"}) or 0
 
         # Call login endpoint
         response = await async_client.post(
@@ -71,10 +69,7 @@ class TestMetricsWired:
         assert response.status_code == 200
 
         # Get metric value after login
-        after = REGISTRY.get_sample_value(
-            'auth_attempts_total',
-            {'method': 'password', 'status': 'success'}
-        ) or 0
+        after = REGISTRY.get_sample_value("auth_attempts_total", {"method": "password", "status": "success"}) or 0
 
         # Verify metric incremented
         assert after > before, f"auth_attempts_total should increase from {before} to {after}"
@@ -93,10 +88,7 @@ class TestMetricsWired:
         app.dependency_overrides[get_email_dispatcher] = override_email_dispatcher
 
         try:
-            before = REGISTRY.get_sample_value(
-                'registrations_total',
-                {'method': 'email'}
-            ) or 0
+            before = REGISTRY.get_sample_value("registrations_total", {"method": "email"}) or 0
 
             register_data = {
                 "login": f"testuser{secrets.token_hex(4)}",
@@ -112,10 +104,7 @@ class TestMetricsWired:
 
             assert response.status_code == 201
 
-            after = REGISTRY.get_sample_value(
-                'registrations_total',
-                {'method': 'email'}
-            ) or 0
+            after = REGISTRY.get_sample_value("registrations_total", {"method": "email"}) or 0
 
             assert after > before, f"registrations_total should increase from {before} to {after}"
         finally:
@@ -143,7 +132,7 @@ class TestMetricsWired:
         access_token = auth_service.create_access_token_simple(str(user.id), "user")
 
         # Get metric value before trial activation
-        before = REGISTRY.get_sample_value('trials_activated_total') or 0
+        before = REGISTRY.get_sample_value("trials_activated_total") or 0
 
         # Call trial activate endpoint
         trial_response = await async_client.post(
@@ -154,7 +143,7 @@ class TestMetricsWired:
         assert trial_response.status_code == 200
 
         # Get metric value after trial activation
-        after = REGISTRY.get_sample_value('trials_activated_total') or 0
+        after = REGISTRY.get_sample_value("trials_activated_total") or 0
 
         # Verify metric incremented
         assert after > before, f"trials_activated_total should increase from {before} to {after}"

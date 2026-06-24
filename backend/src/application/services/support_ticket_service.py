@@ -80,11 +80,7 @@ class SupportTicketService:
         message: str,
         metadata: dict[str, object] | None = None,
     ) -> SupportTicket:
-        subject = (
-            "Account deletion request"
-            if request_type == "account_deletion"
-            else "Data export request"
-        )
+        subject = "Account deletion request" if request_type == "account_deletion" else "Data export request"
         ticket_metadata = {
             **dict(metadata or {}),
             "privacy_request_public_id": request_public_id,
@@ -203,10 +199,7 @@ class SupportTicketService:
 
     async def get_partner_ticket(self, *, ticket_ref: str, partner_workspace_id: UUID) -> SupportTicket:
         ticket = await self._get_ticket(ticket_ref)
-        if (
-            ticket.owner_type != SupportTicketOwnerType.PARTNER
-            or ticket.partner_workspace_id != partner_workspace_id
-        ):
+        if ticket.owner_type != SupportTicketOwnerType.PARTNER or ticket.partner_workspace_id != partner_workspace_id:
             raise SupportTicketNotFoundError("Support ticket not found")
         return ticket
 

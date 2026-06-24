@@ -573,7 +573,7 @@ async def update_partner_workspace_passkey_policy(
     )
     profile_repo = PartnerWorkspaceProfileRepository(db)
     profile = await profile_repo.get_or_create(access.workspace.id)
-    previous_payload = {
+    previous_payload: dict[str, object] = {
         "prefer_passkeys": profile.prefer_passkeys,
         "require_mfa_for_workspace": profile.require_mfa_for_workspace,
     }
@@ -587,7 +587,7 @@ async def update_partner_workspace_passkey_policy(
     if "require_mfa_for_workspace" in updates:
         profile.require_mfa_for_workspace = bool(updates["require_mfa_for_workspace"])
     await profile_repo.update(profile)
-    next_payload = {
+    next_payload: dict[str, object] = {
         "prefer_passkeys": profile.prefer_passkeys,
         "require_mfa_for_workspace": profile.require_mfa_for_workspace,
     }

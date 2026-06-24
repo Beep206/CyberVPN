@@ -15,6 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.services.auth_service import AuthService
 from src.config.settings import settings
 from src.domain.exceptions import InvalidCredentialsError
+from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
@@ -156,16 +158,20 @@ class RefreshTokenUseCase:
         if token_record.revoked_at is not None or token_record.consumed_at is not None:
             await self._handle_consumed_token(token_record, now=now)
 
-        user_repo = (
-            MobileUserRepository(self._session) if principal_type == "customer" else AdminUserRepository(self._session)
-        )
-        user = await user_repo.get_by_id(user_id)
+        user: AdminUserModel | MobileUserModel | None
+        if principal_type == "customer":
+            mobile_user = await MobileUserRepository(self._session).get_by_id(user_id)
+            user = mobile_user
+            role = "mobile_user"
+        else:
+            admin_user = await AdminUserRepository(self._session).get_by_id(user_id)
+            user = admin_user
+            role = admin_user.role if admin_user is not None else "viewer"
         if not user or not user.is_active:
             raise InvalidCredentialsError()
         if auth_realm_id is not None and user.auth_realm_id != auth_realm_id:
             if not (include_legacy_default and user.auth_realm_id is None):
                 raise InvalidCredentialsError()
-        role = "mobile_user" if principal_type == "customer" else user.role
 
         principal_session = await self._load_token_session(token_record)
         if principal_session is not None:

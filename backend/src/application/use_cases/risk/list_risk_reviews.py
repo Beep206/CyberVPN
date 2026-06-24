@@ -17,4 +17,3 @@ class ListRiskReviewsUseCase:
         if subject is None:
             raise ValueError("Risk subject not found")
         return await self._risk_repo.list_reviews_for_subject(risk_subject_id)
-

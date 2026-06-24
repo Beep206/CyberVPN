@@ -30,7 +30,7 @@ async def get_audit_logs(
     )
 
     route_operations_total.labels(route="admin", action="get_audit_logs", status="success").inc()
-    return logs
+    return [AuditLogResponse.model_validate(log) for log in logs]
 
 
 @router.get("/webhook-log", response_model=list[WebhookLogResponse])
@@ -48,4 +48,4 @@ async def get_webhook_logs(
     )
 
     route_operations_total.labels(route="admin", action="get_webhook_logs", status="success").inc()
-    return logs
+    return [WebhookLogResponse.model_validate(log) for log in logs]

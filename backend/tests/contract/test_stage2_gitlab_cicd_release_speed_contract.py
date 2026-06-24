@@ -7,17 +7,13 @@ def _repo_root() -> Path:
 
 def test_stage2_gitlab_cicd_release_speed_docs_exist_and_cover_required_flow() -> None:
     root = _repo_root()
-    stage_doc = (
-        root
-        / "docs/cybervpn_stage2_launch_docs/13_STAGE2_GITLAB_CICD_RELEASE_SPEED.md"
-    ).read_text(encoding="utf-8")
-    runbook = (
-        root / "docs/runbooks/STAGE2_GITLAB_CICD_RELEASE_SPEED.md"
-    ).read_text(encoding="utf-8")
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-14-gitlab-cicd-release-speed-20260523.md"
-    ).read_text(encoding="utf-8")
+    stage_doc = (root / "docs/cybervpn_stage2_launch_docs/13_STAGE2_GITLAB_CICD_RELEASE_SPEED.md").read_text(
+        encoding="utf-8"
+    )
+    runbook = (root / "docs/runbooks/STAGE2_GITLAB_CICD_RELEASE_SPEED.md").read_text(encoding="utf-8")
+    evidence = (root / "docs/evidence/releases/s2-stage-14-gitlab-cicd-release-speed-20260523.md").read_text(
+        encoding="utf-8"
+    )
 
     for fragment in (
         "GitLab",
@@ -46,9 +42,7 @@ def test_stage2_gitlab_cicd_release_speed_docs_exist_and_cover_required_flow() -
 def test_stage2_gitlab_ci_contract_has_release_speed_jobs_and_rules() -> None:
     root = _repo_root()
     ci = (root / ".gitlab-ci.yml").read_text(encoding="utf-8")
-    validator = (root / "scripts/validate_gitlab_ci_contract.py").read_text(
-        encoding="utf-8"
-    )
+    validator = (root / "scripts/validate_gitlab_ci_contract.py").read_text(encoding="utf-8")
 
     for fragment in (
         ".rules_stage2_release_speed:",
@@ -66,9 +60,7 @@ def test_stage2_gitlab_ci_contract_has_release_speed_jobs_and_rules() -> None:
 
 def test_stage2_deploy_script_supports_no_network_dry_run() -> None:
     root = _repo_root()
-    deploy_script = (root / "scripts/deploy/stage1-gitlab-deploy.sh").read_text(
-        encoding="utf-8"
-    )
+    deploy_script = (root / "scripts/deploy/stage1-gitlab-deploy.sh").read_text(encoding="utf-8")
 
     for fragment in (
         "STAGE1_DEPLOY_DRY_RUN",
@@ -84,17 +76,13 @@ def test_stage2_deploy_script_supports_no_network_dry_run() -> None:
 
 def test_stage2_gitlab_cicd_documents_no_secret_rotation_requirement() -> None:
     root = _repo_root()
-    stage_doc = (
-        root
-        / "docs/cybervpn_stage2_launch_docs/13_STAGE2_GITLAB_CICD_RELEASE_SPEED.md"
-    ).read_text(encoding="utf-8")
-    runbook = (
-        root / "docs/runbooks/STAGE2_GITLAB_CICD_RELEASE_SPEED.md"
-    ).read_text(encoding="utf-8")
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-14-gitlab-cicd-release-speed-20260523.md"
-    ).read_text(encoding="utf-8")
+    stage_doc = (root / "docs/cybervpn_stage2_launch_docs/13_STAGE2_GITLAB_CICD_RELEASE_SPEED.md").read_text(
+        encoding="utf-8"
+    )
+    runbook = (root / "docs/runbooks/STAGE2_GITLAB_CICD_RELEASE_SPEED.md").read_text(encoding="utf-8")
+    evidence = (root / "docs/evidence/releases/s2-stage-14-gitlab-cicd-release-speed-20260523.md").read_text(
+        encoding="utf-8"
+    )
 
     for content in (stage_doc, runbook, evidence):
         assert "No key rotation is required" in content

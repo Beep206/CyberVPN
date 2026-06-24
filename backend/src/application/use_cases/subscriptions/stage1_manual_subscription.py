@@ -82,9 +82,7 @@ class Stage1ManualSubscriptionResult:
             "status": self.status,
             "operation": self.operation,
             "duration_days": self.duration_days,
-            "previous_expires_at": self.previous_expires_at.isoformat()
-            if self.previous_expires_at
-            else None,
+            "previous_expires_at": self.previous_expires_at.isoformat() if self.previous_expires_at else None,
             "expires_at": self.expires_at.isoformat(),
             "subscription_url_changed": self.subscription_url_changed,
             "created": self.created,
@@ -155,20 +153,14 @@ def build_stage1_manual_subscription_request(
         raise Stage1ManualSubscriptionError("Manual subscription profile is not enabled for S1")
 
     requested_at_utc = _ensure_aware_utc(requested_at or datetime.now(UTC))
-    current_expires_at = (
-        _ensure_aware_utc(current_access_expires_at)
-        if current_access_expires_at is not None
-        else None
-    )
+    current_expires_at = _ensure_aware_utc(current_access_expires_at) if current_access_expires_at is not None else None
     access_starts_at = (
         current_expires_at
         if current_expires_at is not None and current_expires_at > requested_at_utc
         else requested_at_utc
     )
     operation: Literal["grant", "extend"] = (
-        "extend"
-        if current_expires_at is not None and current_expires_at > requested_at_utc
-        else "grant"
+        "extend" if current_expires_at is not None and current_expires_at > requested_at_utc else "grant"
     )
 
     return Stage1ManualSubscriptionRequest(

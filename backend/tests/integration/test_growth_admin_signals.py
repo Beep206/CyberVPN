@@ -360,10 +360,7 @@ async def test_admin_referral_endpoints_return_canonical_reward_timeline(
             assert detail_payload["referred_users"] >= 1
             assert detail_payload["commission_count"] >= 1
             assert detail_payload["total_earned"] >= 10.0
-            assert any(
-                item["source_model"] == "growth_reward"
-                for item in detail_payload["recent_commissions"]
-            )
+            assert any(item["source_model"] == "growth_reward" for item in detail_payload["recent_commissions"])
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()

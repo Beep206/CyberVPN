@@ -192,7 +192,7 @@ async def test_telegram_miniapp_new_account_creation_blocked_when_paused():
         "username": "new_tg",
         "first_name": "New",
         "auth_date": "1760000000",
-        "replay_canonical_init_data": "auth_date=1760000000\nuser={\"id\":424242}",
+        "replay_canonical_init_data": 'auth_date=1760000000\nuser={"id":424242}',
     }
     telegram_provider.max_auth_age_seconds = 86400
     replay_guard = AsyncMock()
@@ -230,7 +230,7 @@ async def test_telegram_miniapp_bootstrap_allowlist_can_create_owner_when_paused
         "username": "Sasha_Beep",
         "first_name": "Sasha",
         "auth_date": "1760000000",
-        "replay_canonical_init_data": "auth_date=1760000000\nuser={\"id\":424242}",
+        "replay_canonical_init_data": 'auth_date=1760000000\nuser={"id":424242}',
     }
     telegram_provider.max_auth_age_seconds = 86400
     replay_guard = AsyncMock()

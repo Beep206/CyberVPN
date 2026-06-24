@@ -27,7 +27,7 @@ class EmailTaskDispatcher(Protocol):
         locale: str = "en-EN",
         is_resend: bool = False,
         channel: str = "web",
-    ) -> None:
+    ) -> object:
         """Dispatch OTP email task."""
         ...
 

@@ -132,10 +132,7 @@ class ReconcileTelegramStarsRefundUseCase:
         already_reconciled = False
         if created_new_refund:
             action = "created_and_reconciled"
-        elif (
-            prior_status == RefundStatus.SUCCEEDED.value
-            and prior_external_reference == transaction_id
-        ):
+        elif prior_status == RefundStatus.SUCCEEDED.value and prior_external_reference == transaction_id:
             action = "already_reconciled"
             already_reconciled = True
 

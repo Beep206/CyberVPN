@@ -27,9 +27,7 @@ class GetReferralCodeUseCase:
         persist it, and return it.
         """
         result = await self._session.execute(
-            select(MobileUserModel)
-            .where(MobileUserModel.id == user_id)
-            .with_for_update()
+            select(MobileUserModel).where(MobileUserModel.id == user_id).with_for_update()
         )
         user = result.scalars().one_or_none()
         if user is None:
@@ -52,9 +50,7 @@ class GetReferralCodeUseCase:
             except IntegrityError as exc:
                 await self._session.rollback()
                 result = await self._session.execute(
-                    select(MobileUserModel)
-                    .where(MobileUserModel.id == user_id)
-                    .with_for_update()
+                    select(MobileUserModel).where(MobileUserModel.id == user_id).with_for_update()
                 )
                 user = result.scalars().one_or_none()
                 if user is None:

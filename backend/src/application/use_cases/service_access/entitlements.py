@@ -174,9 +174,7 @@ class CreateEntitlementGrantUseCase:
                 source_renewal_order_id=source_renewal_order_id
             )
         if manual_source_key is not None:
-            return await self._repo.get_entitlement_grant_by_manual_source_key(
-                manual_source_key=manual_source_key
-            )
+            return await self._repo.get_entitlement_grant_by_manual_source_key(manual_source_key=manual_source_key)
         return None
 
 

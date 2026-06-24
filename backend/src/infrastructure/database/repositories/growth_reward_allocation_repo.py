@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -48,7 +49,7 @@ class GrowthRewardAllocationRepository:
         allocation_status: str | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> list[GrowthRewardAllocationModel]:
+    ) -> builtins.list[GrowthRewardAllocationModel]:
         stmt = select(GrowthRewardAllocationModel).order_by(
             GrowthRewardAllocationModel.allocated_at.desc(),
             GrowthRewardAllocationModel.created_at.desc(),
@@ -64,7 +65,7 @@ class GrowthRewardAllocationRepository:
         result = await self._session.execute(stmt.offset(offset).limit(limit))
         return list(result.scalars().all())
 
-    async def list_for_order(self, order_id: UUID) -> list[GrowthRewardAllocationModel]:
+    async def list_for_order(self, order_id: UUID) -> builtins.list[GrowthRewardAllocationModel]:
         result = await self._session.execute(
             select(GrowthRewardAllocationModel)
             .where(GrowthRewardAllocationModel.order_id == order_id)
@@ -75,7 +76,7 @@ class GrowthRewardAllocationRepository:
         )
         return list(result.scalars().all())
 
-    async def list_for_source_code(self, source_code_id: UUID) -> list[GrowthRewardAllocationModel]:
+    async def list_for_source_code(self, source_code_id: UUID) -> builtins.list[GrowthRewardAllocationModel]:
         result = await self._session.execute(
             select(GrowthRewardAllocationModel)
             .where(GrowthRewardAllocationModel.source_code_id == source_code_id)
@@ -91,7 +92,7 @@ class GrowthRewardAllocationRepository:
         *,
         beneficiary_user_id: UUID,
         limit: int = 10,
-    ) -> list[GrowthRewardAllocationModel]:
+    ) -> builtins.list[GrowthRewardAllocationModel]:
         result = await self._session.execute(
             select(GrowthRewardAllocationModel)
             .where(
@@ -111,7 +112,7 @@ class GrowthRewardAllocationRepository:
         *,
         as_of: datetime | None = None,
         limit: int = 100,
-    ) -> list[GrowthRewardAllocationModel]:
+    ) -> builtins.list[GrowthRewardAllocationModel]:
         resolved_as_of = as_of or datetime.now(UTC)
         result = await self._session.execute(
             select(GrowthRewardAllocationModel)
@@ -133,7 +134,7 @@ class GrowthRewardAllocationRepository:
         self,
         *,
         order_id: UUID,
-    ) -> list[GrowthRewardAllocationModel]:
+    ) -> builtins.list[GrowthRewardAllocationModel]:
         result = await self._session.execute(
             select(GrowthRewardAllocationModel)
             .where(
@@ -184,14 +185,11 @@ class GrowthRewardAllocationRepository:
             )
             .group_by(GrowthRewardAllocationModel.allocation_status)
         )
-        return {
-            str(allocation_status): float(total or 0)
-            for allocation_status, total in result.all()
-        }
+        return {str(allocation_status): float(total or 0) for allocation_status, total in result.all()}
 
     async def get_referral_reward_stats_map(
         self,
-        beneficiary_user_ids: list[UUID],
+        beneficiary_user_ids: builtins.list[UUID],
     ) -> dict[UUID, dict[str, float | int | datetime | None]]:
         if not beneficiary_user_ids:
             return {}
@@ -227,7 +225,7 @@ class GrowthRewardAllocationRepository:
         self,
         *,
         limit: int = 10,
-    ) -> list[dict[str, float | int | UUID | datetime | None]]:
+    ) -> builtins.list[dict[str, float | int | UUID | datetime | None]]:
         active_reward_quantity = case(
             (GrowthRewardAllocationModel.allocation_status != "reversed", GrowthRewardAllocationModel.quantity),
             else_=0,
@@ -283,7 +281,7 @@ class GrowthRewardAllocationRepository:
             "unique_referrers": int(unique_referrers_result.scalar_one() or 0),
         }
 
-    async def summarize_by_status(self) -> list[dict[str, object]]:
+    async def summarize_by_status(self) -> builtins.list[dict[str, object]]:
         result = await self._session.execute(
             select(
                 GrowthRewardAllocationModel.allocation_status,
@@ -293,11 +291,10 @@ class GrowthRewardAllocationRepository:
             .order_by(GrowthRewardAllocationModel.allocation_status.asc())
         )
         return [
-            {"allocation_status": allocation_status, "count": int(count)}
-            for allocation_status, count in result.all()
+            {"allocation_status": allocation_status, "count": int(count)} for allocation_status, count in result.all()
         ]
 
-    async def summarize_by_type(self) -> list[dict[str, object]]:
+    async def summarize_by_type(self) -> builtins.list[dict[str, object]]:
         result = await self._session.execute(
             select(
                 GrowthRewardAllocationModel.reward_type,
@@ -306,15 +303,11 @@ class GrowthRewardAllocationRepository:
             .group_by(GrowthRewardAllocationModel.reward_type)
             .order_by(GrowthRewardAllocationModel.reward_type.asc())
         )
-        return [
-            {"reward_type": reward_type, "count": int(count)}
-            for reward_type, count in result.all()
-        ]
+        return [{"reward_type": reward_type, "count": int(count)} for reward_type, count in result.all()]
 
     async def get_available_referral_credit_total(self) -> float:
         result = await self._session.execute(
-            select(func.coalesce(func.sum(GrowthRewardAllocationModel.quantity), 0))
-            .where(
+            select(func.coalesce(func.sum(GrowthRewardAllocationModel.quantity), 0)).where(
                 GrowthRewardAllocationModel.reward_type == "referral_credit",
                 GrowthRewardAllocationModel.allocation_status == "available",
                 GrowthRewardAllocationModel.currency_code == "USD",
@@ -326,7 +319,7 @@ class GrowthRewardAllocationRepository:
         self,
         *,
         limit: int = 50,
-    ) -> list[GrowthRewardAllocationModel]:
+    ) -> builtins.list[GrowthRewardAllocationModel]:
         result = await self._session.execute(
             select(GrowthRewardAllocationModel)
             .where(GrowthRewardAllocationModel.allocation_status == "blocked_by_risk")

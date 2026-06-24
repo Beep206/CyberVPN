@@ -462,13 +462,10 @@ async def test_admin_growth_reporting_distribution_endpoints_cover_subscription_
                 headers=admin_headers,
             )
             assert deliveries_response.status_code == 200
-            matching_delivery = next(
-                item for item in deliveries_response.json()["items"] if item["id"] == delivery_id
-            )
+            matching_delivery = next(item for item in deliveries_response.json()["items"] if item["id"] == delivery_id)
             assert matching_delivery["template_key"] == "cross_function_exec"
             assert any(
-                item["status_reason"] == "recipient_domain_blocked"
-                for item in deliveries_response.json()["items"]
+                item["status_reason"] == "recipient_domain_blocked" for item in deliveries_response.json()["items"]
             )
 
             governance_response = await async_client.get(
@@ -480,8 +477,7 @@ async def test_admin_growth_reporting_distribution_endpoints_cover_subscription_
             assert governance_payload["coverage_gap_count"] >= 1
             assert governance_payload["followup_open_count"] >= 1
             assert any(
-                item["coverage_state"] == "recipient_domain_blocked"
-                for item in governance_payload["coverage_counts"]
+                item["coverage_state"] == "recipient_domain_blocked" for item in governance_payload["coverage_counts"]
             )
             assert governance_payload["followup_queue"]
             assert governance_payload["recent_audit_events"]
@@ -533,11 +529,7 @@ async def test_admin_growth_reporting_distribution_endpoints_cover_subscription_
             assert cleanup_payload["rollups_deleted"] >= 1
 
             with sessionmaker() as db:
-                audit_logs = (
-                    db.query(AuditLog)
-                    .filter(AuditLog.entity_type == "growth_reporting_subscription")
-                    .all()
-                )
+                audit_logs = db.query(AuditLog).filter(AuditLog.entity_type == "growth_reporting_subscription").all()
                 assert any(log.action == "growth_reporting.subscription.created" for log in audit_logs)
                 assert any(log.action == "growth_reporting.subscription.updated" for log in audit_logs)
     finally:

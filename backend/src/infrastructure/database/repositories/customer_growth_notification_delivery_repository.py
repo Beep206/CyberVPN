@@ -215,14 +215,10 @@ class CustomerGrowthNotificationDeliveryRepository:
             event_payload=dict(event_payload or {}),
             event_note=event_note,
             notification_queue_id=(
-                notification_queue_id
-                if notification_queue_id is not None
-                else delivery.notification_queue_id
+                notification_queue_id if notification_queue_id is not None else delivery.notification_queue_id
             ),
             created_by_admin_user_id=(
-                created_by_admin_user_id
-                if created_by_admin_user_id is not None
-                else delivery.created_by_admin_user_id
+                created_by_admin_user_id if created_by_admin_user_id is not None else delivery.created_by_admin_user_id
             ),
             occurred_at=occurred_at or datetime.now(UTC),
         )

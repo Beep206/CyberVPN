@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import httpx
 import jwt
@@ -119,7 +119,7 @@ class AsyncOIDCTokenVerifier:
             signing_key = RSAAlgorithm.from_jwk(json.dumps(key_data))
             claims = jwt.decode(
                 id_token,
-                key=signing_key,
+                key=cast(Any, signing_key),
                 algorithms=[algorithm],
                 audience=audience,
                 leeway=cls._clock_leeway_seconds,

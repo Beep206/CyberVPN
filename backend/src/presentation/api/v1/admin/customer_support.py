@@ -3,6 +3,7 @@
 import logging
 import secrets
 import string
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -126,7 +127,7 @@ async def _write_audit_entry(
     user_id: UUID,
     actor: AdminUserModel,
     request: Request,
-    details: dict[str, object] | None = None,
+    details: Mapping[str, object] | None = None,
 ) -> None:
     await _write_required_audit_entry(
         db=db,
@@ -145,7 +146,7 @@ async def _write_required_audit_entry(
     user_id: UUID,
     actor: AdminUserModel,
     request: Request,
-    details: dict[str, object] | None = None,
+    details: Mapping[str, object] | None = None,
 ) -> None:
     await write_required_admin_audit_entry(
         db=db,
@@ -842,9 +843,7 @@ async def get_customer_timeline(
     notes = await notes_repo.list_by_user(user_id, limit=limit)
     audit_logs = await audit_repo.get_by_entity("mobile_user", str(user_id), limit=limit)
 
-    actor_ids = {
-        note.admin_id for note in notes if note.admin_id is not None
-    } | {
+    actor_ids = {note.admin_id for note in notes if note.admin_id is not None} | {
         log.admin_id for log in audit_logs if log.admin_id is not None
     }
     actors = await admin_repo.list_by_ids(list(actor_ids))

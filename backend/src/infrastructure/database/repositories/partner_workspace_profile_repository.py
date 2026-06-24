@@ -38,4 +38,3 @@ class PartnerWorkspaceProfileRepository:
         await self._session.merge(model)
         await self._session.flush()
         return model
-

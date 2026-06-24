@@ -60,6 +60,7 @@ class PlanCustomerGrowthNotificationFanoutUseCase:
         notes_payload = list(notes or [])
 
         created_items = []
+
         async def _persist(
             *,
             channel: str,
@@ -110,7 +111,7 @@ class PlanCustomerGrowthNotificationFanoutUseCase:
         ):
             if allowed_channels is not None and channel not in allowed_channels:
                 continue
-            payload = {
+            payload: dict[str, object] = {
                 "route_slug": route_slug,
                 "notes": notes_payload,
                 "category": category,

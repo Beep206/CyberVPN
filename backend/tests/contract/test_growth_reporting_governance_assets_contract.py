@@ -43,18 +43,12 @@ def _load_evidence_template() -> str:
 
 
 def _load_handoff() -> str:
-    handoff_path = (
-        _repo_root()
-        / "docs/runbooks/CUSTOMER_GROWTH_REPORTING_GOVERNANCE_GITHUB_PROTECTION_HANDOFF.md"
-    )
+    handoff_path = _repo_root() / "docs/runbooks/CUSTOMER_GROWTH_REPORTING_GOVERNANCE_GITHUB_PROTECTION_HANDOFF.md"
     return handoff_path.read_text(encoding="utf-8")
 
 
 def _load_staging_runbook() -> str:
-    runbook_path = (
-        _repo_root()
-        / "docs/runbooks/CUSTOMER_GROWTH_REPORTING_GOVERNANCE_STAGING_ROLLOUT_RUNBOOK.md"
-    )
+    runbook_path = _repo_root() / "docs/runbooks/CUSTOMER_GROWTH_REPORTING_GOVERNANCE_STAGING_ROLLOUT_RUNBOOK.md"
     return runbook_path.read_text(encoding="utf-8")
 
 
@@ -64,10 +58,7 @@ def _load_package_json() -> dict:
 
 
 def _load_ruleset_payload() -> dict:
-    ruleset_path = (
-        _repo_root()
-        / ".github/rulesets/customer-growth-reporting-governance-main-gate.disabled.json"
-    )
+    ruleset_path = _repo_root() / ".github/rulesets/customer-growth-reporting-governance-main-gate.disabled.json"
     return json.loads(ruleset_path.read_text(encoding="utf-8"))
 
 
@@ -86,9 +77,7 @@ def test_growth_reporting_governance_rule_pack_contains_required_recording_rules
         if "record" in rule
     }
     alert_rules = {
-        rule["alert"]
-        for rule in _rules_by_group(rules_pack, "customer_growth_reporting_alerts")
-        if "alert" in rule
+        rule["alert"] for rule in _rules_by_group(rules_pack, "customer_growth_reporting_alerts") if "alert" in rule
     }
 
     assert not (REQUIRED_RECORDING_RULES - recording_rules)
@@ -114,9 +103,7 @@ def test_growth_reporting_governance_alerts_have_required_annotations() -> None:
         assert annotations.get("summary")
         assert annotations.get("description")
         assert annotations.get("runbook_path") == "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
-        assert annotations.get("runbook_url", "").endswith(
-            "/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
-        )
+        assert annotations.get("runbook_url", "").endswith("/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md")
 
 
 def test_growth_reporting_governance_runbook_evidence_handoff_and_gate_assets_exist() -> None:
@@ -212,20 +199,10 @@ def test_growth_reporting_governance_runbook_evidence_handoff_and_gate_assets_ex
 
     assert (repo_root / "scripts/run-customer-growth-reporting-governance-conformance.sh").exists()
     assert (repo_root / "scripts/bootstrap-customer-growth-reporting-governance-evidence.sh").exists()
-    assert (
-        repo_root / "scripts/assess-customer-growth-reporting-governance-gate-readiness.sh"
-    ).exists()
+    assert (repo_root / "scripts/assess-customer-growth-reporting-governance-gate-readiness.sh").exists()
     assert (repo_root / "scripts/run-customer-growth-reporting-governance-staging-smoke.sh").exists()
     assert (repo_root / "scripts/sync-customer-growth-reporting-governance-ruleset.sh").exists()
-    assert (
-        repo_root / ".github/workflows/customer-growth-reporting-governance-conformance.yml"
-    ).exists()
-    assert (
-        repo_root / ".github/workflows/customer-growth-reporting-governance-staging-smoke.yml"
-    ).exists()
-    assert (
-        repo_root / ".github/rulesets/customer-growth-reporting-governance-main-gate.disabled.json"
-    ).exists()
-    assert (
-        repo_root / "docs/runbooks/CUSTOMER_GROWTH_REPORTING_GOVERNANCE_STAGING_ROLLOUT_RUNBOOK.md"
-    ).exists()
+    assert (repo_root / ".github/workflows/customer-growth-reporting-governance-conformance.yml").exists()
+    assert (repo_root / ".github/workflows/customer-growth-reporting-governance-staging-smoke.yml").exists()
+    assert (repo_root / ".github/rulesets/customer-growth-reporting-governance-main-gate.disabled.json").exists()
+    assert (repo_root / "docs/runbooks/CUSTOMER_GROWTH_REPORTING_GOVERNANCE_STAGING_ROLLOUT_RUNBOOK.md").exists()

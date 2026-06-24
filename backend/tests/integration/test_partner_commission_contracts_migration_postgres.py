@@ -733,7 +733,7 @@ async def test_payment_completed_partner_earning_retry_exhaustion_dead_letters_w
             await session.commit()
 
         final_report = None
-        for attempt_index in range(len(PAYMENT_COMPLETED_RETRY_DELAYS_SECONDS) + 1):
+        for attempt_index in range(len(PAYMENT_COMPLETED_RETRY_DELAYS_SECONDS) + 2):
             async with maker() as session:
                 runner = RunPaymentCompletedEarningOutboxUseCase(session)
                 runner._processor.execute = AsyncMock(  # type: ignore[method-assign]

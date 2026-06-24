@@ -58,6 +58,40 @@ def test_loopback_backend_host_stays_customer_realm_hint() -> None:
     assert _web_realm_hint_for_host(_request_for_host("127.0.0.1:18080")) == "customer"
 
 
+def test_local_testserver_web_realm_accepts_legacy_admin_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "environment", "development")
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/partner-workspaces/workspace-id/traffic-declarations",
+            "headers": [(b"host", b"testserver"), (b"x-auth-realm", b"admin")],
+        }
+    )
+
+    assert _web_realm_hint_for_host(request) == "admin"
+
+
+def test_production_web_realm_ignores_legacy_auth_realm_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "environment", "production")
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/partner-workspaces/workspace-id/traffic-declarations",
+            "headers": [(b"host", b"cyber-vpn.net"), (b"x-auth-realm", b"admin")],
+        }
+    )
+
+    assert _web_realm_hint_for_host(request) == "customer"
+
+
 def test_production_admin_host_stays_admin_realm_hint() -> None:
     assert _web_realm_hint_for_host(_request_for_host("admin.cyber-vpn.net")) == "admin"
 

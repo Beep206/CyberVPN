@@ -67,7 +67,7 @@ async def get_wallet(
     except WalletNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
 
-    return wallet
+    return WalletResponse.model_validate(wallet)
 
 
 @router.get("/wallet/transactions", response_model=list[WalletTransactionResponse])
@@ -82,7 +82,7 @@ async def list_wallet_transactions(
     wallet_service = WalletService(wallet_repo)
 
     transactions = await wallet_service.get_transactions(user_id, offset=offset, limit=limit)
-    return transactions
+    return [WalletTransactionResponse.model_validate(transaction) for transaction in transactions]
 
 
 @router.post("/wallet/withdraw", response_model=WithdrawalResponse, status_code=status.HTTP_201_CREATED)
@@ -115,7 +115,7 @@ async def request_withdrawal(
         track_wallet_operation(operation="debit", success=False)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
-    return result
+    return WithdrawalResponse.model_validate(result)
 
 
 @router.get("/wallet/withdrawals", response_model=list[WithdrawalResponse])
@@ -126,7 +126,7 @@ async def list_withdrawals(
     """Return the authenticated user's withdrawal requests."""
     withdrawal_repo = WithdrawalRepository(db)
     withdrawals = await withdrawal_repo.get_by_user(user_id)
-    return withdrawals
+    return [WithdrawalResponse.model_validate(withdrawal) for withdrawal in withdrawals]
 
 
 # ---------------------------------------------------------------------------
@@ -153,7 +153,7 @@ async def admin_topup_wallet(
         track_wallet_operation(operation="credit", success=False)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
-    return tx
+    return WalletTransactionResponse.model_validate(tx)
 
 
 @router.get("/admin/wallets/{user_id}", response_model=WalletResponse)
@@ -171,7 +171,7 @@ async def admin_get_wallet(
     except WalletNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message) from exc
 
-    return wallet
+    return WalletResponse.model_validate(wallet)
 
 
 @router.get("/admin/withdrawals", response_model=list[WithdrawalResponse])
@@ -182,7 +182,7 @@ async def admin_list_pending_withdrawals(
     """Admin view of all pending withdrawal requests."""
     withdrawal_repo = WithdrawalRepository(db)
     withdrawals = await withdrawal_repo.get_pending()
-    return withdrawals
+    return [WithdrawalResponse.model_validate(withdrawal) for withdrawal in withdrawals]
 
 
 @router.put("/admin/withdrawals/{withdrawal_id}/approve", response_model=WithdrawalResponse)
@@ -205,7 +205,7 @@ async def admin_approve_withdrawal(
     except DomainError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
-    return result
+    return WithdrawalResponse.model_validate(result)
 
 
 @router.put("/admin/withdrawals/{withdrawal_id}/reject", response_model=WithdrawalResponse)
@@ -228,4 +228,4 @@ async def admin_reject_withdrawal(
     except DomainError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
-    return result
+    return WithdrawalResponse.model_validate(result)

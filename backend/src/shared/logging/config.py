@@ -10,6 +10,7 @@ This module configures structlog for production-grade structured logging:
 
 import logging
 import sys
+from typing import Any
 
 import structlog
 
@@ -35,7 +36,7 @@ def configure_logging(
     )
 
     # Configure structlog processors
-    shared_processors = [
+    shared_processors: list[Any] = [
         # Add log level name
         structlog.stdlib.add_log_level,
         # Add logger name
@@ -60,7 +61,7 @@ def configure_logging(
     if json_logs:
         # Production: JSON logs for log aggregation
         shared_processors.insert(-2, structlog.processors.format_exc_info)
-        renderer = structlog.processors.JSONRenderer()
+        renderer: Any = structlog.processors.JSONRenderer()
     else:
         # Development: Human-readable console output with colors.
         # structlog recommends omitting format_exc_info when ConsoleRenderer

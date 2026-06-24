@@ -5,9 +5,11 @@ Logout use case for refresh token revocation.
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import or_, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
@@ -144,13 +146,16 @@ class LogoutUseCase:
             Number of refresh token records revoked
         """
         # Revoke all active tokens for the user
-        result = await self._session.execute(
-            update(RefreshToken)
-            .where(
-                RefreshToken.user_id == user_id,
-                RefreshToken.revoked_at.is_(None),
-            )
-            .values(revoked_at=datetime.now(UTC))
+        result = cast(
+            CursorResult,
+            await self._session.execute(
+                update(RefreshToken)
+                .where(
+                    RefreshToken.user_id == user_id,
+                    RefreshToken.revoked_at.is_(None),
+                )
+                .values(revoked_at=datetime.now(UTC))
+            ),
         )
         await self._session.flush()
         return int(result.rowcount or 0)
@@ -318,25 +323,31 @@ class LogoutUseCase:
         if direct_refresh_ids:
             refresh_filters.append(RefreshToken.id.in_(direct_refresh_ids))
 
-        refresh_result = await self._session.execute(
-            update(RefreshToken)
-            .where(
-                or_(*refresh_filters),
-                RefreshToken.revoked_at.is_(None),
-            )
-            .values(revoked_at=revoked_at, revoked_reason=reason)
+        refresh_result = cast(
+            CursorResult,
+            await self._session.execute(
+                update(RefreshToken)
+                .where(
+                    or_(*refresh_filters),
+                    RefreshToken.revoked_at.is_(None),
+                )
+                .values(revoked_at=revoked_at, revoked_reason=reason)
+            ),
         )
         refresh_tokens_revoked = int(refresh_result.rowcount or 0)
 
         devices_revoked = 0
         if revoke_devices and device_ids:
-            device_result = await self._session.execute(
-                update(UserDeviceModel)
-                .where(
-                    UserDeviceModel.id.in_(device_ids),
-                    UserDeviceModel.revoked_at.is_(None),
-                )
-                .values(revoked_at=revoked_at, revoked_reason=reason)
+            device_result = cast(
+                CursorResult,
+                await self._session.execute(
+                    update(UserDeviceModel)
+                    .where(
+                        UserDeviceModel.id.in_(device_ids),
+                        UserDeviceModel.revoked_at.is_(None),
+                    )
+                    .values(revoked_at=revoked_at, revoked_reason=reason)
+                ),
             )
             devices_revoked = int(device_result.rowcount or 0)
 

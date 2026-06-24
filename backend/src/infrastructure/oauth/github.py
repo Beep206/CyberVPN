@@ -145,11 +145,7 @@ class GitHubOAuthProvider:
                     if emails_response.status_code == 200:
                         emails = emails_response.json()
                         verified_primary = next(
-                            (
-                                item.get("email")
-                                for item in emails
-                                if item.get("primary") and item.get("verified")
-                            ),
+                            (item.get("email") for item in emails if item.get("primary") and item.get("verified")),
                             None,
                         )
                         email = verified_primary or next(

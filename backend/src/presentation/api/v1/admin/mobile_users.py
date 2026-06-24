@@ -174,10 +174,7 @@ async def list_mobile_users(
 
     route_operations_total.labels(route="admin_mobile_users", action="list", status="success").inc()
     return AdminMobileUsersListResponse(
-        items=[
-            _serialize_mobile_user_list_item(user, device_counts.get(user.id, 0))
-            for user in users
-        ],
+        items=[_serialize_mobile_user_list_item(user, device_counts.get(user.id, 0)) for user in users],
         total=total,
         offset=offset,
         limit=limit,
@@ -243,7 +240,9 @@ async def build_mobile_user_subscription_snapshot(
     subscription_url = normalize_public_subscription_url(
         details.subscription_url
         if details is not None and details.subscription_url
-        else vpn_user.subscription_url if vpn_user is not None else user.subscription_url
+        else vpn_user.subscription_url
+        if vpn_user is not None
+        else user.subscription_url
     )
     config = _select_primary_subscription_config(
         links=links,
@@ -252,25 +251,27 @@ async def build_mobile_user_subscription_snapshot(
     if config is None and config_error is None:
         config_error = "Subscription config unavailable"
 
-    expires_at = vpn_user.expire_at if vpn_user is not None else (
-        details.user.expires_at if details is not None and details.user is not None else None
+    expires_at = (
+        vpn_user.expire_at
+        if vpn_user is not None
+        else (details.user.expires_at if details is not None and details.user is not None else None)
     )
 
     return AdminMobileUserSubscriptionSnapshotResponse(
         exists=vpn_user is not None or (details is not None and details.is_found),
         remnawave_uuid=user.remnawave_uuid,
-        status=vpn_user.status.value if vpn_user is not None else (
+        status=vpn_user.status.value
+        if vpn_user is not None
+        else (
             details.user.user_status.lower()
             if details is not None and details.user is not None and details.user.user_status
             else None
         ),
-        short_uuid=vpn_user.short_uuid if vpn_user is not None else (
-            details.user.short_uuid if details is not None and details.user is not None else None
-        ),
+        short_uuid=vpn_user.short_uuid
+        if vpn_user is not None
+        else (details.user.short_uuid if details is not None and details.user is not None else None),
         subscription_uuid=(
-            str(vpn_user.subscription_uuid)
-            if vpn_user is not None and vpn_user.subscription_uuid
-            else None
+            str(vpn_user.subscription_uuid) if vpn_user is not None and vpn_user.subscription_uuid else None
         ),
         expires_at=expires_at,
         days_left=(

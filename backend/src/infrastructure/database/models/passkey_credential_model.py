@@ -14,9 +14,7 @@ class PasskeyCredentialModel(Base):
     """Stored public-key credential metadata for WebAuthn ceremonies."""
 
     __tablename__ = "passkey_credentials"
-    __table_args__ = (
-        UniqueConstraint("credential_id_hash", name="uq_passkey_credentials_credential_id_hash"),
-    )
+    __table_args__ = (UniqueConstraint("credential_id_hash", name="uq_passkey_credentials_credential_id_hash"),)
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     credential_id: Mapped[str] = mapped_column(Text, nullable=False)

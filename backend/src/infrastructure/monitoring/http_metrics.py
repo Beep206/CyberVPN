@@ -17,7 +17,7 @@ from starlette.applications import Starlette
 from starlette.datastructures import Headers
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.routing import Match, Mount, Route
+from starlette.routing import BaseRoute, Match, Mount, Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 HTTP_REQUESTS_TOTAL = Counter(
@@ -100,8 +100,10 @@ def _env_enabled(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _get_route_name(scope: Scope, routes: Sequence[Route], route_name: str | None = None) -> str | None:
+def _get_route_name(scope: Scope, routes: Sequence[BaseRoute], route_name: str | None = None) -> str | None:
     for route in routes:
+        if not isinstance(route, Route | Mount):
+            continue
         match, child_scope = route.matches(scope)
         if match == Match.FULL:
             route_name = route.path
@@ -204,9 +206,7 @@ class HTTPMetricsMiddleware:
                 if response_start_time is not None:
                     duration_without_streaming = max(response_start_time - start_time, 0.0)
 
-                normalized_status = (
-                    str(status_code.value) if isinstance(status_code, HTTPStatus) else str(status_code)
-                )
+                normalized_status = str(status_code.value) if isinstance(status_code, HTTPStatus) else str(status_code)
                 normalized_status = f"{normalized_status[0]}xx"
 
                 response = Response(content=b"", headers=Headers(raw=response_headers), status_code=status_code)

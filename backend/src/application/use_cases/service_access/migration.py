@@ -225,9 +225,7 @@ class MigrateLegacyServiceAccessUseCase:
             ),
             service_identity=service_identity,
             provisioning_profile=(
-                provisioning_profile_result.provisioning_profile
-                if provisioning_profile_result is not None
-                else None
+                provisioning_profile_result.provisioning_profile if provisioning_profile_result is not None else None
             ),
             access_delivery_channel=(
                 access_delivery_channel_result.access_delivery_channel

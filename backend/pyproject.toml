@@ -118,6 +118,9 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
 
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+
 [tool.coverage.run]
 core = "sysmon"
 source = ["src"]

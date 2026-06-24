@@ -435,9 +435,7 @@ class AdapterDesktopRuntimeEventBenchmarkEvidence(AdapterRuntimeEvidenceModel):
     median_first_byte_latency_ms: int | None = Field(default=None, ge=0)
     median_open_to_first_byte_gap_ms: int | None = Field(default=None, ge=0)
     p95_open_to_first_byte_gap_ms: int | None = Field(default=None, ge=0)
-    relative_open_to_first_byte_gap_ratio_vs_baseline: float | None = Field(
-        default=None, ge=0
-    )
+    relative_open_to_first_byte_gap_ratio_vs_baseline: float | None = Field(default=None, ge=0)
     frame_queue_peak: int | None = Field(default=None, ge=0)
     recent_rtt_p95_ms: int | None = Field(default=None, ge=0)
     active_streams: int | None = Field(default=None, ge=0)
@@ -511,28 +509,20 @@ class AdapterDesktopRuntimeEventPayload(AdapterRuntimeEvidenceModel):
         }
 
         if "recovery" not in data:
-            recovery = {
-                key: data.pop(key)
-                for key in list(recovery_keys)
-                if key in data and data.get(key) is not None
-            }
+            recovery = {key: data.pop(key) for key in list(recovery_keys) if key in data and data.get(key) is not None}
             if recovery:
                 data["recovery"] = recovery
 
         if "continuity" not in data:
             continuity = {
-                key: data.pop(key)
-                for key in list(continuity_keys)
-                if key in data and data.get(key) is not None
+                key: data.pop(key) for key in list(continuity_keys) if key in data and data.get(key) is not None
             }
             if continuity:
                 data["continuity"] = continuity
 
         if "benchmark" not in data:
             benchmark = {
-                key: data.pop(key)
-                for key in list(benchmark_keys)
-                if key in data and data.get(key) is not None
+                key: data.pop(key) for key in list(benchmark_keys) if key in data and data.get(key) is not None
             }
             if benchmark:
                 data["benchmark"] = benchmark
@@ -555,9 +545,7 @@ class AdapterDesktopRuntimeEventRequest(AdapterBaseModel):
     route_count: int | None = None
     reason: str | None = None
     observed_at: datetime
-    payload: AdapterDesktopRuntimeEventPayload = Field(
-        default_factory=AdapterDesktopRuntimeEventPayload
-    )
+    payload: AdapterDesktopRuntimeEventPayload = Field(default_factory=AdapterDesktopRuntimeEventPayload)
 
 
 class AdapterDesktopRuntimeEventAck(AdapterBaseModel):
@@ -577,12 +565,8 @@ class HelixAdapterClient:
         timeout: float = DEFAULT_TIMEOUT,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
-        self._base_url = (base_url or settings.helix_adapter_url).rstrip(
-            "/"
-        )
-        self._token = (
-            token or settings.helix_adapter_token.get_secret_value()
-        )
+        self._base_url = (base_url or settings.helix_adapter_url).rstrip("/")
+        self._token = token or settings.helix_adapter_token.get_secret_value()
         self._timeout = timeout
         self._transport = transport
         self._client: httpx.AsyncClient | None = None
@@ -633,12 +617,8 @@ class HelixAdapterClient:
         data = await self._request("GET", f"/internal/rollouts/{rollout_id}/status")
         return AdapterRolloutStateResponse.model_validate(data)
 
-    async def get_rollout_canary_evidence(
-        self, rollout_id: str
-    ) -> AdapterRolloutCanaryEvidenceResponse:
-        data = await self._request(
-            "GET", f"/internal/rollouts/{rollout_id}/canary-evidence"
-        )
+    async def get_rollout_canary_evidence(self, rollout_id: str) -> AdapterRolloutCanaryEvidenceResponse:
+        data = await self._request("GET", f"/internal/rollouts/{rollout_id}/canary-evidence")
         return AdapterRolloutCanaryEvidenceResponse.model_validate(data)
 
     async def list_transport_profiles(self) -> list[AdapterTransportProfileRecord]:
@@ -660,17 +640,11 @@ class HelixAdapterClient:
         data = await self._request("POST", f"/admin/rollouts/{rollout_id}/pause")
         return AdapterRolloutBatchRecord.model_validate(data)
 
-    async def revoke_manifest(
-        self, manifest_version_id: str
-    ) -> AdapterManifestVersionRecord:
-        data = await self._request(
-            "POST", f"/admin/manifests/{manifest_version_id}/revoke"
-        )
+    async def revoke_manifest(self, manifest_version_id: str) -> AdapterManifestVersionRecord:
+        data = await self._request("POST", f"/admin/manifests/{manifest_version_id}/revoke")
         return AdapterManifestVersionRecord.model_validate(data)
 
-    async def resolve_node_assignment(
-        self, node_id: str
-    ) -> AdapterNodeAssignmentResponse:
+    async def resolve_node_assignment(self, node_id: str) -> AdapterNodeAssignmentResponse:
         data = await self._request("GET", f"/internal/nodes/{node_id}/assignment")
         return AdapterNodeAssignmentResponse.model_validate(data)
 

@@ -95,11 +95,7 @@ def _panel_index(dashboard: dict) -> dict[str, list[str]]:
         title = panel.get("title")
         if not title:
             continue
-        exprs = [
-            target["expr"]
-            for target in panel.get("targets", [])
-            if isinstance(target, dict) and "expr" in target
-        ]
+        exprs = [target["expr"] for target in panel.get("targets", []) if isinstance(target, dict) and "expr" in target]
         index[title] = exprs
     return index
 
@@ -107,14 +103,10 @@ def _panel_index(dashboard: dict) -> dict[str, list[str]]:
 def test_partner_observability_rule_pack_contains_required_recording_rules_and_alerts() -> None:
     rules_pack = _load_rules_pack()
     recording_rules = {
-        rule["record"]
-        for rule in _rules_by_group(rules_pack, "partner_platform_recording_rules")
-        if "record" in rule
+        rule["record"] for rule in _rules_by_group(rules_pack, "partner_platform_recording_rules") if "record" in rule
     }
     alert_rules = {
-        rule["alert"]: rule
-        for rule in _rules_by_group(rules_pack, "partner_platform_alerts")
-        if "alert" in rule
+        rule["alert"]: rule for rule in _rules_by_group(rules_pack, "partner_platform_alerts") if "alert" in rule
     }
 
     missing_recording_rules = REQUIRED_RECORDING_RULES - recording_rules
@@ -127,9 +119,7 @@ def test_partner_observability_rule_pack_contains_required_recording_rules_and_a
 def test_partner_observability_alerts_have_required_annotations_and_dashboard_bindings() -> None:
     rules_pack = _load_rules_pack()
     alert_rules = {
-        rule["alert"]: rule
-        for rule in _rules_by_group(rules_pack, "partner_platform_alerts")
-        if "alert" in rule
+        rule["alert"]: rule for rule in _rules_by_group(rules_pack, "partner_platform_alerts") if "alert" in rule
     }
 
     runtime_dashboard = _load_dashboard("partner-platform-runtime-dashboard.json")

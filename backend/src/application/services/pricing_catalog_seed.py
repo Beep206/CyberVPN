@@ -632,29 +632,29 @@ async def seed_pricing_catalog(session: AsyncSession) -> dict[str, int]:
         await plan_repo.update(plan)
         summary["plans_retired"] += 1
 
-    for spec in build_addon_seed_specs():
-        existing = await addon_repo.get_by_code(spec.code)
-        if existing is None:
-            model = PlanAddonModel(
-                code=spec.code,
-                display_name=spec.display_name,
-                duration_mode=spec.duration_mode,
-                is_stackable=spec.is_stackable,
-                quantity_step=spec.quantity_step,
-                price_usd=spec.price_usd,
-                price_rub=spec.price_rub,
-                max_quantity_by_plan=spec.max_quantity_by_plan,
-                delta_entitlements=spec.delta_entitlements,
-                requires_location=spec.requires_location,
-                sale_channels=spec.sale_channels,
-                is_active=spec.is_active,
+    for addon_spec in build_addon_seed_specs():
+        existing_addon = await addon_repo.get_by_code(addon_spec.code)
+        if existing_addon is None:
+            addon_model = PlanAddonModel(
+                code=addon_spec.code,
+                display_name=addon_spec.display_name,
+                duration_mode=addon_spec.duration_mode,
+                is_stackable=addon_spec.is_stackable,
+                quantity_step=addon_spec.quantity_step,
+                price_usd=addon_spec.price_usd,
+                price_rub=addon_spec.price_rub,
+                max_quantity_by_plan=addon_spec.max_quantity_by_plan,
+                delta_entitlements=addon_spec.delta_entitlements,
+                requires_location=addon_spec.requires_location,
+                sale_channels=addon_spec.sale_channels,
+                is_active=addon_spec.is_active,
             )
-            await addon_repo.create(model)
+            await addon_repo.create(addon_model)
             summary["addons_created"] += 1
             continue
 
-        if _apply_addon_spec(existing, spec):
-            await addon_repo.update(existing)
+        if _apply_addon_spec(existing_addon, addon_spec):
+            await addon_repo.update(existing_addon)
             summary["addons_updated"] += 1
 
     await session.flush()

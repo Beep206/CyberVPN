@@ -172,7 +172,7 @@ class RedeemInviteUseCase:
             entitlement_grant_id=grant.entitlement_grant.id,
             activated_by_admin_user_id=None,
         )
-        result = await self._invite_repo.mark_used(invite.id, user_id)
+        used_invite = await self._invite_repo.mark_used(invite.id, user_id)
         redemption = await self._ensure_redemption(
             shadow_code_id=shadow_code.id,
             redeemer_user_id=user_id,
@@ -241,7 +241,7 @@ class RedeemInviteUseCase:
             },
         )
 
-        redeemed_invite = result if result is not None else invite
+        redeemed_invite = used_invite if used_invite is not None else invite
         return RedeemedInviteResult(
             invite=redeemed_invite,
             entitlement_grant_id=activated.id,

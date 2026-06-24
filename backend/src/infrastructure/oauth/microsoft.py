@@ -188,11 +188,7 @@ class MicrosoftOAuthProvider:
                     user_data.get("userPrincipalName"),
                 )
                 email = next(
-                    (
-                        candidate
-                        for candidate in email_candidates
-                        if isinstance(candidate, str) and "@" in candidate
-                    ),
+                    (candidate for candidate in email_candidates if isinstance(candidate, str) and "@" in candidate),
                     None,
                 )
 

@@ -1,4 +1,10 @@
+import re
+import tomllib
 from pathlib import Path
+
+
+def _version_tuple(value: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in value.split("."))
 
 
 def _repo_root() -> Path:
@@ -7,17 +13,13 @@ def _repo_root() -> Path:
 
 def test_stage2_security_abuse_privacy_docs_exist_and_cover_required_controls() -> None:
     root = _repo_root()
-    stage_doc = (
-        root
-        / "docs/cybervpn_stage2_launch_docs/12_STAGE2_SECURITY_ABUSE_PRIVACY.md"
-    ).read_text(encoding="utf-8")
-    runbook = (root / "docs/runbooks/STAGE2_SECURITY_ABUSE_PRIVACY.md").read_text(
+    stage_doc = (root / "docs/cybervpn_stage2_launch_docs/12_STAGE2_SECURITY_ABUSE_PRIVACY.md").read_text(
         encoding="utf-8"
     )
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-13-security-abuse-privacy-20260523.md"
-    ).read_text(encoding="utf-8")
+    runbook = (root / "docs/runbooks/STAGE2_SECURITY_ABUSE_PRIVACY.md").read_text(encoding="utf-8")
+    evidence = (root / "docs/evidence/releases/s2-stage-13-security-abuse-privacy-20260523.md").read_text(
+        encoding="utf-8"
+    )
 
     for fragment in (
         "dependency audit",
@@ -49,23 +51,15 @@ def test_stage2_security_abuse_privacy_docs_exist_and_cover_required_controls() 
 
 def test_stage2_security_abuse_privacy_documents_admin_header_fix() -> None:
     root = _repo_root()
-    stage_doc = (
-        root
-        / "docs/cybervpn_stage2_launch_docs/12_STAGE2_SECURITY_ABUSE_PRIVACY.md"
-    ).read_text(encoding="utf-8")
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-13-security-abuse-privacy-20260523.md"
-    ).read_text(encoding="utf-8")
-    admin_layout = (root / "admin/src/app/[locale]/layout.tsx").read_text(
+    stage_doc = (root / "docs/cybervpn_stage2_launch_docs/12_STAGE2_SECURITY_ABUSE_PRIVACY.md").read_text(
         encoding="utf-8"
     )
-    caddy_stage1 = (
-        root / "infra/deploy/stage1/Caddyfile.stage1.snippet"
-    ).read_text(encoding="utf-8")
-    caddy_system = (
-        root / "infra/deploy/stage1/Caddyfile.system-stage1.snippet"
-    ).read_text(encoding="utf-8")
+    evidence = (root / "docs/evidence/releases/s2-stage-13-security-abuse-privacy-20260523.md").read_text(
+        encoding="utf-8"
+    )
+    admin_layout = (root / "admin/src/app/[locale]/layout.tsx").read_text(encoding="utf-8")
+    caddy_stage1 = (root / "infra/deploy/stage1/Caddyfile.stage1.snippet").read_text(encoding="utf-8")
+    caddy_system = (root / "infra/deploy/stage1/Caddyfile.system-stage1.snippet").read_text(encoding="utf-8")
 
     assert "internal 127.0.0.1 origin" in stage_doc
     assert "link_count=0" in evidence
@@ -77,14 +71,12 @@ def test_stage2_security_abuse_privacy_documents_admin_header_fix() -> None:
 
 def test_stage2_security_abuse_privacy_carries_controlled_gaps() -> None:
     root = _repo_root()
-    stage_doc = (
-        root
-        / "docs/cybervpn_stage2_launch_docs/12_STAGE2_SECURITY_ABUSE_PRIVACY.md"
-    ).read_text(encoding="utf-8")
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-13-security-abuse-privacy-20260523.md"
-    ).read_text(encoding="utf-8")
+    stage_doc = (root / "docs/cybervpn_stage2_launch_docs/12_STAGE2_SECURITY_ABUSE_PRIVACY.md").read_text(
+        encoding="utf-8"
+    )
+    evidence = (root / "docs/evidence/releases/s2-stage-13-security-abuse-privacy-20260523.md").read_text(
+        encoding="utf-8"
+    )
 
     for fragment in (
         "NPM moderate",
@@ -99,20 +91,28 @@ def test_stage2_security_abuse_privacy_carries_controlled_gaps() -> None:
 
 def test_stage2_security_abuse_privacy_records_dependency_blocker_fix() -> None:
     root = _repo_root()
-    evidence = (
-        root
-        / "docs/evidence/releases/s2-stage-13-security-abuse-privacy-20260523.md"
-    ).read_text(encoding="utf-8")
-    pyproject = (root / "services/task-worker/pyproject.toml").read_text(
+    evidence = (root / "docs/evidence/releases/s2-stage-13-security-abuse-privacy-20260523.md").read_text(
         encoding="utf-8"
     )
+    pyproject_path = root / "services/task-worker/pyproject.toml"
+    pyproject = pyproject_path.read_text(encoding="utf-8")
+    pyproject_data = tomllib.loads(pyproject)
+    task_worker_dependencies = pyproject_data["project"]["dependencies"]
 
     for fragment in (
         "idna>=3.15",
-        "starlette>=1.0.1",
         "urllib3>=2.7.0",
     ):
         assert fragment in pyproject
+
+    starlette_requirement = next(
+        (dependency for dependency in task_worker_dependencies if dependency.startswith("starlette>=")),
+        None,
+    )
+    assert starlette_requirement is not None
+    version_match = re.fullmatch(r"starlette>=(\d+\.\d+\.\d+)", starlette_requirement)
+    assert version_match is not None
+    assert _version_tuple(version_match.group(1)) >= (1, 0, 1)
 
     for fragment in (
         "idna      3.12  -> 3.16",

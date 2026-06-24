@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
 from src.application.use_cases.subscriptions.stage1_paid_provisioning import (
@@ -24,6 +24,8 @@ from src.application.use_cases.trial.stage1_trial_provisioning import (
     Stage1TrialProvisioningRequest,
 )
 from src.presentation.api.shared.stage1_contract import JsonScalar
+
+JsonSafeObject = dict[str, Any]
 
 
 class Stage1ProvisioningRetryClaimRepository(Protocol):
@@ -63,7 +65,7 @@ class Stage1ProvisioningRetryWorkerResult:
     remnawave_dependency_errors: dict[str, int] = field(default_factory=dict)
     metrics: dict[str, JsonScalar | dict[str, JsonScalar]] = field(default_factory=dict)
 
-    def to_safe_dict(self) -> dict[str, JsonScalar | dict[str, JsonScalar]]:
+    def to_safe_dict(self) -> dict[str, JsonScalar | dict[str, JsonScalar] | JsonSafeObject]:
         return {
             "claimed": self.claimed,
             "succeeded": self.succeeded,

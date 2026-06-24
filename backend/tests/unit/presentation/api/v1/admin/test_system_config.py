@@ -472,14 +472,20 @@ def test_get_admin_miniapp_launch_summary_derives_server_state(monkeypatch) -> N
     assert response.primary_action is None
     assert response.available_actions == ["enter_maintenance", "start_rollback"]
     assert "incident_channel_missing" in response.blockers
-    assert _metric_value(
-        "miniapp_launch_state_current",
-        {"launch_state": "canary_in_progress"},
-    ) == 1
-    assert _metric_value(
-        "miniapp_runtime_rollout_mode_current",
-        {"mode": "canary"},
-    ) == 1
+    assert (
+        _metric_value(
+            "miniapp_launch_state_current",
+            {"launch_state": "canary_in_progress"},
+        )
+        == 1
+    )
+    assert (
+        _metric_value(
+            "miniapp_runtime_rollout_mode_current",
+            {"mode": "canary"},
+        )
+        == 1
+    )
     assert _metric_value("miniapp_launch_live_switch_allowed") == 0
     assert _metric_value("miniapp_launch_blockers_current") == 1
 
@@ -592,18 +598,27 @@ def test_execute_admin_miniapp_launch_action_promotes_live_and_writes_audit(monk
     assert audit_entry.new_value["change_reason"] == "canary stable across payment and config flows"
     assert audit_entry.new_value["summary"]["launch_state"] == "live"
     assert audit_entry.old_value["summary"]["launch_state"] == "ready_for_live"
-    assert _metric_value(
-        "miniapp_launch_actions_total",
-        {"action": "promote_to_live", "status": "executed"},
-    ) == before_actions + 1
-    assert _metric_value(
-        "miniapp_launch_state_current",
-        {"launch_state": "live"},
-    ) == 1
-    assert _metric_value(
-        "miniapp_runtime_rollout_mode_current",
-        {"mode": "live"},
-    ) == 1
+    assert (
+        _metric_value(
+            "miniapp_launch_actions_total",
+            {"action": "promote_to_live", "status": "executed"},
+        )
+        == before_actions + 1
+    )
+    assert (
+        _metric_value(
+            "miniapp_launch_state_current",
+            {"launch_state": "live"},
+        )
+        == 1
+    )
+    assert (
+        _metric_value(
+            "miniapp_runtime_rollout_mode_current",
+            {"mode": "live"},
+        )
+        == 1
+    )
     assert _metric_value("miniapp_launch_live_switch_allowed") == 1
     assert _metric_value("miniapp_launch_blockers_current") == 0
 
@@ -674,10 +689,13 @@ def test_execute_admin_miniapp_launch_action_blocks_invalid_transition(monkeypat
     except system_config_routes.HTTPException as exc:
         assert exc.status_code == 409
         assert "not allowed" in str(exc.detail)
-        assert _metric_value(
-            "miniapp_launch_actions_total",
-            {"action": "promote_to_live", "status": "blocked"},
-        ) == before_blocked + 1
+        assert (
+            _metric_value(
+                "miniapp_launch_actions_total",
+                {"action": "promote_to_live", "status": "blocked"},
+            )
+            == before_blocked + 1
+        )
     else:  # pragma: no cover
         raise AssertionError("Expected HTTPException for invalid launch action")
 

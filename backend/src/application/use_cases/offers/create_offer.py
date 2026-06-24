@@ -41,10 +41,14 @@ class CreateOfferUseCase:
 
         if included_addon_codes:
             addon_rows = (
-                await self._session.execute(
-                    select(PlanAddonModel.code).where(PlanAddonModel.code.in_(included_addon_codes))
+                (
+                    await self._session.execute(
+                        select(PlanAddonModel.code).where(PlanAddonModel.code.in_(included_addon_codes))
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             if len(set(addon_rows)) != len(set(included_addon_codes)):
                 raise ValueError("One or more included add-on codes do not exist")
 

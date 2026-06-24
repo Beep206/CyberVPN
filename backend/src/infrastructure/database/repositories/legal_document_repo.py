@@ -72,7 +72,9 @@ class LegalDocumentRepository:
     async def get_document_set_by_id(self, legal_document_set_id: UUID) -> LegalDocumentSetModel | None:
         result = await self._session.execute(
             select(LegalDocumentSetModel)
-            .options(selectinload(LegalDocumentSetModel.documents).selectinload(LegalDocumentSetItemModel.legal_document))
+            .options(
+                selectinload(LegalDocumentSetModel.documents).selectinload(LegalDocumentSetItemModel.legal_document)
+            )
             .where(LegalDocumentSetModel.id == legal_document_set_id)
         )
         return result.scalar_one_or_none()
@@ -89,7 +91,9 @@ class LegalDocumentRepository:
             select(LegalDocumentSetModel)
             .join(StorefrontModel, StorefrontModel.id == LegalDocumentSetModel.storefront_id)
             .join(PolicyVersionModel, PolicyVersionModel.id == LegalDocumentSetModel.policy_version_id)
-            .options(selectinload(LegalDocumentSetModel.documents).selectinload(LegalDocumentSetItemModel.legal_document))
+            .options(
+                selectinload(LegalDocumentSetModel.documents).selectinload(LegalDocumentSetItemModel.legal_document)
+            )
             .where(
                 StorefrontModel.storefront_key == storefront_key,
                 PolicyVersionModel.approval_state == "approved",
@@ -149,9 +153,6 @@ class LegalDocumentRepository:
         if acceptance_channel is not None:
             query = query.where(AcceptedLegalDocumentModel.acceptance_channel == acceptance_channel)
         result = await self._session.execute(
-            query
-            .order_by(AcceptedLegalDocumentModel.accepted_at.desc())
-            .limit(limit)
-            .offset(offset)
+            query.order_by(AcceptedLegalDocumentModel.accepted_at.desc()).limit(limit).offset(offset)
         )
         return list(result.scalars().all())

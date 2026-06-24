@@ -80,14 +80,10 @@ def _build_signals(payload: ResolveCatalogContextRequest, request: Request) -> C
     explicit_display_country = payload.explicit_display_country_code or payload.explicit_country_code
     explicit_pricing_country = payload.explicit_pricing_country_code or payload.explicit_country_code
     cookie_country = (
-        payload.cookie_country_code
-        or request.cookies.get("cybervpn_country")
-        or request.cookies.get("country_code")
+        payload.cookie_country_code or request.cookies.get("cybervpn_country") or request.cookies.get("country_code")
     )
     cookie_currency = (
-        payload.cookie_currency_code
-        or request.cookies.get("cybervpn_currency")
-        or request.cookies.get("currency_code")
+        payload.cookie_currency_code or request.cookies.get("cybervpn_currency") or request.cookies.get("currency_code")
     )
     return CommercialContextSignals(
         url_locale=payload.url_locale,

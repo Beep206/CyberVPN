@@ -139,11 +139,7 @@ class UpdateRefundUseCase:
         )
         if state_or_provider_changed:
             await self._outbox.append_event(
-                event_name=(
-                    "refund.provider_state_reconciled"
-                    if skip_provider_execution
-                    else "refund.status_changed"
-                ),
+                event_name=("refund.provider_state_reconciled" if skip_provider_execution else "refund.status_changed"),
                 aggregate_type="refund",
                 aggregate_id=str(refund.id),
                 partition_key=str(refund.order_id),

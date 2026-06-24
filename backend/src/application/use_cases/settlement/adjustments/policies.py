@@ -542,7 +542,6 @@ def _reserve_matches_source(
     source_reference_id: UUID,
 ) -> bool:
     payload = dict(reserve.reserve_payload or {})
-    return (
-        payload.get("source_reference_type") == source_reference_type
-        and payload.get("source_reference_id") == str(source_reference_id)
+    return payload.get("source_reference_type") == source_reference_type and payload.get("source_reference_id") == str(
+        source_reference_id
     )

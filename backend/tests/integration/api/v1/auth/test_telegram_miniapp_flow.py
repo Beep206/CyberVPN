@@ -16,12 +16,21 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from urllib.parse import quote, urlencode
 
 import pytest
+from sqlalchemy import select
 
+from src.application.services.auth_service import AuthService
 from src.application.use_cases.auth.telegram_miniapp import (
     TelegramMiniAppResult,
     TelegramMiniAppUseCase,
 )
+from src.config.settings import settings
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
+from src.infrastructure.database.models.refresh_token_model import RefreshToken
+from src.infrastructure.remnawave.adapters import get_remnawave_adapter
+from src.main import app
+from src.presentation.api.v1.mobile_auth.routes import _get_subscription_client
+from src.presentation.dependencies.database import get_db
 
 BOT_TOKEN = "7654321:AAHfVcYK-test-token-for-integration"
 
@@ -281,3 +290,72 @@ class TestMiniAppAutoLoginFlow:
         # Auth succeeds despite Remnawave failure
         assert result.access_token == "access_tok"
         assert result.is_new_user is True
+
+
+@pytest.mark.integration
+async def test_miniapp_route_persists_returned_customer_session_and_revokes_access_on_logout(async_client, db):
+    telegram_id = 900_000_000 + int(uuid.uuid4().hex[:6], 16) % 100_000_000
+    username = f"miniapp_{uuid.uuid4().hex[:8]}"
+    init_data = _build_init_data(
+        BOT_TOKEN,
+        user={"id": telegram_id, "first_name": "Mini", "username": username},
+    )
+    device_key = "123e4567-e89b-12d3-a456-426614174000"
+
+    async def override_db():
+        yield db
+
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_remnawave_adapter] = lambda: None
+    app.dependency_overrides[_get_subscription_client] = lambda: None
+
+    try:
+        with patch("src.infrastructure.oauth.telegram.settings") as mock_settings:
+            mock_settings.telegram_bot_token.get_secret_value.return_value = BOT_TOKEN
+            mock_settings.telegram_bot_username = "test_bot"
+            mock_settings.telegram_auth_max_age_seconds = 86400
+
+            async_client.cookies.set(settings.web_device_cookie_name, device_key)
+            response = await async_client.post(
+                "/api/v1/auth/telegram/miniapp",
+                json={"init_data": init_data},
+            )
+
+        assert response.status_code == 200
+        payload = response.json()
+        access_token = payload["access_token"]
+        refresh_token = payload["refresh_token"]
+
+        token_payload = AuthService().decode_token(access_token, audience="cybervpn:customer")
+        refresh_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
+        refresh_record = (
+            await db.execute(select(RefreshToken).where(RefreshToken.token_hash == refresh_hash))
+        ).scalar_one()
+        assert refresh_record.principal_session_id is not None
+        principal_session = await db.get(PrincipalSessionModel, refresh_record.principal_session_id)
+        assert principal_session is not None
+        assert principal_session.access_token_jti == token_payload["jti"]
+        assert principal_session.principal_class == "customer"
+        assert principal_session.principal_subject == token_payload["sub"]
+        assert principal_session.revoked_at is None
+
+        logout_response = await async_client.post(
+            "/api/v1/mobile/auth/logout",
+            json={"refresh_token": refresh_token, "device_id": device_key},
+        )
+        assert logout_response.status_code == 204
+
+        stale_access_response = await async_client.get(
+            "/api/v1/mobile/auth/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        assert stale_access_response.status_code == 401
+
+        await db.refresh(principal_session)
+        await db.refresh(refresh_record)
+        assert principal_session.status == "revoked"
+        assert refresh_record.revoked_at is not None
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        app.dependency_overrides.pop(get_remnawave_adapter, None)
+        app.dependency_overrides.pop(_get_subscription_client, None)

@@ -14,10 +14,7 @@ PHASE7_REQUIRED_PATHS = (
     f"{API_V1_PREFIX}/reporting/outbox-publications/{{publication_id}}/failed",
     f"{API_V1_PREFIX}/reporting/partner-workspaces/{{workspace_id}}/snapshot",
     f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/integration-credentials",
-    (
-        f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/integration-credentials/"
-        "{credential_kind}/rotate"
-    ),
+    (f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/integration-credentials/{{credential_kind}}/rotate"),
     f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/integration-delivery-logs",
     f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/postback-readiness",
 )

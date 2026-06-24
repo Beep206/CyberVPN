@@ -85,6 +85,13 @@ async def _create_password_mobile_user(db, payload: dict) -> MobileUserModel:
     return user
 
 
+async def _unused_public_uid(db, *, start: int = 14_677_650) -> int:
+    candidate = start
+    while await db.scalar(select(MobileUserModel.id).where(MobileUserModel.public_uid == candidate)) is not None:
+        candidate += 1
+    return candidate
+
+
 @pytest.fixture(autouse=True)
 def _disable_mobile_login_rate_limit():
     app.dependency_overrides[check_login_rate_limit] = lambda: None
@@ -114,9 +121,7 @@ async def test_mobile_password_login_persists_shared_session_and_refresh_rotates
         refresh_token = login_body["tokens"]["refresh_token"]
         refresh_record = (
             await db.execute(
-                select(RefreshToken).where(
-                    RefreshToken.token_hash == sha256(refresh_token.encode()).hexdigest()
-                )
+                select(RefreshToken).where(RefreshToken.token_hash == sha256(refresh_token.encode()).hexdigest())
             )
         ).scalar_one()
         assert refresh_record.principal_session_id is not None
@@ -169,11 +174,7 @@ async def test_mobile_password_login_persists_shared_session_and_refresh_rotates
         assert replay_response.status_code == 401
 
         replayed_family = (
-            (
-                await db.execute(
-                    select(RefreshToken).where(RefreshToken.family_id == refresh_record.family_id)
-                )
-            )
+            (await db.execute(select(RefreshToken).where(RefreshToken.family_id == refresh_record.family_id)))
             .scalars()
             .all()
         )
@@ -202,12 +203,12 @@ async def test_mobile_logout_revokes_current_shared_session(async_client, db):
     try:
         login_response = await async_client.post("/api/v1/mobile/auth/login", json=payload)
         assert login_response.status_code == 200
-        refresh_token = login_response.json()["tokens"]["refresh_token"]
+        login_tokens = login_response.json()["tokens"]
+        access_token = login_tokens["access_token"]
+        refresh_token = login_tokens["refresh_token"]
         refresh_record = (
             await db.execute(
-                select(RefreshToken).where(
-                    RefreshToken.token_hash == sha256(refresh_token.encode()).hexdigest()
-                )
+                select(RefreshToken).where(RefreshToken.token_hash == sha256(refresh_token.encode()).hexdigest())
             )
         ).scalar_one()
         principal_session = await db.get(PrincipalSessionModel, refresh_record.principal_session_id)
@@ -225,6 +226,21 @@ async def test_mobile_logout_revokes_current_shared_session(async_client, db):
         assert refresh_record.revoked_reason == "logout"
         assert principal_session.status == "revoked"
         assert principal_session.revoked_at is not None
+        legacy_device = (
+            await db.execute(
+                select(MobileDeviceModel).where(
+                    MobileDeviceModel.user_id == refresh_record.user_id,
+                    MobileDeviceModel.device_id == device_id,
+                )
+            )
+        ).scalar_one()
+        assert legacy_device.push_token is None
+
+        stale_access_response = await async_client.get(
+            "/api/v1/mobile/auth/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        assert stale_access_response.status_code == 401
 
         refresh_response = await async_client.post(
             "/api/v1/mobile/auth/refresh",
@@ -262,6 +278,7 @@ async def test_mobile_remove_device_revokes_selected_session_only(async_client, 
         assert first_login.status_code == 200
         assert second_login.status_code == 200
         first_access_token = first_login.json()["tokens"]["access_token"]
+        second_access_token = second_login.json()["tokens"]["access_token"]
 
         list_response = await async_client.get(
             "/api/v1/mobile/auth/devices",
@@ -301,9 +318,7 @@ async def test_mobile_remove_device_revokes_selected_session_only(async_client, 
         sessions = (
             (
                 await db.execute(
-                    select(PrincipalSessionModel).where(
-                        PrincipalSessionModel.principal_subject == str(user.id)
-                    )
+                    select(PrincipalSessionModel).where(PrincipalSessionModel.principal_subject == str(user.id))
                 )
             )
             .scalars()
@@ -319,6 +334,19 @@ async def test_mobile_remove_device_revokes_selected_session_only(async_client, 
         )
         assert list_after_delete.status_code == 200
         assert {device["id"] for device in list_after_delete.json()} == {device_one_id}
+
+        removed_device_me = await async_client.get(
+            "/api/v1/mobile/auth/me",
+            headers={"Authorization": f"Bearer {second_access_token}"},
+        )
+        assert removed_device_me.status_code == 401
+
+        active_device_me = await async_client.get(
+            "/api/v1/mobile/auth/me",
+            headers={"Authorization": f"Bearer {first_access_token}"},
+        )
+        assert active_device_me.status_code == 200
+        assert active_device_me.json()["id"] == str(user.id)
     finally:
         app.dependency_overrides.pop(get_db, None)
         app.dependency_overrides.pop(_get_subscription_client, None)
@@ -348,23 +376,35 @@ async def test_route_creates_new_user_and_persists_subject(async_client, db, mon
     app.dependency_overrides[_get_subscription_client] = lambda: None
 
     try:
-        before_started = REGISTRY.get_sample_value(
-            "telegram_native_login_started_total",
-            {"platform": "ios"},
-        ) or 0
-        before_completed = REGISTRY.get_sample_value(
-            "telegram_native_login_completed_total",
-            {"platform": "ios"},
-        ) or 0
+        before_started = (
+            REGISTRY.get_sample_value(
+                "telegram_native_login_started_total",
+                {"platform": "ios"},
+            )
+            or 0
+        )
+        before_completed = (
+            REGISTRY.get_sample_value(
+                "telegram_native_login_completed_total",
+                {"platform": "ios"},
+            )
+            or 0
+        )
         before_created = REGISTRY.get_sample_value("telegram_oidc_user_created_total") or 0
-        before_resolved = REGISTRY.get_sample_value(
-            "telegram_oidc_user_resolved_total",
-            {"path": "new_user"},
-        ) or 0
-        before_device = REGISTRY.get_sample_value(
-            "telegram_oidc_device_registered_total",
-            {"platform": "ios", "action": "created"},
-        ) or 0
+        before_resolved = (
+            REGISTRY.get_sample_value(
+                "telegram_oidc_user_resolved_total",
+                {"path": "new_user"},
+            )
+            or 0
+        )
+        before_device = (
+            REGISTRY.get_sample_value(
+                "telegram_oidc_device_registered_total",
+                {"platform": "ios", "action": "created"},
+            )
+            or 0
+        )
 
         with (
             patch(
@@ -488,14 +528,20 @@ async def test_route_maps_invalid_token_to_401(async_client, db):
     app.dependency_overrides[_get_subscription_client] = lambda: None
 
     try:
-        before_failed = REGISTRY.get_sample_value(
-            "telegram_native_login_failed_total",
-            {"platform": "ios", "reason": "signature_invalid"},
-        ) or 0
-        before_validation_failed = REGISTRY.get_sample_value(
-            "telegram_oidc_token_validation_failed_total",
-            {"reason": "signature_invalid"},
-        ) or 0
+        before_failed = (
+            REGISTRY.get_sample_value(
+                "telegram_native_login_failed_total",
+                {"platform": "ios", "reason": "signature_invalid"},
+            )
+            or 0
+        )
+        before_validation_failed = (
+            REGISTRY.get_sample_value(
+                "telegram_oidc_token_validation_failed_total",
+                {"reason": "signature_invalid"},
+            )
+            or 0
+        )
 
         with patch(
             "src.presentation.api.v1.mobile_auth.routes.TelegramOIDCAuthService.validate_id_token",
@@ -575,14 +621,20 @@ async def test_route_returns_pending_2fa_and_completion_issues_session(async_cli
     app.dependency_overrides[_get_subscription_client] = lambda: None
 
     try:
-        before_requires_2fa = REGISTRY.get_sample_value(
-            "telegram_oidc_requires_2fa_total",
-            {"platform": "ios"},
-        ) or 0
-        before_completed = REGISTRY.get_sample_value(
-            "telegram_native_login_completed_total",
-            {"platform": "ios"},
-        ) or 0
+        before_requires_2fa = (
+            REGISTRY.get_sample_value(
+                "telegram_oidc_requires_2fa_total",
+                {"platform": "ios"},
+            )
+            or 0
+        )
+        before_completed = (
+            REGISTRY.get_sample_value(
+                "telegram_native_login_completed_total",
+                {"platform": "ios"},
+            )
+            or 0
+        )
 
         with (
             patch(
@@ -762,10 +814,13 @@ async def test_authenticated_route_link_conflict_tracks_metric(async_client, db)
     app.dependency_overrides[get_db] = override_db
 
     try:
-        before_conflicts = REGISTRY.get_sample_value(
-            "telegram_oidc_user_link_conflict_total",
-            {"reason": "subject_conflict"},
-        ) or 0
+        before_conflicts = (
+            REGISTRY.get_sample_value(
+                "telegram_oidc_user_link_conflict_total",
+                {"reason": "subject_conflict"},
+            )
+            or 0
+        )
 
         with patch(
             "src.presentation.api.v1.mobile_auth.routes.TelegramOIDCAuthService.validate_id_token",
@@ -794,9 +849,10 @@ async def test_authenticated_route_link_conflict_tracks_metric(async_client, db)
 @pytest.mark.integration
 async def test_mobile_me_exposes_profile_contract(async_client, db):
     auth_service = AuthService()
+    public_uid = await _unused_public_uid(db)
     user = MobileUserModel(
         id=uuid4(),
-        public_uid=14_677_650,
+        public_uid=public_uid,
         auth_realm_id=stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"])),
         email=f"mobile-me-{uuid4().hex[:8]}@example.com",
         password_hash=await auth_service.hash_password("MobileMe123!"),
@@ -840,7 +896,7 @@ async def test_mobile_me_exposes_profile_contract(async_client, db):
         assert response.status_code == 200
         body = response.json()
         assert body["id"] == str(user.id)
-        assert body["public_uid"] == 14_677_650
+        assert body["public_uid"] == public_uid
         assert body["email"] == user.email
         assert body["telegram_id"] == user.telegram_id
         assert body["telegram_username"] == user.telegram_username

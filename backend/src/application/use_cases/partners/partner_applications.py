@@ -119,9 +119,7 @@ def merge_partner_application_payload(
 
 def validate_partner_application_submission(payload: dict[str, object]) -> None:
     missing_fields = [
-        field_name
-        for field_name in sorted(PARTNER_APPLICATION_REQUIRED_FIELDS)
-        if not payload.get(field_name)
+        field_name for field_name in sorted(PARTNER_APPLICATION_REQUIRED_FIELDS) if not payload.get(field_name)
     ]
     if missing_fields:
         missing = ", ".join(missing_fields)
@@ -257,10 +255,7 @@ class PartnerApplicationWorkflowUseCase:
         if workspace_name:
             workspace.display_name = workspace_name
 
-        if (
-            applicant_admin_user_id
-            and workspace.status == PartnerAccountStatus.DRAFT.value
-        ):
+        if applicant_admin_user_id and workspace.status == PartnerAccountStatus.DRAFT.value:
             applicant = await self._admin_users.get_by_id(applicant_admin_user_id)
             if applicant is not None and applicant.is_email_verified:
                 workspace.status = PartnerAccountStatus.EMAIL_VERIFIED.value
@@ -1021,9 +1016,7 @@ class PartnerApplicationWorkflowUseCase:
             }
             observe_partner_notification_generated(
                 surface=(
-                    PARTNER_PORTAL_SURFACE
-                    if created.action_kind in partner_portal_actions
-                    else PARTNER_ADMIN_SURFACE
+                    PARTNER_PORTAL_SURFACE if created.action_kind in partner_portal_actions else PARTNER_ADMIN_SURFACE
                 ),
                 notification_type=notification_type,
                 result="success",

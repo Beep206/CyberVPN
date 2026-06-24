@@ -68,8 +68,7 @@ class PasskeyCredentialRepository:
             statement = statement.where(PasskeyCredentialModel.principal_class == principal_class)
 
         result = await self._session.execute(
-            statement
-            .order_by(PasskeyCredentialModel.created_at.desc(), PasskeyCredentialModel.id.asc())
+            statement.order_by(PasskeyCredentialModel.created_at.desc(), PasskeyCredentialModel.id.asc())
             .limit(limit)
             .offset(offset)
         )

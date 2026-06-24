@@ -14,9 +14,7 @@ from src.infrastructure.database.session import Base
 
 class CheckoutSessionModel(Base):
     __tablename__ = "checkout_sessions"
-    __table_args__ = (
-        UniqueConstraint("quote_session_id", name="uq_checkout_sessions_quote_session_id"),
-    )
+    __table_args__ = (UniqueConstraint("quote_session_id", name="uq_checkout_sessions_quote_session_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     quote_session_id: Mapped[uuid.UUID] = mapped_column(

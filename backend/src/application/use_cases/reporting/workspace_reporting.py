@@ -80,9 +80,7 @@ class BuildPartnerWorkspaceReportingUseCase:
             order_items=order_items,
             statements=statements,
         )
-        order_reporting_rows = {
-            str(item["order_id"]): item for item in report_pack.get("order_reporting_mart", [])
-        }
+        order_reporting_rows = {str(item["order_id"]): item for item in report_pack.get("order_reporting_mart", [])}
         for item in order_items:
             item["report_row"] = order_reporting_rows.get(str(item["order"].id), {})
         return PartnerWorkspaceReportingContext(
@@ -233,14 +231,10 @@ class BuildPartnerWorkspaceReportingUseCase:
                 if order_item["renewal_order"] is not None
             ],
             "refunds": [
-                self._serialize_refund(refund)
-                for order_item in order_items
-                for refund in order_item["refunds"]
+                self._serialize_refund(refund) for order_item in order_items for refund in order_item["refunds"]
             ],
             "payment_disputes": [
-                self._serialize_dispute(dispute)
-                for order_item in order_items
-                for dispute in order_item["disputes"]
+                self._serialize_dispute(dispute) for order_item in order_items for dispute in order_item["disputes"]
             ],
             "earning_events": [self._serialize_earning_event(item) for item in earning_events],
             "partner_statements": [self._serialize_partner_statement(item) for item in statements],
@@ -274,9 +268,7 @@ class BuildPartnerWorkspaceReportingUseCase:
     ) -> dict[UUID, PartnerCodeModel]:
         if not partner_code_ids:
             return {}
-        rows = await self._session.execute(
-            select(PartnerCodeModel).where(PartnerCodeModel.id.in_(partner_code_ids))
-        )
+        rows = await self._session.execute(select(PartnerCodeModel).where(PartnerCodeModel.id.in_(partner_code_ids)))
         return {item.id: item for item in rows.scalars().all()}
 
     async def _load_earning_events(

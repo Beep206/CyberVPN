@@ -677,7 +677,7 @@ async def test_stage1_email_password_http_flow_register_verify_login_refresh_log
     assert username_login.status_code == 200
     assert "httponly" in "\n".join(email_login.headers.get_list("set-cookie")).lower()
 
-    async_client.cookies.update(email_login.cookies)
+    async_client.cookies.update(username_login.cookies)
     refresh_response = await async_client.post("/api/v1/auth/refresh", json={})
     assert refresh_response.status_code == 200
     refresh_payload = refresh_response.json()
@@ -688,7 +688,7 @@ async def test_stage1_email_password_http_flow_register_verify_login_refresh_log
 
     refreshed_token = refresh_response.cookies.get("customer_refresh_token")
     assert refreshed_token
-    assert refreshed_token != email_login.cookies["customer_refresh_token"]
+    assert refreshed_token != username_login.cookies["customer_refresh_token"]
 
     logout_response = await async_client.post(
         "/api/v1/auth/logout",

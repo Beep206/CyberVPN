@@ -97,8 +97,7 @@ class HelixAdminLoadUser(HttpUser):
                 expected_decision = self.expected_decision
                 if expected_decision is not None and body.get("decision") != expected_decision:
                     response.failure(
-                        "canary evidence decision mismatch: "
-                        f"expected {expected_decision}, got {body.get('decision')}"
+                        f"canary evidence decision mismatch: expected {expected_decision}, got {body.get('decision')}"
                     )
                     return
 
@@ -109,9 +108,7 @@ class HelixAdminLoadUser(HttpUser):
                 response.failure("missing or invalid HELIX_LOAD_BEARER_TOKEN")
                 return
 
-            response.failure(
-                f"unexpected status for canary evidence route: {response.status_code}"
-            )
+            response.failure(f"unexpected status for canary evidence route: {response.status_code}")
 
     @tag("helix-admin", "nodes")
     @task(1)

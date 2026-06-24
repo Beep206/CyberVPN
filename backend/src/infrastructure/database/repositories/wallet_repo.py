@@ -18,17 +18,13 @@ class WalletRepository:
         self._session = session
 
     async def get_by_user_id(self, user_id: UUID) -> WalletModel | None:
-        result = await self._session.execute(
-            select(WalletModel).where(WalletModel.user_id == user_id)
-        )
+        result = await self._session.execute(select(WalletModel).where(WalletModel.user_id == user_id))
         return result.scalar_one_or_none()
 
     async def get_by_user_id_for_update(self, user_id: UUID) -> WalletModel | None:
         """SELECT ... FOR UPDATE to prevent concurrent wallet modifications."""
         result = await self._session.execute(
-            select(WalletModel)
-            .where(WalletModel.user_id == user_id)
-            .with_for_update()
+            select(WalletModel).where(WalletModel.user_id == user_id).with_for_update()
         )
         return result.scalar_one_or_none()
 
@@ -139,9 +135,7 @@ class WalletRepository:
         await self._session.flush()
         return wallet
 
-    async def get_transactions(
-        self, user_id: UUID, offset: int = 0, limit: int = 50
-    ) -> list[WalletTransactionModel]:
+    async def get_transactions(self, user_id: UUID, offset: int = 0, limit: int = 50) -> list[WalletTransactionModel]:
         result = await self._session.execute(
             select(WalletTransactionModel)
             .where(WalletTransactionModel.user_id == user_id)

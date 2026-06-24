@@ -57,6 +57,9 @@ async def issue_realm_access_token(
             jti=jti,
             user_id=subject,
             expires_at=access_exp,
+            auth_realm_id=str(realm.id),
+            principal_class=principal_type,
+            principal_subject=subject,
         )
     finally:
         await redis_client.aclose()

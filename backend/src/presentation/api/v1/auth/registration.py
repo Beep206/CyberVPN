@@ -222,9 +222,7 @@ async def register(
             detail={
                 "detail": str(exc),
                 "code": "RATE_LIMITED",
-                "next_resend_available_at": exc.next_available_at.isoformat()
-                if exc.next_available_at
-                else None,
+                "next_resend_available_at": exc.next_available_at.isoformat() if exc.next_available_at else None,
             },
         ) from exc
 

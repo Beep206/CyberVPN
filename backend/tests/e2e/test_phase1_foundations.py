@@ -407,7 +407,7 @@ async def test_phase1_foundations_end_to_end(async_client: AsyncClient) -> None:
             )
             acceptance_response = await async_client.post(
                 "/api/v1/policy-acceptance/",
-                headers={"Authorization": f"Bearer {customer_token}", "X-Auth-Realm": "partner-customer"},
+                headers={"Authorization": f"Bearer {customer_token}", "Host": "partner.example.test"},
                 json={
                     "legal_document_set_id": legal_set_id,
                     "storefront_id": str(partner_storefront.id),

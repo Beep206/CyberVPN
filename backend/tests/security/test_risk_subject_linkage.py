@@ -170,4 +170,3 @@ async def test_risk_subjects_can_link_across_realms_without_collapsing_identity(
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)
-

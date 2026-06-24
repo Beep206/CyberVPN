@@ -193,9 +193,7 @@ def test_phase7_parity_evidence_builder_and_summary_are_deterministic(tmp_path: 
         "channel_parity_missing_required_channel",
         "channel_visible_order_ids_mismatch",
     } - {"channel_active_entitlement_count_mismatch"}
-    assert report["partner_export_views"][0]["mismatch_codes"] == [
-        "partner_export_available_earnings_amount_mismatch"
-    ]
+    assert report["partner_export_views"][0]["mismatch_codes"] == ["partner_export_available_earnings_amount_mismatch"]
     assert report["postback_delivery_views"][0]["mismatch_codes"] == ["postback_delivery_status_mismatch"]
     assert report["reconciliation"]["mismatch_counts"]["analytical_reference_not_green"] == 1
     assert report["reconciliation"]["mismatch_counts"]["channel_parity_missing_required_channel"] == 1

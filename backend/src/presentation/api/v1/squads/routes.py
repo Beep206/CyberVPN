@@ -15,11 +15,11 @@ def _map_squad(payload: RemnawaveRawSquadResponse, squad_type: str) -> Remnawave
     return RemnawaveSquadResponse(
         uuid=payload.uuid,
         name=payload.name,
-        squadType=squad_type,
-        maxMembers=None,
-        isActive=True,
+        squad_type=squad_type,
+        max_members=None,
+        is_active=True,
         description=None,
-        memberCount=payload.info.members_count if payload.info else None,
+        member_count=payload.info.members_count if payload.info else None,
     )
 
 
