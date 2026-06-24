@@ -116,8 +116,8 @@ async def lifespan(app: FastAPI):
             max_request_body_size="never",
             include_local_variables=False,
             integrations=[StarletteIntegration(), FastApiIntegration()],
-            before_send=cast(Any, before_send),
-            before_send_transaction=cast(Any, before_send_transaction),
+            before_send=before_send,  # type: ignore[arg-type]
+            before_send_transaction=before_send_transaction,  # type: ignore[arg-type]
         )
         logger.info(
             "Sentry SDK initialized",
