@@ -75,8 +75,8 @@ VERIFY_WINDOW_SECONDS = 900  # 15 minutes
 async def _check_verify_rate_limit(user_id: str, redis_client: redis.Redis) -> None:
     """Check and increment verification attempt rate limit."""
     key = f"{VERIFY_RATE_LIMIT_KEY}{user_id}"
-    attempts = await redis_client.get(key)
-    attempts = int(attempts) if attempts else 0
+    raw_attempts = await redis_client.get(key)
+    attempts = int(raw_attempts) if raw_attempts else 0
 
     if attempts >= VERIFY_MAX_ATTEMPTS:
         raise HTTPException(
