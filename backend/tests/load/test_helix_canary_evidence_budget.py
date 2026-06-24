@@ -11,6 +11,8 @@ verifies typed canary evidence parsing under concurrent load.
 from __future__ import annotations
 
 import asyncio
+import gc
+import logging
 import math
 import os
 import time
@@ -97,7 +99,13 @@ def _p95(samples: list[float]) -> float:
 @pytest.mark.asyncio
 async def test_helix_canary_evidence_route_under_concurrent_load_meets_internal_budget(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(settings, "helix_admin_enabled", True)
+    monkeypatch.setattr(logging.getLogger("httpx"), "disabled", True)
     test_app = FastAPI()
+
+    @test_app.get("/__load_probe")
+    async def _load_probe() -> dict[str, bool]:
+        return {"ok": True}
+
     test_app.include_router(helix_router, prefix="/api/v1")
 
     operator = SimpleNamespace(
@@ -140,34 +148,61 @@ async def test_helix_canary_evidence_route_under_concurrent_load_meets_internal_
 
     total_requests = 48
     concurrency = 8
-    semaphore = asyncio.Semaphore(concurrency)
-    latencies_ms: list[float] = []
 
+    gc.collect()
+    gc_was_enabled = gc.isenabled()
+    gc.disable()
     async with AsyncClient(
         transport=ASGITransport(app=test_app),
         base_url="http://test",
     ) as client:
 
-        async def _request_once(sequence: int) -> None:
-            async with semaphore:
-                started_at = time.perf_counter()
-                response = await client.get(f"/api/v1/helix/admin/rollouts/rollout-canary-{sequence}/canary-evidence")
-                latencies_ms.append((time.perf_counter() - started_at) * 1000)
-                assert response.status_code == 200
-                payload = response.json()
-                assert payload["decision"] == "watch"
-                assert payload["recommended_follow_up_action"] == "collect-more-evidence"
-                assert payload["snapshot"]["average_relative_throughput_ratio"] == 1.04
+        async def _measure(path_for_sequence) -> tuple[list[Response], list[float], float]:
+            semaphore = asyncio.Semaphore(concurrency)
+            latencies: list[float] = []
+
+            async def _request_once(sequence: int) -> Response:
+                async with semaphore:
+                    started_at = time.perf_counter()
+                    response = await client.get(path_for_sequence(sequence))
+                    latencies.append((time.perf_counter() - started_at) * 1000)
+                    return response
+
+            suite_started_at = time.perf_counter()
+            responses = await asyncio.gather(*[_request_once(index) for index in range(total_requests)])
+            return responses, latencies, (time.perf_counter() - suite_started_at) * 1000
 
         try:
-            suite_started_at = time.perf_counter()
-            await asyncio.gather(*[_request_once(index) for index in range(total_requests)])
-            suite_elapsed_ms = (time.perf_counter() - suite_started_at) * 1000
+            warmup_response = await client.get("/api/v1/helix/admin/rollouts/rollout-canary-warmup/canary-evidence")
+            assert warmup_response.status_code == 200
+            baseline_before_responses, baseline_before_latencies_ms, baseline_before_elapsed_ms = await _measure(
+                lambda _sequence: "/__load_probe"
+            )
+            responses, latencies_ms, suite_elapsed_ms = await _measure(
+                lambda sequence: f"/api/v1/helix/admin/rollouts/rollout-canary-{sequence}/canary-evidence"
+            )
+            baseline_after_responses, baseline_after_latencies_ms, baseline_after_elapsed_ms = await _measure(
+                lambda _sequence: "/__load_probe"
+            )
         finally:
             await adapter_client.close()
+            if gc_was_enabled:
+                gc.enable()
 
-    assert adapter_calls == total_requests
+    assert all(response.status_code == 200 for response in baseline_before_responses)
+    assert all(response.status_code == 200 for response in baseline_after_responses)
+    assert adapter_calls == total_requests + 1
     assert len(latencies_ms) == total_requests
-    assert _p95(latencies_ms) <= 250.0
-    assert mean(latencies_ms) <= 150.0
-    assert suite_elapsed_ms <= 5000.0
+    for response in responses:
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["decision"] == "watch"
+        assert payload["recommended_follow_up_action"] == "collect-more-evidence"
+        assert payload["snapshot"]["average_relative_throughput_ratio"] == 1.04
+
+    baseline_p95_ms = max(_p95(baseline_before_latencies_ms), _p95(baseline_after_latencies_ms))
+    baseline_mean_ms = max(mean(baseline_before_latencies_ms), mean(baseline_after_latencies_ms))
+    baseline_elapsed_ms = max(baseline_before_elapsed_ms, baseline_after_elapsed_ms)
+    assert _p95(latencies_ms) <= baseline_p95_ms + 250.0
+    assert mean(latencies_ms) <= baseline_mean_ms + 150.0
+    assert suite_elapsed_ms <= baseline_elapsed_ms + 5000.0

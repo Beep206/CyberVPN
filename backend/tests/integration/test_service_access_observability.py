@@ -77,16 +77,22 @@ async def test_service_access_observability_can_inspect_trial_realm_without_serv
                 customer_user.trial_expires_at = datetime.now(UTC) + timedelta(days=2)
                 db.add(admin_user)
                 db.commit()
-                admin_token = _make_admin_access_token(auth_service, user_id=admin_user.id, admin_realm=admin_realm)
+                admin_user_id = admin_user.id
 
-            admin_headers = {
-                "Authorization": f"Bearer {admin_token}",
-                "X-Auth-Realm": "admin",
-            }
+            def admin_headers() -> dict[str, str]:
+                token = _make_admin_access_token(
+                    auth_service,
+                    user_id=admin_user_id,
+                    admin_realm=admin_realm,
+                )
+                return {
+                    "Authorization": f"Bearer {token}",
+                    "X-Auth-Realm": "admin",
+                }
 
             response = await async_client.post(
                 "/api/v1/service-identities/inspect/service-state",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "customer_account_id": seeded["customer_user_id"],
                     "auth_realm_id": seeded["customer_realm_id"],
@@ -161,25 +167,35 @@ async def test_service_access_observability_shows_purchase_vs_consumption_contex
                 customer_user.remnawave_uuid = "remnawave-observe-002"
                 db.add(admin_user)
                 db.commit()
-                admin_token = _make_admin_access_token(auth_service, user_id=admin_user.id, admin_realm=admin_realm)
+                admin_user_id = admin_user.id
 
-            customer_token = _make_customer_access_token(
-                auth_service,
-                user_id=seeded["customer_user_id"],
-                customer_realm=customer_realm,
-            )
-            customer_headers = {
-                "Authorization": f"Bearer {customer_token}",
-                "X-Auth-Realm": "customer",
-            }
-            admin_headers = {
-                "Authorization": f"Bearer {admin_token}",
-                "X-Auth-Realm": "admin",
-            }
+            def customer_headers() -> dict[str, str]:
+                return {
+                    "Authorization": (
+                        "Bearer "
+                        + _make_customer_access_token(
+                            auth_service,
+                            user_id=seeded["customer_user_id"],
+                            customer_realm=customer_realm,
+                        )
+                    ),
+                    "X-Auth-Realm": "customer",
+                }
+
+            def admin_headers() -> dict[str, str]:
+                token = _make_admin_access_token(
+                    auth_service,
+                    user_id=admin_user_id,
+                    admin_realm=admin_realm,
+                )
+                return {
+                    "Authorization": f"Bearer {token}",
+                    "X-Auth-Realm": "admin",
+                }
 
             quote_response = await async_client.post(
                 "/api/v1/quotes/",
-                headers=customer_headers,
+                headers=customer_headers(),
                 json={
                     "storefront_key": seeded["storefront_key"],
                     "pricebook_key": seeded["pricebook_key"],
@@ -195,14 +211,14 @@ async def test_service_access_observability_shows_purchase_vs_consumption_contex
 
             checkout_response = await async_client.post(
                 "/api/v1/checkout-sessions/",
-                headers={**customer_headers, "Idempotency-Key": "phase5-observability-checkout"},
+                headers={**customer_headers(), "Idempotency-Key": "phase5-observability-checkout"},
                 json={"quote_session_id": quote_response.json()["id"]},
             )
             assert checkout_response.status_code == 201
 
             order_response = await async_client.post(
                 "/api/v1/orders/commit",
-                headers=customer_headers,
+                headers=customer_headers(),
                 json={"checkout_session_id": checkout_response.json()["id"]},
             )
             assert order_response.status_code == 201
@@ -210,7 +226,7 @@ async def test_service_access_observability_shows_purchase_vs_consumption_contex
 
             service_identity_response = await async_client.post(
                 "/api/v1/service-identities/",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "customer_account_id": seeded["customer_user_id"],
                     "auth_realm_id": seeded["customer_realm_id"],
@@ -223,7 +239,7 @@ async def test_service_access_observability_shows_purchase_vs_consumption_contex
 
             grant_response = await async_client.post(
                 "/api/v1/entitlements/",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "service_identity_id": service_identity_payload["id"],
                     "source_order_id": order_payload["id"],
@@ -240,13 +256,13 @@ async def test_service_access_observability_shows_purchase_vs_consumption_contex
 
             activate_response = await async_client.post(
                 f"/api/v1/entitlements/{grant_payload['id']}/activate",
-                headers=admin_headers,
+                headers=admin_headers(),
             )
             assert activate_response.status_code == 200
 
             resolve_response = await async_client.post(
                 "/api/v1/access-delivery-channels/resolve/current",
-                headers=customer_headers,
+                headers=customer_headers(),
                 json={
                     "provider_name": "remnawave",
                     "channel_type": "desktop_manifest",
@@ -259,7 +275,7 @@ async def test_service_access_observability_shows_purchase_vs_consumption_contex
 
             inspect_by_lookup_response = await async_client.post(
                 "/api/v1/service-identities/inspect/service-state",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "customer_account_id": seeded["customer_user_id"],
                     "auth_realm_id": seeded["customer_realm_id"],
@@ -294,7 +310,7 @@ async def test_service_access_observability_shows_purchase_vs_consumption_contex
                     "&credential_type=desktop_client"
                     "&credential_subject_key=desktop-observe-primary"
                 ),
-                headers=admin_headers,
+                headers=admin_headers(),
             )
             assert inspect_by_identity_response.status_code == 200
             inspect_identity_payload = inspect_by_identity_response.json()

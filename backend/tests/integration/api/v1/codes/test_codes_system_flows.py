@@ -46,8 +46,9 @@ def require_docker_backed_db() -> None:
 
 @pytest.fixture(autouse=True)
 def _clear_dependency_overrides():
+    app.dependency_overrides.clear()
     yield
-    app.dependency_overrides.pop(get_current_mobile_user_id, None)
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture(autouse=True)

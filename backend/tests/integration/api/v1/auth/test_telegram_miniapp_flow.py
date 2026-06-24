@@ -293,7 +293,11 @@ class TestMiniAppAutoLoginFlow:
 
 
 @pytest.mark.integration
-async def test_miniapp_route_persists_returned_customer_session_and_revokes_access_on_logout(async_client, db):
+async def test_miniapp_route_persists_returned_customer_session_and_revokes_access_on_logout(
+    async_client,
+    db,
+    monkeypatch: pytest.MonkeyPatch,
+):
     telegram_id = 900_000_000 + int(uuid.uuid4().hex[:6], 16) % 100_000_000
     username = f"miniapp_{uuid.uuid4().hex[:8]}"
     init_data = _build_init_data(
@@ -308,6 +312,7 @@ async def test_miniapp_route_persists_returned_customer_session_and_revokes_acce
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_remnawave_adapter] = lambda: None
     app.dependency_overrides[_get_subscription_client] = lambda: None
+    monkeypatch.setattr(settings, "registration_enabled", True)
 
     try:
         with patch("src.infrastructure.oauth.telegram.settings") as mock_settings:

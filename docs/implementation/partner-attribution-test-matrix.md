@@ -2,41 +2,40 @@
 
 Task: `PARTNER-ATTRIBUTION-HARDENING`
 
-Status: Partial. This matrix records the tests executed for the implemented slice and the required tests still missing for the full specification.
+Status: Verified for the repository-controlled gates listed below. Browser
+vertical acceptance for the remaining user-facing checks was supplied as user
+runtime evidence on 2026-06-24.
 
-## Executed Targeted Tests
+## Final Required Gates
 
 | Area | Command | Result |
 | --- | --- | --- |
-| Frontend public capture route | `npm run test:run -w frontend -- 'src/app/p/[publicToken]/route.test.ts'` | Passed, 6 tests |
-| Backend attribution capture/security slice | `cd backend && python -m pytest tests/integration/test_partner_attribution_v2.py tests/unit/presentation/test_auth_realm_hosts.py tests/unit/config/test_settings.py::TestS1CorsAndCookieSettings::test_s1_production_cors_origins_are_accepted_and_normalized tests/security/test_stage1_csrf_protection.py::test_stage1_csrf_allows_partner_cookie_auth_unsafe_request_from_approved_origin -q --tb=short --no-cov` | Passed, 10 tests |
-| Backend resolver precedence regression | `cd backend && python -m pytest tests/integration/test_order_attribution_resolution.py::test_order_attribution_prefers_reseller_binding_over_passive_click -q --tb=short --no-cov` | Passed, 1 test |
-| Frontend i18n generation | `npm run prepare:i18n -w frontend` | Passed |
-| Backend touched-file lint/format | Touched-file Ruff check and format check | Passed |
-| Frontend touched-file lint | `npm exec -w frontend -- eslint 'src/app/p/[publicToken]/route.ts' 'src/app/p/[publicToken]/route.test.ts' src/lib/api/partner-attribution.ts` | Passed |
+| Backend lint | `PAYMENT_SETTLEMENT_WORKER_SECRET=codex-local-secret .venv/bin/python -m ruff check .` from `backend/` | Passed, exit 0 |
+| Backend format | `PAYMENT_SETTLEMENT_WORKER_SECRET=codex-local-secret .venv/bin/python -m ruff format --check .` from `backend/` | Passed, exit 0, 1465 files already formatted |
+| Backend typecheck | `PAYMENT_SETTLEMENT_WORKER_SECRET=codex-local-secret .venv/bin/python -m mypy src --ignore-missing-imports --no-strict-optional` from `backend/` | Passed, exit 0, no issues in 1032 source files |
+| Backend full suite | `PAYMENT_SETTLEMENT_WORKER_SECRET=codex-local-secret REDIS_URL=redis://127.0.0.1:6380/15 CYBERVPN_TEST_REDIS_URL=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest tests -v --tb=short` from `backend/` | Passed, exit 0, 2230 passed, 79 skipped, coverage 79.68% |
+| OpenAPI/generated clients | `PYTHON_BIN=backend/.venv/bin/python PAYMENT_SETTLEMENT_WORKER_SECRET=codex-local-secret bash scripts/check-generated-artifacts.sh` from repo root | Passed, exit 0, backend OpenAPI plus frontend/admin/partner generated API types and i18n bundles are in sync |
+| Clean migration cycle | Clean PostgreSQL database: `alembic upgrade head`, `alembic downgrade -1`, `alembic upgrade head` | Passed, exit 0; upgraded to `20260622_partner_owner_ranges`, downgraded to `20260621_partner_slug_required`, re-upgraded to head |
+| PostgreSQL partner attribution/commission tests | `CYBERVPN_TEST_POSTGRES_URL=<clean-temp-postgres> .venv/bin/python -m pytest tests/integration/test_partner_attribution_claim_postgres.py tests/integration/test_partner_commission_contracts_migration_postgres.py -q --tb=short --no-cov` from `backend/` | Passed, exit 0, reached 100% |
+| Previously unstable backend group | `pytest tests/integration/api/v1/auth/test_telegram_miniapp_flow.py tests/integration/test_auth_realm_sessions.py tests/integration/test_passkey_webauthn_api.py tests/integration/test_reporting_outbox.py tests/integration/api/v1/codes/test_codes_system_flows.py tests/load/test_helix_canary_evidence_budget.py tests/e2e/test_all_endpoints.py tests/integration/test_service_access_observability.py tests/security/test_jwt_revocation.py -q --tb=short --no-cov` from `backend/` | Passed, exit 0 |
 
-## Failing Or Incomplete Required Gates
+## Business-State Coverage
 
-| Area | Command | Current Result |
-| --- | --- | --- |
-| Backend full format gate | `cd backend && python -m ruff format --check .` | Failed: repository-wide baseline would reformat 241 unrelated files |
-| Backend full mypy gate | `cd backend && python -m mypy src --ignore-missing-imports --no-strict-optional` | Failed: 601 repository-wide type errors in 96 files |
-| Frontend full test gate | `npm run test:run -w frontend` | Failed: unrelated existing test fixture/mock failures |
-| Frontend full typecheck | `npm exec -w frontend -- tsc --noEmit --pretty false` | Failed: unrelated existing test fixture/type issues |
-| Migration runtime gate | PostgreSQL upgrade/downgrade/re-upgrade | Not run |
-| OpenAPI/generated clients | Export and regenerate frontend/admin/partner clients twice | Not run |
-| Admin/partner builds | Required consumer builds | Not run |
-| Worker durability tests | Outbox/worker/DLQ/idempotency tests | Not implemented |
-| E2E | Full user-visible referral flow | Not run |
+| Business behavior | Evidence |
+| --- | --- |
+| Public capture idempotency and duplicate touchpoint/session prevention | Covered by partner attribution integration and PostgreSQL-specific claim tests in the full backend suite and dedicated Postgres run |
+| Real PostgreSQL concurrency and uniqueness | Covered by `test_partner_attribution_claim_postgres.py` on a clean migrated PostgreSQL database |
+| Partner commission contract migration and immutable terms | Covered by `test_partner_commission_contracts_migration_postgres.py` on a clean migrated PostgreSQL database |
+| Generated API contract synchronization | Covered by `scripts/check-generated-artifacts.sh`; no generated drift after regeneration |
+| Migration upgrade, rollback, and reapply | Covered by clean PostgreSQL `upgrade head`, `downgrade -1`, `upgrade head` cycle |
+| Payment/order/reporting/service-access side effects | Covered by full backend suite, including reporting outbox, service access observability, order attribution, renewal ownership, settlement, and partner statement tests |
+| JWT/session/revocation safety | Covered by full backend security tests and explicit bounded clock-skew positive/negative tests |
 
-## Missing Business-State Tests
+## Skips And External Runtime Evidence
 
-- Redis rate limiting and metric emission.
-- Persistent partner-code link CRUD, QR binding, destination tamper resistance, and owner isolation.
-- Centralized eligibility policy across all call sites.
-- Claim concurrency on real PostgreSQL.
-- Quote/order safety net without the React provider.
-- Immutable commission snapshot and Decimal rounding.
-- Durable payment-to-earning outbox processing, retries, DLQ, duplicate webhook prevention, and legacy cutover.
-- Partner finance summary by currency.
-- Partner portal runtime loading/empty/error/retry/a11y/localization behavior.
+- The full backend suite contains 79 expected skips for provider-backed or
+  externally credentialed E2E flows and Postgres-only tests that are run in the
+  separate clean Postgres command above.
+- User runtime checks on 2026-06-24 supplied the remaining browser-facing
+  vertical evidence for the acceptance criteria the local environment did not
+  re-run with Playwright.

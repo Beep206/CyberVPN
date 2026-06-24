@@ -72,6 +72,11 @@ override-dependencies = [
 target-version = "py313"
 line-length = 120
 
+[tool.ruff.format]
+# Applied Alembic revisions are release artifacts. Do not rewrite historical
+# migration files just to satisfy formatter drift; use corrective migrations.
+exclude = ["alembic/versions/*.py"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]
 ignore = [

@@ -77,7 +77,7 @@ class TestJTIClaims:
         from src.config.settings import settings
 
         auth = AuthService()
-        issued_at = datetime.now(UTC) + timedelta(seconds=3)
+        issued_at = datetime.now(UTC) + timedelta(seconds=10)
         payload = {
             "sub": "user-123",
             "role": "admin",
@@ -98,6 +98,33 @@ class TestJTIClaims:
         payload = auth.decode_token(token)
 
         assert payload["sub"] == "user-123"
+
+    def test_decode_token_rejects_iat_beyond_clock_skew(self):
+        """Clock-skew leeway remains bounded."""
+        from src.application.services.auth_service import AuthService
+        from src.config.settings import settings
+
+        auth = AuthService()
+        issued_at = datetime.now(UTC) + timedelta(seconds=auth.JWT_CLOCK_SKEW_LEEWAY_SECONDS + 5)
+        payload = {
+            "sub": "user-123",
+            "role": "admin",
+            "exp": datetime.now(UTC) + timedelta(minutes=5),
+            "iat": issued_at,
+            "jti": str(uuid4()),
+            "type": "access",
+            "aud": settings.jwt_audience,
+        }
+        if settings.jwt_issuer:
+            payload["iss"] = settings.jwt_issuer
+        token = jwt.encode(
+            payload,
+            settings.jwt_secret.get_secret_value(),
+            algorithm=settings.jwt_algorithm,
+        )
+
+        with pytest.raises(jwt.ImmatureSignatureError):
+            auth.decode_token(token)
 
 
 class TestRevocationService:

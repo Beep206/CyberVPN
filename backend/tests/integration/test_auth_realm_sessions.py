@@ -32,6 +32,9 @@ def _disable_rate_limit_middleware_for_realm_session_contract_tests(monkeypatch:
         return await call_next(request)
 
     monkeypatch.setattr(RateLimitMiddleware, "dispatch", passthrough)
+    app.middleware_stack = None
+    yield
+    app.middleware_stack = None
 
 
 @pytest.fixture(autouse=True)

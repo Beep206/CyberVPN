@@ -29,7 +29,7 @@ _hasher = PasswordHasher(
 class AuthService:
     # MED-5: JWT algorithm allowlist - only these algorithms are permitted
     ALLOWED_ALGORITHMS = frozenset({"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256"})
-    JWT_CLOCK_SKEW_LEEWAY_SECONDS = 5
+    JWT_CLOCK_SKEW_LEEWAY_SECONDS = 30
 
     def __init__(self) -> None:
         self._secret = settings.jwt_secret.get_secret_value()

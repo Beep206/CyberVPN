@@ -31,6 +31,7 @@ from src.presentation.dependencies.passkey_fresh_auth import FRESH_AUTH_GRANT_ID
 from tests.helpers.realm_auth import (
     FakeRedis,
     SyncSessionAdapter,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -323,10 +324,14 @@ async def test_passkey_registration_and_authentication_issue_realm_cookie_sessio
                 json={"login_or_email": "passkey-admin@example.com", "password": "PasskeyAdminP@ssword123!"},
             )
             assert login_response.status_code == 200
+            auth_headers = {
+                **_ADMIN_HEADERS,
+                "Cookie": f"access_token={access_token_from_client_cookies(async_client, response=login_response)}",
+            }
 
             options_response = await async_client.post(
                 _admin_url("/api/v1/auth/passkeys/registration/options"),
-                headers=_ADMIN_HEADERS,
+                headers=auth_headers,
                 json={"label": "Work laptop"},
             )
             assert options_response.status_code == 200
@@ -336,7 +341,7 @@ async def test_passkey_registration_and_authentication_issue_realm_cookie_sessio
 
             verify_response = await async_client.post(
                 _admin_url("/api/v1/auth/passkeys/registration/verify"),
-                headers=_ADMIN_HEADERS,
+                headers=auth_headers,
                 json={
                     "challengeId": options_payload["challengeId"],
                     "credential": _credential_payload(),

@@ -104,8 +104,24 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
                 )
                 db.add_all([partner_owner, partner_account, partner_code, admin_user, support_user])
                 db.commit()
-                admin_token = _make_admin_token(auth_service, user_id=admin_user.id, realm=admin_realm)
-                support_token = _make_admin_token(auth_service, user_id=support_user.id, realm=admin_realm)
+                admin_user_id = admin_user.id
+                support_user_id = support_user.id
+
+            def admin_headers() -> dict[str, str]:
+                return {
+                    "Authorization": (
+                        f"Bearer {_make_admin_token(auth_service, user_id=admin_user_id, realm=admin_realm)}"
+                    ),
+                    "X-Auth-Realm": "admin",
+                }
+
+            def support_headers() -> dict[str, str]:
+                return {
+                    "Authorization": (
+                        f"Bearer {_make_admin_token(auth_service, user_id=support_user_id, realm=admin_realm)}"
+                    ),
+                    "X-Auth-Realm": "admin",
+                }
 
             customer_token = _make_customer_access_token(
                 auth_service,
@@ -116,15 +132,6 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
                 "Authorization": f"Bearer {customer_token}",
                 "X-Auth-Realm": "customer",
             }
-            admin_headers = {
-                "Authorization": f"Bearer {admin_token}",
-                "X-Auth-Realm": "admin",
-            }
-            support_headers = {
-                "Authorization": f"Bearer {support_token}",
-                "X-Auth-Realm": "admin",
-            }
-
             _, checkout_payload = await _create_quote_checkout(
                 async_client=async_client,
                 headers=customer_headers,
@@ -145,7 +152,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             order_events_response = await async_client.get(
                 f"/api/v1/reporting/outbox-events?aggregate_type=order&aggregate_id={order_payload['id']}",
-                headers=support_headers,
+                headers=support_headers(),
             )
             assert order_events_response.status_code == 200
             order_events = order_events_response.json()
@@ -159,7 +166,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             attribution_events_response = await async_client.get(
                 "/api/v1/reporting/outbox-events?event_name=attribution.result.finalized",
-                headers=support_headers,
+                headers=support_headers(),
             )
             assert attribution_events_response.status_code == 200
             assert any(
@@ -169,7 +176,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             risk_subject_response = await async_client.post(
                 "/api/v1/security/risk-subjects",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "principal_class": "customer",
                     "principal_subject": seeded["customer_user_id"],
@@ -182,7 +189,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             risk_review_response = await async_client.post(
                 "/api/v1/security/risk-reviews",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "risk_subject_id": risk_subject_payload["id"],
                     "review_type": "manual_hold",
@@ -196,14 +203,14 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             risk_events_response = await async_client.get(
                 f"/api/v1/reporting/outbox-events?aggregate_type=risk_review&aggregate_id={risk_review_payload['id']}",
-                headers=support_headers,
+                headers=support_headers(),
             )
             assert risk_events_response.status_code == 200
             assert [item["event_name"] for item in risk_events_response.json()] == ["risk.review.opened"]
 
             period_response = await async_client.post(
                 "/api/v1/settlement-periods/",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "partner_account_id": str(partner_account.id),
                     "period_key": "2026-04-phase7",
@@ -216,7 +223,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             generate_statement_response = await async_client.post(
                 "/api/v1/partner-statements/generate",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={"settlement_period_id": period_response.json()["id"]},
             )
             assert generate_statement_response.status_code == 201
@@ -224,20 +231,20 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             close_statement_response = await async_client.post(
                 f"/api/v1/partner-statements/{statement_payload['id']}/close",
-                headers=admin_headers,
+                headers=admin_headers(),
             )
             assert close_statement_response.status_code == 200
 
             reopen_statement_response = await async_client.post(
                 f"/api/v1/partner-statements/{statement_payload['id']}/reopen",
-                headers=admin_headers,
+                headers=admin_headers(),
             )
             assert reopen_statement_response.status_code == 200
             reopened_statement_payload = reopen_statement_response.json()
 
             settlement_events_response = await async_client.get(
                 "/api/v1/reporting/outbox-events?event_family=settlement",
-                headers=support_headers,
+                headers=support_headers(),
             )
             assert settlement_events_response.status_code == 200
             settlement_statement_events = [
@@ -264,7 +271,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             service_identity_response = await async_client.post(
                 "/api/v1/service-identities/",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "customer_account_id": seeded["customer_user_id"],
                     "auth_realm_id": seeded["customer_realm_id"],
@@ -277,7 +284,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             create_grant_response = await async_client.post(
                 "/api/v1/entitlements/",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "service_identity_id": service_identity_payload["id"],
                     "source_order_id": order_payload["id"],
@@ -288,20 +295,20 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             activate_response = await async_client.post(
                 f"/api/v1/entitlements/{grant_payload['id']}/activate",
-                headers=admin_headers,
+                headers=admin_headers(),
             )
             assert activate_response.status_code == 200
 
             revoke_response = await async_client.post(
                 f"/api/v1/entitlements/{grant_payload['id']}/revoke",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={"reason_code": "phase7_test_revoke"},
             )
             assert revoke_response.status_code == 200
 
             entitlement_events_response = await async_client.get(
                 "/api/v1/reporting/outbox-events",
-                headers=support_headers,
+                headers=support_headers(),
                 params={
                     "aggregate_type": "entitlement_grant",
                     "aggregate_id": grant_payload["id"],
@@ -315,14 +322,14 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             event_detail_response = await async_client.get(
                 f"/api/v1/reporting/outbox-events/{order_created_event['id']}",
-                headers=support_headers,
+                headers=support_headers(),
             )
             assert event_detail_response.status_code == 200
             assert event_detail_response.json()["event_name"] == "order.created"
 
             claim_analytics_response = await async_client.post(
                 "/api/v1/reporting/outbox-publications/claim",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "consumer_key": "analytics_mart",
                     "lease_owner": "phase7-analytics-worker",
@@ -337,7 +344,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             submitted_response = await async_client.post(
                 f"/api/v1/reporting/outbox-publications/{analytics_publication['id']}/submitted",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={"lease_owner": "phase7-analytics-worker"},
             )
             assert submitted_response.status_code == 200
@@ -345,7 +352,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             published_response = await async_client.post(
                 f"/api/v1/reporting/outbox-publications/{analytics_publication['id']}/published",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "lease_owner": "phase7-analytics-worker",
                     "publication_payload": {"batch_key": "phase7-a"},
@@ -357,7 +364,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             claim_replay_response = await async_client.post(
                 "/api/v1/reporting/outbox-publications/claim",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "consumer_key": "operational_replay",
                     "lease_owner": "phase7-replay-worker",
@@ -372,7 +379,7 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             failed_response = await async_client.post(
                 f"/api/v1/reporting/outbox-publications/{replay_publication['id']}/failed",
-                headers=admin_headers,
+                headers=admin_headers(),
                 json={
                     "lease_owner": "phase7-replay-worker",
                     "retry_after_seconds": 300,
@@ -385,21 +392,21 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
 
             published_publications_response = await async_client.get(
                 "/api/v1/reporting/outbox-publications?consumer_key=analytics_mart&publication_status=published",
-                headers=support_headers,
+                headers=support_headers(),
             )
             assert published_publications_response.status_code == 200
             assert any(item["id"] == analytics_publication["id"] for item in published_publications_response.json())
 
             failed_publications_response = await async_client.get(
                 "/api/v1/reporting/outbox-publications?consumer_key=operational_replay&publication_status=failed",
-                headers=support_headers,
+                headers=support_headers(),
             )
             assert failed_publications_response.status_code == 200
             assert any(item["id"] == replay_publication["id"] for item in failed_publications_response.json())
 
             updated_event_response = await async_client.get(
                 f"/api/v1/reporting/outbox-events/{analytics_publication['outbox_event_id']}",
-                headers=support_headers,
+                headers=support_headers(),
             )
             assert updated_event_response.status_code == 200
             assert updated_event_response.json()["event_status"] == "partially_published"
