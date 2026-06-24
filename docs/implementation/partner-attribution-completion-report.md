@@ -65,10 +65,16 @@ gate correctness.
 
 ## Scope Notes
 
-- The final main-bound diff contains no tracked changes under
-  `cybervpn_mobile/`, desktop, browser extension, or mobile client source.
-- Existing mobile-related files already present in `HEAD` were not part of the
-  final uncommitted stabilization diff.
+- The partner-attribution delivery range `55af4938^..HEAD` contains no tracked
+  changes under `cybervpn_mobile/`, `apps/desktop-client/`, or
+  `apps/browser-extension/`.
+- The broader recorded merge-base diff
+  `d06d92a5753e4b6470a3d0dab4c526589a0607b3..HEAD` includes earlier desktop
+  stabilization commits already present before the partner-attribution delivery
+  range. Those desktop changes are not partner-attribution implementation
+  evidence and were not part of the final stabilization slice.
+- No `cybervpn_mobile/` or `apps/browser-extension/` tracked changes exist in
+  the recorded merge-base diff.
 - No library versions were downgraded.
 - No production secrets were emitted in source, task evidence, logs, or final
   reports.

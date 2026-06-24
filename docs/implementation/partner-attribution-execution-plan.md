@@ -2,7 +2,12 @@
 
 Task: `PARTNER-ATTRIBUTION-HARDENING`
 
-Status: Partial. The following plan reflects the staged implementation path derived from the audit and acceptance criteria.
+Status: Historical planning artifact. The partial/deferred state in this file
+was superseded by the final delivery evidence in
+`docs/implementation/partner-attribution-completion-report.md`,
+`docs/implementation/partner-attribution-test-matrix.md`,
+`docs/implementation/partner-attribution-migration-preflight.md`, and
+`.codex/current-task.json`.
 
 ## Phase 1: Public Capture Boundary
 
@@ -30,13 +35,27 @@ Status: Partial. The following plan reflects the staged implementation path deri
 - Add backend route/dependency/use-case tests for trusted host resolution, idempotent capture, transfer replay behavior, resolver precedence, and partner CORS.
 - Add frontend route tests for cookie creation, forwarding-header stripping, destination sanitization, redirect fallback, and unknown production hosts.
 
-## Deferred Required Phases
+## Historical Initial Plan Backlog
 
-- Implement Redis-backed public route rate limiting.
-- Introduce persistent partner-code link slugs and compatibility sunset controls.
-- Centralize eligibility policy across capture, claim, checkout, resolver, and admin explainability.
-- Implement quote/order server-side claim safety net.
-- Implement immutable commission snapshots, Decimal earning calculation, durable outbox worker, DLQ, and no-double-payout constraints.
-- Synchronize OpenAPI/generated clients and run consumer builds.
-- Execute PostgreSQL migration upgrade/downgrade/re-upgrade validation.
-- Run full backend, frontend, admin, partner, worker, security, and E2E release gates.
+The items below were deferred when this execution plan was written. They are no
+longer the current task status; final implementation and validation evidence is
+recorded in the completion report, test matrix, migration preflight, and task
+contract.
+
+- Redis-backed public route rate limiting was not yet implemented at that
+  checkpoint.
+- Persistent partner-code link slugs and compatibility sunset controls were not
+  yet introduced at that checkpoint.
+- Eligibility policy was not yet centralized across capture, claim, checkout,
+  resolver, and admin explainability at that checkpoint.
+- Quote/order server-side claim safety net was not yet implemented at that
+  checkpoint.
+- Immutable commission snapshots, Decimal earning calculation, durable outbox
+  worker, DLQ, and no-double-payout constraints were not yet implemented at
+  that checkpoint.
+- OpenAPI/generated clients had not yet been synchronized with consumer builds
+  at that checkpoint.
+- PostgreSQL migration upgrade/downgrade/re-upgrade validation had not yet been
+  executed at that checkpoint.
+- Full backend, frontend, admin, partner, worker, security, and E2E release
+  gates had not yet been run at that checkpoint.

@@ -4,7 +4,13 @@ Task: `PARTNER-ATTRIBUTION-HARDENING`
 
 Source: `docs/plans/CyberVPN_partner_attribution_Codex_TZ.md`
 
-Status: Partial implementation evidence. This document records the initial audit findings used for the implemented hardening slice; it is not release evidence for the full referral-system specification.
+Status: Historical initial-audit artifact. This document records the starting
+risks found before the later implementation and verification work; its
+partial/gap statements are superseded by
+`docs/implementation/partner-attribution-completion-report.md`,
+`docs/implementation/partner-attribution-test-matrix.md`,
+`docs/implementation/partner-attribution-migration-preflight.md`, and
+`.codex/current-task.json`.
 
 ## Confirmed Existing Risks
 
@@ -28,8 +34,21 @@ Status: Partial implementation evidence. This document records the initial audit
 - Corrected order attribution precedence so persistent reseller binding wins over passive click when applicable.
 - Added partner production origin to the S1 CORS allowlist.
 
-## Remaining Gaps
+## Historical Initial-Audit Gap Inventory
 
-- Redis rate limiting itself, persistent `partner_code_links`, compatibility sunset flags, centralized eligibility policy, quote/order safety net, immutable commission contracts, durable payment-to-earning worker, finance summary, portal runtime, OpenAPI regeneration, and cross-surface E2E coverage remain incomplete.
-- The new migration has been syntax-checked and head-listed, but clean PostgreSQL upgrade, downgrade, and re-upgrade validation has not been executed.
-- Full repository validation remains red because of repository-wide mypy/type/test/format baselines outside this slice.
+The gaps below were accurate at initial-audit time. They are retained as audit
+history, not as current release status. Current implementation, migration,
+generated-contract, full-suite, and remote-delivery evidence is recorded in the
+final evidence documents and task contract.
+
+- Redis rate limiting itself, persistent `partner_code_links`, compatibility
+  sunset flags, centralized eligibility policy, quote/order safety net,
+  immutable commission contracts, durable payment-to-earning worker, finance
+  summary, portal runtime, OpenAPI regeneration, and cross-surface E2E coverage
+  were incomplete at initial-audit time.
+- The new migration had been syntax-checked and head-listed at initial-audit
+  time, before the later clean PostgreSQL upgrade, downgrade, and re-upgrade
+  validation recorded in the migration preflight.
+- Full repository validation was red at initial-audit time before the later
+  backend, generated-artifact, migration, remote-delivery, and CI evidence was
+  collected.
