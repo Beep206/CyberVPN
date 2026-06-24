@@ -1,0 +1,85 @@
+{
+  "captured_at": "2026-06-24T17:52:34Z",
+  "status": "passed",
+  "purpose": "Repository-controlled downstream evidence for AC-24. Browser capture evidence is stored separately in browser-sql-e2e-latest.json; this file records the persisted-state, PostgreSQL concurrency, durable outbox, worker-boundary, settlement, statement, and adjustment checks that cover the rest of the revenue path.",
+  "commands": [
+    {
+      "name": "downstream_revenue_path_matrix",
+      "working_directory": "backend",
+      "exit_code": 0,
+      "command": "PAYMENT_SETTLEMENT_WORKER_SECRET=codex-local-secret REDIS_URL=redis://127.0.0.1:6380/15 CYBERVPN_TEST_REDIS_URL=redis://127.0.0.1:6380/15 CYBERVPN_TEST_POSTGRES_URL=postgresql+asyncpg://postgres:[REDACTED]@127.0.0.1:6767/postgres .venv/bin/python -m pytest tests/integration/test_quote_checkout_sessions.py::test_postgres_concurrent_quote_and_claim_routes_share_single_pending_attribution tests/integration/test_order_attribution_resolution_postgres.py::test_postgres_concurrent_order_attribution_resolve_returns_single_result tests/e2e/test_phase4_settlement_foundations.py::test_phase4_settlement_foundations_end_to_end tests/integration/test_settlement_adjustments.py::test_refund_and_dispute_create_typed_settlement_side_effects tests/integration/test_partner_statement_lifecycle.py::test_partner_statement_lifecycle_close_reopen_and_adjustments -q --tb=short --no-cov --continue-on-collection-errors",
+      "result": "5 passed",
+      "asserted_business_state": [
+        "PostgreSQL quote and authenticated claim race converged on one claimed attribution session and one active customer commercial binding.",
+        "Quote snapshot persisted the partner attribution binding, partner account, partner code, claim touchpoint, quote touchpoint, and excluded the raw cookie token.",
+        "PostgreSQL concurrent order attribution resolution returned the same order_attribution_results row for both writers and emitted one attribution.result.finalized outbox event.",
+        "Settlement E2E created one partner earning event, one active hold, generated/reused partner statements, released hold/reserve, closed statement, created payout account, instruction, dry-run execution, completion, reconciliation, and a green reconciliation pack.",
+        "Refund and dispute flow created refund_clawback, dispute_clawback, and reserve_release statement adjustments, blocked/released reserves correctly, and updated statement totals.",
+        "Partner statement lifecycle closed, reopened, and adjusted statements through authenticated admin/support paths without rewriting source earning history."
+      ],
+      "covers_tables_or_artifacts": [
+        "customer_commercial_bindings",
+        "partner_attribution_sessions",
+        "attribution_touchpoints",
+        "quote_sessions",
+        "order_attribution_results",
+        "outbox_events",
+        "earning_events",
+        "earning_holds",
+        "partner_statements",
+        "statement_adjustments",
+        "payout_accounts",
+        "payout_instructions",
+        "payout_executions"
+      ]
+    },
+    {
+      "name": "payment_completed_worker_outbox_matrix",
+      "working_directory": "backend",
+      "exit_code": 0,
+      "command": "PAYMENT_SETTLEMENT_WORKER_SECRET=codex-local-secret REDIS_URL=redis://127.0.0.1:6380/15 CYBERVPN_TEST_REDIS_URL=redis://127.0.0.1:6380/15 CYBERVPN_TEST_POSTGRES_URL=postgresql+asyncpg://postgres:[REDACTED]@127.0.0.1:6767/postgres .venv/bin/python -m pytest tests/integration/test_partner_commission_contracts_migration_postgres.py::test_payment_completed_partner_earning_policy_failure_retries_without_cash_artifacts tests/integration/test_partner_commission_contracts_migration_postgres.py::test_payment_completed_partner_earning_concurrent_workers_claim_publication_once tests/integration/test_partner_commission_contracts_migration_postgres.py::test_payment_completed_partner_earning_retry_exhaustion_dead_letters_with_reconciliation_event tests/integration/test_payment_webhook_concurrency_postgres.py::test_postgres_paid_webhook_serializes_duplicate_invoice_side_effects tests/integration/api/v1/payments/test_payment_flows.py::TestPaymentInternalPartnerEarnings tests/unit/application/use_cases/test_payment_attempt_completed_publication.py::test_completed_order_payment_attempt_publishes_payment_completed_after_attempt_exists tests/unit/application/use_cases/test_post_payment_policy_fail_closed.py::test_payment_completed_worker_uses_order_amount_not_tampered_payment_metadata tests/contract/test_payment_completed_partner_earnings_internal_contract.py -q --tb=short --no-cov --continue-on-collection-errors",
+      "result": "11 passed",
+      "asserted_business_state": [
+        "Payment completed webhook duplicate processing serializes and emits one payment.completed outbox event.",
+        "Completed order payment attempts append durable payment.completed partner earning work after the attempt exists.",
+        "Concurrent payment.completed partner earning workers claim the publication once and create one consumer receipt.",
+        "Policy failure leaves cash artifacts absent and retries instead of silently succeeding.",
+        "Retry exhaustion dead-letters the publication and creates a reconciliation-required outbox event.",
+        "Internal runner requires the dedicated settlement worker secret and remains excluded from public OpenAPI/browser clients.",
+        "Payment completed worker uses order amount and immutable order attribution data rather than mutable/tampered payment metadata."
+      ],
+      "covers_tables_or_artifacts": [
+        "payments",
+        "payment_attempts",
+        "outbox_events",
+        "outbox_publications",
+        "outbox_consumer_receipts",
+        "earning_events",
+        "earning_holds",
+        "OpenAPI internal route exclusion",
+        "generated browser clients"
+      ]
+    },
+    {
+      "name": "task_worker_boundary_matrix",
+      "working_directory": ".",
+      "exit_code": 0,
+      "command": "python -m pytest services/task-worker/tests/test_payments.py::test_partner_earning_from_payment_worker_calls_internal_backend_job services/task-worker/tests/test_payments.py::test_partner_earning_from_payment_worker_fails_without_backend_config services/task-worker/tests/test_payments.py::test_partner_earning_from_payment_worker_skips_when_explicitly_disabled services/task-worker/tests/test_payments.py::test_partner_earning_from_payment_task_contract_and_schedule services/task-worker/tests/test_payments.py::test_partner_earning_backend_client_uses_dedicated_worker_secret services/task-worker/tests/test_payments.py::test_partner_earning_backend_client_final_request_excludes_telegram_secret -q --tb=short --continue-on-collection-errors",
+      "result": "6 passed",
+      "asserted_business_state": [
+        "Task-worker payment.completed partner earning job calls the internal backend runner with the configured batch limit and worker id.",
+        "Task-worker fails retryably when backend configuration is missing instead of treating work as successful.",
+        "Task-worker skip path is explicit when the payment completed partner earning worker is disabled.",
+        "Task contract and schedule register process_partner_earning_from_payment on the payments queue with the payments retry policy.",
+        "Backend client sends only the dedicated payment settlement worker secret and excludes the Telegram bot secret."
+      ],
+      "covers_tables_or_artifacts": [
+        "services/task-worker/src/tasks/payments/process_partner_earnings.py",
+        "services/task-worker/src/services/backend_api_client.py",
+        "services/task-worker/src/schedules/definitions.py"
+      ]
+    }
+  ],
+  "secret_and_pii_handling": "No raw transfer token, cookie value, bearer token, customer email, or provider credential is stored in this evidence file. Commands use local development service URLs and safe test secrets only.",
+  "relationship_to_browser_evidence": "browser-sql-e2e-latest.json proves canonical public browser capture through local Next, backend, Redis, and PostgreSQL. This downstream matrix proves the remaining claim, quote, order attribution, durable payment.completed outbox/worker boundary, earning, hold, statement, payout dry-run, refund, and dispute adjustment behavior."
+}

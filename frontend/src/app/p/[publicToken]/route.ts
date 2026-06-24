@@ -58,6 +58,17 @@ function collectSubIds(request: NextRequest): Record<string, string> {
   return params;
 }
 
+function buildSanitizedSourcePath(request: NextRequest): string {
+  const params = new URLSearchParams();
+  request.nextUrl.searchParams.forEach((value, key) => {
+    if (key.toLowerCase() !== 'pat') {
+      params.append(key, value);
+    }
+  });
+  const query = params.toString();
+  return `${request.nextUrl.pathname}${query ? `?${query}` : ''}`;
+}
+
 function resolveLocale(request: NextRequest): string {
   const explicit = request.nextUrl.searchParams.get('locale')?.trim();
   if (explicit && /^[a-z]{2}-[A-Z]{2}$/.test(explicit)) {
@@ -97,7 +108,8 @@ function buildCaptureIdempotencyKey(publicToken: string, browserToken: string): 
 }
 
 function isProductionRuntime(): boolean {
-  return (process.env.NEXT_PUBLIC_APP_ENV ?? process.env.NODE_ENV ?? 'development') === 'production';
+  return process.env.NODE_ENV === 'production'
+    || process.env.NEXT_PUBLIC_APP_ENV === 'production';
 }
 
 function normalizeHost(rawHost: string | null): string | null {
@@ -221,7 +233,7 @@ export async function GET(
     },
     body: JSON.stringify({
       public_token: publicToken,
-      source_path: `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      source_path: buildSanitizedSourcePath(request),
       destination_path: resolveDestinationPath(request),
       locale: resolveLocale(request),
       sale_channel: request.nextUrl.searchParams.get('channel')?.trim() || 'content',

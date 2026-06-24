@@ -1,0 +1,125 @@
+{
+  "alembic": {
+    "ready_marker_seen": false,
+    "redaction_marker_seen": false,
+    "returncode": 0,
+    "stderr_bytes": 14643,
+    "stdout_bytes": 0
+  },
+  "backend_health": "ok",
+  "backend_port": 9100,
+  "backend_process": {
+    "ready_marker_seen": false,
+    "redaction_marker_seen": false,
+    "returncode": -15,
+    "stderr_bytes": 0,
+    "stdout_bytes": 1047
+  },
+  "browser": {
+    "cookie": {
+      "host_key": "cyber-vpn.net",
+      "is_httponly": true,
+      "is_secure": false,
+      "name": "cv_partner_browser",
+      "present": true,
+      "samesite": 1
+    },
+    "ready_marker_seen": false,
+    "redaction_marker_seen": true,
+    "returncode": 0,
+    "stderr_bytes": 301,
+    "stdout_bytes": 186392,
+    "url": "http://cyber-vpn.net:9200/p/browser-e2e-c6be6f8bc622?destination=pricing&utm_source=browser_e2e&sub_creator=browser&click_id=browser-e2e-click&locale=ru-RU&channel=content&pat=[REDACTED]"
+  },
+  "database": "cvpn_browser_e2e_0a2efc40e4db4d12",
+  "database_dropped": true,
+  "finished_at": "2026-06-24T17:34:20.027886+00:00",
+  "fixture": {
+    "partner_account_id": "281c3353-95a8-49ba-b927-e594b5aa7bb6",
+    "partner_code_id": "5163afdf-3369-408b-affa-d7744b64fd67",
+    "partner_code_link_id": "d68cb995-2522-48bd-a393-676222622070",
+    "public_slug": "browser-e2e-c6be6f8bc622",
+    "realm_id": "03fed6a7-a617-453f-a1ab-91ae971883a3",
+    "storefront_id": "7b8f524a-d471-4f3b-86f6-1dbb7b49a4b5"
+  },
+  "frontend_port": 9200,
+  "frontend_probe": "ok",
+  "frontend_process": {
+    "ready_marker_seen": true,
+    "redaction_marker_seen": true,
+    "returncode": 0,
+    "stderr_bytes": 0,
+    "stdout_bytes": 563
+  },
+  "sql_evidence": {
+    "link": {
+      "id": "d68cb995-2522-48bd-a393-676222622070",
+      "partner_account_id": "281c3353-95a8-49ba-b927-e594b5aa7bb6",
+      "partner_code_id": "5163afdf-3369-408b-affa-d7744b64fd67",
+      "public_slug": "browser-e2e-c6be6f8bc622",
+      "status": "active"
+    },
+    "outbox_events": [
+      {
+        "aggregate_id": "dc239785-b3ac-4f2d-95d2-409688ebd93f",
+        "event_key": "evt_05bab5165ee74dc08c150bd14996530d",
+        "event_name": "partner.attribution.captured"
+      }
+    ],
+    "sessions": [
+      {
+        "campaign_params": {
+          "utm_source": "browser_seed"
+        },
+        "destination_path": "/pricing",
+        "evidence_payload": {
+          "link_destination_key": "pricing",
+          "masked_code": "BE2***8B",
+          "partner_code_link_id": "d68cb995-2522-48bd-a393-676222622070",
+          "public_token_hash": "0632b53050dc86c160f6814a23a39e17b585e21c0d8c87c7332c0476922a592e",
+          "public_token_source": "partner_code_link",
+          "storage_version": 1,
+          "transfer_token_ttl_seconds": 900
+        },
+        "has_transfer_token_hash": true,
+        "id": "dc239785-b3ac-4f2d-95d2-409688ebd93f",
+        "locale": "ru-RU",
+        "partner_account_id": "281c3353-95a8-49ba-b927-e594b5aa7bb6",
+        "partner_code_id": "5163afdf-3369-408b-affa-d7744b64fd67",
+        "partner_code_link_id": "d68cb995-2522-48bd-a393-676222622070",
+        "sale_channel": "content",
+        "session_token_not_set": true,
+        "source_path": "/p/browser-e2e-c6be6f8bc622?destination=pricing&utm_source=browser_e2e&sub_creator=browser&click_id=browser-e2e-click&locale=ru-RU&channel=content",
+        "status": "pending",
+        "sub_ids": {
+          "seed": "browser"
+        }
+      }
+    ],
+    "table_counts": {
+      "attribution_touchpoints": 1,
+      "customer_commercial_bindings": 0,
+      "earning_events": 0,
+      "earning_holds": 0,
+      "order_attribution_results": 0,
+      "outbox_events": 1,
+      "partner_attribution_sessions": 1,
+      "partner_code_links": 1,
+      "partner_statements": 0,
+      "statement_adjustments": 0
+    },
+    "touchpoints": [
+      {
+        "id": "c175c0da-9b2e-4dd4-a957-8fa9f065dac4",
+        "idempotency_key": "partner-public-click:dc239785-b3ac-4f2d-95d2-409688ebd93f",
+        "partner_attribution_session_id": "dc239785-b3ac-4f2d-95d2-409688ebd93f",
+        "partner_code_id": "5163afdf-3369-408b-affa-d7744b64fd67",
+        "source_event_id": "partner_public_click:dc239785-b3ac-4f2d-95d2-409688ebd93f",
+        "touchpoint_type": "passive_click"
+      }
+    ],
+    "validation_failures": []
+  },
+  "started_at": "2026-06-24T17:34:05.850636+00:00",
+  "status": "passed"
+}

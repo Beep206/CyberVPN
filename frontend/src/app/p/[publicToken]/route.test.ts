@@ -20,6 +20,7 @@ describe('partner attribution public route', () => {
     process.env.NEXT_PUBLIC_API_URL = ORIGINAL_NEXT_PUBLIC_API_URL;
     process.env.NEXT_PUBLIC_APP_ENV = ORIGINAL_NEXT_PUBLIC_APP_ENV;
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it('returns an explicit no-store error for invalid public attribution tokens', async () => {
@@ -112,13 +113,16 @@ describe('partner attribution public route', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    const request = new NextRequest('https://cyber-vpn.net/p/public-token?to=/account', {
-      headers: {
-        host: 'cyber-vpn.net',
-        'x-auth-realm': 'partner',
-        'x-forwarded-host': 'evil.example',
+    const request = new NextRequest(
+      'https://cyber-vpn.net/p/public-token?to=/account&pat=attacker-token&utm_source=share',
+      {
+        headers: {
+          host: 'cyber-vpn.net',
+          'x-auth-realm': 'partner',
+          'x-forwarded-host': 'evil.example',
+        },
       },
-    });
+    );
     const response = await GET(request, {
       params: Promise.resolve({ publicToken: 'public-token' }),
     });
@@ -128,7 +132,11 @@ describe('partner attribution public route', () => {
     expect(init.headers['X-Forwarded-Host']).toBe('cyber-vpn.net');
     expect(init.headers['X-Auth-Realm']).toBeUndefined();
     expect(init.headers['Idempotency-Key']).toMatch(/^[a-f0-9]{64}$/);
-    expect(JSON.parse(init.body).destination_path).toBeNull();
+    const captureBody = JSON.parse(String(init.body));
+    expect(captureBody.destination_path).toBeNull();
+    expect(captureBody.source_path).toContain('/p/public-token?');
+    expect(captureBody.source_path).toContain('utm_source=share');
+    expect(captureBody.source_path).not.toContain('pat=');
   });
 
   it('preserves backend capture rate limits with Retry-After', async () => {
@@ -209,5 +217,45 @@ describe('partner attribution public route', () => {
 
     expect(response.status).toBe(421);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('treats production Node runtime as secure even when the public app environment is staging', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    process.env.NEXT_PUBLIC_APP_ENV = 'staging';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const rejectedRequest = new NextRequest('https://localhost/p/public-token', {
+      headers: {
+        host: 'localhost',
+      },
+    });
+    const rejectedResponse = await GET(rejectedRequest, {
+      params: Promise.resolve({ publicToken: 'public-token' }),
+    });
+
+    expect(rejectedResponse.status).toBe(421);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          redirect_url: 'https://cyber-vpn.net/ru-RU/register?pat=transfer-token',
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          status: 200,
+        },
+      ),
+    );
+    const acceptedRequest = new NextRequest('https://cyber-vpn.net/p/public-token');
+    const acceptedResponse = await GET(acceptedRequest, {
+      params: Promise.resolve({ publicToken: 'public-token' }),
+    });
+
+    expect(acceptedResponse.status).toBe(307);
+    expect(acceptedResponse.headers.get('set-cookie')).toContain('Secure');
   });
 });
