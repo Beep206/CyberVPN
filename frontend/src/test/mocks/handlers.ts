@@ -245,8 +245,39 @@ export const authHandlers = [
   }),
 
   /**
+   * POST /auth/registration-access/exchange
+   * Exchanges a one-time raw registration access token for an httpOnly cookie.
+   */
+  http.post(`${API_BASE}/auth/registration-access/exchange`, async ({ request }) => {
+    const body = (await request.json()) as { registration_access_token?: string };
+
+    if (!body.registration_access_token || body.registration_access_token === 'invalid-registration-access-token') {
+      return HttpResponse.json(
+        {
+          detail: {
+            detail: 'Invalid or expired registration access token.',
+            code: 'REGISTRATION_ACCESS_INVALID',
+          },
+        },
+        { status: 403 },
+      );
+    }
+
+    return HttpResponse.json({
+      status: 'exchanged',
+      email_hint_present: true,
+      email_hint_masked: null,
+      expires_at: '2026-06-25T12:00:00Z',
+      registration_policy: {
+        invite_required: true,
+        auth_realm_key: 'customer',
+      },
+    });
+  }),
+
+  /**
    * POST /auth/verify-otp
-   * Verifies the email OTP, activates user, returns tokens + user.
+   * Verifies the email OTP, activates user, returns cookie-only user data.
    */
   http.post(`${API_BASE}/auth/verify-otp`, async ({ request }) => {
     const body = (await request.json()) as {
@@ -262,7 +293,6 @@ export const authHandlers = [
     }
 
     return HttpResponse.json({
-      ...MOCK_TOKENS,
       user: MOCK_USER,
     });
   }),
@@ -476,7 +506,6 @@ export const authHandlers = [
     }
 
     return HttpResponse.json({
-      ...MOCK_TOKENS,
       user: {
         id: MOCK_USER.id,
         public_uid: MOCK_USER.public_uid,

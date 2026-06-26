@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.invite_service import InviteTokenService
+from src.application.services.registration_access_service import RegistrationAccessGrantService
 from src.application.use_cases.auth.permissions import Permission, can_assign_role
 from src.domain.enums import AdminRole
 from src.infrastructure.cache.redis_client import get_redis
@@ -105,6 +106,13 @@ async def create_invite(
         role=request.role.value,
         email_hint=request.email_hint,
     )
+    await RegistrationAccessGrantService(db).issue(
+        token=token,
+        created_by_admin_user_id=current_user.id,
+        role=request.role.value,
+        email_hint=str(request.email_hint) if request.email_hint else None,
+        auth_realm_id=getattr(current_user, "auth_realm_id", None),
+    )
 
     logger.info(
         "Invite token created",
@@ -190,8 +198,9 @@ async def revoke_invite(
     """
     invite_service = InviteTokenService(redis_client)
     deleted = await invite_service.revoke(token)
+    durable_revoked = await RegistrationAccessGrantService(db).revoke(token)
 
-    if not deleted:
+    if not deleted and not durable_revoked:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Invite token not found or already expired.",

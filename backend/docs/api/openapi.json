@@ -1719,6 +1719,66 @@
         }
       }
     },
+    "/api/v1/auth/registration-access/exchange": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Exchange Registration Access",
+        "description": "Exchange a raw pre-registration access token for a host-bound cookie grant.",
+        "operationId": "exchange_registration_access_api_v1_auth_registration_access_exchange_post",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationAccessExchangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationAccessExchangeResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid, expired, or already exchanged registration access token"
+          },
+          "409": {
+            "description": "Registration access token was already exchanged with a different key or host"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "tags": [
@@ -1741,10 +1801,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Invite token required for registration when invite-only mode is enabled",
+              "description": "Deprecated legacy invite token. Registration access tokens must be exchanged first.",
               "title": "Invite Token"
             },
-            "description": "Invite token required for registration when invite-only mode is enabled"
+            "description": "Deprecated legacy invite token. Registration access tokens must be exchanged first."
           }
         ],
         "requestBody": {
@@ -10422,6 +10482,124 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/customer/onboarding/current": {
+      "get": {
+        "tags": [
+          "customer-onboarding"
+        ],
+        "summary": "Get Current Customer Onboarding",
+        "operationId": "get_current_customer_onboarding_api_v1_customer_onboarding_current_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOnboardingCurrentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/customer/onboarding/growth-code/apply": {
+      "post": {
+        "tags": [
+          "customer-onboarding"
+        ],
+        "summary": "Apply Customer Onboarding Growth Code",
+        "operationId": "apply_customer_onboarding_growth_code_api_v1_customer_onboarding_growth_code_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerOnboardingApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOnboardingApplyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/customer/onboarding/growth-code/skip": {
+      "post": {
+        "tags": [
+          "customer-onboarding"
+        ],
+        "summary": "Skip Customer Onboarding Growth Code",
+        "operationId": "skip_customer_onboarding_growth_code_api_v1_customer_onboarding_growth_code_skip_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerOnboardingSkipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOnboardingSkipResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/gifts/purchase/quote": {
@@ -32492,6 +32670,678 @@
         ]
       }
     },
+    "/api/v1/admin/growth/campaigns": {
+      "post": {
+        "tags": [
+          "admin",
+          "growth-campaigns"
+        ],
+        "summary": "Create Admin Growth Campaign",
+        "operationId": "create_admin_growth_campaign_api_v1_admin_growth_campaigns_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthCampaignCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "admin",
+          "growth-campaigns"
+        ],
+        "summary": "List Admin Growth Campaigns",
+        "operationId": "list_admin_growth_campaigns_api_v1_admin_growth_campaigns_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "campaign_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Campaign Key"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^-?created_at$",
+              "default": "-created_at",
+              "title": "Sort"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthCampaignListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{campaign_id}": {
+      "get": {
+        "tags": [
+          "admin",
+          "growth-campaigns"
+        ],
+        "summary": "Get Admin Growth Campaign",
+        "operationId": "get_admin_growth_campaign_api_v1_admin_growth_campaigns__campaign_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "admin",
+          "growth-campaigns"
+        ],
+        "summary": "Update Admin Growth Campaign",
+        "operationId": "update_admin_growth_campaign_api_v1_admin_growth_campaigns__campaign_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthCampaignPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{campaign_id}/publish": {
+      "post": {
+        "tags": [
+          "admin",
+          "growth-campaigns"
+        ],
+        "summary": "Publish Admin Growth Campaign",
+        "operationId": "publish_admin_growth_campaign_api_v1_admin_growth_campaigns__campaign_id__publish_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{campaign_id}/pause": {
+      "post": {
+        "tags": [
+          "admin",
+          "growth-campaigns"
+        ],
+        "summary": "Pause Admin Growth Campaign",
+        "operationId": "pause_admin_growth_campaign_api_v1_admin_growth_campaigns__campaign_id__pause_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{campaign_id}/resume": {
+      "post": {
+        "tags": [
+          "admin",
+          "growth-campaigns"
+        ],
+        "summary": "Resume Admin Growth Campaign",
+        "operationId": "resume_admin_growth_campaign_api_v1_admin_growth_campaigns__campaign_id__resume_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{campaign_id}/archive": {
+      "post": {
+        "tags": [
+          "admin",
+          "growth-campaigns"
+        ],
+        "summary": "Archive Admin Growth Campaign",
+        "operationId": "archive_admin_growth_campaign_api_v1_admin_growth_campaigns__campaign_id__archive_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/growth/campaigns/{campaign_id}/revoke": {
+      "post": {
+        "tags": [
+          "admin",
+          "growth-campaigns"
+        ],
+        "summary": "Revoke Admin Growth Campaign",
+        "operationId": "revoke_admin_growth_campaign_api_v1_admin_growth_campaigns__campaign_id__revoke_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/growth/rules/catalog": {
+      "get": {
+        "tags": [
+          "admin",
+          "growth-rules"
+        ],
+        "summary": "Get Growth Rule Catalog",
+        "operationId": "get_growth_rule_catalog_api_v1_admin_growth_rules_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthRuleCatalogResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/growth/rules/compile": {
+      "post": {
+        "tags": [
+          "admin",
+          "growth-rules"
+        ],
+        "summary": "Compile Growth Rule",
+        "operationId": "compile_growth_rule_api_v1_admin_growth_rules_compile_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthRuleCompileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthRuleCompileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/growth/rules/simulate": {
+      "post": {
+        "tags": [
+          "admin",
+          "growth-rules"
+        ],
+        "summary": "Simulate Growth Rule",
+        "operationId": "simulate_growth_rule_api_v1_admin_growth_rules_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthRuleSimulateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthRuleSimulateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/mobile-users": {
       "get": {
         "tags": [
@@ -38809,6 +39659,52 @@
         ]
       }
     },
+    "/api/v3/growth/code-sets/preflight": {
+      "post": {
+        "tags": [
+          "growth-code-sets-v3"
+        ],
+        "summary": "Preflight Growth Code Set",
+        "operationId": "preflight_growth_code_set_api_v3_growth_code_sets_preflight_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeSetPreflightRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeSetPreflightResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/.well-known/security.txt": {
       "get": {
         "tags": [
@@ -43795,6 +44691,417 @@
         ],
         "title": "AdminGrowthAbuseSignalsResponse"
       },
+      "AdminGrowthCampaignActionRequest": {
+        "properties": {
+          "expected_version": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "reason_code": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Reason Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason_code"
+        ],
+        "title": "AdminGrowthCampaignActionRequest"
+      },
+      "AdminGrowthCampaignCreateRequest": {
+        "properties": {
+          "campaign_key": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Campaign Key"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/AdminGrowthCampaignScheduleRequest"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Priority",
+            "default": 0
+          },
+          "stacking": {
+            "$ref": "#/components/schemas/AdminGrowthCampaignStackingRequest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaign_key",
+          "name"
+        ],
+        "title": "AdminGrowthCampaignCreateRequest"
+      },
+      "AdminGrowthCampaignListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminGrowthCampaignResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "AdminGrowthCampaignListResponse"
+      },
+      "AdminGrowthCampaignPatchRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminGrowthCampaignScheduleRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "stacking": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminGrowthCampaignStackingRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "reason_code": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Reason Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason_code"
+        ],
+        "title": "AdminGrowthCampaignPatchRequest"
+      },
+      "AdminGrowthCampaignResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "campaign_key": {
+            "type": "string",
+            "title": "Campaign Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "stacking_mode": {
+            "type": "string",
+            "title": "Stacking Mode"
+          },
+          "stacking_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stacking Group"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version"
+          },
+          "created_by_admin_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Created By Admin Id"
+          },
+          "updated_by_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By Admin Id"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused At"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "campaign_key",
+          "name",
+          "description",
+          "status",
+          "priority",
+          "starts_at",
+          "expires_at",
+          "stacking_mode",
+          "stacking_group",
+          "current_version",
+          "created_by_admin_id",
+          "updated_by_admin_id",
+          "published_at",
+          "paused_at",
+          "archived_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminGrowthCampaignResponse"
+      },
+      "AdminGrowthCampaignScheduleRequest": {
+        "properties": {
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "title": "AdminGrowthCampaignScheduleRequest"
+      },
+      "AdminGrowthCampaignStackingRequest": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "exclusive",
+              "allow_with_same_campaign",
+              "benefits_only_append",
+              "max_discount"
+            ],
+            "title": "Mode",
+            "default": "exclusive"
+          },
+          "group": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group"
+          }
+        },
+        "type": "object",
+        "title": "AdminGrowthCampaignStackingRequest"
+      },
       "AdminGrowthCodeLookupRequest": {
         "properties": {
           "code": {
@@ -46297,6 +47604,138 @@
           "retention_delivery_days"
         ],
         "title": "AdminGrowthReportingSubscriptionsResponse"
+      },
+      "AdminGrowthRuleCatalogResponse": {
+        "properties": {
+          "catalog": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Catalog"
+          }
+        },
+        "type": "object",
+        "required": [
+          "catalog"
+        ],
+        "title": "AdminGrowthRuleCatalogResponse"
+      },
+      "AdminGrowthRuleCompileRequest": {
+        "properties": {
+          "ast": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Ast"
+          }
+        },
+        "type": "object",
+        "title": "AdminGrowthRuleCompileRequest"
+      },
+      "AdminGrowthRuleCompileResponse": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "catalog_version": {
+            "type": "string",
+            "title": "Catalog Version"
+          },
+          "normalized_ast": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Normalized Ast"
+          },
+          "compiled_plan": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Compiled Plan"
+          },
+          "compiled_checksum": {
+            "type": "string",
+            "title": "Compiled Checksum"
+          },
+          "node_count": {
+            "type": "integer",
+            "title": "Node Count"
+          },
+          "max_depth": {
+            "type": "integer",
+            "title": "Max Depth"
+          },
+          "complexity_score": {
+            "type": "integer",
+            "title": "Complexity Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "schema_version",
+          "catalog_version",
+          "normalized_ast",
+          "compiled_plan",
+          "compiled_checksum",
+          "node_count",
+          "max_depth",
+          "complexity_score"
+        ],
+        "title": "AdminGrowthRuleCompileResponse"
+      },
+      "AdminGrowthRuleSimulateRequest": {
+        "properties": {
+          "ast": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Ast"
+          },
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "title": "AdminGrowthRuleSimulateRequest"
+      },
+      "AdminGrowthRuleSimulateResponse": {
+        "properties": {
+          "matched": {
+            "type": "boolean",
+            "title": "Matched"
+          },
+          "result": {
+            "type": "string",
+            "title": "Result"
+          },
+          "actions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Actions"
+          },
+          "trace": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Trace"
+          },
+          "compiled_checksum": {
+            "type": "string",
+            "title": "Compiled Checksum"
+          }
+        },
+        "type": "object",
+        "required": [
+          "matched",
+          "result",
+          "actions",
+          "trace",
+          "compiled_checksum"
+        ],
+        "title": "AdminGrowthRuleSimulateResponse"
       },
       "AdminGrowthSignalCountResponse": {
         "properties": {
@@ -50934,6 +52373,40 @@
         "title": "CheckoutAddonResponse",
         "description": "Priced add-on line returned by quote/commit."
       },
+      "CheckoutCodeRefResponse": {
+        "properties": {
+          "redacted": {
+            "type": "boolean",
+            "title": "Redacted"
+          },
+          "code_hash": {
+            "type": "string",
+            "title": "Code Hash"
+          },
+          "code_prefix": {
+            "type": "string",
+            "title": "Code Prefix"
+          },
+          "code_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Length"
+          }
+        },
+        "type": "object",
+        "required": [
+          "redacted",
+          "code_hash",
+          "code_prefix"
+        ],
+        "title": "CheckoutCodeRefResponse"
+      },
       "CheckoutCodeResolutionResponse": {
         "properties": {
           "accepted": {
@@ -51153,6 +52626,18 @@
             ],
             "title": "Partner Code Id"
           },
+          "private_catalog_grant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Private Catalog Grant Id"
+          },
           "code_input": {
             "anyOf": [
               {
@@ -51163,6 +52648,16 @@
               }
             ],
             "title": "Code Input"
+          },
+          "code_input_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckoutCodeRefResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "code_resolution": {
             "anyOf": [
@@ -51246,6 +52741,16 @@
             "type": "string",
             "title": "Code"
           },
+          "code_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckoutCodeRefResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "amount": {
             "type": "number",
             "title": "Amount"
@@ -51324,6 +52829,19 @@
             ],
             "title": "Partner Code",
             "description": "Optional partner code"
+          },
+          "private_catalog_grant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Private Catalog Grant Id",
+            "description": "Private catalog grant from code-set preflight"
           },
           "use_wallet": {
             "type": "number",
@@ -51426,6 +52944,18 @@
             ],
             "title": "Partner Code Id"
           },
+          "private_catalog_grant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Private Catalog Grant Id"
+          },
           "code_input": {
             "anyOf": [
               {
@@ -51436,6 +52966,16 @@
               }
             ],
             "title": "Code Input"
+          },
+          "code_input_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckoutCodeRefResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "code_resolution": {
             "anyOf": [
@@ -51833,6 +53373,12 @@
           },
           "partner": {
             "$ref": "#/components/schemas/ClientPartnerCapabilities"
+          },
+          "site": {
+            "$ref": "#/components/schemas/ClientSiteCapabilities"
+          },
+          "onboarding": {
+            "$ref": "#/components/schemas/ClientOnboardingCapabilities"
           }
         },
         "type": "object",
@@ -51849,7 +53395,7 @@
           "invites": {
             "type": "boolean",
             "title": "Invites",
-            "default": true
+            "default": false
           },
           "referral": {
             "type": "boolean",
@@ -51879,6 +53425,69 @@
         },
         "type": "object",
         "title": "ClientGrowthCapabilities"
+      },
+      "ClientOnboardingCapabilities": {
+        "properties": {
+          "post_registration_code_prompt": {
+            "type": "boolean",
+            "title": "Post Registration Code Prompt",
+            "default": false
+          },
+          "web_otp": {
+            "type": "boolean",
+            "title": "Web Otp",
+            "default": false
+          },
+          "telegram_miniapp": {
+            "type": "boolean",
+            "title": "Telegram Miniapp",
+            "default": false
+          },
+          "state_store": {
+            "type": "boolean",
+            "title": "State Store",
+            "default": false
+          },
+          "flow_key": {
+            "type": "string",
+            "title": "Flow Key",
+            "default": "post_registration_growth_code_v1"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "default": 1
+          },
+          "allowed_code_types": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "promo",
+                "invite",
+                "gift"
+              ]
+            },
+            "type": "array",
+            "title": "Allowed Code Types"
+          },
+          "allow_referral_input": {
+            "type": "boolean",
+            "title": "Allow Referral Input",
+            "default": false
+          },
+          "allow_partner_input": {
+            "type": "boolean",
+            "title": "Allow Partner Input",
+            "default": false
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ClientOnboardingCapabilities"
       },
       "ClientPartnerCapabilities": {
         "properties": {
@@ -51967,6 +53576,65 @@
         "type": "object",
         "title": "ClientPaymentCapabilities"
       },
+      "ClientSiteCapabilities": {
+        "properties": {
+          "customer_site_mode": {
+            "type": "string",
+            "enum": [
+              "full_site",
+              "cabinet_only",
+              "maintenance"
+            ],
+            "title": "Customer Site Mode",
+            "default": "full_site"
+          },
+          "cabinet_only": {
+            "type": "boolean",
+            "title": "Cabinet Only",
+            "default": false
+          },
+          "public_hosts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Public Hosts"
+          },
+          "cabinet_hosts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cabinet Hosts"
+          },
+          "cabinet_destination_path": {
+            "type": "string",
+            "title": "Cabinet Destination Path",
+            "default": "/dashboard"
+          },
+          "allowed_path_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Path Prefixes"
+          },
+          "preserve_query_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Preserve Query Keys"
+          },
+          "registration_policy_independent": {
+            "type": "boolean",
+            "title": "Registration Policy Independent",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "ClientSiteCapabilities"
+      },
       "ClientSubscriptionCapabilities": {
         "properties": {
           "multi_subscription": {
@@ -52016,6 +53684,294 @@
           "cloneFromUuid"
         ],
         "title": "CloneNodePluginRequest"
+      },
+      "CodeSetPreflightApplicationResponse": {
+        "properties": {
+          "client_slot_id": {
+            "type": "string",
+            "title": "Client Slot Id"
+          },
+          "masked_code": {
+            "type": "string",
+            "title": "Masked Code"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "message_key": {
+            "type": "string",
+            "title": "Message Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "client_slot_id",
+          "masked_code",
+          "status",
+          "roles",
+          "message_key"
+        ],
+        "title": "CodeSetPreflightApplicationResponse"
+      },
+      "CodeSetPreflightCodeRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Code"
+          },
+          "client_slot_id": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Client Slot Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "client_slot_id"
+        ],
+        "title": "CodeSetPreflightCodeRequest"
+      },
+      "CodeSetPreflightRequest": {
+        "properties": {
+          "codes": {
+            "items": {
+              "$ref": "#/components/schemas/CodeSetPreflightCodeRequest"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Codes"
+          },
+          "storefront_key": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Storefront Key"
+          },
+          "channel": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "Channel"
+          },
+          "currency": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency"
+          },
+          "anonymous_session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anonymous Session Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "codes",
+          "storefront_key",
+          "channel",
+          "currency"
+        ],
+        "title": "CodeSetPreflightRequest"
+      },
+      "CodeSetPreflightResponse": {
+        "properties": {
+          "code_set_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Set Id"
+          },
+          "code_set_hash": {
+            "type": "string",
+            "title": "Code Set Hash"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/CodeSetPreflightApplicationResponse"
+            },
+            "type": "array",
+            "title": "Applications"
+          },
+          "private_catalog_grant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CodeSetPrivateCatalogGrantResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "private_offers": {
+            "items": {
+              "$ref": "#/components/schemas/CodeSetPrivateOfferResponse"
+            },
+            "type": "array",
+            "title": "Private Offers"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/CodeSetRiskResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code_set_id",
+          "code_set_hash",
+          "status",
+          "applications",
+          "private_catalog_grant",
+          "private_offers",
+          "risk"
+        ],
+        "title": "CodeSetPreflightResponse"
+      },
+      "CodeSetPrivateCatalogGrantResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "expires_at"
+        ],
+        "title": "CodeSetPrivateCatalogGrantResponse"
+      },
+      "CodeSetPrivateOfferPriceResponse": {
+        "properties": {
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "title": "CodeSetPrivateOfferPriceResponse"
+      },
+      "CodeSetPrivateOfferQuoteHandoffResponse": {
+        "properties": {
+          "private_catalog_grant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Private Catalog Grant Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "private_catalog_grant_id"
+        ],
+        "title": "CodeSetPrivateOfferQuoteHandoffResponse"
+      },
+      "CodeSetPrivateOfferResponse": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Plan Id"
+          },
+          "offer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offer Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days"
+          },
+          "price": {
+            "$ref": "#/components/schemas/CodeSetPrivateOfferPriceResponse"
+          },
+          "entitlement_summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Entitlement Summary"
+          },
+          "quote_handoff": {
+            "$ref": "#/components/schemas/CodeSetPrivateOfferQuoteHandoffResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "display_name",
+          "duration_days",
+          "price",
+          "entitlement_summary",
+          "quote_handoff"
+        ],
+        "title": "CodeSetPrivateOfferResponse"
+      },
+      "CodeSetRiskResponse": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "title": "Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "CodeSetRiskResponse"
       },
       "CommercialContextCountryOptionResponse": {
         "properties": {
@@ -55411,6 +57367,18 @@
             ],
             "title": "Partner Code"
           },
+          "private_catalog_grant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Private Catalog Grant Id"
+          },
           "use_wallet": {
             "type": "number",
             "minimum": 0.0,
@@ -57283,6 +59251,296 @@
           "created"
         ],
         "title": "CustomerMessagingMessageWriteResponse"
+      },
+      "CustomerOnboardingApplyRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Code"
+          },
+          "flow_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 240,
+                "minLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Token"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "CustomerOnboardingApplyRequest"
+      },
+      "CustomerOnboardingApplyResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "message_key": {
+            "type": "string",
+            "title": "Message Key"
+          },
+          "masked_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked Code"
+          },
+          "next_destination": {
+            "type": "string",
+            "title": "Next Destination",
+            "default": "/dashboard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message_key"
+        ],
+        "title": "CustomerOnboardingApplyResponse"
+      },
+      "CustomerOnboardingAuthSummaryResponse": {
+        "properties": {
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "unavailable",
+              "pending",
+              "completed",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "flow_key": {
+            "type": "string",
+            "title": "Flow Key"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "allowed_code_types": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "promo",
+                "invite",
+                "gift"
+              ]
+            },
+            "type": "array",
+            "title": "Allowed Code Types"
+          },
+          "flow_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Token"
+          },
+          "message_key": {
+            "type": "string",
+            "title": "Message Key"
+          },
+          "server_state_available": {
+            "type": "boolean",
+            "title": "Server State Available"
+          },
+          "referral_already_attributed": {
+            "type": "boolean",
+            "title": "Referral Already Attributed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "required",
+          "status",
+          "flow_key",
+          "version",
+          "allowed_code_types",
+          "message_key",
+          "server_state_available"
+        ],
+        "title": "CustomerOnboardingAuthSummaryResponse",
+        "description": "Post-registration onboarding summary safe for browser auth responses."
+      },
+      "CustomerOnboardingCurrentResponse": {
+        "properties": {
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "unavailable",
+              "pending",
+              "completed",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "flow_key": {
+            "type": "string",
+            "title": "Flow Key"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "allowed_code_types": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "promo",
+                "invite",
+                "gift"
+              ]
+            },
+            "type": "array",
+            "title": "Allowed Code Types"
+          },
+          "flow_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Token"
+          },
+          "message_key": {
+            "type": "string",
+            "title": "Message Key"
+          },
+          "server_state_available": {
+            "type": "boolean",
+            "title": "Server State Available"
+          },
+          "referral_already_attributed": {
+            "type": "boolean",
+            "title": "Referral Already Attributed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "required",
+          "status",
+          "flow_key",
+          "version",
+          "allowed_code_types",
+          "message_key",
+          "server_state_available"
+        ],
+        "title": "CustomerOnboardingCurrentResponse"
+      },
+      "CustomerOnboardingSkipRequest": {
+        "properties": {
+          "flow_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 240,
+                "minLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Token"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CustomerOnboardingSkipRequest"
+      },
+      "CustomerOnboardingSkipResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "skipped",
+              "completed"
+            ],
+            "title": "Status"
+          },
+          "message_key": {
+            "type": "string",
+            "title": "Message Key"
+          },
+          "next_destination": {
+            "type": "string",
+            "title": "Next Destination",
+            "default": "/dashboard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message_key"
+        ],
+        "title": "CustomerOnboardingSkipResponse"
       },
       "CustomerPrivacyRequestDetailResponse": {
         "properties": {
@@ -64655,6 +66913,19 @@
               }
             ],
             "title": "Partnercode"
+          },
+          "private_catalog_grant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Private Catalog Grant Id",
+            "description": "Private catalog grant from code-set preflight."
           },
           "useWallet": {
             "type": "number",
@@ -79819,6 +82090,88 @@
         "title": "RegisterResponse",
         "description": "Response for successful registration."
       },
+      "RegistrationAccessExchangeRequest": {
+        "properties": {
+          "registration_access_token": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Registration Access Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "registration_access_token"
+        ],
+        "title": "RegistrationAccessExchangeRequest",
+        "description": "One-time raw registration access token exchange request."
+      },
+      "RegistrationAccessExchangeResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "exchanged",
+            "title": "Status"
+          },
+          "email_hint_present": {
+            "type": "boolean",
+            "title": "Email Hint Present",
+            "default": false
+          },
+          "email_hint_masked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Hint Masked"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "registration_policy": {
+            "$ref": "#/components/schemas/RegistrationAccessPolicyResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "expires_at",
+          "registration_policy"
+        ],
+        "title": "RegistrationAccessExchangeResponse",
+        "description": "Cookie-backed registration access exchange response without secrets."
+      },
+      "RegistrationAccessPolicyResponse": {
+        "properties": {
+          "invite_required": {
+            "type": "boolean",
+            "title": "Invite Required"
+          },
+          "auth_realm_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Realm Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invite_required"
+        ],
+        "title": "RegistrationAccessPolicyResponse",
+        "description": "Registration policy metadata safe for browser display."
+      },
       "RejectPayoutInstructionRequest": {
         "properties": {
           "rejection_reason_code": {
@@ -86523,24 +88876,6 @@
       },
       "TelegramMiniAppResponse": {
         "properties": {
-          "access_token": {
-            "type": "string",
-            "title": "Access Token"
-          },
-          "refresh_token": {
-            "type": "string",
-            "title": "Refresh Token"
-          },
-          "token_type": {
-            "type": "string",
-            "title": "Token Type",
-            "default": "bearer"
-          },
-          "expires_in": {
-            "type": "integer",
-            "title": "Expires In",
-            "default": 0
-          },
           "user": {
             "$ref": "#/components/schemas/AdminUserResponse"
           },
@@ -86564,16 +88899,24 @@
               }
             ],
             "title": "Tfa Token"
+          },
+          "onboarding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CustomerOnboardingAuthSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": [
-          "access_token",
-          "refresh_token",
           "user"
         ],
         "title": "TelegramMiniAppResponse",
-        "description": "Response for Telegram Mini App authentication."
+        "description": "Response for Telegram Mini App authentication.\n\nMini App browser sessions are delivered through httpOnly cookies only."
       },
       "TelegramOIDCAuthRequest": {
         "properties": {
@@ -90795,24 +93138,6 @@
       },
       "VerifyOtpResponse": {
         "properties": {
-          "access_token": {
-            "type": "string",
-            "title": "Access Token"
-          },
-          "refresh_token": {
-            "type": "string",
-            "title": "Refresh Token"
-          },
-          "token_type": {
-            "type": "string",
-            "title": "Token Type",
-            "default": "bearer"
-          },
-          "expires_in": {
-            "type": "integer",
-            "title": "Expires In",
-            "default": 0
-          },
           "auth_realm_id": {
             "anyOf": [
               {
@@ -90871,16 +93196,24 @@
           },
           "user": {
             "$ref": "#/components/schemas/AdminUserResponse"
+          },
+          "onboarding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CustomerOnboardingAuthSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": [
-          "access_token",
-          "refresh_token",
           "user"
         ],
         "title": "VerifyOtpResponse",
-        "description": "Response for successful OTP verification with auto-login."
+        "description": "Response for successful browser OTP verification.\n\nBrowser sessions are delivered through httpOnly cookies only."
       },
       "WSTicketResponse": {
         "properties": {

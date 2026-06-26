@@ -94,7 +94,7 @@ async def create_order_from_checkout(
         )
     except ValueError as exc:
         detail = str(exc)
-        is_conflict = "already exists" in detail or "expired" in detail
+        is_conflict = "already exists" in detail or "expired" in detail or detail == "SNAPSHOT_INTEGRITY_ERROR"
         status_code = status.HTTP_409_CONFLICT if is_conflict else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=detail) from exc
     return _serialize_order(order)

@@ -263,11 +263,55 @@ describe('authApi.register', () => {
 });
 
 // ===========================================================================
+// authApi.exchangeRegistrationAccess
+// ===========================================================================
+
+describe('authApi.exchangeRegistrationAccess', () => {
+  it('test_exchange_registration_access_sends_idempotency_key_and_returns_no_secret_material', async () => {
+    // Arrange
+    const capturedBodies: Array<{ registration_access_token?: string }> = [];
+    const capturedIdempotencyKeys: string[] = [];
+    server.use(
+      http.post(`${API_BASE}/auth/registration-access/exchange`, async ({ request }) => {
+        capturedBodies.push((await request.json()) as { registration_access_token?: string });
+        capturedIdempotencyKeys.push(request.headers.get('Idempotency-Key') ?? '');
+        return HttpResponse.json({
+          status: 'exchanged',
+          email_hint_present: true,
+          email_hint_masked: null,
+          expires_at: '2026-06-25T12:00:00Z',
+          registration_policy: {
+            invite_required: true,
+            auth_realm_key: 'customer',
+          },
+        });
+      }),
+    );
+
+    // Act
+    const response = await authApi.exchangeRegistrationAccess(
+      { registration_access_token: 'raw-registration-secret' },
+      '6f40e5e4-6c07-4f7d-a609-817a81b99db1',
+    );
+
+    // Assert
+    expect(capturedBodies[0]?.registration_access_token).toBe('raw-registration-secret');
+    expect(capturedIdempotencyKeys[0]).toBe('6f40e5e4-6c07-4f7d-a609-817a81b99db1');
+    expect(response.status).toBe(200);
+    expect(response.data.status).toBe('exchanged');
+    expect(response.data).not.toHaveProperty('registration_access_token');
+    expect(response.data).not.toHaveProperty('access_token');
+    expect(response.data).not.toHaveProperty('refresh_token');
+    expect(JSON.stringify(response.data)).not.toContain('raw-registration-secret');
+  });
+});
+
+// ===========================================================================
 // authApi.verifyOtp
 // ===========================================================================
 
 describe('authApi.verifyOtp', () => {
-  it('test_verify_otp_success_returns_tokens_and_user', async () => {
+  it('test_verify_otp_success_returns_cookie_only_user', async () => {
     // Arrange
     const data = { email: 'testuser@cybervpn.io', code: '123456' };
 
@@ -276,8 +320,8 @@ describe('authApi.verifyOtp', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data.access_token).toBe(MOCK_TOKENS.access_token);
-    expect(response.data.refresh_token).toBe(MOCK_TOKENS.refresh_token);
+    expect(response.data).not.toHaveProperty('access_token');
+    expect(response.data).not.toHaveProperty('refresh_token');
     expect(response.data.user.id).toBe(MOCK_USER.id);
     expect(response.data.user.email).toBe(MOCK_USER.email);
   });
@@ -1053,7 +1097,7 @@ describe('authApi.telegramWidget', () => {
 // ===========================================================================
 
 describe('authApi.telegramMiniApp', () => {
-  it('test_telegram_miniapp_success_returns_tokens_and_user', async () => {
+  it('test_telegram_miniapp_success_returns_cookie_only_user', async () => {
     // Arrange
     const initData = 'valid_init_data_string';
 
@@ -1062,8 +1106,8 @@ describe('authApi.telegramMiniApp', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data.access_token).toBe(MOCK_TOKENS.access_token);
-    expect(response.data.refresh_token).toBe(MOCK_TOKENS.refresh_token);
+    expect(response.data).not.toHaveProperty('access_token');
+    expect(response.data).not.toHaveProperty('refresh_token');
     expect(response.data.user.id).toBe(MOCK_USER.id);
     expect(response.data.is_new_user).toBe(false);
   });

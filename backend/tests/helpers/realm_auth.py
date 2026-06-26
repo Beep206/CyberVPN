@@ -406,6 +406,7 @@ async def initialize_realm_test_database(engine) -> None:
                 plan_code TEXT,
                 display_name TEXT NOT NULL DEFAULT '',
                 catalog_visibility TEXT NOT NULL DEFAULT 'hidden',
+                catalog_access_class TEXT NOT NULL DEFAULT 'admin_only',
                 duration_days INTEGER NOT NULL,
                 traffic_limit_bytes INTEGER,
                 device_limit INTEGER NOT NULL DEFAULT 1,
@@ -860,17 +861,153 @@ async def initialize_realm_test_database(engine) -> None:
         )
         conn.exec_driver_sql(
             """
+            CREATE TABLE growth_code_benefits (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT NOT NULL,
+                policy_version_id TEXT,
+                benefit_type TEXT NOT NULL,
+                trigger_type TEXT NOT NULL,
+                merge_mode TEXT NOT NULL DEFAULT 'append',
+                config TEXT NOT NULL DEFAULT '{}',
+                eligibility TEXT NOT NULL DEFAULT '{}',
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE SET NULL
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_code_benefits_growth_code_id ON growth_code_benefits(growth_code_id)",
+            "CREATE INDEX ix_growth_code_benefits_policy_version_id ON growth_code_benefits(policy_version_id)",
+            "CREATE INDEX ix_growth_code_benefits_benefit_type ON growth_code_benefits(benefit_type)",
+            "CREATE INDEX ix_growth_code_benefits_trigger_type ON growth_code_benefits(trigger_type)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_benefit_fulfillments (
+                id TEXT PRIMARY KEY,
+                benefit_id TEXT NOT NULL,
+                growth_code_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                order_id TEXT NOT NULL,
+                payment_id TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                status TEXT NOT NULL,
+                attempt_count INTEGER NOT NULL DEFAULT 0,
+                config_snapshot TEXT NOT NULL DEFAULT '{}',
+                result_payload TEXT NOT NULL DEFAULT '{}',
+                error_code TEXT,
+                error_message TEXT,
+                started_at TEXT,
+                completed_at TEXT,
+                next_retry_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (benefit_id) REFERENCES growth_code_benefits(id) ON DELETE RESTRICT,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE RESTRICT,
+                FOREIGN KEY (user_id) REFERENCES mobile_users(id) ON DELETE RESTRICT,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE RESTRICT,
+                FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE RESTRICT,
+                CHECK (attempt_count >= 0)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_benefit_fulfillments_benefit_id ON growth_benefit_fulfillments(benefit_id)",
+            "CREATE INDEX ix_growth_benefit_fulfillments_growth_code_id ON growth_benefit_fulfillments(growth_code_id)",
+            "CREATE INDEX ix_growth_benefit_fulfillments_user_id ON growth_benefit_fulfillments(user_id)",
+            "CREATE INDEX ix_growth_benefit_fulfillments_order_id ON growth_benefit_fulfillments(order_id)",
+            "CREATE INDEX ix_growth_benefit_fulfillments_payment_id ON growth_benefit_fulfillments(payment_id)",
+            "CREATE INDEX ix_growth_benefit_fulfillments_idempotency_key "
+            "ON growth_benefit_fulfillments(idempotency_key)",
+            "CREATE INDEX ix_growth_benefit_fulfillments_status ON growth_benefit_fulfillments(status)",
+            "CREATE INDEX ix_growth_benefit_fulfillments_next_retry_at ON growth_benefit_fulfillments(next_retry_at)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE invite_batches (
+                id TEXT PRIMARY KEY,
+                owner_user_id TEXT NOT NULL,
+                campaign_id TEXT,
+                source_growth_code_id TEXT,
+                source_benefit_id TEXT,
+                source_order_id TEXT,
+                source_payment_id TEXT,
+                source_type TEXT NOT NULL,
+                requested_count INTEGER NOT NULL,
+                issued_count INTEGER NOT NULL DEFAULT 0,
+                friend_days INTEGER NOT NULL,
+                expiry_mode TEXT NOT NULL,
+                expiry_days INTEGER,
+                expires_at TEXT,
+                entitlement_mode TEXT NOT NULL,
+                entitlement_profile_key TEXT,
+                plan_id TEXT,
+                entitlement_snapshot TEXT NOT NULL DEFAULT '{}',
+                status TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                revoked_at TEXT,
+                revoked_by_admin_id TEXT,
+                revoked_reason TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (owner_user_id) REFERENCES mobile_users(id) ON DELETE RESTRICT,
+                FOREIGN KEY (source_growth_code_id) REFERENCES growth_codes(id) ON DELETE SET NULL,
+                FOREIGN KEY (source_benefit_id) REFERENCES growth_code_benefits(id) ON DELETE SET NULL,
+                FOREIGN KEY (source_order_id) REFERENCES orders(id) ON DELETE SET NULL,
+                FOREIGN KEY (source_payment_id) REFERENCES payments(id) ON DELETE SET NULL,
+                FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) ON DELETE SET NULL,
+                CHECK (requested_count > 0),
+                CHECK (issued_count >= 0),
+                CHECK (issued_count <= requested_count),
+                CHECK (friend_days > 0),
+                CHECK (expiry_mode IN ('none', 'relative', 'absolute'))
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_invite_batches_owner_user_id ON invite_batches(owner_user_id)",
+            "CREATE INDEX ix_invite_batches_campaign_id ON invite_batches(campaign_id)",
+            "CREATE INDEX ix_invite_batches_source_growth_code_id ON invite_batches(source_growth_code_id)",
+            "CREATE INDEX ix_invite_batches_source_benefit_id ON invite_batches(source_benefit_id)",
+            "CREATE INDEX ix_invite_batches_source_order_id ON invite_batches(source_order_id)",
+            "CREATE INDEX ix_invite_batches_source_payment_id ON invite_batches(source_payment_id)",
+            "CREATE INDEX ix_invite_batches_source_type ON invite_batches(source_type)",
+            "CREATE INDEX ix_invite_batches_plan_id ON invite_batches(plan_id)",
+            "CREATE INDEX ix_invite_batches_status ON invite_batches(status)",
+            "CREATE INDEX ix_invite_batches_idempotency_key ON invite_batches(idempotency_key)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
             CREATE TABLE invite_codes (
                 id TEXT PRIMARY KEY,
                 code TEXT NOT NULL UNIQUE,
                 owner_user_id TEXT NOT NULL,
                 free_days INTEGER NOT NULL,
                 plan_id TEXT,
+                batch_id TEXT,
+                source_growth_code_id TEXT,
+                source_benefit_id TEXT,
+                status TEXT NOT NULL DEFAULT 'issued',
+                code_hash TEXT,
+                code_prefix TEXT,
+                entitlement_mode TEXT,
+                entitlement_profile_key TEXT,
+                entitlement_snapshot TEXT NOT NULL DEFAULT '{}',
                 source TEXT NOT NULL,
                 source_payment_id TEXT,
                 is_used INTEGER NOT NULL DEFAULT 0,
                 used_by_user_id TEXT,
                 used_at TEXT,
+                revoked_at TEXT,
+                revoked_by_admin_id TEXT,
+                revoked_reason TEXT,
                 expires_at TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
@@ -878,6 +1015,14 @@ async def initialize_realm_test_database(engine) -> None:
         )
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_code ON invite_codes(code)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_owner_user_id ON invite_codes(owner_user_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_batch_id ON invite_codes(batch_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_invite_codes_source_growth_code_id ON invite_codes(source_growth_code_id)"
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_source_benefit_id ON invite_codes(source_benefit_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_status ON invite_codes(status)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_code_hash ON invite_codes(code_hash)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_code_prefix ON invite_codes(code_prefix)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_used_by_user_id ON invite_codes(used_by_user_id)")
         conn.exec_driver_sql(
             """
@@ -972,6 +1117,9 @@ async def initialize_realm_test_database(engine) -> None:
                 expires_at TEXT,
                 max_uses INTEGER,
                 uses_count INTEGER NOT NULL DEFAULT 0,
+                reserved_uses INTEGER NOT NULL DEFAULT 0,
+                last_used_at TEXT,
+                code_namespace TEXT NOT NULL DEFAULT 'customer_input',
                 revoked_at TEXT,
                 revoked_by_admin_id TEXT,
                 revoked_reason TEXT,
@@ -984,7 +1132,8 @@ async def initialize_realm_test_database(engine) -> None:
                 FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id) ON DELETE SET NULL,
                 FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE SET NULL,
                 FOREIGN KEY (revoked_by_admin_id) REFERENCES admin_users(id) ON DELETE SET NULL,
-                UNIQUE (code_hash, code_type)
+                UNIQUE (code_hash, code_type),
+                UNIQUE (code_namespace, code_hash)
             )
             """
         )
@@ -1004,6 +1153,8 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_growth_codes_policy_version_id ON growth_codes(policy_version_id)",
             "CREATE INDEX ix_growth_codes_starts_at ON growth_codes(starts_at)",
             "CREATE INDEX ix_growth_codes_expires_at ON growth_codes(expires_at)",
+            "CREATE INDEX ix_growth_codes_last_used_at ON growth_codes(last_used_at)",
+            "CREATE INDEX ix_growth_codes_code_namespace ON growth_codes(code_namespace)",
             "CREATE INDEX ix_growth_codes_revoked_at ON growth_codes(revoked_at)",
             "CREATE INDEX ix_growth_codes_revoked_by_admin_id ON growth_codes(revoked_by_admin_id)",
         ):
@@ -1248,6 +1399,20 @@ async def initialize_realm_test_database(engine) -> None:
                 allowed_channels TEXT NOT NULL DEFAULT '[]',
                 allowed_geos TEXT NOT NULL DEFAULT '[]',
                 min_net_paid_amount NUMERIC,
+                currency_code TEXT,
+                discount_scope TEXT NOT NULL DEFAULT 'order',
+                discountable_addon_codes TEXT NOT NULL DEFAULT '[]',
+                minimum_order_amount NUMERIC,
+                allow_zero_amount_order INTEGER NOT NULL DEFAULT 0,
+                new_customer_only INTEGER NOT NULL DEFAULT 0,
+                first_completed_order_only INTEGER NOT NULL DEFAULT 0,
+                first_net_paid_order_only INTEGER NOT NULL DEFAULT 0,
+                require_no_active_access INTEGER NOT NULL DEFAULT 0,
+                commission_basis TEXT NOT NULL DEFAULT 'net_gateway_paid',
+                include_wallet_in_commission_base INTEGER NOT NULL DEFAULT 0,
+                policy_version INTEGER NOT NULL DEFAULT 1,
+                is_current INTEGER NOT NULL DEFAULT 1,
+                published_at TEXT,
                 usage_cap_per_user INTEGER,
                 global_usage_cap INTEGER,
                 policy_snapshot TEXT NOT NULL DEFAULT '{}',
@@ -1339,11 +1504,15 @@ async def initialize_realm_test_database(engine) -> None:
                 growth_code_id TEXT NOT NULL,
                 quote_session_id TEXT,
                 checkout_session_id TEXT,
+                reservation_group_id TEXT,
                 user_id TEXT,
                 reserved_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 expires_at TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'reserved',
                 consumed_order_id TEXT,
+                committed_at TEXT,
+                consumed_at TEXT,
+                consumed_payment_id TEXT,
                 released_at TEXT,
                 release_reason TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1351,7 +1520,8 @@ async def initialize_realm_test_database(engine) -> None:
                 FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
                 FOREIGN KEY (quote_session_id) REFERENCES quote_sessions(id) ON DELETE SET NULL,
                 FOREIGN KEY (user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
-                FOREIGN KEY (consumed_order_id) REFERENCES orders(id) ON DELETE SET NULL
+                FOREIGN KEY (consumed_order_id) REFERENCES orders(id) ON DELETE SET NULL,
+                FOREIGN KEY (consumed_payment_id) REFERENCES payments(id) ON DELETE SET NULL
             )
             """
         )
@@ -1360,11 +1530,17 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_growth_code_reservations_quote_session_id ON growth_code_reservations(quote_session_id)",
             "CREATE INDEX ix_growth_code_reservations_checkout_session_id "
             "ON growth_code_reservations(checkout_session_id)",
+            "CREATE INDEX ix_growth_code_reservations_reservation_group_id "
+            "ON growth_code_reservations(reservation_group_id)",
             "CREATE INDEX ix_growth_code_reservations_user_id ON growth_code_reservations(user_id)",
             "CREATE INDEX ix_growth_code_reservations_reserved_at ON growth_code_reservations(reserved_at)",
             "CREATE INDEX ix_growth_code_reservations_expires_at ON growth_code_reservations(expires_at)",
             "CREATE INDEX ix_growth_code_reservations_status ON growth_code_reservations(status)",
             "CREATE INDEX ix_growth_code_reservations_consumed_order_id ON growth_code_reservations(consumed_order_id)",
+            "CREATE INDEX ix_growth_code_reservations_committed_at ON growth_code_reservations(committed_at)",
+            "CREATE INDEX ix_growth_code_reservations_consumed_at ON growth_code_reservations(consumed_at)",
+            "CREATE INDEX ix_growth_code_reservations_consumed_payment_id "
+            "ON growth_code_reservations(consumed_payment_id)",
             "CREATE INDEX ix_growth_code_reservations_released_at ON growth_code_reservations(released_at)",
         ):
             conn.exec_driver_sql(index_sql)
@@ -1377,6 +1553,9 @@ async def initialize_realm_test_database(engine) -> None:
                 redeemer_user_id TEXT,
                 beneficiary_user_id TEXT,
                 order_id TEXT,
+                payment_id TEXT,
+                reservation_id TEXT,
+                usage_number INTEGER,
                 entitlement_grant_id TEXT,
                 wallet_transaction_id TEXT,
                 reward_allocation_id TEXT,
@@ -1392,6 +1571,8 @@ async def initialize_realm_test_database(engine) -> None:
                 FOREIGN KEY (redeemer_user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
                 FOREIGN KEY (beneficiary_user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
                 FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+                FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE SET NULL,
+                FOREIGN KEY (reservation_id) REFERENCES growth_code_reservations(id) ON DELETE SET NULL,
                 FOREIGN KEY (entitlement_grant_id) REFERENCES entitlement_grants(id) ON DELETE SET NULL,
                 FOREIGN KEY (wallet_transaction_id) REFERENCES wallet_transactions(id) ON DELETE SET NULL,
                 FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE SET NULL
@@ -1405,6 +1586,8 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_growth_code_redemptions_beneficiary_user_id "
             "ON growth_code_redemptions(beneficiary_user_id)",
             "CREATE INDEX ix_growth_code_redemptions_order_id ON growth_code_redemptions(order_id)",
+            "CREATE INDEX ix_growth_code_redemptions_payment_id ON growth_code_redemptions(payment_id)",
+            "CREATE INDEX ix_growth_code_redemptions_reservation_id ON growth_code_redemptions(reservation_id)",
             "CREATE INDEX ix_growth_code_redemptions_entitlement_grant_id "
             "ON growth_code_redemptions(entitlement_grant_id)",
             "CREATE INDEX ix_growth_code_redemptions_wallet_transaction_id "
@@ -2697,6 +2880,8 @@ async def initialize_realm_test_database(engine) -> None:
                 promo_code TEXT,
                 promo_code_id TEXT,
                 partner_code_id TEXT,
+                code_set_id TEXT,
+                private_catalog_access_grant_id TEXT,
                 request_snapshot TEXT NOT NULL DEFAULT '{}',
                 quote_snapshot TEXT NOT NULL DEFAULT '{}',
                 context_snapshot TEXT NOT NULL DEFAULT '{}',
@@ -2721,6 +2906,11 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_quote_sessions_user_id ON quote_sessions(user_id)")
         conn.exec_driver_sql("CREATE INDEX ix_quote_sessions_auth_realm_id ON quote_sessions(auth_realm_id)")
         conn.exec_driver_sql("CREATE INDEX ix_quote_sessions_storefront_id ON quote_sessions(storefront_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_quote_sessions_code_set_id ON quote_sessions(code_set_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_quote_sessions_private_catalog_access_grant_id "
+            "ON quote_sessions(private_catalog_access_grant_id)"
+        )
         conn.exec_driver_sql("CREATE INDEX ix_quote_sessions_quote_status ON quote_sessions(quote_status)")
         conn.exec_driver_sql("CREATE INDEX ix_quote_sessions_expires_at ON quote_sessions(expires_at)")
         conn.exec_driver_sql(
@@ -2746,6 +2936,8 @@ async def initialize_realm_test_database(engine) -> None:
                 idempotency_key TEXT NOT NULL,
                 promo_code_id TEXT,
                 partner_code_id TEXT,
+                code_set_id TEXT,
+                private_catalog_access_grant_id TEXT,
                 request_snapshot TEXT NOT NULL DEFAULT '{}',
                 checkout_snapshot TEXT NOT NULL DEFAULT '{}',
                 context_snapshot TEXT NOT NULL DEFAULT '{}',
@@ -2774,6 +2966,11 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_checkout_sessions_user_id ON checkout_sessions(user_id)")
         conn.exec_driver_sql("CREATE INDEX ix_checkout_sessions_auth_realm_id ON checkout_sessions(auth_realm_id)")
         conn.exec_driver_sql("CREATE INDEX ix_checkout_sessions_storefront_id ON checkout_sessions(storefront_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_checkout_sessions_code_set_id ON checkout_sessions(code_set_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_checkout_sessions_private_catalog_access_grant_id "
+            "ON checkout_sessions(private_catalog_access_grant_id)"
+        )
         conn.exec_driver_sql("CREATE INDEX ix_checkout_sessions_checkout_status ON checkout_sessions(checkout_status)")
         conn.exec_driver_sql("CREATE INDEX ix_checkout_sessions_idempotency_key ON checkout_sessions(idempotency_key)")
         conn.exec_driver_sql("CREATE INDEX ix_checkout_sessions_expires_at ON checkout_sessions(expires_at)")
@@ -2797,6 +2994,8 @@ async def initialize_realm_test_database(engine) -> None:
                 subscription_plan_id TEXT,
                 promo_code_id TEXT,
                 partner_code_id TEXT,
+                code_set_id TEXT,
+                private_catalog_access_grant_id TEXT,
                 sale_channel TEXT NOT NULL DEFAULT 'web',
                 currency_code TEXT NOT NULL DEFAULT 'USD',
                 order_status TEXT NOT NULL DEFAULT 'committed',
@@ -2812,6 +3011,8 @@ async def initialize_realm_test_database(engine) -> None:
                 merchant_snapshot TEXT NOT NULL DEFAULT '{}',
                 pricing_snapshot TEXT NOT NULL DEFAULT '{}',
                 policy_snapshot TEXT NOT NULL DEFAULT '{}',
+                risk_snapshot TEXT NOT NULL DEFAULT '{}',
+                fx_snapshot TEXT NOT NULL DEFAULT '{}',
                 entitlements_snapshot TEXT NOT NULL DEFAULT '{}',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2850,8 +3051,248 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_orders_subscription_plan_id ON orders(subscription_plan_id)")
         conn.exec_driver_sql("CREATE INDEX ix_orders_promo_code_id ON orders(promo_code_id)")
         conn.exec_driver_sql("CREATE INDEX ix_orders_partner_code_id ON orders(partner_code_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_orders_code_set_id ON orders(code_set_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_orders_private_catalog_access_grant_id ON orders(private_catalog_access_grant_id)"
+        )
         conn.exec_driver_sql("CREATE INDEX ix_orders_order_status ON orders(order_status)")
         conn.exec_driver_sql("CREATE INDEX ix_orders_settlement_status ON orders(settlement_status)")
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_private_catalog_policies (
+                id TEXT PRIMARY KEY,
+                policy_version_id TEXT NOT NULL,
+                growth_code_id TEXT NOT NULL,
+                unlock_mode TEXT NOT NULL,
+                target_plan_ids TEXT NOT NULL DEFAULT '[]',
+                target_offer_ids TEXT NOT NULL DEFAULT '[]',
+                target_offer_keys TEXT NOT NULL DEFAULT '[]',
+                auto_select_target_id TEXT,
+                allowed_storefront_ids TEXT NOT NULL DEFAULT '[]',
+                allowed_channels TEXT NOT NULL DEFAULT '[]',
+                grant_ttl_seconds INTEGER NOT NULL,
+                max_quote_conversions INTEGER,
+                consume_mode TEXT NOT NULL,
+                requires_auth INTEGER NOT NULL DEFAULT 1,
+                requires_risk_action_below TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE CASCADE,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                CHECK (grant_ttl_seconds > 0),
+                CHECK (max_quote_conversions IS NULL OR max_quote_conversions >= 0)
+            )
+            """
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_growth_private_catalog_policies_policy_version_id "
+            "ON growth_private_catalog_policies(policy_version_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_growth_private_catalog_policies_growth_code_id "
+            "ON growth_private_catalog_policies(growth_code_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_growth_private_catalog_policies_is_active ON growth_private_catalog_policies(is_active)"
+        )
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE private_catalog_access_grants (
+                id TEXT PRIMARY KEY,
+                policy_id TEXT NOT NULL,
+                policy_version_id TEXT NOT NULL,
+                growth_code_id TEXT NOT NULL,
+                code_set_hash TEXT NOT NULL,
+                grant_token_hash TEXT UNIQUE,
+                user_id TEXT,
+                anonymous_session_id TEXT,
+                risk_subject_id TEXT,
+                auth_realm_id TEXT NOT NULL,
+                storefront_id TEXT NOT NULL,
+                sale_channel TEXT NOT NULL,
+                allowed_plan_ids TEXT NOT NULL DEFAULT '[]',
+                allowed_offer_ids TEXT NOT NULL DEFAULT '[]',
+                risk_decision_id TEXT,
+                status TEXT NOT NULL,
+                max_quote_conversions INTEGER,
+                quote_conversions_count INTEGER NOT NULL DEFAULT 0,
+                issued_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                attached_quote_session_id TEXT,
+                attached_checkout_session_id TEXT,
+                consumed_order_id TEXT,
+                revoked_at TEXT,
+                revoked_reason TEXT,
+                metadata TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (policy_id) REFERENCES growth_private_catalog_policies(id) ON DELETE RESTRICT,
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE RESTRICT,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE RESTRICT,
+                FOREIGN KEY (user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id) ON DELETE RESTRICT,
+                FOREIGN KEY (storefront_id) REFERENCES storefronts(id) ON DELETE RESTRICT,
+                FOREIGN KEY (attached_quote_session_id) REFERENCES quote_sessions(id) ON DELETE SET NULL,
+                FOREIGN KEY (attached_checkout_session_id) REFERENCES checkout_sessions(id) ON DELETE SET NULL,
+                FOREIGN KEY (consumed_order_id) REFERENCES orders(id) ON DELETE SET NULL,
+                CHECK (user_id IS NOT NULL OR anonymous_session_id IS NOT NULL),
+                CHECK (quote_conversions_count >= 0),
+                CHECK (max_quote_conversions IS NULL OR quote_conversions_count <= max_quote_conversions)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_private_catalog_access_grants_policy_id ON private_catalog_access_grants(policy_id)",
+            "CREATE INDEX ix_private_catalog_access_grants_policy_version_id "
+            "ON private_catalog_access_grants(policy_version_id)",
+            "CREATE INDEX ix_private_catalog_access_grants_growth_code_id "
+            "ON private_catalog_access_grants(growth_code_id)",
+            "CREATE INDEX ix_private_catalog_access_grants_code_set_hash "
+            "ON private_catalog_access_grants(code_set_hash)",
+            "CREATE INDEX ix_private_catalog_access_grants_grant_token_hash "
+            "ON private_catalog_access_grants(grant_token_hash)",
+            "CREATE INDEX ix_private_catalog_access_grants_user_id ON private_catalog_access_grants(user_id)",
+            "CREATE INDEX ix_private_catalog_access_grants_anonymous_session_id "
+            "ON private_catalog_access_grants(anonymous_session_id)",
+            "CREATE INDEX ix_private_catalog_access_grants_auth_realm_id "
+            "ON private_catalog_access_grants(auth_realm_id)",
+            "CREATE INDEX ix_private_catalog_access_grants_storefront_id "
+            "ON private_catalog_access_grants(storefront_id)",
+            "CREATE INDEX ix_private_catalog_access_grants_sale_channel ON private_catalog_access_grants(sale_channel)",
+            "CREATE INDEX ix_private_catalog_access_grants_status ON private_catalog_access_grants(status)",
+            "CREATE INDEX ix_private_catalog_access_grants_expires_at ON private_catalog_access_grants(expires_at)",
+            "CREATE INDEX ix_private_catalog_access_grants_attached_quote_session_id "
+            "ON private_catalog_access_grants(attached_quote_session_id)",
+            "CREATE INDEX ix_private_catalog_access_grants_attached_checkout_session_id "
+            "ON private_catalog_access_grants(attached_checkout_session_id)",
+            "CREATE INDEX ix_private_catalog_access_grants_consumed_order_id "
+            "ON private_catalog_access_grants(consumed_order_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE checkout_code_sets (
+                id TEXT PRIMARY KEY,
+                code_set_hash TEXT NOT NULL,
+                user_id TEXT,
+                anonymous_session_id TEXT,
+                auth_realm_id TEXT NOT NULL,
+                storefront_id TEXT,
+                sale_channel TEXT NOT NULL,
+                action_context TEXT NOT NULL,
+                status TEXT NOT NULL,
+                acceptance_mode TEXT NOT NULL,
+                aggregate_result TEXT NOT NULL DEFAULT '{}',
+                risk_snapshot TEXT NOT NULL DEFAULT '{}',
+                private_access_grant_id TEXT,
+                quote_session_id TEXT,
+                checkout_session_id TEXT,
+                order_id TEXT,
+                payment_id TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id),
+                FOREIGN KEY (storefront_id) REFERENCES storefronts(id) ON DELETE SET NULL,
+                FOREIGN KEY (quote_session_id) REFERENCES quote_sessions(id) ON DELETE SET NULL,
+                FOREIGN KEY (checkout_session_id) REFERENCES checkout_sessions(id) ON DELETE SET NULL,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_checkout_code_sets_code_set_hash ON checkout_code_sets(code_set_hash)",
+            "CREATE INDEX ix_checkout_code_sets_user_id ON checkout_code_sets(user_id)",
+            "CREATE INDEX ix_checkout_code_sets_auth_realm_id ON checkout_code_sets(auth_realm_id)",
+            "CREATE INDEX ix_checkout_code_sets_storefront_id ON checkout_code_sets(storefront_id)",
+            "CREATE INDEX ix_checkout_code_sets_status ON checkout_code_sets(status)",
+            "CREATE INDEX ix_checkout_code_sets_quote_session_id ON checkout_code_sets(quote_session_id)",
+            "CREATE INDEX ix_checkout_code_sets_checkout_session_id ON checkout_code_sets(checkout_session_id)",
+            "CREATE INDEX ix_checkout_code_sets_order_id ON checkout_code_sets(order_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE checkout_code_applications (
+                id TEXT PRIMARY KEY,
+                code_set_id TEXT NOT NULL,
+                position_entered INTEGER NOT NULL,
+                canonical_order INTEGER NOT NULL,
+                growth_code_id TEXT,
+                legacy_code_type TEXT,
+                legacy_code_id TEXT,
+                masked_code TEXT NOT NULL,
+                roles TEXT NOT NULL DEFAULT '{}',
+                resolution_status TEXT NOT NULL,
+                reject_reason TEXT,
+                conflict_code TEXT,
+                policy_version_id TEXT,
+                rule_definition_id TEXT,
+                risk_decision_id TEXT,
+                fx_conversion_id TEXT,
+                reservation_id TEXT,
+                discount_snapshot TEXT NOT NULL DEFAULT '{}',
+                benefits_snapshot TEXT NOT NULL DEFAULT '{}',
+                private_access_snapshot TEXT NOT NULL DEFAULT '{}',
+                evaluation_trace TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (code_set_id) REFERENCES checkout_code_sets(id) ON DELETE CASCADE,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE SET NULL,
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE SET NULL,
+                FOREIGN KEY (reservation_id) REFERENCES growth_code_reservations(id) ON DELETE SET NULL,
+                UNIQUE (code_set_id, growth_code_id)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_checkout_code_applications_code_set_id ON checkout_code_applications(code_set_id)",
+            "CREATE INDEX ix_checkout_code_applications_growth_code_id ON checkout_code_applications(growth_code_id)",
+            "CREATE INDEX ix_checkout_code_applications_legacy_code_id ON checkout_code_applications(legacy_code_id)",
+            "CREATE INDEX ix_checkout_code_applications_resolution_status "
+            "ON checkout_code_applications(resolution_status)",
+            "CREATE INDEX ix_checkout_code_applications_reservation_id ON checkout_code_applications(reservation_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE order_code_applications (
+                id TEXT PRIMARY KEY,
+                order_id TEXT NOT NULL,
+                code_set_id TEXT NOT NULL,
+                growth_code_id TEXT NOT NULL,
+                policy_version_id TEXT,
+                application_role TEXT NOT NULL,
+                application_status TEXT NOT NULL,
+                discount_amount NUMERIC NOT NULL,
+                currency_code TEXT NOT NULL,
+                source_amount NUMERIC,
+                source_currency_code TEXT,
+                fx_conversion_id TEXT,
+                reservation_id TEXT,
+                risk_decision_id TEXT,
+                application_snapshot TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+                FOREIGN KEY (code_set_id) REFERENCES checkout_code_sets(id),
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id),
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE SET NULL,
+                FOREIGN KEY (reservation_id) REFERENCES growth_code_reservations(id) ON DELETE SET NULL,
+                UNIQUE (order_id, growth_code_id)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_order_code_applications_order_id ON order_code_applications(order_id)",
+            "CREATE INDEX ix_order_code_applications_code_set_id ON order_code_applications(code_set_id)",
+            "CREATE INDEX ix_order_code_applications_growth_code_id ON order_code_applications(growth_code_id)",
+            "CREATE INDEX ix_order_code_applications_policy_version_id ON order_code_applications(policy_version_id)",
+            "CREATE INDEX ix_order_code_applications_application_role ON order_code_applications(application_role)",
+            "CREATE INDEX ix_order_code_applications_application_status ON order_code_applications(application_status)",
+            "CREATE INDEX ix_order_code_applications_reservation_id ON order_code_applications(reservation_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
             """
             CREATE TABLE order_items (
@@ -3328,20 +3769,30 @@ async def initialize_realm_test_database(engine) -> None:
                 plan_id TEXT,
                 promo_code_id TEXT,
                 partner_code_id TEXT,
+                code_set_id TEXT,
                 discount_amount NUMERIC NOT NULL DEFAULT 0,
                 wallet_amount_used NUMERIC NOT NULL DEFAULT 0,
                 final_amount NUMERIC,
                 addons_snapshot TEXT,
                 entitlements_snapshot TEXT,
+                growth_snapshot TEXT,
                 metadata TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CHECK (provider <> 'internal_zero' OR external_id IS NOT NULL),
+                FOREIGN KEY (code_set_id) REFERENCES checkout_code_sets(id)
             )
             """
         )
         conn.exec_driver_sql("CREATE INDEX ix_payments_external_id ON payments(external_id)")
         conn.exec_driver_sql("CREATE INDEX ix_payments_user_uuid ON payments(user_uuid)")
         conn.exec_driver_sql("CREATE INDEX ix_payments_status ON payments(status)")
+        conn.exec_driver_sql("CREATE INDEX ix_payments_code_set_id ON payments(code_set_id)")
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX uq_payments_internal_zero_external_id "
+            "ON payments(provider, external_id) "
+            "WHERE provider = 'internal_zero' AND external_id IS NOT NULL"
+        )
         conn.exec_driver_sql(
             """
             CREATE TABLE referral_commissions (
@@ -3370,6 +3821,7 @@ async def initialize_realm_test_database(engine) -> None:
                 id TEXT PRIMARY KEY,
                 order_id TEXT NOT NULL,
                 payment_id TEXT UNIQUE,
+                code_set_id TEXT,
                 supersedes_attempt_id TEXT,
                 attempt_number INTEGER NOT NULL DEFAULT 1,
                 provider TEXT NOT NULL,
@@ -3389,12 +3841,14 @@ async def initialize_realm_test_database(engine) -> None:
                 UNIQUE(order_id, idempotency_key),
                 FOREIGN KEY (order_id) REFERENCES orders(id),
                 FOREIGN KEY (payment_id) REFERENCES payments(id),
+                FOREIGN KEY (code_set_id) REFERENCES checkout_code_sets(id),
                 FOREIGN KEY (supersedes_attempt_id) REFERENCES payment_attempts(id)
             )
             """
         )
         conn.exec_driver_sql("CREATE INDEX ix_payment_attempts_order_id ON payment_attempts(order_id)")
         conn.exec_driver_sql("CREATE INDEX ix_payment_attempts_payment_id ON payment_attempts(payment_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_payment_attempts_code_set_id ON payment_attempts(code_set_id)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_payment_attempts_supersedes_attempt_id ON payment_attempts(supersedes_attempt_id)"
         )
@@ -3403,6 +3857,19 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_payment_attempts_external_reference ON payment_attempts(external_reference)"
         )
         conn.exec_driver_sql("CREATE INDEX ix_payment_attempts_idempotency_key ON payment_attempts(idempotency_key)")
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX uq_payment_attempts_order_attempt_number ON payment_attempts(order_id, attempt_number)"
+        )
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX uq_payment_attempts_order_active "
+            "ON payment_attempts(order_id) "
+            "WHERE status IN ('pending', 'processing')"
+        )
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX uq_payment_attempts_order_succeeded "
+            "ON payment_attempts(order_id) "
+            "WHERE status = 'succeeded'"
+        )
         conn.exec_driver_sql(
             """
             CREATE TABLE refunds (

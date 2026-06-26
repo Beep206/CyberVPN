@@ -9,6 +9,7 @@ import {
   type TelegramMiniAppResponse,
   type TelegramWidgetData,
   type User,
+  type VerifyOtpResponse,
 } from '@/lib/api/auth';
 import { RateLimitError, tokenStorage } from '@/lib/api/client';
 import { getApiErrorMessage } from '@/lib/api/error-message';
@@ -58,7 +59,7 @@ interface AuthState {
       tos_accepted?: boolean;
     }
   ) => Promise<void>;
-  verifyOtpAndLogin: (email: string, code: string) => Promise<void>;
+  verifyOtpAndLogin: (email: string, code: string) => Promise<VerifyOtpResponse>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
   telegramAuth: (data: TelegramWidgetData) => Promise<AuthResponse>;
@@ -246,6 +247,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           authAnalytics.loginSuccess(data.user.id, 'email');
+          return data;
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: unknown } } };
           const detail = axiosError.response?.data?.detail;

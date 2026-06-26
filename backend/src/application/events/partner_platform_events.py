@@ -6,6 +6,7 @@ PARTNER_PLATFORM_EVENT_FAMILIES = {
         "growth_code.resolved",
         "growth_code.rejected",
         "growth_code.reserved",
+        "growth_code.reservation_committed",
         "growth_code.released",
         "growth_code.reservation_expired",
         "growth_code.redeemed",
@@ -83,6 +84,7 @@ PARTNER_PLATFORM_EVENT_FAMILIES = {
         "growth_reward.allocation.available",
         "growth_reward.allocation.reversed",
     ),
+    "growth_benefit": ("growth_benefit.fulfillment.completed",),
     "settlement": (
         "settlement.earning.created",
         "settlement.earning.snapshot_incomplete",

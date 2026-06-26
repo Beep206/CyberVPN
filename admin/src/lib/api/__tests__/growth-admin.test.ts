@@ -39,6 +39,9 @@ const MATCH_ANY_API_ORIGIN = {
   partners: `${API_BASE}/admin/partners`,
   partnerDetail: `${API_BASE}/admin/partners/:userId`,
   growthCodeLookup: `${API_BASE}/admin/growth-codes/lookup`,
+  growthRuleCatalog: `${API_BASE}/admin/growth/rules/catalog`,
+  growthRuleCompile: `${API_BASE}/admin/growth/rules/compile`,
+  growthRuleSimulate: `${API_BASE}/admin/growth/rules/simulate`,
   giftCodes: `${API_BASE}/admin/gift-codes`,
   giftCodesIssue: `${API_BASE}/admin/gift-codes/issue`,
   giftCodeBatchesIssue: `${API_BASE}/admin/gift-code-batches/issue`,
@@ -1140,6 +1143,76 @@ describe('growthApi promo code operations', () => {
       storefront_key: 'cybervpn-web',
       amount: 79,
     });
+  });
+
+  it('loads, compiles, and simulates growth rule ASTs through admin rule endpoints', async () => {
+    const ast = {
+      schema_version: 'growth-rule.v1',
+      when: {
+        type: 'condition',
+        field: 'code.code_type',
+        operator: 'eq',
+        value: 'promo',
+      },
+      then: [{ action: 'allow', params: {} }],
+    };
+    const context = { code: { code_type: 'promo' } };
+    let capturedCompileBody: Record<string, unknown> | null = null;
+    let capturedSimulateBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.growthRuleCatalog, () =>
+        HttpResponse.json({
+          catalog: {
+            catalog_version: 'growth-rule-catalog.v1',
+            schema_version: 'growth-rule.v1',
+            limits: { max_nodes: 32, max_depth: 6 },
+            fields: {
+              'code.code_type': { type: 'string', operators: ['eq', 'in'] },
+            },
+            operators: {
+              eq: { value_types: ['string'] },
+            },
+            actions: {
+              allow: { result: 'allow', params: [] },
+            },
+          },
+        }),
+      ),
+      http.post(MATCH_ANY_API_ORIGIN.growthRuleCompile, async ({ request }) => {
+        capturedCompileBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          schema_version: 'growth-rule.v1',
+          catalog_version: 'growth-rule-catalog.v1',
+          normalized_ast: ast,
+          compiled_plan: { catalog_version: 'growth-rule-catalog.v1', condition: ast.when, actions: ast.then },
+          compiled_checksum: 'rule-checksum-001',
+          node_count: 2,
+          max_depth: 1,
+          complexity_score: 3,
+        });
+      }),
+      http.post(MATCH_ANY_API_ORIGIN.growthRuleSimulate, async ({ request }) => {
+        capturedSimulateBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          matched: true,
+          result: 'allow',
+          actions: [{ action: 'allow', result: 'allow', params: {} }],
+          trace: [{ type: 'condition', field: 'code.code_type', result: true }],
+          compiled_checksum: 'rule-checksum-001',
+        });
+      }),
+    );
+
+    const catalogResponse = await growthApi.getGrowthRuleCatalog();
+    const compileResponse = await growthApi.compileGrowthRule({ ast });
+    const simulateResponse = await growthApi.simulateGrowthRule({ ast, context });
+
+    expect(catalogResponse.data.catalog.catalog_version).toBe('growth-rule-catalog.v1');
+    expect(compileResponse.data.compiled_checksum).toBe('rule-checksum-001');
+    expect(simulateResponse.data.matched).toBe(true);
+    expect(capturedCompileBody).toEqual({ ast });
+    expect(capturedSimulateBody).toEqual({ ast, context });
   });
 
   it('lists admin promo codes with operational fields', async () => {

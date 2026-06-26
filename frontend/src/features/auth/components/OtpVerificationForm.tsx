@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from '@/i18n/navigation';
 import { authApi, OtpErrorResponse } from '@/lib/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
+import { getPostAuthDestination } from '@/features/customer-onboarding/routing';
 
 export function OtpVerificationForm() {
     const router = useRouter();
@@ -21,7 +22,7 @@ export function OtpVerificationForm() {
     const autoVerifyStartedRef = useRef(false);
 
     // Get auth store for OTP verification and login
-    const { verifyOtpAndLogin, isAuthenticated } = useAuthStore();
+    const { verifyOtpAndLogin } = useAuthStore();
 
     // Get email from query params (passed from registration)
     const email = searchParams.get('email') || '';
@@ -47,13 +48,6 @@ export function OtpVerificationForm() {
         }
     }, [timeLeft]);
 
-    // Redirect to dashboard when authenticated
-    useEffect(() => {
-        if (isAuthenticated && success) {
-            router.push('/dashboard');
-        }
-    }, [isAuthenticated, success, router]);
-
     const handleVerify = useCallback(async (codeToVerify?: string) => {
         const normalizedCode = (codeToVerify ?? otp).replace(/\D/gu, '').slice(0, 6);
         if (normalizedCode.length !== 6 || !email) return;
@@ -64,13 +58,15 @@ export function OtpVerificationForm() {
 
         try {
             // Use auth store to verify OTP and auto-login (stores tokens + sets isAuthenticated)
-            await verifyOtpAndLogin(email, normalizedCode);
+            const result = await verifyOtpAndLogin(email, normalizedCode);
 
             // Success - auth store now has user and isAuthenticated=true
             setSuccess(true);
             setIsLoading(false);
-
-            // Redirect will happen via useEffect when isAuthenticated changes
+            router.push(getPostAuthDestination({
+                onboarding: result.onboarding,
+                surface: 'web',
+            }));
 
         } catch (err) {
             const axiosError = err as AxiosError<{ detail: OtpErrorResponse }>;
@@ -89,7 +85,7 @@ export function OtpVerificationForm() {
             setIsLoading(false);
             setOtp(''); // Clear OTP on error
         }
-    }, [email, otp, verifyOtpAndLogin]);
+    }, [email, otp, router, verifyOtpAndLogin]);
 
     useEffect(() => {
         if (!email || urlCode.length !== 6 || autoVerifyStartedRef.current) {

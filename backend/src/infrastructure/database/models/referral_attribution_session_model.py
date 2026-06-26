@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Uuid
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
@@ -14,6 +14,13 @@ from src.infrastructure.database.session import Base
 
 class ReferralAttributionSessionModel(Base):
     __tablename__ = "referral_attribution_sessions"
+    __table_args__ = (
+        Index(
+            "uq_referral_attr_sessions_claimed_by_user_id",
+            "claimed_by_user_id",
+            unique=True,
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     token_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)

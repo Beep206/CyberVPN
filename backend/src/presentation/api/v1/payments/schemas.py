@@ -135,6 +135,7 @@ class CheckoutQuoteRequest(BaseModel):
     code_input: str | None = Field(None, max_length=64, description="Optional promo or referral code")
     promo_code: str | None = Field(None, max_length=50, description="Optional promo code")
     partner_code: str | None = Field(None, max_length=30, description="Optional partner code")
+    private_catalog_grant_id: UUID | None = Field(None, description="Private catalog grant from code-set preflight")
     use_wallet: float = Field(0, ge=0, description="Requested wallet amount in USD")
     currency: str = Field("USD", min_length=3, max_length=12, description="Gateway asset code")
     channel: str = Field("web", min_length=1, max_length=30, description="Checkout sale channel")
@@ -165,9 +166,17 @@ class CheckoutCodeResolutionResponse(BaseModel):
     reservation_id: UUID | None = None
 
 
+class CheckoutCodeRefResponse(BaseModel):
+    redacted: bool
+    code_hash: str
+    code_prefix: str
+    code_length: int | None = None
+
+
 class CheckoutDiscountResponse(BaseModel):
     type: str
     code: str
+    code_ref: CheckoutCodeRefResponse | None = None
     amount: float
     policy_version_id: UUID | None = None
 
@@ -186,7 +195,9 @@ class CheckoutQuoteResponse(BaseModel):
     plan_id: UUID | None = None
     promo_code_id: UUID | None = None
     partner_code_id: UUID | None = None
+    private_catalog_grant_id: UUID | None = None
     code_input: str | None = None
+    code_input_ref: CheckoutCodeRefResponse | None = None
     code_resolution: CheckoutCodeResolutionResponse | None = None
     discounts: list[CheckoutDiscountResponse] = Field(default_factory=list)
     addons: list[CheckoutAddonResponse] = Field(default_factory=list)

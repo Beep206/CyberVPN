@@ -643,10 +643,6 @@ describe('Auth Store', () => {
       const mockUser = createMockUser({ id: 'usr_otp_001', role: 'user' });
       mockVerifyOtp.mockResolvedValue({
         data: {
-          ...createMockTokenResponse({
-            access_token: 'otp_access',
-            refresh_token: 'otp_refresh',
-          }),
           user: mockUser,
         },
       });
@@ -667,7 +663,6 @@ describe('Auth Store', () => {
       // Arrange
       mockVerifyOtp.mockResolvedValue({
         data: {
-          ...createMockTokenResponse(),
           user: createMockUser(),
         },
       });
@@ -686,7 +681,7 @@ describe('Auth Store', () => {
       // Arrange
       const mockUser = createMockUser({ id: 'usr_otp_analytics' });
       mockVerifyOtp.mockResolvedValue({
-        data: { ...createMockTokenResponse(), user: mockUser },
+        data: { user: mockUser },
       });
 
       // Act

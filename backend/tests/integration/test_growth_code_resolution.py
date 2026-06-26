@@ -798,14 +798,17 @@ async def test_quote_accepts_referral_code_without_creating_reservation(async_cl
 
             assert response.status_code == 201
             payload = response.json()
-            assert payload["quote"]["code_input"] == "REFERQUOTE10"
+            assert payload["quote"]["code_input"] != "REFERQUOTE10"
+            assert payload["quote"]["code_input_ref"]["redacted"] is True
+            assert payload["quote"]["code_input_ref"]["code_prefix"] == "REF"
             assert payload["quote"]["code_resolution"]["code_type"] == "referral"
             assert payload["quote"]["code_resolution"]["result"] == "accepted"
             assert payload["quote"]["code_resolution"]["reservation_id"] is None
             assert payload["quote"]["discounts"] == [
                 {
                     "type": "referral",
-                    "code": "REFERQUOTE10",
+                    "code": payload["quote"]["code_input"],
+                    "code_ref": payload["quote"]["code_input_ref"],
                     "amount": 7.5,
                     "policy_version_id": None,
                 }

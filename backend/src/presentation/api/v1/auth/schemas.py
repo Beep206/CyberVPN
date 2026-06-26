@@ -129,19 +129,33 @@ class ResendOtpRequest(BaseModel):
     locale: str = Field(default="en-EN", max_length=10)
 
 
-class VerifyOtpResponse(BaseModel):
-    """Response for successful OTP verification with auto-login."""
+class CustomerOnboardingAuthSummaryResponse(BaseModel):
+    """Post-registration onboarding summary safe for browser auth responses."""
 
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int = 0
+    required: bool
+    status: Literal["disabled", "unavailable", "pending", "completed", "skipped"]
+    flow_key: str
+    version: int
+    allowed_code_types: list[Literal["promo", "invite", "gift"]]
+    flow_token: str | None = None
+    message_key: str
+    server_state_available: bool
+    referral_already_attributed: bool = False
+
+
+class VerifyOtpResponse(BaseModel):
+    """Response for successful browser OTP verification.
+
+    Browser sessions are delivered through httpOnly cookies only.
+    """
+
     auth_realm_id: UUID | None = None
     auth_realm_key: str | None = None
     audience: str | None = None
     principal_type: str | None = None
     scope_family: str | None = None
     user: AdminUserResponse
+    onboarding: CustomerOnboardingAuthSummaryResponse | None = None
 
 
 class OtpErrorResponse(BaseModel):
@@ -172,6 +186,34 @@ class RegisterResponse(BaseModel):
     is_active: bool = False
     is_email_verified: bool = False
     message: str = "Registration successful."
+
+
+class RegistrationAccessExchangeRequest(BaseModel):
+    """One-time raw registration access token exchange request."""
+
+    registration_access_token: str = Field(
+        ...,
+        min_length=1,
+        max_length=512,
+        validation_alias=AliasChoices("registration_access_token", "invite_token"),
+    )
+
+
+class RegistrationAccessPolicyResponse(BaseModel):
+    """Registration policy metadata safe for browser display."""
+
+    invite_required: bool
+    auth_realm_key: str | None = None
+
+
+class RegistrationAccessExchangeResponse(BaseModel):
+    """Cookie-backed registration access exchange response without secrets."""
+
+    status: Literal["exchanged"]
+    email_hint_present: bool = False
+    email_hint_masked: str | None = None
+    expires_at: datetime
+    registration_policy: RegistrationAccessPolicyResponse
 
 
 class LogoutAllResponse(BaseModel):
@@ -233,16 +275,16 @@ class TelegramMiniAppRequest(BaseModel):
 
 
 class TelegramMiniAppResponse(BaseModel):
-    """Response for Telegram Mini App authentication."""
+    """Response for Telegram Mini App authentication.
 
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int = 0
+    Mini App browser sessions are delivered through httpOnly cookies only.
+    """
+
     user: AdminUserResponse
     is_new_user: bool = False
     requires_2fa: bool = False
     tfa_token: str | None = None
+    onboarding: CustomerOnboardingAuthSummaryResponse | None = None
 
 
 class TelegramBotLinkRequest(BaseModel):

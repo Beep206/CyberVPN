@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from time import perf_counter
@@ -12,6 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
 from src.application.use_cases.growth_codes.hashing import hash_growth_code
+from src.application.use_cases.growth_codes.namespace import (
+    CODE_NAMESPACE_AMBIGUOUS,
+    GrowthCodeNamespaceLookup,
+    GrowthCodeNamespaceService,
+)
 from src.application.use_cases.growth_codes.registry import GrowthCodeRegistryService
 from src.application.use_cases.partner_attribution.eligibility import (
     EvaluatePartnerCodeEligibilityCommand,
@@ -41,6 +46,7 @@ from src.infrastructure.database.repositories.customer_commercial_binding_repo i
 )
 from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
 from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRepository
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
@@ -81,9 +87,17 @@ class ResolveGrowthCodeUseCase:
         self._invites = InviteCodeRepository(session)
         self._promos = PromoCodeRepository(session)
         self._partners = PartnerRepository(session)
+        self._users = MobileUserRepository(session)
         self._bindings = CustomerCommercialBindingRepository(session)
         self._growth_codes = GrowthCodeRepository(session)
         self._registry = GrowthCodeRegistryService(session)
+        self._namespace = GrowthCodeNamespaceService(
+            canonical_codes=self._growth_codes,
+            invite_codes=self._invites,
+            promo_codes=self._promos,
+            referral_codes=self._users,
+            partner_codes=self._partners,
+        )
         self._config = ConfigService(SystemConfigRepository(session))
         self._partner_eligibility = EvaluatePartnerCodeEligibilityWithContextUseCase(session)
 
@@ -101,9 +115,34 @@ class ResolveGrowthCodeUseCase:
         surface: str | None = None,
     ) -> GrowthCodeResolutionOutcome:
         started_at = perf_counter()
-        normalized_code = code.strip()
-        if not normalized_code:
+        try:
+            namespace_lookup = await self._namespace.lookup_customer_input(code)
+        except ValueError:
             outcome = self._not_found(action_context)
+            self._observe_resolution_duration(
+                code_type=None,
+                action_context=action_context.value,
+                surface=surface or CUSTOMER_COMMERCE_SURFACE,
+                result=outcome.result.value,
+                started_at=started_at,
+            )
+            return outcome
+        normalized_code = namespace_lookup.normalized.normalized_code
+
+        if namespace_lookup.is_ambiguous:
+            outcome = self._namespace_ambiguous(action_context, namespace_lookup)
+            await self._registry.record_resolution_event(
+                growth_code_id=None,
+                raw_code=normalized_code,
+                code_type=None,
+                user_id=user_id,
+                surface=surface or action_context.value,
+                action_context=action_context.value,
+                result=outcome.result.value,
+                reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
+                conflict_code=outcome.conflict_code,
+                policy_version_id=None,
+            )
             self._observe_resolution_duration(
                 code_type=None,
                 action_context=action_context.value,
@@ -114,7 +153,11 @@ class ResolveGrowthCodeUseCase:
             return outcome
 
         registry_code = None
-        invite = await self._invites.get_by_code(normalized_code)
+        invite = None
+        for lookup_code in namespace_lookup.normalized.lookup_values:
+            invite = await self._invites.get_by_code(lookup_code)
+            if invite is not None:
+                break
         if invite is not None:
             registry_code = await self._registry.ensure_shadow_invite(invite)
             outcome = self._resolve_invite(
@@ -144,7 +187,11 @@ class ResolveGrowthCodeUseCase:
             )
             return outcome
 
-        promo = await self._promos.get_by_code(normalized_code)
+        promo = None
+        for lookup_code in namespace_lookup.normalized.lookup_values:
+            promo = await self._promos.get_by_code(lookup_code)
+            if promo is not None:
+                break
         if promo is not None:
             registry_code = await self._registry.ensure_shadow_promo(promo)
             outcome = await self._resolve_promo(
@@ -155,6 +202,13 @@ class ResolveGrowthCodeUseCase:
                 amount=amount,
                 storefront_id=storefront_id,
                 existing_partner_code_present=existing_partner_code_present,
+            )
+            outcome = replace(
+                outcome,
+                policy_snapshot=await self._build_policy_snapshot_with_benefits(
+                    growth_code_id=registry_code.id,
+                    base_snapshot=outcome.policy_snapshot,
+                ),
             )
             outcome = self._with_growth_code_id(outcome, registry_code.id)
             await self._registry.record_resolution_event(
@@ -207,7 +261,11 @@ class ResolveGrowthCodeUseCase:
             )
             return outcome
 
-        referral_owner = await self._resolve_referral_owner(normalized_code)
+        referral_owner = None
+        for lookup_code in namespace_lookup.normalized.lookup_values:
+            referral_owner = await self._resolve_referral_owner(lookup_code)
+            if referral_owner is not None:
+                break
         if referral_owner is not None:
             registry_code = await self._registry.ensure_shadow_referral(referral_owner)
             outcome = await self._resolve_referral(
@@ -239,7 +297,11 @@ class ResolveGrowthCodeUseCase:
             )
             return outcome
 
-        partner_code = await self._partners.get_code_by_code(normalized_code)
+        partner_code = None
+        for lookup_code in namespace_lookup.normalized.lookup_values:
+            partner_code = await self._partners.get_code_by_code(lookup_code)
+            if partner_code is not None:
+                break
         if partner_code is not None:
             outcome = await self._resolve_partner_code(
                 partner_code=partner_code,
@@ -890,6 +952,32 @@ class ResolveGrowthCodeUseCase:
         )
         return any(binding.owner_type in PARTNER_FLOW_OWNER_TYPES for binding in bindings)
 
+    async def _build_policy_snapshot_with_benefits(
+        self,
+        *,
+        growth_code_id: UUID,
+        base_snapshot: dict | None,
+    ) -> dict:
+        snapshot = dict(base_snapshot or {})
+        benefits = await self._growth_codes.list_active_benefits_for_code(growth_code_id)
+        if benefits:
+            snapshot["benefits"] = [
+                {
+                    "benefit_id": str(benefit.id),
+                    "benefit_type": benefit.benefit_type,
+                    "type": benefit.benefit_type,
+                    "trigger_type": benefit.trigger_type,
+                    "merge_mode": benefit.merge_mode,
+                    "config": dict(benefit.config or {}),
+                    "sort_order": benefit.sort_order,
+                    "is_active": bool(benefit.is_active),
+                    "growth_code_id": str(benefit.growth_code_id),
+                    "policy_version_id": str(benefit.policy_version_id) if benefit.policy_version_id else None,
+                }
+                for benefit in benefits
+            ]
+        return snapshot
+
     @staticmethod
     def _not_found(action_context: GrowthCodeActionContext) -> GrowthCodeResolutionOutcome:
         return GrowthCodeResolutionOutcome(
@@ -899,6 +987,27 @@ class ResolveGrowthCodeUseCase:
             result=GrowthCodeResolutionStatus.REJECTED,
             reject_reason=GrowthCodeRejectReason.CODE_NOT_FOUND,
             user_message_key="growth_codes.code.not_found",
+        )
+
+    @staticmethod
+    def _namespace_ambiguous(
+        action_context: GrowthCodeActionContext,
+        namespace_lookup: GrowthCodeNamespaceLookup,
+    ) -> GrowthCodeResolutionOutcome:
+        return GrowthCodeResolutionOutcome(
+            accepted=False,
+            code_type=None,
+            action_context=action_context,
+            result=GrowthCodeResolutionStatus.CONFLICTED,
+            reject_reason=GrowthCodeRejectReason.CODE_CONFLICTS_WITH_PROMO,
+            conflict_code=CODE_NAMESPACE_AMBIGUOUS,
+            user_message_key="growth_codes.code.namespace_ambiguous",
+            policy_snapshot={
+                "namespace": namespace_lookup.normalized.namespace,
+                "matched_code_types": [code_type.value for code_type in namespace_lookup.matched_code_types],
+                "code_hash": namespace_lookup.normalized.code_hash,
+                "masked_code": namespace_lookup.normalized.masked_code,
+            },
         )
 
     @staticmethod

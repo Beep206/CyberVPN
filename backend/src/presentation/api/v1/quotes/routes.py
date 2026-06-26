@@ -7,6 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.use_cases.commerce_sessions import CreateQuoteSessionUseCase, GetQuoteSessionUseCase
 from src.application.use_cases.partner_attribution.attribution import PartnerAttributionError
 from src.application.use_cases.partner_attribution.utils import PARTNER_ATTRIBUTION_COOKIE_NAME
+from src.presentation.api.shared.private_catalog_session import (
+    PRIVATE_CATALOG_ANONYMOUS_SESSION_COOKIE,
+    private_catalog_anonymous_session_subject,
+)
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
@@ -100,10 +104,16 @@ async def create_quote_session(
             currency=payload.currency,
             channel=payload.channel,
             addons=[addon.model_dump() for addon in payload.addons],
+            private_catalog_grant_id=payload.private_catalog_grant_id,
             source_host=current_realm.host,
             source_path=request.url.path,
             campaign_params={key: value for key, value in request.query_params.items()},
             partner_attribution_cookie_token=attribution_cookie_token,
+            private_catalog_anonymous_session_id=(
+                private_catalog_anonymous_session_subject(request.cookies.get(PRIVATE_CATALOG_ANONYMOUS_SESSION_COOKIE))
+                if payload.private_catalog_grant_id is not None
+                else None
+            ),
         )
     except PartnerAttributionError as exc:
         await db.rollback()

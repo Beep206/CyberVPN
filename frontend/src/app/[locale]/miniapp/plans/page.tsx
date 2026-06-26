@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
@@ -19,6 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { codesApi, invitesApi, miniappApi } from '@/lib/api';
+import { OFFICIAL_WEB_STOREFRONT_KEY } from '@/lib/api/commerce';
 import type { MiniAppCheckoutFlow } from '@/lib/api/miniapp';
 import type { CheckoutCommitResponse, CheckoutQuoteResponse } from '@/lib/api/payments';
 import type { PlanRecord } from '@/lib/api/plans';
@@ -27,6 +28,11 @@ import {
   getGrowthCodeResolutionMessage,
   getUnsupportedCheckoutCodeMessage,
 } from '@/features/customer-growth/lib/checkout-code-resolution';
+import {
+  buildPrivateOfferUnlockCopy,
+  PrivateOfferUnlock,
+  type PrivateOfferSelection,
+} from '@/features/customer-growth/components/PrivateOfferUnlock';
 import {
   areCheckoutCodeDiscountsEnabled,
   areSubscriptionAddonsEnabled,
@@ -67,6 +73,7 @@ type CommitCheckoutPayload = {
   addonLines: CheckoutAddonLine[];
   effectivePromoCode: string | null;
   effectiveCheckoutCodeInput: string | null;
+  privateCatalogGrantId: string | null;
   telegramStarsAmount: number;
   invoiceSupported: boolean;
 };
@@ -425,11 +432,14 @@ export default function MiniAppPlansPage() {
   const [codeInput, setCodeInput] = useState('');
   const [appliedCodeInput, setAppliedCodeInput] = useState<string | null>(null);
   const [appliedCodeType, setAppliedCodeType] = useState<string | null>(null);
+  const [privateOfferSelection, setPrivateOfferSelection] =
+    useState<PrivateOfferSelection | null>(null);
   const [codeFeedback, setCodeFeedback] = useState<{
     tone: 'success' | 'warning' | 'error';
     message: string;
   } | null>(null);
   const [inviteCode, setInviteCode] = useState('');
+  const privateOfferCopy = useMemo(() => buildPrivateOfferUnlockCopy(t), [t]);
 
   const offersQuery = useQuery({
     queryKey: ['miniapp-offers', selectedSubscriptionKey],
@@ -482,7 +492,11 @@ export default function MiniAppPlansPage() {
     ?? selectedFamily?.periods[0]?.duration_days
     ?? null;
   const selectedSku = selectedFamily?.periods.find((plan) => plan.duration_days === selectedPeriod) ?? null;
-  const selectedPlanId = selectedSku?.uuid ?? (hasCurrentSubscription ? currentEntitlements?.plan_uuid : null) ?? null;
+  const selectedPlanId =
+    privateOfferSelection?.planId
+    ?? selectedSku?.uuid
+    ?? (hasCurrentSubscription ? currentEntitlements?.plan_uuid : null)
+    ?? null;
   const addonPlanCode = hasCurrentSubscription && !selectedSku
     ? currentEntitlements?.plan_code ?? null
     : selectedFamily?.code ?? currentEntitlements?.plan_code ?? null;
@@ -497,18 +511,19 @@ export default function MiniAppPlansPage() {
     extraDeviceAddon || dedicatedIpAddon || trafficAddons.length > 0,
   );
 
-  const isCurrentPlan = Boolean(
+  const hasPrivateOfferSelection = Boolean(privateOfferSelection);
+  const isCurrentPlan = !hasPrivateOfferSelection && Boolean(
     (selectedSku && currentEntitlements?.plan_uuid === selectedSku.uuid)
       || (hasCurrentSubscription && !selectedSku && currentEntitlements?.plan_uuid),
   );
-  const isUpgradeFlow = Boolean(hasCurrentSubscription && selectedSku && !isCurrentPlan);
+  const isUpgradeFlow = !hasPrivateOfferSelection && Boolean(hasCurrentSubscription && selectedSku && !isCurrentPlan);
   const canAddExtraDevice = Boolean(
     extraDeviceAddon && getAddonPlanLimit(extraDeviceAddon, addonPlanCode) > 0,
   );
   const maxExtraDevices = extraDeviceAddon ? getAddonPlanLimit(extraDeviceAddon, addonPlanCode) : 0;
 
   const addonLines =
-    addonsEnabled && !isUpgradeFlow
+    addonsEnabled && !isUpgradeFlow && !hasPrivateOfferSelection
       ? [
           ...(extraDeviceQty > 0
             ? [{ code: 'extra_device', qty: extraDeviceQty }]
@@ -531,6 +546,8 @@ export default function MiniAppPlansPage() {
 
   const flow: QuoteFlow = !selectedPlanId
     ? 'none'
+    : hasPrivateOfferSelection
+      ? 'checkout'
     : isCurrentPlan
       ? addonLines.length > 0
         ? 'addons'
@@ -539,9 +556,10 @@ export default function MiniAppPlansPage() {
         ? 'upgrade'
         : 'checkout';
 
-  const dedicatedIpReady = !addonsEnabled || !wantsDedicatedIp || dedicatedIpLocation.trim().length >= 2;
+  const dedicatedIpReady =
+    hasPrivateOfferSelection || !addonsEnabled || !wantsDedicatedIp || dedicatedIpLocation.trim().length >= 2;
   const selectedTelegramStarsAmount =
-    telegramStarsRailEnabled && selectedSku
+    telegramStarsRailEnabled && selectedSku && !hasPrivateOfferSelection
       ? extractTelegramStarsAmount(selectedSku.features as Record<string, unknown> | undefined)
       : 0;
   const selectedUsesTelegramStars =
@@ -608,6 +626,8 @@ export default function MiniAppPlansPage() {
       dedicatedIpLocation,
       effectivePromoCode,
       effectiveCheckoutCodeInput,
+      privateOfferSelection?.privateCatalogGrantId ?? null,
+      privateOfferSelection?.planId ?? null,
       selectedSubscriptionKey,
     ],
     enabled: Boolean(selectedPlanId) && flow !== 'none' && flow !== 'current' && dedicatedIpReady && checkoutEnabled,
@@ -624,6 +644,7 @@ export default function MiniAppPlansPage() {
         addons: addonLines,
         code_input: effectiveCheckoutCodeInput ?? undefined,
         promo_code: effectivePromoCode ?? undefined,
+        private_catalog_grant_id: privateOfferSelection?.privateCatalogGrantId ?? undefined,
         ...(selectedSubscriptionKey ? { subscription_key: selectedSubscriptionKey } : {}),
         use_wallet: 0,
         currency: 'USD',
@@ -766,6 +787,7 @@ export default function MiniAppPlansPage() {
         addons: payload.addonLines,
         code_input: payload.effectiveCheckoutCodeInput ?? undefined,
         promo_code: payload.effectivePromoCode ?? undefined,
+        private_catalog_grant_id: payload.privateCatalogGrantId ?? undefined,
         ...(selectedSubscriptionKey ? { subscription_key: selectedSubscriptionKey } : {}),
         use_wallet: 0,
         currency: canUseTelegramStarsCheckout ? 'XTR' : 'USD',
@@ -1108,6 +1130,7 @@ export default function MiniAppPlansPage() {
                           ?? plan.periods[0]?.duration_days
                           ?? null,
                       );
+                      setPrivateOfferSelection(null);
                       setExtraDeviceQty(0);
                       setSelectedTrafficAddonCode(null);
                       setWantsDedicatedIp(false);
@@ -1168,6 +1191,7 @@ export default function MiniAppPlansPage() {
                         onClick={() => {
                           haptic('light');
                           setSelectedPeriodOverride(period.duration_days);
+                          setPrivateOfferSelection(null);
                         }}
                         className={`rounded-xl border px-3 py-3 text-left transition-all ${
                           isSelected
@@ -1204,7 +1228,17 @@ export default function MiniAppPlansPage() {
         )}
       </div>
 
-      {addonsEnabled ? (
+      <PrivateOfferUnlock
+        storefrontKey={OFFICIAL_WEB_STOREFRONT_KEY}
+        channel="miniapp"
+        currency="USD"
+        copy={privateOfferCopy}
+        selectedOffer={privateOfferSelection}
+        onSelectionChange={setPrivateOfferSelection}
+        variant="miniapp"
+      />
+
+      {addonsEnabled && !hasPrivateOfferSelection ? (
         <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
           <div className="mb-4">
             <h3 className="font-display text-lg uppercase tracking-[0.16em]">{t('addonsTitle')}</h3>
@@ -1474,6 +1508,7 @@ export default function MiniAppPlansPage() {
               effectivePromoCode,
               effectiveCheckoutCodeInput,
               telegramStarsAmount: selectedTelegramStarsAmount,
+              privateCatalogGrantId: privateOfferSelection?.privateCatalogGrantId ?? null,
               invoiceSupported: Boolean(webApp?.openInvoice),
             });
           }}

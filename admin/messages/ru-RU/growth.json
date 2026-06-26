@@ -117,6 +117,7 @@
     "promoCodes": "Промокоды",
     "referrals": "Рефералы",
     "reporting": "Отчётность",
+    "rules": "Правила",
     "risk": "Risk-сигналы"
   },
   "overview": {
@@ -341,6 +342,7 @@
       "promoCodes": "Создание, просмотр, обновление и деактивация кампаний по промокодам.",
       "referrals": "Мониторинг referral-комиссий, топ-referrer'ов и последних earnings по конверсиям.",
       "reporting": "Просмотр persisted rollups, reporting-подписок, управление coverage и exportable delivery artifacts.",
+      "rules": "Сборка и симуляция типизированных AST growth-правил через backend compiler.",
       "risk": "Triage referral abuse-pressure, blocked rewards и lifecycle сигналы риска из growth queue."
     },
     "routesDescription": "Growth реализован только там, где backend реально даёт admin-покрытие. Каждый маршрут ниже привязан к существующей операторской поверхности.",
@@ -553,6 +555,136 @@
     },
     "title": "Промо-Инвентарь",
     "writeOnlyHint": "Write-only поля"
+  },
+  "rules": {
+    "actions": {
+      "compile": "Скомпилировать",
+      "compiling": "Компилируем...",
+      "export": "Экспорт JSON",
+      "import": "Импорт JSON",
+      "redo": "Повторить",
+      "reset": "Сбросить draft",
+      "simulate": "Симулировать",
+      "simulating": "Симулируем...",
+      "undo": "Отменить"
+    },
+    "actionsPanel": {
+      "empty": "В этом AST нет действий.",
+      "remove": "Удалить действие",
+      "title": "Стек Действий"
+    },
+    "autosave": {
+      "dirty": "Автосохранение",
+      "idle": "Локальный draft",
+      "restored": "Восстановлено",
+      "saved": "Автосохранено"
+    },
+    "compile": {
+      "catalog": "Каталог",
+      "checksum": "Checksum",
+      "complexity": "Complexity",
+      "empty": "Скомпилируйте AST, чтобы увидеть checksum, нормализованную форму и лимиты complexity.",
+      "maxDepth": "Max depth",
+      "nodeCount": "Nodes",
+      "schema": "Схема",
+      "title": "Результат Компиляции"
+    },
+    "description": "Консоль в стиле админки для типизированных Growth Codes v6 rules поверх admin catalog, compiler и simulator без side effects.",
+    "diff": {
+      "description": "Сравнение текущего draft с нормализованным AST из последней backend-компиляции.",
+      "draft": "Draft",
+      "empty": "Нормализованный AST пока не скомпилирован.",
+      "normalized": "Normalized",
+      "title": "Предпросмотр Version Diff"
+    },
+    "editor": {
+      "astLabel": "Rule AST JSON",
+      "description": "Редактор хранит backend-supported JSON AST growth-rule.v1.",
+      "title": "JSON AST"
+    },
+    "errors": {
+      "astInvalid": "AST JSON невалиден: {detail}",
+      "catalogFailed": "Не удалось загрузить каталог правил.",
+      "compileFailed": "Компиляция правила не удалась.",
+      "contextInvalid": "JSON контекста симуляции невалиден: {detail}",
+      "simulateFailed": "Симуляция правила не удалась.",
+      "title": "Ошибка rule-builder"
+    },
+    "eyebrow": "Рост / Правила",
+    "feedback": {
+      "actionAdded": "Действие добавлено в AST.",
+      "actionRemoved": "Действие удалено из AST.",
+      "compiled": "Правило скомпилировано backend.",
+      "conditionAdded": "Условие добавлено в AST.",
+      "conditionUpdated": "Условие обновлено.",
+      "exported": "Draft JSON экспортирован.",
+      "imported": "Draft JSON импортирован.",
+      "nodeDuplicated": "Node продублирован.",
+      "nodeRemoved": "Node удалён.",
+      "redo": "Draft повторён.",
+      "reset": "Draft сброшен.",
+      "rootUpdated": "Root group обновлена.",
+      "simulated": "Правило просимулировано backend.",
+      "undo": "Draft отменён.",
+      "unsupportedSelection": "Выбранное условие отсутствует в текущем каталоге."
+    },
+    "inspector": {
+      "addCondition": "Добавить условие",
+      "description": "Выберите field и operator из каталога, затем добавьте или обновите condition node.",
+      "duplicateSelected": "Дублировать выбранное",
+      "field": "Field",
+      "operator": "Operator",
+      "removeSelected": "Удалить выбранное",
+      "title": "Inspector",
+      "updateSelected": "Обновить выбранное",
+      "value": "Value"
+    },
+    "metaTitle": "Growth-правила - Ozoxy Admin",
+    "metrics": {
+      "catalogVersion": "Каталог",
+      "catalogVersionHint": "Server registry для fields, operators, actions и limits.",
+      "checksum": "Checksum",
+      "checksumHint": "Backend compiled checksum из последней компиляции.",
+      "checksumMissing": "Скомпилируйте текущий AST, чтобы получить checksum.",
+      "nodes": "Draft Nodes",
+      "nodesHint": "Backend max nodes: {max}",
+      "trace": "Matched Trace",
+      "traceHint": "Matched trace entries из последней симуляции."
+    },
+    "palette": {
+      "actions": "Actions",
+      "description": "Значения каталога загружаются из backend registry.",
+      "emptyActions": "Подходящих actions нет.",
+      "emptyFields": "Подходящих fields нет.",
+      "emptyOperators": "Подходящих operators нет.",
+      "fields": "Fields",
+      "loading": "Загружаем каталог правил...",
+      "operators": "Operators",
+      "search": "Поиск по каталогу",
+      "searchPlaceholder": "Field, operator или action",
+      "title": "Catalog Palette"
+    },
+    "simulator": {
+      "actionsTitle": "Actions",
+      "checksum": "Checksum",
+      "contextLabel": "Simulation context JSON",
+      "description": "Симуляция вызывает backend explain path и не меняет checkout или campaign state.",
+      "empty": "Запустите симуляцию, чтобы увидеть result, actions и trace.",
+      "matched": "Matched",
+      "notMatched": "Not matched",
+      "title": "Simulator",
+      "traceTitle": "Trace"
+    },
+    "title": "Growth-Правила",
+    "tree": {
+      "all": "All",
+      "any": "Any",
+      "ariaLabel": "Дерево AST growth-правила",
+      "children": "{count} children",
+      "description": "Tree view condition graph и списка actions в текущем JSON AST.",
+      "empty": "В этом AST нет condition tree.",
+      "title": "Rule Tree"
+    }
   },
   "referrals": {
     "abuseQueueDescription": "Повторяющиеся rejection-кластеры и blocked rewards, которые нужно triage’ить до того, как они станут support или fraud-инцидентом.",

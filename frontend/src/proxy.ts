@@ -21,10 +21,23 @@ const CABINET_PRIMARY_HOST = 'my.cyber-vpn.net';
 const ADMIN_ORIGIN = `https://${ADMIN_PRIMARY_HOST}`;
 const PUBLIC_ORIGIN = SITE_URL;
 const CABINET_ORIGIN = `https://${CABINET_PRIMARY_HOST}`;
+const CUSTOMER_SITE_RUNTIME_TTL_MS = 15_000;
+const CUSTOMER_SITE_RUNTIME_TIMEOUT_MS = 500;
 const CABINET_REDIRECT_ALLOWED_HOSTS = new Set([
   CABINET_PRIMARY_HOST,
   'localhost',
   '127.0.0.1',
+]);
+const REFERRAL_REDIRECT_CAMPAIGN_KEYS = new Set([
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_term',
+  'utm_content',
+  'gclid',
+  'fbclid',
+  'click_id',
+  'sub_id',
 ]);
 
 const CABINET_ROUTE_SEGMENTS = new Set([
@@ -79,6 +92,82 @@ const PUBLIC_ROUTE_SEGMENTS = new Set([
   'trust',
 ]);
 
+const CABINET_ONLY_LEGAL_ROUTE_SEGMENTS = new Set([
+  'acceptable-use',
+  'cookie-policy',
+  'privacy',
+  'privacy-policy',
+  'refund-policy',
+  'terms',
+]);
+
+const CABINET_ONLY_OPERATIONAL_ROUTE_SEGMENTS = new Set([
+  'status',
+  'telegram-widget',
+]);
+
+const AUTH_REDIRECT_PRESERVE_QUERY_KEYS = new Set([
+  ...REFERRAL_REDIRECT_CAMPAIGN_KEYS,
+  'ref',
+  'referral',
+  'code',
+  'state',
+  'scope',
+  'authuser',
+  'prompt',
+]);
+
+type CustomerSiteMode = 'full_site' | 'cabinet_only' | 'maintenance';
+
+type CustomerSiteRuntimeSnapshot = {
+  mode: CustomerSiteMode;
+  version: number;
+  publicHosts: readonly string[];
+  cabinetHosts: readonly string[];
+  cabinetDestinationPath: string;
+  allowedPathPrefixes: readonly string[];
+  preserveQueryKeys: readonly string[];
+};
+
+type CachedCustomerSiteRuntime = {
+  expiresAt: number;
+  snapshot: CustomerSiteRuntimeSnapshot;
+};
+
+const DEFAULT_CUSTOMER_SITE_RUNTIME: CustomerSiteRuntimeSnapshot = {
+  mode: 'full_site',
+  version: 1,
+  publicHosts: [PUBLIC_PRIMARY_HOST, PUBLIC_WWW_HOST],
+  cabinetHosts: [CABINET_PRIMARY_HOST],
+  cabinetDestinationPath: '/dashboard',
+  allowedPathPrefixes: [
+    '/login',
+    '/register',
+    '/verify',
+    '/verify-email',
+    '/reset-password',
+    '/magic-link',
+    '/oauth',
+    '/telegram-link',
+    '/legal',
+    '/r/',
+    '/p/',
+    '/.well-known/',
+  ],
+  preserveQueryKeys: [
+    'ref',
+    'referral',
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_content',
+    'utm_term',
+  ],
+};
+
+let cachedCustomerSiteRuntime: CachedCustomerSiteRuntime | null = null;
+let lastKnownGoodCustomerSiteRuntime: CustomerSiteRuntimeSnapshot | null = null;
+
 function normalizeHostnameCandidate(candidate?: string | null): string | null {
   const host = candidate?.split(',')[0]?.trim();
 
@@ -117,6 +206,17 @@ function getRequestLocale(pathname: string): string {
   return locales.includes(firstSegment as (typeof locales)[number])
     ? firstSegment
     : defaultLocale;
+}
+
+function getUnlocalizedPathname(pathname: string): string {
+  const segments = pathname.split('/').filter(Boolean);
+  const firstSegment = segments[0];
+  if (!locales.includes(firstSegment as (typeof locales)[number])) {
+    return pathname || '/';
+  }
+
+  const unlocalized = `/${segments.slice(1).join('/')}`;
+  return unlocalized === '/' ? '/' : unlocalized.replace(/\/$/, '') || '/';
 }
 
 function getShortReferralCode(pathname: string): string | null {
@@ -169,10 +269,9 @@ function buildReferralRegisterRedirectUrl(request: NextRequest, rawCode: string)
   target.searchParams.set('ref', rawCode);
 
   request.nextUrl.searchParams.forEach((value, key) => {
-    if (key === 'code' || key === 'ref' || key === 'referral') {
-      return;
+    if (REFERRAL_REDIRECT_CAMPAIGN_KEYS.has(key)) {
+      target.searchParams.append(key, value);
     }
-    target.searchParams.append(key, value);
   });
 
   return target;
@@ -186,6 +285,285 @@ function buildPartnerAttributionCanonicalUrl(request: NextRequest, token: string
   return target;
 }
 
+function normalizeCustomerSiteMode(value: unknown): CustomerSiteMode {
+  return value === 'cabinet_only' || value === 'maintenance' ? value : 'full_site';
+}
+
+function fallbackCustomerSiteRuntimeSnapshot(): CustomerSiteRuntimeSnapshot {
+  return {
+    ...DEFAULT_CUSTOMER_SITE_RUNTIME,
+    mode: normalizeCustomerSiteMode(process.env.CUSTOMER_SITE_MODE_FALLBACK),
+  };
+}
+
+function normalizeStringList(value: unknown, fallback: readonly string[]): readonly string[] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  const normalized = value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return normalized.length > 0 ? normalized : fallback;
+}
+
+function normalizeSafePath(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.startsWith('/') && !trimmed.startsWith('//') ? trimmed : fallback;
+}
+
+function normalizePositiveVersion(value: unknown): number {
+  const parsed = typeof value === 'number' || typeof value === 'string'
+    ? Number(value)
+    : Number.NaN;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function normalizeCustomerSiteRuntimeSnapshot(payload: unknown): CustomerSiteRuntimeSnapshot {
+  const fallback = fallbackCustomerSiteRuntimeSnapshot();
+  if (typeof payload !== 'object' || payload === null) {
+    return fallback;
+  }
+
+  const site = (payload as { site?: unknown }).site;
+  if (typeof site !== 'object' || site === null) {
+    return fallback;
+  }
+
+  const siteRecord = site as Record<string, unknown>;
+  const mode = normalizeCustomerSiteMode(
+    siteRecord.customer_site_mode ?? (siteRecord.cabinet_only === true ? 'cabinet_only' : undefined),
+  );
+
+  return {
+    mode,
+    version: normalizePositiveVersion(siteRecord.version),
+    publicHosts: normalizeStringList(siteRecord.public_hosts, fallback.publicHosts),
+    cabinetHosts: normalizeStringList(siteRecord.cabinet_hosts, fallback.cabinetHosts),
+    cabinetDestinationPath: normalizeSafePath(
+      siteRecord.cabinet_destination_path,
+      fallback.cabinetDestinationPath,
+    ),
+    allowedPathPrefixes: normalizeStringList(
+      siteRecord.allowed_path_prefixes,
+      fallback.allowedPathPrefixes,
+    ),
+    preserveQueryKeys: normalizeStringList(siteRecord.preserve_query_keys, fallback.preserveQueryKeys),
+  };
+}
+
+function resolveInternalApiOrigin(): string | null {
+  const raw = (
+    process.env.API_INTERNAL_ORIGIN
+    || process.env.API_URL
+    || process.env.NEXT_PUBLIC_API_URL
+    || ''
+  ).trim();
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || parsed.username || parsed.password) {
+      return null;
+    }
+
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCustomerSiteRuntimeSnapshot(): Promise<CustomerSiteRuntimeSnapshot> {
+  const now = Date.now();
+  if (cachedCustomerSiteRuntime && cachedCustomerSiteRuntime.expiresAt > now) {
+    return cachedCustomerSiteRuntime.snapshot;
+  }
+
+  const apiOrigin = resolveInternalApiOrigin();
+  if (!apiOrigin) {
+    return lastKnownGoodCustomerSiteRuntime ?? fallbackCustomerSiteRuntimeSnapshot();
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), CUSTOMER_SITE_RUNTIME_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${apiOrigin}/api/v1/client/capabilities`, {
+      cache: 'no-store',
+      headers: { accept: 'application/json' },
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Customer site runtime fetch failed with ${response.status}`);
+    }
+
+    const snapshot = normalizeCustomerSiteRuntimeSnapshot(await response.json());
+    cachedCustomerSiteRuntime = {
+      expiresAt: now + CUSTOMER_SITE_RUNTIME_TTL_MS,
+      snapshot,
+    };
+    lastKnownGoodCustomerSiteRuntime = snapshot;
+    return snapshot;
+  } catch {
+    return lastKnownGoodCustomerSiteRuntime ?? fallbackCustomerSiteRuntimeSnapshot();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function firstConfiguredHost(hosts: readonly string[], fallback: string): string {
+  const normalized = hosts
+    .map((host) => normalizeHostnameCandidate(host))
+    .find((host): host is string => Boolean(host));
+
+  return normalized ?? fallback;
+}
+
+function matchesConfiguredHost(hostname: string, hosts: readonly string[]): boolean {
+  return hosts
+    .map((host) => normalizeHostnameCandidate(host))
+    .some((host) => host === hostname);
+}
+
+function localizedRuntimePath(locale: string, path: string): string {
+  const safePath = normalizeSafePath(path, DEFAULT_CUSTOMER_SITE_RUNTIME.cabinetDestinationPath);
+  const segments = safePath.split('/').filter(Boolean);
+  const firstSegment = segments[0];
+
+  if (locales.includes(firstSegment as (typeof locales)[number])) {
+    return safePath;
+  }
+
+  return `/${locale}${safePath === '/' ? '' : safePath}`;
+}
+
+function buildWhitelistedRedirectUrl(
+  request: NextRequest,
+  origin: string,
+  pathname: string,
+  allowedQueryKeys: ReadonlySet<string>,
+): URL {
+  const target = new URL(pathname, origin);
+  request.nextUrl.searchParams.forEach((value, key) => {
+    if (allowedQueryKeys.has(key)) {
+      target.searchParams.append(key, value);
+    }
+  });
+  return target;
+}
+
+function getRuntimePreserveQueryKeys(snapshot: CustomerSiteRuntimeSnapshot): ReadonlySet<string> {
+  return new Set(snapshot.preserveQueryKeys);
+}
+
+function isAllowedByRuntimePrefix(pathname: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) => {
+    const normalizedPrefix = normalizeSafePath(prefix, '/').replace(/\/$/, '') || '/';
+    return pathname === normalizedPrefix || pathname.startsWith(`${normalizedPrefix}/`);
+  });
+}
+
+function isCabinetOnlyLegalOrOperationalRoute(routeSegment: string): boolean {
+  return (
+    CABINET_ONLY_LEGAL_ROUTE_SEGMENTS.has(routeSegment)
+    || CABINET_ONLY_OPERATIONAL_ROUTE_SEGMENTS.has(routeSegment)
+  );
+}
+
+function buildMaintenanceRedirect(
+  request: NextRequest,
+  snapshot: CustomerSiteRuntimeSnapshot,
+  hostname: string,
+  routeSegment: string,
+): NextResponse | null {
+  if (snapshot.mode !== 'maintenance') {
+    return null;
+  }
+
+  const inScopeHost =
+    matchesConfiguredHost(hostname, snapshot.publicHosts)
+    || matchesConfiguredHost(hostname, snapshot.cabinetHosts);
+  if (!inScopeHost || isCabinetOnlyLegalOrOperationalRoute(routeSegment)) {
+    return null;
+  }
+
+  const locale = getRequestLocale(request.nextUrl.pathname);
+  const publicHost = firstConfiguredHost(snapshot.publicHosts, PUBLIC_PRIMARY_HOST);
+  const target = buildWhitelistedRedirectUrl(
+    request,
+    `https://${publicHost}`,
+    `/${locale}/status`,
+    getRuntimePreserveQueryKeys(snapshot),
+  );
+  target.searchParams.set('mode', 'maintenance');
+  target.searchParams.set('source', 'site_mode');
+  return NextResponse.redirect(target);
+}
+
+function buildCabinetOnlyRedirect(
+  request: NextRequest,
+  snapshot: CustomerSiteRuntimeSnapshot,
+  hostname: string,
+  routeSegment: string,
+): NextResponse | null {
+  if (snapshot.mode !== 'cabinet_only') {
+    return null;
+  }
+
+  const isPublicHost = matchesConfiguredHost(hostname, snapshot.publicHosts);
+  const isCabinetHost = matchesConfiguredHost(hostname, snapshot.cabinetHosts);
+  if (!isPublicHost && !isCabinetHost) {
+    return null;
+  }
+  if (isCabinetHost) {
+    return null;
+  }
+
+  if (isCabinetOnlyLegalOrOperationalRoute(routeSegment)) {
+    return null;
+  }
+
+  const unlocalizedPathname = getUnlocalizedPathname(request.nextUrl.pathname);
+  if (isAllowedByRuntimePrefix(unlocalizedPathname, snapshot.allowedPathPrefixes)) {
+    if (isPublicHost && AUTH_ROUTE_SEGMENTS.has(routeSegment)) {
+      const cabinetHost = firstConfiguredHost(snapshot.cabinetHosts, CABINET_PRIMARY_HOST);
+      return NextResponse.redirect(
+        buildWhitelistedRedirectUrl(
+          request,
+          `https://${cabinetHost}`,
+          request.nextUrl.pathname,
+          AUTH_REDIRECT_PRESERVE_QUERY_KEYS,
+        ),
+      );
+    }
+
+    return null;
+  }
+
+  const locale = getRequestLocale(request.nextUrl.pathname);
+  const cabinetHost = firstConfiguredHost(snapshot.cabinetHosts, CABINET_PRIMARY_HOST);
+  return NextResponse.redirect(
+    buildWhitelistedRedirectUrl(
+      request,
+      `https://${cabinetHost}`,
+      localizedRuntimePath(locale, snapshot.cabinetDestinationPath),
+      getRuntimePreserveQueryKeys(snapshot),
+    ),
+  );
+}
+
+export function resetCustomerSiteRuntimeCacheForTests(): void {
+  cachedCustomerSiteRuntime = null;
+  lastKnownGoodCustomerSiteRuntime = null;
+}
+
 /**
  * Next.js 16 proxy function for routing.
  *
@@ -197,7 +575,7 @@ function buildPartnerAttributionCanonicalUrl(request: NextRequest, token: string
  * Per CLAUDE.md: "Do NOT put auth logic in proxy — use layouts or route
  * handlers instead."
  */
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const hostname = normalizedHostname(request);
 
   if (hostname === ADMIN_REDIRECT_ONLY_HOST) {
@@ -228,11 +606,27 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(buildReferralRegisterRedirectUrl(request, legacyReferralCode));
   }
 
+  const siteRuntime = await fetchCustomerSiteRuntimeSnapshot();
+  const maintenanceRedirect = buildMaintenanceRedirect(
+    request,
+    siteRuntime,
+    hostname,
+    routeSegment,
+  );
+  if (maintenanceRedirect) {
+    return maintenanceRedirect;
+  }
+
   if (
     (hostname === PUBLIC_PRIMARY_HOST || hostname === PUBLIC_WWW_HOST)
     && CABINET_ROUTE_SEGMENTS.has(routeSegment)
   ) {
     return NextResponse.redirect(buildCanonicalRedirectUrl(request, CABINET_ORIGIN));
+  }
+
+  const cabinetOnlyRedirect = buildCabinetOnlyRedirect(request, siteRuntime, hostname, routeSegment);
+  if (cabinetOnlyRedirect) {
+    return cabinetOnlyRedirect;
   }
 
   if (hostname === CABINET_PRIMARY_HOST) {

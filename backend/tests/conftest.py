@@ -22,6 +22,8 @@ TEST_ENV_DEFAULTS = {
     "CORS_ORIGINS": "http://localhost:3000",
     "ENABLE_METRICS": "true",
     "CYBERVPN_DEVICE_COOKIE_PEPPER": "pytest-device-cookie-pepper",
+    "TOTP_ENCRYPTION_KEY": "pytest-totp-encryption-key-32-bytes",
+    "OAUTH_TOKEN_ENCRYPTION_KEY": "pytest-oauth-encryption-key-32-bytes",
 }
 
 for env_key, env_value in TEST_ENV_DEFAULTS.items():

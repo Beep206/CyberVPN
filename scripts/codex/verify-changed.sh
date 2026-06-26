@@ -67,11 +67,11 @@ run_gate() {
   printf 'FINISHED_AT: %s\nEXIT_CODE: %s\n' "$(date -u +%FT%TZ)" "${exit_code}" | tee -a "${log_file}"
   if [[ ${exit_code} -eq 0 ]]; then
     printf '\033[1;32m[PASS]\033[0m %s\n' "${label}"
-    printf '%s\tpass\t0\t%s\n' "${label}" "${log_file#${ROOT}/}" >> "${RESULTS_FILE}"
+    printf '%s\tpass\t0\t%s\n' "${label}" "${log_file#"${ROOT}"/}" >> "${RESULTS_FILE}"
     PASS_COUNT=$((PASS_COUNT + 1))
   else
     printf '\033[1;31m[FAIL]\033[0m %s (exit %s)\n' "${label}" "${exit_code}"
-    printf '%s\tfail\t%s\t%s\n' "${label}" "${exit_code}" "${log_file#${ROOT}/}" >> "${RESULTS_FILE}"
+    printf '%s\tfail\t%s\t%s\n' "${label}" "${exit_code}" "${log_file#"${ROOT}"/}" >> "${RESULTS_FILE}"
     FAIL_COUNT=$((FAIL_COUNT + 1))
   fi
 }
@@ -127,7 +127,7 @@ backend_env=(
   "JWT_SECRET=${JWT_SECRET:-codex_local_jwt_secret_at_least_32_characters_long}"
   "CRYPTOBOT_TOKEN=${CRYPTOBOT_TOKEN:-codex_local_cryptobot_token}"
   "DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://test:test@127.0.0.1:5432/cybervpn_test}"
-  "REDIS_URL=${REDIS_URL:-redis://127.0.0.1:6379/0}"
+  "REDIS_URL=${REDIS_URL:-redis://127.0.0.1:6379/15}"
   "SWAGGER_ENABLED=${SWAGGER_ENABLED:-true}"
 )
 
@@ -152,7 +152,7 @@ if changed_prefix backend; then
   ensure_backend_venv
   run_gate "backend-ruff-check" backend/.venv/bin/python -m ruff check backend
   run_gate "backend-ruff-format" backend/.venv/bin/python -m ruff format --check backend
-  run_gate "backend-mypy" backend/.venv/bin/python -m mypy backend/src --ignore-missing-imports --no-strict-optional
+  run_gate "backend-mypy" bash -lc 'cd backend && .venv/bin/python -m mypy src --ignore-missing-imports --no-strict-optional'
   run_gate "backend-pytest" "${backend_env[@]}" backend/.venv/bin/python -m pytest backend/tests -v --tb=short
 fi
 
@@ -251,7 +251,7 @@ Path(summary_file).write_text(json.dumps(summary, ensure_ascii=False, indent=2) 
 PY
 
 ln -sfn "${LOG_DIR}" "${ROOT}/.codex/command-logs/latest"
-printf '\nVerification logs: %s\n' "${LOG_DIR#${ROOT}/}"
+printf '\nVerification logs: %s\n' "${LOG_DIR#"${ROOT}"/}"
 printf 'Passed: %s; Failed: %s\n' "${PASS_COUNT}" "${FAIL_COUNT}"
 
 if [[ ${FAIL_COUNT} -ne 0 ]]; then

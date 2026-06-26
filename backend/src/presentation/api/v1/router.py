@@ -5,6 +5,8 @@ from src.presentation.api.v1.addons.routes import router as addons_router
 from src.presentation.api.v1.admin.customer_operations import router as admin_customer_operations_router
 from src.presentation.api.v1.admin.customer_support import router as admin_customer_support_router
 from src.presentation.api.v1.admin.growth import router as admin_growth_router
+from src.presentation.api.v1.admin.growth_campaigns import router as admin_growth_campaigns_router
+from src.presentation.api.v1.admin.growth_rules import router as admin_growth_rules_router
 from src.presentation.api.v1.admin.invites import router as invites_router
 from src.presentation.api.v1.admin.mobile_users import router as admin_mobile_users_router
 from src.presentation.api.v1.admin.payment_attempts import router as admin_payment_attempts_router
@@ -25,6 +27,7 @@ from src.presentation.api.v1.codes.routes import router as codes_router
 from src.presentation.api.v1.commercial_bindings.routes import router as commercial_bindings_router
 from src.presentation.api.v1.config_profiles.routes import router as config_profiles_router
 from src.presentation.api.v1.creative_approvals.routes import router as creative_approvals_router
+from src.presentation.api.v1.customer_onboarding.routes import router as customer_onboarding_router
 from src.presentation.api.v1.customer_subscriptions.routes import router as customer_subscriptions_router
 from src.presentation.api.v1.device_credentials.routes import router as device_credentials_router
 from src.presentation.api.v1.dispute_cases.routes import router as dispute_cases_router
@@ -210,6 +213,7 @@ api_router.include_router(partner_attribution_router)
 api_router.include_router(commercial_bindings_router)
 api_router.include_router(growth_rewards_router)
 api_router.include_router(growth_notifications_router)
+api_router.include_router(customer_onboarding_router)
 api_router.include_router(gifts_router)
 api_router.include_router(renewal_orders_router)
 api_router.include_router(policy_evaluation_router)
@@ -267,6 +271,8 @@ api_router.include_router(admin_router)
 api_router.include_router(admin_system_config_router)
 api_router.include_router(invites_router)
 api_router.include_router(admin_growth_router)
+api_router.include_router(admin_growth_campaigns_router)
+api_router.include_router(admin_growth_rules_router)
 api_router.include_router(admin_mobile_users_router)
 api_router.include_router(admin_payment_attempts_router)
 api_router.include_router(admin_pricebooks_router)

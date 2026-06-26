@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from src.presentation.api.v1.addons.schemas import AddonResponse
 from src.presentation.api.v1.payments.schemas import (
@@ -221,6 +221,12 @@ class MiniAppCheckoutRequest(BaseModel):
     code_input: str | None = Field(None, alias="codeInput", max_length=64)
     promo_code: str | None = Field(None, alias="promoCode", max_length=50)
     partner_code: str | None = Field(None, alias="partnerCode", max_length=30)
+    private_catalog_grant_id: UUID | None = Field(
+        None,
+        validation_alias=AliasChoices("private_catalog_grant_id", "privateCatalogGrantId"),
+        serialization_alias="private_catalog_grant_id",
+        description="Private catalog grant from code-set preflight.",
+    )
     use_wallet: float = Field(0, alias="useWallet", ge=0)
     currency: str = Field("USD", min_length=3, max_length=12)
 

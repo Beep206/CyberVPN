@@ -2534,7 +2534,8 @@
       "promoCodes": "Promo Codes",
       "referrals": "Referrals",
       "reporting": "Reporting",
-      "risk": "Risk Signals"
+      "risk": "Risk Signals",
+      "rules": "Rules"
     },
     "overview": {
       "breakdownDescription": "Compact readout of current code statuses and lifecycle posture.",
@@ -2758,7 +2759,8 @@
         "promoCodes": "Create, inspect, update, and deactivate campaign promo codes.",
         "referrals": "Monitor referral commissions, top referrers, and recent conversion-linked earnings.",
         "reporting": "Review persisted rollups, reporting subscriptions, governance coverage, and exportable delivery artifacts.",
-        "risk": "Triage referral abuse pressure, blocked rewards, and lifecycle risk signals from the growth queue."
+        "risk": "Triage referral abuse pressure, blocked rewards, and lifecycle risk signals from the growth queue.",
+        "rules": "Build and simulate typed growth rule ASTs through the backend compiler."
       },
       "routesDescription": "Growth is implemented only where backend admin coverage is real. Each route below maps to an existing operator-safe surface.",
       "routesTitle": "Route Inventory",
@@ -2998,6 +3000,136 @@
         "totalRedemptionsHint": "Redemption volume already linked to the growth code lifecycle."
       },
       "title": "Referral Signals"
+    },
+    "rules": {
+      "actions": {
+        "compile": "Compile",
+        "compiling": "Compiling...",
+        "export": "Export JSON",
+        "import": "Import JSON",
+        "redo": "Redo",
+        "reset": "Reset draft",
+        "simulate": "Simulate",
+        "simulating": "Simulating...",
+        "undo": "Undo"
+      },
+      "actionsPanel": {
+        "empty": "No actions in this AST.",
+        "remove": "Remove action",
+        "title": "Action Stack"
+      },
+      "autosave": {
+        "dirty": "Autosaving",
+        "idle": "Local draft",
+        "restored": "Restored",
+        "saved": "Autosaved"
+      },
+      "compile": {
+        "catalog": "Catalog",
+        "checksum": "Checksum",
+        "complexity": "Complexity",
+        "empty": "Compile the AST to see checksum, normalized form, and complexity limits.",
+        "maxDepth": "Max depth",
+        "nodeCount": "Nodes",
+        "schema": "Schema",
+        "title": "Compile Result"
+      },
+      "description": "Design-consistent console for typed Growth Codes v6 rules backed by the admin catalog, compiler, and no-side-effect simulator.",
+      "diff": {
+        "description": "Compare the current draft with the normalized AST returned by the last backend compile.",
+        "draft": "Draft",
+        "empty": "No compiled normalized AST yet.",
+        "normalized": "Normalized",
+        "title": "Version Diff Preview"
+      },
+      "editor": {
+        "astLabel": "Rule AST JSON",
+        "description": "The editor stores the backend-supported growth-rule.v1 JSON AST.",
+        "title": "JSON AST"
+      },
+      "errors": {
+        "astInvalid": "AST JSON is invalid: {detail}",
+        "catalogFailed": "Rule catalog could not be loaded.",
+        "compileFailed": "Rule compile failed.",
+        "contextInvalid": "Simulation context JSON is invalid: {detail}",
+        "simulateFailed": "Rule simulation failed.",
+        "title": "Rule builder error"
+      },
+      "eyebrow": "Growth / Rules",
+      "feedback": {
+        "actionAdded": "Action added to AST.",
+        "actionRemoved": "Action removed from AST.",
+        "compiled": "Rule compiled by backend.",
+        "conditionAdded": "Condition added to AST.",
+        "conditionUpdated": "Condition updated.",
+        "exported": "Draft JSON exported.",
+        "imported": "Draft JSON imported.",
+        "nodeDuplicated": "Node duplicated.",
+        "nodeRemoved": "Node removed.",
+        "redo": "Draft redone.",
+        "reset": "Draft reset.",
+        "rootUpdated": "Root group updated.",
+        "simulated": "Rule simulated by backend.",
+        "undo": "Draft undone.",
+        "unsupportedSelection": "Selected condition is not present in the current catalog."
+      },
+      "inspector": {
+        "addCondition": "Add condition",
+        "description": "Select catalog-backed fields and operators, then add or update a condition node.",
+        "duplicateSelected": "Duplicate selected",
+        "field": "Field",
+        "operator": "Operator",
+        "removeSelected": "Remove selected",
+        "title": "Inspector",
+        "updateSelected": "Update selected",
+        "value": "Value"
+      },
+      "metaTitle": "Growth Rules - Ozoxy Admin",
+      "metrics": {
+        "catalogVersion": "Catalog",
+        "catalogVersionHint": "Server-provided field, operator, action, and limit registry.",
+        "checksum": "Checksum",
+        "checksumHint": "Backend compiled checksum from the latest compile.",
+        "checksumMissing": "Compile the current AST to get a checksum.",
+        "nodes": "Draft Nodes",
+        "nodesHint": "Backend max nodes: {max}",
+        "trace": "Matched Trace",
+        "traceHint": "Matched trace entries from the latest simulation."
+      },
+      "palette": {
+        "actions": "Actions",
+        "description": "Catalog values are loaded from the backend registry.",
+        "emptyActions": "No matching actions.",
+        "emptyFields": "No matching fields.",
+        "emptyOperators": "No matching operators.",
+        "fields": "Fields",
+        "loading": "Loading rule catalog...",
+        "operators": "Operators",
+        "search": "Search catalog",
+        "searchPlaceholder": "Field, operator, or action",
+        "title": "Catalog Palette"
+      },
+      "simulator": {
+        "actionsTitle": "Actions",
+        "checksum": "Checksum",
+        "contextLabel": "Simulation context JSON",
+        "description": "Simulation calls the backend explain path and does not mutate checkout or campaign state.",
+        "empty": "Run a simulation to inspect result, actions, and trace.",
+        "matched": "Matched",
+        "notMatched": "Not matched",
+        "title": "Simulator",
+        "traceTitle": "Trace"
+      },
+      "title": "Growth Rules",
+      "tree": {
+        "all": "All",
+        "any": "Any",
+        "ariaLabel": "Growth rule AST tree",
+        "children": "{count} children",
+        "description": "Tree view of the condition graph and action list in the current JSON AST.",
+        "empty": "No condition tree in this AST.",
+        "title": "Rule Tree"
+      }
     }
   },
   "Header": {
@@ -4443,6 +4575,8 @@
       "reviewQueueHint": "Security review workload",
       "risk": "Risk signals",
       "riskHint": "Abuse queue and blocked rewards",
+      "rules": "Rules",
+      "rulesHint": "Eligibility and simulation",
       "securityOverview": "Security overview",
       "securityOverviewHint": "Security posture summary",
       "servers": "Servers",

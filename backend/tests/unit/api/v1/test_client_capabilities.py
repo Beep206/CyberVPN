@@ -1,3 +1,4 @@
+from src.application.services.config_service import CustomerOnboardingRuntimeConfig, CustomerSiteRuntimeConfig
 from src.config.settings import settings
 from src.presentation.api.v1.client_capabilities.routes import _build_client_capabilities
 
@@ -19,6 +20,7 @@ def test_client_capabilities_hide_growth_hub_when_runtime_disabled(monkeypatch) 
     assert response.payments.telegram_stars is True
     assert response.payments.manual_invoice is True
     assert response.growth.referral is False
+    assert response.growth.invites is False
     assert response.growth.gift_codes is False
     assert response.growth.growth_hub is False
     assert response.subscriptions.trial is True
@@ -44,6 +46,7 @@ def test_client_capabilities_expose_enabled_growth_and_partner_flags(monkeypatch
     assert response.payments.cryptobot is True
     assert response.payments.manual_invoice is False
     assert response.growth.referral is True
+    assert response.growth.invites is True
     assert response.growth.promo_codes is True
     assert response.growth.gift_codes is True
     assert response.growth.checkout_code_discounts is True
@@ -51,3 +54,42 @@ def test_client_capabilities_expose_enabled_growth_and_partner_flags(monkeypatch
     assert response.subscriptions.addons is True
     assert response.partner.portal is True
     assert response.partner.payouts is False
+
+
+def test_client_capabilities_include_site_and_unavailable_onboarding_runtime(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "payments_enabled", False)
+    monkeypatch.setattr(settings, "telegram_stars_enabled", False)
+    monkeypatch.setattr(settings, "payment_autorenewal_enabled", False)
+    monkeypatch.setattr(settings, "stage1_addons_enabled", False)
+    monkeypatch.setattr(settings, "stage1_trial_provisioning_enabled", False)
+    monkeypatch.setattr(settings, "stage1_paid_provisioning_enabled", False)
+    monkeypatch.setattr(settings, "promo_codes_enabled", False)
+    monkeypatch.setattr(settings, "gift_codes_enabled", False)
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", False)
+
+    response = _build_client_capabilities(
+        referral_runtime_enabled=False,
+        site_runtime=CustomerSiteRuntimeConfig(
+            mode="cabinet_only",
+            public_hosts=("cyber-vpn.net",),
+            cabinet_hosts=("my.cyber-vpn.net",),
+        ),
+        onboarding_runtime=CustomerOnboardingRuntimeConfig(
+            post_registration_code_prompt_enabled=True,
+            web_otp_enabled=True,
+            telegram_miniapp_enabled=True,
+            state_store_ready=False,
+        ),
+    )
+
+    assert response.site.customer_site_mode == "cabinet_only"
+    assert response.site.cabinet_only is True
+    assert response.site.public_hosts == ["cyber-vpn.net"]
+    assert response.site.cabinet_hosts == ["my.cyber-vpn.net"]
+    assert response.onboarding.post_registration_code_prompt is True
+    assert response.onboarding.web_otp is True
+    assert response.onboarding.telegram_miniapp is True
+    assert response.onboarding.state_store is False
+    assert response.onboarding.available is False
+    assert response.growth.invites is False
+    assert response.growth.growth_hub is False

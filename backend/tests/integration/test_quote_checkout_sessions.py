@@ -2455,9 +2455,13 @@ async def test_quote_session_reserves_promo_and_binds_it_to_checkout(
             assert quote_response.status_code == 201
             quote_payload = quote_response.json()
             reservation_id = quote_payload["quote"]["code_resolution"]["reservation_id"]
-            assert quote_payload["quote"]["code_input"] == "PROMOSESSION10"
+            assert quote_payload["quote"]["code_input"] != "PROMOSESSION10"
+            assert quote_payload["quote"]["code_input_ref"]["redacted"] is True
+            assert quote_payload["quote"]["code_input_ref"]["code_prefix"] == "PRO"
             assert quote_payload["quote"]["code_resolution"]["code_type"] == "promo"
             assert quote_payload["quote"]["discounts"][0]["type"] == "promo"
+            assert quote_payload["quote"]["discounts"][0]["code"] != "PROMOSESSION10"
+            assert quote_payload["quote"]["discounts"][0]["code_ref"]["redacted"] is True
             assert quote_payload["quote"]["base_price"] == 75.0
             assert quote_payload["quote"]["discount_amount"] == 7.5
             assert reservation_id is not None

@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.auth_session_issuer import AuthSessionIssuer, AuthSessionIssueRequest
+from src.application.services.config_service import ConfigService
 from src.application.services.customer_shadow_service import ensure_customer_web_mobile_shadow
 from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
@@ -46,6 +47,17 @@ from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCa
 from src.application.use_cases.auth.telegram_web_auth import TelegramWebAuthUseCase
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.application.use_cases.auth_realms import RealmResolution
+from src.application.use_cases.customer_onboarding import (
+    CustomerOnboardingCurrentState,
+    CustomerOnboardingFlowTokenService,
+    GetCurrentCustomerOnboardingUseCase,
+)
+from src.application.use_cases.referrals.attribution import (
+    REFERRAL_ATTRIBUTION_COOKIE_NAME,
+    ClaimReferralAttributionCommand,
+    ClaimReferralAttributionUseCase,
+    ReferralAttributionError,
+)
 from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.enums import AdminRole
@@ -58,8 +70,12 @@ from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
 from src.infrastructure.database.models.user_device_model import UserDeviceModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.database.repositories.customer_onboarding_repo import (
+    CustomerOnboardingStateSqlAlchemyRepository,
+)
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
+from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.monitoring.client_context import resolve_web_client_context
 from src.infrastructure.monitoring.instrumentation.partner_runtime import (
     PARTNER_PRINCIPAL_CLASS,
@@ -117,6 +133,7 @@ from src.presentation.api.v1.auth.schemas import (
     AdminUserResponse,
     ChangePasswordRequest,
     ChangePasswordResponse,
+    CustomerOnboardingAuthSummaryResponse,
     DeleteAccountResponse,
     DeviceSessionListResponse,
     DeviceSessionResponse,
@@ -167,6 +184,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+PASSWORD_LOGIN_MIN_RESPONSE_SECONDS = 0.7
+PASSWORD_LOGIN_MAX_RESPONSE_FLOOR_SECONDS = 5.0
+PASSWORD_LOGIN_JITTER_MAX_MS = 50
+_password_login_response_floor_seconds = PASSWORD_LOGIN_MIN_RESPONSE_SECONDS
+
 
 def _get_client_ip(request: Request) -> str:
     return resolve_client_ip(request).ip
@@ -195,6 +217,20 @@ def _lockout_tier_from_remaining(remaining_seconds: int | None, permanent: bool)
     if remaining_seconds >= 300:
         return "tier_2_5m"
     return "tier_1_30s"
+
+
+async def _pad_password_login_response(started_at: float, *, record_success_floor: bool = False) -> None:
+    global _password_login_response_floor_seconds
+
+    elapsed = perf_counter() - started_at
+    if record_success_floor:
+        bounded_elapsed = min(elapsed, PASSWORD_LOGIN_MAX_RESPONSE_FLOOR_SECONDS)
+        _password_login_response_floor_seconds = max(_password_login_response_floor_seconds, bounded_elapsed)
+    target = _password_login_response_floor_seconds
+    if elapsed >= target:
+        return
+    jitter = secrets.randbelow(PASSWORD_LOGIN_JITTER_MAX_MS) / 1000
+    await asyncio.sleep(target - elapsed + jitter)
 
 
 def _build_admin_user_response(
@@ -473,14 +509,127 @@ def _build_miniapp_mobile_user_response(mobile_user: MobileUserModel) -> AdminUs
     )
 
 
+def _referral_attribution_cookie_secure() -> bool:
+    if settings.environment.strip().lower() == "production":
+        return True
+    return settings.cookie_secure
+
+
+def _clear_referral_attribution_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=REFERRAL_ATTRIBUTION_COOKIE_NAME,
+        path="/",
+        secure=_referral_attribution_cookie_secure(),
+        httponly=True,
+        samesite="lax",
+    )
+
+
 async def _ensure_customer_web_mobile_shadow(
     *,
     db: AsyncSession,
     user: AdminUserModel,
     current_realm: RealmResolution,
-) -> None:
+) -> MobileUserModel | None:
     """Mirror customer web accounts into mobile_users for B2C resource APIs."""
-    await ensure_customer_web_mobile_shadow(db=db, user=user, current_realm=current_realm)
+    return await ensure_customer_web_mobile_shadow(db=db, user=user, current_realm=current_realm)
+
+
+async def _claim_customer_web_referral_after_activation(
+    *,
+    db: AsyncSession,
+    user: AdminUserModel,
+    mobile_user: MobileUserModel | None,
+    current_realm: RealmResolution,
+    http_request: Request,
+    response: Response,
+) -> None:
+    if current_realm.realm_type != "customer" or mobile_user is None:
+        return
+
+    cookie_token = http_request.cookies.get(REFERRAL_ATTRIBUTION_COOKIE_NAME)
+    if not cookie_token:
+        return
+
+    try:
+        async with db.begin_nested():
+            result = await ClaimReferralAttributionUseCase(db).execute(
+                ClaimReferralAttributionCommand(
+                    user_id=mobile_user.id,
+                    cookie_token=cookie_token,
+                    fallback_referral_code=None,
+                    current_realm=current_realm,
+                )
+            )
+    except ReferralAttributionError as exc:
+        if exc.clear_cookie:
+            _clear_referral_attribution_cookie(response)
+        logger.info(
+            "customer_web_referral_attribution_claim_rejected",
+            extra={"user_id": str(user.id), "code": exc.code},
+        )
+        return
+    except Exception:
+        logger.exception(
+            "customer_web_referral_attribution_claim_deferred",
+            extra={"user_id": str(user.id)},
+        )
+        return
+
+    if result.clear_cookie:
+        _clear_referral_attribution_cookie(response)
+
+
+async def _resolve_post_registration_onboarding(
+    *,
+    db: AsyncSession,
+    mobile_user: MobileUserModel | None,
+    realm_type: str,
+    auth_channel: str,
+    create_if_missing: bool,
+) -> CustomerOnboardingCurrentState | None:
+    if realm_type != "customer" or mobile_user is None:
+        return None
+
+    runtime_config = await ConfigService(SystemConfigRepository(db)).get_customer_onboarding_runtime_config()
+    channel_enabled = (auth_channel == "web_otp" and runtime_config.web_otp_enabled) or (
+        auth_channel == "telegram_miniapp" and runtime_config.telegram_miniapp_enabled
+    )
+    if not runtime_config.post_registration_code_prompt_enabled or not channel_enabled:
+        return None
+
+    repo = CustomerOnboardingStateSqlAlchemyRepository(db)
+    if runtime_config.available and create_if_missing:
+        await repo.ensure_pending(
+            user_id=mobile_user.id,
+            runtime_config=runtime_config,
+            source_channel=auth_channel,
+            auth_channel=auth_channel,
+        )
+
+    return await GetCurrentCustomerOnboardingUseCase(
+        runtime_config=runtime_config,
+        state_repo=repo,
+        flow_tokens=CustomerOnboardingFlowTokenService(),
+    ).execute(user_id=mobile_user.id)
+
+
+def _auth_onboarding_response(
+    state: CustomerOnboardingCurrentState | None,
+) -> CustomerOnboardingAuthSummaryResponse | None:
+    if state is None:
+        return None
+    return CustomerOnboardingAuthSummaryResponse(
+        required=state.required,
+        status=state.status,
+        flow_key=state.flow_key,
+        version=state.version,
+        allowed_code_types=cast(list, list(state.allowed_code_types)),
+        flow_token=state.flow_token,
+        message_key=state.message_key,
+        server_state_available=state.server_state_available,
+        referral_already_attributed=state.referral_already_attributed,
+    )
 
 
 async def _repair_customer_web_user_realm_after_password_match(
@@ -579,7 +728,8 @@ async def login(
     - Constant-time response to prevent user enumeration
     - Access/refresh tokens are delivered in httpOnly cookies, not JSON
     """
-    started_at = perf_counter()
+    request_started_at = getattr(http_request.state, "request_started_at", None)
+    started_at = request_started_at if isinstance(request_started_at, float) else perf_counter()
     identifier = request.login_or_email.lower()
     password_identifier_type = _resolve_password_identifier_type(request.login_or_email)
     client_context = resolve_web_client_context(
@@ -661,9 +811,6 @@ async def login(
     )
     principal_type = get_principal_type_for_realm(current_realm)
     scope_family = get_scope_family_for_realm(current_realm)
-
-    # Constant-time base delay to prevent timing attacks (HIGH-1)
-    min_response_time = 0.1  # 100ms minimum
 
     # MED-002: Generate client fingerprint for token device binding
     fingerprint = generate_client_fingerprint(http_request)
@@ -757,12 +904,7 @@ async def login(
             error_type="invalid_credentials",
         )
 
-        # Ensure constant response time (LOW-002: use asyncio.sleep instead of blocking time.sleep)
-        elapsed = perf_counter() - started_at
-        if elapsed < min_response_time:
-            # Use asyncio.sleep for non-blocking delay with random jitter
-            jitter = secrets.randbelow(50) / 1000  # 0-50ms random jitter
-            await asyncio.sleep(min_response_time - elapsed + jitter)
+        await _pad_password_login_response(started_at)
 
         observe_auth_request_duration("password", started_at)
         logger.warning(
@@ -878,6 +1020,7 @@ async def login(
         await sync_active_sessions(db)
 
     await sync_auth_security_posture(db, redis_client)
+    await _pad_password_login_response(started_at, record_success_floor=True)
     observe_auth_request_duration("password", started_at)
     observe_partner_auth_login(result="success", reason="none")
     bind_partner_context_from_realm(
@@ -1485,10 +1628,25 @@ async def verify_otp(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User not found after verification"
         )
-    await _ensure_customer_web_mobile_shadow(
+    mobile_shadow = await _ensure_customer_web_mobile_shadow(
         db=db,
         user=user,
         current_realm=current_realm,
+    )
+    await _claim_customer_web_referral_after_activation(
+        db=db,
+        user=user,
+        mobile_user=mobile_shadow,
+        current_realm=current_realm,
+        http_request=http_request,
+        response=response,
+    )
+    onboarding_state = await _resolve_post_registration_onboarding(
+        db=db,
+        mobile_user=mobile_shadow,
+        realm_type=current_realm.realm_type,
+        auth_channel="web_otp",
+        create_if_missing=True,
     )
 
     locale = _resolve_locale(user=user)
@@ -1571,16 +1729,13 @@ async def verify_otp(
     )
 
     return VerifyOtpResponse(
-        access_token=result.access_token or "",
-        refresh_token=result.refresh_token or "",
-        token_type=result.token_type,
-        expires_in=result.expires_in,
         auth_realm_id=current_realm.auth_realm.id,
         auth_realm_key=current_realm.realm_key,
         audience=current_realm.audience,
         principal_type=get_principal_type_for_realm(current_realm),
         scope_family=get_scope_family_for_realm(current_realm),
         user=_build_admin_user_response(user, current_realm),
+        onboarding=_auth_onboarding_response(onboarding_state),
     )
 
 
@@ -2438,26 +2593,23 @@ async def telegram_miniapp_auth(
             started_at=result.user.created_at,
         )
 
-    response_access_token = result.access_token
-    response_refresh_token = result.refresh_token
-    response_token_type = result.token_type
-    response_expires_in = result.expires_in
     response_user = AdminUserResponse.model_validate(result.user)
+    miniapp_mobile_user: MobileUserModel | None = None
 
     if result.access_token and result.refresh_token and result.user.telegram_id is not None:
-        mobile_user = await _ensure_miniapp_mobile_user(
+        miniapp_mobile_user = await _ensure_miniapp_mobile_user(
             db=db,
             auth_service=auth_service,
             telegram_id=result.user.telegram_id,
             preferred_login=result.user.login,
         )
         customer_realm = DEFAULT_AUTH_REALMS["customer"]
-        customer_realm_id = mobile_user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))
+        customer_realm_id = miniapp_mobile_user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))
         device_key, set_device_cookie = get_or_create_web_device_cookie_value(http_request.cookies)
         client_ip = resolve_client_ip(http_request)
         issued_mobile_session = await AuthSessionIssuer(auth_service=auth_service, session=db).issue_auth_session(
             AuthSessionIssueRequest(
-                user_id=mobile_user.id,
+                user_id=miniapp_mobile_user.id,
                 role="mobile_user",
                 device_key=device_key,
                 refresh_fingerprint=generate_client_fingerprint(http_request),
@@ -2469,21 +2621,17 @@ async def telegram_miniapp_auth(
                 auth_realm_key=str(customer_realm["realm_key"]),
                 audience=str(customer_realm["audience"]),
                 principal_class="customer",
-                principal_subject=str(mobile_user.id),
+                principal_subject=str(miniapp_mobile_user.id),
                 scope_family="customer",
                 access_extra={"auth_method": "telegram_miniapp"},
                 device_label="Telegram Mini App",
                 platform="telegram_miniapp",
             )
         )
-        response_access_token = issued_mobile_session.access_token
-        response_refresh_token = issued_mobile_session.refresh_token
-        response_token_type = issued_mobile_session.token_type
-        response_expires_in = issued_mobile_session.expires_in
         set_auth_cookies(
             response,
-            response_access_token,
-            response_refresh_token,
+            issued_mobile_session.access_token,
+            issued_mobile_session.refresh_token,
             request=http_request,
             cookie_namespace=str(customer_realm["cookie_namespace"]),
         )
@@ -2494,21 +2642,27 @@ async def telegram_miniapp_auth(
                 request=http_request,
                 cookie_namespace=str(customer_realm["cookie_namespace"]),
             )
-        response_user = _build_miniapp_mobile_user_response(mobile_user)
+        response_user = _build_miniapp_mobile_user_response(miniapp_mobile_user)
 
     await sync_active_sessions(db)
     await sync_auth_security_posture(db)
     observe_auth_request_duration("telegram", started_at)
+    onboarding_state = None
+    if miniapp_mobile_user is not None:
+        onboarding_state = await _resolve_post_registration_onboarding(
+            db=db,
+            mobile_user=miniapp_mobile_user,
+            realm_type="customer",
+            auth_channel="telegram_miniapp",
+            create_if_missing=result.is_new_user,
+        )
 
     return TelegramMiniAppResponse(
-        access_token=response_access_token,
-        refresh_token=response_refresh_token,
-        token_type=response_token_type,
-        expires_in=response_expires_in,
         user=response_user,
         is_new_user=result.is_new_user,
         requires_2fa=result.requires_2fa,
         tfa_token=result.tfa_token,
+        onboarding=_auth_onboarding_response(onboarding_state),
     )
 
 

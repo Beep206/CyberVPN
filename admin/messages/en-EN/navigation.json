@@ -92,6 +92,8 @@
     "reportingHint": "Rollups, subscriptions, exports",
     "notifications": "Notifications",
     "notificationsHint": "Delivery feed and manual notices",
+    "rules": "Rules",
+    "rulesHint": "Eligibility and simulation",
     "promoCodes": "Promo codes",
     "promoCodesHint": "Promotions and discounts",
     "inviteCodes": "Invite codes",

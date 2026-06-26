@@ -1,6 +1,5 @@
 """Tests for rate limiter middleware with fail-closed behavior and circuit breaker (MED-1)."""
 
-import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -46,57 +45,63 @@ class TestCircuitBreaker:
 
     def test_success_closes_open_circuit(self):
         """Success after half-open state closes the circuit."""
-        cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
+        now = 1000.0
+        with patch("src.presentation.middleware.rate_limit.time.time", side_effect=lambda: now):
+            cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
 
-        cb.record_failure()
-        assert cb.state == CircuitBreaker.OPEN
+            cb.record_failure()
+            assert cb.state == CircuitBreaker.OPEN
 
-        # Wait for cooldown
-        time.sleep(0.02)
-        assert cb.state == CircuitBreaker.HALF_OPEN
+            now += 0.02
+            assert cb.state == CircuitBreaker.HALF_OPEN
 
-        cb.record_success()
-        assert cb.state == CircuitBreaker.CLOSED
+            cb.record_success()
+            assert cb.state == CircuitBreaker.CLOSED
 
     def test_half_open_after_cooldown(self):
         """Circuit transitions to HALF_OPEN after cooldown period."""
-        cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
+        now = 1000.0
+        with patch("src.presentation.middleware.rate_limit.time.time", side_effect=lambda: now):
+            cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
 
-        cb.record_failure()
-        assert cb.state == CircuitBreaker.OPEN
+            cb.record_failure()
+            assert cb.state == CircuitBreaker.OPEN
 
-        time.sleep(0.02)
-        assert cb.state == CircuitBreaker.HALF_OPEN
+            now += 0.02
+            assert cb.state == CircuitBreaker.HALF_OPEN
 
     def test_failure_in_half_open_reopens(self):
         """Failure in half-open state reopens the circuit."""
-        cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
+        now = 1000.0
+        with patch("src.presentation.middleware.rate_limit.time.time", side_effect=lambda: now):
+            cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
 
-        cb.record_failure()
-        time.sleep(0.02)
-        assert cb.state == CircuitBreaker.HALF_OPEN
+            cb.record_failure()
+            now += 0.02
+            assert cb.state == CircuitBreaker.HALF_OPEN
 
-        cb.record_failure()
-        assert cb.state == CircuitBreaker.OPEN
+            cb.record_failure()
+            assert cb.state == CircuitBreaker.OPEN
 
     def test_custom_threshold_and_cooldown(self):
         """Circuit breaker respects custom threshold and cooldown."""
-        cb = CircuitBreaker(failure_threshold=5, cooldown_seconds=0.05)
+        now = 1000.0
+        with patch("src.presentation.middleware.rate_limit.time.time", side_effect=lambda: now):
+            cb = CircuitBreaker(failure_threshold=5, cooldown_seconds=0.05)
 
-        # Need 5 failures to trip
-        for _ in range(4):
-            cb.record_failure()
-        assert cb.state == CircuitBreaker.CLOSED
+            # Need 5 failures to trip
+            for _ in range(4):
+                cb.record_failure()
+            assert cb.state == CircuitBreaker.CLOSED
 
-        cb.record_failure()  # 5th failure
-        assert cb.state == CircuitBreaker.OPEN
+            cb.record_failure()  # 5th failure
+            assert cb.state == CircuitBreaker.OPEN
 
-        # Cooldown is 50ms
-        time.sleep(0.03)
-        assert cb.state == CircuitBreaker.OPEN  # Still open
+            now += 0.03
+            assert cb.state == CircuitBreaker.OPEN  # Still open
 
-        time.sleep(0.03)
-        assert cb.state == CircuitBreaker.HALF_OPEN  # Now half-open
+            now += 0.03
+            assert cb.state == CircuitBreaker.HALF_OPEN  # Now half-open
 
 
 class TestRateLimitMiddlewareConfig:

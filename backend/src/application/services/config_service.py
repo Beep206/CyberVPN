@@ -1,14 +1,52 @@
 """Application service for reading/writing system configuration."""
 
+import os
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from src.config.settings import settings
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 
 MiniAppRuntimeMode = Literal["live", "canary", "maintenance", "rollback"]
+CustomerSiteMode = Literal["full_site", "cabinet_only", "maintenance"]
+OnboardingCodeType = Literal["promo", "invite", "gift"]
 PASSKEY_ADMIN_POLICY_CONFIG_KEY = "passkeys.admin_policy"
+CUSTOMER_SITE_RUNTIME_CONFIG_KEY = "customer_site.runtime"
+CUSTOMER_ONBOARDING_RUNTIME_CONFIG_KEY = "customer_onboarding.runtime"
+
+
+def _normalize_customer_site_mode(value: object, *, fallback: CustomerSiteMode = "full_site") -> CustomerSiteMode:
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"full_site", "cabinet_only", "maintenance"}:
+            return normalized  # type: ignore[return-value]
+    return fallback
+
+
+def _normalize_string_tuple(value: object, *, default: tuple[str, ...] = (), max_items: int = 50) -> tuple[str, ...]:
+    if not isinstance(value, list | tuple | set):
+        return default
+
+    normalized: list[str] = []
+    for item in value:
+        candidate = str(item).strip()
+        if not candidate or candidate in normalized:
+            continue
+        normalized.append(candidate)
+        if len(normalized) >= max_items:
+            break
+    return tuple(normalized)
+
+
+def _normalize_positive_int(value: object, *, default: int = 1, maximum: int = 1000) -> int:
+    try:
+        candidate = int(str(value).strip())
+    except (TypeError, ValueError):
+        return default
+    if candidate < 1 or candidate > maximum:
+        return default
+    return candidate
 
 
 def _normalize_miniapp_runtime_mode(value: object) -> MiniAppRuntimeMode:
@@ -76,6 +114,59 @@ class MiniAppLaunchReadinessConfig:
                 bool(self.rollback_commander),
                 bool(self.primary_oncall_contact),
             )
+        )
+
+
+@dataclass(frozen=True)
+class CustomerSiteRuntimeConfig:
+    mode: CustomerSiteMode = "full_site"
+    version: int = 1
+    public_hosts: tuple[str, ...] = ("cyber-vpn.net", "www.cyber-vpn.net")
+    cabinet_hosts: tuple[str, ...] = ("my.cyber-vpn.net",)
+    cabinet_destination_path: str = "/dashboard"
+    allowed_path_prefixes: tuple[str, ...] = (
+        "/login",
+        "/register",
+        "/verify-email",
+        "/reset-password",
+        "/oauth",
+        "/legal",
+        "/r/",
+        "/p/",
+    )
+    preserve_query_keys: tuple[str, ...] = (
+        "ref",
+        "referral",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_content",
+        "utm_term",
+    )
+
+    @property
+    def cabinet_only(self) -> bool:
+        return self.mode == "cabinet_only"
+
+
+@dataclass(frozen=True)
+class CustomerOnboardingRuntimeConfig:
+    post_registration_code_prompt_enabled: bool = False
+    web_otp_enabled: bool = False
+    telegram_miniapp_enabled: bool = False
+    state_store_ready: bool = False
+    flow_key: str = "post_registration_growth_code_v1"
+    version: int = 1
+    allowed_code_types: tuple[OnboardingCodeType, ...] = ("promo", "invite", "gift")
+    allow_referral_input: bool = False
+    allow_partner_input: bool = False
+
+    @property
+    def available(self) -> bool:
+        return (
+            self.post_registration_code_prompt_enabled
+            and self.state_store_ready
+            and (self.web_otp_enabled or self.telegram_miniapp_enabled)
         )
 
 
@@ -221,6 +312,102 @@ class ConfigService:
     async def get_withdrawal_fee_pct(self) -> float:
         val = await self._repo.get_value("wallet.withdrawal_fee_pct", {"pct": 0})
         return float(val.get("pct", 0))
+
+    # --- Customer site and onboarding runtime config ---
+
+    async def get_customer_site_runtime_config(self) -> CustomerSiteRuntimeConfig:
+        fallback_mode = _normalize_customer_site_mode(os.getenv("CUSTOMER_SITE_MODE_FALLBACK"))
+        val = await self._repo.get_value(
+            CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
+            {
+                "mode": fallback_mode,
+                "version": 1,
+                "public_hosts": ["cyber-vpn.net", "www.cyber-vpn.net"],
+                "cabinet_hosts": ["my.cyber-vpn.net"],
+                "cabinet_destination_path": "/dashboard",
+                "allowed_path_prefixes": [
+                    "/login",
+                    "/register",
+                    "/verify-email",
+                    "/reset-password",
+                    "/oauth",
+                    "/legal",
+                    "/r/",
+                    "/p/",
+                ],
+                "preserve_query_keys": [
+                    "ref",
+                    "referral",
+                    "utm_source",
+                    "utm_medium",
+                    "utm_campaign",
+                    "utm_content",
+                    "utm_term",
+                ],
+            },
+        )
+        if not isinstance(val, dict):
+            val = {}
+        raw_path = str(val.get("cabinet_destination_path") or "/dashboard").strip()
+        cabinet_destination_path = raw_path if raw_path.startswith("/") else "/dashboard"
+        return CustomerSiteRuntimeConfig(
+            mode=_normalize_customer_site_mode(val.get("mode", val.get("customer_site_mode")), fallback=fallback_mode),
+            version=_normalize_positive_int(val.get("version")),
+            public_hosts=_normalize_string_tuple(
+                val.get("public_hosts"),
+                default=("cyber-vpn.net", "www.cyber-vpn.net"),
+            ),
+            cabinet_hosts=_normalize_string_tuple(val.get("cabinet_hosts"), default=("my.cyber-vpn.net",)),
+            cabinet_destination_path=cabinet_destination_path,
+            allowed_path_prefixes=_normalize_string_tuple(
+                val.get("allowed_path_prefixes"),
+                default=CustomerSiteRuntimeConfig.allowed_path_prefixes,
+            ),
+            preserve_query_keys=_normalize_string_tuple(
+                val.get("preserve_query_keys"),
+                default=CustomerSiteRuntimeConfig.preserve_query_keys,
+            ),
+        )
+
+    async def get_customer_onboarding_runtime_config(self) -> CustomerOnboardingRuntimeConfig:
+        val = await self._repo.get_value(
+            CUSTOMER_ONBOARDING_RUNTIME_CONFIG_KEY,
+            {
+                "post_registration_code_prompt_enabled": False,
+                "web_otp_enabled": False,
+                "telegram_miniapp_enabled": False,
+                "state_store_ready": False,
+                "flow_key": "post_registration_growth_code_v1",
+                "version": 1,
+                "allowed_code_types": ["promo", "invite", "gift"],
+                "allow_referral_input": False,
+                "allow_partner_input": False,
+            },
+        )
+        if not isinstance(val, dict):
+            val = {}
+        flow_key = str(val.get("flow_key") or "post_registration_growth_code_v1").strip()
+        allowed_code_types = _normalize_string_tuple(
+            val.get("allowed_code_types"),
+            default=("promo", "invite", "gift"),
+            max_items=8,
+        )
+        filtered_code_types = tuple(
+            cast(OnboardingCodeType, code_type)
+            for code_type in allowed_code_types
+            if code_type in {"promo", "invite", "gift"}
+        )
+        return CustomerOnboardingRuntimeConfig(
+            post_registration_code_prompt_enabled=bool(val.get("post_registration_code_prompt_enabled", False)),
+            web_otp_enabled=bool(val.get("web_otp_enabled", False)),
+            telegram_miniapp_enabled=bool(val.get("telegram_miniapp_enabled", False)),
+            state_store_ready=bool(val.get("state_store_ready", False)),
+            flow_key=flow_key or "post_registration_growth_code_v1",
+            version=_normalize_positive_int(val.get("version")),
+            allowed_code_types=filtered_code_types or ("promo", "invite", "gift"),
+            allow_referral_input=bool(val.get("allow_referral_input", False)),
+            allow_partner_input=bool(val.get("allow_partner_input", False)),
+        )
 
     # --- Mini App runtime config ---
 

@@ -6,6 +6,7 @@ import {
   ChartColumnIncreasing,
   Download,
   Gift,
+  ListTree,
   RefreshCw,
   ShieldAlert,
   TicketPlus,
@@ -733,6 +734,12 @@ export function GrowthOverview({
                 title: t('nav.notifications'),
                 description: t('overview.routes.notifications'),
                 icon: BellRing,
+              },
+              {
+                href: '/growth/rules',
+                title: t('nav.rules'),
+                description: t('overview.routes.rules'),
+                icon: ListTree,
               },
               {
                 href: '/growth/risk',

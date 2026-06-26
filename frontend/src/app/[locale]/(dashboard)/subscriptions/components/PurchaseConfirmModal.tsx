@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Modal } from '@/shared/ui/modal';
 import {
@@ -28,6 +28,11 @@ import {
   getGrowthCodeResolutionMessage,
   getUnsupportedCheckoutCodeMessage,
 } from '@/features/customer-growth/lib/checkout-code-resolution';
+import {
+  buildPrivateOfferUnlockCopy,
+  PrivateOfferUnlock,
+  type PrivateOfferSelection,
+} from '@/features/customer-growth/components/PrivateOfferUnlock';
 import {
   areCheckoutCodeDiscountsEnabled,
   arePromoCodesEnabled,
@@ -61,15 +66,20 @@ interface PurchaseConfirmModalProps {
 type ModalStep = 'confirm' | 'processing' | 'success' | 'error';
 const MAX_QUOTE_EXPIRY_TIMER_MS = 2_147_483_647;
 
-function buildQuoteRequest(plan: SubscriptionPlan, codeInput?: string) {
+function buildQuoteRequest(
+  plan: SubscriptionPlan,
+  codeInput?: string,
+  privateOffer?: PrivateOfferSelection | null,
+) {
   const quoteHandoff = plan.public_catalog_quote;
   const catalogPrice = plan.public_catalog_price;
 
   return {
     storefront_key: OFFICIAL_WEB_STOREFRONT_KEY,
-    plan_id: quoteHandoff?.planId ?? plan.uuid,
+    plan_id: privateOffer?.planId ?? quoteHandoff?.planId ?? plan.uuid,
     addons: [],
     code_input: codeInput || undefined,
+    private_catalog_grant_id: privateOffer?.privateCatalogGrantId ?? undefined,
     use_wallet: 0,
     currency: quoteHandoff?.currency ?? catalogPrice?.currency ?? 'USD',
     channel: OFFICIAL_WEB_SALE_CHANNEL,
@@ -112,7 +122,10 @@ export function PurchaseConfirmModal({
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteExpired, setQuoteExpired] = useState(false);
   const [appliedCodeInput, setAppliedCodeInput] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState('Payment page opened');
+  const [privateOfferSelection, setPrivateOfferSelection] =
+    useState<PrivateOfferSelection | null>(null);
+  const [successMessage, setSuccessMessage] = useState(t('checkoutQuote.paymentPageOpened'));
+  const privateOfferCopy = useMemo(() => buildPrivateOfferUnlockCopy(t), [t]);
 
   const handleClose = () => {
     setStep('confirm');
@@ -124,7 +137,8 @@ export function PurchaseConfirmModal({
     setQuoteLoading(false);
     setQuoteExpired(false);
     setAppliedCodeInput(null);
-    setSuccessMessage('Payment page opened');
+    setPrivateOfferSelection(null);
+    setSuccessMessage(t('checkoutQuote.paymentPageOpened'));
     onClose();
   };
 
@@ -150,6 +164,7 @@ export function PurchaseConfirmModal({
       setQuoteSession(null);
       setQuoteExpired(false);
       setAppliedCodeInput(null);
+      setPrivateOfferSelection(null);
 
       try {
         const response = await commerceApi.createQuoteSession(
@@ -208,7 +223,7 @@ export function PurchaseConfirmModal({
   const handleApplyCode = async () => {
     const activePlan = plan;
     if (!codeInput.trim()) {
-      setCodeError('Please enter a checkout code');
+      setCodeError(t('checkoutQuote.checkoutCodeRequired'));
       return;
     }
     if (!activePlan) {
@@ -222,11 +237,15 @@ export function PurchaseConfirmModal({
 
     try {
       const normalizedCode = codeInput.trim().toUpperCase();
+      const quotePlanId =
+        privateOfferSelection?.planId
+        ?? activePlan.public_catalog_quote?.planId
+        ?? activePlan.uuid;
       const resolutionResponse = await codesApi.resolve({
         code: normalizedCode,
         action_context: 'checkout',
         storefront_key: OFFICIAL_WEB_STOREFRONT_KEY,
-        plan_id: activePlan.public_catalog_quote?.planId ?? activePlan.uuid,
+        plan_id: quotePlanId,
         amount: getPublicCatalogAmount(activePlan),
         channel: OFFICIAL_WEB_SALE_CHANNEL,
       });
@@ -237,7 +256,7 @@ export function PurchaseConfirmModal({
         setCodeError(getGrowthCodeResolutionMessage(resolution));
 
         const fallbackQuote = await commerceApi.createQuoteSession(
-          buildQuoteRequest(activePlan),
+          buildQuoteRequest(activePlan, undefined, privateOfferSelection),
         );
         setQuoteSession(fallbackQuote.data);
         return;
@@ -254,14 +273,14 @@ export function PurchaseConfirmModal({
         setCodeError(unsupportedMessage);
 
         const fallbackQuote = await commerceApi.createQuoteSession(
-          buildQuoteRequest(activePlan),
+          buildQuoteRequest(activePlan, undefined, privateOfferSelection),
         );
         setQuoteSession(fallbackQuote.data);
         return;
       }
 
       const response = await commerceApi.createQuoteSession(
-        buildQuoteRequest(activePlan, normalizedCode),
+        buildQuoteRequest(activePlan, normalizedCode, privateOfferSelection),
       );
       setQuoteSession(response.data);
       setQuoteExpired(false);
@@ -269,17 +288,17 @@ export function PurchaseConfirmModal({
       setCodeInput(normalizedCode);
       setCodeFeedback(
         resolution.code_type === 'referral'
-          ? 'Referral friend discount accepted. Quote updated.'
-          : 'Checkout code accepted. Quote updated.',
+          ? t('checkoutQuote.referralCodeAccepted')
+          : t('checkoutQuote.checkoutCodeAccepted'),
       );
     } catch (err) {
       setAppliedCodeInput(null);
       setCodeFeedback(null);
-      setCodeError(getQuoteErrorMessage(err, 'Checkout code not valid'));
+      setCodeError(getQuoteErrorMessage(err, t('checkoutQuote.checkoutCodeInvalid')));
 
       try {
         const fallbackQuote = await commerceApi.createQuoteSession(
-          buildQuoteRequest(activePlan),
+          buildQuoteRequest(activePlan, undefined, privateOfferSelection),
         );
         setQuoteSession(fallbackQuote.data);
       } catch {
@@ -300,7 +319,7 @@ export function PurchaseConfirmModal({
 
     try {
       const response = await commerceApi.createQuoteSession(
-        buildQuoteRequest(activePlan, appliedCodeInput ?? undefined),
+        buildQuoteRequest(activePlan, appliedCodeInput ?? undefined, privateOfferSelection),
       );
       setQuoteSession(response.data);
       setQuoteExpired(false);
@@ -310,6 +329,36 @@ export function PurchaseConfirmModal({
       setQuoteLoading(false);
     }
   };
+
+  const handlePrivateOfferSelectionChange = useCallback(async (
+    selection: PrivateOfferSelection | null,
+  ) => {
+    const activePlan = plan;
+    const hadPrivateOffer = Boolean(privateOfferSelection);
+    setPrivateOfferSelection(selection);
+    setQuoteExpired(false);
+    setError('');
+
+    if (!activePlan || (!selection && !hadPrivateOffer)) {
+      return;
+    }
+
+    setQuoteLoading(true);
+    try {
+      const response = await commerceApi.createQuoteSession(
+        buildQuoteRequest(activePlan, appliedCodeInput ?? undefined, selection),
+      );
+      setQuoteSession(response.data);
+    } catch (err) {
+      if (selection) {
+        setPrivateOfferSelection(null);
+      }
+      setQuoteSession(null);
+      setError(getQuoteErrorMessage(err, t('privateOffer.quoteError')));
+    } finally {
+      setQuoteLoading(false);
+    }
+  }, [appliedCodeInput, plan, privateOfferSelection, t]);
 
   const handlePurchase = async () => {
     const activePlan = plan;
@@ -321,7 +370,7 @@ export function PurchaseConfirmModal({
     }
 
     markPerformance(PerformanceMarks.PURCHASE_FLOW_START, {
-      planId: activePlan.uuid,
+      planId: privateOfferSelection?.planId ?? activePlan.uuid,
       planName: activePlan.display_name,
       hasPromoCode: !!appliedCodeInput,
     });
@@ -365,14 +414,14 @@ export function PurchaseConfirmModal({
           '_blank',
           'noopener,noreferrer',
         );
-        setSuccessMessage('Payment page opened');
+        setSuccessMessage(t('checkoutQuote.paymentPageOpened'));
       } else {
-        setSuccessMessage('Subscription activated');
+        setSuccessMessage(t('checkoutQuote.subscriptionActivated'));
       }
 
       setStep('success');
       markPerformance(PerformanceMarks.PURCHASE_FLOW_COMPLETE, {
-        planId: activePlan.uuid,
+        planId: privateOfferSelection?.planId ?? activePlan.uuid,
         planName: activePlan.display_name,
       });
       measurePerformance(
@@ -388,9 +437,9 @@ export function PurchaseConfirmModal({
       setStep('error');
       if (err instanceof AxiosError) {
         const detail = err.response?.data?.detail;
-        setError(detail || 'Failed to commit checkout');
+        setError(detail || t('checkoutQuote.commitError'));
       } else {
-        setError('An error occurred. Please try again.');
+        setError(t('checkoutQuote.genericError'));
       }
     }
   };
@@ -441,7 +490,7 @@ export function PurchaseConfirmModal({
             <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-grid-line/30">
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                  Devices
+                  {t('checkoutQuote.devices')}
                 </p>
                 <p className="mt-2 text-lg font-display text-white">
                   {quoteSnapshot?.device_limit ?? plan.devices_included}
@@ -449,7 +498,7 @@ export function PurchaseConfirmModal({
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
-                  Support
+                  {t('checkoutQuote.support')}
                 </p>
                 <p className="mt-2 text-sm font-mono text-white/75">
                   {formatSupportLabel(
@@ -461,7 +510,7 @@ export function PurchaseConfirmModal({
 
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-start justify-between gap-4">
-                <span>Connection modes</span>
+                <span>{t('checkoutQuote.connectionModes')}</span>
                 <span className="max-w-[16rem] text-right font-mono text-white/75">
                   {formatConnectionModes(
                     quoteSnapshot?.connection_modes ?? plan.connection_modes,
@@ -469,14 +518,14 @@ export function PurchaseConfirmModal({
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <span>Traffic policy</span>
+                <span>{t('checkoutQuote.trafficPolicy')}</span>
                 <span className="font-mono text-white/75">
                   {quoteSnapshot?.display_traffic_label ??
                     formatTrafficLabel(plan)}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <span>Checkout total</span>
+                <span>{t('checkoutQuote.total')}</span>
                 <div className="text-right">
                   {hasDiscount && (
                     <p className="font-mono text-xs text-white/35 line-through">
@@ -495,7 +544,7 @@ export function PurchaseConfirmModal({
 
             {planPrice && quote == null && !quoteLoading && (
               <p className="mt-3 text-xs font-mono text-white/45">
-                Catalog price: {planPrice.formatted}
+                {t('checkoutQuote.catalogPrice', { price: planPrice.formatted })}
               </p>
             )}
 
@@ -519,22 +568,32 @@ export function PurchaseConfirmModal({
             ) : null}
           </div>
 
+          <PrivateOfferUnlock
+            storefrontKey={OFFICIAL_WEB_STOREFRONT_KEY}
+            channel={OFFICIAL_WEB_SALE_CHANNEL}
+            currency={quoteCurrency}
+            copy={privateOfferCopy}
+            selectedOffer={privateOfferSelection}
+            onSelectionChange={handlePrivateOfferSelectionChange}
+            variant="web"
+          />
+
           {showPromoControls ? (
             <div className="cyber-card p-4 bg-terminal-bg">
               <div className="flex items-center gap-3 mb-3">
                 <Tag className="h-5 w-5 text-neon-purple" />
                 <h4 className="text-sm font-display text-neon-purple">
-                  Have a Checkout Code?
+                  {t('checkoutCodes.title')}
                 </h4>
               </div>
 
               <div className="space-y-3">
                 <CyberInput
-                  label="Checkout Code"
+                  label={t('checkoutQuote.checkoutCodeLabel')}
                   type="text"
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                  placeholder="SAVE20"
+                  placeholder={t('checkoutQuote.checkoutCodePlaceholder')}
                   prefix="code"
                   error={codeError}
                   disabled={quoteLoading}
@@ -552,7 +611,7 @@ export function PurchaseConfirmModal({
                       <div className="flex items-center gap-2 mb-1">
                         <ShieldCheck className="h-3 w-3 text-matrix-green" />
                         <span className="text-xs font-semibold text-matrix-green uppercase tracking-[0.18em]">
-                          Quote Updated
+                          {t('checkoutQuote.checkoutCodeAccepted')}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -575,7 +634,7 @@ export function PurchaseConfirmModal({
                   disabled={quoteLoading || !codeInput.trim()}
                   className="w-full px-3 py-2 bg-neon-purple/20 hover:bg-neon-purple/30 border border-neon-purple/50 text-neon-purple font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {quoteLoading ? 'Updating quote...' : 'Apply Code'}
+                  {quoteLoading ? t('checkoutQuote.updatingQuote') : t('checkoutQuote.applyCode')}
                 </button>
               </div>
             </div>
@@ -586,11 +645,10 @@ export function PurchaseConfirmModal({
               <Zap className="h-5 w-5 text-neon-cyan flex-shrink-0 mt-0.5" />
               <div className="flex-1 space-y-1">
                 <p className="text-sm font-semibold text-neon-cyan">
-                  Secure checkout
+                  {t('checkoutQuote.secureTitle')}
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  The dashboard now resolves checkout codes before payment and
-                  carries accepted pricing directly into checkout.
+                  {t('checkoutQuote.secureDescription')}
                 </p>
                 <p className="text-xs font-mono text-white/55">
                   {t('checkoutQuote.gatewayAmount', {
@@ -613,14 +671,14 @@ export function PurchaseConfirmModal({
               onClick={handleClose}
               className="flex-1 px-4 py-3 bg-terminal-bg hover:bg-terminal-surface border border-grid-line/50 text-muted-foreground font-mono text-sm rounded transition-colors"
             >
-              Cancel
+              {t('checkoutQuote.cancel')}
             </button>
             <button
               onClick={handlePurchase}
               disabled={quoteLoading || Boolean(error) || quoteExpired || !quoteSession}
               className="flex-1 px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors hover:shadow-[0_0_15px_rgba(0,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {quote?.is_zero_gateway ? 'Activate Now' : 'Pay with Crypto'}
+              {quote?.is_zero_gateway ? t('checkoutQuote.activateNow') : t('checkoutQuote.payWithCrypto')}
             </button>
           </div>
         </div>
@@ -639,7 +697,7 @@ export function PurchaseConfirmModal({
             <div className="h-12 w-12 border-4 border-neon-cyan border-t-transparent rounded-full mx-auto" />
           </motion.div>
           <p className="text-sm text-muted-foreground font-mono">
-            Creating payment invoice...
+            {t('checkoutQuote.processingPayment')}
           </p>
         </div>
       </Modal>
@@ -660,9 +718,9 @@ export function PurchaseConfirmModal({
               {successMessage}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {successMessage === 'Subscription activated'
-                ? 'Your subscription is now active and the entitlement snapshot has been committed.'
-                : 'Complete your payment in the new tab to activate your subscription.'}
+              {successMessage === t('checkoutQuote.subscriptionActivated')
+                ? t('checkoutQuote.successActivatedBody')
+                : t('checkoutQuote.successPaymentBody')}
             </p>
           </div>
         </motion.div>
@@ -683,17 +741,17 @@ export function PurchaseConfirmModal({
           </motion.div>
           <div className="space-y-2">
             <h3 className="text-lg font-display text-red-500">
-              Payment Failed
+              {t('checkoutQuote.paymentFailed')}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {error || 'Failed to create payment invoice'}
+              {error || t('checkoutQuote.paymentInvoiceFailed')}
             </p>
           </div>
           <button
             onClick={() => setStep('confirm')}
             className="px-6 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors"
           >
-            Try Again
+            {t('checkoutQuote.tryAgain')}
           </button>
         </div>
       </Modal>

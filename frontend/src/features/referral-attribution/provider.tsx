@@ -16,7 +16,7 @@ import {
 } from './storage';
 
 const RETRY_DELAYS_MS = [1_000, 3_000, 10_000] as const;
-const REFERRAL_QUERY_KEYS = ['ref', 'referral', 'code'] as const;
+const REFERRAL_QUERY_KEYS = ['ref', 'referral'] as const;
 const CAMPAIGN_KEYS = [
   'utm_source',
   'utm_medium',

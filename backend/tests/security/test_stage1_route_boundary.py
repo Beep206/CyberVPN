@@ -35,6 +35,7 @@ PUBLIC_EXACT_PATHS = {
     "/readiness",
     "/api/v1/status",
     "/api/v1/client/capabilities",
+    "/api/v3/growth/code-sets/preflight",
 }
 
 PUBLIC_PREFIXES = (

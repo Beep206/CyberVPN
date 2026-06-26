@@ -37,6 +37,11 @@ const GROWTH_PAGE_CONFIG = {
     titleKey: 'overview.deliveryOpsTitle',
     descriptionKey: 'overview.deliveryOpsDescription',
   },
+  rules: {
+    canonicalPath: '/growth/rules',
+    titleKey: 'rules.metaTitle',
+    descriptionKey: 'rules.description',
+  },
   risk: {
     canonicalPath: '/growth/risk',
     titleKey: 'referrals.metaTitle',

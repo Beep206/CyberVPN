@@ -151,6 +151,37 @@
       }
     ]
   },
+  "privateOffer": {
+    "title": "Private offer access",
+    "description": "Enter a private access code to preview backend-approved hidden offers. Private offers stay separate from the public catalog.",
+    "codeLabel": "Private access code",
+    "codePlaceholder": "PRIVATE2026",
+    "unlockCta": "Unlock offer",
+    "unlockingCta": "Checking...",
+    "retryCta": "Retry",
+    "clearCta": "Clear private offer",
+    "availableLabel": "Available by code",
+    "selectedLabel": "Private offer selected",
+    "selectCta": "Use this offer",
+    "previewOnlyHint": "Sign in before checkout to use this private offer.",
+    "validationError": "Enter a private access code first.",
+    "noOffers": "This code does not unlock an active private offer for this store.",
+    "networkError": "Private offer check could not reach the server. Retry when the connection is back.",
+    "authorizationError": "Sign in again to check private offers.",
+    "genericError": "Private offer check failed. Retry or use the public catalog.",
+    "grantDegraded": "The server returned private offer data without a valid checkout grant. Purchase actions are disabled.",
+    "grantExpired": "This private offer preview expired. Run the check again.",
+    "unlocked": "Private offer preview unlocked.",
+    "priceLabel": "Private price",
+    "durationDays": "{days} days",
+    "expiresAt": "Grant expires {date}",
+    "devices": "{count} devices",
+    "traffic": "Traffic: {label}",
+    "modes": "Modes: {modes}",
+    "serverPool": "Servers: {servers}",
+    "support": "Support: {support}",
+    "quoteError": "Private offer quote failed. Retry or clear the private offer."
+  },
   "commercialContext": {
     "title": "Commercial context",
     "resolved": "Pricing country {country} · {currency}"

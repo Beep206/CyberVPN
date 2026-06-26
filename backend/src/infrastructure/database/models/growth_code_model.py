@@ -9,6 +9,7 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Integer,
@@ -26,7 +27,17 @@ from src.infrastructure.database.types.encrypted_text import EncryptedText
 
 class GrowthCodeModel(Base):
     __tablename__ = "growth_codes"
-    __table_args__ = (UniqueConstraint("code_hash", "code_type", name="uq_growth_codes_hash_type"),)
+    __table_args__ = (
+        UniqueConstraint("code_hash", "code_type", name="uq_growth_codes_hash_type"),
+        UniqueConstraint("code_namespace", "code_hash", name="uq_growth_codes_namespace_hash"),
+        CheckConstraint("uses_count >= 0", name="ck_growth_codes_uses_count_non_negative"),
+        CheckConstraint("reserved_uses >= 0", name="ck_growth_codes_reserved_uses_non_negative"),
+        CheckConstraint("max_uses IS NULL OR uses_count <= max_uses", name="ck_growth_codes_uses_lte_max"),
+        CheckConstraint(
+            "max_uses IS NULL OR uses_count + reserved_uses <= max_uses",
+            name="ck_growth_codes_reserved_plus_uses_lte_max",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     code_hash: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
@@ -55,7 +66,11 @@ class GrowthCodeModel(Base):
         nullable=True,
         index=True,
     )
-    campaign_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
+    campaign_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("growth_campaigns.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     batch_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     storefront_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("storefronts.id", ondelete="SET NULL"),
@@ -76,6 +91,15 @@ class GrowthCodeModel(Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     max_uses: Mapped[int | None] = mapped_column(Integer, nullable=True)
     uses_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    reserved_uses: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    code_namespace: Mapped[str] = mapped_column(
+        String(40),
+        nullable=False,
+        default="customer_input",
+        server_default="customer_input",
+        index=True,
+    )
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     revoked_by_admin_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("admin_users.id", ondelete="SET NULL"),
@@ -338,6 +362,30 @@ class PromoCodePolicyModel(Base):
     allowed_channels: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     allowed_geos: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     min_net_paid_amount: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    currency_code: Mapped[str | None] = mapped_column(String(12), nullable=True)
+    discount_scope: Mapped[str] = mapped_column(String(30), nullable=False, default="order", server_default="order")
+    discountable_addon_codes: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    minimum_order_amount: Mapped[float | None] = mapped_column(Numeric(20, 8), nullable=True)
+    allow_zero_amount_order: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    new_customer_only: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    first_completed_order_only: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    first_net_paid_order_only: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    require_no_active_access: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    commission_basis: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="net_gateway_paid",
+        server_default="net_gateway_paid",
+    )
+    include_wallet_in_commission_base: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
+    )
+    policy_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     usage_cap_per_user: Mapped[int | None] = mapped_column(Integer, nullable=True)
     global_usage_cap: Mapped[int | None] = mapped_column(Integer, nullable=True)
     policy_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
@@ -447,6 +495,11 @@ class GrowthCodeReservationModel(Base):
         index=True,
     )
     checkout_session_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
+    reservation_group_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("growth_code_reservation_groups.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("mobile_users.id", ondelete="SET NULL"),
         nullable=True,
@@ -468,6 +521,13 @@ class GrowthCodeReservationModel(Base):
     )
     consumed_order_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    committed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    consumed_payment_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("payments.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
@@ -511,6 +571,17 @@ class GrowthCodeRedemptionModel(Base):
         nullable=True,
         index=True,
     )
+    payment_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("payments.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    reservation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("growth_code_reservations.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    usage_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     entitlement_grant_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("entitlement_grants.id", ondelete="SET NULL"),
         nullable=True,

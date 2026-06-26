@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.stage1_growth_policy import Stage1GrowthPolicyError
 from src.application.use_cases.auth.permissions import Permission
+from src.application.use_cases.commerce_sessions.quote_serialization import _safe_code_label, _safe_code_ref
 from src.application.use_cases.payments.checkout import (
     CheckoutAddonInput,
     CheckoutResult,
@@ -40,6 +41,7 @@ from src.presentation.api.shared.stage1_payment_runtime import (
 )
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
+    CheckoutCodeRefResponse,
     CheckoutCodeResolutionResponse,
     CheckoutCommitResponse,
     CheckoutDiscountResponse,
@@ -60,6 +62,13 @@ from src.presentation.dependencies.services import get_crypto_client
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+
+
+def _code_ref_response(value: str | None) -> CheckoutCodeRefResponse | None:
+    code_ref = _safe_code_ref(value)
+    if code_ref is None:
+        return None
+    return CheckoutCodeRefResponse.model_validate(code_ref)
 
 
 def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
@@ -101,7 +110,9 @@ def _serialize_quote(result) -> CheckoutQuoteResponse:
         plan_id=result.plan_id,
         promo_code_id=result.promo_code_id,
         partner_code_id=result.partner_code_id,
-        code_input=result.code_input,
+        private_catalog_grant_id=result.private_catalog_grant_id,
+        code_input=_safe_code_label(result.code_input),
+        code_input_ref=_code_ref_response(result.code_input),
         code_resolution=(
             CheckoutCodeResolutionResponse(
                 accepted=result.code_resolution.accepted,
@@ -126,7 +137,8 @@ def _serialize_quote(result) -> CheckoutQuoteResponse:
         discounts=[
             CheckoutDiscountResponse(
                 type=discount.discount_type,
-                code=discount.code,
+                code=_safe_code_label(discount.code) or "",
+                code_ref=_code_ref_response(discount.code),
                 amount=float(discount.amount),
                 policy_version_id=discount.policy_version_id,
             )
@@ -154,6 +166,11 @@ async def _build_quote(
     db: AsyncSession,
     user_id: UUID,
 ) -> CheckoutResult:
+    if body.private_catalog_grant_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="PRIVATE_CATALOG_GRANT_REQUIRES_QUOTE_SESSION",
+        )
     use_case = CheckoutUseCase(db)
     try:
         return await use_case.execute(

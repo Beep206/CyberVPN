@@ -328,8 +328,14 @@ async def test_miniapp_route_persists_returned_customer_session_and_revokes_acce
 
         assert response.status_code == 200
         payload = response.json()
-        access_token = payload["access_token"]
-        refresh_token = payload["refresh_token"]
+        assert "access_token" not in payload
+        assert "refresh_token" not in payload
+        assert "token_type" not in payload
+        assert "expires_in" not in payload
+        access_token = response.cookies.get("customer_access_token")
+        refresh_token = response.cookies.get("customer_refresh_token")
+        assert access_token
+        assert refresh_token
 
         token_payload = AuthService().decode_token(access_token, audience="cybervpn:customer")
         refresh_hash = hashlib.sha256(refresh_token.encode()).hexdigest()

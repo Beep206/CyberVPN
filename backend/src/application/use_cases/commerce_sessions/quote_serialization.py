@@ -3,7 +3,72 @@ from __future__ import annotations
 from typing import Any
 
 from src.application.use_cases.commerce_sessions.context_resolution import ResolvedQuoteContext
+from src.application.use_cases.growth_code_sets.snapshots import attach_growth_checkout_integrity
+from src.application.use_cases.growth_codes.hashing import hash_growth_code
 from src.application.use_cases.payments.checkout import CheckoutResult
+from src.shared.security.encryption import EncryptionError, get_oauth_token_encryption_service
+
+PROTECTED_CODE_VALUE_PREFIX = "enc:growth-code-snapshot:v1:"
+
+
+def _normalize_optional_code(value: str | None) -> str | None:
+    normalized = value.strip() if value else None
+    return normalized or None
+
+
+def _safe_code_ref(value: str | None, *, include_encrypted_value: bool = False) -> dict[str, Any] | None:
+    normalized = _normalize_optional_code(value)
+    if normalized is None:
+        return None
+    code_ref: dict[str, Any] = {
+        "redacted": True,
+        "code_hash": hash_growth_code(normalized),
+        "code_prefix": _safe_code_prefix(normalized),
+        "code_length": len(normalized),
+    }
+    if include_encrypted_value:
+        service = get_oauth_token_encryption_service()
+        if service is not None:
+            code_ref["encrypted_value"] = f"{PROTECTED_CODE_VALUE_PREFIX}{service.encrypt(normalized)}"
+        else:
+            code_ref["encrypted_value"] = None
+            code_ref["encryption_unavailable"] = True
+    return code_ref
+
+
+def _safe_code_prefix(value: str) -> str:
+    return value[:3].upper() if len(value) > 4 else "***"
+
+
+def _safe_code_label(value: str | None) -> str | None:
+    code_ref = _safe_code_ref(value)
+    if code_ref is None:
+        return None
+    return f"{code_ref['code_prefix']}...{code_ref['code_hash'][:12]}"
+
+
+def restore_protected_request_code(request_snapshot: dict[str, Any], field_name: str) -> str | None:
+    """Recover encrypted request code for short-lived quote drift checks.
+
+    Legacy snapshots may still contain the raw field; new snapshots store raw
+    codes only as encrypted values under ``<field>_ref``.
+    """
+    raw_value = _normalize_optional_code(request_snapshot.get(field_name))
+    if raw_value is not None:
+        return raw_value
+    code_ref = request_snapshot.get(f"{field_name}_ref")
+    if not isinstance(code_ref, dict):
+        return None
+    encrypted_value = code_ref.get("encrypted_value")
+    if not isinstance(encrypted_value, str) or not encrypted_value.startswith(PROTECTED_CODE_VALUE_PREFIX):
+        return None
+    service = get_oauth_token_encryption_service()
+    if service is None:
+        raise ValueError("Encrypted checkout code cannot be restored without an encryption key")
+    try:
+        return service.decrypt(encrypted_value.removeprefix(PROTECTED_CODE_VALUE_PREFIX))
+    except EncryptionError as exc:
+        raise ValueError("Encrypted checkout code could not be restored") from exc
 
 
 def serialize_checkout_result(
@@ -15,7 +80,7 @@ def serialize_checkout_result(
     if subscription_snapshot is not None:
         entitlements_snapshot["subscription_snapshot"] = subscription_snapshot
 
-    return {
+    snapshot = {
         "base_price": float(result.base_price),
         "addon_amount": float(result.addon_amount),
         "displayed_price": float(result.displayed_price),
@@ -32,12 +97,18 @@ def serialize_checkout_result(
         "partner_commission_contract_snapshot": (
             dict(result.partner_commission_contract_snapshot) if result.partner_commission_contract_snapshot else None
         ),
-        "code_input": result.code_input,
+        "private_catalog": dict(result.private_catalog_snapshot or {}),
+        "private_catalog_grant_id": (
+            str(result.private_catalog_grant_id) if result.private_catalog_grant_id is not None else None
+        ),
+        "code_input": _safe_code_label(result.code_input),
+        "code_input_ref": _safe_code_ref(result.code_input),
         "code_resolution": _serialize_code_resolution(result),
         "discounts": [
             {
                 "type": discount.discount_type,
-                "code": discount.code,
+                "code": _safe_code_label(discount.code),
+                "code_ref": _safe_code_ref(discount.code),
                 "amount": float(discount.amount),
                 "policy_version_id": str(discount.policy_version_id) if discount.policy_version_id else None,
             }
@@ -58,6 +129,7 @@ def serialize_checkout_result(
         ],
         "entitlements_snapshot": entitlements_snapshot,
     }
+    return attach_growth_checkout_integrity(snapshot, producer="cybervpn-backend.quote_serialization")
 
 
 def build_subscription_snapshot(
@@ -297,6 +369,7 @@ def build_request_snapshot(
     partner_code: str | None,
     use_wallet: float,
     addons: list[dict[str, Any]],
+    private_catalog_grant_id: str | None = None,
 ) -> dict[str, Any]:
     return {
         "storefront_key": storefront_key,
@@ -305,9 +378,13 @@ def build_request_snapshot(
         "plan_id": plan_id,
         "currency": currency,
         "channel": channel,
-        "code_input": code_input,
-        "promo_code": promo_code,
-        "partner_code": partner_code,
+        "code_input": None,
+        "promo_code": None,
+        "partner_code": None,
+        "code_input_ref": _safe_code_ref(code_input, include_encrypted_value=True),
+        "promo_code_ref": _safe_code_ref(promo_code, include_encrypted_value=True),
+        "partner_code_ref": _safe_code_ref(partner_code, include_encrypted_value=True),
+        "private_catalog_grant_id": private_catalog_grant_id,
         "use_wallet": use_wallet,
         "addons": addons,
     }

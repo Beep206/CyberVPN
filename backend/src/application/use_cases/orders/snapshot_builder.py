@@ -3,6 +3,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from src.application.use_cases.growth_code_sets.snapshots import build_growth_checkout_v3_snapshot
+
 
 def build_order_item_payloads(
     *,
@@ -54,6 +56,12 @@ def build_order_snapshots(
     context_snapshot: dict[str, Any],
     request_snapshot: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    growth_checkout_snapshot = build_growth_checkout_v3_snapshot(
+        quote_snapshot=quote_snapshot,
+        context_snapshot=context_snapshot,
+        request_snapshot=request_snapshot,
+    )
+    growth_effects = deepcopy(growth_checkout_snapshot.get("growth_effects", {}))
     merchant_snapshot = {
         "storefront": deepcopy(context_snapshot.get("storefront", {})),
         "merchant_profile": deepcopy(context_snapshot.get("merchant_profile", {})),
@@ -65,6 +73,7 @@ def build_order_snapshots(
         "request": deepcopy(request_snapshot),
         "pricebook": deepcopy(context_snapshot.get("pricebook", {})),
         "pricebook_entry": deepcopy(context_snapshot.get("pricebook_entry", {})),
+        "growth_checkout_snapshot": growth_checkout_snapshot,
     }
     policy_snapshot = {
         "offer": deepcopy(context_snapshot.get("offer", {})),
@@ -74,5 +83,6 @@ def build_order_snapshots(
             "promo_code_id": quote_snapshot.get("promo_code_id"),
             "partner_code_id": quote_snapshot.get("partner_code_id"),
         },
+        "growth_effects": growth_effects,
     }
     return merchant_snapshot, pricing_snapshot, policy_snapshot

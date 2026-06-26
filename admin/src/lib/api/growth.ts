@@ -37,6 +37,16 @@ type AdminGrowthSignalsOverviewResponse =
   operations['get_growth_signals_overview_api_v1_admin_growth_signals_overview_get']['responses'][200]['content']['application/json'];
 type AdminGrowthAbuseSignalsResponse =
   operations['list_growth_abuse_signals_api_v1_admin_growth_signals_abuse_queue_get']['responses'][200]['content']['application/json'];
+type AdminGrowthRuleCatalogResponse =
+  operations['get_growth_rule_catalog_api_v1_admin_growth_rules_catalog_get']['responses'][200]['content']['application/json'];
+type AdminGrowthRuleCompileRequest =
+  operations['compile_growth_rule_api_v1_admin_growth_rules_compile_post']['requestBody']['content']['application/json'];
+type AdminGrowthRuleCompileResponse =
+  operations['compile_growth_rule_api_v1_admin_growth_rules_compile_post']['responses'][200]['content']['application/json'];
+type AdminGrowthRuleSimulateRequest =
+  operations['simulate_growth_rule_api_v1_admin_growth_rules_simulate_post']['requestBody']['content']['application/json'];
+type AdminGrowthRuleSimulateResponse =
+  operations['simulate_growth_rule_api_v1_admin_growth_rules_simulate_post']['responses'][200]['content']['application/json'];
 
 export interface AdminGrowthCodeLookupRequest {
   code: string;
@@ -798,6 +808,15 @@ export const growthApi = {
   lookupGrowthCode: (data: AdminGrowthCodeLookupRequest) =>
     apiClient.post<AdminGrowthCodeLookupResponse>('/admin/growth-codes/lookup', data),
 
+  getGrowthRuleCatalog: () =>
+    apiClient.get<AdminGrowthRuleCatalogResponse>('/admin/growth/rules/catalog'),
+
+  compileGrowthRule: (data: AdminGrowthRuleCompileRequest) =>
+    apiClient.post<AdminGrowthRuleCompileResponse>('/admin/growth/rules/compile', data),
+
+  simulateGrowthRule: (data: AdminGrowthRuleSimulateRequest) =>
+    apiClient.post<AdminGrowthRuleSimulateResponse>('/admin/growth/rules/simulate', data),
+
   listGiftCodes: (params?: AdminListGiftCodesParams) =>
     apiClient.get<AdminListGiftCodesResponse>('/admin/gift-codes', { params }),
 
@@ -816,6 +835,11 @@ export const growthApi = {
 
 export type {
   AdminGrowthAbuseSignalsResponse,
+  AdminGrowthRuleCatalogResponse,
+  AdminGrowthRuleCompileRequest,
+  AdminGrowthRuleCompileResponse,
+  AdminGrowthRuleSimulateRequest,
+  AdminGrowthRuleSimulateResponse,
   AdminGrowthSignalsOverviewResponse,
   AdminCreateInviteCodesRequest,
   AdminCreateInviteCodesResponse,

@@ -81,7 +81,9 @@ class EvaluateOrderPolicyUseCase:
         attribution_result = await self._attribution_results.get_by_order_id(order.id)
         renewal_order = await self._renewal_orders.get_by_order_id(order.id)
         payment_disputes = await self._payment_disputes.list_for_order(order.id)
-        program_policy = dict((order.policy_snapshot or {}).get("program_eligibility_policy") or {})
+        policy_snapshot = dict(order.policy_snapshot or {})
+        program_policy = dict(policy_snapshot.get("program_eligibility_policy") or {})
+        offer_policy = dict(policy_snapshot.get("offer") or {})
 
         stacking = _evaluate_stacking(
             promo_present=order.promo_code_id is not None,
@@ -94,10 +96,12 @@ class EvaluateOrderPolicyUseCase:
             dispute.outcome_class == PaymentDisputeOutcomeClass.OPEN.value or dispute.lifecycle_status != "closed"
             for dispute in payment_disputes
         )
-        order_is_paid = order.settlement_status in PAID_ORDER_SETTLEMENT_STATUSES
-        fully_refunded = order.settlement_status == "refunded"
         paid_economic_amount = float(order.gateway_amount) + float(order.wallet_amount)
         positive_paid_economic_amount = paid_economic_amount > 0
+        order_is_paid = order.settlement_status in PAID_ORDER_SETTLEMENT_STATUSES or (
+            order.settlement_status == "pending_internal_settlement" and positive_paid_economic_amount
+        )
+        fully_refunded = order.settlement_status == "refunded"
         excluded_credit_amount = 0.0
 
         user_orders = await self._orders.list_for_user(user_id=order.user_id, limit=500, offset=0)
@@ -137,7 +141,10 @@ class EvaluateOrderPolicyUseCase:
             owner_type=owner_type,
             program_policy=program_policy,
         )
-        program_allows_referral_credit = bool(program_policy.get("referral_credit_allowed"))
+        program_allows_referral_credit = _program_allows_referral_credit(
+            program_policy=program_policy,
+            offer_policy=offer_policy,
+        )
 
         referral_reason_codes = list(qualifying_reason_codes)
         if commercial_owner_present:
@@ -237,3 +244,11 @@ def _program_allows_owner_type(*, owner_type: str, program_policy: dict) -> bool
     if owner_type == CommercialOwnerType.RESELLER.value:
         return bool(program_policy.get("reseller_allowed"))
     return False
+
+
+def _program_allows_referral_credit(*, program_policy: dict, offer_policy: dict) -> bool:
+    if "referral_credit_allowed" in program_policy:
+        return bool(program_policy.get("referral_credit_allowed"))
+    if "referral_eligible" in offer_policy:
+        return bool(offer_policy.get("referral_eligible"))
+    return True

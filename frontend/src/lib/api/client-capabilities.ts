@@ -1,59 +1,53 @@
+import { AxiosError, type AxiosResponse } from 'axios';
 import { apiClient } from './client';
+import type { components, operations } from './generated/types';
 
-export interface ClientAuthCapabilities {
-  email_password: boolean;
-  magic_link: boolean;
-  telegram: boolean;
-}
+type GetClientCapabilitiesOperation =
+  operations['get_client_capabilities_api_v1_client_capabilities_get'];
 
-export interface ClientPaymentCapabilities {
-  web_checkout: boolean;
-  telegram_stars: boolean;
-  cryptobot: boolean;
-  manual_invoice: boolean;
-  autorenewal: boolean;
-}
+export type ClientCapabilitiesResponse =
+  GetClientCapabilitiesOperation['responses'][200]['content']['application/json'];
+export type ClientAuthCapabilities =
+  components['schemas']['ClientAuthCapabilities'];
+export type ClientPaymentCapabilities =
+  components['schemas']['ClientPaymentCapabilities'];
+export type ClientGrowthCapabilities =
+  components['schemas']['ClientGrowthCapabilities'];
+export type ClientSubscriptionCapabilities =
+  components['schemas']['ClientSubscriptionCapabilities'];
+export type ClientPartnerCapabilities =
+  components['schemas']['ClientPartnerCapabilities'];
+export type ClientSiteCapabilities =
+  components['schemas']['ClientSiteCapabilities'];
+export type ClientOnboardingCapabilities =
+  components['schemas']['ClientOnboardingCapabilities'];
 
-export interface ClientGrowthCapabilities {
-  invites: boolean;
-  referral: boolean;
-  promo_codes: boolean;
-  gift_codes: boolean;
-  checkout_code_discounts: boolean;
-  growth_hub: boolean;
-}
-
-export interface ClientSubscriptionCapabilities {
-  multi_subscription: boolean;
-  selected_subscription_required: boolean;
-  addons: boolean;
-  upgrade: boolean;
-  trial: boolean;
-  paid_provisioning: boolean;
-}
-
-export interface ClientPartnerCapabilities {
-  portal: boolean;
-  applications: boolean;
-  codes: boolean;
-  attribution: boolean;
-  storefronts: boolean;
-  reporting: boolean;
-  settlement_sandbox: boolean;
-  webhooks: boolean;
-  payouts: boolean;
-  event_backbone: boolean;
-}
-
-export interface ClientCapabilitiesResponse {
-  auth: ClientAuthCapabilities;
-  payments: ClientPaymentCapabilities;
-  growth: ClientGrowthCapabilities;
-  subscriptions: ClientSubscriptionCapabilities;
-  partner: ClientPartnerCapabilities;
+function rejectPublicCapabilityResponse(
+  response: AxiosResponse<ClientCapabilitiesResponse>,
+): never {
+  throw new AxiosError(
+    `Request failed with status code ${response.status}`,
+    AxiosError.ERR_BAD_REQUEST,
+    response.config,
+    response.request,
+    response,
+  );
 }
 
 export const clientCapabilitiesApi = {
-  get: () => apiClient.get<ClientCapabilitiesResponse>('/client/capabilities'),
-};
+  get: async () => {
+    const response = await apiClient.get<ClientCapabilitiesResponse>(
+      '/client/capabilities',
+      {
+        validateStatus: (status) =>
+          (status >= 200 && status < 300) || status === 401,
+      },
+    );
 
+    if (response.status === 401) {
+      rejectPublicCapabilityResponse(response);
+    }
+
+    return response;
+  },
+};

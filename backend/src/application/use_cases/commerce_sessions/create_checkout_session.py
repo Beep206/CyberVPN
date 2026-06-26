@@ -11,7 +11,12 @@ from src.application.use_cases.commerce_sessions.context_resolution import Resol
 from src.application.use_cases.commerce_sessions.quote_serialization import (
     build_context_snapshot,
     build_subscription_snapshot,
+    restore_protected_request_code,
     serialize_checkout_result,
+)
+from src.application.use_cases.growth_code_sets.snapshots import (
+    attach_growth_checkout_integrity,
+    canonical_growth_checkout_snapshot,
 )
 from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
 from src.application.use_cases.partner_attribution.attribution import (
@@ -26,6 +31,7 @@ from src.infrastructure.database.models.checkout_session_model import CheckoutSe
 from src.infrastructure.database.models.quote_session_model import QuoteSessionModel
 from src.infrastructure.database.repositories.commerce_session_repo import CommerceSessionRepository
 from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
+from src.infrastructure.database.repositories.private_catalog_repo import SqlAlchemyPrivateCatalogRepository
 from src.infrastructure.monitoring.metrics import (
     commerce_checkout_session_duration_seconds,
     commerce_checkout_sessions_total,
@@ -57,6 +63,7 @@ class CreateCheckoutSessionUseCase:
         self._growth_codes = GrowthCodeRepository(session)
         self._reservations = GrowthCodeReservationService(session)
         self._partner_attribution = EnsurePendingPartnerAttributionClaimedUseCase(session)
+        self._private_catalog = SqlAlchemyPrivateCatalogRepository(session)
 
     @staticmethod
     def _normalize_utc(value: datetime) -> datetime:
@@ -125,10 +132,13 @@ class CreateCheckoutSessionUseCase:
             )
             partner_attribution_snapshot = _build_partner_attribution_snapshot(partner_attribution)
             if partner_attribution_snapshot is not None:
-                quote_session.quote_snapshot = {
-                    **dict(quote_session.quote_snapshot or {}),
-                    "partner_attribution": partner_attribution_snapshot,
-                }
+                quote_session.quote_snapshot = attach_growth_checkout_integrity(
+                    {
+                        **dict(quote_session.quote_snapshot or {}),
+                        "partner_attribution": partner_attribution_snapshot,
+                    },
+                    producer="cybervpn-backend.checkout_session",
+                )
                 await self._session.flush()
 
             current_context, current_quote_snapshot = await self._resolve_current_state(
@@ -170,6 +180,7 @@ class CreateCheckoutSessionUseCase:
                 idempotency_key=idempotency_key,
                 promo_code_id=quote_session.promo_code_id,
                 partner_code_id=quote_session.partner_code_id,
+                private_catalog_access_grant_id=quote_session.private_catalog_access_grant_id,
                 request_snapshot=dict(quote_session.request_snapshot),
                 checkout_snapshot={
                     "quote_session_id": str(quote_session.id),
@@ -180,6 +191,11 @@ class CreateCheckoutSessionUseCase:
             )
             quote_session.quote_status = "converted"
             created = await self._repo.create_checkout_session(checkout_session)
+            if quote_session.private_catalog_access_grant_id is not None:
+                await self._private_catalog.attach_grant_to_checkout(
+                    grant_id=quote_session.private_catalog_access_grant_id,
+                    checkout_session_id=created.id,
+                )
             await self._bind_reservation_to_checkout_session(quote_session=quote_session, checkout_session=created)
             await self._session.commit()
             await self._session.refresh(created)
@@ -251,11 +267,13 @@ class CreateCheckoutSessionUseCase:
             plan_id=UUID(request_snapshot["plan_id"]),
             currency=request_snapshot["currency"],
             catalog_base_price=Decimal(str(resolved_context.pricebook_entry.visible_price)),
-            code_input=request_snapshot.get("code_input"),
-            promo_code=request_snapshot.get("promo_code"),
-            partner_code=request_snapshot.get("partner_code"),
+            code_input=restore_protected_request_code(request_snapshot, "code_input"),
+            promo_code=restore_protected_request_code(request_snapshot, "promo_code"),
+            partner_code=restore_protected_request_code(request_snapshot, "partner_code"),
             use_wallet=Decimal(str(request_snapshot.get("use_wallet", 0))),
             storefront_id=quote_session.storefront_id,
+            private_catalog_grant_id=_optional_uuid(request_snapshot.get("private_catalog_grant_id")),
+            private_catalog_quote_session_id=quote_session.id,
             addons=[
                 CheckoutAddonInput(
                     code=addon["code"],
@@ -334,8 +352,14 @@ def _extract_reservation_id(quote_snapshot: dict | None) -> UUID | None:
     return UUID(str(raw_value))
 
 
+def _optional_uuid(raw_value: object) -> UUID | None:
+    if raw_value is None or raw_value == "":
+        return None
+    return UUID(str(raw_value))
+
+
 def _sanitize_quote_snapshot(snapshot: dict | None) -> dict:
-    sanitized = dict(snapshot or {})
+    sanitized = canonical_growth_checkout_snapshot(snapshot)
     sanitized.pop("partner_attribution", None)
     sanitized.pop("partner_commission_contract_snapshot", None)
     code_resolution = dict(sanitized.get("code_resolution") or {})

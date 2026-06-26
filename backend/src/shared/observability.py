@@ -39,11 +39,24 @@ SENSITIVE_FIELD_MARKERS = (
     "init_data_hash",
     "checkout",
     "invoice",
+    "growth_code",
+    "promo_code",
+    "invite_code",
+    "gift_code",
+    "referral_code",
+    "raw_code",
+    "code_input",
+    "registration_access_token",
+    "onboarding_flow_token",
 )
 SENSITIVE_STRING_PATTERNS = (
     re.compile(r"\b(?:vless|vmess|trojan|wireguard|ss)://", re.IGNORECASE),
     re.compile(
         r"(?:access[_-]?token|refresh[_-]?token|id[_-]?token|auth[_-]?code|otp|totp|secret|password|telegram[_-]?init[_-]?data|initdata|tgWebAppData)=",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:growth[_-]?code|promo[_-]?code|invite[_-]?code|gift[_-]?code|referral[_-]?code|raw[_-]?code|code[_-]?input|registration[_-]?access[_-]?token|onboarding[_-]?flow[_-]?token)=",
         re.IGNORECASE,
     ),
     re.compile(

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, DateTime, Integer, Numeric, String, Uuid, func
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Index, Integer, Numeric, String, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
@@ -19,6 +19,20 @@ class PaymentModel(Base):
     """
 
     __tablename__ = "payments"
+    __table_args__ = (
+        CheckConstraint(
+            "provider <> 'internal_zero' OR external_id IS NOT NULL",
+            name="ck_payments_internal_zero_external_id_required",
+        ),
+        Index(
+            "uq_payments_internal_zero_external_id",
+            "provider",
+            "external_id",
+            unique=True,
+            postgresql_where=text("provider = 'internal_zero' AND external_id IS NOT NULL"),
+            sqlite_where=text("provider = 'internal_zero' AND external_id IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
 
@@ -43,6 +57,12 @@ class PaymentModel(Base):
 
     partner_code_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
+    code_set_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("checkout_code_sets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     discount_amount: Mapped[float] = mapped_column(Numeric(20, 8), nullable=False, server_default="0")
 
     wallet_amount_used: Mapped[float] = mapped_column(Numeric(20, 8), nullable=False, server_default="0")
@@ -52,6 +72,8 @@ class PaymentModel(Base):
     addons_snapshot: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
 
     entitlements_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+
+    growth_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)
 

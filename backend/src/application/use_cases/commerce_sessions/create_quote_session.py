@@ -27,6 +27,7 @@ from src.config.settings import settings
 from src.domain.enums import AttributionTouchpointType, GrowthCodeType
 from src.infrastructure.database.models.quote_session_model import QuoteSessionModel
 from src.infrastructure.database.repositories.commerce_session_repo import CommerceSessionRepository
+from src.infrastructure.database.repositories.private_catalog_repo import SqlAlchemyPrivateCatalogRepository
 from src.infrastructure.monitoring.metrics import (
     commerce_checkout_addons_total,
     commerce_quote_session_duration_seconds,
@@ -46,6 +47,7 @@ class CreateQuoteSessionUseCase:
         self._touchpoints = RecordAttributionTouchpointUseCase(session)
         self._partner_attribution = EnsurePendingPartnerAttributionClaimedUseCase(session)
         self._reservations = GrowthCodeReservationService(session)
+        self._private_catalog = SqlAlchemyPrivateCatalogRepository(session)
 
     async def execute(
         self,
@@ -64,10 +66,12 @@ class CreateQuoteSessionUseCase:
         currency: str,
         channel: str,
         addons: list[dict],
+        private_catalog_grant_id: UUID | None = None,
         source_host: str | None = None,
         source_path: str | None = None,
         campaign_params: dict[str, str] | None = None,
         partner_attribution_cookie_token: str | None = None,
+        private_catalog_anonymous_session_id: str | None = None,
     ) -> QuoteSessionModel:
         started_at = perf_counter()
         normalized_currency = currency.upper()
@@ -102,6 +106,8 @@ class CreateQuoteSessionUseCase:
                 partner_code=partner_code,
                 use_wallet=Decimal(str(use_wallet)),
                 storefront_id=resolved_context.storefront.id,
+                private_catalog_grant_id=private_catalog_grant_id,
+                private_catalog_anonymous_session_id=private_catalog_anonymous_session_id,
                 addons=[
                     CheckoutAddonInput(
                         code=addon["code"],
@@ -141,6 +147,7 @@ class CreateQuoteSessionUseCase:
                 promo_code=promo_code.strip() if promo_code else None,
                 promo_code_id=checkout_result.promo_code_id,
                 partner_code_id=checkout_result.partner_code_id,
+                private_catalog_access_grant_id=checkout_result.private_catalog_grant_id,
                 request_snapshot=build_request_snapshot(
                     storefront_key=resolved_context.storefront.storefront_key,
                     pricebook_key=resolved_context.pricebook.pricebook_key,
@@ -153,6 +160,11 @@ class CreateQuoteSessionUseCase:
                     partner_code=partner_code.strip() if partner_code else None,
                     use_wallet=use_wallet,
                     addons=addons,
+                    private_catalog_grant_id=(
+                        str(checkout_result.private_catalog_grant_id)
+                        if checkout_result.private_catalog_grant_id is not None
+                        else None
+                    ),
                 ),
                 quote_snapshot=serialize_checkout_result(
                     checkout_result,
@@ -162,6 +174,11 @@ class CreateQuoteSessionUseCase:
                 expires_at=now + QUOTE_SESSION_TTL,
             )
             created = await self._repo.create_quote_session(model)
+            if created.private_catalog_access_grant_id is not None:
+                await self._private_catalog.attach_grant_to_quote(
+                    grant_id=created.private_catalog_access_grant_id,
+                    quote_session_id=created.id,
+                )
             linked_attribution = await self._ensure_partner_attribution_claimed(
                 user_id=user_id,
                 current_realm=current_realm,

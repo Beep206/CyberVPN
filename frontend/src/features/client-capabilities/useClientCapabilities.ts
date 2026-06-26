@@ -16,7 +16,7 @@ export const DISABLED_CLIENT_CAPABILITIES: ClientCapabilitiesResponse = {
     web_checkout: false,
     telegram_stars: false,
     cryptobot: false,
-    manual_invoice: true,
+    manual_invoice: false,
     autorenewal: false,
   },
   growth: {
@@ -47,6 +47,28 @@ export const DISABLED_CLIENT_CAPABILITIES: ClientCapabilitiesResponse = {
     payouts: false,
     event_backbone: false,
   },
+  site: {
+    customer_site_mode: 'full_site',
+    cabinet_only: false,
+    public_hosts: [],
+    cabinet_hosts: [],
+    cabinet_destination_path: '/dashboard',
+    allowed_path_prefixes: [],
+    preserve_query_keys: [],
+    registration_policy_independent: true,
+  },
+  onboarding: {
+    post_registration_code_prompt: false,
+    web_otp: false,
+    telegram_miniapp: false,
+    state_store: false,
+    flow_key: 'post_registration_growth_code_v1',
+    version: 1,
+    allowed_code_types: [],
+    allow_referral_input: false,
+    allow_partner_input: false,
+    available: false,
+  },
 };
 
 export function useClientCapabilities() {
@@ -64,10 +86,23 @@ export function useClientCapabilities() {
 }
 
 export function isClientCapabilitiesReady(query: {
+  data?: ClientCapabilitiesResponse;
   isPlaceholderData?: boolean;
+  isLoading?: boolean;
+  isPending?: boolean;
   isSuccess?: boolean;
 }): boolean {
-  return query.isSuccess !== false && query.isPlaceholderData !== true;
+  if (query.isPlaceholderData === true) {
+    return false;
+  }
+  if (query.isSuccess === true) {
+    return true;
+  }
+  return (
+    query.data !== undefined &&
+    query.isLoading !== true &&
+    query.isPending !== true
+  );
 }
 
 export function isWebCheckoutRailEnabled(
@@ -121,7 +156,7 @@ export function areSubscriptionUpgradesEnabled(
 export function areInviteCodesEnabled(
   capabilities: ClientCapabilitiesResponse | undefined,
 ): boolean {
-  return capabilities?.growth.invites !== false;
+  return capabilities?.growth.invites === true;
 }
 
 export function isReferralProgramEnabled(
@@ -164,5 +199,53 @@ export function isAnyGrowthSurfaceEnabled(
     areGiftCodesEnabled(capabilities) ||
     areCheckoutCodeDiscountsEnabled(capabilities) ||
     isGrowthHubEnabled(capabilities)
+  );
+}
+
+export function isCustomerSiteCabinetOnly(
+  capabilities: ClientCapabilitiesResponse | undefined,
+): boolean {
+  return (
+    capabilities?.site?.cabinet_only === true ||
+    capabilities?.site?.customer_site_mode === 'cabinet_only'
+  );
+}
+
+export function isCustomerSiteMaintenanceMode(
+  capabilities: ClientCapabilitiesResponse | undefined,
+): boolean {
+  return capabilities?.site?.customer_site_mode === 'maintenance';
+}
+
+export function isCustomerOnboardingAvailable(
+  capabilities: ClientCapabilitiesResponse | undefined,
+): boolean {
+  return capabilities?.onboarding?.available === true;
+}
+
+export function isPostRegistrationCodePromptEnabled(
+  capabilities: ClientCapabilitiesResponse | undefined,
+): boolean {
+  return (
+    isCustomerOnboardingAvailable(capabilities) &&
+    capabilities?.onboarding?.post_registration_code_prompt === true
+  );
+}
+
+export function isWebOtpOnboardingEnabled(
+  capabilities: ClientCapabilitiesResponse | undefined,
+): boolean {
+  return (
+    isCustomerOnboardingAvailable(capabilities) &&
+    capabilities?.onboarding?.web_otp === true
+  );
+}
+
+export function isTelegramMiniAppOnboardingEnabled(
+  capabilities: ClientCapabilitiesResponse | undefined,
+): boolean {
+  return (
+    isCustomerOnboardingAvailable(capabilities) &&
+    capabilities?.onboarding?.telegram_miniapp === true
   );
 }

@@ -39,6 +39,17 @@ class Permission(StrEnum):
     MANAGE_ADMINS = "manage_admins"
     MANAGE_PLANS = "manage_plans"
     MANAGE_INVITES = "manage_invites"  # CRIT-1: Invite token management
+    # Growth Codes v6
+    GROWTH_CAMPAIGNS_READ = "growth.campaigns.read"
+    GROWTH_CAMPAIGNS_WRITE = "growth.campaigns.write"
+    GROWTH_CAMPAIGNS_PUBLISH = "growth.campaigns.publish"
+    GROWTH_CAMPAIGNS_PAUSE = "growth.campaigns.pause"
+    GROWTH_CAMPAIGNS_REVOKE = "growth.campaigns.revoke"
+    GROWTH_RULES_VIEW = "growth.rules.view"
+    GROWTH_RULES_EDIT = "growth.rules.edit"
+    GROWTH_RULES_VALIDATE = "growth.rules.validate"
+    GROWTH_RULES_PUBLISH = "growth.rules.publish"
+    GROWTH_RULES_APPROVE = "growth.rules.approve"
     # Subscriptions
     SUBSCRIPTION_CREATE = "subscription_create"
     VPN_CREDENTIAL_REGENERATE = "vpn_credential_regenerate"
@@ -136,6 +147,16 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
         Permission.WEBHOOK_READ,
         Permission.MANAGE_PLANS,
         Permission.MANAGE_INVITES,  # CRIT-1: Allow admins to create invites
+        Permission.GROWTH_CAMPAIGNS_READ,
+        Permission.GROWTH_CAMPAIGNS_WRITE,
+        Permission.GROWTH_CAMPAIGNS_PUBLISH,
+        Permission.GROWTH_CAMPAIGNS_PAUSE,
+        Permission.GROWTH_CAMPAIGNS_REVOKE,
+        Permission.GROWTH_RULES_VIEW,
+        Permission.GROWTH_RULES_EDIT,
+        Permission.GROWTH_RULES_VALIDATE,
+        Permission.GROWTH_RULES_PUBLISH,
+        Permission.GROWTH_RULES_APPROVE,
         Permission.SUBSCRIPTION_CREATE,
         Permission.VPN_CREDENTIAL_REGENERATE,
         Permission.VIEW_ANALYTICS,

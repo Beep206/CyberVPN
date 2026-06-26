@@ -1,12 +1,17 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CountrySelector } from '@/features/country-selector';
 import { CurrencySelector } from '@/features/currency-selector';
 import { isSupportedCurrency } from '@/features/currency-selector/currency-config';
 import { useRouter } from '@/i18n/navigation';
+import { OFFICIAL_WEB_STOREFRONT_KEY } from '@/lib/api/commerce';
+import {
+  buildPrivateOfferUnlockCopy,
+  PrivateOfferUnlock,
+} from '@/features/customer-growth/components/PrivateOfferUnlock';
 import { useEnhancementReady } from '@/shared/hooks/use-enhancement-ready';
 import { useVisualTier } from '@/shared/hooks/use-visual-tier';
 import { ResponsiveSplitShell } from '@/shared/ui/layout/responsive-split-shell';
@@ -101,6 +106,7 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
   const router = useRouter();
   const [hoveredTier, setHoveredTier] = useState<TierLevel>('plus');
   const [selectedPeriod, setSelectedPeriod] = useState<number>(() => getCatalogDefaultPeriod(catalog));
+  const privateOfferCopy = useMemo(() => buildPrivateOfferUnlockCopy(t), [t]);
   const { tier: visualTier, isFull } = useVisualTier();
   const { isReady: isSceneReady } = useEnhancementReady({
     minimumTier: 'full',
@@ -216,6 +222,16 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
     <div className="space-y-20 pb-12 md:space-y-24 lg:pb-24">
       {catalog.plans.length > 0 ? (
         <div className="relative z-20">
+          <div className="mx-auto mb-8 max-w-4xl">
+            <PrivateOfferUnlock
+              storefrontKey={OFFICIAL_WEB_STOREFRONT_KEY}
+              channel="web"
+              currency={catalog.context.currency}
+              copy={privateOfferCopy}
+              mode="preview"
+              variant="pricing"
+            />
+          </div>
           <TierCards
             dedicatedIpAddonAvailable={dedicatedIpAddonAvailable}
             hoveredTier={hoveredTier}

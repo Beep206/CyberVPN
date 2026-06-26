@@ -104,6 +104,7 @@ describe('admin-navigation registry', () => {
                 '/growth',
                 '/growth/reporting',
                 '/growth/notifications',
+                '/growth/rules',
                 '/growth/risk',
                 '/growth/referrals',
             ]),
@@ -142,6 +143,12 @@ describe('admin-navigation registry', () => {
         );
         expect(getResolvedItem('finance', 'governance-admin-invites')).toBeUndefined();
         expect(getResolvedItem('support', 'messaging')?.accessState).toBe(
+            'enabled',
+        );
+        expect(getResolvedItem('viewer', 'growth-rules')?.accessState).toBe(
+            'disabled',
+        );
+        expect(getResolvedItem('admin', 'growth-rules')?.accessState).toBe(
             'enabled',
         );
     });

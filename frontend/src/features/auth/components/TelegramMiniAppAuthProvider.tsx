@@ -9,6 +9,7 @@ import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-
 import { getDefaultMiniAppPath, localizePathname } from '@/features/auth/lib/redirect-path';
 import { isMiniAppRoute } from '@/features/auth/lib/session';
 import { MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
+import { getPostAuthDestination } from '@/features/customer-onboarding/routing';
 import { Loader2, AlertCircle, Shield } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -108,7 +109,11 @@ export function TelegramMiniAppAuthProvider({
                 return;
             }
             invalidateMiniAppQueries();
-            router.replace(miniAppReturnPath);
+            const postAuthDestination = getPostAuthDestination({
+                onboarding: result.onboarding,
+                surface: 'miniapp',
+            });
+            router.replace(postAuthDestination === '/miniapp/home' ? miniAppReturnPath : postAuthDestination);
         } catch {
             setAuthError(t('miniAppAutoAuth'));
         }

@@ -659,8 +659,10 @@ async def test_stage1_email_password_http_flow_register_verify_login_refresh_log
 
     assert verify_response.status_code == 200
     verify_body = verify_response.json()
-    assert verify_body["access_token"]
-    assert verify_body["refresh_token"]
+    assert "access_token" not in verify_body
+    assert "refresh_token" not in verify_body
+    assert "token_type" not in verify_body
+    assert "expires_in" not in verify_body
     assert verify_body["user"]["is_active"] is True
     assert verify_body["user"]["is_email_verified"] is True
     assert "httponly" in "\n".join(verify_response.headers.get_list("set-cookie")).lower()

@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Numeric, String, Uuid
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, Numeric, String, UniqueConstraint, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
@@ -14,6 +14,24 @@ from src.infrastructure.database.session import Base
 
 class PaymentAttemptModel(Base):
     __tablename__ = "payment_attempts"
+    __table_args__ = (
+        UniqueConstraint("order_id", "idempotency_key", name="uq_payment_attempts_order_idempotency_key"),
+        Index("uq_payment_attempts_order_attempt_number", "order_id", "attempt_number", unique=True),
+        Index(
+            "uq_payment_attempts_order_active",
+            "order_id",
+            unique=True,
+            postgresql_where=text("status IN ('pending', 'processing')"),
+            sqlite_where=text("status IN ('pending', 'processing')"),
+        ),
+        Index(
+            "uq_payment_attempts_order_succeeded",
+            "order_id",
+            unique=True,
+            postgresql_where=text("status = 'succeeded'"),
+            sqlite_where=text("status = 'succeeded'"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id: Mapped[uuid.UUID] = mapped_column(
@@ -25,6 +43,11 @@ class PaymentAttemptModel(Base):
         ForeignKey("payments.id", ondelete="SET NULL"),
         nullable=True,
         unique=True,
+        index=True,
+    )
+    code_set_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("checkout_code_sets.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
     supersedes_attempt_id: Mapped[uuid.UUID | None] = mapped_column(

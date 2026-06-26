@@ -516,6 +516,79 @@ async def get_current_mobile_user_id(
         )
 
 
+async def get_optional_current_mobile_user_id(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    auth_service: AuthService = Depends(get_auth_service),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
+) -> UUID | None:
+    token: str | None = (
+        credentials.credentials
+        if credentials
+        else get_access_token_cookie(
+            request.cookies,
+            current_realm.cookie_namespace,
+        )
+    )
+    if not token:
+        return None
+
+    try:
+        try:
+            payload = auth_service.decode_token(token, audience=current_realm.audience)
+        except JWTError:
+            payload = auth_service.decode_token(token, audience=None)
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Invalid token type"},
+            )
+        if payload.get("aud") and payload.get("aud") != current_realm.audience:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Invalid audience"},
+            )
+        if payload.get("realm_key") and payload.get("realm_key") != current_realm.realm_key:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Invalid realm"},
+            )
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Invalid token"},
+            )
+        jti = payload.get("jti")
+        if jti:
+            revocation_service = JWTRevocationService(redis_client)
+            if await revocation_service.is_revoked(jti):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail={"code": "TOKEN_REVOKED", "message": "Token has been revoked"},
+                )
+        repo = MobileUserRepository(db)
+        user = await repo.get_by_id(UUID(user_id))
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "USER_NOT_FOUND", "message": "User not found"},
+            )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "USER_INACTIVE", "message": "User account is inactive"},
+            )
+        return UUID(user_id)
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Invalid or expired token"},
+        )
+
+
 async def get_current_pending_mobile_2fa_context(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),

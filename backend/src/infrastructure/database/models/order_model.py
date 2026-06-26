@@ -89,13 +89,23 @@ class OrderModel(Base):
     )
     promo_code_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     partner_code_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
+    code_set_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("checkout_code_sets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    private_catalog_access_grant_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("private_catalog_access_grants.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     sale_channel: Mapped[str] = mapped_column(String(30), nullable=False, default="web", server_default="web")
     currency_code: Mapped[str] = mapped_column(String(12), nullable=False, default="USD", server_default="USD")
     order_status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="committed", server_default="committed", index=True
     )
     settlement_status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="pending_payment", server_default="pending_payment", index=True
+        String(40), nullable=False, default="pending_payment", server_default="pending_payment", index=True
     )
     base_price: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     addon_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0, server_default="0")
@@ -108,6 +118,8 @@ class OrderModel(Base):
     merchant_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     pricing_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     policy_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    risk_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    fx_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     entitlements_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

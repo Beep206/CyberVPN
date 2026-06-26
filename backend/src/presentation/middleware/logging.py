@@ -19,6 +19,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     """HTTP request logging middleware with URL sanitization (LOW-004)."""
 
     async def dispatch(self, request, call_next):
+        request.state.request_started_at = time.perf_counter()
         start = time.time()
         response = await call_next(request)
         duration_ms = (time.time() - start) * 1000

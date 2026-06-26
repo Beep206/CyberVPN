@@ -18,6 +18,7 @@ class CreateQuoteSessionRequest(BaseModel):
     code_input: str | None = Field(None, max_length=64)
     promo_code: str | None = Field(None, max_length=50)
     partner_code: str | None = Field(None, max_length=30)
+    private_catalog_grant_id: UUID | None = None
     use_wallet: float = Field(0, ge=0)
     currency: str = Field("USD", min_length=3, max_length=12)
     channel: str = Field("web", min_length=1, max_length=30)

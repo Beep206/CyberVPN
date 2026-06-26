@@ -232,14 +232,32 @@ class CommitCheckoutUseCase:
         return CommitCheckoutResult(payment=payment, status="pending", invoice=invoice)
 
     async def _acquire_idempotency_lock(self, *, user_id: UUID, idempotency_key: str) -> None:
-        bind = self._session.get_bind()
-        if bind is None or bind.dialect.name != "postgresql":
+        if self._session_dialect_name() != "postgresql":
             return
         lock_key = f"checkout:{user_id}:{idempotency_key}"
         await self._session.execute(
             text("select pg_advisory_xact_lock(hashtext(:lock_key))"),
             {"lock_key": lock_key},
         )
+
+    def _session_dialect_name(self) -> str | None:
+        candidates = (
+            self._session,
+            getattr(self._session, "sync_session", None),
+            getattr(self._session, "_session", None),
+        )
+        for candidate in candidates:
+            if candidate is None:
+                continue
+            get_bind = getattr(candidate, "get_bind", None)
+            if not callable(get_bind):
+                continue
+            bind = get_bind()
+            dialect = getattr(bind, "dialect", None)
+            dialect_name = getattr(dialect, "name", None)
+            if isinstance(dialect_name, str):
+                return dialect_name
+        return None
 
     @staticmethod
     def _parse_invoice_expiration(value: str | None):

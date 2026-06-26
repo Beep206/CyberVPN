@@ -19,6 +19,7 @@ from src.presentation.api.v1.miniapp.routes import (
     _build_usage_snapshot,
     _is_rtl_locale,
     activate_miniapp_trial,
+    commit_miniapp_checkout,
     get_miniapp_config,
     get_miniapp_offers,
     get_miniapp_payment_status,
@@ -404,6 +405,7 @@ def test_get_remnawave_user_for_mobile_user_prefers_local_remnawave_uuid(monkeyp
 
 def test_quote_miniapp_checkout_uses_surface_specific_flow(monkeypatch) -> None:
     user_id = uuid4()
+    grant_id = uuid4()
     realm = _customer_realm()
     request = miniapp_routes.MiniAppCheckoutRequest(
         flow="checkout",
@@ -411,12 +413,14 @@ def test_quote_miniapp_checkout_uses_surface_specific_flow(monkeypatch) -> None:
         addons=[],
         code_input="SAVE20",
         promo_code=None,
+        private_catalog_grant_id=grant_id,
         use_wallet=0,
         currency="USD",
     )
 
     async def fake_build_quote(*, body, db, user_id):
         assert body.channel == "miniapp"
+        assert body.private_catalog_grant_id == grant_id
         assert user_id
         return SimpleNamespace(displayed_price=79)
 
@@ -438,6 +442,95 @@ def test_quote_miniapp_checkout_uses_surface_specific_flow(monkeypatch) -> None:
     )
 
     assert response.displayed_price == 79
+
+
+def test_miniapp_checkout_request_accepts_snake_and_camel_private_grant() -> None:
+    snake_grant_id = uuid4()
+    camel_grant_id = uuid4()
+
+    snake = miniapp_routes.MiniAppCheckoutRequest.model_validate(
+        {
+            "flow": "checkout",
+            "planId": str(uuid4()),
+            "private_catalog_grant_id": str(snake_grant_id),
+            "useWallet": 0,
+            "currency": "USD",
+        }
+    )
+    camel = miniapp_routes.MiniAppCheckoutRequest.model_validate(
+        {
+            "flow": "checkout",
+            "planId": str(uuid4()),
+            "privateCatalogGrantId": str(camel_grant_id),
+            "useWallet": 0,
+            "currency": "USD",
+        }
+    )
+
+    assert snake.private_catalog_grant_id == snake_grant_id
+    assert camel.private_catalog_grant_id == camel_grant_id
+
+
+def test_commit_miniapp_checkout_forwards_private_catalog_grant(monkeypatch) -> None:
+    user_id = uuid4()
+    plan_id = uuid4()
+    grant_id = uuid4()
+    payment_id = uuid4()
+    realm = _customer_realm()
+    request = miniapp_routes.MiniAppCheckoutRequest(
+        flow="checkout",
+        plan_id=plan_id,
+        addons=[],
+        code_input=None,
+        promo_code=None,
+        private_catalog_grant_id=grant_id,
+        use_wallet=0,
+        currency="USD",
+    )
+
+    async def fake_build_quote(*, body, db, user_id):
+        assert body.channel == "miniapp"
+        assert body.plan_id == plan_id
+        assert body.private_catalog_grant_id == grant_id
+        assert user_id
+        return SimpleNamespace(plan_id=plan_id, plan_name="Private Plan", duration_days=30)
+
+    def fake_serialize(_result):
+        return SimpleNamespace(model_dump=lambda: {"displayed_price": 79})
+
+    class FakeCommitCheckoutUseCase:
+        def __init__(self, db, crypto_client) -> None:
+            self.db = db
+            self.crypto_client = crypto_client
+
+        async def execute(self, **kwargs):
+            assert kwargs["idempotency_key"] == "miniapp-private-grant"
+            return SimpleNamespace(payment=SimpleNamespace(id=payment_id), status="pending", invoice=None)
+
+    async def fake_resolve_telegram_user_id(**_kwargs):
+        return 123456789
+
+    monkeypatch.setattr(miniapp_routes, "require_stage1_payments_enabled", lambda: None)
+    monkeypatch.setattr(miniapp_routes, "_get_miniapp_runtime_config", _default_rollout_config)
+    monkeypatch.setattr(miniapp_routes, "_resolve_miniapp_runtime_telegram_user_id", fake_resolve_telegram_user_id)
+    monkeypatch.setattr(miniapp_routes, "_build_base_checkout_quote", fake_build_quote)
+    monkeypatch.setattr(miniapp_routes, "_serialize_base_checkout_quote", fake_serialize)
+    monkeypatch.setattr(miniapp_routes, "CommitCheckoutUseCase", FakeCommitCheckoutUseCase)
+    monkeypatch.setattr(miniapp_routes, "MiniAppCheckoutCommitResponse", lambda **kwargs: SimpleNamespace(**kwargs))
+
+    response = asyncio.run(
+        commit_miniapp_checkout(
+            body=request,
+            db=object(),
+            user_id=user_id,
+            current_realm=realm,
+            crypto_client=object(),
+            idempotency_key="miniapp-private-grant",
+        )
+    )
+
+    assert response.payment_id == payment_id
+    assert response.status == "pending"
 
 
 def test_activate_miniapp_trial_preserves_rate_limit_and_activation(monkeypatch) -> None:

@@ -71,6 +71,9 @@ export interface AuthResponse {
   tfa_token?: string | null;
 }
 
+export type CustomerOnboardingAuthSummary =
+  components['schemas']['CustomerOnboardingAuthSummaryResponse'];
+
 export interface TokenResponse {
   access_token: string;
   refresh_token: string;
@@ -90,8 +93,9 @@ export interface LoginResponse {
 
 export type WebRefreshResponse = components['schemas']['WebRefreshResponse'];
 
-export interface VerifyOtpResponse extends TokenResponse {
+export interface VerifyOtpResponse {
   user: User;
+  onboarding?: CustomerOnboardingAuthSummary | null;
 }
 
 export interface RegisterResponse {
@@ -101,6 +105,21 @@ export interface RegisterResponse {
   is_active: boolean;
   is_email_verified: boolean;
   message: string;
+}
+
+export interface RegistrationAccessExchangeRequest {
+  registration_access_token: string;
+}
+
+export interface RegistrationAccessExchangeResponse {
+  status: 'exchanged';
+  email_hint_present: boolean;
+  email_hint_masked: string | null;
+  expires_at: string;
+  registration_policy: {
+    invite_required: boolean;
+    auth_realm_key?: string | null;
+  };
 }
 
 export interface ResendOtpResponse {
@@ -181,14 +200,11 @@ export interface OAuthCallbackRequest {
 }
 
 export interface TelegramMiniAppResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
   user: OAuthLoginUser;
   is_new_user: boolean;
   requires_2fa: boolean;
   tfa_token: string | null;
+  onboarding?: CustomerOnboardingAuthSummary | null;
 }
 
 export interface TelegramMagicLinkResponse {
@@ -324,10 +340,18 @@ export const authApi = {
   register: (data: RegisterRequest) =>
     apiClient.post<RegisterResponse>('/auth/register', data),
 
+  exchangeRegistrationAccess: (
+    data: RegistrationAccessExchangeRequest,
+    idempotencyKey: string,
+  ) =>
+    apiClient.post<RegistrationAccessExchangeResponse>('/auth/registration-access/exchange', data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
+
   /**
    * Verify OTP code for email verification
    * POST /api/v1/auth/verify-otp
-   * On success, returns tokens (auto-login) and activates user
+   * On success, sets httpOnly cookies and activates user
    */
   verifyOtp: (data: VerifyOtpRequest) =>
     apiClient.post<VerifyOtpResponse>('/auth/verify-otp', data),

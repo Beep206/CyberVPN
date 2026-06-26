@@ -1,8 +1,11 @@
 """Invite token service for registration access control (CRIT-1)."""
 
+import hashlib
 import json
 import logging
+from collections.abc import Awaitable
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 from uuid import uuid4
 
 import redis.asyncio as redis
@@ -20,9 +23,69 @@ class InviteTokenService:
     """
 
     PREFIX = "invite_token:"
+    REGISTRATION_RESERVATION_PREFIX = "invite_token_registration_reservation:"
+    REGISTRATION_RESERVATION_TTL_SECONDS = 600
+    _DELETE_RESERVATION_SCRIPT = """
+    if redis.call("get", KEYS[1]) == ARGV[1] then
+        return redis.call("del", KEYS[1])
+    end
+    return 0
+    """
 
     def __init__(self, redis_client: redis.Redis) -> None:
         self._redis = redis_client
+
+    @staticmethod
+    def _token_fingerprint(token: str) -> str:
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+
+    @staticmethod
+    def _token_key_digest(token: str) -> str:
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def _registration_reservation_key(cls, token: str) -> str:
+        return f"{cls.REGISTRATION_RESERVATION_PREFIX}{cls._token_key_digest(token)}"
+
+    @classmethod
+    def _legacy_registration_reservation_key(cls, token: str) -> str:
+        return f"{cls.REGISTRATION_RESERVATION_PREFIX}{token}"
+
+    @staticmethod
+    def _decode_redis_text(value: object) -> str:
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return str(value)
+
+    async def _delete_registration_reservation_key(
+        self,
+        reservation_key: str,
+        reservation_id: str,
+    ) -> bool:
+        deleted = await cast(
+            Awaitable[Any],
+            self._redis.eval(
+                self._DELETE_RESERVATION_SCRIPT,
+                1,
+                reservation_key,
+                reservation_id,
+            ),
+        )
+        return bool(deleted)
+
+    async def _find_owned_registration_reservation_key(
+        self,
+        token: str,
+        reservation_id: str,
+    ) -> str | None:
+        for reservation_key in (
+            self._registration_reservation_key(token),
+            self._legacy_registration_reservation_key(token),
+        ):
+            existing_reservation = await self._redis.get(reservation_key)
+            if existing_reservation and self._decode_redis_text(existing_reservation) == reservation_id:
+                return reservation_key
+        return None
 
     @property
     def ttl(self) -> timedelta:
@@ -88,6 +151,72 @@ class InviteTokenService:
 
         return json.loads(data)
 
+    async def reserve_for_registration(
+        self,
+        token: str,
+        reservation_id: str,
+        *,
+        ttl_seconds: int = REGISTRATION_RESERVATION_TTL_SECONDS,
+    ) -> dict | None:
+        """Reserve an invite token for a registration attempt without consuming it."""
+        token_data = await self.validate(token)
+        if not token_data:
+            logger.warning(
+                "Invalid or expired invite token reservation attempted",
+                extra={"token_fingerprint": self._token_fingerprint(token)},
+            )
+            return None
+
+        reservation_key = self._registration_reservation_key(token)
+        reserved = await self._redis.set(
+            reservation_key,
+            reservation_id,
+            ex=ttl_seconds,
+            nx=True,
+        )
+        if reserved:
+            logger.info(
+                "Invite token reserved for registration",
+                extra={"token_fingerprint": self._token_fingerprint(token)},
+            )
+            return token_data
+
+        if await self._find_owned_registration_reservation_key(token, reservation_id):
+            return token_data
+
+        logger.warning(
+            "Invite token registration reservation conflict",
+            extra={"token_fingerprint": self._token_fingerprint(token)},
+        )
+        return None
+
+    async def consume_reserved_for_registration(self, token: str, reservation_id: str) -> dict | None:
+        """Consume an invite token only when the caller still owns its reservation."""
+        reservation_key = await self._find_owned_registration_reservation_key(token, reservation_id)
+        if not reservation_key:
+            logger.warning(
+                "Invite token consume blocked by missing registration reservation",
+                extra={"token_fingerprint": self._token_fingerprint(token)},
+            )
+            return None
+
+        token_data = await self.validate_and_consume(token)
+        await self._delete_registration_reservation_key(reservation_key, reservation_id)
+        return token_data
+
+    async def release_registration_reservation(self, token: str, reservation_id: str) -> bool:
+        """Release a registration reservation without consuming the invite token."""
+        reservation_key = await self._find_owned_registration_reservation_key(token, reservation_id)
+        released = False
+        if reservation_key:
+            released = await self._delete_registration_reservation_key(reservation_key, reservation_id)
+        if released:
+            logger.info(
+                "Invite token registration reservation released",
+                extra={"token_fingerprint": self._token_fingerprint(token)},
+            )
+        return released
+
     async def validate_and_consume(self, token: str) -> dict | None:
         """Validate and consume an invite token (single-use).
 
@@ -109,7 +238,7 @@ class InviteTokenService:
         if not data:
             logger.warning(
                 "Invalid or expired invite token used",
-                extra={"token_prefix": token[:8] if len(token) >= 8 else token},
+                extra={"token_fingerprint": self._token_fingerprint(token)},
             )
             return None
 
@@ -139,7 +268,7 @@ class InviteTokenService:
         if deleted:
             logger.info(
                 "Invite token revoked",
-                extra={"token_prefix": token[:8] if len(token) >= 8 else token},
+                extra={"token_fingerprint": self._token_fingerprint(token)},
             )
 
         return bool(deleted)

@@ -1,15 +1,22 @@
 """User registration route with OTP email verification and invite token system (CRIT-1)."""
 
 import logging
+from datetime import UTC, datetime
+from uuid import UUID, uuid4
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.invite_service import InviteTokenService
 from src.application.services.otp_service import OtpRateLimitError, OtpService
 from src.application.services.public_registration_policy import PublicRegistrationDisabledError
+from src.application.services.registration_access_service import (
+    REGISTRATION_ACCESS_EXCHANGE_SESSION_TTL_SECONDS,
+    RegistrationAccessGrantService,
+    registration_access_email_hint_matches,
+)
 from src.application.use_cases.auth.register import RegisterUseCase
 from src.application.use_cases.auth_realms import RealmResolution
 from src.config.settings import settings
@@ -30,13 +37,120 @@ from src.infrastructure.tasks.email_task_dispatcher import (
     EmailTaskDispatcher,
     get_email_dispatcher,
 )
-from src.presentation.api.v1.auth.schemas import RegisterRequest, RegisterResponse
+from src.presentation.api.v1.auth.schemas import (
+    RegisterRequest,
+    RegisterResponse,
+    RegistrationAccessExchangeRequest,
+    RegistrationAccessExchangeResponse,
+    RegistrationAccessPolicyResponse,
+)
 from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.shared.logging.sanitization import sanitize_email, sanitize_username
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
+REGISTRATION_ACCESS_COOKIE_NAME = "__Host-cvpn_registration_access"
+REGISTRATION_ACCESS_COOKIE_PATH = "/"
+
+
+async def _release_invite_registration_reservation(
+    invite_service: InviteTokenService,
+    *,
+    invite_token: str | None,
+    reservation_id: str | None,
+) -> None:
+    if not invite_token or not reservation_id:
+        return
+    try:
+        await invite_service.release_registration_reservation(invite_token, reservation_id)
+    except Exception:  # noqa: S110
+        logger.warning(
+            "invite_token_registration_reservation_release_failed",
+            exc_info=True,
+        )
+
+
+async def _release_registration_access_reservation(
+    *,
+    registration_access_service: RegistrationAccessGrantService,
+    invite_service: InviteTokenService,
+    invite_token: str | None,
+    reservation_id: str | None,
+    reservation_source: str | None,
+    reason: str,
+    request_host: str,
+) -> None:
+    if not invite_token or not reservation_id:
+        return
+    if reservation_source == "registration_access_grants":
+        try:
+            await registration_access_service.release_registration_reservation(
+                token=invite_token,
+                reservation_id=reservation_id,
+                reason=reason,
+            )
+        except Exception:  # noqa: S110
+            logger.warning(
+                "registration_access_reservation_release_failed",
+                exc_info=True,
+            )
+        return
+    if reservation_source == "registration_access_exchange_session":
+        try:
+            await registration_access_service.release_exchange_session_registration_reservation(
+                session_token=invite_token,
+                reservation_id=reservation_id,
+                reason=reason,
+                host=request_host,
+            )
+        except Exception:  # noqa: S110
+            logger.warning(
+                "registration_access_exchange_reservation_release_failed",
+                exc_info=True,
+            )
+        return
+    if reservation_source == "legacy_redis_invite":
+        await _release_invite_registration_reservation(
+            invite_service,
+            invite_token=invite_token,
+            reservation_id=reservation_id,
+        )
+
+
+def _request_host(request: Request) -> str:
+    return (request.url.hostname or request.headers.get("host") or "unknown").split(":", 1)[0].lower()
+
+
+def _set_registration_access_cookie(
+    response: Response,
+    *,
+    session_token: str,
+    max_age: int,
+) -> None:
+    response.set_cookie(
+        key=REGISTRATION_ACCESS_COOKIE_NAME,
+        value=session_token,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+        path=REGISTRATION_ACCESS_COOKIE_PATH,
+        max_age=max(0, min(max_age, REGISTRATION_ACCESS_EXCHANGE_SESSION_TTL_SECONDS)),
+        domain=None,
+    )
+
+
+def _clear_registration_access_cookie(response: Response) -> None:
+    response.set_cookie(
+        key=REGISTRATION_ACCESS_COOKIE_NAME,
+        value="",
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+        path=REGISTRATION_ACCESS_COOKIE_PATH,
+        max_age=0,
+        domain=None,
+    )
 
 
 async def _log_registration_attempt(
@@ -70,13 +184,75 @@ async def _log_registration_attempt(
         logger.error(f"Failed to log registration attempt: {e}")
 
 
+@router.post(
+    "/registration-access/exchange",
+    response_model=RegistrationAccessExchangeResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        403: {"description": "Invalid, expired, or already exchanged registration access token"},
+        409: {"description": "Registration access token was already exchanged with a different key or host"},
+    },
+)
+async def exchange_registration_access(
+    request: RegistrationAccessExchangeRequest,
+    http_request: Request,
+    response: Response,
+    idempotency_key: UUID = Header(..., alias="Idempotency-Key"),
+    db: AsyncSession = Depends(get_db),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
+) -> RegistrationAccessExchangeResponse:
+    """Exchange a raw pre-registration access token for a host-bound cookie grant."""
+
+    service = RegistrationAccessGrantService(db)
+    result = await service.exchange_for_browser(
+        token=request.registration_access_token,
+        idempotency_key=str(idempotency_key),
+        host=_request_host(http_request),
+        auth_realm_id=current_realm.auth_realm.id,
+    )
+    if result is None:
+        if await service.has_token(request.registration_access_token):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "detail": "Registration access token must be retried with the original exchange context.",
+                    "code": "REGISTRATION_ACCESS_EXCHANGE_CONFLICT",
+                },
+            )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "detail": "Invalid or expired registration access token.",
+                "code": "REGISTRATION_ACCESS_INVALID",
+            },
+        )
+
+    max_age = int((result.expires_at - datetime.now(UTC)).total_seconds())
+    _set_registration_access_cookie(
+        response,
+        session_token=result.session_token,
+        max_age=max_age,
+    )
+    return RegistrationAccessExchangeResponse(
+        status="exchanged",
+        email_hint_present=result.grant.email_hint_hash is not None,
+        email_hint_masked=None,
+        expires_at=result.expires_at,
+        registration_policy=RegistrationAccessPolicyResponse(
+            invite_required=settings.registration_invite_required,
+            auth_realm_key=current_realm.realm_key,
+        ),
+    )
+
+
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     request: RegisterRequest,
     http_request: Request,
+    response: Response,
     invite_token: str | None = Query(
         default=None,
-        description="Invite token required for registration when invite-only mode is enabled",
+        description="Deprecated legacy invite token. Registration access tokens must be exchanged first.",
     ),
     db: AsyncSession = Depends(get_db),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
@@ -101,7 +277,7 @@ async def register(
     if not settings.registration_enabled:
         logger.warning(
             "Registration attempt blocked - registration disabled",
-            extra={"email": request.email, "login": request.login},
+            extra={"email": sanitize_email(request.email), "login": sanitize_username(request.login)},
         )
         await _log_registration_attempt(
             audit_repo=audit_repo,
@@ -117,13 +293,18 @@ async def register(
 
     # CRIT-1: Check for invite token if required
     invite_service = InviteTokenService(redis_client)
+    registration_access_service = RegistrationAccessGrantService(db)
     invite_data = None
+    invite_reservation_id: str | None = None
+    invite_reservation_source: str | None = None
+    request_host = _request_host(http_request)
+    registration_access_session_token = http_request.cookies.get(REGISTRATION_ACCESS_COOKIE_NAME)
 
     if settings.registration_invite_required:
-        if not invite_token:
+        if not registration_access_session_token and not invite_token:
             logger.warning(
                 "Registration attempt blocked - missing invite token",
-                extra={"email": request.email, "login": request.login},
+                extra={"email": sanitize_email(request.email), "login": sanitize_username(request.login)},
             )
             await _log_registration_attempt(
                 audit_repo=audit_repo,
@@ -137,16 +318,41 @@ async def register(
                 detail="Registration requires a valid invite token.",
             )
 
-        # Validate and consume the invite token (single-use)
-        invite_data = await invite_service.validate_and_consume(invite_token)
+        invite_reservation_id = str(uuid4())
+        if registration_access_session_token:
+            grant_data = await registration_access_service.reserve_exchange_session_for_registration(
+                session_token=registration_access_session_token,
+                reservation_id=invite_reservation_id,
+                host=request_host,
+                registration_idempotency_key=http_request.headers.get("Idempotency-Key"),
+            )
+            if grant_data is not None:
+                invite_token = registration_access_session_token
+                invite_data = grant_data.as_invite_data()
+                invite_reservation_source = "registration_access_exchange_session"
+
+        if invite_data is None and invite_token:
+            if await registration_access_service.has_token(invite_token):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        "detail": "Registration access token must be exchanged before registration.",
+                        "code": "REGISTRATION_ACCESS_EXCHANGE_REQUIRED",
+                    },
+                )
+            invite_data = await invite_service.reserve_for_registration(
+                invite_token,
+                invite_reservation_id,
+            )
+            if invite_data is not None:
+                invite_reservation_source = "legacy_redis_invite"
 
         if not invite_data:
             logger.warning(
                 "Registration attempt blocked - invalid/expired invite token",
                 extra={
-                    "email": request.email,
-                    "login": request.login,
-                    "token_prefix": invite_token[:8] if len(invite_token) >= 8 else invite_token,
+                    "email": sanitize_email(request.email),
+                    "login": sanitize_username(request.login),
                 },
             )
             await _log_registration_attempt(
@@ -163,12 +369,12 @@ async def register(
             )
 
         # Check if invite is restricted to specific email
-        if invite_data.get("email_hint") and invite_data["email_hint"] != request.email:
+        if not registration_access_email_hint_matches(invite_data, request.email):
             logger.warning(
                 "Registration attempt blocked - email mismatch",
                 extra={
-                    "email": request.email,
-                    "expected_email": invite_data.get("email_hint"),
+                    "email": sanitize_email(request.email),
+                    "expected_email": sanitize_email(invite_data.get("email_hint")),
                 },
             )
             await _log_registration_attempt(
@@ -178,6 +384,15 @@ async def register(
                 login=request.login,
                 reason="email_mismatch",
                 invite_token=invite_token,
+            )
+            await _release_registration_access_reservation(
+                registration_access_service=registration_access_service,
+                invite_service=invite_service,
+                invite_token=invite_token,
+                reservation_id=invite_reservation_id,
+                reservation_source=invite_reservation_source,
+                reason="email_mismatch",
+                request_host=request_host,
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -217,6 +432,15 @@ async def register(
             include_legacy_default=current_realm.realm_key == "admin",
         )
     except OtpRateLimitError as exc:
+        await _release_registration_access_reservation(
+            registration_access_service=registration_access_service,
+            invite_service=invite_service,
+            invite_token=invite_token,
+            reservation_id=invite_reservation_id,
+            reservation_source=invite_reservation_source,
+            reason="otp_rate_limited",
+            request_host=request_host,
+        )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
@@ -225,6 +449,43 @@ async def register(
                 "next_resend_available_at": exc.next_available_at.isoformat() if exc.next_available_at else None,
             },
         ) from exc
+    except Exception:
+        await _release_registration_access_reservation(
+            registration_access_service=registration_access_service,
+            invite_service=invite_service,
+            invite_token=invite_token,
+            reservation_id=invite_reservation_id,
+            reservation_source=invite_reservation_source,
+            reason="registration_failed",
+            request_host=request_host,
+        )
+        raise
+
+    if invite_token and invite_reservation_id:
+        if invite_reservation_source == "registration_access_exchange_session":
+            consumed_grant_data = await registration_access_service.consume_reserved_exchange_session_for_registration(
+                session_token=invite_token,
+                reservation_id=invite_reservation_id,
+                consumed_user_id=result.user.id,
+                host=request_host,
+            )
+            consumed_invite_data = consumed_grant_data.as_invite_data() if consumed_grant_data is not None else None
+        else:
+            consumed_invite_data = await invite_service.consume_reserved_for_registration(
+                invite_token,
+                invite_reservation_id,
+            )
+        if not consumed_invite_data:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "detail": "Invite token reservation expired or was already used.",
+                    "code": "INVITE_TOKEN_RESERVATION_CONFLICT",
+                },
+            )
+        invite_data = consumed_invite_data
+        if invite_reservation_source == "registration_access_exchange_session":
+            _clear_registration_access_cookie(response)
 
     registration_method = "email" if request.email else "username"
     password_identifier_type = "email" if request.email else "username"
@@ -296,8 +557,8 @@ async def register(
         "User registration flow completed",
         extra={
             "user_id": str(result.user.id),
-            "login": result.user.login,
-            "email": result.user.email,
+            "login": sanitize_username(result.user.login),
+            "email": sanitize_email(result.user.email),
             "role": role.value,
             "invite_used": bool(invite_token),
             "resumed_unverified_registration": result.resumed_unverified_registration,

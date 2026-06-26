@@ -107,14 +107,22 @@ class TestCompleteAuthFlow:
 
             assert verify_response.status_code == 200
             verify_data = verify_response.json()
-            assert "access_token" in verify_data
-            assert "refresh_token" in verify_data
+            assert "access_token" not in verify_data
+            assert "refresh_token" not in verify_data
+            assert "token_type" not in verify_data
+            assert "expires_in" not in verify_data
             assert verify_data["user"]["id"] == user_id
             assert verify_data["user"]["is_active"] is True
             assert verify_data["user"]["is_email_verified"] is True
 
-            access_token = verify_data["access_token"]
-            refresh_token = verify_data["refresh_token"]
+            access_token = verify_response.cookies.get("access_token") or verify_response.cookies.get(
+                "customer_access_token"
+            )
+            refresh_token = verify_response.cookies.get("refresh_token") or verify_response.cookies.get(
+                "customer_refresh_token"
+            )
+            assert access_token
+            assert refresh_token
 
             # Step 3: Use access token to get current user
             me_response = await async_client.get(

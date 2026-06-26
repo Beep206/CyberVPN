@@ -35,10 +35,26 @@ This document freezes the canonical event family naming baseline required before
 - `attribution.touchpoint.recorded`
 - `attribution.result.finalized`
 
+### Growth Code
+
+- `growth_code.issued`
+- `growth_code.resolved`
+- `growth_code.rejected`
+- `growth_code.reserved`
+- `growth_code.reservation_committed`
+- `growth_code.released`
+- `growth_code.reservation_expired`
+- `growth_code.redeemed`
+- `growth_code.revoked`
+
 ### Growth Reward
 
 - `growth_reward.allocation.created`
 - `growth_reward.allocation.reversed`
+
+### Growth Benefit
+
+- `growth_benefit.fulfillment.completed`
 
 ### Settlement
 

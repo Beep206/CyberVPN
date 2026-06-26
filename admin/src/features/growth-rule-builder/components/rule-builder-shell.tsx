@@ -1,0 +1,1389 @@
+'use client';
+
+import { useEffect, useId, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  CheckCircle2,
+  Clipboard,
+  Copy,
+  GitCompare,
+  ListTree,
+  Play,
+  Plus,
+  Redo2,
+  RotateCcw,
+  Save,
+  Search,
+  Trash2,
+  Undo2,
+  Wand2,
+  XCircle,
+} from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { Button } from '@/components/ui/button';
+import { growthApi } from '@/lib/api/growth';
+import type {
+  AdminGrowthRuleCompileResponse,
+  AdminGrowthRuleSimulateResponse,
+} from '@/lib/api/growth';
+import { GrowthEmptyState } from '@/features/growth/components/growth-empty-state';
+import { GrowthPageShell } from '@/features/growth/components/growth-page-shell';
+import { GrowthStatusChip } from '@/features/growth/components/growth-status-chip';
+import { getErrorMessage } from '@/features/growth/lib/formatting';
+import {
+  DEFAULT_RULE_AST,
+  DEFAULT_SIMULATION_CONTEXT,
+  addActionToAst,
+  addConditionToAst,
+  buildActionParams,
+  buildSampleValue,
+  collectRuleActionRows,
+  collectRuleTreeRows,
+  duplicateNodeAtPath,
+  formatJson,
+  normalizeRuleCatalog,
+  parseConditionInputValue,
+  parseJsonObject,
+  removeActionAtIndex,
+  removeNodeAtPath,
+  rulePathToId,
+  setRootGroupOperator,
+  stringifyConditionValue,
+  updateConditionAtPath,
+} from '@/features/growth-rule-builder/lib/ast';
+import type {
+  GrowthRuleCatalog,
+  JsonObject,
+  RuleTreeRow,
+} from '@/features/growth-rule-builder/lib/ast';
+import { cn } from '@/lib/utils';
+
+const DRAFT_STORAGE_KEY = 'admin:growth-rules:draft-json';
+const CONTEXT_STORAGE_KEY = 'admin:growth-rules:simulation-context-json';
+
+type AutosaveState = 'idle' | 'dirty' | 'saved' | 'restored';
+
+function stringifyUnknown(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function parseDraftJson(input: string): { value: JsonObject | null; error: string | null } {
+  try {
+    return { value: parseJsonObject(input), error: null };
+  } catch (error) {
+    return {
+      value: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function firstCatalogField(catalog: GrowthRuleCatalog): [string, GrowthRuleCatalog['fields'][string]] | null {
+  return Object.entries(catalog.fields)[0] ?? null;
+}
+
+function firstOperatorForField(catalog: GrowthRuleCatalog, field: string): string {
+  return catalog.fields[field]?.operators[0] ?? Object.keys(catalog.operators)[0] ?? 'eq';
+}
+
+function filterCatalogKeys<T>(
+  entries: [string, T][],
+  query: string,
+  buildHaystack: (key: string, value: T) => string,
+): [string, T][] {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return entries;
+  }
+
+  return entries.filter(([key, value]) =>
+    buildHaystack(key, value).toLowerCase().includes(normalizedQuery),
+  );
+}
+
+function countMatchedTraceItems(trace: AdminGrowthRuleSimulateResponse['trace'] | undefined): number {
+  return trace?.filter((item) => item.result === true).length ?? 0;
+}
+
+export function RuleBuilderShell() {
+  const t = useTranslations('Growth');
+  const locale = useLocale();
+  const astEditorId = useId();
+  const astErrorId = useId();
+  const contextEditorId = useId();
+  const contextErrorId = useId();
+
+  const [draftJson, setDraftJson] = useState(() => formatJson(DEFAULT_RULE_AST));
+  const [contextJson, setContextJson] = useState(() => formatJson(DEFAULT_SIMULATION_CONTEXT));
+  const [history, setHistory] = useState<string[]>(() => [formatJson(DEFAULT_RULE_AST)]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [selectedField, setSelectedField] = useState('code.code_type');
+  const [selectedOperator, setSelectedOperator] = useState('eq');
+  const [conditionValue, setConditionValue] = useState('promo');
+  const [selectedConditionPath, setSelectedConditionPath] = useState<string[] | null>(null);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [uiMessage, setUiMessage] = useState<string | null>(null);
+  const [autosaveState, setAutosaveState] = useState<AutosaveState>('idle');
+  const [compiledRule, setCompiledRule] = useState<AdminGrowthRuleCompileResponse | null>(null);
+  const [simulationResult, setSimulationResult] = useState<AdminGrowthRuleSimulateResponse | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const catalogQuery = useQuery({
+    queryKey: ['growth', 'rules', 'catalog'],
+    queryFn: async () => {
+      const response = await growthApi.getGrowthRuleCatalog();
+      return response.data.catalog;
+    },
+    staleTime: 60_000,
+  });
+
+  const catalog = normalizeRuleCatalog(catalogQuery.data);
+  const fieldEntries = filterCatalogKeys(
+    Object.entries(catalog.fields),
+    catalogSearch,
+    (field, spec) => `${field} ${spec.type} ${spec.operators.join(' ')}`,
+  );
+  const operatorEntries = filterCatalogKeys(
+    Object.entries(catalog.operators),
+    catalogSearch,
+    (operator, spec) => `${operator} ${spec.valueTypes.join(' ')}`,
+  );
+  const actionEntries = filterCatalogKeys(
+    Object.entries(catalog.actions),
+    catalogSearch,
+    (action, spec) => `${action} ${spec.result} ${spec.params.join(' ')}`,
+  );
+  const selectedFieldSpec = catalog.fields[selectedField] ?? firstCatalogField(catalog)?.[1];
+  const selectedFieldType = selectedFieldSpec?.type ?? 'string';
+  const availableOperators = selectedFieldSpec?.operators.length
+    ? selectedFieldSpec.operators
+    : Object.keys(catalog.operators);
+  const parsedDraft = parseDraftJson(draftJson);
+  const parsedContext = parseDraftJson(contextJson);
+  const treeRows = parsedDraft.value ? collectRuleTreeRows(parsedDraft.value) : [];
+  const actionRows = parsedDraft.value ? collectRuleActionRows(parsedDraft.value) : [];
+  const selectedConditionId = selectedConditionPath ? rulePathToId(selectedConditionPath) : null;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const savedDraft = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      const savedContext = window.localStorage.getItem(CONTEXT_STORAGE_KEY);
+
+      if (savedDraft) {
+        setDraftJson(savedDraft);
+        setHistory([savedDraft]);
+        setHistoryIndex(0);
+        setAutosaveState('restored');
+      }
+
+      if (savedContext) {
+        setContextJson(savedContext);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, draftJson);
+      window.localStorage.setItem(CONTEXT_STORAGE_KEY, contextJson);
+      setAutosaveState('saved');
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [draftJson, contextJson]);
+
+  useEffect(() => {
+    if (catalogQuery.data == null) {
+      return;
+    }
+
+    const normalizedCatalog = normalizeRuleCatalog(catalogQuery.data);
+    if (normalizedCatalog.fields[selectedField]) {
+      return;
+    }
+
+    const firstField = firstCatalogField(normalizedCatalog);
+    if (!firstField) {
+      return;
+    }
+
+    const [field, spec] = firstField;
+    const operator = spec.operators[0] ?? firstOperatorForField(normalizedCatalog, field);
+    const timeoutId = window.setTimeout(() => {
+      setSelectedField(field);
+      setSelectedOperator(operator);
+      setConditionValue(stringifyConditionValue(buildSampleValue(spec.type, operator, field)));
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [catalogQuery.data, selectedField]);
+
+  useEffect(() => {
+    if (!availableOperators.length || availableOperators.includes(selectedOperator)) {
+      return;
+    }
+
+    const operator = availableOperators[0];
+    if (!operator) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setSelectedOperator(operator);
+      setConditionValue(
+        stringifyConditionValue(buildSampleValue(selectedFieldType, operator, selectedField)),
+      );
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [availableOperators, selectedField, selectedFieldType, selectedOperator]);
+
+  const compileMutation = useMutation({
+    mutationFn: (ast: JsonObject) => growthApi.compileGrowthRule({ ast }),
+    onSuccess: (response) => {
+      setCompiledRule(response.data);
+      setServerError(null);
+      setUiMessage(t('rules.feedback.compiled'));
+    },
+    onError: (error) => {
+      setCompiledRule(null);
+      setServerError(getErrorMessage(error, t('rules.errors.compileFailed')));
+    },
+  });
+
+  const simulateMutation = useMutation({
+    mutationFn: (payload: { ast: JsonObject; context: JsonObject }) =>
+      growthApi.simulateGrowthRule(payload),
+    onSuccess: (response) => {
+      setSimulationResult(response.data);
+      setServerError(null);
+      setUiMessage(t('rules.feedback.simulated'));
+    },
+    onError: (error) => {
+      setSimulationResult(null);
+      setServerError(getErrorMessage(error, t('rules.errors.simulateFailed')));
+    },
+  });
+
+  const pushDraft = (nextAst: JsonObject, messageKey: string) => {
+    const nextJson = formatJson(nextAst);
+    const nextHistory = [...history.slice(0, historyIndex + 1), nextJson];
+    setHistory(nextHistory);
+    setHistoryIndex(nextHistory.length - 1);
+    setDraftJson(nextJson);
+    setUiMessage(t(messageKey));
+    setServerError(null);
+  };
+
+  const getCurrentAst = (): JsonObject | null => {
+    if (!parsedDraft.value) {
+      setServerError(t('rules.errors.astInvalid', { detail: parsedDraft.error ?? '' }));
+      return null;
+    }
+
+    return parsedDraft.value;
+  };
+
+  const addCondition = () => {
+    const currentAst = getCurrentAst();
+    if (!currentAst) {
+      return;
+    }
+
+    const value = parseConditionInputValue(conditionValue, selectedFieldType, selectedOperator);
+    pushDraft(
+      addConditionToAst(currentAst, selectedField, selectedOperator, value),
+      'rules.feedback.conditionAdded',
+    );
+  };
+
+  const updateSelectedCondition = () => {
+    const currentAst = getCurrentAst();
+    if (!currentAst || !selectedConditionPath) {
+      return;
+    }
+
+    const value = parseConditionInputValue(conditionValue, selectedFieldType, selectedOperator);
+    pushDraft(
+      updateConditionAtPath(currentAst, selectedConditionPath, {
+        field: selectedField,
+        operator: selectedOperator,
+        value,
+      }),
+      'rules.feedback.conditionUpdated',
+    );
+  };
+
+  const duplicateSelectedCondition = () => {
+    const currentAst = getCurrentAst();
+    if (!currentAst || !selectedConditionPath) {
+      return;
+    }
+
+    pushDraft(duplicateNodeAtPath(currentAst, selectedConditionPath), 'rules.feedback.nodeDuplicated');
+  };
+
+  const removeSelectedCondition = () => {
+    const currentAst = getCurrentAst();
+    if (!currentAst || !selectedConditionPath) {
+      return;
+    }
+
+    pushDraft(removeNodeAtPath(currentAst, selectedConditionPath), 'rules.feedback.nodeRemoved');
+    setSelectedConditionPath(null);
+  };
+
+  const addAction = (action: string) => {
+    const currentAst = getCurrentAst();
+    if (!currentAst) {
+      return;
+    }
+
+    pushDraft(
+      addActionToAst(currentAst, action, buildActionParams(catalog.actions[action])),
+      'rules.feedback.actionAdded',
+    );
+  };
+
+  const removeAction = (actionIndex: number) => {
+    const currentAst = getCurrentAst();
+    if (!currentAst) {
+      return;
+    }
+
+    pushDraft(removeActionAtIndex(currentAst, actionIndex), 'rules.feedback.actionRemoved');
+  };
+
+  const setRootOperator = (operator: 'all' | 'any') => {
+    const currentAst = getCurrentAst();
+    if (!currentAst) {
+      return;
+    }
+
+    pushDraft(setRootGroupOperator(currentAst, operator), 'rules.feedback.rootUpdated');
+  };
+
+  const commitJsonDraft = () => {
+    const currentAst = getCurrentAst();
+    if (!currentAst) {
+      return;
+    }
+
+    pushDraft(currentAst, 'rules.feedback.imported');
+  };
+
+  const resetDraft = () => {
+    pushDraft(DEFAULT_RULE_AST, 'rules.feedback.reset');
+    setCompiledRule(null);
+    setSimulationResult(null);
+    setSelectedConditionPath(null);
+  };
+
+  const undoDraft = () => {
+    const nextIndex = Math.max(0, historyIndex - 1);
+    const nextJson = history[nextIndex];
+    if (nextJson) {
+      setHistoryIndex(nextIndex);
+      setDraftJson(nextJson);
+      setUiMessage(t('rules.feedback.undo'));
+    }
+  };
+
+  const redoDraft = () => {
+    const nextIndex = Math.min(history.length - 1, historyIndex + 1);
+    const nextJson = history[nextIndex];
+    if (nextJson) {
+      setHistoryIndex(nextIndex);
+      setDraftJson(nextJson);
+      setUiMessage(t('rules.feedback.redo'));
+    }
+  };
+
+  const exportDraft = async () => {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(draftJson);
+    }
+
+    setUiMessage(t('rules.feedback.exported'));
+  };
+
+  const compileDraft = () => {
+    const currentAst = getCurrentAst();
+    if (!currentAst) {
+      return;
+    }
+
+    compileMutation.mutate(currentAst);
+  };
+
+  const simulateDraft = () => {
+    const currentAst = getCurrentAst();
+    if (!currentAst) {
+      return;
+    }
+
+    if (!parsedContext.value) {
+      setServerError(t('rules.errors.contextInvalid', { detail: parsedContext.error ?? '' }));
+      return;
+    }
+
+    simulateMutation.mutate({ ast: currentAst, context: parsedContext.value });
+  };
+
+  const selectCondition = (row: RuleTreeRow) => {
+    if (row.type !== 'condition') {
+      return;
+    }
+
+    const fieldSpec = catalog.fields[row.field];
+    setSelectedConditionPath(row.path);
+    setSelectedField(row.field);
+    setSelectedOperator(row.operator);
+    setConditionValue(stringifyConditionValue(row.value));
+    if (!fieldSpec) {
+      setUiMessage(t('rules.feedback.unsupportedSelection'));
+    }
+  };
+
+  return (
+    <GrowthPageShell
+      eyebrow={t('rules.eyebrow')}
+      title={t('rules.title')}
+      description={t('rules.description')}
+      icon={ListTree}
+      actions={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            magnetic={false}
+            onClick={undoDraft}
+            disabled={historyIndex === 0}
+            aria-label={t('rules.actions.undo')}
+          >
+            <Undo2 className="mr-2 h-4 w-4" aria-hidden="true" />
+            {t('rules.actions.undo')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            magnetic={false}
+            onClick={redoDraft}
+            disabled={historyIndex >= history.length - 1}
+            aria-label={t('rules.actions.redo')}
+          >
+            <Redo2 className="mr-2 h-4 w-4" aria-hidden="true" />
+            {t('rules.actions.redo')}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            magnetic={false}
+            onClick={compileDraft}
+            disabled={compileMutation.isPending}
+            aria-label={t('rules.actions.compile')}
+          >
+            <Wand2 className="mr-2 h-4 w-4" aria-hidden="true" />
+            {compileMutation.isPending ? t('rules.actions.compiling') : t('rules.actions.compile')}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            magnetic={false}
+            onClick={simulateDraft}
+            disabled={simulateMutation.isPending}
+            aria-label={t('rules.actions.simulate')}
+          >
+            <Play className="mr-2 h-4 w-4" aria-hidden="true" />
+            {simulateMutation.isPending ? t('rules.actions.simulating') : t('rules.actions.simulate')}
+          </Button>
+        </>
+      }
+      metrics={[
+        {
+          label: t('rules.metrics.catalogVersion'),
+          value: catalog.catalogVersion || t('common.missing'),
+          hint: t('rules.metrics.catalogVersionHint'),
+          tone: catalog.catalogVersion ? 'info' : 'warning',
+        },
+        {
+          label: t('rules.metrics.nodes'),
+          value: String(treeRows.length + actionRows.length),
+          hint: t('rules.metrics.nodesHint', {
+            max: catalog.limits.maxNodes ?? 0,
+          }),
+          tone: 'neutral',
+        },
+        {
+          label: t('rules.metrics.checksum'),
+          value: compiledRule?.compiled_checksum.slice(0, 12) ?? t('common.missing'),
+          hint: compiledRule ? t('rules.metrics.checksumHint') : t('rules.metrics.checksumMissing'),
+          tone: compiledRule ? 'success' : 'warning',
+        },
+        {
+          label: t('rules.metrics.trace'),
+          value: new Intl.NumberFormat(locale).format(countMatchedTraceItems(simulationResult?.trace)),
+          hint: t('rules.metrics.traceHint'),
+          tone: simulationResult?.matched ? 'success' : 'neutral',
+        },
+      ]}
+    >
+      <div aria-live="polite" className="sr-only">
+        {uiMessage}
+      </div>
+
+      {serverError || parsedDraft.error || parsedContext.error || catalogQuery.error ? (
+        <div
+          role="alert"
+          className="rounded-lg border border-neon-pink/30 bg-neon-pink/10 p-4 text-sm font-mono leading-6 text-neon-pink"
+        >
+          <div className="flex items-start gap-3">
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-display uppercase tracking-[0.18em] text-white">
+                {t('rules.errors.title')}
+              </p>
+              <p className="mt-1">
+                {serverError
+                  ?? (parsedDraft.error
+                    ? t('rules.errors.astInvalid', { detail: parsedDraft.error })
+                    : null)
+                  ?? (parsedContext.error
+                    ? t('rules.errors.contextInvalid', { detail: parsedContext.error })
+                    : null)
+                  ?? getErrorMessage(catalogQuery.error, t('rules.errors.catalogFailed'))}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="grid gap-6 2xl:grid-cols-[minmax(17rem,0.85fr)_minmax(0,1.35fr)_minmax(20rem,1fr)]">
+        <RulePalette
+          t={t}
+          catalog={catalog}
+          isLoading={catalogQuery.isLoading}
+          search={catalogSearch}
+          onSearchChange={setCatalogSearch}
+          fieldEntries={fieldEntries}
+          operatorEntries={operatorEntries}
+          actionEntries={actionEntries}
+          selectedField={selectedField}
+          selectedOperator={selectedOperator}
+          onSelectField={(field, spec) => {
+            const operator = spec.operators[0] ?? firstOperatorForField(catalog, field);
+            setSelectedField(field);
+            setSelectedOperator(operator);
+            setConditionValue(stringifyConditionValue(buildSampleValue(spec.type, operator, field)));
+          }}
+          onSelectOperator={(operator) => {
+            setSelectedOperator(operator);
+            setConditionValue(
+              stringifyConditionValue(buildSampleValue(selectedFieldType, operator, selectedField)),
+            );
+          }}
+          onAddAction={addAction}
+        />
+
+        <section className="space-y-6">
+          <RuleTreePanel
+            t={t}
+            rows={treeRows}
+            actions={actionRows}
+            selectedConditionId={selectedConditionId}
+            onSelectCondition={selectCondition}
+            onRemoveAction={removeAction}
+            onSetRootOperator={setRootOperator}
+          />
+          <JsonEditorPanel
+            t={t}
+            astEditorId={astEditorId}
+            astErrorId={astErrorId}
+            draftJson={draftJson}
+            parseError={parsedDraft.error}
+            autosaveState={autosaveState}
+            onDraftChange={(value) => {
+              setDraftJson(value);
+              setAutosaveState('dirty');
+              setCompiledRule(null);
+              setSimulationResult(null);
+            }}
+            onCommit={commitJsonDraft}
+            onExport={exportDraft}
+            onReset={resetDraft}
+          />
+        </section>
+
+        <section className="space-y-6">
+          <RuleInspectorPanel
+            t={t}
+            catalog={catalog}
+            selectedField={selectedField}
+            selectedOperator={selectedOperator}
+            conditionValue={conditionValue}
+            availableOperators={availableOperators}
+            hasSelectedCondition={Boolean(selectedConditionPath)}
+            onFieldChange={(field) => {
+              const spec = catalog.fields[field];
+              const operator = spec?.operators[0] ?? firstOperatorForField(catalog, field);
+              setSelectedField(field);
+              setSelectedOperator(operator);
+              setConditionValue(
+                stringifyConditionValue(buildSampleValue(spec?.type ?? 'string', operator, field)),
+              );
+            }}
+            onOperatorChange={(operator) => {
+              setSelectedOperator(operator);
+              setConditionValue(
+                stringifyConditionValue(buildSampleValue(selectedFieldType, operator, selectedField)),
+              );
+            }}
+            onValueChange={setConditionValue}
+            onAddCondition={addCondition}
+            onUpdateSelected={updateSelectedCondition}
+            onDuplicateSelected={duplicateSelectedCondition}
+            onRemoveSelected={removeSelectedCondition}
+          />
+          <CompilePanel t={t} compiledRule={compiledRule} />
+        </section>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <SimulatorPanel
+          t={t}
+          contextEditorId={contextEditorId}
+          contextErrorId={contextErrorId}
+          contextJson={contextJson}
+          contextError={parsedContext.error}
+          simulationResult={simulationResult}
+          onContextChange={(value) => {
+            setContextJson(value);
+            setAutosaveState('dirty');
+            setSimulationResult(null);
+          }}
+          onSimulate={simulateDraft}
+          isSimulating={simulateMutation.isPending}
+        />
+        <VersionDiffPanel t={t} draftJson={draftJson} compiledRule={compiledRule} />
+      </div>
+    </GrowthPageShell>
+  );
+}
+
+interface TranslationFn {
+  (key: string): string;
+  (key: string, values: Record<string, string | number>): string;
+}
+
+interface RulePaletteProps {
+  t: TranslationFn;
+  catalog: GrowthRuleCatalog;
+  isLoading: boolean;
+  search: string;
+  onSearchChange: (value: string) => void;
+  fieldEntries: [string, GrowthRuleCatalog['fields'][string]][];
+  operatorEntries: [string, GrowthRuleCatalog['operators'][string]][];
+  actionEntries: [string, GrowthRuleCatalog['actions'][string]][];
+  selectedField: string;
+  selectedOperator: string;
+  onSelectField: (field: string, spec: GrowthRuleCatalog['fields'][string]) => void;
+  onSelectOperator: (operator: string) => void;
+  onAddAction: (action: string) => void;
+}
+
+function RulePalette({
+  t,
+  catalog,
+  isLoading,
+  search,
+  onSearchChange,
+  fieldEntries,
+  operatorEntries,
+  actionEntries,
+  selectedField,
+  selectedOperator,
+  onSelectField,
+  onSelectOperator,
+  onAddAction,
+}: RulePaletteProps) {
+  return (
+    <aside className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+            {t('rules.palette.title')}
+          </h2>
+          <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+            {t('rules.palette.description')}
+          </p>
+        </div>
+        <GrowthStatusChip
+          label={catalog.catalogVersion || t('common.missing')}
+          tone={catalog.catalogVersion ? 'info' : 'warning'}
+        />
+      </div>
+
+      <label className="mt-5 block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+        {t('rules.palette.search')}
+        <span className="mt-2 flex items-center gap-2 rounded-lg border border-grid-line/20 bg-terminal-bg/60 px-3 py-2 focus-within:border-neon-cyan/45">
+          <Search className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <input
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-hidden"
+            placeholder={t('rules.palette.searchPlaceholder')}
+          />
+        </span>
+      </label>
+
+      {isLoading ? (
+        <div className="mt-5 text-sm font-mono text-muted-foreground">
+          {t('rules.palette.loading')}
+        </div>
+      ) : null}
+
+      <PaletteGroup title={t('rules.palette.fields')} emptyLabel={t('rules.palette.emptyFields')}>
+        {fieldEntries.map(([field, spec]) => (
+          <button
+            key={field}
+            type="button"
+            onClick={() => onSelectField(field, spec)}
+            className={cn(
+              'w-full rounded-lg border p-3 text-left transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan',
+              field === selectedField
+                ? 'border-neon-cyan/45 bg-neon-cyan/10 text-neon-cyan'
+                : 'border-grid-line/20 bg-terminal-bg/50 text-foreground hover:border-grid-line/50',
+            )}
+            aria-pressed={field === selectedField}
+          >
+            <span className="block font-mono text-xs">{field}</span>
+            <span className="mt-1 block text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              {spec.type}
+            </span>
+          </button>
+        ))}
+      </PaletteGroup>
+
+      <PaletteGroup title={t('rules.palette.operators')} emptyLabel={t('rules.palette.emptyOperators')}>
+        {operatorEntries.map(([operator, spec]) => (
+          <button
+            key={operator}
+            type="button"
+            onClick={() => onSelectOperator(operator)}
+            className={cn(
+              'rounded-lg border px-3 py-2 text-left font-mono text-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan',
+              operator === selectedOperator
+                ? 'border-neon-cyan/45 bg-neon-cyan/10 text-neon-cyan'
+                : 'border-grid-line/20 bg-terminal-bg/50 text-muted-foreground hover:border-grid-line/50 hover:text-foreground',
+            )}
+            aria-pressed={operator === selectedOperator}
+          >
+            <span className="block">{operator}</span>
+            <span className="mt-1 block text-[10px] uppercase tracking-[0.14em]">
+              {spec.valueTypes.join(', ') || t('common.missing')}
+            </span>
+          </button>
+        ))}
+      </PaletteGroup>
+
+      <PaletteGroup title={t('rules.palette.actions')} emptyLabel={t('rules.palette.emptyActions')}>
+        {actionEntries.map(([action, spec]) => (
+          <button
+            key={action}
+            type="button"
+            onClick={() => onAddAction(action)}
+            className="w-full rounded-lg border border-grid-line/20 bg-terminal-bg/50 p-3 text-left transition-colors hover:border-matrix-green/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-matrix-green"
+          >
+            <span className="flex items-center justify-between gap-3">
+              <span className="font-mono text-xs text-foreground">{action}</span>
+              <Plus className="h-4 w-4 text-matrix-green" aria-hidden="true" />
+            </span>
+            <span className="mt-1 block text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              {spec.result || t('common.missing')}
+            </span>
+          </button>
+        ))}
+      </PaletteGroup>
+    </aside>
+  );
+}
+
+function PaletteGroup({
+  title,
+  emptyLabel,
+  children,
+}: {
+  title: string;
+  emptyLabel: string;
+  children: ReactNode;
+}) {
+  const hasChildren = Array.isArray(children) ? children.length > 0 : Boolean(children);
+
+  return (
+    <section className="mt-6">
+      <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">{title}</h3>
+      <div className="mt-3 grid gap-2">{hasChildren ? children : <GrowthEmptyState label={emptyLabel} />}</div>
+    </section>
+  );
+}
+
+interface RuleTreePanelProps {
+  t: TranslationFn;
+  rows: RuleTreeRow[];
+  actions: ReturnType<typeof collectRuleActionRows>;
+  selectedConditionId: string | null;
+  onSelectCondition: (row: RuleTreeRow) => void;
+  onRemoveAction: (actionIndex: number) => void;
+  onSetRootOperator: (operator: 'all' | 'any') => void;
+}
+
+function RuleTreePanel({
+  t,
+  rows,
+  actions,
+  selectedConditionId,
+  onSelectCondition,
+  onRemoveAction,
+  onSetRootOperator,
+}: RuleTreePanelProps) {
+  return (
+    <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+            {t('rules.tree.title')}
+          </h2>
+          <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+            {t('rules.tree.description')}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            magnetic={false}
+            onClick={() => onSetRootOperator('all')}
+          >
+            {t('rules.tree.all')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            magnetic={false}
+            onClick={() => onSetRootOperator('any')}
+          >
+            {t('rules.tree.any')}
+          </Button>
+        </div>
+      </div>
+
+      <div
+        role="tree"
+        aria-label={t('rules.tree.ariaLabel')}
+        className="mt-5 space-y-2"
+      >
+        {rows.length === 0 ? (
+          <GrowthEmptyState label={t('rules.tree.empty')} />
+        ) : (
+          rows.map((row) => {
+            const isSelected = row.id === selectedConditionId;
+
+            return (
+              <div
+                key={row.id}
+                role="treeitem"
+                aria-level={row.depth}
+                aria-selected={isSelected}
+                className={cn(
+                  'rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-3',
+                  isSelected ? 'border-neon-cyan/45 bg-neon-cyan/10' : '',
+                )}
+                style={{ marginLeft: `${Math.max(0, row.depth - 1) * 0.75}rem` }}
+              >
+                {row.type === 'condition' ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectCondition(row)}
+                    className="block w-full text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan"
+                  >
+                    <span className="font-mono text-xs text-neon-cyan">{row.field}</span>
+                    <span className="ml-2 font-mono text-xs text-muted-foreground">
+                      {row.operator}
+                    </span>
+                    <span className="mt-1 block break-words text-xs font-mono text-foreground">
+                      {stringifyConditionValue(row.value)}
+                    </span>
+                  </button>
+                ) : row.type === 'group' ? (
+                  <div>
+                    <span className="font-mono text-xs uppercase tracking-[0.16em] text-white">
+                      {row.groupType}
+                    </span>
+                    <span className="ml-2 text-xs font-mono text-muted-foreground">
+                      {t('rules.tree.children', { count: row.childCount })}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="font-mono text-xs text-neon-pink">{row.nodeType}</span>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <section className="mt-6">
+        <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
+          {t('rules.actionsPanel.title')}
+        </h3>
+        <div className="mt-3 space-y-2">
+          {actions.length === 0 ? (
+            <GrowthEmptyState label={t('rules.actionsPanel.empty')} />
+          ) : (
+            actions.map((action) => (
+              <div
+                key={action.id}
+                className="flex items-start justify-between gap-3 rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-mono text-xs text-matrix-green">{action.action}</p>
+                  <p className="mt-1 truncate text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                    {action.result || t('common.missing')}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  magnetic={false}
+                  onClick={() => onRemoveAction(action.index)}
+                  aria-label={t('rules.actionsPanel.remove')}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+    </article>
+  );
+}
+
+interface JsonEditorPanelProps {
+  t: TranslationFn;
+  astEditorId: string;
+  astErrorId: string;
+  draftJson: string;
+  parseError: string | null;
+  autosaveState: AutosaveState;
+  onDraftChange: (value: string) => void;
+  onCommit: () => void;
+  onExport: () => void;
+  onReset: () => void;
+}
+
+function JsonEditorPanel({
+  t,
+  astEditorId,
+  astErrorId,
+  draftJson,
+  parseError,
+  autosaveState,
+  onDraftChange,
+  onCommit,
+  onExport,
+  onReset,
+}: JsonEditorPanelProps) {
+  return (
+    <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+            {t('rules.editor.title')}
+          </h2>
+          <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+            {t('rules.editor.description')}
+          </p>
+        </div>
+        <GrowthStatusChip label={t(`rules.autosave.${autosaveState}`)} tone="info" />
+      </div>
+
+      <label
+        htmlFor={astEditorId}
+        className="mt-5 block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground"
+      >
+        {t('rules.editor.astLabel')}
+      </label>
+      <textarea
+        id={astEditorId}
+        value={draftJson}
+        onChange={(event) => onDraftChange(event.target.value)}
+        aria-invalid={Boolean(parseError)}
+        aria-describedby={parseError ? astErrorId : undefined}
+        spellCheck={false}
+        className="mt-2 min-h-96 w-full resize-y rounded-lg border border-grid-line/25 bg-terminal-bg/70 p-4 font-mono text-xs leading-5 text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+      />
+      {parseError ? (
+        <p id={astErrorId} className="mt-2 text-xs font-mono text-neon-pink">
+          {t('rules.errors.astInvalid', { detail: parseError })}
+        </p>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button type="button" size="sm" magnetic={false} onClick={onCommit}>
+          <Save className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('rules.actions.import')}
+        </Button>
+        <Button type="button" variant="outline" size="sm" magnetic={false} onClick={onExport}>
+          <Clipboard className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('rules.actions.export')}
+        </Button>
+        <Button type="button" variant="outline" size="sm" magnetic={false} onClick={onReset}>
+          <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('rules.actions.reset')}
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+interface RuleInspectorPanelProps {
+  t: TranslationFn;
+  catalog: GrowthRuleCatalog;
+  selectedField: string;
+  selectedOperator: string;
+  conditionValue: string;
+  availableOperators: string[];
+  hasSelectedCondition: boolean;
+  onFieldChange: (field: string) => void;
+  onOperatorChange: (operator: string) => void;
+  onValueChange: (value: string) => void;
+  onAddCondition: () => void;
+  onUpdateSelected: () => void;
+  onDuplicateSelected: () => void;
+  onRemoveSelected: () => void;
+}
+
+function RuleInspectorPanel({
+  t,
+  catalog,
+  selectedField,
+  selectedOperator,
+  conditionValue,
+  availableOperators,
+  hasSelectedCondition,
+  onFieldChange,
+  onOperatorChange,
+  onValueChange,
+  onAddCondition,
+  onUpdateSelected,
+  onDuplicateSelected,
+  onRemoveSelected,
+}: RuleInspectorPanelProps) {
+  return (
+    <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+      <h2 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+        {t('rules.inspector.title')}
+      </h2>
+      <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+        {t('rules.inspector.description')}
+      </p>
+
+      <div className="mt-5 grid gap-4">
+        <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+          {t('rules.inspector.field')}
+          <select
+            value={selectedField}
+            onChange={(event) => onFieldChange(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+          >
+            {Object.keys(catalog.fields).map((field) => (
+              <option key={field} value={field}>
+                {field}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+          {t('rules.inspector.operator')}
+          <select
+            value={selectedOperator}
+            onChange={(event) => onOperatorChange(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+          >
+            {availableOperators.map((operator) => (
+              <option key={operator} value={operator}>
+                {operator}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+          {t('rules.inspector.value')}
+          <input
+            value={conditionValue}
+            onChange={(event) => onValueChange(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+          />
+        </label>
+      </div>
+
+      <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        <Button type="button" magnetic={false} onClick={onAddCondition}>
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('rules.inspector.addCondition')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          magnetic={false}
+          onClick={onUpdateSelected}
+          disabled={!hasSelectedCondition}
+        >
+          <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('rules.inspector.updateSelected')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          magnetic={false}
+          onClick={onDuplicateSelected}
+          disabled={!hasSelectedCondition}
+        >
+          <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('rules.inspector.duplicateSelected')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          magnetic={false}
+          onClick={onRemoveSelected}
+          disabled={!hasSelectedCondition}
+        >
+          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('rules.inspector.removeSelected')}
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+function CompilePanel({
+  t,
+  compiledRule,
+}: {
+  t: TranslationFn;
+  compiledRule: AdminGrowthRuleCompileResponse | null;
+}) {
+  return (
+    <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+      <h2 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+        {t('rules.compile.title')}
+      </h2>
+      {compiledRule ? (
+        <div className="mt-4 space-y-3">
+          <InfoLine label={t('rules.compile.checksum')} value={compiledRule.compiled_checksum} />
+          <InfoLine label={t('rules.compile.schema')} value={compiledRule.schema_version} />
+          <InfoLine label={t('rules.compile.catalog')} value={compiledRule.catalog_version} />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <MetricCell label={t('rules.compile.nodeCount')} value={String(compiledRule.node_count)} />
+            <MetricCell label={t('rules.compile.maxDepth')} value={String(compiledRule.max_depth)} />
+            <MetricCell
+              label={t('rules.compile.complexity')}
+              value={String(compiledRule.complexity_score)}
+            />
+          </div>
+        </div>
+      ) : (
+        <GrowthEmptyState label={t('rules.compile.empty')} />
+      )}
+    </article>
+  );
+}
+
+interface SimulatorPanelProps {
+  t: TranslationFn;
+  contextEditorId: string;
+  contextErrorId: string;
+  contextJson: string;
+  contextError: string | null;
+  simulationResult: AdminGrowthRuleSimulateResponse | null;
+  onContextChange: (value: string) => void;
+  onSimulate: () => void;
+  isSimulating: boolean;
+}
+
+function SimulatorPanel({
+  t,
+  contextEditorId,
+  contextErrorId,
+  contextJson,
+  contextError,
+  simulationResult,
+  onContextChange,
+  onSimulate,
+  isSimulating,
+}: SimulatorPanelProps) {
+  return (
+    <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+            {t('rules.simulator.title')}
+          </h2>
+          <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+            {t('rules.simulator.description')}
+          </p>
+        </div>
+        <Button type="button" size="sm" magnetic={false} onClick={onSimulate} disabled={isSimulating}>
+          <Play className="mr-2 h-4 w-4" aria-hidden="true" />
+          {isSimulating ? t('rules.actions.simulating') : t('rules.actions.simulate')}
+        </Button>
+      </div>
+
+      <label
+        htmlFor={contextEditorId}
+        className="mt-5 block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground"
+      >
+        {t('rules.simulator.contextLabel')}
+      </label>
+      <textarea
+        id={contextEditorId}
+        value={contextJson}
+        onChange={(event) => onContextChange(event.target.value)}
+        aria-invalid={Boolean(contextError)}
+        aria-describedby={contextError ? contextErrorId : undefined}
+        spellCheck={false}
+        className="mt-2 min-h-56 w-full resize-y rounded-lg border border-grid-line/25 bg-terminal-bg/70 p-4 font-mono text-xs leading-5 text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+      />
+      {contextError ? (
+        <p id={contextErrorId} className="mt-2 text-xs font-mono text-neon-pink">
+          {t('rules.errors.contextInvalid', { detail: contextError })}
+        </p>
+      ) : null}
+
+      {simulationResult ? (
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <GrowthStatusChip
+                label={simulationResult.matched ? t('rules.simulator.matched') : t('rules.simulator.notMatched')}
+                tone={simulationResult.matched ? 'success' : 'neutral'}
+              />
+              <GrowthStatusChip label={simulationResult.result} tone="info" />
+            </div>
+            <InfoLine
+              className="mt-4"
+              label={t('rules.simulator.checksum')}
+              value={simulationResult.compiled_checksum}
+            />
+          </div>
+          <div className="rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4">
+            <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
+              {t('rules.simulator.actionsTitle')}
+            </h3>
+            <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap break-words text-xs text-foreground">
+              {stringifyUnknown(simulationResult.actions)}
+            </pre>
+          </div>
+          <div className="rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4 lg:col-span-2">
+            <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
+              {t('rules.simulator.traceTitle')}
+            </h3>
+            <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs text-foreground">
+              {stringifyUnknown(simulationResult.trace)}
+            </pre>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-5">
+          <GrowthEmptyState label={t('rules.simulator.empty')} />
+        </div>
+      )}
+    </article>
+  );
+}
+
+function VersionDiffPanel({
+  t,
+  draftJson,
+  compiledRule,
+}: {
+  t: TranslationFn;
+  draftJson: string;
+  compiledRule: AdminGrowthRuleCompileResponse | null;
+}) {
+  return (
+    <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+      <div className="flex items-start gap-3">
+        <GitCompare className="mt-0.5 h-5 w-5 text-neon-cyan" aria-hidden="true" />
+        <div>
+          <h2 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+            {t('rules.diff.title')}
+          </h2>
+          <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+            {t('rules.diff.description')}
+          </p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <div>
+          <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
+            {t('rules.diff.draft')}
+          </h3>
+          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4 text-xs text-foreground">
+            {draftJson}
+          </pre>
+        </div>
+        <div>
+          <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
+            {t('rules.diff.normalized')}
+          </h3>
+          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4 text-xs text-foreground">
+            {compiledRule ? stringifyUnknown(compiledRule.normalized_ast) : t('rules.diff.empty')}
+          </pre>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function InfoLine({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn('min-w-0', className)}>
+      <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 break-words font-mono text-xs text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function MetricCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-3">
+      <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-2 font-display text-xl tracking-[0.1em] text-white">{value}</p>
+    </div>
+  );
+}

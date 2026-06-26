@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import unicodedata
 
 from src.config.settings import settings
 
 
 def normalize_growth_code_value(raw_code: str) -> str:
-    normalized = raw_code.strip()
+    normalized = unicodedata.normalize("NFKC", raw_code).strip().upper()
     if not normalized:
         raise ValueError("Growth code value must not be empty")
     return normalized

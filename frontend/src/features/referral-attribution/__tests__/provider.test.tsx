@@ -125,7 +125,7 @@ describe('ReferralAttributionProvider', () => {
     expect(referralApiMock.claimAttribution).not.toHaveBeenCalled();
   });
 
-  it('does not replace an existing pending referral and strips duplicate referral query keys', async () => {
+  it('does not replace an existing pending referral and strips only referral query keys', async () => {
     saveReferralAttribution({
       attributionId: 'attr-existing',
       capturedAt: '2026-06-20T10:00:00.000Z',
@@ -143,12 +143,24 @@ describe('ReferralAttributionProvider', () => {
     await waitFor(() => {
       expect(new URL(window.location.href).searchParams.has('ref')).toBe(false);
     });
-    expect(new URL(window.location.href).searchParams.has('code')).toBe(false);
+    expect(new URL(window.location.href).searchParams.get('code')).toBe('other42');
     expect(referralApiMock.captureAttribution).not.toHaveBeenCalled();
     expect(readReferralAttribution()).toMatchObject({
       attributionId: 'attr-existing',
       code: 'KEEP42',
     });
+  });
+
+  it('does not treat generic growth code query values as referral attribution', async () => {
+    setBrowserPath('/en-EN/register?code=promo42&utm_source=campaign');
+
+    render(<ReferralAttributionProvider />);
+
+    await waitFor(() => {
+      expect(referralApiMock.captureAttribution).not.toHaveBeenCalled();
+    });
+    expect(new URL(window.location.href).searchParams.get('code')).toBe('promo42');
+    expect(readReferralAttribution()).toBeNull();
   });
 
   it('claims a pending referral after login and clears local state on terminal success', async () => {

@@ -26,6 +26,7 @@ export { commerceApi } from './commerce';
 export { codesApi } from './codes';
 export { referralApi } from './referral';
 export { promoApi } from './promo';
+export { privateCatalogApi } from './private-catalog';
 export { invitesApi } from './invites';
 export { giftsApi } from './gifts';
 export { growthNotificationsApi } from './growth-notifications';

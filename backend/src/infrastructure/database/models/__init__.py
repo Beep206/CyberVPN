@@ -26,6 +26,13 @@ from src.infrastructure.database.models.customer_growth_notification_delivery_mo
 from src.infrastructure.database.models.customer_growth_notification_read_state_model import (
     CustomerGrowthNotificationReadStateModel,
 )
+from src.infrastructure.database.models.customer_onboarding_model import (
+    CustomerCodeIntentModel,
+    CustomerOnboardingCodeApplicationModel,
+    CustomerOnboardingStateModel,
+    CustomerPrincipalLinkModel,
+    RegistrationAccessGrantModel,
+)
 from src.infrastructure.database.models.customer_staff_note_model import CustomerStaffNoteModel
 from src.infrastructure.database.models.device_credential_model import DeviceCredentialModel
 from src.infrastructure.database.models.dispute_case_model import DisputeCaseModel
@@ -34,6 +41,13 @@ from src.infrastructure.database.models.earning_hold_model import EarningHoldMod
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.models.fcm_token_model import FCMTokenModel
 from src.infrastructure.database.models.governance_action_model import GovernanceActionModel
+from src.infrastructure.database.models.growth_benefit_model import (
+    GrowthBenefitFulfillmentModel,
+    GrowthCodeBenefitModel,
+    GrowthCodeUserCounterModel,
+    InviteBatchModel,
+)
+from src.infrastructure.database.models.growth_campaign_model import GrowthCampaignModel
 from src.infrastructure.database.models.growth_code_model import (
     GiftCodePolicyModel,
     GrowthCodeIssuanceModel,
@@ -46,6 +60,17 @@ from src.infrastructure.database.models.growth_code_model import (
     InviteCodePolicyModel,
     PromoCodePolicyModel,
     ReferralProgramPolicyModel,
+)
+from src.infrastructure.database.models.growth_code_set_model import (
+    CheckoutCodeApplicationModel,
+    CheckoutCodeSetModel,
+    GrowthCodeNamespaceModel,
+    GrowthCodeReservationGroupModel,
+    GrowthPrivateCatalogPolicyModel,
+    GrowthRuleCatalogVersionModel,
+    GrowthRuleDefinitionModel,
+    OrderCodeApplicationModel,
+    PrivateCatalogAccessGrantModel,
 )
 from src.infrastructure.database.models.growth_reporting_daily_rollup_model import (
     GrowthReportingDailyRollupModel,
@@ -60,6 +85,13 @@ from src.infrastructure.database.models.growth_reporting_subscription_model impo
     GrowthReportingSubscriptionModel,
 )
 from src.infrastructure.database.models.growth_reward_allocation_model import GrowthRewardAllocationModel
+from src.infrastructure.database.models.growth_risk_fx_model import (
+    FxDiscountConversionModel,
+    FxRateSnapshotModel,
+    GrowthRiskDecisionModel,
+    RiskFeatureSnapshotModel,
+    RiskModelVersionModel,
+)
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.invoice_profile_model import InvoiceProfileModel
 from src.infrastructure.database.models.legal_document_model import LegalDocumentModel
@@ -201,10 +233,16 @@ __all__ = [
     "CommissionabilityEvaluationModel",
     "CommunicationProfileModel",
     "CreativeApprovalModel",
+    "CheckoutCodeApplicationModel",
+    "CheckoutCodeSetModel",
+    "CustomerCodeIntentModel",
     "CustomerGrowthNotificationReadStateModel",
     "CustomerGrowthNotificationDeliveryModel",
     "CustomerGrowthNotificationDeliveryEventModel",
     "CustomerCommercialBindingModel",
+    "CustomerOnboardingCodeApplicationModel",
+    "CustomerOnboardingStateModel",
+    "CustomerPrincipalLinkModel",
     "CustomerStaffNoteModel",
     "DeviceCredentialModel",
     "DisputeCaseModel",
@@ -212,20 +250,33 @@ __all__ = [
     "EarningHoldModel",
     "EntitlementGrantModel",
     "FCMTokenModel",
+    "FxDiscountConversionModel",
+    "FxRateSnapshotModel",
     "GiftCodePolicyModel",
     "GovernanceActionModel",
+    "GrowthBenefitFulfillmentModel",
+    "GrowthCampaignModel",
+    "GrowthCodeBenefitModel",
     "GrowthCodeIssuanceModel",
     "GrowthCodeModel",
+    "GrowthCodeNamespaceModel",
     "GrowthCodeRedemptionModel",
+    "GrowthCodeReservationGroupModel",
     "GrowthCodeReservationModel",
     "GrowthCodeResolutionEventModel",
     "GrowthCodeTouchpointModel",
+    "GrowthCodeUserCounterModel",
+    "GrowthPrivateCatalogPolicyModel",
     "GrowthReportingDailyRollupModel",
     "GrowthReportingDeliveryModel",
     "GrowthReportingRefreshRunModel",
     "GrowthReportingSubscriptionModel",
+    "GrowthRiskDecisionModel",
+    "GrowthRuleCatalogVersionModel",
+    "GrowthRuleDefinitionModel",
     "GrowthSignupAttributionModel",
     "GrowthRewardAllocationModel",
+    "InviteBatchModel",
     "InviteCodePolicyModel",
     "InviteCodeModel",
     "LegalDocumentModel",
@@ -248,6 +299,7 @@ __all__ = [
     "OutboxEventModel",
     "OutboxPublicationModel",
     "OrderAttributionResultModel",
+    "OrderCodeApplicationModel",
     "OrderItemModel",
     "OrderModel",
     "OtpCodeModel",
@@ -292,6 +344,7 @@ __all__ = [
     "PricebookEntryModel",
     "PricebookModel",
     "PrincipalSessionModel",
+    "PrivateCatalogAccessGrantModel",
     "PrivacyRequestEventModel",
     "PrivacyRequestModel",
     "ProvisioningProfileModel",
@@ -303,11 +356,14 @@ __all__ = [
     "ReferralCommissionModel",
     "ReferralAttributionSessionModel",
     "RefreshToken",
+    "RegistrationAccessGrantModel",
     "ReserveModel",
     "RefundModel",
     "RenewalOrderModel",
     "RiskIdentifierModel",
     "RiskLinkModel",
+    "RiskFeatureSnapshotModel",
+    "RiskModelVersionModel",
     "RiskReviewAttachmentModel",
     "RiskReviewModel",
     "RiskSubjectModel",

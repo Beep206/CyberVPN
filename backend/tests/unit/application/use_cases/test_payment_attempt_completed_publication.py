@@ -42,8 +42,8 @@ async def test_completed_order_payment_attempt_publishes_payment_completed_after
         sale_channel="web",
         currency_code="USD",
         displayed_price=Decimal("75.00"),
-        wallet_amount=Decimal("75.00"),
-        gateway_amount=Decimal("0"),
+        wallet_amount=Decimal("0"),
+        gateway_amount=Decimal("75.00"),
         pricing_snapshot={"quote": {"plan_name": "Wallet Plan", "duration_days": 30}},
     )
     created_attempt = SimpleNamespace(

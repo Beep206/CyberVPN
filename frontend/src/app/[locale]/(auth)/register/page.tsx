@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { useRouter } from 'next/navigation'; // Switching to native router to prevent double-locale issues
+import { useRouter, useSearchParams } from 'next/navigation'; // Switching to native router to prevent double-locale issues
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { UserPlus, Loader2, Check, AlertCircle, TicketCheck } from 'lucide-react';
@@ -26,6 +26,7 @@ import {
 } from '@/features/auth/lib/validation';
 import { useAuthStore } from '@/stores/auth-store';
 import { useReferralAttributionSnapshot } from '@/features/referral-attribution/use-referral-attribution';
+import { authApi } from '@/lib/api/auth';
 
 const FALLBACK_VALIDATION_MESSAGES: Record<EmailValidationCode | PasswordValidationCode | 'passwordMismatch', string> = {
     emailRequired: 'Email is required',
@@ -45,9 +46,30 @@ const FALLBACK_VALIDATION_MESSAGES: Record<EmailValidationCode | PasswordValidat
     passwordMismatch: 'Passwords do not match',
 };
 
+function createRegistrationAccessIdempotencyKey() {
+    if (globalThis.crypto?.randomUUID) {
+        return globalThis.crypto.randomUUID();
+    }
+    const bytes = new Uint8Array(16);
+    globalThis.crypto?.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function registrationUrlWithoutAccessToken(searchParams: URLSearchParams, locale: string) {
+    const cleaned = new URLSearchParams(searchParams.toString());
+    cleaned.delete('registration_access_token');
+    cleaned.delete('invite_token');
+    const query = cleaned.toString();
+    return `/${locale}/register${query ? `?${query}` : ''}`;
+}
+
 export default function RegisterPage() {
     const t = useTranslations('Auth.register');
     const router = useRouter();
+    const searchParams = useSearchParams();
     const locale = useLocale();
 
     const { register, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
@@ -86,6 +108,7 @@ export default function RegisterPage() {
         ? username && passwordValidation.isValid && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited
         : emailValidation.isValid && passwordValidation.isValid && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited;
     const errorRef = useRef<HTMLDivElement>(null);
+    const registrationAccessExchangeStartedRef = useRef(false);
 
     const getValidationMessage = (code: EmailValidationCode | PasswordValidationCode | 'passwordMismatch') => {
         const key = `validation.${code}`;
@@ -110,6 +133,21 @@ export default function RegisterPage() {
     useEffect(() => {
         clearError();
     }, [clearError]);
+
+    useEffect(() => {
+        const registrationAccessToken = searchParams.get('registration_access_token') ?? searchParams.get('invite_token');
+        if (!registrationAccessToken || registrationAccessExchangeStartedRef.current) {
+            return;
+        }
+        registrationAccessExchangeStartedRef.current = true;
+        const idempotencyKey = createRegistrationAccessIdempotencyKey();
+        void authApi.exchangeRegistrationAccess(
+            { registration_access_token: registrationAccessToken },
+            idempotencyKey,
+        ).finally(() => {
+            router.replace(registrationUrlWithoutAccessToken(searchParams, locale), { scroll: false });
+        });
+    }, [locale, router, searchParams]);
 
     // Focus management for errors
     useEffect(() => {

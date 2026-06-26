@@ -117,10 +117,6 @@ function createMockMiniAppUser(overrides: Record<string, unknown> = {}) {
 
 function createMockMiniAppResponse(overrides: Record<string, unknown> = {}) {
   return {
-    access_token: 'miniapp_access_token',
-    refresh_token: 'miniapp_refresh_token',
-    token_type: 'bearer',
-    expires_in: 3600,
     user: createMockMiniAppUser(),
     is_new_user: false,
     ...overrides,
@@ -199,10 +195,7 @@ describe('Auth Store - telegramMiniAppAuth', () => {
   it('test_telegramMiniAppAuth_success_relies_on_http_only_cookies', async () => {
     // Arrange
     mockTelegramMiniApp.mockResolvedValue({
-      data: createMockMiniAppResponse({
-        access_token: 'ma_at_123',
-        refresh_token: 'ma_rt_456',
-      }),
+      data: createMockMiniAppResponse(),
     });
 
     // Act

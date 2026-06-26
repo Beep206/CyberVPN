@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.infrastructure.database.models.growth_benefit_model import GrowthCodeBenefitModel
 from src.infrastructure.database.models.growth_code_model import (
     GiftCodePolicyModel,
     GrowthCodeIssuanceModel,
@@ -190,6 +191,17 @@ class GrowthCodeRepository:
             select(PromoCodePolicyModel).where(PromoCodePolicyModel.growth_code_id == growth_code_id).limit(1)
         )
         return result.scalars().first()
+
+    async def list_active_benefits_for_code(self, growth_code_id: UUID) -> list[GrowthCodeBenefitModel]:
+        result = await self._session.execute(
+            select(GrowthCodeBenefitModel)
+            .where(
+                GrowthCodeBenefitModel.growth_code_id == growth_code_id,
+                GrowthCodeBenefitModel.is_active.is_(True),
+            )
+            .order_by(GrowthCodeBenefitModel.sort_order.asc(), GrowthCodeBenefitModel.id.asc())
+        )
+        return list(result.scalars().all())
 
     async def create_gift_policy(self, model: GiftCodePolicyModel) -> GiftCodePolicyModel:
         self._session.add(model)

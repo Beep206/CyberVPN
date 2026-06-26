@@ -203,7 +203,20 @@ async def test_stage1_invite_create_writes_audit_without_raw_token(monkeypatch) 
             assert str(email_hint) == "alice@example.com"
             return raw_token
 
+    class FakeRegistrationAccessGrantService:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def issue(self, *, token, created_by_admin_user_id, role, email_hint, auth_realm_id):
+            assert token == raw_token
+            assert created_by_admin_user_id == admin.id
+            assert role == AdminRole.SUPPORT.value
+            assert email_hint == "alice@example.com"
+            assert auth_realm_id is None
+            return object()
+
     monkeypatch.setattr(invites, "InviteTokenService", FakeInviteTokenService)
+    monkeypatch.setattr(invites, "RegistrationAccessGrantService", FakeRegistrationAccessGrantService)
 
     response = await invites.create_invite(
         request=invites.CreateInviteRequest(role=AdminRole.SUPPORT, email_hint="alice@example.com"),
@@ -238,7 +251,16 @@ async def test_stage1_invite_revoke_writes_audit_without_raw_token(monkeypatch) 
             assert token == raw_token
             return True
 
+    class FakeRegistrationAccessGrantService:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def revoke(self, token):
+            assert token == raw_token
+            return True
+
     monkeypatch.setattr(invites, "InviteTokenService", FakeInviteTokenService)
+    monkeypatch.setattr(invites, "RegistrationAccessGrantService", FakeRegistrationAccessGrantService)
 
     await invites.revoke_invite(
         token=raw_token,

@@ -2,6 +2,7 @@
 
 import logging
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import cast
 from uuid import UUID
@@ -49,6 +50,7 @@ from src.infrastructure.database.repositories.customer_commercial_binding_repo i
 from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
+from src.infrastructure.database.repositories.private_catalog_repo import SqlAlchemyPrivateCatalogRepository
 from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
@@ -119,6 +121,8 @@ class CheckoutResult:
     code_resolution: GrowthCodeResolutionOutcome | None = None
     reservation_id: UUID | None = None
     partner_commission_contract_snapshot: dict | None = None
+    private_catalog_grant_id: UUID | None = None
+    private_catalog_snapshot: dict | None = None
 
 
 class CheckoutUseCase:
@@ -132,6 +136,7 @@ class CheckoutUseCase:
         self._bindings = CustomerCommercialBindingRepository(session)
         self._growth_code_repo = GrowthCodeRepository(session)
         self._addon_repo = PlanAddonRepository(session)
+        self._private_catalog_repo = SqlAlchemyPrivateCatalogRepository(session)
         self._config = ConfigService(SystemConfigRepository(session))
         wallet_repo = WalletRepository(session)
         self._wallet = WalletService(wallet_repo)
@@ -153,8 +158,19 @@ class CheckoutUseCase:
         addons: list[CheckoutAddonInput] | None = None,
         sale_channel: str = "web",
         storefront_id: UUID | None = None,
+        private_catalog_grant_id: UUID | None = None,
+        private_catalog_quote_session_id: UUID | None = None,
+        private_catalog_anonymous_session_id: str | None = None,
     ) -> CheckoutResult:
-        plan = await self._resolve_plan(plan_id, sale_channel=sale_channel)
+        plan, private_catalog_snapshot = await self._resolve_plan(
+            plan_id,
+            sale_channel=sale_channel,
+            user_id=user_id,
+            storefront_id=storefront_id,
+            private_catalog_grant_id=private_catalog_grant_id,
+            private_catalog_quote_session_id=private_catalog_quote_session_id,
+            private_catalog_anonymous_session_id=private_catalog_anonymous_session_id,
+        )
         normalized_currency = _normalize_currency(currency)
         addon_lines = await self._resolve_addons(
             plan=plan,
@@ -379,6 +395,8 @@ class CheckoutUseCase:
             code_input=normalized_growth_code_input,
             code_resolution=code_resolution,
             partner_commission_contract_snapshot=partner_commission_contract_snapshot,
+            private_catalog_grant_id=private_catalog_grant_id if private_catalog_snapshot is not None else None,
+            private_catalog_snapshot=private_catalog_snapshot,
         )
 
     async def _ensure_commission_contract_snapshot(
@@ -513,19 +531,100 @@ class CheckoutUseCase:
         account = await self._session.get(PartnerAccountModel, partner_account_id)
         return account is not None and account.legacy_owner_user_id == user.id
 
-    async def _resolve_plan(self, plan_id: UUID, *, sale_channel: str) -> SubscriptionPlanModel:
+    async def _resolve_plan(
+        self,
+        plan_id: UUID,
+        *,
+        sale_channel: str,
+        user_id: UUID,
+        storefront_id: UUID | None,
+        private_catalog_grant_id: UUID | None,
+        private_catalog_quote_session_id: UUID | None,
+        private_catalog_anonymous_session_id: str | None,
+    ) -> tuple[SubscriptionPlanModel, dict | None]:
         plan = await self._plan_repo.get_by_id(plan_id)
         if plan is None:
             msg = f"Plan not found: {plan_id}"
             raise ValueError(msg)
         if not plan.is_active:
             raise ValueError("Plan is inactive")
-        if sale_channel != "admin" and plan.catalog_visibility != "public":
+        catalog_access_class = str(getattr(plan, "catalog_access_class", "") or "admin_only")
+        is_private_code_gated = catalog_access_class == "private_code_gated"
+        if sale_channel != "admin" and plan.catalog_visibility != "public" and not is_private_code_gated:
             raise ValueError("Plan is not available on this channel")
         if plan.sale_channels and sale_channel not in plan.sale_channels:
             raise ValueError("Plan is not available on this channel")
+        if is_private_code_gated and sale_channel != "admin":
+            private_catalog_snapshot = await self._validate_private_catalog_grant(
+                grant_id=private_catalog_grant_id,
+                plan=plan,
+                user_id=user_id,
+                storefront_id=storefront_id,
+                sale_channel=sale_channel,
+                quote_session_id=private_catalog_quote_session_id,
+                anonymous_session_id=private_catalog_anonymous_session_id,
+            )
+            return plan, private_catalog_snapshot
+        if private_catalog_grant_id is not None and not is_private_code_gated:
+            raise ValueError("PRIVATE_CATALOG_GRANT_NOT_APPLICABLE")
         assert_stage1_paid_plan_purchasable(plan, sale_channel=sale_channel)
-        return plan
+        return plan, None
+
+    async def _validate_private_catalog_grant(
+        self,
+        *,
+        grant_id: UUID | None,
+        plan: SubscriptionPlanModel,
+        user_id: UUID,
+        storefront_id: UUID | None,
+        sale_channel: str,
+        quote_session_id: UUID | None,
+        anonymous_session_id: str | None,
+    ) -> dict:
+        if grant_id is None:
+            raise ValueError("PRIVATE_CATALOG_GRANT_REQUIRED")
+        if storefront_id is None:
+            raise ValueError("PRIVATE_CATALOG_GRANT_CONTEXT_REQUIRED")
+        grant = await self._private_catalog_repo.get_access_grant_by_id(grant_id)
+        if grant is None:
+            raise ValueError("PRIVATE_CATALOG_GRANT_INVALID")
+        now = datetime.now(UTC)
+        expires_at = _normalize_utc(grant.expires_at)
+        if grant.status != "issued" or grant.revoked_at is not None or expires_at <= now:
+            raise ValueError("PRIVATE_CATALOG_GRANT_INVALID")
+        if grant.user_id is not None and grant.user_id != user_id:
+            raise ValueError("PRIVATE_CATALOG_GRANT_SUBJECT_MISMATCH")
+        if grant.user_id is None:
+            if not grant.anonymous_session_id:
+                raise ValueError("PRIVATE_CATALOG_GRANT_INVALID")
+            if not anonymous_session_id or grant.anonymous_session_id != anonymous_session_id:
+                raise ValueError("PRIVATE_CATALOG_GRANT_SUBJECT_MISMATCH")
+        if grant.storefront_id != storefront_id or grant.sale_channel != sale_channel:
+            raise ValueError("PRIVATE_CATALOG_GRANT_SCOPE_MISMATCH")
+        allowed_plan_ids = {UUID(str(item)) for item in grant.allowed_plan_ids or ()}
+        if allowed_plan_ids and plan.id not in allowed_plan_ids:
+            raise ValueError("PRIVATE_OFFER_UNAVAILABLE")
+        attached_to_current_quote = quote_session_id is not None and grant.attached_quote_session_id == quote_session_id
+        if (
+            grant.max_quote_conversions is not None
+            and int(grant.quote_conversions_count or 0) >= grant.max_quote_conversions
+            and not attached_to_current_quote
+        ):
+            raise ValueError("PRIVATE_CATALOG_GRANT_EXHAUSTED")
+        return {
+            "grant_id": str(grant.id),
+            "policy_id": str(grant.policy_id),
+            "policy_version_id": str(grant.policy_version_id),
+            "growth_code_id": str(grant.growth_code_id),
+            "code_set_hash": grant.code_set_hash,
+            "storefront_id": str(grant.storefront_id),
+            "sale_channel": grant.sale_channel,
+            "allowed_plan_ids": [str(item) for item in sorted(allowed_plan_ids, key=str)],
+            "expires_at": expires_at.isoformat(),
+            "status": grant.status,
+            "subject_type": "user" if grant.user_id is not None else "anonymous_session",
+            "anonymous_session_bound": grant.user_id is None,
+        }
 
     async def _resolve_addons(
         self,
@@ -713,6 +812,12 @@ def _assert_checkout_partner_eligibility(eligibility: PartnerCodeEligibilityResu
     if reason_codes.intersection({"sale_channel_not_allowed", "storefront_not_allowed", "geography_not_allowed"}):
         raise ValueError("Partner code is not eligible for this checkout surface")
     raise ValueError("Partner code not found or inactive")
+
+
+def _normalize_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _normalize_code_input(*, code_input: str | None, promo_code: str | None) -> str | None:

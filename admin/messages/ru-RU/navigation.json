@@ -92,6 +92,8 @@
     "reportingHint": "Сводки, подписки и экспорты",
     "notifications": "Уведомления",
     "notificationsHint": "Лента доставки и ручные уведомления",
+    "rules": "Правила",
+    "rulesHint": "Проверка условий и симуляция",
     "promoCodes": "Промокоды",
     "promoCodesHint": "Промо и скидки",
     "inviteCodes": "Инвайт-коды",

@@ -90,6 +90,16 @@ class CheckoutSessionModel(Base):
     idempotency_key: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
     promo_code_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     partner_code_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
+    code_set_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("checkout_code_sets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    private_catalog_access_grant_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("private_catalog_access_grants.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     request_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     checkout_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     context_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)

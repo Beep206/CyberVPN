@@ -72,6 +72,35 @@ vi.mock('next-intl', () => ({
       'quote.serverPool': 'Servers',
       'quote.none': 'None',
       'actions.openPayment': 'Open payment',
+      'privateOffer.title': 'Private offer access',
+      'privateOffer.description': 'Enter a private access code',
+      'privateOffer.codeLabel': 'Private access code',
+      'privateOffer.codePlaceholder': 'Private code',
+      'privateOffer.unlockCta': 'Unlock offer',
+      'privateOffer.unlockingCta': 'Checking',
+      'privateOffer.retryCta': 'Retry',
+      'privateOffer.clearCta': 'Clear private offer',
+      'privateOffer.availableLabel': 'Available by code',
+      'privateOffer.selectedLabel': 'Private offer selected',
+      'privateOffer.selectCta': 'Use this offer',
+      'privateOffer.previewOnlyHint': 'Sign in before checkout',
+      'privateOffer.validationError': 'Enter a private access code first',
+      'privateOffer.noOffers': 'No private offers',
+      'privateOffer.networkError': 'Network failed',
+      'privateOffer.authorizationError': 'Session failed',
+      'privateOffer.genericError': 'Private offer failed',
+      'privateOffer.grantDegraded': 'Private grant degraded',
+      'privateOffer.grantExpired': 'Private grant expired',
+      'privateOffer.unlocked': 'Private offer unlocked',
+      'privateOffer.priceLabel': 'Private price',
+      'privateOffer.durationDays': '{days} days',
+      'privateOffer.expiresAt': 'Grant expires {date}',
+      'privateOffer.devices': '{count} devices',
+      'privateOffer.traffic': 'Traffic: {label}',
+      'privateOffer.modes': 'Modes: {modes}',
+      'privateOffer.serverPool': 'Servers: {servers}',
+      'privateOffer.support': 'Support: {support}',
+      'privateOffer.quoteError': 'Private quote failed',
     };
     const template = labels[key] ?? key;
     if (!values) return template;
@@ -83,6 +112,8 @@ vi.mock('next-intl', () => ({
 }));
 
 const API_BASE = '*/api/v1';
+const API_BASE_V3 = '*/api/v3';
+const PRIVATE_GRANT_ID = '99999999-9999-4999-8999-999999999999';
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -220,6 +251,52 @@ function createQuoteResponse() {
       invite_bundle: { count: 2, friend_days: 14, expiry_days: 60 },
       is_trial: false,
       addons: [],
+    },
+  };
+}
+
+function createPrivatePreflight() {
+  return {
+    code_set_id: 'code-set-private',
+    code_set_hash: 'hash-private',
+    status: 'accepted',
+    applications: [
+      {
+        client_slot_id: 'private-offer',
+        masked_code: 'PRIV***',
+        status: 'accepted',
+        roles: ['private_catalog_access'],
+        message_key: 'growth_codes.private.accepted',
+      },
+    ],
+    private_catalog_grant: {
+      id: PRIVATE_GRANT_ID,
+      expires_at: '2099-04-18T12:00:00Z',
+    },
+    private_offers: [
+      {
+        plan_id: 'plan-private-90',
+        offer_id: 'offer-private-90',
+        display_name: 'Private 90',
+        duration_days: 90,
+        price: {
+          amount: '19.00',
+          currency: 'USD',
+        },
+        entitlement_summary: {
+          device_limit: 3,
+          display_traffic_label: 'Unlimited',
+          connection_modes: ['stealth'],
+          server_pool: ['premium'],
+          support_sla: 'priority',
+        },
+        quote_handoff: {
+          private_catalog_grant_id: PRIVATE_GRANT_ID,
+        },
+      },
+    ],
+    risk: {
+      action: 'allow',
     },
   };
 }
@@ -407,6 +484,85 @@ describe('MiniAppPlansPage', () => {
         'https://t.me/CryptoBot?start=pay_ABC123',
       );
     });
+
+  });
+
+  it('test_carries_private_offer_grant_into_quote_and_commit', async () => {
+    const user = userEvent.setup();
+    let preflightBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post(`${API_BASE_V3}/growth/code-sets/preflight`, async ({ request }) => {
+        preflightBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(createPrivatePreflight());
+      }),
+    );
+
+    render(<PlansPage />, { wrapper: createWrapper() });
+
+    await screen.findByText('Available plans');
+    await user.type(screen.getByLabelText('Private access code'), 'private2026');
+    await user.click(screen.getByRole('button', { name: 'Unlock offer' }));
+    await user.click(await screen.findByRole('button', { name: 'Use this offer' }));
+
+    await waitFor(() => {
+      expect(preflightBody).toMatchObject({
+        storefront_key: 'cybervpn-web',
+        channel: 'miniapp',
+        currency: 'USD',
+        codes: [
+          {
+            code: 'PRIVATE2026',
+            client_slot_id: 'private-offer',
+          },
+        ],
+      });
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          url: expect.stringContaining('/miniapp/checkout/quote'),
+          body: expect.objectContaining({
+            flow: 'checkout',
+            plan_id: 'plan-private-90',
+            private_catalog_grant_id: PRIVATE_GRANT_ID,
+          }),
+        }),
+      );
+    });
+
+    await user.click(screen.getByRole('button', { name: /Open payment/ }));
+
+    await waitFor(() => {
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          url: expect.stringContaining('/miniapp/checkout/commit'),
+          body: expect.objectContaining({
+            flow: 'checkout',
+            plan_id: 'plan-private-90',
+            private_catalog_grant_id: PRIVATE_GRANT_ID,
+          }),
+        }),
+      );
+    });
+
+    requests.length = 0;
+    await user.type(screen.getByLabelText('Private access code'), 'X');
+
+    await waitFor(() => {
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          url: expect.stringContaining('/miniapp/checkout/quote'),
+          body: expect.objectContaining({
+            flow: 'checkout',
+            plan_id: 'plan-plus-365',
+          }),
+        }),
+      );
+    });
+    expect(
+      requests
+        .filter((entry) => entry.url.includes('/miniapp/checkout/quote'))
+        .every((entry) => (entry.body as Record<string, unknown>).private_catalog_grant_id == null),
+    ).toBe(true);
   });
 
   it('test_hides_checkout_code_controls_during_s1_beta', async () => {

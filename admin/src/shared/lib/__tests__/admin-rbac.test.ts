@@ -78,4 +78,31 @@ describe('admin-rbac', () => {
       expect(hasAdminPermission(role, 'support_ticket_read')).toBe(false);
     }
   });
+
+  it('keeps growth campaign and rules permissions admin-level only', () => {
+    const growthPermissions = [
+      'growth.campaigns.read',
+      'growth.campaigns.write',
+      'growth.campaigns.publish',
+      'growth.campaigns.pause',
+      'growth.campaigns.revoke',
+      'growth.rules.view',
+      'growth.rules.edit',
+      'growth.rules.validate',
+      'growth.rules.publish',
+      'growth.rules.approve',
+    ] as const;
+
+    for (const role of ['admin', 'super_admin', 'owner/super_admin'] as const) {
+      for (const permission of growthPermissions) {
+        expect(hasAdminPermission(role, permission)).toBe(true);
+      }
+    }
+
+    for (const role of ['viewer', 'support', 'finance', 'operator'] as const) {
+      for (const permission of growthPermissions) {
+        expect(hasAdminPermission(role, permission)).toBe(false);
+      }
+    }
+  });
 });

@@ -17,6 +17,7 @@ vi.mock('@/shared/ui/modal', () => ({
 
 const MATCH_ANY_API_ORIGIN = {
   clientCapabilities: /^(?:https?:\/\/[^/]+)?\/api\/v1\/client\/capabilities$/,
+  growthPreflight: /^(?:https?:\/\/[^/]+)?\/api\/v3\/growth\/code-sets\/preflight$/,
   quoteSessions: /^(?:https?:\/\/[^/]+)?\/api\/v1\/quotes\/?$/,
   quoteSessionById: /^(?:https?:\/\/[^/]+)?\/api\/v1\/quotes\/11111111-1111-1111-1111-111111111111$/,
   resolveCodes: /^(?:https?:\/\/[^/]+)?\/api\/v1\/codes\/resolve$/,
@@ -24,6 +25,7 @@ const MATCH_ANY_API_ORIGIN = {
   ordersCommit: /^(?:https?:\/\/[^/]+)?\/api\/v1\/orders\/commit$/,
   paymentAttempts: /^(?:https?:\/\/[^/]+)?\/api\/v1\/payment-attempts\/?$/,
 };
+const PRIVATE_GRANT_ID = '99999999-9999-4999-8999-999999999999';
 
 function createQueryClient() {
   return new QueryClient({
@@ -148,6 +150,52 @@ function createQuoteSession(overrides: Record<string, unknown> = {}) {
     created_at: '2026-04-18T10:00:00Z',
     updated_at: '2026-04-18T10:00:00Z',
     ...overrides,
+  };
+}
+
+function createPrivatePreflight() {
+  return {
+    code_set_id: 'code-set-private',
+    code_set_hash: 'hash-private',
+    status: 'accepted',
+    applications: [
+      {
+        client_slot_id: 'private-offer',
+        masked_code: 'PRIV***',
+        status: 'accepted',
+        roles: ['private_catalog_access'],
+        message_key: 'growth_codes.private.accepted',
+      },
+    ],
+    private_catalog_grant: {
+      id: PRIVATE_GRANT_ID,
+      expires_at: '2099-04-18T12:00:00Z',
+    },
+    private_offers: [
+      {
+        plan_id: 'plan-private-90',
+        offer_id: 'offer-private-90',
+        display_name: 'Private 90',
+        duration_days: 90,
+        price: {
+          amount: '19.00',
+          currency: 'USD',
+        },
+        entitlement_summary: {
+          device_limit: 3,
+          display_traffic_label: 'Unlimited',
+          connection_modes: ['stealth'],
+          server_pool: ['premium'],
+          support_sla: 'priority',
+        },
+        quote_handoff: {
+          private_catalog_grant_id: PRIVATE_GRANT_ID,
+        },
+      },
+    ],
+    risk: {
+      action: 'allow',
+    },
   };
 }
 
@@ -368,7 +416,7 @@ describe('PurchaseConfirmModal', () => {
       channel: 'web',
       currency: 'USD',
     });
-    expect(screen.getByText('Checkout total')).toBeInTheDocument();
+    expect(screen.getByText('checkoutQuote.total')).toBeInTheDocument();
   });
 
   it('does not render display-only local price estimates in checkout copy', async () => {
@@ -385,7 +433,7 @@ describe('PurchaseConfirmModal', () => {
       />,
     );
 
-    await screen.findByText('Checkout total');
+    await screen.findByText('checkoutQuote.total');
 
     expect(screen.getByText('checkoutQuote.chargedIn')).toBeInTheDocument();
     expect(screen.queryByText(/display only/i)).not.toBeInTheDocument();
@@ -409,11 +457,11 @@ describe('PurchaseConfirmModal', () => {
       />,
     );
 
-    await screen.findByText('Checkout total');
+    await screen.findByText('checkoutQuote.total');
 
     await waitFor(() => {
       expect(screen.getByText('checkoutQuote.expiredTitle')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Pay with Crypto/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'checkoutQuote.payWithCrypto' })).toBeDisabled();
     });
     expect(screen.getByRole('button', { name: 'checkoutQuote.refreshCta' })).toBeInTheDocument();
   });
@@ -432,10 +480,10 @@ describe('PurchaseConfirmModal', () => {
       />,
     );
 
-    await screen.findByText('Checkout total');
+    await screen.findByText('checkoutQuote.total');
 
-    expect(screen.queryByText('Have a Checkout Code?')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Checkout Code/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('checkoutCodes.title')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('checkoutQuote.checkoutCodeLabel')).not.toBeInTheDocument();
   });
 
   it('does not render quote adjustment controls when checkout codes are disabled', async () => {
@@ -452,9 +500,9 @@ describe('PurchaseConfirmModal', () => {
       />,
     );
 
-    await screen.findByText('Checkout total');
+    await screen.findByText('checkoutQuote.total');
 
-    expect(screen.queryByText('Quote Updated')).not.toBeInTheDocument();
+    expect(screen.queryByText('checkoutQuote.checkoutCodeAccepted')).not.toBeInTheDocument();
   });
 
   it('does not resolve invite codes through checkout while S1 codes are disabled', async () => {
@@ -475,10 +523,76 @@ describe('PurchaseConfirmModal', () => {
       />,
     );
 
-    await screen.findByText('Checkout total');
+    await screen.findByText('checkoutQuote.total');
 
-    expect(screen.queryByLabelText(/Checkout Code/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('checkoutQuote.checkoutCodeLabel')).not.toBeInTheDocument();
     expect(capturedBodies.every((body) => body.code_input == null)).toBe(true);
+  });
+
+  it('uses the private catalog grant when quoting a selected private offer', async () => {
+    const user = userEvent.setup({ delay: null });
+    const capturedBodies: Record<string, unknown>[] = [];
+    let preflightBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post(MATCH_ANY_API_ORIGIN.growthPreflight, async ({ request }) => {
+        preflightBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(createPrivatePreflight());
+      }),
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
+        capturedBodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(createQuoteSession(), { status: 201 });
+      }),
+    );
+
+    renderWithProviders(
+      <PurchaseConfirmModal
+        isOpen={true}
+        onClose={vi.fn()}
+        plan={createPlan()}
+      />,
+    );
+
+    await screen.findByText('checkoutQuote.total');
+    await user.type(screen.getByLabelText('privateOffer.codeLabel'), 'private2026');
+    await user.click(screen.getByRole('button', { name: 'privateOffer.unlockCta' }));
+    await user.click(await screen.findByRole('button', { name: 'privateOffer.selectCta' }));
+
+    await waitFor(() => {
+      expect(preflightBody).toMatchObject({
+        storefront_key: 'cybervpn-web',
+        channel: 'web',
+        currency: 'USD',
+        codes: [
+          {
+            code: 'PRIVATE2026',
+            client_slot_id: 'private-offer',
+          },
+        ],
+      });
+      expect(capturedBodies).toContainEqual(
+        expect.objectContaining({
+          storefront_key: 'cybervpn-web',
+          channel: 'web',
+          plan_id: 'plan-private-90',
+          private_catalog_grant_id: PRIVATE_GRANT_ID,
+        }),
+      );
+    });
+
+    capturedBodies.length = 0;
+    await user.type(screen.getByLabelText('privateOffer.codeLabel'), 'X');
+
+    await waitFor(() => {
+      expect(capturedBodies).toContainEqual(
+        expect.objectContaining({
+          storefront_key: 'cybervpn-web',
+          channel: 'web',
+          plan_id: 'plan-pro-001',
+        }),
+      );
+    });
+    expect(capturedBodies.every((body) => body.private_catalog_grant_id == null)).toBe(true);
   });
 
   it('commits canonical checkout flow and opens invoice from payment attempt', async () => {
@@ -519,8 +633,8 @@ describe('PurchaseConfirmModal', () => {
       />,
     );
 
-    await screen.findByText('Checkout total');
-    await user.click(screen.getByRole('button', { name: /Pay with Crypto/i }));
+    await screen.findByText('checkoutQuote.total');
+    await user.click(screen.getByRole('button', { name: 'checkoutQuote.payWithCrypto' }));
 
     await waitFor(() => {
       expect(windowOpenSpy).toHaveBeenCalledWith(
