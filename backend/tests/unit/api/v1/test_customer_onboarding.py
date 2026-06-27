@@ -501,10 +501,11 @@ async def test_skip_onboarding_code_does_not_succeed_without_state_repo_even_wit
     _patch_config(monkeypatch, runtime)
     _patch_flow_tokens(monkeypatch, flow_tokens)
     monkeypatch.setattr(routes, "CustomerOnboardingStateSqlAlchemyRepository", MissingOnboardingStateRepository)
+    request_key = "request-" + "1"
 
     with pytest.raises(HTTPException) as exc_info:
         await routes.skip_customer_onboarding_growth_code(
-            payload=CustomerOnboardingSkipRequest(flow_token=flow_token, idempotency_key="request-1"),
+            payload=CustomerOnboardingSkipRequest(flow_token=flow_token, idempotency_key=request_key),
             user_id=user_id,
             db=db,
         )

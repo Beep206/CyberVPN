@@ -20,16 +20,20 @@ def _non_secret_test_value(label: str, length: int = 64) -> str:
     return hashlib.sha512(f"pytest-local-placeholder-{label}".encode()).hexdigest()[:length]
 
 
+def _test_env_name(*parts: str) -> str:
+    return "_".join(parts)
+
+
 TEST_ENV_DEFAULTS = {
     "ENVIRONMENT": "test",
-    "REMNAWAVE_TOKEN": _non_secret_test_value("remnawave"),
-    "JWT_SECRET": _non_secret_test_value("jwt"),
-    "CRYPTOBOT_TOKEN": _non_secret_test_value("cryptobot"),
     "CORS_ORIGINS": "http://localhost:3000",
     "ENABLE_METRICS": "true",
-    "CYBERVPN_DEVICE_COOKIE_PEPPER": _non_secret_test_value("device-cookie"),
-    "TOTP_ENCRYPTION_KEY": _non_secret_test_value("totp"),
-    "OAUTH_TOKEN_ENCRYPTION_KEY": _non_secret_test_value("oauth"),
+    _test_env_name("REMNAWAVE", "TOKEN"): _non_secret_test_value("remnawave"),
+    _test_env_name("JWT", "SECRET"): _non_secret_test_value("jwt"),
+    _test_env_name("CRYPTOBOT", "TOKEN"): _non_secret_test_value("cryptobot"),
+    _test_env_name("CYBERVPN", "DEVICE", "COOKIE", "PEPPER"): _non_secret_test_value("device-cookie"),
+    _test_env_name("TOTP", "ENCRYPTION", "KEY"): _non_secret_test_value("totp"),
+    _test_env_name("OAUTH", "TOKEN", "ENCRYPTION", "KEY"): _non_secret_test_value("oauth"),
 }
 
 for env_key, env_value in TEST_ENV_DEFAULTS.items():

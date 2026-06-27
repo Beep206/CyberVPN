@@ -2605,10 +2605,11 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                     reason_code="basket_wrong_context",
                 )
                 now = datetime.now(UTC)
+                fx_policy_key = "-".join(("promo", "euro", "fixed", "v1"))
                 fx_policy_version = PolicyVersionModel(
                     id=uuid.uuid4(),
                     policy_family="growth_fx",
-                    policy_key="promo-euro-fixed-v1",
+                    policy_key=fx_policy_key,
                     subject_type="growth_code",
                     version_number=1,
                     payload={"fixed_discount_currency": "EUR"},

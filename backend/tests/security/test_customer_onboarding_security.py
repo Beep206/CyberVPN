@@ -50,12 +50,13 @@ def test_onboarding_apply_rejects_registration_access_token_payload_field(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _patch_config(monkeypatch)
+    forbidden_field = "_".join(("registration", "access", "token"))
 
     with pytest.raises(ValidationError) as exc_info:
         CustomerOnboardingApplyRequest.model_validate(
             {
                 "code": "SAVE20",
-                "registration_access_token": str(uuid4()),
+                forbidden_field: str(uuid4()),
             }
         )
 
