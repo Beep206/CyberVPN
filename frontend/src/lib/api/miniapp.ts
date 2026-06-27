@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, CANONICAL_IDEMPOTENCY_HEADER } from './client';
 import type { AddonRecord } from './addons';
 import type {
   CheckoutCommitResponse,
@@ -198,8 +198,12 @@ export const miniappApi = {
     apiClient.post<MiniAppTrialActivateResponse>('/miniapp/trial/activate', {}),
   quoteCheckout: (data: MiniAppCheckoutRequest) =>
     apiClient.post<CheckoutQuoteResponse>('/miniapp/checkout/quote', data),
-  commitCheckout: (data: MiniAppCheckoutRequest) =>
-    apiClient.post<CheckoutCommitResponse>('/miniapp/checkout/commit', data),
+  commitCheckout: (data: MiniAppCheckoutRequest, idempotencyKey: string) =>
+    apiClient.post<CheckoutCommitResponse>('/miniapp/checkout/commit', data, {
+      headers: {
+        [CANONICAL_IDEMPOTENCY_HEADER]: idempotencyKey,
+      },
+    }),
   getPayment: (paymentId: string) =>
     apiClient.get<PaymentStatusResponse>(`/miniapp/payments/${paymentId}`),
   getConfig: (params?: { selectedSubscriptionKey?: string | null }) =>

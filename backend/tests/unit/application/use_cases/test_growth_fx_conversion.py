@@ -11,6 +11,7 @@ from src.application.use_cases.growth_code_sets.fx import (
     FxConversionError,
     FxRateSnapshot,
     convert_fixed_discount,
+    rate_snapshots_from_policy_snapshot,
 )
 
 NOW = datetime(2026, 6, 25, 12, 0, tzinfo=UTC)
@@ -140,3 +141,40 @@ def test_fixed_discount_requires_managed_xtr_rate() -> None:
     assert conversion.target_amount == Decimal("500")
     assert conversion.rate_snapshot is not None
     assert conversion.rate_snapshot["managed_xtr"] is True
+
+
+def test_policy_snapshot_rate_parser_accepts_nested_versioned_rates() -> None:
+    rates = rate_snapshots_from_policy_snapshot(
+        {
+            "fx": {
+                "rate_snapshots": [
+                    {
+                        "id": "00000000-0000-0000-0000-00000000f012",
+                        "provider_key": "pricebook-primary",
+                        "priority": 1,
+                        "base_currency": "EUR",
+                        "quote_currency": "USD",
+                        "rate": "1.0835",
+                        "observed_at": NOW.isoformat(),
+                        "valid_until": (NOW + timedelta(minutes=10)).isoformat(),
+                        "source_type": "pricebook",
+                        "configured_rate_version": "pb-2026-06-25",
+                    }
+                ]
+            }
+        }
+    )
+
+    assert len(rates) == 1
+    assert rates[0].rate_id == UUID("00000000-0000-0000-0000-00000000f012")
+    assert rates[0].source_currency == "EUR"
+    assert rates[0].target_currency == "USD"
+    assert rates[0].source_type == "pricebook"
+    assert rates[0].configured_rate_version == "pb-2026-06-25"
+
+
+def test_policy_snapshot_rate_parser_rejects_malformed_rate() -> None:
+    with pytest.raises(FxConversionError) as exc:
+        rate_snapshots_from_policy_snapshot({"fx_rate_snapshots": [{"provider": "primary"}]})
+
+    assert exc.value.code == "FX_RATE_SNAPSHOT_INVALID"

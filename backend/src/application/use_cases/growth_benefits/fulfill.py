@@ -94,7 +94,14 @@ class IssueInvitesBenefitConfig(BaseModel):
     allow_zero_net_payment: bool = False
     minimum_net_paid_amount: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
     owner_mode: Literal["buyer"] = "buyer"
-    reversal_mode: Literal["revoke_unredeemed", "none"] = "revoke_unredeemed"
+    reversal_mode: Literal[
+        "revoke_unredeemed",
+        "revoke_if_unused",
+        "reverse_always",
+        "manual_review",
+        "none",
+        "never",
+    ] = "revoke_unredeemed"
 
     @field_validator("absolute_expires_at")
     @classmethod
@@ -130,6 +137,127 @@ class IssueInvitesBenefitConfig(BaseModel):
         if self.entitlement_mode == "custom_snapshot" and not self.entitlement_snapshot:
             raise ValueError("custom_snapshot entitlement requires entitlement_snapshot")
         return self
+
+
+class BonusDaysBenefitConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    days: int = Field(ge=1, le=3_660)
+    grant_mode: Literal["extend_current_subscription", "create_reward_allocation"] = "create_reward_allocation"
+    entitlement_profile_key: str | None = Field(default=None, min_length=1, max_length=80)
+    allow_zero_net_payment: bool = False
+    minimum_net_paid_amount: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
+    reversal_mode: Literal[
+        "shorten_entitlement",
+        "revoke_unapplied",
+        "reverse_always",
+        "manual_review",
+        "proportional",
+        "none",
+        "never",
+    ] = "revoke_unapplied"
+
+
+class WalletCreditBenefitConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    amount: Decimal = Field(gt=Decimal("0"))
+    currency: str = Field(default="USD", min_length=3, max_length=12)
+    description_key: str = Field(default="growth.benefit.walletCredit", min_length=1, max_length=120)
+    allow_zero_net_payment: bool = False
+    minimum_net_paid_amount: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
+    reversal_mode: Literal["wallet_debit", "reverse_always", "manual_review", "none", "never"] = "manual_review"
+
+    @field_validator("currency")
+    @classmethod
+    def _normalize_currency(cls, value: str) -> str:
+        return value.upper()
+
+
+class IssueGiftBenefitConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    count: int = Field(ge=1, le=1_000)
+    friend_days: int = Field(ge=1, le=3_660)
+    expiry_mode: Literal["none", "relative", "absolute"]
+    expiry_days: int | None = Field(default=None, ge=1, le=3_660)
+    absolute_expires_at: datetime | None = None
+    entitlement_mode: Literal["profile_key", "plan_id", "custom_snapshot"]
+    entitlement_profile_key: str | None = Field(default=None, min_length=1, max_length=80)
+    plan_id: UUID | None = None
+    entitlement_snapshot: dict[str, Any] | None = None
+    allow_zero_net_payment: bool = False
+    minimum_net_paid_amount: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
+    reversal_mode: Literal[
+        "revoke_unredeemed",
+        "revoke_if_unused",
+        "reverse_always",
+        "manual_review",
+        "none",
+        "never",
+    ] = "revoke_unredeemed"
+
+    @field_validator("absolute_expires_at")
+    @classmethod
+    def _normalize_absolute_expiry(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            raise ValueError("absolute_expires_at must be timezone-aware")
+        return value.astimezone(UTC)
+
+    @field_validator("entitlement_snapshot")
+    @classmethod
+    def _validate_entitlement_snapshot(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        if value is None:
+            return None
+        _ensure_no_raw_code_material(value)
+        return _json_dict(value)
+
+    @model_validator(mode="after")
+    def _validate_shape(self) -> Self:
+        _validate_expiry_shape(
+            expiry_mode=self.expiry_mode,
+            expiry_days=self.expiry_days,
+            absolute_expires_at=self.absolute_expires_at,
+        )
+        _validate_entitlement_shape(
+            entitlement_mode=self.entitlement_mode,
+            entitlement_profile_key=self.entitlement_profile_key,
+            plan_id=self.plan_id,
+            entitlement_snapshot=self.entitlement_snapshot,
+        )
+        return self
+
+
+class GrantAddonBenefitConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    addon_code: str = Field(min_length=1, max_length=80)
+    quantity: int = Field(default=1, ge=1, le=100)
+    duration_mode: Literal["match_plan", "fixed_days"] = "match_plan"
+    duration_days: int | None = Field(default=None, ge=1, le=3_660)
+    location_code: str | None = Field(default=None, min_length=1, max_length=64)
+    allow_zero_net_payment: bool = False
+    minimum_net_paid_amount: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
+    reversal_mode: Literal["revoke_addon", "reverse_always", "manual_review", "none", "never"] = "revoke_addon"
+
+    @model_validator(mode="after")
+    def _validate_shape(self) -> Self:
+        if self.duration_mode == "fixed_days" and self.duration_days is None:
+            raise ValueError("fixed_days addon grant requires duration_days")
+        if self.duration_mode == "match_plan" and self.duration_days is not None:
+            raise ValueError("match_plan addon grant cannot include duration_days")
+        return self
+
+
+BenefitConfig = (
+    IssueInvitesBenefitConfig
+    | BonusDaysBenefitConfig
+    | WalletCreditBenefitConfig
+    | IssueGiftBenefitConfig
+    | GrantAddonBenefitConfig
+)
 
 
 class GrowthBenefitSnapshot(BaseModel):
@@ -353,6 +481,17 @@ class GrowthBenefitFulfillmentRepository(Protocol):
     async def create_invite_codes(self, data: tuple[NewInviteCode, ...]) -> tuple[InviteCodeRecord, ...]:
         raise NotImplementedError
 
+    async def apply_wallet_credit_benefit(
+        self,
+        *,
+        user_id: UUID,
+        fulfillment_id: UUID,
+        amount: Decimal,
+        currency: str,
+        description_key: str,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
 
 @dataclass(frozen=True, slots=True)
 class _PreparedBenefit:
@@ -399,9 +538,7 @@ class FulfillGrowthBenefitsUseCase:
         for prepared in selected:
             if not prepared.benefit.is_active:
                 continue
-            if prepared.benefit.benefit_type != BenefitType.ISSUE_INVITES:
-                continue
-            config = _validate_issue_invites_config(prepared.benefit.config)
+            config = _validate_benefit_config(prepared.benefit)
             _enforce_settlement_allowed(config=config, settlement=settlement)
             growth_code_id = prepared.benefit.growth_code_id or prepared.application.growth_code_id
             if growth_code_id is None:
@@ -414,10 +551,23 @@ class FulfillGrowthBenefitsUseCase:
                 now=now,
             )
 
-            if _has_invite_batch_result(fulfillment):
+            if _has_recorded_result(fulfillment):
                 results.append(_result_from_record(fulfillment, prepared.benefit.benefit_type, duplicate=True))
                 continue
 
+            if prepared.benefit.benefit_type != BenefitType.ISSUE_INVITES:
+                fulfillment = await self._fulfill_non_invite_benefit(
+                    benefit=prepared.benefit,
+                    fulfillment=fulfillment,
+                    config=config,
+                    command=command,
+                    now=now,
+                )
+                results.append(_result_from_record(fulfillment, prepared.benefit.benefit_type, duplicate=duplicate))
+                continue
+
+            if not isinstance(config, IssueInvitesBenefitConfig):
+                raise GrowthBenefitConfigurationError("issue_invites benefit config is invalid")
             batch, batch_duplicate = await self._get_or_create_invite_batch(
                 prepared=prepared,
                 growth_code_id=growth_code_id,
@@ -441,6 +591,8 @@ class FulfillGrowthBenefitsUseCase:
                 "invite_batch_id": str(batch.id),
                 "requested_count": batch.requested_count,
                 "issued_count": batch.issued_count,
+                "reversal_mode": config.reversal_mode,
+                "reversal_policy": _canonical_reversal_policy(config.reversal_mode),
                 "invite_code_ids": [str(code.id) for code in invite_codes],
                 "invite_code_refs": [
                     {
@@ -479,7 +631,7 @@ class FulfillGrowthBenefitsUseCase:
         benefit: GrowthBenefitSnapshot,
         growth_code_id: UUID,
         command: FulfillGrowthBenefitsCommand,
-        config: IssueInvitesBenefitConfig,
+        config: BenefitConfig,
         now: datetime,
     ) -> tuple[BenefitFulfillmentRecord, bool]:
         idempotency_key = build_growth_benefit_idempotency_key(
@@ -501,7 +653,7 @@ class FulfillGrowthBenefitsUseCase:
                     idempotency_key=idempotency_key,
                     status=FulfillmentStatus.PENDING.value,
                     attempt_count=1,
-                    config_snapshot=config.model_dump(mode="json"),
+                    config_snapshot=_fulfillment_config_snapshot(config),
                     result_payload={},
                     started_at=now,
                 )
@@ -512,6 +664,59 @@ class FulfillGrowthBenefitsUseCase:
                 raise
             return existing, True
         return created, False
+
+    async def _fulfill_non_invite_benefit(
+        self,
+        *,
+        benefit: GrowthBenefitSnapshot,
+        fulfillment: BenefitFulfillmentRecord,
+        config: BenefitConfig,
+        command: FulfillGrowthBenefitsCommand,
+        now: datetime,
+    ) -> BenefitFulfillmentRecord:
+        config_payload = _fulfillment_config_snapshot(config)
+        if benefit.benefit_type == BenefitType.WALLET_CREDIT:
+            if not isinstance(config, WalletCreditBenefitConfig):
+                raise GrowthBenefitConfigurationError("wallet_credit benefit config is invalid")
+            wallet_result = await self._repository.apply_wallet_credit_benefit(
+                user_id=command.user_id,
+                fulfillment_id=fulfillment.id,
+                amount=config.amount,
+                currency=config.currency,
+                description_key=config.description_key,
+            )
+            result_payload = {
+                "benefit_type": benefit.benefit_type.value,
+                "side_effect_mode": "wallet_transaction",
+                "wallet_credit": {
+                    "amount": str(config.amount),
+                    "currency": config.currency,
+                    "description_key": config.description_key,
+                    **wallet_result,
+                },
+                "reversal_mode": config.reversal_mode,
+                "reversal_policy": _canonical_reversal_policy(config.reversal_mode),
+            }
+            return await self._repository.set_fulfillment_result(
+                fulfillment_id=fulfillment.id,
+                status=FulfillmentStatus.COMPLETED.value,
+                result_payload=result_payload,
+                completed_at=now,
+            )
+
+        result_payload = {
+            "benefit_type": benefit.benefit_type.value,
+            "side_effect_mode": "queued_domain_worker",
+            "config": config_payload,
+            "reversal_mode": config_payload.get("reversal_mode"),
+            "reversal_policy": config_payload.get("reversal_policy"),
+        }
+        return await self._repository.set_fulfillment_result(
+            fulfillment_id=fulfillment.id,
+            status=FulfillmentStatus.QUEUED.value,
+            result_payload=result_payload,
+            completed_at=None,
+        )
 
     async def _ensure_invite_codes(
         self,
@@ -704,7 +909,7 @@ def _apply_merge_modes(prepared: list[_PreparedBenefit]) -> list[_PreparedBenefi
             winner = max(
                 [*same_type, item],
                 key=lambda candidate: (
-                    _issue_invites_count(candidate.benefit),
+                    _benefit_merge_value(candidate.benefit),
                     candidate.source_priority,
                     -candidate.input_index,
                 ),
@@ -738,12 +943,116 @@ def _issue_invites_count(benefit: GrowthBenefitSnapshot) -> int:
     return config.count
 
 
-def _validate_issue_invites_config(config: Mapping[str, Any]) -> IssueInvitesBenefitConfig:
-    _ensure_no_raw_code_material(config)
+def _benefit_merge_value(benefit: GrowthBenefitSnapshot) -> Decimal:
     try:
-        return IssueInvitesBenefitConfig.model_validate(config)
+        config = _validate_benefit_config(benefit)
+    except GrowthBenefitConfigurationError:
+        return Decimal("0")
+    if isinstance(config, IssueInvitesBenefitConfig | IssueGiftBenefitConfig):
+        return Decimal(config.count)
+    if isinstance(config, BonusDaysBenefitConfig):
+        return Decimal(config.days)
+    if isinstance(config, WalletCreditBenefitConfig):
+        return config.amount
+    if isinstance(config, GrantAddonBenefitConfig):
+        return Decimal(config.quantity)
+    return Decimal("0")
+
+
+def _validate_benefit_config(benefit: GrowthBenefitSnapshot) -> BenefitConfig:
+    if benefit.benefit_type == BenefitType.ISSUE_INVITES:
+        return _validate_issue_invites_config(benefit.config)
+    normalized_config = _normalize_reversal_policy_alias(benefit.config)
+    _ensure_no_raw_code_material(normalized_config)
+    try:
+        if benefit.benefit_type == BenefitType.BONUS_DAYS:
+            return BonusDaysBenefitConfig.model_validate(normalized_config)
+        if benefit.benefit_type == BenefitType.WALLET_CREDIT:
+            return WalletCreditBenefitConfig.model_validate(normalized_config)
+        if benefit.benefit_type == BenefitType.ISSUE_GIFT:
+            return IssueGiftBenefitConfig.model_validate(normalized_config)
+        if benefit.benefit_type == BenefitType.GRANT_ADDON:
+            return GrantAddonBenefitConfig.model_validate(normalized_config)
+    except ValidationError as exc:
+        raise GrowthBenefitConfigurationError(f"{benefit.benefit_type.value} benefit config is invalid") from exc
+    raise GrowthBenefitConfigurationError(f"{benefit.benefit_type.value} benefit type is unsupported")
+
+
+def _validate_issue_invites_config(config: Mapping[str, Any]) -> IssueInvitesBenefitConfig:
+    normalized_config = _normalize_reversal_policy_alias(config)
+    _ensure_no_raw_code_material(normalized_config)
+    try:
+        return IssueInvitesBenefitConfig.model_validate(normalized_config)
     except ValidationError as exc:
         raise GrowthBenefitConfigurationError("issue_invites benefit config is invalid") from exc
+
+
+def _normalize_reversal_policy_alias(config: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(config)
+    policy = payload.pop("reversal_policy", None)
+    mode = payload.get("reversal_mode")
+    if policy in (None, ""):
+        return payload
+    policy_text = str(policy)
+    if policy_text not in {"never", "revoke_if_unused", "reverse_always", "manual_review", "proportional"}:
+        raise GrowthBenefitConfigurationError("reversal_policy is unsupported")
+    if mode not in (None, "") and _canonical_reversal_policy(str(mode)) != policy_text:
+        raise GrowthBenefitConfigurationError("reversal_policy conflicts with reversal_mode")
+    payload["reversal_mode"] = policy_text if mode in (None, "") else mode
+    return payload
+
+
+def _fulfillment_config_snapshot(config: BenefitConfig) -> dict[str, Any]:
+    payload = config.model_dump(mode="json")
+    payload["reversal_policy"] = _canonical_reversal_policy(str(payload.get("reversal_mode") or "manual_review"))
+    return payload
+
+
+def _canonical_reversal_policy(reversal_mode: str) -> str:
+    return {
+        "none": "never",
+        "never": "never",
+        "revoke_unredeemed": "revoke_if_unused",
+        "revoke_unapplied": "revoke_if_unused",
+        "revoke_if_unused": "revoke_if_unused",
+        "revoke_addon": "reverse_always",
+        "wallet_debit": "reverse_always",
+        "shorten_entitlement": "reverse_always",
+        "reverse_always": "reverse_always",
+        "manual_review": "manual_review",
+        "proportional": "proportional",
+    }.get(reversal_mode, "manual_review")
+
+
+def _validate_expiry_shape(
+    *,
+    expiry_mode: str,
+    expiry_days: int | None,
+    absolute_expires_at: datetime | None,
+) -> None:
+    if expiry_mode == "none" and (expiry_days is not None or absolute_expires_at is not None):
+        raise ValueError("none expiry cannot include relative or absolute expiry values")
+    if expiry_mode == "relative" and (expiry_days is None or absolute_expires_at is not None):
+        raise ValueError("relative expiry requires expiry_days only")
+    if expiry_mode == "absolute" and (absolute_expires_at is None or expiry_days is not None):
+        raise ValueError("absolute expiry requires absolute_expires_at only")
+
+
+def _validate_entitlement_shape(
+    *,
+    entitlement_mode: str,
+    entitlement_profile_key: str | None,
+    plan_id: UUID | None,
+    entitlement_snapshot: dict[str, Any] | None,
+) -> None:
+    if entitlement_mode == "profile_key" and not entitlement_profile_key:
+        raise ValueError("profile_key entitlement requires entitlement_profile_key")
+    if entitlement_mode == "profile_key" and plan_id is not None:
+        raise ValueError("profile_key entitlement cannot include plan_id")
+    if entitlement_mode == "plan_id" and plan_id is None:
+        raise ValueError("plan_id entitlement requires plan_id")
+    if entitlement_mode == "custom_snapshot" and not entitlement_snapshot:
+        raise ValueError("custom_snapshot entitlement requires entitlement_snapshot")
 
 
 def _extract_settlement(snapshot: dict[str, Any]) -> GrowthSettlementSnapshot:
@@ -768,7 +1077,7 @@ def _extract_settlement(snapshot: dict[str, Any]) -> GrowthSettlementSnapshot:
 
 def _enforce_settlement_allowed(
     *,
-    config: IssueInvitesBenefitConfig,
+    config: BenefitConfig,
     settlement: GrowthSettlementSnapshot,
 ) -> None:
     paid_amount = settlement.net_customer_paid_amount
@@ -776,9 +1085,10 @@ def _enforce_settlement_allowed(
         paid_amount = settlement.gateway_amount
     paid_amount = paid_amount if paid_amount is not None else Decimal("0")
     is_zero_net = paid_amount <= Decimal("0") or settlement.settlement_mode == "internal_zero"
-    if is_zero_net and not config.allow_zero_net_payment:
+    if is_zero_net and not bool(getattr(config, "allow_zero_net_payment", False)):
         raise GrowthBenefitSettlementNotEligibleError("zero-net settlement is not allowed for this benefit")
-    if not is_zero_net and paid_amount < config.minimum_net_paid_amount:
+    minimum_net_paid_amount = getattr(config, "minimum_net_paid_amount", Decimal("0"))
+    if not is_zero_net and paid_amount < minimum_net_paid_amount:
         raise GrowthBenefitSettlementNotEligibleError("settlement paid amount is below benefit minimum")
 
 
@@ -792,9 +1102,14 @@ def _resolve_invite_batch_expiry(*, config: IssueInvitesBenefitConfig, now: date
     return now + timedelta(days=config.expiry_days)
 
 
-def _has_invite_batch_result(record: BenefitFulfillmentRecord) -> bool:
+def _has_recorded_result(record: BenefitFulfillmentRecord) -> bool:
+    if not record.result_payload:
+        return False
     invite_batch_id = record.result_payload.get("invite_batch_id")
-    return isinstance(invite_batch_id, str) and bool(invite_batch_id)
+    if isinstance(invite_batch_id, str) and invite_batch_id:
+        return True
+    benefit_type = record.result_payload.get("benefit_type")
+    return isinstance(benefit_type, str) and bool(benefit_type)
 
 
 def _result_from_record(

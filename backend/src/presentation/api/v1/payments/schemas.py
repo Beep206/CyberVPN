@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from src.domain.enums import (
     GrowthCodeActionContext,
@@ -104,6 +104,11 @@ class CheckoutAddonResponse(BaseModel):
     location_code: str | None = None
 
 
+class CheckoutCodeBasketItemRequest(BaseModel):
+    code: str = Field(..., min_length=1, max_length=64)
+    client_slot_id: str | None = Field(None, min_length=1, max_length=80)
+
+
 class EffectiveEntitlementsResponse(BaseModel):
     device_limit: int
     traffic_policy: str
@@ -135,6 +140,7 @@ class CheckoutQuoteRequest(BaseModel):
     code_input: str | None = Field(None, max_length=64, description="Optional promo or referral code")
     promo_code: str | None = Field(None, max_length=50, description="Optional promo code")
     partner_code: str | None = Field(None, max_length=30, description="Optional partner code")
+    codes: list[CheckoutCodeBasketItemRequest] = Field(default_factory=list, max_length=5)
     private_catalog_grant_id: UUID | None = Field(None, description="Private catalog grant from code-set preflight")
     use_wallet: float = Field(0, ge=0, description="Requested wallet amount in USD")
     currency: str = Field("USD", min_length=3, max_length=12, description="Gateway asset code")
@@ -146,6 +152,12 @@ class CheckoutQuoteRequest(BaseModel):
         if not value.isupper():
             raise ValueError("Currency code must be uppercase")
         return value
+
+    @model_validator(mode="after")
+    def validate_code_inputs_are_not_mixed(self) -> "CheckoutQuoteRequest":
+        if self.codes and (self.code_input or self.promo_code or self.partner_code):
+            raise ValueError("codes cannot be combined with code_input, promo_code, or partner_code")
+        return self
 
 
 class CheckoutCodeResolutionResponse(BaseModel):
@@ -181,6 +193,53 @@ class CheckoutDiscountResponse(BaseModel):
     policy_version_id: UUID | None = None
 
 
+class CheckoutCodeSetApplicationDiscountResponse(BaseModel):
+    source_amount: str
+    source_currency: str | None = None
+    target_amount: str
+    target_currency: str | None = None
+    applied_amount: str
+    strategy: str | None = None
+    fx_conversion: dict | None = None
+    fx_conversion_id: UUID | None = None
+
+
+class CheckoutCodeSetApplicationResponse(BaseModel):
+    position_entered: int
+    canonical_order: int
+    client_slot_id: str | None = None
+    growth_code_id: UUID | None = None
+    masked_code: str
+    roles: list[str] = Field(default_factory=list)
+    status: str
+    reject_reason: str | None = None
+    conflict_code: str | None = None
+    wrong_context_target: str | None = None
+    user_message_key: str | None = None
+    policy_version_id: UUID | None = None
+    rule_checksum: str | None = None
+    discount: CheckoutCodeSetApplicationDiscountResponse
+    benefits: list[dict] = Field(default_factory=list)
+    reservation_id: UUID | None = None
+    reservation_group_id: UUID | None = None
+    risk_decision_id: UUID | None = None
+    fx_conversion_id: UUID | None = None
+    code_ref: CheckoutCodeRefResponse | None = None
+    private_access: dict = Field(default_factory=dict)
+
+
+class CheckoutCodeSetResponse(BaseModel):
+    id: UUID | None = None
+    hash: str
+    acceptance_mode: str
+    applications: list[CheckoutCodeSetApplicationResponse] = Field(default_factory=list)
+
+
+class CheckoutGrowthEffectsResponse(BaseModel):
+    discount: dict = Field(default_factory=dict)
+    benefits_preview: list[dict] = Field(default_factory=list)
+
+
 class CheckoutQuoteResponse(BaseModel):
     """Quote response with final entitlement snapshot."""
 
@@ -192,14 +251,22 @@ class CheckoutQuoteResponse(BaseModel):
     gateway_amount: float
     partner_markup: float
     is_zero_gateway: bool
+    requires_external_payment: bool | None = None
+    settlement_mode: str | None = None
+    next_action: str | None = None
     plan_id: UUID | None = None
     promo_code_id: UUID | None = None
     partner_code_id: UUID | None = None
     private_catalog_grant_id: UUID | None = None
+    code_set_id: UUID | None = None
+    code_set_hash: str | None = None
+    reservation_group_id: UUID | None = None
+    code_set: CheckoutCodeSetResponse | None = None
     code_input: str | None = None
     code_input_ref: CheckoutCodeRefResponse | None = None
     code_resolution: CheckoutCodeResolutionResponse | None = None
     discounts: list[CheckoutDiscountResponse] = Field(default_factory=list)
+    growth_effects: CheckoutGrowthEffectsResponse | None = None
     addons: list[CheckoutAddonResponse] = Field(default_factory=list)
     entitlements_snapshot: EntitlementsSnapshotResponse
 

@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from src.application.services.auth_service import AuthService
+from src.application.services.auth_session_issuer import hash_device_key
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -436,10 +437,7 @@ async def test_repeated_admin_login_reuses_browser_device_and_replaces_session()
                 assert devices[0].last_proxy_peer == devices[0].last_ip_address
                 assert devices[0].device_key_hash != first_device_cookie
                 assert devices[0].device_key_hash != sha256(first_device_cookie.encode()).hexdigest()
-                assert (
-                    devices[0].device_key_hash
-                    == sha256(f"{first_device_cookie}pytest-device-cookie-pepper".encode()).hexdigest()
-                )
+                assert devices[0].device_key_hash == hash_device_key(first_device_cookie)
 
                 sessions_result = await adapter.execute(
                     select(PrincipalSessionModel)

@@ -100,6 +100,7 @@ class RegistrationAccessGrantService:
         exchanged_at = _utc(now)
         token_hash = hash_registration_access_token(token)
         normalized_idempotency_key = _normalize_idempotency_key(idempotency_key)
+        idempotency_key_hash = hash_registration_access_idempotency_key(normalized_idempotency_key)
         normalized_host = _normalize_host(host)
         session_token = build_registration_access_exchange_session_token(
             token_hash=token_hash,
@@ -121,7 +122,7 @@ class RegistrationAccessGrantService:
             metadata = grant.metadata_ or {}
             if (
                 grant.exchange_session_hash == session_hash
-                and metadata.get("exchange_idempotency_key") == normalized_idempotency_key
+                and metadata.get("exchange_idempotency_key_hash") == idempotency_key_hash
                 and metadata.get("exchange_host") == normalized_host
                 and self._exchange_session_is_fresh(grant, exchanged_at)
             ):
@@ -141,9 +142,10 @@ class RegistrationAccessGrantService:
         grant.reserved_at = None
         grant.registration_idempotency_key = None
         metadata = dict(grant.metadata_ or {})
+        metadata.pop("exchange_idempotency_key", None)
         metadata.update(
             {
-                "exchange_idempotency_key": normalized_idempotency_key,
+                "exchange_idempotency_key_hash": idempotency_key_hash,
                 "exchange_host": normalized_host,
                 "exchange_realm_id": str(auth_realm_id) if auth_realm_id is not None else None,
             }
@@ -183,7 +185,7 @@ class RegistrationAccessGrantService:
         grant.status = "reserved"
         grant.reserved_at = reserved_at
         grant.reservation_key = reservation_key
-        grant.registration_idempotency_key = registration_idempotency_key
+        grant.registration_idempotency_key = hash_registration_access_idempotency_key(registration_idempotency_key)
         grant.released_at = None
         grant.release_reason = None
         await self._session.flush()
@@ -224,7 +226,7 @@ class RegistrationAccessGrantService:
         grant.status = "reserved"
         grant.reserved_at = reserved_at
         grant.reservation_key = reservation_key
-        grant.registration_idempotency_key = registration_idempotency_key
+        grant.registration_idempotency_key = hash_registration_access_idempotency_key(registration_idempotency_key)
         grant.released_at = None
         grant.release_reason = None
         await self._session.flush()
@@ -405,6 +407,14 @@ def hash_registration_access_exchange_session(session_token: str) -> str:
 
 def hash_registration_access_email_hint(email: str) -> str:
     return hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()
+
+
+def hash_registration_access_idempotency_key(idempotency_key: str | None) -> str | None:
+    if idempotency_key is None:
+        return None
+    normalized = _normalize_idempotency_key(idempotency_key)
+    digest = hmac.new(_hmac_secret(), normalized.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"hmac:{digest}"
 
 
 def registration_access_email_hint_matches(invite_data: dict, email: str | None) -> bool:

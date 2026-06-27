@@ -218,6 +218,7 @@ class Settings(BaseSettings):
     rate_limit_payment_write_requests: int = 30
     rate_limit_trial_activate_requests: int = 10
     rate_limit_growth_sensitive_requests: int = 60
+    rate_limit_private_catalog_preflight_requests: int = 20
     rate_limit_support_write_requests: int = 30
     rate_limit_messaging_write_requests: int = 30
     rate_limit_messaging_realtime_requests: int = 60

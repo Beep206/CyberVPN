@@ -4,6 +4,7 @@ import hmac
 import logging
 from dataclasses import asdict
 from decimal import Decimal
+from typing import NoReturn
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
@@ -12,8 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.services.stage1_growth_policy import Stage1GrowthPolicyError
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.commerce_sessions.quote_serialization import _safe_code_label, _safe_code_ref
+from src.application.use_cases.growth_code_sets.ledger import code_set_hash_for_applications
 from src.application.use_cases.payments.checkout import (
     CheckoutAddonInput,
+    CheckoutCodeBasketInput,
     CheckoutResult,
     CheckoutUseCase,
 )
@@ -35,6 +38,7 @@ from src.infrastructure.database.repositories.payment_repo import PaymentReposit
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_payment
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
+from src.presentation.api.shared.growth_customer_errors import growth_customer_error_from_value_error
 from src.presentation.api.shared.stage1_payment_runtime import (
     require_stage1_payments_enabled,
     require_stage1_telegram_stars_enabled,
@@ -43,6 +47,7 @@ from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
     CheckoutCodeRefResponse,
     CheckoutCodeResolutionResponse,
+    CheckoutCodeSetResponse,
     CheckoutCommitResponse,
     CheckoutDiscountResponse,
     CheckoutQuoteRequest,
@@ -97,7 +102,31 @@ def _require_payment_settlement_worker_secret(secret: str | None) -> None:
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
 
 
+def _raise_checkout_value_error(exc: ValueError) -> NoReturn:
+    mapped_error = growth_customer_error_from_value_error(exc)
+    if mapped_error is not None:
+        raise HTTPException(status_code=mapped_error.status_code, detail=mapped_error.detail()) from None
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+
+
+def _code_set_snapshot_for_response(result: CheckoutResult) -> dict | None:
+    existing = getattr(result, "code_set_snapshot", None)
+    if isinstance(existing, dict):
+        return existing
+    applications = [dict(item) for item in getattr(result, "code_set_applications", [])]
+    if not applications:
+        return None
+    return {
+        "id": getattr(result, "code_set_id", None),
+        "hash": getattr(result, "code_set_hash", None) or code_set_hash_for_applications(applications),
+        "acceptance_mode": getattr(result, "code_set_acceptance_mode", None) or "all_or_nothing",
+        "applications": applications,
+    }
+
+
 def _serialize_quote(result) -> CheckoutQuoteResponse:
+    code_set_snapshot = _code_set_snapshot_for_response(result)
+    code_set_response = CheckoutCodeSetResponse.model_validate(code_set_snapshot) if code_set_snapshot else None
     return CheckoutQuoteResponse(
         base_price=float(result.base_price),
         addon_amount=float(result.addon_amount),
@@ -107,10 +136,18 @@ def _serialize_quote(result) -> CheckoutQuoteResponse:
         gateway_amount=float(result.gateway_amount),
         partner_markup=float(result.partner_markup),
         is_zero_gateway=result.is_zero_gateway,
+        requires_external_payment=not result.is_zero_gateway,
+        settlement_mode="internal_zero" if result.is_zero_gateway else "external_gateway",
+        next_action="commit_and_activate" if result.is_zero_gateway else "create_payment_attempt",
         plan_id=result.plan_id,
         promo_code_id=result.promo_code_id,
         partner_code_id=result.partner_code_id,
         private_catalog_grant_id=result.private_catalog_grant_id,
+        code_set_id=getattr(result, "code_set_id", None),
+        code_set_hash=getattr(result, "code_set_hash", None)
+        or (code_set_snapshot.get("hash") if code_set_snapshot else None),
+        reservation_group_id=getattr(result, "reservation_group_id", None),
+        code_set=code_set_response,
         code_input=_safe_code_label(result.code_input),
         code_input_ref=_code_ref_response(result.code_input),
         code_resolution=(
@@ -144,6 +181,11 @@ def _serialize_quote(result) -> CheckoutQuoteResponse:
             )
             for discount in result.discounts
         ],
+        growth_effects=(
+            getattr(result, "growth_checkout_snapshot", {}).get("growth_effects")
+            if isinstance(getattr(result, "growth_checkout_snapshot", None), dict)
+            else None
+        ),
         addons=[
             CheckoutAddonResponse(
                 addon_id=line.addon_id,
@@ -167,10 +209,7 @@ async def _build_quote(
     user_id: UUID,
 ) -> CheckoutResult:
     if body.private_catalog_grant_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="PRIVATE_CATALOG_GRANT_REQUIRES_QUOTE_SESSION",
-        )
+        _raise_checkout_value_error(ValueError("PRIVATE_CATALOG_GRANT_REQUIRES_QUOTE_SESSION"))
     use_case = CheckoutUseCase(db)
     try:
         return await use_case.execute(
@@ -189,12 +228,19 @@ async def _build_quote(
                 )
                 for addon in body.addons
             ],
+            code_basket=[
+                CheckoutCodeBasketInput(
+                    code=item.code,
+                    client_slot_id=item.client_slot_id,
+                )
+                for item in body.codes
+            ],
             sale_channel=body.channel,
         )
     except Stage1GrowthPolicyError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from None
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+        _raise_checkout_value_error(exc)
 
 
 @router.post(

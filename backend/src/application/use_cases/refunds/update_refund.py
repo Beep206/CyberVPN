@@ -8,6 +8,9 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService, OutboxActorContext
+from src.application.use_cases.growth_code_sets.reversals import (
+    ReverseOrderCodeApplicationsForRefundUseCase,
+)
 from src.application.use_cases.referrals.reverse_referral_rewards import (
     ReverseReferralRewardsForOrderUseCase,
 )
@@ -53,6 +56,7 @@ class UpdateRefundUseCase:
         self._refunds = RefundRepository(session)
         self._settlement_effects = ApplyRefundSettlementEffectsUseCase(session)
         self._reverse_referral_rewards = ReverseReferralRewardsForOrderUseCase(session)
+        self._reverse_order_code_applications = ReverseOrderCodeApplicationsForRefundUseCase(session)
         self._telegram_stars_client = telegram_stars_client or TelegramStarsClient()
         self._outbox = EventOutboxService(session)
 
@@ -124,8 +128,15 @@ class UpdateRefundUseCase:
                 payment.status = PaymentStatus.REFUNDED.value
                 await self._payments.update(payment)
 
+        growth_code_reversal_result = None
         if transitioned_to_succeeded:
             await self._settlement_effects.execute(refund_id=refund.id)
+            growth_code_reversal_result = await self._reverse_order_code_applications.execute(
+                order_id=refund.order_id,
+                refund_id=refund.id,
+                reversal_reason="refund_succeeded",
+                commit=False,
+            )
             await self._reverse_referral_rewards.execute(
                 order_id=refund.order_id,
                 reversal_reason="refund_succeeded",
@@ -155,6 +166,56 @@ class UpdateRefundUseCase:
                     "external_reference": refund.external_reference,
                     "completed_at": refund.completed_at.isoformat() if refund.completed_at is not None else None,
                     "skip_provider_execution": skip_provider_execution,
+                    "growth_code_reversal": (
+                        {
+                            "order_code_application_count": growth_code_reversal_result.reversed_count,
+                            "order_code_application_ids": [
+                                str(application_id) for application_id in growth_code_reversal_result.application_ids
+                            ],
+                            "reversal_event_id": (
+                                str(growth_code_reversal_result.reversal_event_id)
+                                if getattr(growth_code_reversal_result, "reversal_event_id", None) is not None
+                                else None
+                            ),
+                            "reversal_event_idempotency_key": getattr(
+                                growth_code_reversal_result,
+                                "reversal_event_idempotency_key",
+                                None,
+                            ),
+                            "benefit_fulfillment_reversal_count": getattr(
+                                growth_code_reversal_result,
+                                "fulfillment_reversal_count",
+                                0,
+                            ),
+                            "invite_batches_revoked_count": getattr(
+                                growth_code_reversal_result,
+                                "invite_batches_revoked_count",
+                                0,
+                            ),
+                            "invite_codes_revoked_count": getattr(
+                                growth_code_reversal_result,
+                                "invite_codes_revoked_count",
+                                0,
+                            ),
+                            "private_grants_revoked_count": getattr(
+                                growth_code_reversal_result,
+                                "private_grants_revoked_count",
+                                0,
+                            ),
+                            "manual_review_count": getattr(
+                                growth_code_reversal_result,
+                                "manual_review_count",
+                                0,
+                            ),
+                            "wallet_debit_count": getattr(
+                                growth_code_reversal_result,
+                                "wallet_debit_count",
+                                0,
+                            ),
+                        }
+                        if growth_code_reversal_result is not None
+                        else None
+                    ),
                 },
                 actor_context=_build_actor_context(
                     acted_by_admin_user_id=acted_by_admin_user_id,

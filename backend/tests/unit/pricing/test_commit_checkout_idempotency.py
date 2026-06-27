@@ -8,7 +8,6 @@ from uuid import uuid4
 
 import pytest
 
-from src.application.use_cases.payments import commit_checkout as commit_checkout_module
 from src.application.use_cases.payments.commit_checkout import (
     CheckoutIdempotencyConflictError,
     CommitCheckoutUseCase,
@@ -132,101 +131,64 @@ async def test_commit_checkout_rejects_idempotency_key_with_different_payload() 
 
 
 @pytest.mark.asyncio
-async def test_zero_gateway_checkout_defers_cash_rewards_and_publishes_completed_event(monkeypatch) -> None:
+async def test_zero_gateway_checkout_requires_order_payment_attempt() -> None:
     session = _Session()
     crypto_client = SimpleNamespace(create_invoice=AsyncMock())
-    payment = SimpleNamespace(
-        id=uuid4(),
-        user_uuid=uuid4(),
-        status="completed",
-        provider="wallet",
-        currency="USD",
-        amount=Decimal("10.00"),
-        metadata_={"order_id": str(uuid4())},
-    )
-    zero_gateway = SimpleNamespace(execute=AsyncMock(return_value=payment))
-    post_payment_execute = AsyncMock(return_value={"cash_rewards_deferred": True})
-
-    class _PostPayment:
-        async def execute(self, payment_id, *, process_cash_rewards: bool = False):
-            return await post_payment_execute(payment_id, process_cash_rewards=process_cash_rewards)
-
-    monkeypatch.setattr(commit_checkout_module, "CompleteZeroGatewayUseCase", lambda _session: zero_gateway)
-    monkeypatch.setattr(commit_checkout_module, "PostPaymentProcessingUseCase", lambda _session: _PostPayment())
 
     use_case = CommitCheckoutUseCase(session, crypto_client)
-    use_case._outbox = SimpleNamespace(append_event=AsyncMock(return_value=SimpleNamespace(id=uuid4())))
-
-    result = await use_case.execute(
-        user_id=payment.user_uuid,
-        quote_result=_quote(
-            is_zero_gateway=True,
-            wallet_amount=Decimal("10.00"),
-            gateway_amount=Decimal("0"),
-            displayed_price=Decimal("10.00"),
-        ),
-        currency="USD",
-        channel="web",
-        description="CyberVPN wallet",
-        payload="payload-zero",
-        metadata_extra={"order_id": str(uuid4())},
+    use_case._payments = SimpleNamespace(
+        create=AsyncMock(),
+        get_by_checkout_idempotency_key=AsyncMock(return_value=None),
     )
 
-    assert result.status == "completed"
-    assert result.payment is payment
-    post_payment_execute.assert_awaited_once_with(payment.id, process_cash_rewards=False)
-    use_case._outbox.append_event.assert_awaited_once()
-    append_kwargs = use_case._outbox.append_event.await_args.kwargs
-    assert append_kwargs["event_name"] == "payment.completed"
-    assert append_kwargs["event_key"] == f"payment.completed:{payment.id}"
-    assert append_kwargs["event_payload"]["payment_id"] == str(payment.id)
-    assert append_kwargs["source_context"]["source"] == "zero_gateway_checkout"
+    with pytest.raises(ValueError, match="ZERO_GATEWAY_REQUIRES_ORDER_PAYMENT_ATTEMPT"):
+        await use_case.execute(
+            user_id=uuid4(),
+            quote_result=_quote(
+                is_zero_gateway=True,
+                wallet_amount=Decimal("10.00"),
+                gateway_amount=Decimal("0"),
+                displayed_price=Decimal("10.00"),
+            ),
+            currency="USD",
+            channel="web",
+            description="CyberVPN wallet",
+            payload="payload-zero",
+            metadata_extra={"order_id": str(uuid4())},
+        )
+
     crypto_client.create_invoice.assert_not_awaited()
+    use_case._payments.create.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_zero_gateway_order_attempt_owner_can_publish_after_attempt_exists(monkeypatch) -> None:
+async def test_zero_gateway_order_attempt_owner_flag_does_not_reenable_direct_commit() -> None:
     session = _Session()
     crypto_client = SimpleNamespace(create_invoice=AsyncMock())
-    payment = SimpleNamespace(
-        id=uuid4(),
-        user_uuid=uuid4(),
-        status="completed",
-        provider="wallet",
-        currency="USD",
-        amount=Decimal("10.00"),
-        metadata_={"order_id": str(uuid4())},
-    )
-    zero_gateway = SimpleNamespace(execute=AsyncMock(return_value=payment))
-    post_payment_execute = AsyncMock(return_value={"cash_rewards_deferred": True})
-
-    class _PostPayment:
-        async def execute(self, payment_id, *, process_cash_rewards: bool = False):
-            return await post_payment_execute(payment_id, process_cash_rewards=process_cash_rewards)
-
-    monkeypatch.setattr(commit_checkout_module, "CompleteZeroGatewayUseCase", lambda _session: zero_gateway)
-    monkeypatch.setattr(commit_checkout_module, "PostPaymentProcessingUseCase", lambda _session: _PostPayment())
 
     use_case = CommitCheckoutUseCase(session, crypto_client)
-    use_case._outbox = SimpleNamespace(append_event=AsyncMock())
-
-    result = await use_case.execute(
-        user_id=payment.user_uuid,
-        quote_result=_quote(
-            is_zero_gateway=True,
-            wallet_amount=Decimal("10.00"),
-            gateway_amount=Decimal("0"),
-            displayed_price=Decimal("10.00"),
-        ),
-        currency="USD",
-        channel="web",
-        description="CyberVPN wallet",
-        payload="payload-zero",
-        metadata_extra={"order_id": str(uuid4())},
-        publish_completed_payment_event=False,
+    use_case._payments = SimpleNamespace(
+        create=AsyncMock(),
+        get_by_checkout_idempotency_key=AsyncMock(return_value=None),
     )
 
-    assert result.status == "completed"
-    post_payment_execute.assert_awaited_once_with(payment.id, process_cash_rewards=False)
-    use_case._outbox.append_event.assert_not_awaited()
+    with pytest.raises(ValueError, match="ZERO_GATEWAY_REQUIRES_ORDER_PAYMENT_ATTEMPT"):
+        await use_case.execute(
+            user_id=uuid4(),
+            quote_result=_quote(
+                is_zero_gateway=True,
+                wallet_amount=Decimal("10.00"),
+                gateway_amount=Decimal("0"),
+                displayed_price=Decimal("10.00"),
+            ),
+            currency="USD",
+            channel="web",
+            description="CyberVPN wallet",
+            payload="payload-zero",
+            metadata_extra={"order_id": str(uuid4())},
+            publish_completed_payment_event=False,
+        )
+
+    crypto_client.create_invoice.assert_not_awaited()
+    use_case._payments.create.assert_not_awaited()
     crypto_client.create_invoice.assert_not_awaited()

@@ -181,6 +181,44 @@ class TestRegistrationAccessExchange:
         assert "email-hash" not in result.model_dump_json()
         assert calls == ["exchange"]
 
+    @pytest.mark.asyncio
+    async def test_exchange_failure_uses_generic_error_without_token_status_oracle(self, monkeypatch):
+        from fastapi import HTTPException
+
+        from src.presentation.api.v1.auth import registration
+        from src.presentation.api.v1.auth.schemas import RegistrationAccessExchangeRequest
+
+        class FakeRegistrationAccessGrantService:
+            def __init__(self, _db):
+                pass
+
+            async def exchange_for_browser(self, **_kwargs):
+                return None
+
+            async def has_token(self, _token: str):
+                raise AssertionError("has_token must not be called for public exchange failures")
+
+        monkeypatch.setattr(registration, "RegistrationAccessGrantService", FakeRegistrationAccessGrantService)
+
+        http_request = MagicMock(spec=Request)
+        http_request.headers = {"host": "public.example"}
+        http_request.url = SimpleNamespace(hostname="public.example")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await registration.exchange_registration_access(
+                request=RegistrationAccessExchangeRequest.model_validate(
+                    {"registration_access_token": "raw-registration-access-token"}
+                ),
+                http_request=http_request,
+                response=Response(),
+                idempotency_key=uuid4(),
+                db=MagicMock(),
+                current_realm=_fake_customer_realm(),
+            )
+
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail["code"] == "REGISTRATION_ACCESS_INVALID"
+
 
 class TestRegistrationInviteReservation:
     """Registration consumes invite tokens only after durable registration work succeeds."""

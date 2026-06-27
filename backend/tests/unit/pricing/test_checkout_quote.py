@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.application.use_cases.payments import checkout as checkout_module
 from src.application.use_cases.payments.checkout import (
     CheckoutAddonInput,
     CheckoutUseCase,
@@ -102,6 +103,13 @@ def _build_private_grant(**overrides):
     }
     base.update(overrides)
     return SimpleNamespace(**base)
+
+
+def _allow_runtime_risk(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_evaluate_growth_runtime_risk(**_kwargs):
+        return SimpleNamespace(decision=SimpleNamespace(decision_id=None))
+
+    monkeypatch.setattr(checkout_module, "evaluate_growth_runtime_risk", fake_evaluate_growth_runtime_risk)
 
 
 @pytest.mark.asyncio
@@ -340,7 +348,8 @@ async def test_checkout_quote_rejects_invalid_private_catalog_grants_before_side
 
 
 @pytest.mark.asyncio
-async def test_checkout_quote_accepts_valid_private_catalog_grant() -> None:
+async def test_checkout_quote_accepts_valid_private_catalog_grant(monkeypatch: pytest.MonkeyPatch) -> None:
+    _allow_runtime_risk(monkeypatch)
     session = SimpleNamespace(get=AsyncMock(return_value=None))
     use_case = CheckoutUseCase(session)
     user_id = uuid4()
@@ -430,7 +439,10 @@ async def test_checkout_quote_rejects_stolen_anonymous_private_catalog_grant() -
 
 
 @pytest.mark.asyncio
-async def test_checkout_quote_accepts_anonymous_grant_with_matching_server_session() -> None:
+async def test_checkout_quote_accepts_anonymous_grant_with_matching_server_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_runtime_risk(monkeypatch)
     session = SimpleNamespace(get=AsyncMock(return_value=None))
     use_case = CheckoutUseCase(session)
     storefront_id = uuid4()
@@ -475,7 +487,10 @@ async def test_checkout_quote_accepts_anonymous_grant_with_matching_server_sessi
 
 
 @pytest.mark.asyncio
-async def test_checkout_quote_accepts_grant_already_attached_to_current_quote() -> None:
+async def test_checkout_quote_accepts_grant_already_attached_to_current_quote(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _allow_runtime_risk(monkeypatch)
     session = SimpleNamespace(get=AsyncMock(return_value=None))
     use_case = CheckoutUseCase(session)
     user_id = uuid4()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -18,11 +19,14 @@ from src.application.use_cases.growth_benefits.fulfill import (
     NewInviteBatch,
     NewInviteCode,
 )
+from src.domain.enums import WalletTxReason
 from src.infrastructure.database.models.growth_benefit_model import (
     GrowthBenefitFulfillmentModel,
     InviteBatchModel,
 )
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
+from src.infrastructure.database.models.wallet_model import WalletTransactionModel
+from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 
 
 class GrowthBenefitFulfillmentRepository:
@@ -181,6 +185,49 @@ class GrowthBenefitFulfillmentRepository:
         for model in models:
             await self._session.refresh(model)
         return tuple(_invite_code_record(model) for model in models)
+
+    async def apply_wallet_credit_benefit(
+        self,
+        *,
+        user_id: UUID,
+        fulfillment_id: UUID,
+        amount: Decimal,
+        currency: str,
+        description_key: str,
+    ) -> dict[str, Any]:
+        if currency != "USD":
+            raise ValueError("wallet_credit benefit supports USD wallet only")
+        existing = await self._session.execute(
+            select(WalletTransactionModel).where(
+                WalletTransactionModel.reference_type == "growth_benefit_fulfillment",
+                WalletTransactionModel.reference_id == fulfillment_id,
+            )
+        )
+        existing_tx = existing.scalars().first()
+        if existing_tx is not None:
+            return {
+                "wallet_transaction_id": str(existing_tx.id),
+                "amount": str(existing_tx.amount),
+                "currency": existing_tx.currency,
+                "balance_after": str(existing_tx.balance_after),
+                "duplicate": True,
+            }
+
+        tx = await WalletRepository(self._session).credit(
+            user_id=user_id,
+            amount=amount,
+            reason=WalletTxReason.ADJUSTMENT,
+            description=description_key,
+            reference_type="growth_benefit_fulfillment",
+            reference_id=fulfillment_id,
+        )
+        return {
+            "wallet_transaction_id": str(tx.id),
+            "amount": str(tx.amount),
+            "currency": tx.currency,
+            "balance_after": str(tx.balance_after),
+            "duplicate": False,
+        }
 
 
 def _fulfillment_record(model: GrowthBenefitFulfillmentModel) -> BenefitFulfillmentRecord:

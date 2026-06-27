@@ -42,6 +42,7 @@ import {
   useReferralStatus,
   useUpdateGrowthNotificationPreferences,
 } from '../hooks/useReferral';
+import { buildGrowthCodeBasketCopy } from '@/features/customer-growth-code-basket/lib/copy';
 
 type InviteCode = {
   id: string;
@@ -99,6 +100,11 @@ function formatGiftStatus(status: string): 'active' | 'redeemed' | 'expired' | '
 
 export function ReferralClient() {
   const t = useTranslations('Referral');
+  const subscriptionsT = useTranslations('Subscriptions');
+  const growthCodeResolutionMessages = useMemo(
+    () => buildGrowthCodeBasketCopy(subscriptionsT).resolutionErrors,
+    [subscriptionsT],
+  );
   const locale = useLocale();
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemError, setRedeemError] = useState('');
@@ -221,7 +227,7 @@ export function ReferralClient() {
         }),
       );
     } catch (error) {
-      setRedeemError(getGrowthRedeemErrorMessage(error));
+      setRedeemError(getGrowthRedeemErrorMessage(error, { resolutionMessages: growthCodeResolutionMessages }));
     }
   };
 

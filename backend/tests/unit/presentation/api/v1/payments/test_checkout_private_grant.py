@@ -24,7 +24,11 @@ async def test_legacy_checkout_quote_rejects_private_catalog_grant_without_quote
         await _build_quote(body=request, db=cast(AsyncSession, object()), user_id=uuid4())
 
     assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == "PRIVATE_CATALOG_GRANT_REQUIRES_QUOTE_SESSION"
+    assert exc_info.value.detail == {
+        "code": "PRIVATE_CATALOG_GRANT_REQUIRES_QUOTE_SESSION",
+        "message_key": "growth.privateCatalog.errors.quoteSessionRequired",
+        "retryable": False,
+    }
 
 
 def test_legacy_checkout_quote_serialization_redacts_raw_code_material() -> None:

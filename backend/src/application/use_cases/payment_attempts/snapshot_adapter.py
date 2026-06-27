@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from decimal import Decimal
 from uuid import UUID
 
+from src.application.use_cases.growth_code_sets.ledger import code_set_applications
 from src.application.use_cases.growth_code_sets.snapshots import read_growth_checkout_v3_snapshot
 from src.application.use_cases.payments.checkout import CheckoutAddonLine, CheckoutAppliedDiscount, CheckoutResult
 
@@ -11,6 +13,18 @@ def build_checkout_result_from_order(order) -> CheckoutResult:
     pricing_snapshot = order.pricing_snapshot or {}
     quote_snapshot = pricing_snapshot.get("quote") or {}
     growth_checkout_snapshot = read_growth_checkout_v3_snapshot(pricing_snapshot)
+    code_set_snapshot = _code_set_snapshot_from_growth_checkout_snapshot(growth_checkout_snapshot)
+    order_code_set_id = getattr(order, "code_set_id", None)
+    if code_set_snapshot is not None and not code_set_snapshot.get("id") and order_code_set_id is not None:
+        code_set_snapshot["id"] = str(order_code_set_id)
+    code_set_acceptance_mode = None
+    code_set_hash = None
+    if code_set_snapshot is not None:
+        raw_acceptance_mode = code_set_snapshot.get("acceptance_mode")
+        code_set_acceptance_mode = str(raw_acceptance_mode) if raw_acceptance_mode else None
+        raw_code_set_hash = code_set_snapshot.get("hash")
+        code_set_hash = str(raw_code_set_hash) if raw_code_set_hash else None
+    applications = code_set_applications(growth_checkout_snapshot)
     addon_lines = [
         CheckoutAddonLine(
             addon_id=UUID(str(addon["addon_id"])),
@@ -55,6 +69,20 @@ def build_checkout_result_from_order(order) -> CheckoutResult:
         discounts=_discounts_from_growth_checkout_snapshot(growth_checkout_snapshot),
         code_input=_code_input_from_growth_checkout_snapshot(growth_checkout_snapshot),
         reservation_id=_reservation_id_from_growth_checkout_snapshot(growth_checkout_snapshot),
+        private_catalog_grant_id=_private_catalog_grant_id_from_snapshots(
+            quote_snapshot=quote_snapshot,
+            growth_checkout_snapshot=growth_checkout_snapshot,
+        ),
+        private_catalog_snapshot=_private_catalog_snapshot_from_growth_checkout_snapshot(growth_checkout_snapshot),
+        code_set_applications=applications,
+        code_set_acceptance_mode=code_set_acceptance_mode,
+        code_set_id=_uuid_or_none(code_set_snapshot.get("id") if code_set_snapshot else order_code_set_id),
+        code_set_hash=code_set_hash,
+        reservation_group_id=_uuid_or_none(
+            growth_checkout_snapshot.get("reservation_group_id") if growth_checkout_snapshot else None
+        ),
+        code_set_snapshot=code_set_snapshot,
+        growth_checkout_snapshot=growth_checkout_snapshot,
     )
 
 
@@ -92,6 +120,52 @@ def _discounts_from_growth_checkout_snapshot(
     return discounts
 
 
+def _code_set_snapshot_from_growth_checkout_snapshot(growth_checkout_snapshot: dict | None) -> dict | None:
+    if growth_checkout_snapshot is None:
+        return None
+    code_set = growth_checkout_snapshot.get("code_set")
+    if not isinstance(code_set, dict):
+        raise ValueError("SNAPSHOT_INTEGRITY_ERROR")
+    applications = code_set.get("applications")
+    if applications is not None and not isinstance(applications, list):
+        raise ValueError("SNAPSHOT_INTEGRITY_ERROR")
+    return deepcopy(code_set)
+
+
+def _private_catalog_snapshot_from_growth_checkout_snapshot(growth_checkout_snapshot: dict | None) -> dict | None:
+    if growth_checkout_snapshot is None:
+        return None
+    private_catalog = growth_checkout_snapshot.get("private_catalog")
+    if private_catalog in (None, {}):
+        return None
+    if not isinstance(private_catalog, dict):
+        raise ValueError("SNAPSHOT_INTEGRITY_ERROR")
+    return deepcopy(private_catalog)
+
+
+def _private_catalog_grant_id_from_snapshots(
+    *,
+    quote_snapshot: dict,
+    growth_checkout_snapshot: dict | None,
+) -> UUID | None:
+    candidates = [
+        quote_snapshot.get("private_catalog_grant_id"),
+    ]
+    private_catalog = growth_checkout_snapshot.get("private_catalog") if growth_checkout_snapshot else None
+    if isinstance(private_catalog, dict):
+        candidates.extend(
+            [
+                private_catalog.get("grant_id"),
+                private_catalog.get("private_catalog_grant_id"),
+            ]
+        )
+    for candidate in candidates:
+        parsed = _uuid_or_none(candidate)
+        if parsed is not None:
+            return parsed
+    return None
+
+
 def _code_input_from_growth_checkout_snapshot(growth_checkout_snapshot: dict | None) -> str | None:
     if growth_checkout_snapshot is None:
         return None
@@ -108,11 +182,10 @@ def _code_input_from_growth_checkout_snapshot(growth_checkout_snapshot: dict | N
 def _reservation_id_from_growth_checkout_snapshot(growth_checkout_snapshot: dict | None) -> UUID | None:
     if growth_checkout_snapshot is None:
         return None
-    reservation_id = growth_checkout_snapshot.get("reservation_group_id")
-    if not reservation_id:
-        applications = (growth_checkout_snapshot.get("code_set") or {}).get("applications") or []
-        if applications and isinstance(applications[0], dict):
-            reservation_id = applications[0].get("reservation_id")
+    applications = (growth_checkout_snapshot.get("code_set") or {}).get("applications") or []
+    reservation_id = None
+    if applications and isinstance(applications[0], dict):
+        reservation_id = applications[0].get("reservation_id")
     return UUID(str(reservation_id)) if reservation_id else None
 
 
@@ -123,3 +196,9 @@ def _commission_base_amount(*, quote_snapshot: dict, growth_checkout_snapshot: d
         if isinstance(settlement, dict) and settlement.get("commissionable_amount") is not None:
             return Decimal(str(settlement["commissionable_amount"]))
     return Decimal(str(quote_snapshot.get("commission_base_amount", 0)))
+
+
+def _uuid_or_none(value: object) -> UUID | None:
+    if value in (None, ""):
+        return None
+    return UUID(str(value))

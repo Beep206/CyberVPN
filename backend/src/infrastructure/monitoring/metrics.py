@@ -269,6 +269,13 @@ auth_mobile_devices_total = Gauge(
     ["platform", "state"],
 )
 
+# Growth Codes v6 operational safety metrics
+growth_v6_runtime_risk_decisions_total = Counter(
+    "cybervpn_growth_v6_runtime_risk_decisions_total",
+    "Growth Codes v6 runtime risk decisions by checkpoint and final action",
+    ["action_context", "final_action"],
+)
+
 # First successful login after activation/onboarding
 first_login_after_activation_total = Counter(
     "first_login_after_activation_total",

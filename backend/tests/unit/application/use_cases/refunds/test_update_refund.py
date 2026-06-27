@@ -70,6 +70,10 @@ async def test_execute_succeeded_telegram_stars_refund_calls_provider_once() -> 
     use_case._mobile_users.get_by_id = AsyncMock(return_value=mobile_user)
     use_case._settlement_effects = MagicMock()
     use_case._settlement_effects.execute = AsyncMock()
+    use_case._reverse_order_code_applications = MagicMock()
+    use_case._reverse_order_code_applications.execute = AsyncMock(
+        return_value=SimpleNamespace(reversed_count=2, application_ids=[uuid4(), uuid4()])
+    )
     use_case._reverse_referral_rewards = MagicMock()
     use_case._reverse_referral_rewards.execute = AsyncMock()
     use_case._outbox = MagicMock()
@@ -83,12 +87,21 @@ async def test_execute_succeeded_telegram_stars_refund_calls_provider_once() -> 
         provider_payment_charge_id="provider-charge-1",
     )
     use_case._settlement_effects.execute.assert_awaited_once_with(refund_id=refund_id)
+    use_case._reverse_order_code_applications.execute.assert_awaited_once_with(
+        order_id=order_id,
+        refund_id=refund_id,
+        reversal_reason="refund_succeeded",
+        commit=False,
+    )
     use_case._reverse_referral_rewards.execute.assert_awaited_once_with(
         order_id=order_id,
         reversal_reason="refund_succeeded",
         commit=False,
     )
     use_case._outbox.append_event.assert_awaited_once()
+    event_payload = use_case._outbox.append_event.await_args.kwargs["event_payload"]
+    assert event_payload["growth_code_reversal"]["order_code_application_count"] == 2
+    assert len(event_payload["growth_code_reversal"]["order_code_application_ids"]) == 2
     use_case._payments.update.assert_awaited_once()
     session.commit.assert_awaited_once()
     assert refund.external_reference == "tg-charge-1"
@@ -134,6 +147,10 @@ async def test_execute_same_succeeded_refund_is_idempotent() -> None:
     use_case._mobile_users.get_by_id = AsyncMock()
     use_case._settlement_effects = MagicMock()
     use_case._settlement_effects.execute = AsyncMock()
+    use_case._reverse_order_code_applications = MagicMock()
+    use_case._reverse_order_code_applications.execute = AsyncMock(
+        return_value=SimpleNamespace(reversed_count=1, application_ids=[uuid4()])
+    )
     use_case._reverse_referral_rewards = MagicMock()
     use_case._reverse_referral_rewards.execute = AsyncMock()
     use_case._outbox = MagicMock()
@@ -143,6 +160,7 @@ async def test_execute_same_succeeded_refund_is_idempotent() -> None:
 
     telegram_stars_client.refund_payment.assert_not_awaited()
     use_case._settlement_effects.execute.assert_not_awaited()
+    use_case._reverse_order_code_applications.execute.assert_not_awaited()
     use_case._reverse_referral_rewards.execute.assert_not_awaited()
     use_case._outbox.append_event.assert_not_awaited()
     assert refund.completed_at == completed_at
@@ -192,6 +210,10 @@ async def test_execute_telegram_stars_refund_raises_when_provider_fails() -> Non
     use_case._mobile_users.get_by_id = AsyncMock(return_value=mobile_user)
     use_case._settlement_effects = MagicMock()
     use_case._settlement_effects.execute = AsyncMock()
+    use_case._reverse_order_code_applications = MagicMock()
+    use_case._reverse_order_code_applications.execute = AsyncMock(
+        return_value=SimpleNamespace(reversed_count=1, application_ids=[uuid4()])
+    )
     use_case._reverse_referral_rewards = MagicMock()
     use_case._reverse_referral_rewards.execute = AsyncMock()
     use_case._outbox = MagicMock()
@@ -236,6 +258,10 @@ async def test_execute_reconciled_refund_uses_system_actor_without_provider_call
     use_case._payments.update = AsyncMock(return_value=payment)
     use_case._settlement_effects = MagicMock()
     use_case._settlement_effects.execute = AsyncMock()
+    use_case._reverse_order_code_applications = MagicMock()
+    use_case._reverse_order_code_applications.execute = AsyncMock(
+        return_value=SimpleNamespace(reversed_count=1, application_ids=[uuid4()])
+    )
     use_case._reverse_referral_rewards = MagicMock()
     use_case._reverse_referral_rewards.execute = AsyncMock()
     use_case._outbox = MagicMock()
@@ -252,6 +278,14 @@ async def test_execute_reconciled_refund_uses_system_actor_without_provider_call
 
     telegram_stars_client.refund_payment.assert_not_awaited()
     use_case._settlement_effects.execute.assert_awaited_once_with(refund_id=refund_id)
+    use_case._reverse_order_code_applications.execute.assert_awaited_once_with(
+        order_id=order_id,
+        refund_id=refund_id,
+        reversal_reason="refund_succeeded",
+        commit=False,
+    )
     use_case._reverse_referral_rewards.execute.assert_awaited_once()
     use_case._outbox.append_event.assert_awaited_once()
+    event_payload = use_case._outbox.append_event.await_args.kwargs["event_payload"]
+    assert event_payload["growth_code_reversal"]["order_code_application_count"] == 1
     assert updated is refund

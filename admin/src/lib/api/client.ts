@@ -1,4 +1,9 @@
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import {
   buildLocalizedLoginRedirect,
   isPublicAuthRoute,
@@ -12,6 +17,7 @@ import {
 const ABSOLUTE_URL_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//;
 
 export const CANONICAL_API_BASE_PATH = '/api/v1';
+export const CANONICAL_API_V3_BASE_PATH = '/api/v3';
 export const CANONICAL_REQUEST_ID_HEADER = 'X-Request-ID';
 export const CANONICAL_IDEMPOTENCY_HEADER = 'Idempotency-Key';
 
@@ -25,24 +31,24 @@ export const CANONICAL_IDEMPOTENCY_HEADER = 'Idempotency-Key';
  * Server-only code should use `API_URL` directly (see route handlers), not this
  * browser client.
  */
-export function resolveApiBaseUrl(): string {
+export function resolveApiBaseUrl(apiBasePath = CANONICAL_API_BASE_PATH): string {
   if (process.env.NODE_ENV === 'test') {
     const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
     if (configuredBaseUrl) {
-      return `${configuredBaseUrl.replace(/\/$/, '')}${CANONICAL_API_BASE_PATH}`;
+      return `${configuredBaseUrl.replace(/\/$/, '')}${apiBasePath}`;
     }
   }
 
   if (typeof window !== 'undefined') {
-    return CANONICAL_API_BASE_PATH;
+    return apiBasePath;
   }
 
   const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (!configuredBaseUrl) {
-    return CANONICAL_API_BASE_PATH;
+    return apiBasePath;
   }
 
-  return `${configuredBaseUrl.replace(/\/$/, '')}${CANONICAL_API_BASE_PATH}`;
+  return `${configuredBaseUrl.replace(/\/$/, '')}${apiBasePath}`;
 }
 
 /**
@@ -123,15 +129,20 @@ function parseRetryAfter(header: string | null): number {
   return 60; // Fallback
 }
 
-export const apiClient = axios.create({
-  baseURL: resolveApiBaseUrl(),
-  adapter: process.env.NODE_ENV === 'test' ? 'http' : undefined,
-  timeout: 10000,
-  withCredentials: true, // Required for httpOnly cookies
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+function createApiClient(apiBasePath: string): AxiosInstance {
+  return axios.create({
+    baseURL: resolveApiBaseUrl(apiBasePath),
+    adapter: process.env.NODE_ENV === 'test' ? 'http' : undefined,
+    timeout: 10000,
+    withCredentials: true, // Required for httpOnly cookies
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+export const apiClient = createApiClient(CANONICAL_API_BASE_PATH);
+export const apiV3Client = createApiClient(CANONICAL_API_V3_BASE_PATH);
 
 let requestSequence = 0;
 
@@ -212,12 +223,14 @@ function getApiRequestPathname(requestUrl: string): string {
   const parsed = new URL(requestUrl, 'http://localhost');
   const pathname = parsed.pathname;
 
-  if (pathname === CANONICAL_API_BASE_PATH) {
-    return '/';
-  }
+  for (const basePath of [CANONICAL_API_BASE_PATH, CANONICAL_API_V3_BASE_PATH]) {
+    if (pathname === basePath) {
+      return '/';
+    }
 
-  if (pathname.startsWith(`${CANONICAL_API_BASE_PATH}/`)) {
-    return pathname.slice(CANONICAL_API_BASE_PATH.length);
+    if (pathname.startsWith(`${basePath}/`)) {
+      return pathname.slice(basePath.length);
+    }
   }
 
   return pathname;
@@ -261,8 +274,9 @@ async function hasActiveCookieSession(): Promise<boolean> {
   }
 }
 
+function installApiClientInterceptors(client: AxiosInstance): void {
 // Request interceptor - X-Request-ID + queue during refresh
-apiClient.interceptors.request.use(
+client.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const requestConfig = config as ApiClientRequestConfig;
 
@@ -339,7 +353,7 @@ function normalizeBlobResponse(response: AxiosResponse): AxiosResponse {
   return response;
 }
 
-apiClient.interceptors.response.use(
+client.interceptors.response.use(
   (response) => {
     const normalizedResponse = normalizeBlobResponse(response);
     const requestConfig = response.config as ApiClientRequestConfig;
@@ -390,7 +404,7 @@ apiClient.interceptors.response.use(
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(() => apiClient(originalRequest));
+        }).then(() => client(originalRequest));
       }
 
       originalRequest._retry = true;
@@ -403,7 +417,7 @@ apiClient.interceptors.response.use(
         // Backend sets new cookies; just check response was OK
         if (refreshResponse.status === 200) {
           processQueue(null);
-          return apiClient(originalRequest);
+          return client(originalRequest);
         }
         throw new Error('Refresh failed');
       } catch (refreshError) {
@@ -464,5 +478,9 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+}
+
+installApiClientInterceptors(apiClient);
+installApiClientInterceptors(apiV3Client);
 
 export type { AxiosError, InternalAxiosRequestConfig };

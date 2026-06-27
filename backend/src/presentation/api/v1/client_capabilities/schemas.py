@@ -53,6 +53,7 @@ class ClientPartnerCapabilities(BaseModel):
 class ClientSiteCapabilities(BaseModel):
     customer_site_mode: Literal["full_site", "cabinet_only", "maintenance"] = "full_site"
     cabinet_only: bool = False
+    version: int = 1
     public_hosts: list[str] = Field(default_factory=list)
     cabinet_hosts: list[str] = Field(default_factory=list)
     cabinet_destination_path: str = "/dashboard"

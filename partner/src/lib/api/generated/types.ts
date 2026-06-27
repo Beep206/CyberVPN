@@ -6438,6 +6438,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/invite-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: list invite batches */
+        get: operations["admin_list_invite_batches_api_v1_admin_invite_batches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-batches/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: get invite batch detail */
+        get: operations["admin_get_invite_batch_api_v1_admin_invite_batches__batch_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-batches/{batch_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: revoke unused invite codes in a batch */
+        post: operations["admin_revoke_invite_batch_api_v1_admin_invite_batches__batch_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-batches/{batch_id}/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: extend unused invite codes in a batch */
+        post: operations["admin_extend_invite_batch_api_v1_admin_invite_batches__batch_id__extend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-batches/{batch_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: request resend of invite batch notification */
+        post: operations["admin_resend_invite_batch_api_v1_admin_invite_batches__batch_id__resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-batches/{batch_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: export raw invite codes for a batch */
+        get: operations["admin_export_invite_batch_api_v1_admin_invite_batches__batch_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/codes/resolve": {
         parameters: {
             query?: never;
@@ -8787,6 +8889,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/system-config/customer-site-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Customer Site Runtime Config */
+        get: operations["get_admin_customer_site_runtime_config_api_v1_admin_system_config_customer_site_runtime_get"];
+        /** Update Admin Customer Site Runtime Config */
+        put: operations["update_admin_customer_site_runtime_config_api_v1_admin_system_config_customer_site_runtime_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system-config/customer-site-runtime/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute Admin Customer Site Runtime Action */
+        post: operations["execute_admin_customer_site_runtime_action_api_v1_admin_system_config_customer_site_runtime_actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system-config/customer-site-runtime/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Customer Site Runtime Timeline */
+        get: operations["get_admin_customer_site_runtime_timeline_api_v1_admin_system_config_customer_site_runtime_timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/system-config/miniapp-runtime": {
         parameters: {
             query?: never;
@@ -9690,6 +9844,143 @@ export interface paths {
         put?: never;
         /** Simulate Growth Rule */
         post: operations["simulate_growth_rule_api_v1_admin_growth_rules_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth/policy-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Rule Policies */
+        get: operations["list_growth_rule_policies_api_v1_admin_growth_policy_versions_get"];
+        put?: never;
+        /** Create Growth Rule Policy */
+        post: operations["create_growth_rule_policy_api_v1_admin_growth_policy_versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth/policy-versions/{policy_version_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Growth Rule Policy */
+        post: operations["submit_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth/policy-versions/{policy_version_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Growth Rule Policy */
+        post: operations["approve_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth/policy-versions/{policy_version_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Growth Rule Policy */
+        post: operations["reject_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth/policy-versions/{policy_version_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Growth Rule Policy */
+        post: operations["publish_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth/policy-versions/{policy_version_id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rollback Growth Rule Policy */
+        post: operations["rollback_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__rollback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth/policy-versions/{policy_version_id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diff Growth Rule Policy */
+        get: operations["diff_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__diff_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth/policy-versions/{policy_version_id}/diff/{compare_to_policy_version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diff Growth Rule Policy Against */
+        get: operations["diff_growth_rule_policy_against_api_v1_admin_growth_policy_versions__policy_version_id__diff__compare_to_policy_version_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -11514,6 +11805,808 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v3/admin/growth/code-sets/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Simulate Growth Code Set */
+        post: operations["simulate_growth_code_set_api_v3_admin_growth_code_sets_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/code-sets/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect Growth Code Sets */
+        get: operations["inspect_growth_code_sets_api_v3_admin_growth_code_sets_inspect_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/code-sets/{code_set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Code Set Support View */
+        get: operations["get_growth_code_set_support_view_api_v3_admin_growth_code_sets__code_set_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/code-applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Code Application Support View */
+        get: operations["get_growth_code_application_support_view_api_v3_admin_growth_code_applications__application_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/orders/{order_id}/code-applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Order Growth Code Applications */
+        get: operations["list_order_growth_code_applications_api_v3_admin_growth_orders__order_id__code_applications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/fx/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Fx Status */
+        get: operations["get_growth_fx_status_api_v3_admin_growth_fx_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/fx/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Fx Rates */
+        get: operations["list_growth_fx_rates_api_v3_admin_growth_fx_rates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/fx/configured-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Configured Growth Fx Rate */
+        post: operations["create_configured_growth_fx_rate_api_v3_admin_growth_fx_configured_rates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/fx/xtr-tables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Growth Fx Xtr Table */
+        post: operations["create_growth_fx_xtr_table_api_v3_admin_growth_fx_xtr_tables_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/fx/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Simulate Growth Fx Conversion */
+        post: operations["simulate_growth_fx_conversion_api_v3_admin_growth_fx_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/fx/rates/{rate_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Growth Fx Rate */
+        post: operations["approve_growth_fx_rate_api_v3_admin_growth_fx_rates__rate_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/fx/providers/{provider_key}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable Growth Fx Provider */
+        post: operations["disable_growth_fx_provider_api_v3_admin_growth_fx_providers__provider_key__disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/fx/providers/{provider_key}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enable Growth Fx Provider */
+        post: operations["enable_growth_fx_provider_api_v3_admin_growth_fx_providers__provider_key__enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/onboarding/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Onboarding Settings */
+        get: operations["get_growth_onboarding_settings_api_v3_admin_growth_onboarding_settings_get"];
+        /** Update Growth Onboarding Settings */
+        put: operations["update_growth_onboarding_settings_api_v3_admin_growth_onboarding_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/onboarding/states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Onboarding States */
+        get: operations["list_growth_onboarding_states_api_v3_admin_growth_onboarding_states_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/onboarding/states/{state_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Onboarding State */
+        get: operations["get_growth_onboarding_state_api_v3_admin_growth_onboarding_states__state_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/onboarding/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Onboarding Applications */
+        get: operations["list_growth_onboarding_applications_api_v3_admin_growth_onboarding_applications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/onboarding/states/{state_id}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Growth Onboarding State */
+        post: operations["reset_growth_onboarding_state_api_v3_admin_growth_onboarding_states__state_id__reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/campaigns/{campaign_id}/policy-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Growth Campaign Policy Version */
+        post: operations["create_growth_campaign_policy_version_api_v3_admin_growth_campaigns__campaign_id__policy_versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/private-catalog/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Private Catalog Targets */
+        get: operations["list_private_catalog_targets_api_v3_admin_growth_private_catalog_targets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/private-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Private Catalog Grants */
+        get: operations["list_private_catalog_grants_api_v3_admin_growth_private_grants_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/private-grants/{grant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Private Catalog Grant */
+        get: operations["get_private_catalog_grant_api_v3_admin_growth_private_grants__grant_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/private-grants/{grant_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Private Catalog Grant */
+        post: operations["revoke_private_catalog_grant_api_v3_admin_growth_private_grants__grant_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/risk/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Risk Models */
+        get: operations["list_growth_risk_models_api_v3_admin_growth_risk_models_get"];
+        put?: never;
+        /** Create Growth Risk Model */
+        post: operations["create_growth_risk_model_api_v3_admin_growth_risk_models_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/risk/models/{model_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Growth Risk Model */
+        post: operations["approve_growth_risk_model_api_v3_admin_growth_risk_models__model_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/risk/models/{model_id}/deploy-shadow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deploy Shadow Growth Risk Model */
+        post: operations["deploy_shadow_growth_risk_model_api_v3_admin_growth_risk_models__model_id__deploy_shadow_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/risk/models/{model_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promote Growth Risk Model */
+        post: operations["promote_growth_risk_model_api_v3_admin_growth_risk_models__model_id__promote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/risk/models/{model_id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rollback Growth Risk Model */
+        post: operations["rollback_growth_risk_model_api_v3_admin_growth_risk_models__model_id__rollback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/risk/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Risk Decisions */
+        get: operations["list_growth_risk_decisions_api_v3_admin_growth_risk_decisions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/risk/decisions/{decision_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Risk Decision */
+        get: operations["get_growth_risk_decision_api_v3_admin_growth_risk_decisions__decision_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/risk/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Risk Reviews */
+        get: operations["list_growth_risk_reviews_api_v3_admin_growth_risk_reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/risk/reviews/{risk_review_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Growth Risk Review */
+        post: operations["resolve_growth_risk_review_api_v3_admin_growth_risk_reviews__risk_review_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/rule-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get V3 Growth Rule Catalog */
+        get: operations["get_v3_growth_rule_catalog_api_v3_admin_growth_rule_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policies/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate V3 Growth Policy */
+        post: operations["validate_v3_growth_policy_api_v3_admin_growth_policies_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policies/compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compile V3 Growth Policy */
+        post: operations["compile_v3_growth_policy_api_v3_admin_growth_policies_compile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policies/impact-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview V3 Growth Policy Impact */
+        post: operations["preview_v3_growth_policy_impact_api_v3_admin_growth_policies_impact_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/rules/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Rule Catalog */
+        get: operations["get_growth_rule_catalog_api_v3_admin_growth_rules_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/rules/compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compile Growth Rule */
+        post: operations["compile_growth_rule_api_v3_admin_growth_rules_compile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/rules/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Simulate Growth Rule */
+        post: operations["simulate_growth_rule_api_v3_admin_growth_rules_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policy-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Rule Policies */
+        get: operations["list_growth_rule_policies_api_v3_admin_growth_policy_versions_get"];
+        put?: never;
+        /** Create Growth Rule Policy */
+        post: operations["create_growth_rule_policy_api_v3_admin_growth_policy_versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policy-versions/{policy_version_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Growth Rule Policy */
+        post: operations["submit_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policy-versions/{policy_version_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Growth Rule Policy */
+        post: operations["approve_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policy-versions/{policy_version_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Growth Rule Policy */
+        post: operations["reject_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policy-versions/{policy_version_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Growth Rule Policy */
+        post: operations["publish_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policy-versions/{policy_version_id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rollback Growth Rule Policy */
+        post: operations["rollback_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__rollback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policy-versions/{policy_version_id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diff Growth Rule Policy */
+        get: operations["diff_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__diff_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/policy-versions/{policy_version_id}/diff/{compare_to_policy_version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diff Growth Rule Policy Against */
+        get: operations["diff_growth_rule_policy_against_api_v3_admin_growth_policy_versions__policy_version_id__diff__compare_to_policy_version_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v3/growth/code-sets/preflight": {
         parameters: {
             query?: never;
@@ -13161,6 +14254,87 @@ export interface components {
                 [key: string]: components["schemas"]["AdminCustomerOperationsActionKind"][];
             };
         };
+        /** AdminCustomerSiteRuntimeConfigResponse */
+        AdminCustomerSiteRuntimeConfigResponse: {
+            /** Key */
+            key: string;
+            site: components["schemas"]["AdminCustomerSiteRuntimeResponse"];
+            /** Description */
+            description?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
+            /** Last Change Reason */
+            last_change_reason?: string | null;
+        };
+        /** AdminCustomerSiteRuntimeResponse */
+        AdminCustomerSiteRuntimeResponse: {
+            /**
+             * Mode
+             * @default full_site
+             * @enum {string}
+             */
+            mode: "full_site" | "cabinet_only" | "maintenance";
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+            /** Public Hosts */
+            public_hosts?: string[];
+            /** Cabinet Hosts */
+            cabinet_hosts?: string[];
+            /**
+             * Cabinet Destination Path
+             * @default /dashboard
+             */
+            cabinet_destination_path: string;
+            /** Allowed Path Prefixes */
+            allowed_path_prefixes?: string[];
+            /** Preserve Query Keys */
+            preserve_query_keys?: string[];
+            /**
+             * Cabinet Only
+             * @default false
+             */
+            cabinet_only: boolean;
+            /**
+             * Registration Policy Independent
+             * @default true
+             */
+            registration_policy_independent: boolean;
+        };
+        /** AdminCustomerSiteRuntimeTimelineEntryResponse */
+        AdminCustomerSiteRuntimeTimelineEntryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Admin Id */
+            admin_id?: string | null;
+            /** Action */
+            action: string;
+            /**
+             * Event Type
+             * @enum {string}
+             */
+            event_type: "site_mode_update" | "site_mode_action";
+            /** Resulting Mode */
+            resulting_mode?: ("full_site" | "cabinet_only" | "maintenance") | null;
+            /** Resulting Version */
+            resulting_version?: number | null;
+            /** Change Reason */
+            change_reason?: string | null;
+            /** Entity Id */
+            entity_id?: string | null;
+        };
         /** AdminCustomerStaffNoteResponse */
         AdminCustomerStaffNoteResponse: {
             /**
@@ -13306,6 +14480,18 @@ export interface components {
             updated_at?: string | null;
             /** Telegram Id */
             telegram_id?: number | null;
+        };
+        /**
+         * AdminExtendInviteBatchRequest
+         * @description Extend invite batch expiry by duration or explicit timestamp.
+         */
+        AdminExtendInviteBatchRequest: {
+            /** Reason */
+            reason: string;
+            /** Expiry Days */
+            expiry_days?: number | null;
+            /** Expires At */
+            expires_at?: string | null;
         };
         /** AdminGiftCodeListItemResponse */
         AdminGiftCodeListItemResponse: {
@@ -13511,6 +14697,11 @@ export interface components {
             /** Group */
             group?: string | null;
         };
+        /** AdminGrowthCodeApplicationDetailResponse */
+        AdminGrowthCodeApplicationDetailResponse: {
+            application: components["schemas"]["AdminGrowthCodeSetApplicationResponse"];
+            code_set: components["schemas"]["AdminGrowthCodeSetInspectItemResponse"] | null;
+        };
         /** AdminGrowthCodeLookupRequest */
         AdminGrowthCodeLookupRequest: {
             /** Code */
@@ -13594,6 +14785,402 @@ export interface components {
             resolution_events?: {
                 [key: string]: string | number | null;
             }[];
+        };
+        /** AdminGrowthCodeSetApplicationResponse */
+        AdminGrowthCodeSetApplicationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position Entered */
+            position_entered: number;
+            /** Canonical Order */
+            canonical_order: number;
+            /** Growth Code Id */
+            growth_code_id: string | null;
+            /** Legacy Code Type */
+            legacy_code_type: string | null;
+            /** Legacy Code Id */
+            legacy_code_id: string | null;
+            /** Masked Code */
+            masked_code: string;
+            /** Roles */
+            roles: {
+                [key: string]: unknown;
+            };
+            /** Resolution Status */
+            resolution_status: string;
+            /** Reject Reason */
+            reject_reason: string | null;
+            /** Conflict Code */
+            conflict_code: string | null;
+            /** Policy Version Id */
+            policy_version_id: string | null;
+            /** Rule Definition Id */
+            rule_definition_id: string | null;
+            /** Risk Decision Id */
+            risk_decision_id: string | null;
+            /** Fx Conversion Id */
+            fx_conversion_id: string | null;
+            /** Reservation Id */
+            reservation_id: string | null;
+            /** Discount Snapshot */
+            discount_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Benefits Snapshot */
+            benefits_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Private Access Snapshot */
+            private_access_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Evaluation Trace */
+            evaluation_trace: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminGrowthCodeSetInspectItemResponse */
+        AdminGrowthCodeSetInspectItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code Set Hash */
+            code_set_hash: string;
+            /** User Id */
+            user_id: string | null;
+            /** Anonymous Session Id Hash */
+            anonymous_session_id_hash: string | null;
+            /**
+             * Auth Realm Id
+             * Format: uuid
+             */
+            auth_realm_id: string;
+            /** Storefront Id */
+            storefront_id: string | null;
+            /** Sale Channel */
+            sale_channel: string;
+            /** Action Context */
+            action_context: string;
+            /** Status */
+            status: string;
+            /** Acceptance Mode */
+            acceptance_mode: string;
+            /** Aggregate Result */
+            aggregate_result: {
+                [key: string]: unknown;
+            };
+            /** Risk Snapshot */
+            risk_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Private Access Grant Id */
+            private_access_grant_id: string | null;
+            /** Quote Session Id */
+            quote_session_id: string | null;
+            /** Checkout Session Id */
+            checkout_session_id: string | null;
+            /** Order Id */
+            order_id: string | null;
+            /** Payment Id */
+            payment_id: string | null;
+            /** Applications */
+            applications: components["schemas"]["AdminGrowthCodeSetApplicationResponse"][];
+            /** Reservation Groups */
+            reservation_groups: components["schemas"]["AdminGrowthReservationGroupResponse"][];
+            /** Reservations */
+            reservations: components["schemas"]["AdminGrowthReservationResponse"][];
+            /** Order Applications */
+            order_applications: components["schemas"]["AdminGrowthOrderApplicationResponse"][];
+            /** Fx Conversions */
+            fx_conversions: components["schemas"]["AdminGrowthFxConversionResponse"][];
+        };
+        /** AdminGrowthCodeSetInspectResponse */
+        AdminGrowthCodeSetInspectResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthCodeSetInspectItemResponse"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** AdminGrowthCodeSetSimulationRequest */
+        AdminGrowthCodeSetSimulationRequest: {
+            /** Codes */
+            codes?: string[];
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Sale Channel
+             * @default web
+             */
+            sale_channel: string;
+            /** Storefront Id */
+            storefront_id?: string | null;
+            /** Private Catalog Grant Id */
+            private_catalog_grant_id?: string | null;
+            /**
+             * Dry Run
+             * @default true
+             * @constant
+             */
+            dry_run: true;
+        };
+        /** AdminGrowthCodeSetSimulationResponse */
+        AdminGrowthCodeSetSimulationResponse: {
+            /** Accepted */
+            accepted: boolean;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Code Set Hash */
+            code_set_hash: string | null;
+            /** Acceptance Mode */
+            acceptance_mode: string;
+            /** Applications */
+            applications: components["schemas"]["AdminGrowthCodeSetApplicationResponse"][];
+            /** Base Price */
+            base_price: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** Wallet Amount */
+            wallet_amount: string;
+            /** Gateway Amount */
+            gateway_amount: string;
+            /** Is Zero Gateway */
+            is_zero_gateway: boolean;
+            /** Settlement Mode */
+            settlement_mode: string;
+            /** Trace */
+            trace: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminGrowthFxConfiguredRateRequest */
+        AdminGrowthFxConfiguredRateRequest: {
+            /** Base Currency */
+            base_currency: string;
+            /** Quote Currency */
+            quote_currency: string;
+            /** Rate */
+            rate: string;
+            /** Configured Rate Version */
+            configured_rate_version: string;
+            /**
+             * Valid For Seconds
+             * @default 3600
+             */
+            valid_for_seconds: number;
+            /** Provider Rate Id */
+            provider_rate_id?: string | null;
+            /** Change Reason */
+            change_reason: string;
+        };
+        /** AdminGrowthFxConversionResponse */
+        AdminGrowthFxConversionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Growth Code Id
+             * Format: uuid
+             */
+            growth_code_id: string;
+            /**
+             * Policy Version Id
+             * Format: uuid
+             */
+            policy_version_id: string;
+            /** Source Amount */
+            source_amount: string;
+            /** Source Currency */
+            source_currency: string;
+            /** Target Currency */
+            target_currency: string;
+            /** Conversion Mode */
+            conversion_mode: string;
+            /** Fx Rate Snapshot Id */
+            fx_rate_snapshot_id: string | null;
+            /** Configured Rate Version */
+            configured_rate_version: string | null;
+            /** Raw Converted Amount */
+            raw_converted_amount: string;
+            /** Rounded Amount */
+            rounded_amount: string;
+            /** Applied Amount */
+            applied_amount: string;
+            /** Target Minor Units */
+            target_minor_units: number;
+            /** Rounding Mode */
+            rounding_mode: string;
+        };
+        /** AdminGrowthFxProviderActionRequest */
+        AdminGrowthFxProviderActionRequest: {
+            /** Change Reason */
+            change_reason: string;
+        };
+        /** AdminGrowthFxRateListResponse */
+        AdminGrowthFxRateListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthFxRateResponse"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** AdminGrowthFxRateResponse */
+        AdminGrowthFxRateResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Base Currency */
+            base_currency: string;
+            /** Quote Currency */
+            quote_currency: string;
+            /** Rate */
+            rate: string;
+            /** Inverse Rate */
+            inverse_rate: string | null;
+            /** Source Type */
+            source_type: string;
+            /** Provider Key */
+            provider_key: string;
+            /** Provider Rate Id */
+            provider_rate_id: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+            /**
+             * Valid Until
+             * Format: date-time
+             */
+            valid_until: string;
+            /** Status */
+            status: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminGrowthFxSimulateRequest */
+        AdminGrowthFxSimulateRequest: {
+            /** Source Amount */
+            source_amount: string;
+            /** Source Currency */
+            source_currency: string;
+            /** Target Currency */
+            target_currency: string;
+            /** Eligible Discount Base */
+            eligible_discount_base: string;
+            /**
+             * Conversion Mode
+             * @default market
+             * @enum {string}
+             */
+            conversion_mode: "market" | "configured" | "pricebook" | "managed_xtr";
+            /** Provider Key */
+            provider_key?: string | null;
+        };
+        /** AdminGrowthFxSimulationResponse */
+        AdminGrowthFxSimulationResponse: {
+            /** Source Amount */
+            source_amount: string;
+            /** Source Currency */
+            source_currency: string;
+            /** Target Currency */
+            target_currency: string;
+            /** Raw Converted Amount */
+            raw_converted_amount: string;
+            /** Rounded Amount */
+            rounded_amount: string;
+            /** Applied Amount */
+            applied_amount: string;
+            /** Target Minor Units */
+            target_minor_units: number;
+            /** Rounding Mode */
+            rounding_mode: string;
+            /** Conversion Mode */
+            conversion_mode: string;
+            /** Rate Snapshot */
+            rate_snapshot: {
+                [key: string]: unknown;
+            };
+            /** No Rerate */
+            no_rerate: boolean;
+        };
+        /** AdminGrowthFxStatusResponse */
+        AdminGrowthFxStatusResponse: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Active Rate Count */
+            active_rate_count: number;
+            /** Stale Rate Count */
+            stale_rate_count: number;
+            /** Disabled Rate Count */
+            disabled_rate_count: number;
+            /** Latest Observed At */
+            latest_observed_at: string | null;
+            /** Latest Valid Until */
+            latest_valid_until: string | null;
+            /** Providers */
+            providers: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** AdminGrowthFxXtrTableRequest */
+        AdminGrowthFxXtrTableRequest: {
+            /** Fiat Currency */
+            fiat_currency: string;
+            /** Xtr Per Unit */
+            xtr_per_unit: string;
+            /** Table Version */
+            table_version: string;
+            /**
+             * Valid For Seconds
+             * @default 86400
+             */
+            valid_for_seconds: number;
+            /** Change Reason */
+            change_reason: string;
         };
         /** AdminGrowthLifecycleEventResponse */
         AdminGrowthLifecycleEventResponse: {
@@ -13795,6 +15382,414 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             };
+        };
+        /** AdminGrowthOnboardingApplicationListResponse */
+        AdminGrowthOnboardingApplicationListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthOnboardingApplicationResponse"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** AdminGrowthOnboardingApplicationResponse */
+        AdminGrowthOnboardingApplicationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Onboarding State Id
+             * Format: uuid
+             */
+            onboarding_state_id: string;
+            /**
+             * Mobile User Id
+             * Format: uuid
+             */
+            mobile_user_id: string;
+            /** Growth Code Id */
+            growth_code_id: string | null;
+            /** Resolved Code Type */
+            resolved_code_type: string | null;
+            /** Action Context */
+            action_context: string;
+            /** Result */
+            result: string;
+            /** Reject Reason */
+            reject_reason: string | null;
+            /** Policy Version Id */
+            policy_version_id: string | null;
+            /** Risk Decision Id */
+            risk_decision_id: string | null;
+            /** Redemption Id */
+            redemption_id: string | null;
+            /** Fulfillment Id */
+            fulfillment_id: string | null;
+            /** Code Intent Id */
+            code_intent_id: string | null;
+            /** Idempotency Key Hash */
+            idempotency_key_hash: string;
+            /** Code Prefix */
+            code_prefix: string;
+            /** Safe Result Snapshot */
+            safe_result_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Signup Finalization Id */
+            signup_finalization_id: string | null;
+            /** Referral Terminal State */
+            referral_terminal_state: string | null;
+            /** Auth Channel */
+            auth_channel: string;
+            /** Return Route Key */
+            return_route_key: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminGrowthOnboardingRuntimeResponse */
+        AdminGrowthOnboardingRuntimeResponse: {
+            /** Post Registration Code Prompt Enabled */
+            post_registration_code_prompt_enabled: boolean;
+            /** Web Otp Enabled */
+            web_otp_enabled: boolean;
+            /** Telegram Miniapp Enabled */
+            telegram_miniapp_enabled: boolean;
+            /** State Store Ready */
+            state_store_ready: boolean;
+            /** Flow Key */
+            flow_key: string;
+            /** Version */
+            version: number;
+            /** Allowed Code Types */
+            allowed_code_types: string[];
+            /** Allow Referral Input */
+            allow_referral_input: boolean;
+            /** Allow Partner Input */
+            allow_partner_input: boolean;
+            /** Available */
+            available: boolean;
+            /** Config Updated At */
+            config_updated_at: string | null;
+            /** Updated By Admin User Id */
+            updated_by_admin_user_id: string | null;
+        };
+        /** AdminGrowthOnboardingRuntimeUpdateRequest */
+        AdminGrowthOnboardingRuntimeUpdateRequest: {
+            /** Post Registration Code Prompt Enabled */
+            post_registration_code_prompt_enabled?: boolean | null;
+            /** Web Otp Enabled */
+            web_otp_enabled?: boolean | null;
+            /** Telegram Miniapp Enabled */
+            telegram_miniapp_enabled?: boolean | null;
+            /** State Store Ready */
+            state_store_ready?: boolean | null;
+            /** Flow Key */
+            flow_key?: string | null;
+            /** Version */
+            version?: number | null;
+            /** Allowed Code Types */
+            allowed_code_types?: ("promo" | "invite" | "gift")[] | null;
+            /** Allow Referral Input */
+            allow_referral_input?: boolean | null;
+            /** Allow Partner Input */
+            allow_partner_input?: boolean | null;
+            /** Change Reason */
+            change_reason: string;
+        };
+        /** AdminGrowthOnboardingStateListResponse */
+        AdminGrowthOnboardingStateListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthOnboardingStateResponse"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** AdminGrowthOnboardingStateResetRequest */
+        AdminGrowthOnboardingStateResetRequest: {
+            /** Reason */
+            reason: string;
+            /** Expected Status */
+            expected_status?: string | null;
+        };
+        /** AdminGrowthOnboardingStateResponse */
+        AdminGrowthOnboardingStateResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Mobile User Id
+             * Format: uuid
+             */
+            mobile_user_id: string;
+            /** Flow Key */
+            flow_key: string;
+            /** Flow Version */
+            flow_version: number;
+            /** Source Channel */
+            source_channel: string;
+            /** Status */
+            status: string;
+            /** Skippable */
+            skippable: boolean;
+            /** Policy Version Id */
+            policy_version_id: string | null;
+            /**
+             * First Eligible At
+             * Format: date-time
+             */
+            first_eligible_at: string;
+            /** First Shown At */
+            first_shown_at: string | null;
+            /** Last Shown At */
+            last_shown_at: string | null;
+            /** Display Count */
+            display_count: number;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Skipped At */
+            skipped_at: string | null;
+            /** Expires At */
+            expires_at: string | null;
+            /** Result Code Application Id */
+            result_code_application_id: string | null;
+            /** Signup Finalization Id */
+            signup_finalization_id: string | null;
+            /** Referral Terminal State */
+            referral_terminal_state: string | null;
+            /** Canonical Identity Link Id */
+            canonical_identity_link_id: string | null;
+            /** Auth Channel */
+            auth_channel: string;
+            /** Return Route Key */
+            return_route_key: string | null;
+            /** Result Payload */
+            result_payload: {
+                [key: string]: unknown;
+            };
+            /** Application Count */
+            application_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AdminGrowthOrderApplicationResponse */
+        AdminGrowthOrderApplicationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            /**
+             * Code Set Id
+             * Format: uuid
+             */
+            code_set_id: string;
+            /**
+             * Growth Code Id
+             * Format: uuid
+             */
+            growth_code_id: string;
+            /** Policy Version Id */
+            policy_version_id: string | null;
+            /** Application Role */
+            application_role: string;
+            /** Application Status */
+            application_status: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** Currency Code */
+            currency_code: string;
+            /** Source Amount */
+            source_amount: string | null;
+            /** Source Currency Code */
+            source_currency_code: string | null;
+            /** Fx Conversion Id */
+            fx_conversion_id: string | null;
+            /** Reservation Id */
+            reservation_id: string | null;
+            /** Risk Decision Id */
+            risk_decision_id: string | null;
+            /** Application Snapshot */
+            application_snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminGrowthOrderCodeApplicationsResponse */
+        AdminGrowthOrderCodeApplicationsResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthOrderApplicationResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminGrowthPrivateGrantListResponse */
+        AdminGrowthPrivateGrantListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthPrivateGrantResponse"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** AdminGrowthPrivateGrantResponse */
+        AdminGrowthPrivateGrantResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Policy Id
+             * Format: uuid
+             */
+            policy_id: string;
+            /**
+             * Policy Version Id
+             * Format: uuid
+             */
+            policy_version_id: string;
+            /**
+             * Growth Code Id
+             * Format: uuid
+             */
+            growth_code_id: string;
+            /** Code Set Hash */
+            code_set_hash: string;
+            /** User Id */
+            user_id: string | null;
+            /** Anonymous Session Id */
+            anonymous_session_id: string | null;
+            /** Risk Subject Id */
+            risk_subject_id: string | null;
+            /**
+             * Auth Realm Id
+             * Format: uuid
+             */
+            auth_realm_id: string;
+            /**
+             * Storefront Id
+             * Format: uuid
+             */
+            storefront_id: string;
+            /** Sale Channel */
+            sale_channel: string;
+            /** Allowed Plan Ids */
+            allowed_plan_ids: string[];
+            /** Allowed Offer Ids */
+            allowed_offer_ids: string[];
+            /** Risk Decision Id */
+            risk_decision_id: string | null;
+            /** Status */
+            status: string;
+            /** Max Quote Conversions */
+            max_quote_conversions: number | null;
+            /** Quote Conversions Count */
+            quote_conversions_count: number;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Attached Quote Session Id */
+            attached_quote_session_id: string | null;
+            /** Attached Checkout Session Id */
+            attached_checkout_session_id: string | null;
+            /** Consumed Order Id */
+            consumed_order_id: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Revoked Reason */
+            revoked_reason: string | null;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AdminGrowthPrivateGrantRevokeRequest */
+        AdminGrowthPrivateGrantRevokeRequest: {
+            /** Reason */
+            reason: string;
+            /** Expected Status */
+            expected_status?: string | null;
+        };
+        /** AdminGrowthPrivateTargetListResponse */
+        AdminGrowthPrivateTargetListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthPrivateTargetResponse"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** AdminGrowthPrivateTargetResponse */
+        AdminGrowthPrivateTargetResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Plan Code */
+            plan_code: string | null;
+            /** Name */
+            name: string;
+            /** Display Name */
+            display_name: string;
+            /** Duration Days */
+            duration_days: number;
+            /** Catalog Visibility */
+            catalog_visibility: string;
+            /** Catalog Access Class */
+            catalog_access_class: string;
+            /** Sale Channels */
+            sale_channels: string[];
+            /** Is Active */
+            is_active: boolean;
+            /** Policy Count */
+            policy_count: number;
         };
         /** AdminGrowthReportingDailyPointResponse */
         AdminGrowthReportingDailyPointResponse: {
@@ -14370,6 +16365,413 @@ export interface components {
             /** Retention Delivery Days */
             retention_delivery_days: number;
         };
+        /** AdminGrowthReservationGroupResponse */
+        AdminGrowthReservationGroupResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Code Set Id
+             * Format: uuid
+             */
+            code_set_id: string;
+            /** Status */
+            status: string;
+            /** User Id */
+            user_id: string | null;
+            /** Quote Session Id */
+            quote_session_id: string | null;
+            /** Checkout Session Id */
+            checkout_session_id: string | null;
+            /** Order Id */
+            order_id: string | null;
+            /** Payment Id */
+            payment_id: string | null;
+            /** Reserved At */
+            reserved_at: string;
+            /** Expires At */
+            expires_at: string;
+            /** Committed At */
+            committed_at: string | null;
+            /** Consumed At */
+            consumed_at: string | null;
+            /** Released At */
+            released_at: string | null;
+            /** Release Reason */
+            release_reason: string | null;
+            /** Idempotency Key Hash */
+            idempotency_key_hash: string;
+        };
+        /** AdminGrowthReservationResponse */
+        AdminGrowthReservationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Growth Code Id
+             * Format: uuid
+             */
+            growth_code_id: string;
+            /** Reservation Group Id */
+            reservation_group_id: string | null;
+            /** Quote Session Id */
+            quote_session_id: string | null;
+            /** Checkout Session Id */
+            checkout_session_id: string | null;
+            /** User Id */
+            user_id: string | null;
+            /** Risk Subject Id */
+            risk_subject_id: string | null;
+            /** Risk Decision Id */
+            risk_decision_id: string | null;
+            /** Device Key Hash */
+            device_key_hash: string | null;
+            /** Velocity Bucket */
+            velocity_bucket: string | null;
+            /** Status */
+            status: string;
+            /** Reserved At */
+            reserved_at: string;
+            /** Expires At */
+            expires_at: string;
+            /** Committed At */
+            committed_at: string | null;
+            /** Consumed At */
+            consumed_at: string | null;
+            /** Consumed Order Id */
+            consumed_order_id: string | null;
+            /** Consumed Payment Id */
+            consumed_payment_id: string | null;
+            /** Released At */
+            released_at: string | null;
+            /** Release Reason */
+            release_reason: string | null;
+            /** Capacity Context */
+            capacity_context: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminGrowthRiskDecisionDetailResponse */
+        AdminGrowthRiskDecisionDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Risk Subject Id
+             * Format: uuid
+             */
+            risk_subject_id: string;
+            /** Code Set Id */
+            code_set_id: string | null;
+            /** Growth Code Id */
+            growth_code_id: string | null;
+            /** Private Grant Id */
+            private_grant_id: string | null;
+            /** Quote Session Id */
+            quote_session_id: string | null;
+            /** Order Id */
+            order_id: string | null;
+            /** Action Context */
+            action_context: string;
+            /**
+             * Rules Policy Version Id
+             * Format: uuid
+             */
+            rules_policy_version_id: string;
+            /** Model Version Id */
+            model_version_id: string | null;
+            /** Feature Snapshot Id */
+            feature_snapshot_id: string | null;
+            /** Rules Outcome */
+            rules_outcome: string;
+            /** Ml Score */
+            ml_score: string | null;
+            /** Risk Band */
+            risk_band: string;
+            /** Final Action */
+            final_action: string;
+            /** Reason Codes */
+            reason_codes: string[];
+            /** Fallback Mode */
+            fallback_mode: string | null;
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Feature Snapshot */
+            feature_snapshot: {
+                [key: string]: unknown;
+            } | null;
+            /** Decision Trace */
+            decision_trace: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminGrowthRiskDecisionListResponse */
+        AdminGrowthRiskDecisionListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthRiskDecisionSummaryResponse"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** AdminGrowthRiskDecisionSummaryResponse */
+        AdminGrowthRiskDecisionSummaryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Risk Subject Id
+             * Format: uuid
+             */
+            risk_subject_id: string;
+            /** Code Set Id */
+            code_set_id: string | null;
+            /** Growth Code Id */
+            growth_code_id: string | null;
+            /** Private Grant Id */
+            private_grant_id: string | null;
+            /** Quote Session Id */
+            quote_session_id: string | null;
+            /** Order Id */
+            order_id: string | null;
+            /** Action Context */
+            action_context: string;
+            /**
+             * Rules Policy Version Id
+             * Format: uuid
+             */
+            rules_policy_version_id: string;
+            /** Model Version Id */
+            model_version_id: string | null;
+            /** Feature Snapshot Id */
+            feature_snapshot_id: string | null;
+            /** Rules Outcome */
+            rules_outcome: string;
+            /** Ml Score */
+            ml_score: string | null;
+            /** Risk Band */
+            risk_band: string;
+            /** Final Action */
+            final_action: string;
+            /** Reason Codes */
+            reason_codes: string[];
+            /** Fallback Mode */
+            fallback_mode: string | null;
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminGrowthRiskModelActionRequest */
+        AdminGrowthRiskModelActionRequest: {
+            /** Change Reason */
+            change_reason: string;
+            /** Expected Status */
+            expected_status?: ("inactive" | "active" | "retired") | null;
+            /** Expected Approval State */
+            expected_approval_state?: ("draft" | "approved" | "rejected") | null;
+            /** Expected Deployment Mode */
+            expected_deployment_mode?: ("shadow" | "challenger" | "champion" | "retired") | null;
+            /** Target Model Id */
+            target_model_id?: string | null;
+        };
+        /** AdminGrowthRiskModelCreateRequest */
+        AdminGrowthRiskModelCreateRequest: {
+            /** Model Key */
+            model_key: string;
+            /** Version */
+            version: string;
+            /** Artifact Uri */
+            artifact_uri: string;
+            /** Artifact Checksum */
+            artifact_checksum: string;
+            /**
+             * Feature Schema Version
+             * @default growth-risk.v6.features.v1
+             */
+            feature_schema_version: string;
+            /**
+             * Model Type
+             * @default gradient_boosted_trees
+             */
+            model_type: string;
+            /** Training Window Start */
+            training_window_start?: string | null;
+            /** Training Window End */
+            training_window_end?: string | null;
+            /** Metrics */
+            metrics?: {
+                [key: string]: unknown;
+            };
+            /** Calibration */
+            calibration?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Deployment Mode
+             * @default shadow
+             * @enum {string}
+             */
+            deployment_mode: "shadow" | "challenger";
+            /**
+             * Status
+             * @default inactive
+             * @enum {string}
+             */
+            status: "inactive" | "active";
+            /** Change Reason */
+            change_reason: string;
+        };
+        /** AdminGrowthRiskModelListResponse */
+        AdminGrowthRiskModelListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthRiskModelResponse"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** AdminGrowthRiskModelResponse */
+        AdminGrowthRiskModelResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Model Key */
+            model_key: string;
+            /** Version */
+            version: string;
+            /** Artifact Uri */
+            artifact_uri: string;
+            /** Artifact Checksum */
+            artifact_checksum: string;
+            /** Feature Schema Version */
+            feature_schema_version: string;
+            /** Model Type */
+            model_type: string;
+            /** Training Window Start */
+            training_window_start: string | null;
+            /** Training Window End */
+            training_window_end: string | null;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Calibration */
+            calibration: {
+                [key: string]: unknown;
+            };
+            /** Deployment Mode */
+            deployment_mode: string;
+            /** Approval State */
+            approval_state: string;
+            /** Status */
+            status: string;
+            /** Created By */
+            created_by: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Deployed At */
+            deployed_at: string | null;
+            /** Retired At */
+            retired_at: string | null;
+        };
+        /** AdminGrowthRiskReviewListResponse */
+        AdminGrowthRiskReviewListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthRiskReviewResponse"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** AdminGrowthRiskReviewResolveRequest */
+        AdminGrowthRiskReviewResolveRequest: {
+            decision: components["schemas"]["RiskReviewDecision"];
+            /** @default resolved */
+            resolution_status: components["schemas"]["RiskReviewStatus"];
+            /** Resolution Reason */
+            resolution_reason: string;
+            /** Resolution Evidence */
+            resolution_evidence?: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminGrowthRiskReviewResponse */
+        AdminGrowthRiskReviewResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Risk Subject Id
+             * Format: uuid
+             */
+            risk_subject_id: string;
+            /** Review Type */
+            review_type: string;
+            /** Status */
+            status: string;
+            /** Decision */
+            decision: string;
+            /** Reason */
+            reason: string;
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /** Created By Admin User Id */
+            created_by_admin_user_id: string | null;
+            /** Resolved By Admin User Id */
+            resolved_by_admin_user_id: string | null;
+            /** Resolved At */
+            resolved_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** AdminGrowthRuleCatalogResponse */
         AdminGrowthRuleCatalogResponse: {
             /** Catalog */
@@ -14406,6 +16808,137 @@ export interface components {
             max_depth: number;
             /** Complexity Score */
             complexity_score: number;
+        };
+        /** AdminGrowthRulePolicyActionRequest */
+        AdminGrowthRulePolicyActionRequest: {
+            /** Change Reason */
+            change_reason: string;
+            /** Effective From */
+            effective_from?: string | null;
+            /** Effective To */
+            effective_to?: string | null;
+        };
+        /** AdminGrowthRulePolicyCreateRequest */
+        AdminGrowthRulePolicyCreateRequest: {
+            /**
+             * Policy Key
+             * @default checkout_eligibility
+             */
+            policy_key: string;
+            /**
+             * Subject Type
+             * @default growth_rule
+             */
+            subject_type: string;
+            /** Subject Id */
+            subject_id?: string | null;
+            /** Ast */
+            ast?: {
+                [key: string]: unknown;
+            };
+            /** Change Reason */
+            change_reason: string;
+        };
+        /** AdminGrowthRulePolicyDiffResponse */
+        AdminGrowthRulePolicyDiffResponse: {
+            /**
+             * Policy Version Id
+             * Format: uuid
+             */
+            policy_version_id: string;
+            /** Compare To Policy Version Id */
+            compare_to_policy_version_id: string | null;
+            /** Current Checksum */
+            current_checksum: string | null;
+            /** Compare Checksum */
+            compare_checksum: string | null;
+            /** Changed */
+            changed: boolean;
+            /** Changed Fields */
+            changed_fields: string[];
+            current: components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+            compare_to: components["schemas"]["AdminGrowthRulePolicyVersionResponse"] | null;
+        };
+        /** AdminGrowthRulePolicyListResponse */
+        AdminGrowthRulePolicyListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthRulePolicyVersionResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminGrowthRulePolicyRollbackRequest */
+        AdminGrowthRulePolicyRollbackRequest: {
+            /** Change Reason */
+            change_reason: string;
+            /** Effective From */
+            effective_from?: string | null;
+        };
+        /** AdminGrowthRulePolicyVersionResponse */
+        AdminGrowthRulePolicyVersionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Policy Family */
+            policy_family: string;
+            /** Policy Key */
+            policy_key: string;
+            /** Subject Type */
+            subject_type: string;
+            /** Subject Id */
+            subject_id: string | null;
+            /** Version Number */
+            version_number: number;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Approval State */
+            approval_state: string;
+            /** Version Status */
+            version_status: string;
+            /**
+             * Effective From
+             * Format: date-time
+             */
+            effective_from: string;
+            /** Effective To */
+            effective_to: string | null;
+            /** Created By Admin User Id */
+            created_by_admin_user_id: string | null;
+            /** Approved By Admin User Id */
+            approved_by_admin_user_id: string | null;
+            /** Approved At */
+            approved_at: string | null;
+            /** Rejection Reason */
+            rejection_reason: string | null;
+            /** Supersedes Policy Version Id */
+            supersedes_policy_version_id: string | null;
+            /** Rule Definition Id */
+            rule_definition_id: string | null;
+            /** Schema Version */
+            schema_version: string | null;
+            /** Catalog Version */
+            catalog_version: string | null;
+            /** Normalized Ast */
+            normalized_ast: {
+                [key: string]: unknown;
+            } | null;
+            /** Compiled Plan */
+            compiled_plan: {
+                [key: string]: unknown;
+            } | null;
+            /** Compiled Checksum */
+            compiled_checksum: string | null;
+            /** Node Count */
+            node_count: number | null;
+            /** Max Depth */
+            max_depth: number | null;
+            /** Complexity Score */
+            complexity_score: number | null;
+            /** Validation Status */
+            validation_status: string | null;
         };
         /** AdminGrowthRuleSimulateRequest */
         AdminGrowthRuleSimulateRequest: {
@@ -14488,6 +17021,240 @@ export interface components {
             referral_code: string | null;
             /** Is Partner */
             is_partner: boolean;
+        };
+        /**
+         * AdminInviteBatchActionRequest
+         * @description Reasoned admin invite batch mutation request.
+         */
+        AdminInviteBatchActionRequest: {
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * AdminInviteBatchDetailResponse
+         * @description Admin invite batch detail with masked code inventory.
+         */
+        AdminInviteBatchDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Owner User Id
+             * Format: uuid
+             */
+            owner_user_id: string;
+            /** Campaign Id */
+            campaign_id?: string | null;
+            /** Source Growth Code Id */
+            source_growth_code_id?: string | null;
+            /** Source Benefit Id */
+            source_benefit_id?: string | null;
+            /** Source Order Id */
+            source_order_id?: string | null;
+            /** Source Payment Id */
+            source_payment_id?: string | null;
+            /** Source Type */
+            source_type: string;
+            /** Requested Count */
+            requested_count: number;
+            /** Issued Count */
+            issued_count: number;
+            /** Friend Days */
+            friend_days: number;
+            /** Expiry Mode */
+            expiry_mode: string;
+            /** Expiry Days */
+            expiry_days?: number | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Entitlement Mode */
+            entitlement_mode: string;
+            /** Entitlement Profile Key */
+            entitlement_profile_key?: string | null;
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Entitlement Snapshot */
+            entitlement_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: string;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /** Revoked By Admin Id */
+            revoked_by_admin_id?: string | null;
+            /** Revoked Reason */
+            revoked_reason?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Invites */
+            invites?: components["schemas"]["AdminInviteCodeSummaryResponse"][];
+        };
+        /**
+         * AdminInviteBatchExportCodeResponse
+         * @description Explicit export row; raw code is intentionally returned only by export endpoint.
+         */
+        AdminInviteBatchExportCodeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Code Prefix */
+            code_prefix?: string | null;
+            /** Code Hash */
+            code_hash?: string | null;
+            /** Status */
+            status: string;
+            /** Is Used */
+            is_used: boolean;
+            /** Expires At */
+            expires_at?: string | null;
+        };
+        /**
+         * AdminInviteBatchExportResponse
+         * @description Admin export payload for one invite batch.
+         */
+        AdminInviteBatchExportResponse: {
+            /**
+             * Batch Id
+             * Format: uuid
+             */
+            batch_id: string;
+            /** Exported Count */
+            exported_count: number;
+            /** Codes */
+            codes: components["schemas"]["AdminInviteBatchExportCodeResponse"][];
+        };
+        /**
+         * AdminInviteBatchListResponse
+         * @description Paginated admin invite batch list.
+         */
+        AdminInviteBatchListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminInviteBatchResponse"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /**
+         * AdminInviteBatchResponse
+         * @description Admin invite batch summary.
+         */
+        AdminInviteBatchResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Owner User Id
+             * Format: uuid
+             */
+            owner_user_id: string;
+            /** Campaign Id */
+            campaign_id?: string | null;
+            /** Source Growth Code Id */
+            source_growth_code_id?: string | null;
+            /** Source Benefit Id */
+            source_benefit_id?: string | null;
+            /** Source Order Id */
+            source_order_id?: string | null;
+            /** Source Payment Id */
+            source_payment_id?: string | null;
+            /** Source Type */
+            source_type: string;
+            /** Requested Count */
+            requested_count: number;
+            /** Issued Count */
+            issued_count: number;
+            /** Friend Days */
+            friend_days: number;
+            /** Expiry Mode */
+            expiry_mode: string;
+            /** Expiry Days */
+            expiry_days?: number | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Entitlement Mode */
+            entitlement_mode: string;
+            /** Entitlement Profile Key */
+            entitlement_profile_key?: string | null;
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Entitlement Snapshot */
+            entitlement_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: string;
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /** Revoked By Admin Id */
+            revoked_by_admin_id?: string | null;
+            /** Revoked Reason */
+            revoked_reason?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * AdminInviteCodeSummaryResponse
+         * @description Admin-safe invite code summary for batch views.
+         */
+        AdminInviteCodeSummaryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code Prefix */
+            code_prefix?: string | null;
+            /** Code Hash */
+            code_hash?: string | null;
+            /** Status */
+            status: string;
+            /** Is Used */
+            is_used: boolean;
+            /** Used By User Id */
+            used_by_user_id?: string | null;
+            /** Used At */
+            used_at?: string | null;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** AdminIssueGiftCodeBatchRequest */
         AdminIssueGiftCodeBatchRequest: {
@@ -15982,6 +18749,13 @@ export interface components {
             /** Location Code */
             location_code?: string | null;
         };
+        /** CheckoutCodeBasketItemRequest */
+        CheckoutCodeBasketItemRequest: {
+            /** Code */
+            code: string;
+            /** Client Slot Id */
+            client_slot_id?: string | null;
+        };
         /** CheckoutCodeRefResponse */
         CheckoutCodeRefResponse: {
             /** Redacted */
@@ -16021,6 +18795,85 @@ export interface components {
             /** Reservation Id */
             reservation_id?: string | null;
         };
+        /** CheckoutCodeSetApplicationDiscountResponse */
+        CheckoutCodeSetApplicationDiscountResponse: {
+            /** Source Amount */
+            source_amount: string;
+            /** Source Currency */
+            source_currency?: string | null;
+            /** Target Amount */
+            target_amount: string;
+            /** Target Currency */
+            target_currency?: string | null;
+            /** Applied Amount */
+            applied_amount: string;
+            /** Strategy */
+            strategy?: string | null;
+            /** Fx Conversion */
+            fx_conversion?: {
+                [key: string]: unknown;
+            } | null;
+            /** Fx Conversion Id */
+            fx_conversion_id?: string | null;
+        };
+        /** CheckoutCodeSetApplicationResponse */
+        CheckoutCodeSetApplicationResponse: {
+            /** Position Entered */
+            position_entered: number;
+            /** Canonical Order */
+            canonical_order: number;
+            /** Client Slot Id */
+            client_slot_id?: string | null;
+            /** Growth Code Id */
+            growth_code_id?: string | null;
+            /** Masked Code */
+            masked_code: string;
+            /** Roles */
+            roles?: string[];
+            /** Status */
+            status: string;
+            /** Reject Reason */
+            reject_reason?: string | null;
+            /** Conflict Code */
+            conflict_code?: string | null;
+            /** Wrong Context Target */
+            wrong_context_target?: string | null;
+            /** User Message Key */
+            user_message_key?: string | null;
+            /** Policy Version Id */
+            policy_version_id?: string | null;
+            /** Rule Checksum */
+            rule_checksum?: string | null;
+            discount: components["schemas"]["CheckoutCodeSetApplicationDiscountResponse"];
+            /** Benefits */
+            benefits?: {
+                [key: string]: unknown;
+            }[];
+            /** Reservation Id */
+            reservation_id?: string | null;
+            /** Reservation Group Id */
+            reservation_group_id?: string | null;
+            /** Risk Decision Id */
+            risk_decision_id?: string | null;
+            /** Fx Conversion Id */
+            fx_conversion_id?: string | null;
+            code_ref?: components["schemas"]["CheckoutCodeRefResponse"] | null;
+            /** Private Access */
+            private_access?: {
+                [key: string]: unknown;
+            };
+        };
+        /** CheckoutCodeSetResponse */
+        CheckoutCodeSetResponse: {
+            /** Id */
+            id?: string | null;
+            /** Hash */
+            hash: string;
+            /** Acceptance Mode */
+            acceptance_mode: string;
+            /** Applications */
+            applications?: components["schemas"]["CheckoutCodeSetApplicationResponse"][];
+        };
         /**
          * CheckoutCommitResponse
          * @description Commit response with persisted payment or invoice reference.
@@ -16042,6 +18895,12 @@ export interface components {
             partner_markup: number;
             /** Is Zero Gateway */
             is_zero_gateway: boolean;
+            /** Requires External Payment */
+            requires_external_payment?: boolean | null;
+            /** Settlement Mode */
+            settlement_mode?: string | null;
+            /** Next Action */
+            next_action?: string | null;
             /** Plan Id */
             plan_id?: string | null;
             /** Promo Code Id */
@@ -16050,12 +18909,20 @@ export interface components {
             partner_code_id?: string | null;
             /** Private Catalog Grant Id */
             private_catalog_grant_id?: string | null;
+            /** Code Set Id */
+            code_set_id?: string | null;
+            /** Code Set Hash */
+            code_set_hash?: string | null;
+            /** Reservation Group Id */
+            reservation_group_id?: string | null;
+            code_set?: components["schemas"]["CheckoutCodeSetResponse"] | null;
             /** Code Input */
             code_input?: string | null;
             code_input_ref?: components["schemas"]["CheckoutCodeRefResponse"] | null;
             code_resolution?: components["schemas"]["CheckoutCodeResolutionResponse"] | null;
             /** Discounts */
             discounts?: components["schemas"]["CheckoutDiscountResponse"][];
+            growth_effects?: components["schemas"]["CheckoutGrowthEffectsResponse"] | null;
             /** Addons */
             addons?: components["schemas"]["CheckoutAddonResponse"][];
             entitlements_snapshot: components["schemas"]["EntitlementsSnapshotResponse"];
@@ -16082,6 +18949,17 @@ export interface components {
             amount: number;
             /** Policy Version Id */
             policy_version_id?: string | null;
+        };
+        /** CheckoutGrowthEffectsResponse */
+        CheckoutGrowthEffectsResponse: {
+            /** Discount */
+            discount?: {
+                [key: string]: unknown;
+            };
+            /** Benefits Preview */
+            benefits_preview?: {
+                [key: string]: unknown;
+            }[];
         };
         /**
          * CheckoutQuoteRequest
@@ -16111,6 +18989,8 @@ export interface components {
              * @description Optional partner code
              */
             partner_code?: string | null;
+            /** Codes */
+            codes?: components["schemas"]["CheckoutCodeBasketItemRequest"][];
             /**
              * Private Catalog Grant Id
              * @description Private catalog grant from code-set preflight
@@ -16156,6 +19036,12 @@ export interface components {
             partner_markup: number;
             /** Is Zero Gateway */
             is_zero_gateway: boolean;
+            /** Requires External Payment */
+            requires_external_payment?: boolean | null;
+            /** Settlement Mode */
+            settlement_mode?: string | null;
+            /** Next Action */
+            next_action?: string | null;
             /** Plan Id */
             plan_id?: string | null;
             /** Promo Code Id */
@@ -16164,12 +19050,20 @@ export interface components {
             partner_code_id?: string | null;
             /** Private Catalog Grant Id */
             private_catalog_grant_id?: string | null;
+            /** Code Set Id */
+            code_set_id?: string | null;
+            /** Code Set Hash */
+            code_set_hash?: string | null;
+            /** Reservation Group Id */
+            reservation_group_id?: string | null;
+            code_set?: components["schemas"]["CheckoutCodeSetResponse"] | null;
             /** Code Input */
             code_input?: string | null;
             code_input_ref?: components["schemas"]["CheckoutCodeRefResponse"] | null;
             code_resolution?: components["schemas"]["CheckoutCodeResolutionResponse"] | null;
             /** Discounts */
             discounts?: components["schemas"]["CheckoutDiscountResponse"][];
+            growth_effects?: components["schemas"]["CheckoutGrowthEffectsResponse"] | null;
             /** Addons */
             addons?: components["schemas"]["CheckoutAddonResponse"][];
             entitlements_snapshot: components["schemas"]["EntitlementsSnapshotResponse"];
@@ -16493,6 +19387,11 @@ export interface components {
              * @default false
              */
             cabinet_only: boolean;
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
             /** Public Hosts */
             public_hosts?: string[];
             /** Cabinet Hosts */
@@ -18073,6 +20972,8 @@ export interface components {
             promo_code?: string | null;
             /** Partner Code */
             partner_code?: string | null;
+            /** Codes */
+            codes?: components["schemas"]["QuoteCodeBasketItemRequest"][];
             /** Private Catalog Grant Id */
             private_catalog_grant_id?: string | null;
             /**
@@ -18792,6 +21693,75 @@ export interface components {
             last_message_at?: string | null;
             /** Closed At */
             closed_at?: string | null;
+        };
+        /**
+         * CustomerInviteBatchGroupResponse
+         * @description One invite batch with its invite codes for /invites/my?group_by=batch.
+         */
+        CustomerInviteBatchGroupResponse: {
+            batch: components["schemas"]["CustomerInviteBatchResponse"];
+            /** Invites */
+            invites: components["schemas"]["InviteCodeResponse"][];
+        };
+        /**
+         * CustomerInviteBatchListResponse
+         * @description Grouped customer invite inventory response.
+         */
+        CustomerInviteBatchListResponse: {
+            /** Batches */
+            batches: components["schemas"]["CustomerInviteBatchGroupResponse"][];
+            /** Unbatched */
+            unbatched?: components["schemas"]["InviteCodeResponse"][];
+            /** Total Batches */
+            total_batches: number;
+            /** Total Invites */
+            total_invites: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /**
+         * CustomerInviteBatchResponse
+         * @description Customer-safe invite batch summary for grouped invite inventory.
+         */
+        CustomerInviteBatchResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Source Type */
+            source_type: string;
+            /** Requested Count */
+            requested_count: number;
+            /** Issued Count */
+            issued_count: number;
+            /** Friend Days */
+            friend_days: number;
+            /** Expiry Mode */
+            expiry_mode: string;
+            /** Expiry Days */
+            expiry_days: number | null;
+            /** Expires At */
+            expires_at: string | null;
+            /** Status */
+            status: string;
+            /** Campaign Id */
+            campaign_id?: string | null;
+            /** Source Growth Code Id */
+            source_growth_code_id?: string | null;
+            /** Source Benefit Id */
+            source_benefit_id?: string | null;
+            /** Source Order Id */
+            source_order_id?: string | null;
+            /** Source Payment Id */
+            source_payment_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** CustomerMessagingMessageResponse */
         CustomerMessagingMessageResponse: {
@@ -19656,6 +22626,18 @@ export interface components {
             addons?: {
                 [key: string]: unknown;
             }[];
+        };
+        /** ExecuteAdminCustomerSiteRuntimeActionRequest */
+        ExecuteAdminCustomerSiteRuntimeActionRequest: {
+            /**
+             * Action
+             * @constant
+             */
+            action: "rollback_to_full_site";
+            /** Expected Version */
+            expected_version: number;
+            /** Change Reason */
+            change_reason: string;
         };
         /** ExecuteAdminMiniAppLaunchActionRequest */
         ExecuteAdminMiniAppLaunchActionRequest: {
@@ -20960,6 +23942,14 @@ export interface components {
             entitlement_snapshot?: {
                 [key: string]: unknown;
             } | null;
+            /** Batch Id */
+            batch_id?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Code Hash */
+            code_hash?: string | null;
+            /** Code Prefix */
+            code_prefix?: string | null;
         };
         /**
          * InviteTokenInfo
@@ -27617,6 +30607,13 @@ export interface components {
              */
             channel: string;
         };
+        /** QuoteCodeBasketItemRequest */
+        QuoteCodeBasketItemRequest: {
+            /** Code */
+            code: string;
+            /** Client Slot Id */
+            client_slot_id?: string | null;
+        };
         /** QuoteSessionResponse */
         QuoteSessionResponse: {
             /**
@@ -31922,6 +34919,31 @@ export interface components {
             /** Is Active */
             is_active?: boolean | null;
         };
+        /** UpdateAdminCustomerSiteRuntimeConfigRequest */
+        UpdateAdminCustomerSiteRuntimeConfigRequest: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "full_site" | "cabinet_only" | "maintenance";
+            /** Public Hosts */
+            public_hosts?: string[];
+            /** Cabinet Hosts */
+            cabinet_hosts?: string[];
+            /**
+             * Cabinet Destination Path
+             * @default /dashboard
+             */
+            cabinet_destination_path: string;
+            /** Allowed Path Prefixes */
+            allowed_path_prefixes?: string[];
+            /** Preserve Query Keys */
+            preserve_query_keys?: string[];
+            /** Expected Version */
+            expected_version: number;
+            /** Change Reason */
+            change_reason: string;
+        };
         /** UpdateAdminMiniAppLaunchReadinessConfigRequest */
         UpdateAdminMiniAppLaunchReadinessConfigRequest: {
             /** Observability Acknowledged */
@@ -34666,13 +37688,6 @@ export interface operations {
             };
             /** @description Invalid, expired, or already exchanged registration access token */
             403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Registration access token was already exchanged with a different key or host */
-            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -46945,6 +49960,8 @@ export interface operations {
                 offset?: number;
                 /** @description Pagination limit */
                 limit?: number;
+                /** @description Use 'batch' to group Growth Codes v6 invite batches */
+                group_by?: string | null;
             };
             header?: never;
             path?: never;
@@ -46958,7 +49975,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InviteCodeResponse"][];
+                    "application/json": components["schemas"]["InviteCodeResponse"][] | components["schemas"]["CustomerInviteBatchListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -46992,6 +50009,207 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InviteCodeResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_list_invite_batches_api_v1_admin_invite_batches_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                owner_user_id?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteBatchListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_invite_batch_api_v1_admin_invite_batches__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteBatchDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_revoke_invite_batch_api_v1_admin_invite_batches__batch_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteBatchActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteBatchDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_extend_invite_batch_api_v1_admin_invite_batches__batch_id__extend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminExtendInviteBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteBatchDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_resend_invite_batch_api_v1_admin_invite_batches__batch_id__resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteBatchActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteBatchDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_export_invite_batch_api_v1_admin_invite_batches__batch_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteBatchExportResponse"];
                 };
             };
             /** @description Validation Error */
@@ -51468,6 +54686,123 @@ export interface operations {
             };
         };
     };
+    get_admin_customer_site_runtime_config_api_v1_admin_system_config_customer_site_runtime_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerSiteRuntimeConfigResponse"];
+                };
+            };
+        };
+    };
+    update_admin_customer_site_runtime_config_api_v1_admin_system_config_customer_site_runtime_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminCustomerSiteRuntimeConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerSiteRuntimeConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    execute_admin_customer_site_runtime_action_api_v1_admin_system_config_customer_site_runtime_actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExecuteAdminCustomerSiteRuntimeActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerSiteRuntimeConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_customer_site_runtime_timeline_api_v1_admin_system_config_customer_site_runtime_timeline_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerSiteRuntimeTimelineEntryResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_admin_miniapp_runtime_config_api_v1_admin_system_config_miniapp_runtime_get: {
         parameters: {
             query?: never;
@@ -53246,6 +56581,315 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminGrowthRuleSimulateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_growth_rule_policies_api_v1_admin_growth_policy_versions_get: {
+        parameters: {
+            query?: {
+                policy_key?: string | null;
+                subject_type?: string | null;
+                subject_id?: string | null;
+                approval_state?: string | null;
+                include_inactive?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_growth_rule_policy_api_v1_admin_growth_policy_versions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rollback_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__rollback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyRollbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__diff_get: {
+        parameters: {
+            query?: {
+                compare_to_policy_version_id?: string | null;
+            };
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyDiffResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_growth_rule_policy_against_api_v1_admin_growth_policy_versions__policy_version_id__diff__compare_to_policy_version_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+                compare_to_policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyDiffResponse"];
                 };
             };
             /** @description Validation Error */
@@ -56813,6 +60457,1648 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    simulate_growth_code_set_api_v3_admin_growth_code_sets_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthCodeSetSimulationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthCodeSetSimulationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inspect_growth_code_sets_api_v3_admin_growth_code_sets_inspect_get: {
+        parameters: {
+            query?: {
+                code_set_id?: string | null;
+                code_set_hash?: string | null;
+                quote_session_id?: string | null;
+                checkout_session_id?: string | null;
+                order_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthCodeSetInspectResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_code_set_support_view_api_v3_admin_growth_code_sets__code_set_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code_set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthCodeSetInspectItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_code_application_support_view_api_v3_admin_growth_code_applications__application_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthCodeApplicationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_order_growth_code_applications_api_v3_admin_growth_orders__order_id__code_applications_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthOrderCodeApplicationsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_fx_status_api_v3_admin_growth_fx_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxStatusResponse"];
+                };
+            };
+        };
+    };
+    list_growth_fx_rates_api_v3_admin_growth_fx_rates_get: {
+        parameters: {
+            query?: {
+                base_currency?: string | null;
+                quote_currency?: string | null;
+                provider_key?: string | null;
+                source_type?: string | null;
+                status?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxRateListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_configured_growth_fx_rate_api_v3_admin_growth_fx_configured_rates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthFxConfiguredRateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxRateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_growth_fx_xtr_table_api_v3_admin_growth_fx_xtr_tables_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthFxXtrTableRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxRateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simulate_growth_fx_conversion_api_v3_admin_growth_fx_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthFxSimulateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxSimulationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_growth_fx_rate_api_v3_admin_growth_fx_rates__rate_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthFxProviderActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxRateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_growth_fx_provider_api_v3_admin_growth_fx_providers__provider_key__disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthFxProviderActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enable_growth_fx_provider_api_v3_admin_growth_fx_providers__provider_key__enable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthFxProviderActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_onboarding_settings_api_v3_admin_growth_onboarding_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthOnboardingRuntimeResponse"];
+                };
+            };
+        };
+    };
+    update_growth_onboarding_settings_api_v3_admin_growth_onboarding_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthOnboardingRuntimeUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthOnboardingRuntimeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_growth_onboarding_states_api_v3_admin_growth_onboarding_states_get: {
+        parameters: {
+            query?: {
+                mobile_user_id?: string | null;
+                status?: string | null;
+                flow_key?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthOnboardingStateListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_onboarding_state_api_v3_admin_growth_onboarding_states__state_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                state_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthOnboardingStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_growth_onboarding_applications_api_v3_admin_growth_onboarding_applications_get: {
+        parameters: {
+            query?: {
+                onboarding_state_id?: string | null;
+                mobile_user_id?: string | null;
+                result?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthOnboardingApplicationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_growth_onboarding_state_api_v3_admin_growth_onboarding_states__state_id__reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                state_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthOnboardingStateResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthOnboardingStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_growth_campaign_policy_version_api_v3_admin_growth_campaigns__campaign_id__policy_versions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_private_catalog_targets_api_v3_admin_growth_private_catalog_targets_get: {
+        parameters: {
+            query?: {
+                active_only?: boolean;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthPrivateTargetListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_private_catalog_grants_api_v3_admin_growth_private_grants_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                user_id?: string | null;
+                anonymous_session_id?: string | null;
+                storefront_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthPrivateGrantListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_private_catalog_grant_api_v3_admin_growth_private_grants__grant_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthPrivateGrantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_private_catalog_grant_api_v3_admin_growth_private_grants__grant_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthPrivateGrantRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthPrivateGrantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_growth_risk_models_api_v3_admin_growth_risk_models_get: {
+        parameters: {
+            query?: {
+                model_key?: string | null;
+                status?: ("inactive" | "active" | "retired") | null;
+                deployment_mode?: ("shadow" | "challenger" | "champion" | "retired") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskModelListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_growth_risk_model_api_v3_admin_growth_risk_models_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRiskModelCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskModelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_growth_risk_model_api_v3_admin_growth_risk_models__model_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRiskModelActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskModelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deploy_shadow_growth_risk_model_api_v3_admin_growth_risk_models__model_id__deploy_shadow_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRiskModelActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskModelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    promote_growth_risk_model_api_v3_admin_growth_risk_models__model_id__promote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRiskModelActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskModelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rollback_growth_risk_model_api_v3_admin_growth_risk_models__model_id__rollback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                model_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRiskModelActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskModelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_growth_risk_decisions_api_v3_admin_growth_risk_decisions_get: {
+        parameters: {
+            query?: {
+                risk_subject_id?: string | null;
+                final_action?: ("allow" | "challenge" | "review" | "deny") | null;
+                model_version_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskDecisionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_risk_decision_api_v3_admin_growth_risk_decisions__decision_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                decision_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskDecisionDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_growth_risk_reviews_api_v3_admin_growth_risk_reviews_get: {
+        parameters: {
+            query?: {
+                status?: ("open" | "resolved" | "dismissed") | null;
+                decision?: ("pending" | "allow" | "block" | "monitor" | "hold") | null;
+                risk_subject_id?: string | null;
+                review_type?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskReviewListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_growth_risk_review_api_v3_admin_growth_risk_reviews__risk_review_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                risk_review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRiskReviewResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRiskReviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_v3_growth_rule_catalog_api_v3_admin_growth_rule_catalog_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRuleCatalogResponse"];
+                };
+            };
+        };
+    };
+    validate_v3_growth_policy_api_v3_admin_growth_policies_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRuleCompileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRuleCompileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compile_v3_growth_policy_api_v3_admin_growth_policies_compile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRuleCompileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRuleCompileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_v3_growth_policy_impact_api_v3_admin_growth_policies_impact_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRuleSimulateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRuleSimulateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_rule_catalog_api_v3_admin_growth_rules_catalog_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRuleCatalogResponse"];
+                };
+            };
+        };
+    };
+    compile_growth_rule_api_v3_admin_growth_rules_compile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRuleCompileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRuleCompileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simulate_growth_rule_api_v3_admin_growth_rules_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRuleSimulateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRuleSimulateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_growth_rule_policies_api_v3_admin_growth_policy_versions_get: {
+        parameters: {
+            query?: {
+                policy_key?: string | null;
+                subject_type?: string | null;
+                subject_id?: string | null;
+                approval_state?: string | null;
+                include_inactive?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_growth_rule_policy_api_v3_admin_growth_policy_versions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rollback_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__rollback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthRulePolicyRollbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_growth_rule_policy_api_v3_admin_growth_policy_versions__policy_version_id__diff_get: {
+        parameters: {
+            query?: {
+                compare_to_policy_version_id?: string | null;
+            };
+            header?: never;
+            path: {
+                policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyDiffResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diff_growth_rule_policy_against_api_v3_admin_growth_policy_versions__policy_version_id__diff__compare_to_policy_version_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_version_id: string;
+                compare_to_policy_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthRulePolicyDiffResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

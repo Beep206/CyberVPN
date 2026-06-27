@@ -43,6 +43,7 @@ import {
   useInviteCodes,
   useRedeemGrowthCode,
 } from '@/features/customer-growth/hooks/useCustomerGrowth';
+import { buildGrowthCodeBasketCopy } from '@/features/customer-growth-code-basket/lib/copy';
 import { Link } from '@/i18n/navigation';
 import { growthNotificationsApi, referralApi } from '@/lib/api';
 import { markPerformance } from '@/shared/lib/web-vitals';
@@ -348,6 +349,11 @@ export function ReferralCabinetDashboard({
 }) {
   const t = useTranslations('Referral.cabinet');
   const growthT = useTranslations('Referral');
+  const subscriptionsT = useTranslations('Subscriptions');
+  const growthCodeResolutionMessages = useMemo(
+    () => buildGrowthCodeBasketCopy(subscriptionsT).resolutionErrors,
+    [subscriptionsT],
+  );
   const locale = useLocale();
   const [copyState, setCopyState] = useState<
     'code' | 'idle' | 'link' | 'share'
@@ -614,7 +620,7 @@ export function ReferralCabinetDashboard({
         }),
       );
     } catch (error) {
-      setRedeemError(getGrowthRedeemErrorMessage(error));
+      setRedeemError(getGrowthRedeemErrorMessage(error, { resolutionMessages: growthCodeResolutionMessages }));
     }
   };
 

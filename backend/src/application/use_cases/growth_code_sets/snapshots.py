@@ -83,26 +83,38 @@ def build_growth_checkout_v3_snapshot(
 
     code_resolution = _dict_or_empty(quote_snapshot.get("code_resolution"))
     discount_lines = [_dict_or_empty(line) for line in quote_snapshot.get("discounts") or [] if isinstance(line, dict)]
-    applications = _build_application_lines(
-        code_resolution=code_resolution,
-        discount_lines=discount_lines,
-        quote_snapshot=quote_snapshot,
+    applications = (
+        _code_set_applications_from_quote(quote_snapshot)
+        or _build_application_lines(
+            code_resolution=code_resolution,
+            discount_lines=discount_lines,
+            quote_snapshot=quote_snapshot,
+        )
+        or _build_private_catalog_application_lines(quote_snapshot=quote_snapshot)
     )
     growth_effects = _build_growth_effects(
         code_resolution=code_resolution,
         discount_lines=discount_lines,
         quote_snapshot=quote_snapshot,
     )
-    reservation_group_id = code_resolution.get("reservation_group_id") or code_resolution.get("reservation_id")
+    reservation_group_id = (
+        quote_snapshot.get("reservation_group_id")
+        or code_resolution.get("reservation_group_id")
+        or code_resolution.get("reservation_id")
+    )
     snapshot = {
         "snapshot_version": GROWTH_CHECKOUT_SNAPSHOT_VERSION,
         "code_set": {
             "id": quote_snapshot.get("code_set_id"),
             "hash": _code_set_hash(quote_snapshot=quote_snapshot, applications=applications),
-            "acceptance_mode": "single_legacy_code" if applications else "none",
+            "acceptance_mode": (quote_snapshot.get("code_set") or {}).get("acceptance_mode")
+            if isinstance(quote_snapshot.get("code_set"), dict)
+            else "single_legacy_code"
+            if applications
+            else "none",
             "applications": applications,
         },
-        "private_catalog": _dict_or_empty(quote_snapshot.get("private_catalog")),
+        "private_catalog": _safe_private_catalog_snapshot(quote_snapshot.get("private_catalog")),
         "risk": {
             "aggregate_action": code_resolution.get("risk_action") or "allow",
             "decision_ids": _compact_list(
@@ -207,6 +219,79 @@ def _build_application_lines(
     ]
 
 
+def _code_set_applications_from_quote(quote_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    code_set = quote_snapshot.get("code_set")
+    if not isinstance(code_set, dict):
+        return []
+    raw_applications = code_set.get("applications")
+    if raw_applications in (None, ()):
+        return []
+    if not isinstance(raw_applications, list):
+        raise SnapshotIntegrityError("SNAPSHOT_INTEGRITY_ERROR")
+    applications: list[dict[str, Any]] = []
+    for index, raw_application in enumerate(raw_applications):
+        if not isinstance(raw_application, dict):
+            raise SnapshotIntegrityError("SNAPSHOT_INTEGRITY_ERROR")
+        application = deepcopy(raw_application)
+        application.setdefault("position_entered", index)
+        application.setdefault("canonical_order", index)
+        applications.append(application)
+    return sorted(
+        applications,
+        key=lambda item: (
+            int(item.get("canonical_order") or 0),
+            str(item.get("growth_code_id") or ""),
+            str(item.get("reservation_id") or ""),
+        ),
+    )
+
+
+def _build_private_catalog_application_lines(quote_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    private_catalog = _safe_private_catalog_snapshot(quote_snapshot.get("private_catalog"))
+    growth_code_id = private_catalog.get("growth_code_id")
+    if not growth_code_id:
+        return []
+    code_set_hash = private_catalog.get("code_set_hash") or quote_snapshot.get("code_set_hash")
+    code_ref = {
+        "redacted": True,
+        "code_hash": code_set_hash,
+        "code_prefix": "PRV",
+        "code_length": None,
+    }
+    return [
+        {
+            "position_entered": 0,
+            "canonical_order": 0,
+            "growth_code_id": str(growth_code_id),
+            "masked_code": _masked_code(code_ref),
+            "roles": ["catalog_access"],
+            "status": "accepted",
+            "policy_version_id": str(private_catalog.get("policy_version_id") or "") or None,
+            "rule_checksum": None,
+            "discount": {
+                "source_amount": "0.00",
+                "source_currency": quote_snapshot.get("currency_code"),
+                "target_amount": "0.00",
+                "target_currency": quote_snapshot.get("currency_code"),
+                "applied_amount": "0.00",
+            },
+            "benefits": [],
+            "reservation_id": None,
+            "risk_decision_id": private_catalog.get("risk_decision_id"),
+            "fx_conversion_id": None,
+            "private_access": deepcopy(private_catalog),
+            "code_ref": code_ref,
+            "legacy_code_type": "private_catalog",
+            "legacy_code_id": None,
+            "evaluation_trace": {
+                "source": "private_catalog_grant",
+                "schema_version": "checkout_code_set.v6",
+                "grant_id": quote_snapshot.get("private_catalog_grant_id") or private_catalog.get("grant_id"),
+            },
+        }
+    ]
+
+
 def _build_growth_effects(
     *,
     code_resolution: dict[str, Any],
@@ -246,6 +331,13 @@ def _dict_or_empty(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
 
 
+def _safe_private_catalog_snapshot(value: object) -> dict[str, Any]:
+    snapshot = _dict_or_empty(value)
+    for key in ("grant_token", "grant_token_hash", "raw_code", "raw_token", "token"):
+        snapshot.pop(key, None)
+    return snapshot
+
+
 def _money_string(value: object) -> str:
     return str(_decimal_or_zero(value).quantize(Decimal("0.01")))
 
@@ -271,6 +363,9 @@ def _code_set_hash(*, quote_snapshot: dict[str, Any], applications: list[dict[st
     existing = quote_snapshot.get("code_set_hash")
     if existing:
         return str(existing)
+    private_catalog = quote_snapshot.get("private_catalog")
+    if isinstance(private_catalog, dict) and private_catalog.get("code_set_hash"):
+        return str(private_catalog["code_set_hash"])
     if not applications:
         return None
     encoded = json.dumps(applications, sort_keys=True, separators=(",", ":"), default=str)

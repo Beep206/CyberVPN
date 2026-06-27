@@ -70,6 +70,12 @@ def test_stage1_required_admin_audit_manifest_covers_sensitive_actions() -> None
         "system_config.miniapp_launch_readiness.updated",
         "system_config.miniapp_launch_action.executed",
         "admin.bootstrap.first_admin_created",
+        "growth_rule_policy.created",
+        "growth_rule_policy.submitted",
+        "growth_rule_policy.approved",
+        "growth_rule_policy.rejected",
+        "growth_rule_policy.published",
+        "growth_rule_policy.rolled_back",
     }
 
     assert expected_actions <= STAGE1_REQUIRED_ADMIN_AUDIT_ACTIONS

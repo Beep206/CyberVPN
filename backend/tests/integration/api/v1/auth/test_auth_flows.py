@@ -11,7 +11,7 @@ Requires: AsyncClient, test database, Redis.
 
 import asyncio
 import secrets
-from datetime import UTC, datetime
+from time import perf_counter
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -735,21 +735,21 @@ class TestBruteForceProtection:
         await db.commit()
 
         # Measure time for valid login
-        start_valid = datetime.now(UTC)
+        start_valid = perf_counter()
         valid_response = await async_client.post(
             "/api/v1/auth/login",
             json={"login_or_email": user_email, "password": password},
         )
-        valid_time = (datetime.now(UTC) - start_valid).total_seconds()
+        valid_time = perf_counter() - start_valid
         assert valid_response.status_code == 200
 
         # Measure time for invalid login
-        start_invalid = datetime.now(UTC)
+        start_invalid = perf_counter()
         invalid_response = await async_client.post(
             "/api/v1/auth/login",
             json={"login_or_email": user_email, "password": "WrongPassword"},
         )
-        invalid_time = (datetime.now(UTC) - start_invalid).total_seconds()
+        invalid_time = perf_counter() - start_invalid
         assert invalid_response.status_code == 401
 
         # Failed responses are padded to at least 100ms. Successful logins are

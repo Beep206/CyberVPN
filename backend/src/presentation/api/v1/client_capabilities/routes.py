@@ -91,6 +91,7 @@ def _build_client_capabilities(
         site=ClientSiteCapabilities(
             customer_site_mode=site_runtime.mode,
             cabinet_only=site_runtime.cabinet_only,
+            version=site_runtime.version,
             public_hosts=list(site_runtime.public_hosts),
             cabinet_hosts=list(site_runtime.cabinet_hosts),
             cabinet_destination_path=site_runtime.cabinet_destination_path,

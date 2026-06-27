@@ -3,50 +3,62 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { growthApi } from '../growth';
 
-const API_BASE = '*/api/v1';
+const API_V1_BASE = '*/api/v1';
+const API_V3_BASE = '*/api/v3';
 const ORIGINAL_SEND_BEACON = navigator.sendBeacon;
 const sendBeacon = vi.fn();
 
 const MATCH_ANY_API_ORIGIN = {
-  promoCodes: `${API_BASE}/admin/promo-codes`,
-  promoCodeById: `${API_BASE}/admin/promo-codes/:promoId`,
-  inviteCodes: `${API_BASE}/admin/invite-codes`,
-  partnerPromote: `${API_BASE}/admin/partners/promote`,
-  referralOverview: `${API_BASE}/admin/referrals/overview`,
-  referralUserDetail: `${API_BASE}/admin/referrals/users/:userId`,
-  growthSignalsOverview: `${API_BASE}/admin/growth-signals/overview`,
-  growthReportingOverview: `${API_BASE}/admin/growth-reporting/overview`,
-  growthReportingGovernance: `${API_BASE}/admin/growth-reporting/governance`,
-  growthReportingRefresh: `${API_BASE}/admin/growth-reporting/refresh`,
-  growthReportingExport: `${API_BASE}/admin/growth-reporting/export`,
-  growthReportingGovernanceExport: `${API_BASE}/admin/growth-reporting/governance/export`,
-  growthReportingSubscriptions: `${API_BASE}/admin/growth-reporting/subscriptions`,
-  growthReportingSubscriptionUpdate: `${API_BASE}/admin/growth-reporting/subscriptions/:subscriptionId`,
-  growthReportingSubscriptionPause: `${API_BASE}/admin/growth-reporting/subscriptions/:subscriptionId/pause`,
-  growthReportingSubscriptionResume: `${API_BASE}/admin/growth-reporting/subscriptions/:subscriptionId/resume`,
-  growthReportingSubscriptionFollowup: `${API_BASE}/admin/growth-reporting/subscriptions/:subscriptionId/follow-up/:action`,
-  growthReportingDeliveries: `${API_BASE}/admin/growth-reporting/deliveries`,
-  growthReportingDeliveryArtifact: `${API_BASE}/admin/growth-reporting/deliveries/:deliveryId/artifact`,
-  growthSignalsAbuseQueue: `${API_BASE}/admin/growth-signals/abuse-queue`,
-  growthNotificationDeliveries: `${API_BASE}/admin/growth-notification-deliveries`,
-  growthNotificationDeliveryDetail: `${API_BASE}/admin/growth-notification-deliveries/:deliveryId`,
-  growthNotificationDeliveryExport: `${API_BASE}/admin/growth-notification-deliveries/:deliveryId/export`,
-  growthNotificationDeliveriesManual: `${API_BASE}/admin/growth-notification-deliveries/manual`,
-  growthNotificationDeliveryResend: `${API_BASE}/admin/growth-notification-deliveries/:deliveryId/resend`,
-  growthNotificationDeliveryPause: `${API_BASE}/admin/growth-notification-deliveries/:deliveryId/pause`,
-  growthNotificationDeliveryRevoke: `${API_BASE}/admin/growth-notification-deliveries/:deliveryId/revoke`,
-  growthNotificationDeliveryResolve: `${API_BASE}/admin/growth-notification-deliveries/:deliveryId/resolve`,
-  partners: `${API_BASE}/admin/partners`,
-  partnerDetail: `${API_BASE}/admin/partners/:userId`,
-  growthCodeLookup: `${API_BASE}/admin/growth-codes/lookup`,
-  growthRuleCatalog: `${API_BASE}/admin/growth/rules/catalog`,
-  growthRuleCompile: `${API_BASE}/admin/growth/rules/compile`,
-  growthRuleSimulate: `${API_BASE}/admin/growth/rules/simulate`,
-  giftCodes: `${API_BASE}/admin/gift-codes`,
-  giftCodesIssue: `${API_BASE}/admin/gift-codes/issue`,
-  giftCodeBatchesIssue: `${API_BASE}/admin/gift-code-batches/issue`,
-  partnerWorkspaces: `${API_BASE}/admin/partner-workspaces`,
-  partnerWorkspaceDetail: `${API_BASE}/admin/partner-workspaces/:workspaceId`,
+  promoCodes: `${API_V1_BASE}/admin/promo-codes`,
+  promoCodeById: `${API_V1_BASE}/admin/promo-codes/:promoId`,
+  inviteCodes: `${API_V1_BASE}/admin/invite-codes`,
+  partnerPromote: `${API_V1_BASE}/admin/partners/promote`,
+  referralOverview: `${API_V1_BASE}/admin/referrals/overview`,
+  referralUserDetail: `${API_V1_BASE}/admin/referrals/users/:userId`,
+  growthSignalsOverview: `${API_V1_BASE}/admin/growth-signals/overview`,
+  growthReportingOverview: `${API_V1_BASE}/admin/growth-reporting/overview`,
+  growthReportingGovernance: `${API_V1_BASE}/admin/growth-reporting/governance`,
+  growthReportingRefresh: `${API_V1_BASE}/admin/growth-reporting/refresh`,
+  growthReportingExport: `${API_V1_BASE}/admin/growth-reporting/export`,
+  growthReportingGovernanceExport: `${API_V1_BASE}/admin/growth-reporting/governance/export`,
+  growthReportingSubscriptions: `${API_V1_BASE}/admin/growth-reporting/subscriptions`,
+  growthReportingSubscriptionUpdate: `${API_V1_BASE}/admin/growth-reporting/subscriptions/:subscriptionId`,
+  growthReportingSubscriptionPause: `${API_V1_BASE}/admin/growth-reporting/subscriptions/:subscriptionId/pause`,
+  growthReportingSubscriptionResume: `${API_V1_BASE}/admin/growth-reporting/subscriptions/:subscriptionId/resume`,
+  growthReportingSubscriptionFollowup: `${API_V1_BASE}/admin/growth-reporting/subscriptions/:subscriptionId/follow-up/:action`,
+  growthReportingDeliveries: `${API_V1_BASE}/admin/growth-reporting/deliveries`,
+  growthReportingDeliveryArtifact: `${API_V1_BASE}/admin/growth-reporting/deliveries/:deliveryId/artifact`,
+  growthSignalsAbuseQueue: `${API_V1_BASE}/admin/growth-signals/abuse-queue`,
+  growthNotificationDeliveries: `${API_V1_BASE}/admin/growth-notification-deliveries`,
+  growthNotificationDeliveryDetail: `${API_V1_BASE}/admin/growth-notification-deliveries/:deliveryId`,
+  growthNotificationDeliveryExport: `${API_V1_BASE}/admin/growth-notification-deliveries/:deliveryId/export`,
+  growthNotificationDeliveriesManual: `${API_V1_BASE}/admin/growth-notification-deliveries/manual`,
+  growthNotificationDeliveryResend: `${API_V1_BASE}/admin/growth-notification-deliveries/:deliveryId/resend`,
+  growthNotificationDeliveryPause: `${API_V1_BASE}/admin/growth-notification-deliveries/:deliveryId/pause`,
+  growthNotificationDeliveryRevoke: `${API_V1_BASE}/admin/growth-notification-deliveries/:deliveryId/revoke`,
+  growthNotificationDeliveryResolve: `${API_V1_BASE}/admin/growth-notification-deliveries/:deliveryId/resolve`,
+  partners: `${API_V1_BASE}/admin/partners`,
+  partnerDetail: `${API_V1_BASE}/admin/partners/:userId`,
+  growthCodeLookup: `${API_V1_BASE}/admin/growth-codes/lookup`,
+  growthRuleCatalog: `${API_V3_BASE}/admin/growth/rule-catalog`,
+  growthRuleCompile: `${API_V3_BASE}/admin/growth/policies/compile`,
+  growthRuleSimulate: `${API_V3_BASE}/admin/growth/policies/impact-preview`,
+  growthRulePolicyVersions: `${API_V3_BASE}/admin/growth/policy-versions`,
+  growthRulePolicyVersionSubmit: `${API_V3_BASE}/admin/growth/policy-versions/:policyVersionId/submit`,
+  growthRulePolicyVersionApprove: `${API_V3_BASE}/admin/growth/policy-versions/:policyVersionId/approve`,
+  growthRulePolicyVersionPublish: `${API_V3_BASE}/admin/growth/policy-versions/:policyVersionId/publish`,
+  growthRulePolicyVersionDiff: `${API_V3_BASE}/admin/growth/policy-versions/:policyVersionId/diff/:compareToPolicyVersionId`,
+  growthCampaigns: `${API_V1_BASE}/admin/growth/campaigns`,
+  growthCampaignDetail: `${API_V1_BASE}/admin/growth/campaigns/:campaignId`,
+  growthCampaignPublish: `${API_V1_BASE}/admin/growth/campaigns/:campaignId/publish`,
+  growthFxRateApprove: `${API_V3_BASE}/admin/growth/fx/rates/:rateId/approve`,
+  clientCapabilities: `${API_V1_BASE}/client/capabilities`,
+  customerSiteRuntimeTimeline: `${API_V1_BASE}/admin/system-config/customer-site-runtime/timeline`,
+  giftCodes: `${API_V1_BASE}/admin/gift-codes`,
+  giftCodesIssue: `${API_V1_BASE}/admin/gift-codes/issue`,
+  giftCodeBatchesIssue: `${API_V1_BASE}/admin/gift-code-batches/issue`,
+  partnerWorkspaces: `${API_V1_BASE}/admin/partner-workspaces`,
+  partnerWorkspaceDetail: `${API_V1_BASE}/admin/partner-workspaces/:workspaceId`,
 };
 
 beforeEach(() => {
@@ -64,6 +76,45 @@ afterEach(() => {
   Object.defineProperty(window.navigator, 'sendBeacon', {
     configurable: true,
     value: ORIGINAL_SEND_BEACON,
+  });
+});
+
+describe('growthApi Growth v6 FX operations', () => {
+  it('approves configured FX rates through the maker-checker endpoint', async () => {
+    server.use(
+      http.post(MATCH_ANY_API_ORIGIN.growthFxRateApprove, async ({ params, request }) => {
+        const body = await request.json();
+        expect(params.rateId).toBe('rate-001');
+        expect(body).toEqual({ change_reason: 'checker approval' });
+        return HttpResponse.json({
+          id: 'rate-001',
+          base_currency: 'EUR',
+          quote_currency: 'USD',
+          rate: '1.1000',
+          inverse_rate: '0.9090909091',
+          source_type: 'configured',
+          provider_key: 'admin_configured',
+          provider_rate_id: null,
+          observed_at: '2026-06-26T12:00:00Z',
+          fetched_at: '2026-06-26T12:00:00Z',
+          valid_until: '2026-06-26T13:00:00Z',
+          status: 'active',
+          metadata: {
+            configured_rate_version: 'manual-eur-usd-1',
+            approved_by_admin_user_id: 'admin-checker',
+          },
+          created_at: '2026-06-26T12:00:00Z',
+        });
+      }),
+    );
+
+    const response = await growthApi.approveGrowthFxRate('rate-001', {
+      change_reason: 'checker approval',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.data.status).toBe('active');
+    expect(response.data.metadata.approved_by_admin_user_id).toBe('admin-checker');
   });
 });
 
@@ -1213,6 +1264,305 @@ describe('growthApi promo code operations', () => {
     expect(simulateResponse.data.matched).toBe(true);
     expect(capturedCompileBody).toEqual({ ast });
     expect(capturedSimulateBody).toEqual({ ast, context });
+  });
+
+  it('manages growth rule policy versions through audited lifecycle endpoints', async () => {
+    const ast = {
+      schema_version: 'growth-rule.v1',
+      when: {
+        type: 'condition',
+        field: 'checkout.currency',
+        operator: 'eq',
+        value: 'USD',
+      },
+      then: [{ action: 'allow', params: {} }],
+    };
+    const policyVersion = {
+      id: '00000000-0000-0000-0000-000000000111',
+      policy_family: 'growth_rules',
+      policy_key: 'checkout_eligibility',
+      subject_type: 'growth_rule',
+      subject_id: null,
+      version_number: 1,
+      payload: {},
+      approval_state: 'draft',
+      version_status: 'draft',
+      effective_from: '2026-06-26T12:00:00Z',
+      effective_to: null,
+      created_by_admin_user_id: '00000000-0000-0000-0000-000000000222',
+      approved_by_admin_user_id: null,
+      approved_at: null,
+      rejection_reason: null,
+      supersedes_policy_version_id: null,
+      rule_definition_id: '00000000-0000-0000-0000-000000000333',
+      schema_version: 'growth-rule.v1',
+      catalog_version: 'growth-rule-catalog.v1',
+      normalized_ast: ast,
+      compiled_plan: { catalog_version: 'growth-rule-catalog.v1', actions: ast.then },
+      compiled_checksum: 'rule-checksum-001',
+      node_count: 2,
+      max_depth: 1,
+      complexity_score: 3,
+      validation_status: 'valid',
+    };
+    const capturedBodies: Record<string, unknown>[] = [];
+
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.growthRulePolicyVersions, () =>
+        HttpResponse.json({ items: [policyVersion], total: 1 }),
+      ),
+      http.post(MATCH_ANY_API_ORIGIN.growthRulePolicyVersions, async ({ request }) => {
+        capturedBodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(policyVersion, { status: 201 });
+      }),
+      http.post(MATCH_ANY_API_ORIGIN.growthRulePolicyVersionSubmit, async ({ request }) => {
+        capturedBodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({
+          ...policyVersion,
+          approval_state: 'pending_approval',
+          version_status: 'pending_approval',
+        });
+      }),
+      http.post(MATCH_ANY_API_ORIGIN.growthRulePolicyVersionApprove, async ({ request }) => {
+        capturedBodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({
+          ...policyVersion,
+          approval_state: 'approved',
+          version_status: 'approved',
+          approved_by_admin_user_id: '00000000-0000-0000-0000-000000000444',
+          approved_at: '2026-06-26T12:05:00Z',
+        });
+      }),
+      http.post(MATCH_ANY_API_ORIGIN.growthRulePolicyVersionPublish, async ({ request }) => {
+        capturedBodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({
+          ...policyVersion,
+          approval_state: 'approved',
+          version_status: 'active',
+        });
+      }),
+      http.get(MATCH_ANY_API_ORIGIN.growthRulePolicyVersionDiff, () =>
+        HttpResponse.json({
+          policy_version_id: policyVersion.id,
+          compare_to_policy_version_id: '00000000-0000-0000-0000-000000000999',
+          current_checksum: 'rule-checksum-001',
+          compare_checksum: 'rule-checksum-000',
+          changed: true,
+          changed_fields: ['compiled_checksum'],
+          current: policyVersion,
+          compare_to: { ...policyVersion, id: '00000000-0000-0000-0000-000000000999' },
+        }),
+      ),
+    );
+
+    const listResponse = await growthApi.listGrowthRulePolicies({ policy_key: 'checkout_eligibility' });
+    const createResponse = await growthApi.createGrowthRulePolicy({
+      policy_key: 'checkout_eligibility',
+      subject_type: 'growth_rule',
+      subject_id: null,
+      ast,
+      change_reason: 'operator reviewed rule',
+    });
+    const submitResponse = await growthApi.submitGrowthRulePolicy(policyVersion.id, {
+      change_reason: 'ready for approval',
+      effective_from: null,
+      effective_to: null,
+    });
+    const approveResponse = await growthApi.approveGrowthRulePolicy(policyVersion.id, {
+      change_reason: 'approved by reviewer',
+      effective_from: null,
+      effective_to: null,
+    });
+    const publishResponse = await growthApi.publishGrowthRulePolicy(policyVersion.id, {
+      change_reason: 'publishing approved rule',
+      effective_from: '2026-06-26T12:10:00Z',
+      effective_to: null,
+    });
+    const diffResponse = await growthApi.diffGrowthRulePolicy(
+      policyVersion.id,
+      '00000000-0000-0000-0000-000000000999',
+    );
+
+    expect(listResponse.data.items).toHaveLength(1);
+    expect(createResponse.status).toBe(201);
+    expect(submitResponse.data.approval_state).toBe('pending_approval');
+    expect(approveResponse.data.approval_state).toBe('approved');
+    expect(publishResponse.data.version_status).toBe('active');
+    expect(diffResponse.data.changed_fields).toEqual(['compiled_checksum']);
+    expect(capturedBodies).toEqual([
+      {
+        policy_key: 'checkout_eligibility',
+        subject_type: 'growth_rule',
+        subject_id: null,
+        ast,
+        change_reason: 'operator reviewed rule',
+      },
+      {
+        change_reason: 'ready for approval',
+        effective_from: null,
+        effective_to: null,
+      },
+      {
+        change_reason: 'approved by reviewer',
+        effective_from: null,
+        effective_to: null,
+      },
+      {
+        change_reason: 'publishing approved rule',
+        effective_from: '2026-06-26T12:10:00Z',
+        effective_to: null,
+      },
+    ]);
+  });
+
+  it('manages campaign lifecycle through generated admin growth endpoints', async () => {
+    const campaign = {
+      id: '1a61c4ba-9dd3-44e8-9323-3ab9c1fdc001',
+      campaign_key: 'PR-PRO100-INV10',
+      name: 'Pro annual invite promo',
+      description: '100 percent promo with invite batch benefit',
+      status: 'draft',
+      priority: 10,
+      starts_at: null,
+      expires_at: null,
+      stacking_mode: 'exclusive',
+      stacking_group: 'pro',
+      current_version: 3,
+      created_by_admin_id: '4d4cefc3-35cc-483b-a03d-d48b5d565001',
+      updated_by_admin_id: null,
+      published_at: null,
+      paused_at: null,
+      archived_at: null,
+      created_at: '2026-04-22T10:00:00Z',
+      updated_at: '2026-04-22T10:05:00Z',
+    };
+    let capturedCreateBody: Record<string, unknown> | null = null;
+    let capturedPublishBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.growthCampaigns, () =>
+        HttpResponse.json({
+          items: [campaign],
+          total: 1,
+          offset: 0,
+          limit: 50,
+        }),
+      ),
+      http.post(MATCH_ANY_API_ORIGIN.growthCampaigns, async ({ request }) => {
+        capturedCreateBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(campaign, { status: 201 });
+      }),
+      http.post(MATCH_ANY_API_ORIGIN.growthCampaignPublish, async ({ params, request }) => {
+        capturedPublishBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          ...campaign,
+          id: params.campaignId,
+          status: 'active',
+          published_at: '2026-04-22T10:10:00Z',
+          current_version: 4,
+        });
+      }),
+    );
+
+    const listResponse = await growthApi.listGrowthCampaigns({ offset: 0, limit: 50 });
+    const createResponse = await growthApi.createGrowthCampaign({
+      campaign_key: 'PR-PRO100-INV10',
+      name: 'Pro annual invite promo',
+      description: '100 percent promo with invite batch benefit',
+      schedule: {
+        starts_at: null,
+        expires_at: null,
+      },
+      priority: 10,
+      stacking: {
+        mode: 'exclusive',
+        group: 'pro',
+      },
+    });
+    const publishResponse = await growthApi.publishGrowthCampaign(campaign.id, {
+      expected_version: 3,
+      reason_code: 'growth_campaign_publish',
+    });
+
+    expect(listResponse.data.items[0]?.campaign_key).toBe('PR-PRO100-INV10');
+    expect(createResponse.status).toBe(201);
+    expect(publishResponse.data.status).toBe('active');
+    expect(capturedCreateBody).toMatchObject({
+      campaign_key: 'PR-PRO100-INV10',
+      priority: 10,
+      stacking: {
+        mode: 'exclusive',
+        group: 'pro',
+      },
+    });
+    expect(capturedPublishBody).toEqual({
+      expected_version: 3,
+      reason_code: 'growth_campaign_publish',
+    });
+  });
+
+  it('loads customer site mode from the real client capabilities route', async () => {
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.clientCapabilities, () =>
+        HttpResponse.json({
+          payments: {},
+          growth: {
+            invites: true,
+            referral: true,
+            promo_codes: true,
+            gift_codes: true,
+            private_access_codes: true,
+            multi_code_checkout: true,
+            growth_hub: true,
+          },
+          subscriptions: {},
+          partner: {},
+          site: {
+            customer_site_mode: 'cabinet_only',
+            cabinet_only: true,
+            public_hosts: ['cyber-vpn.net'],
+            cabinet_hosts: ['my.cyber-vpn.net'],
+            cabinet_destination_path: '/dashboard',
+            allowed_path_prefixes: ['/login', '/register'],
+            preserve_query_keys: ['ref', 'code', 'utm_campaign'],
+            registration_policy_independent: true,
+          },
+        }),
+      ),
+    );
+
+    const response = await growthApi.getClientCapabilities();
+
+    expect(response.data.site?.customer_site_mode).toBe('cabinet_only');
+    expect(response.data.site?.preserve_query_keys).toContain('code');
+  });
+
+  it('loads customer site mode audit history from the generated admin timeline route', async () => {
+    let capturedLimit: string | null = null;
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.customerSiteRuntimeTimeline, ({ request }) => {
+        capturedLimit = new URL(request.url).searchParams.get('limit');
+        return HttpResponse.json([
+          {
+            id: '2bb06a93-9eb4-4465-94c8-6c9f5a779001',
+            created_at: '2026-06-20T10:00:00Z',
+            admin_id: '6e3349e7-f1ae-4118-aa2f-d5103dd20001',
+            action: 'rollback_to_full_site',
+            event_type: 'site_mode_action',
+            resulting_mode: 'full_site',
+            resulting_version: 7,
+            change_reason: 'Marketing restored',
+            entity_id: 'customer_site.runtime',
+          },
+        ]);
+      }),
+    );
+
+    const response = await growthApi.getCustomerSiteRuntimeTimeline({ limit: 8 });
+
+    expect(capturedLimit).toBe('8');
+    expect(response.data[0]?.event_type).toBe('site_mode_action');
+    expect(response.data[0]?.change_reason).toBe('Marketing restored');
   });
 
   it('lists admin promo codes with operational fields', async () => {

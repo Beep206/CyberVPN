@@ -37,6 +37,8 @@ class CompleteZeroGatewayUseCase:
         commission_base_amount: Decimal = Decimal("0"),
         metadata_extra: dict | None = None,
         subscription_days_override: int | None = None,
+        code_set_id: UUID | None = None,
+        growth_snapshot: dict | None = None,
     ) -> PaymentModel:
         plan = None
         if plan_id is not None:
@@ -55,11 +57,13 @@ class CompleteZeroGatewayUseCase:
             plan_id=plan_id,
             promo_code_id=promo_code_id,
             partner_code_id=partner_code_id,
+            code_set_id=code_set_id,
             discount_amount=float(discount_amount),
             wallet_amount_used=float(wallet_amount),
             final_amount=0.0,
             addons_snapshot=addons_snapshot or [],
             entitlements_snapshot=entitlements_snapshot,
+            growth_snapshot=growth_snapshot,
             metadata_={
                 "commission_base_amount": str(commission_base_amount),
                 "checkout_mode": "zero_gateway",

@@ -39,6 +39,8 @@ class FxRateSnapshot:
     expires_at: datetime
     rounding_mode: str = "ROUND_HALF_UP"
     managed_xtr: bool = False
+    source_type: str = "provider"
+    configured_rate_version: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
         return {
@@ -52,6 +54,8 @@ class FxRateSnapshot:
             "expires_at": _iso_utc(self.expires_at),
             "rounding_mode": self.rounding_mode,
             "managed_xtr": self.managed_xtr,
+            "source_type": self.source_type,
+            "configured_rate_version": self.configured_rate_version,
         }
 
 
@@ -144,6 +148,60 @@ def convert_fixed_discount(
     )
 
 
+def rate_snapshots_from_policy_snapshot(snapshot: dict[str, Any] | None) -> list[FxRateSnapshot]:
+    """Parse versioned FX rate snapshots embedded in a policy snapshot."""
+
+    payloads = _rate_payloads_from_snapshot(snapshot or {})
+    rates: list[FxRateSnapshot] = []
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            raise FxConversionError("FX_RATE_SNAPSHOT_INVALID")
+        rate_id = payload.get("rate_id") or payload.get("id") or payload.get("fx_rate_snapshot_id")
+        provider = payload.get("provider") or payload.get("provider_key") or payload.get("source")
+        source_currency = payload.get("source_currency") or payload.get("base_currency")
+        target_currency = payload.get("target_currency") or payload.get("quote_currency")
+        fetched_at = payload.get("fetched_at") or payload.get("observed_at")
+        expires_at = payload.get("expires_at") or payload.get("valid_until")
+        if not all((rate_id, provider, source_currency, target_currency, payload.get("rate"), fetched_at, expires_at)):
+            raise FxConversionError("FX_RATE_SNAPSHOT_INVALID")
+        rates.append(
+            FxRateSnapshot(
+                rate_id=UUID(str(rate_id)),
+                provider=str(provider),
+                provider_priority=_positive_int(
+                    payload.get("provider_priority") or payload.get("priority"), default=100
+                ),
+                source_currency=_normalize_currency(str(source_currency)),
+                target_currency=_normalize_currency(str(target_currency)),
+                rate=Decimal(str(payload["rate"])),
+                fetched_at=_parse_datetime(str(fetched_at)),
+                expires_at=_parse_datetime(str(expires_at)),
+                rounding_mode=str(payload.get("rounding_mode") or "ROUND_HALF_UP"),
+                managed_xtr=bool(payload.get("managed_xtr")),
+                source_type=str(payload.get("source_type") or payload.get("conversion_mode") or "provider"),
+                configured_rate_version=(
+                    str(payload.get("configured_rate_version"))
+                    if payload.get("configured_rate_version") not in (None, "")
+                    else None
+                ),
+            )
+        )
+    return rates
+
+
+def conversion_mode_from_payload(rate_snapshot: dict[str, Any] | None) -> str:
+    if rate_snapshot is None:
+        return "same_currency"
+    source_type = str(rate_snapshot.get("source_type") or "").strip().lower()
+    if source_type in {"configured", "pricebook", "provider", "managed_xtr"}:
+        return source_type
+    return "market"
+
+
+def minor_units_for_currency(currency: str) -> int:
+    return MINOR_UNITS.get(_normalize_currency(currency), 2)
+
+
 def _select_rate(
     *,
     source_currency: str,
@@ -168,7 +226,7 @@ def _select_rate(
 
 
 def _round_minor(amount: Decimal, currency: str) -> Decimal:
-    minor_units = MINOR_UNITS.get(currency, 2)
+    minor_units = minor_units_for_currency(currency)
     quant = Decimal("1") if minor_units == 0 else Decimal("1").scaleb(-minor_units)
     return amount.quantize(quant, rounding=ROUND_HALF_UP)
 
@@ -186,6 +244,14 @@ def _normalize_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
+def _parse_datetime(value: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise FxConversionError("FX_RATE_SNAPSHOT_INVALID") from exc
+    return _normalize_utc(parsed)
+
+
 def _iso_utc(value: datetime) -> str:
     return _normalize_utc(value).isoformat()
 
@@ -193,3 +259,29 @@ def _iso_utc(value: datetime) -> str:
 def _checksum(payload: dict[str, Any]) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _rate_payloads_from_snapshot(snapshot: dict[str, Any]) -> list[Any]:
+    direct = snapshot.get("fx_rate_snapshots")
+    if isinstance(direct, list):
+        return direct
+    fx_payload = snapshot.get("fx")
+    if isinstance(fx_payload, dict):
+        nested = fx_payload.get("rate_snapshots") or fx_payload.get("rates")
+        if isinstance(nested, list):
+            return nested
+    return []
+
+
+def _positive_int(value: object, *, default: int) -> int:
+    if value in (None, ""):
+        return default
+    if isinstance(value, bool) or not isinstance(value, int | str | bytes | bytearray):
+        raise FxConversionError("FX_RATE_SNAPSHOT_INVALID")
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise FxConversionError("FX_RATE_SNAPSHOT_INVALID") from exc
+    if parsed <= 0:
+        raise FxConversionError("FX_RATE_SNAPSHOT_INVALID")
+    return parsed

@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import (
+    CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
     ConfigService,
+    CustomerSiteRuntimeConfig,
     MiniAppLaunchReadinessConfig,
     MiniAppRuntimeConfig,
 )
@@ -20,13 +22,18 @@ from src.infrastructure.monitoring.instrumentation.routes import (
 )
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.presentation.api.v1.admin.schemas import (
+    AdminCustomerSiteRuntimeConfigResponse,
+    AdminCustomerSiteRuntimeResponse,
+    AdminCustomerSiteRuntimeTimelineEntryResponse,
     AdminMiniAppLaunchReadinessConfigResponse,
     AdminMiniAppLaunchReadinessResponse,
     AdminMiniAppLaunchSummaryResponse,
     AdminMiniAppLaunchTimelineEntryResponse,
     AdminMiniAppRuntimeConfigResponse,
     AdminMiniAppRuntimeRolloutResponse,
+    ExecuteAdminCustomerSiteRuntimeActionRequest,
     ExecuteAdminMiniAppLaunchActionRequest,
+    UpdateAdminCustomerSiteRuntimeConfigRequest,
     UpdateAdminMiniAppLaunchReadinessConfigRequest,
     UpdateAdminMiniAppRuntimeConfigRequest,
 )
@@ -39,10 +46,15 @@ MINIAPP_RUNTIME_CONFIG_KEY = "miniapp.runtime"
 MINIAPP_RUNTIME_CONFIG_DESCRIPTION = "Operator-controlled rollout policy for Telegram Mini App runtime."
 MINIAPP_LAUNCH_READINESS_CONFIG_KEY = "miniapp.launch_readiness"
 MINIAPP_LAUNCH_READINESS_CONFIG_DESCRIPTION = "Production launch readiness gates for Telegram Mini App runtime."
+CUSTOMER_SITE_RUNTIME_CONFIG_DESCRIPTION = "Operator-controlled runtime routing policy for customer web site mode."
 MINIAPP_LAUNCH_TIMELINE_ACTIONS = (
     "system_config.miniapp_runtime.updated",
     "system_config.miniapp_launch_readiness.updated",
     "system_config.miniapp_launch_action.executed",
+)
+CUSTOMER_SITE_RUNTIME_TIMELINE_ACTIONS = (
+    "system_config.customer_site_runtime.updated",
+    "system_config.customer_site_runtime.action_executed",
 )
 
 
@@ -51,6 +63,89 @@ def _normalize_optional_text(value: str | None) -> str | None:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+def _normalize_customer_site_hostname(value: str) -> str | None:
+    candidate = value.strip().lower().rstrip(".")
+    if not candidate or "://" in candidate or "/" in candidate or "?" in candidate or "#" in candidate:
+        return None
+    return candidate[:255]
+
+
+def _normalize_customer_site_hostnames(values: list[str], *, fallback: tuple[str, ...]) -> list[str]:
+    normalized: list[str] = []
+    for value in values:
+        candidate = _normalize_customer_site_hostname(value)
+        if candidate and candidate not in normalized:
+            normalized.append(candidate)
+    if normalized:
+        return normalized
+    return list(fallback)
+
+
+def _normalize_customer_site_path(value: str, *, fallback: str = "/dashboard") -> str:
+    candidate = value.strip()
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return fallback
+    return candidate.rstrip("/") or "/"
+
+
+def _normalize_customer_site_path_prefixes(values: list[str], *, fallback: tuple[str, ...]) -> list[str]:
+    normalized: list[str] = []
+    for value in values:
+        candidate = _normalize_customer_site_path(value, fallback="")
+        if candidate and candidate not in normalized:
+            normalized.append(candidate)
+    if normalized:
+        return normalized
+    return list(fallback)
+
+
+def _normalize_customer_site_query_keys(values: list[str], *, fallback: tuple[str, ...]) -> list[str]:
+    normalized: list[str] = []
+    for value in values:
+        candidate = value.strip()
+        if not candidate or len(candidate) > 80:
+            continue
+        if not all(ch.isalnum() or ch in {"_", "-"} for ch in candidate):
+            continue
+        if candidate not in normalized:
+            normalized.append(candidate)
+    if normalized:
+        return normalized
+    return list(fallback)
+
+
+def _serialize_customer_site_runtime(
+    config: CustomerSiteRuntimeConfig,
+) -> AdminCustomerSiteRuntimeResponse:
+    return AdminCustomerSiteRuntimeResponse(
+        mode=config.mode,
+        version=config.version,
+        public_hosts=list(config.public_hosts),
+        cabinet_hosts=list(config.cabinet_hosts),
+        cabinet_destination_path=config.cabinet_destination_path,
+        allowed_path_prefixes=list(config.allowed_path_prefixes),
+        preserve_query_keys=list(config.preserve_query_keys),
+        cabinet_only=config.cabinet_only,
+        registration_policy_independent=True,
+    )
+
+
+def _serialize_customer_site_runtime_response(
+    *,
+    model: SystemConfigModel | None,
+    config: CustomerSiteRuntimeConfig,
+    last_change_reason: str | None = None,
+) -> AdminCustomerSiteRuntimeConfigResponse:
+    return AdminCustomerSiteRuntimeConfigResponse(
+        key=CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
+        site=_serialize_customer_site_runtime(config),
+        description=(model.description if model is not None else CUSTOMER_SITE_RUNTIME_CONFIG_DESCRIPTION),
+        updated_at=model.updated_at if model is not None else None,
+        updated_by=model.updated_by if model is not None else None,
+        last_change_reason=last_change_reason,
+    )
 
 
 def _serialize_rollout(config: MiniAppRuntimeConfig) -> AdminMiniAppRuntimeRolloutResponse:
@@ -283,6 +378,283 @@ def _serialize_launch_timeline_entry(
         change_reason=payload.get("change_reason"),
         entity_id=entry.entity_id,
     )
+
+
+def _serialize_customer_site_runtime_timeline_entry(
+    entry: AuditLog,
+) -> AdminCustomerSiteRuntimeTimelineEntryResponse:
+    payload = entry.new_value if isinstance(entry.new_value, dict) else {}
+    site_payload = payload.get("site") if isinstance(payload.get("site"), dict) else payload
+    return AdminCustomerSiteRuntimeTimelineEntryResponse(
+        id=entry.id,
+        created_at=entry.created_at,
+        admin_id=entry.admin_id,
+        action=entry.action,
+        event_type=(
+            "site_mode_action"
+            if entry.action == "system_config.customer_site_runtime.action_executed"
+            else "site_mode_update"
+        ),
+        resulting_mode=site_payload.get("mode"),
+        resulting_version=site_payload.get("version"),
+        change_reason=payload.get("change_reason"),
+        entity_id=entry.entity_id,
+    )
+
+
+async def _write_customer_site_runtime_audit_entry(
+    *,
+    db: AsyncSession,
+    request: Request,
+    actor: AdminUserModel,
+    action: str,
+    previous_payload: dict[str, object],
+    next_payload: dict[str, object],
+    change_reason: str,
+) -> None:
+    audit_entry = AuditLog(
+        admin_id=actor.id,
+        action=action,
+        entity_type="system_config",
+        entity_id=CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
+        old_value=previous_payload,
+        new_value={
+            "site": next_payload,
+            "change_reason": change_reason,
+        },
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    db.add(audit_entry)
+    await db.flush()
+
+
+def _customer_site_runtime_payload(
+    config: CustomerSiteRuntimeConfig,
+) -> dict[str, object]:
+    return _serialize_customer_site_runtime(config).model_dump()
+
+
+def _assert_customer_site_expected_version(
+    *,
+    current_version: int,
+    expected_version: int,
+) -> None:
+    if current_version != expected_version:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "customer_site_runtime_version_conflict",
+                "message_key": "growth.siteMode.errors.versionConflict",
+                "current_version": current_version,
+                "expected_version": expected_version,
+            },
+        )
+
+
+def _build_customer_site_runtime_update_payload(
+    *,
+    payload: UpdateAdminCustomerSiteRuntimeConfigRequest,
+    current: CustomerSiteRuntimeConfig,
+) -> dict[str, object]:
+    public_hosts = _normalize_customer_site_hostnames(
+        payload.public_hosts,
+        fallback=current.public_hosts,
+    )
+    cabinet_hosts = _normalize_customer_site_hostnames(
+        payload.cabinet_hosts,
+        fallback=current.cabinet_hosts,
+    )
+    if set(public_hosts) & set(cabinet_hosts):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "customer_site_runtime_host_overlap",
+                "message_key": "growth.siteMode.errors.hostOverlap",
+            },
+        )
+
+    return {
+        "mode": payload.mode,
+        "version": current.version + 1,
+        "public_hosts": public_hosts,
+        "cabinet_hosts": cabinet_hosts,
+        "cabinet_destination_path": _normalize_customer_site_path(
+            payload.cabinet_destination_path,
+            fallback=current.cabinet_destination_path,
+        ),
+        "allowed_path_prefixes": _normalize_customer_site_path_prefixes(
+            payload.allowed_path_prefixes,
+            fallback=current.allowed_path_prefixes,
+        ),
+        "preserve_query_keys": _normalize_customer_site_query_keys(
+            payload.preserve_query_keys,
+            fallback=current.preserve_query_keys,
+        ),
+    }
+
+
+@router.get(
+    "/customer-site-runtime",
+    response_model=AdminCustomerSiteRuntimeConfigResponse,
+)
+async def get_admin_customer_site_runtime_config(
+    db: AsyncSession = Depends(get_db),
+    _: AdminUserModel = Depends(require_role(AdminRole.OPERATOR)),
+) -> AdminCustomerSiteRuntimeConfigResponse:
+    repo = SystemConfigRepository(db)
+    service = ConfigService(repo)
+    model = await repo.get_by_key(CUSTOMER_SITE_RUNTIME_CONFIG_KEY)
+    config = await service.get_customer_site_runtime_config()
+    route_operations_total.labels(
+        route="admin_system_config",
+        action="get_customer_site_runtime",
+        status="success",
+    ).inc()
+    return _serialize_customer_site_runtime_response(model=model, config=config)
+
+
+@router.put(
+    "/customer-site-runtime",
+    response_model=AdminCustomerSiteRuntimeConfigResponse,
+)
+async def update_admin_customer_site_runtime_config(
+    payload: UpdateAdminCustomerSiteRuntimeConfigRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUserModel = Depends(require_role(AdminRole.OPERATOR)),
+) -> AdminCustomerSiteRuntimeConfigResponse:
+    repo = SystemConfigRepository(db)
+    service = ConfigService(repo)
+    existing_model = await repo.get_by_key(CUSTOMER_SITE_RUNTIME_CONFIG_KEY)
+    previous_config = await service.get_customer_site_runtime_config()
+    _assert_customer_site_expected_version(
+        current_version=previous_config.version,
+        expected_version=payload.expected_version,
+    )
+
+    next_payload = _build_customer_site_runtime_update_payload(payload=payload, current=previous_config)
+    change_reason = payload.change_reason.strip()
+    await service.set(
+        CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
+        next_payload,
+        updated_by=current_user.id,
+        description=existing_model.description
+        if existing_model is not None and existing_model.description
+        else CUSTOMER_SITE_RUNTIME_CONFIG_DESCRIPTION,
+    )
+    updated_model = await repo.get_by_key(CUSTOMER_SITE_RUNTIME_CONFIG_KEY)
+    updated_config = await service.get_customer_site_runtime_config()
+    await _write_customer_site_runtime_audit_entry(
+        db=db,
+        request=request,
+        actor=current_user,
+        action="system_config.customer_site_runtime.updated",
+        previous_payload=_customer_site_runtime_payload(previous_config),
+        next_payload=_customer_site_runtime_payload(updated_config),
+        change_reason=change_reason,
+    )
+    route_operations_total.labels(
+        route="admin_system_config",
+        action="update_customer_site_runtime",
+        status="success",
+    ).inc()
+    return _serialize_customer_site_runtime_response(
+        model=updated_model,
+        config=updated_config,
+        last_change_reason=change_reason,
+    )
+
+
+@router.post(
+    "/customer-site-runtime/actions",
+    response_model=AdminCustomerSiteRuntimeConfigResponse,
+)
+async def execute_admin_customer_site_runtime_action(
+    payload: ExecuteAdminCustomerSiteRuntimeActionRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUserModel = Depends(require_role(AdminRole.OPERATOR)),
+) -> AdminCustomerSiteRuntimeConfigResponse:
+    repo = SystemConfigRepository(db)
+    service = ConfigService(repo)
+    existing_model = await repo.get_by_key(CUSTOMER_SITE_RUNTIME_CONFIG_KEY)
+    previous_config = await service.get_customer_site_runtime_config()
+    _assert_customer_site_expected_version(
+        current_version=previous_config.version,
+        expected_version=payload.expected_version,
+    )
+
+    if payload.action != "rollback_to_full_site":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "customer_site_runtime_unknown_action",
+                "message_key": "growth.siteMode.errors.unknownAction",
+            },
+        )
+
+    next_payload = {
+        "mode": "full_site",
+        "version": previous_config.version + 1,
+        "public_hosts": list(previous_config.public_hosts),
+        "cabinet_hosts": list(previous_config.cabinet_hosts),
+        "cabinet_destination_path": previous_config.cabinet_destination_path,
+        "allowed_path_prefixes": list(previous_config.allowed_path_prefixes),
+        "preserve_query_keys": list(previous_config.preserve_query_keys),
+    }
+    change_reason = payload.change_reason.strip()
+    await service.set(
+        CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
+        next_payload,
+        updated_by=current_user.id,
+        description=existing_model.description
+        if existing_model is not None and existing_model.description
+        else CUSTOMER_SITE_RUNTIME_CONFIG_DESCRIPTION,
+    )
+    updated_model = await repo.get_by_key(CUSTOMER_SITE_RUNTIME_CONFIG_KEY)
+    updated_config = await service.get_customer_site_runtime_config()
+    await _write_customer_site_runtime_audit_entry(
+        db=db,
+        request=request,
+        actor=current_user,
+        action="system_config.customer_site_runtime.action_executed",
+        previous_payload=_customer_site_runtime_payload(previous_config),
+        next_payload=_customer_site_runtime_payload(updated_config),
+        change_reason=change_reason,
+    )
+    route_operations_total.labels(
+        route="admin_system_config",
+        action="execute_customer_site_runtime_action",
+        status="success",
+    ).inc()
+    return _serialize_customer_site_runtime_response(
+        model=updated_model,
+        config=updated_config,
+        last_change_reason=change_reason,
+    )
+
+
+@router.get(
+    "/customer-site-runtime/timeline",
+    response_model=list[AdminCustomerSiteRuntimeTimelineEntryResponse],
+)
+async def get_admin_customer_site_runtime_timeline(
+    limit: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUserModel = Depends(require_role(AdminRole.OPERATOR)),
+) -> list[AdminCustomerSiteRuntimeTimelineEntryResponse]:
+    audit_repo = AuditLogRepository(db)
+    entries = await audit_repo.get_recent_by_actions(
+        CUSTOMER_SITE_RUNTIME_TIMELINE_ACTIONS,
+        limit=limit,
+    )
+    route_operations_total.labels(
+        route="admin_system_config",
+        action="get_customer_site_runtime_timeline",
+        status="success",
+    ).inc()
+    return [_serialize_customer_site_runtime_timeline_entry(entry) for entry in entries]
 
 
 async def _write_runtime_audit_entry(

@@ -12,6 +12,7 @@ from src.application.use_cases.private_catalog.preflight import (
     PrivateCatalogGrantRecord,
     PrivateCatalogPreflightCommand,
     PrivateCatalogPreflightUseCase,
+    PrivateCatalogRiskBlockedError,
     PrivatePlanPreview,
     PrivatePolicyRecord,
     PrivateStorefrontRecord,
@@ -93,6 +94,42 @@ class FakePrivateCatalogRepository:
         return PrivateCatalogGrantRecord(id=GRANT_ID, expires_at=expires_at)
 
 
+class FakePrivateCatalogRiskGuard:
+    def __init__(self, *, block: bool = False) -> None:
+        self.block = block
+        self.calls: list[dict[str, object]] = []
+
+    async def evaluate_private_preflight(
+        self,
+        *,
+        user_id: UUID | None,
+        anonymous_session_id: str | None,
+        storefront: PrivateStorefrontRecord,
+        policy: PrivatePolicyRecord,
+        code_set_id: UUID,
+        code_set_hash: str,
+        channel: str,
+        currency: str,
+        code_count: int,
+    ) -> str:
+        self.calls.append(
+            {
+                "user_id": user_id,
+                "anonymous_session_id": anonymous_session_id,
+                "storefront_id": storefront.id,
+                "policy_id": policy.id,
+                "code_set_id": code_set_id,
+                "code_set_hash": code_set_hash,
+                "channel": channel,
+                "currency": currency,
+                "code_count": code_count,
+            }
+        )
+        if self.block:
+            raise PrivateCatalogRiskBlockedError("review")
+        return "allow"
+
+
 def _policy_for(raw_code: str, *, requires_auth: bool = False) -> tuple[str, PrivatePolicyRecord]:
     normalized = normalize_customer_input_code(raw_code)
     return normalized.code_hash, PrivatePolicyRecord(
@@ -152,6 +189,63 @@ async def test_private_catalog_preflight_issues_scoped_grant_and_offer_without_r
     assert repo.created_grants[0]["anonymous_session_id"] == "anon-checkout-1"
     assert repo.created_grants[0]["user_id"] is None
     assert raw_code not in str(repo.created_grants[0])
+
+
+@pytest.mark.asyncio
+async def test_private_catalog_preflight_records_allowing_risk_guard_before_grant() -> None:
+    repo = FakePrivateCatalogRepository()
+    risk_guard = FakePrivateCatalogRiskGuard()
+    raw_code = "PR-RU90-ACCESS"
+    code_hash, policy = _policy_for(raw_code)
+    repo.policies_by_hash[code_hash] = policy
+    repo.plan_previews = (_plan_preview(),)
+
+    result = await PrivateCatalogPreflightUseCase(repo, risk_guard=risk_guard).execute(
+        PrivateCatalogPreflightCommand(
+            codes=(PrivateCatalogCodeInput(code=raw_code, client_slot_id="slot-private"),),
+            storefront_key="ru",
+            channel="web",
+            currency="RUB",
+            anonymous_session_id="anon-checkout-1",
+        )
+    )
+
+    assert result.status == "accepted"
+    assert result.private_catalog_grant is not None
+    assert result.risk.action == "allow"
+    assert len(risk_guard.calls) == 1
+    assert risk_guard.calls[0]["policy_id"] == POLICY_ID
+    assert risk_guard.calls[0]["code_set_id"] == result.code_set_id
+    assert repo.created_grants
+
+
+@pytest.mark.asyncio
+async def test_private_catalog_preflight_blocks_grant_when_risk_guard_requires_review() -> None:
+    repo = FakePrivateCatalogRepository()
+    risk_guard = FakePrivateCatalogRiskGuard(block=True)
+    raw_code = "PR-RU90-ACCESS"
+    code_hash, policy = _policy_for(raw_code)
+    repo.policies_by_hash[code_hash] = policy
+    repo.plan_previews = (_plan_preview(),)
+
+    result = await PrivateCatalogPreflightUseCase(repo, risk_guard=risk_guard).execute(
+        PrivateCatalogPreflightCommand(
+            codes=(PrivateCatalogCodeInput(code=raw_code, client_slot_id="slot-private"),),
+            storefront_key="ru",
+            channel="web",
+            currency="RUB",
+            anonymous_session_id="anon-checkout-1",
+        )
+    )
+
+    assert result.status == "denied_by_risk"
+    assert result.private_catalog_grant is None
+    assert result.private_offers == ()
+    assert result.risk.action == "review"
+    assert result.applications[0].status == "rejected"
+    assert result.applications[0].message_key == "growth.risk.verificationRequired"
+    assert len(risk_guard.calls) == 1
+    assert repo.created_grants == []
 
 
 @pytest.mark.asyncio
@@ -293,3 +387,31 @@ def test_private_code_set_hash_is_permutation_independent() -> None:
     assert first_hash == second_hash
     assert build_private_code_set_id(first_hash) == build_private_code_set_id(second_hash)
     assert build_private_code_set_id(first_hash).version == 5
+
+
+@pytest.mark.asyncio
+async def test_private_catalog_preflight_rejects_duplicate_codes_without_policy_lookup() -> None:
+    repo = FakePrivateCatalogRepository()
+
+    result = await PrivateCatalogPreflightUseCase(repo).execute(
+        PrivateCatalogPreflightCommand(
+            codes=(
+                PrivateCatalogCodeInput(code="PR-RU90-ACCESS", client_slot_id="slot-a"),
+                PrivateCatalogCodeInput(code=" pr-ru90-access ", client_slot_id="slot-b"),
+            ),
+            storefront_key="ru",
+            channel="web",
+            currency="RUB",
+            anonymous_session_id="anon-checkout-1",
+        )
+    )
+
+    assert result.status == "rejected"
+    assert [item.message_key for item in result.applications] == [
+        "growth.errors.duplicateCode",
+        "growth.errors.duplicateCode",
+    ]
+    assert result.private_catalog_grant is None
+    assert repo.storefront_calls == 0
+    assert repo.policy_calls == []
+    assert repo.created_grants == []

@@ -67,6 +67,7 @@ const RUNTIME_CAPABILITIES: ClientCapabilitiesResponse = {
   site: {
     customer_site_mode: 'cabinet_only',
     cabinet_only: true,
+    version: 1,
     public_hosts: ['cyber-vpn.net'],
     cabinet_hosts: ['app.cyber-vpn.net'],
     cabinet_destination_path: '/dashboard',

@@ -1,14 +1,25 @@
 from __future__ import annotations
 
-import hashlib
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService, OutboxActorContext
 from src.application.use_cases.attribution.order_resolution import ResolveOrderAttributionUseCase
+from src.application.use_cases.growth_code_sets.ledger import (
+    accepted_code_set_applications,
+    build_legacy_quote_application,
+    build_order_code_application_snapshot,
+    code_set_hash_for_applications,
+    masked_code,
+    matching_discount_snapshot,
+    reservation_ids_from_snapshot,
+    safe_code_ref,
+)
 from src.application.use_cases.growth_code_sets.snapshots import (
     SnapshotIntegrityError,
     validate_growth_checkout_integrity,
@@ -118,10 +129,12 @@ class CreateOrderFromCheckoutSessionUseCase:
             entitlements_snapshot=dict(quote_snapshot.get("entitlements_snapshot", {})),
         )
         created_order = await self._orders.create(order)
-        await self._persist_single_code_order_ledger(
+        await self._persist_order_code_ledger(
             checkout_session=checkout_session,
             order=created_order,
             quote_snapshot=quote_snapshot,
+            growth_checkout_snapshot=pricing_snapshot.get("growth_checkout_snapshot") or {},
+            is_zero_gateway=is_zero_gateway,
         )
         item_payloads = build_order_item_payloads(
             currency_code=checkout_session.currency_code,
@@ -177,16 +190,19 @@ class CreateOrderFromCheckoutSessionUseCase:
         )
         resolver = ResolveOrderAttributionUseCase(self._session)
         await resolver.execute(order_id=created_order.id, commit=False)
-        reservation_id = _extract_reservation_id(quote_snapshot)
-        if reservation_id is not None:
+        reservation_ids = reservation_ids_from_snapshot(quote_snapshot)
+        fallback_reservation_id = _extract_reservation_id(quote_snapshot)
+        if fallback_reservation_id is not None and fallback_reservation_id not in reservation_ids:
+            reservation_ids.append(fallback_reservation_id)
+        if reservation_ids:
             if is_zero_gateway:
-                await self._reservations.commit_for_order(
-                    reservation_id=reservation_id,
+                await self._reservations.commit_group_for_order(
+                    reservation_ids=reservation_ids,
                     order_id=created_order.id,
                 )
             else:
-                await self._reservations.consume_for_order(
-                    reservation_id=reservation_id,
+                await self._reservations.consume_group_for_order(
+                    reservation_ids=reservation_ids,
                     order_id=created_order.id,
                 )
         if checkout_session.private_catalog_access_grant_id is not None:
@@ -201,53 +217,106 @@ class CreateOrderFromCheckoutSessionUseCase:
             raise ValueError("Order was created but could not be reloaded")
         return refreshed
 
-    async def _persist_single_code_order_ledger(
+    async def _persist_order_code_ledger(
         self,
         *,
         checkout_session,
         order: OrderModel,
-        quote_snapshot: dict,
+        quote_snapshot: dict[str, Any],
+        growth_checkout_snapshot: dict[str, Any],
+        is_zero_gateway: bool,
     ) -> None:
-        code_resolution = dict(quote_snapshot.get("code_resolution") or {})
-        growth_code_id = _uuid_or_none(code_resolution.get("growth_code_id"))
-        if growth_code_id is None or code_resolution.get("accepted") is not True:
+        applications = accepted_code_set_applications(growth_checkout_snapshot)
+        if not applications:
+            legacy_application = build_legacy_quote_application(quote_snapshot)
+            applications = [legacy_application] if legacy_application is not None else []
+        if not applications:
             return
 
-        discount_snapshot = _matching_discount_snapshot(quote_snapshot)
-        discount_amount = _decimal(
-            discount_snapshot.get("amount") if discount_snapshot else quote_snapshot.get("discount_amount")
-        )
-        code_ref = _safe_code_ref(quote_snapshot, discount_snapshot)
-        code_set_hash = _code_set_hash(code_ref=code_ref, growth_code_id=growth_code_id)
-        reservation_id = _uuid_or_none(code_resolution.get("reservation_id"))
-        policy_version_id = _uuid_or_none((discount_snapshot or {}).get("policy_version_id")) or _uuid_or_none(
-            dict(code_resolution.get("policy_snapshot") or {}).get("policy_version_id")
-        )
-        application_role = str(
-            code_resolution.get("code_type") or (discount_snapshot or {}).get("type") or "growth_code"
+        code_set = await self._load_or_create_code_set(
+            checkout_session=checkout_session,
+            order=order,
+            applications=applications,
+            is_zero_gateway=is_zero_gateway,
         )
 
+        checkout_session.code_set_id = code_set.id
+        order.code_set_id = code_set.id
+
+        for application in applications:
+            growth_code_id = _uuid_or_none(application.get("growth_code_id"))
+            if growth_code_id is None:
+                continue
+            await self._ensure_checkout_application(
+                code_set=code_set,
+                application=application,
+                growth_code_id=growth_code_id,
+            )
+            discount = dict(application.get("discount") or {})
+            discount_amount = _decimal(discount.get("applied_amount"))
+            fx_conversion_id = application.get("fx_conversion_id") or discount.get("fx_conversion_id")
+            role = _application_role(application)
+            order_application = OrderCodeApplicationModel(
+                order_id=order.id,
+                code_set_id=code_set.id,
+                growth_code_id=growth_code_id,
+                policy_version_id=_uuid_or_none(application.get("policy_version_id")),
+                application_role=role,
+                application_status="applied",
+                discount_amount=discount_amount,
+                currency_code=str(discount.get("target_currency") or checkout_session.currency_code),
+                source_amount=_decimal_or_none(discount.get("source_amount")) or discount_amount,
+                source_currency_code=str(discount.get("source_currency") or checkout_session.currency_code),
+                fx_conversion_id=_uuid_or_none(fx_conversion_id),
+                reservation_id=_uuid_or_none(application.get("reservation_id")),
+                risk_decision_id=_uuid_or_none(application.get("risk_decision_id")),
+                application_snapshot=build_order_code_application_snapshot(
+                    application=dict(application),
+                    reservation_group_id=growth_checkout_snapshot.get("reservation_group_id"),
+                    producer="cybervpn-backend.order_code_ledger",
+                ),
+            )
+            self._session.add(order_application)
+        await self._session.flush()
+
+    async def _load_or_create_code_set(
+        self,
+        *,
+        checkout_session,
+        order: OrderModel,
+        applications: list[dict[str, Any]],
+        is_zero_gateway: bool,
+    ) -> CheckoutCodeSetModel:
+        if checkout_session.code_set_id is not None:
+            existing = await self._session.get(CheckoutCodeSetModel, checkout_session.code_set_id)
+            if existing is not None:
+                existing.checkout_session_id = checkout_session.id
+                existing.order_id = order.id
+                existing.status = "committed" if is_zero_gateway else "consumed"
+                return existing
+
         code_set = CheckoutCodeSetModel(
-            code_set_hash=code_set_hash,
+            code_set_hash=code_set_hash_for_applications(applications),
             user_id=checkout_session.user_id,
             anonymous_session_id=None,
             auth_realm_id=checkout_session.auth_realm_id,
             storefront_id=checkout_session.storefront_id,
             sale_channel=checkout_session.sale_channel,
-            action_context=str(code_resolution.get("action_context") or "checkout"),
-            status="consumed",
-            acceptance_mode="single_legacy_code",
+            action_context="checkout",
+            status="committed" if is_zero_gateway else "consumed",
+            acceptance_mode="single_legacy_code" if len(applications) == 1 else "all_or_nothing",
             aggregate_result={
-                "snapshot_version": "checkout_code_set.single_legacy.v1",
+                "snapshot_version": "checkout_code_set.v6",
                 "accepted": True,
-                "discount_amount": str(discount_amount),
+                "application_count": len(applications),
                 "currency_code": checkout_session.currency_code,
-                "code_type": application_role,
-                "code_ref": code_ref,
             },
             risk_snapshot={
-                "risk_decision_id": code_resolution.get("risk_decision_id"),
-                "reject_reason": code_resolution.get("reject_reason"),
+                "risk_decision_ids": [
+                    str(application["risk_decision_id"])
+                    for application in applications
+                    if application.get("risk_decision_id")
+                ],
             },
             private_access_grant_id=checkout_session.private_catalog_access_grant_id,
             quote_session_id=checkout_session.quote_session_id,
@@ -256,53 +325,50 @@ class CreateOrderFromCheckoutSessionUseCase:
         )
         self._session.add(code_set)
         await self._session.flush()
+        return code_set
 
-        checkout_session.code_set_id = code_set.id
-        order.code_set_id = code_set.id
-
-        application_snapshot = {
-            "snapshot_version": "order_code_application.single_legacy.v1",
-            "code_ref": code_ref,
-            "code_resolution": _safe_code_resolution_snapshot(code_resolution),
-            "discount": discount_snapshot,
-            "reservation_id": str(reservation_id) if reservation_id else None,
-        }
-        checkout_application = CheckoutCodeApplicationModel(
-            code_set_id=code_set.id,
-            position_entered=0,
-            canonical_order=0,
-            growth_code_id=growth_code_id,
-            legacy_code_type=application_role,
-            legacy_code_id=_uuid_or_none(code_resolution.get("promo_code_id"))
-            or _uuid_or_none(code_resolution.get("partner_code_id")),
-            masked_code=_masked_code(code_ref),
-            roles={"primary": application_role, "source": "single_legacy_field"},
-            resolution_status="accepted",
-            reject_reason=None,
-            conflict_code=code_resolution.get("conflict_code"),
-            policy_version_id=policy_version_id,
-            reservation_id=reservation_id,
-            discount_snapshot=dict(discount_snapshot or {}),
-            benefits_snapshot={},
-            private_access_snapshot={},
-            evaluation_trace={"source": "quote_snapshot", "schema_version": "single_legacy.v1"},
+    async def _ensure_checkout_application(
+        self,
+        *,
+        code_set: CheckoutCodeSetModel,
+        application: dict[str, Any],
+        growth_code_id: UUID,
+    ) -> None:
+        existing = await self._session.execute(
+            select(CheckoutCodeApplicationModel).where(
+                CheckoutCodeApplicationModel.code_set_id == code_set.id,
+                CheckoutCodeApplicationModel.growth_code_id == growth_code_id,
+            )
         )
-        order_application = OrderCodeApplicationModel(
-            order_id=order.id,
-            code_set_id=code_set.id,
-            growth_code_id=growth_code_id,
-            policy_version_id=policy_version_id,
-            application_role=application_role,
-            application_status="applied",
-            discount_amount=discount_amount,
-            currency_code=checkout_session.currency_code,
-            source_amount=discount_amount,
-            source_currency_code=checkout_session.currency_code,
-            reservation_id=reservation_id,
-            application_snapshot=application_snapshot,
+        if existing.scalars().first() is not None:
+            return
+        role = _application_role(application)
+        self._session.add(
+            CheckoutCodeApplicationModel(
+                code_set_id=code_set.id,
+                position_entered=int(application.get("position_entered") or 0),
+                canonical_order=int(application.get("canonical_order") or 0),
+                growth_code_id=growth_code_id,
+                legacy_code_type=str(application.get("legacy_code_type") or role),
+                legacy_code_id=_uuid_or_none(application.get("legacy_code_id")),
+                masked_code=str(application.get("masked_code") or ""),
+                roles={"values": list(application.get("roles") or []), "source": "code_set_snapshot"},
+                resolution_status=str(application.get("status") or "accepted"),
+                reject_reason=None,
+                conflict_code=application.get("conflict_code"),
+                policy_version_id=_uuid_or_none(application.get("policy_version_id")),
+                risk_decision_id=_uuid_or_none(application.get("risk_decision_id")),
+                fx_conversion_id=_uuid_or_none(
+                    application.get("fx_conversion_id")
+                    or dict(application.get("discount") or {}).get("fx_conversion_id")
+                ),
+                reservation_id=_uuid_or_none(application.get("reservation_id")),
+                discount_snapshot=dict(application.get("discount") or {}),
+                benefits_snapshot={"items": list(application.get("benefits") or [])},
+                private_access_snapshot=dict(application.get("private_access") or {}),
+                evaluation_trace=dict(application.get("evaluation_trace") or {}),
+            )
         )
-        self._session.add_all([checkout_application, order_application])
-        await self._session.flush()
 
 
 def _extract_reservation_id(quote_snapshot: dict) -> UUID | None:
@@ -313,71 +379,59 @@ def _extract_reservation_id(quote_snapshot: dict) -> UUID | None:
     return UUID(str(raw_value))
 
 
-def _matching_discount_snapshot(quote_snapshot: dict) -> dict | None:
-    discounts = quote_snapshot.get("discounts")
-    if not isinstance(discounts, list):
+def _legacy_application_from_quote(quote_snapshot: dict[str, Any]) -> dict[str, Any] | None:
+    code_resolution = dict(quote_snapshot.get("code_resolution") or {})
+    growth_code_id = _uuid_or_none(code_resolution.get("growth_code_id"))
+    if growth_code_id is None or code_resolution.get("accepted") is not True:
         return None
-    for discount in discounts:
-        if isinstance(discount, dict) and Decimal(str(discount.get("amount") or "0")) > 0:
-            return dict(discount)
-    for discount in discounts:
-        if isinstance(discount, dict):
-            return dict(discount)
-    return None
-
-
-def _safe_code_ref(quote_snapshot: dict, discount_snapshot: dict | None) -> dict:
-    for candidate in (
-        (discount_snapshot or {}).get("code_ref"),
-        quote_snapshot.get("code_input_ref"),
-    ):
-        if isinstance(candidate, dict):
-            return {
-                "redacted": bool(candidate.get("redacted", True)),
-                "code_hash": candidate.get("code_hash"),
-                "code_prefix": candidate.get("code_prefix"),
-                "code_length": candidate.get("code_length"),
-            }
-    return {"redacted": True, "code_hash": None, "code_prefix": "***", "code_length": None}
-
-
-def _safe_code_resolution_snapshot(code_resolution: dict) -> dict:
-    allowed_keys = {
-        "accepted",
-        "code_type",
-        "action_context",
-        "result",
-        "reject_reason",
-        "wrong_context_target",
-        "issuer_type",
-        "owner_type",
-        "growth_code_id",
-        "promo_code_id",
-        "partner_code_id",
-        "reservation_id",
-        "user_message_key",
-        "policy_snapshot",
+    discount_snapshot = matching_discount_snapshot(quote_snapshot) or {}
+    code_ref = safe_code_ref(quote_snapshot, discount_snapshot)
+    role = str(code_resolution.get("code_type") or discount_snapshot.get("type") or "growth_code")
+    discount_amount = str(discount_snapshot.get("amount") or quote_snapshot.get("discount_amount") or "0")
+    return {
+        "position_entered": 0,
+        "canonical_order": 0,
+        "growth_code_id": str(growth_code_id),
+        "masked_code": masked_code(code_ref),
+        "roles": [role],
+        "status": "accepted",
+        "policy_version_id": discount_snapshot.get("policy_version_id")
+        or dict(code_resolution.get("policy_snapshot") or {}).get("policy_version_id"),
+        "discount": {
+            "source_amount": discount_amount,
+            "source_currency": quote_snapshot.get("currency_code"),
+            "target_amount": discount_amount,
+            "target_currency": quote_snapshot.get("currency_code"),
+            "applied_amount": discount_amount,
+        },
+        "benefits": list(dict(code_resolution.get("policy_snapshot") or {}).get("benefits") or []),
+        "reservation_id": code_resolution.get("reservation_id"),
+        "risk_decision_id": code_resolution.get("risk_decision_id"),
+        "code_ref": code_ref,
+        "legacy_code_type": role,
+        "legacy_code_id": code_resolution.get("promo_code_id") or code_resolution.get("partner_code_id"),
+        "evaluation_trace": {"source": "quote_snapshot", "schema_version": "single_legacy.v1"},
     }
-    return {key: code_resolution.get(key) for key in allowed_keys if key in code_resolution}
 
 
-def _masked_code(code_ref: dict) -> str:
-    prefix = str(code_ref.get("code_prefix") or "***")[:12]
-    code_hash = str(code_ref.get("code_hash") or "")
-    suffix = code_hash[:12] if code_hash else "unknown"
-    return f"{prefix}...{suffix}"[:32]
+def _application_role(application: dict[str, Any]) -> str:
+    roles = application.get("roles")
+    if isinstance(roles, list) and roles:
+        return str(roles[0])
+    return str(application.get("legacy_code_type") or "growth_code")
 
 
-def _code_set_hash(*, code_ref: dict, growth_code_id: UUID) -> str:
-    code_hash = code_ref.get("code_hash") or str(growth_code_id)
-    return hashlib.sha256(f"single-legacy:{code_hash}".encode()).hexdigest()
-
-
-def _decimal(value) -> Decimal:
+def _decimal(value: object) -> Decimal:
     return Decimal(str(value or "0"))
 
 
-def _uuid_or_none(value) -> UUID | None:
+def _decimal_or_none(value: object) -> Decimal | None:
+    if value in (None, ""):
+        return None
+    return Decimal(str(value))
+
+
+def _uuid_or_none(value: object) -> UUID | None:
     if value is None:
         return None
     text = str(value)

@@ -275,6 +275,13 @@ class ResolveGrowthCodeUseCase:
                 storefront_id=storefront_id,
                 existing_partner_code_present=existing_partner_code_present,
             )
+            outcome = replace(
+                outcome,
+                policy_snapshot=await self._build_policy_snapshot_with_benefits(
+                    growth_code_id=registry_code.id,
+                    base_snapshot=outcome.policy_snapshot,
+                ),
+            )
             outcome = self._with_growth_code_id(outcome, registry_code.id)
             await self._registry.record_resolution_event(
                 growth_code_id=registry_code.id,
@@ -958,7 +965,8 @@ class ResolveGrowthCodeUseCase:
         growth_code_id: UUID,
         base_snapshot: dict | None,
     ) -> dict:
-        snapshot = dict(base_snapshot or {})
+        snapshot = await self._stored_policy_snapshot_for_code(growth_code_id)
+        snapshot.update(dict(base_snapshot or {}))
         benefits = await self._growth_codes.list_active_benefits_for_code(growth_code_id)
         if benefits:
             snapshot["benefits"] = [
@@ -977,6 +985,21 @@ class ResolveGrowthCodeUseCase:
                 for benefit in benefits
             ]
         return snapshot
+
+    async def _stored_policy_snapshot_for_code(self, growth_code_id: UUID) -> dict:
+        promo_policy = await self._growth_codes.get_promo_policy(growth_code_id)
+        if promo_policy is not None:
+            return dict(promo_policy.policy_snapshot or {})
+        referral_policy = await self._growth_codes.get_referral_policy(growth_code_id)
+        if referral_policy is not None:
+            return dict(referral_policy.policy_snapshot or {})
+        gift_policy = await self._growth_codes.get_gift_policy(growth_code_id)
+        if gift_policy is not None:
+            return dict(gift_policy.policy_snapshot or {})
+        invite_policy = await self._growth_codes.get_invite_policy(growth_code_id)
+        if invite_policy is not None:
+            return dict(invite_policy.policy_snapshot or {})
+        return {}
 
     @staticmethod
     def _not_found(action_context: GrowthCodeActionContext) -> GrowthCodeResolutionOutcome:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 from httpx import AsyncClient
@@ -10,13 +11,15 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.gifts import IssueGiftCodeUseCase
+from src.application.use_cases.growth_codes.hashing import build_growth_code_prefix, hash_growth_code
 from src.application.use_cases.partner_attribution.attribution import EnsurePendingPartnerAttributionClaimedUseCase
 from src.application.use_cases.partner_attribution.utils import (
     PARTNER_ATTRIBUTION_COOKIE_NAME,
     hash_partner_attribution_token,
 )
 from src.config.settings import settings
-from src.domain.enums import AttributionTouchpointType, CustomerCommercialBindingType
+from src.domain.enums import AttributionTouchpointType, CustomerCommercialBindingType, InviteSource
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.attribution_touchpoint_model import AttributionTouchpointModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -24,7 +27,18 @@ from src.infrastructure.database.models.billing_descriptor_model import BillingD
 from src.infrastructure.database.models.brand_model import BrandModel
 from src.infrastructure.database.models.checkout_session_model import CheckoutSessionModel
 from src.infrastructure.database.models.customer_commercial_binding_model import CustomerCommercialBindingModel
-from src.infrastructure.database.models.growth_code_model import GrowthCodeReservationModel
+from src.infrastructure.database.models.growth_code_model import (
+    GrowthCodeModel,
+    GrowthCodeReservationModel,
+    PromoCodePolicyModel,
+)
+from src.infrastructure.database.models.growth_code_set_model import (
+    CheckoutCodeApplicationModel,
+    CheckoutCodeSetModel,
+    GrowthCodeReservationGroupModel,
+)
+from src.infrastructure.database.models.growth_risk_fx_model import FxDiscountConversionModel, FxRateSnapshotModel
+from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.invoice_profile_model import InvoiceProfileModel
 from src.infrastructure.database.models.legal_document_model import LegalDocumentModel
 from src.infrastructure.database.models.legal_document_set_model import (
@@ -51,6 +65,7 @@ from src.main import app
 from src.presentation.dependencies.database import get_db
 from tests.helpers.realm_auth import (
     FakeRedis,
+    SyncSessionAdapter,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -997,7 +1012,7 @@ async def test_legacy_payment_commit_is_disabled_and_quote_uses_pricebook_amount
                     "addons": [],
                 },
             )
-            assert quote_response.status_code == 201
+            assert quote_response.status_code == 201, quote_response.text
             quote_payload = quote_response.json()
             assert quote_payload["quote"]["base_price"] == 75.0
             assert quote_payload["quote"]["displayed_price"] == 75.0
@@ -1114,7 +1129,7 @@ async def test_quote_and_checkout_sessions_follow_lineage_and_idempotency(async_
                     "addons": [],
                 },
             )
-            assert quote_response.status_code == 201
+            assert quote_response.status_code == 201, quote_response.text
             quote_payload = quote_response.json()
             assert quote_payload["storefront_key"] == seeded["storefront_key"]
             assert quote_payload["merchant_profile_id"] == seeded["merchant_profile_id"]
@@ -2452,7 +2467,7 @@ async def test_quote_session_reserves_promo_and_binds_it_to_checkout(
                     "addons": [],
                 },
             )
-            assert quote_response.status_code == 201
+            assert quote_response.status_code == 201, quote_response.text
             quote_payload = quote_response.json()
             reservation_id = quote_payload["quote"]["code_resolution"]["reservation_id"]
             assert quote_payload["quote"]["code_input"] != "PROMOSESSION10"
@@ -2467,11 +2482,32 @@ async def test_quote_session_reserves_promo_and_binds_it_to_checkout(
             assert reservation_id is not None
 
             with sessionmaker() as db:
+                quote_session = db.get(QuoteSessionModel, uuid.UUID(quote_payload["id"]))
+                assert quote_session is not None
+                assert quote_session.code_set_id is not None
                 reservation = db.get(GrowthCodeReservationModel, uuid.UUID(reservation_id))
                 assert reservation is not None
                 assert reservation.quote_session_id == uuid.UUID(quote_payload["id"])
                 assert reservation.checkout_session_id is None
                 assert reservation.status == "reserved"
+                assert reservation.reservation_group_id is not None
+                code_set = db.get(CheckoutCodeSetModel, quote_session.code_set_id)
+                assert code_set is not None
+                assert code_set.status == "reserved"
+                assert code_set.quote_session_id == quote_session.id
+                assert code_set.aggregate_result["code_ref"]["redacted"] is True
+                assert "PROMOSESSION10" not in str(code_set.aggregate_result)
+                reservation_group = db.get(GrowthCodeReservationGroupModel, reservation.reservation_group_id)
+                assert reservation_group is not None
+                assert reservation_group.status == "reserved"
+                assert reservation_group.code_set_id == code_set.id
+                assert reservation_group.quote_session_id == quote_session.id
+                checkout_application = db.execute(
+                    select(CheckoutCodeApplicationModel).where(CheckoutCodeApplicationModel.code_set_id == code_set.id)
+                ).scalar_one()
+                assert checkout_application.reservation_id == reservation.id
+                assert checkout_application.discount_snapshot["applied_amount"] == "7.50"
+                assert "PROMOSESSION10" not in str(checkout_application.discount_snapshot)
 
             checkout_response = await async_client.post(
                 "/api/v1/checkout-sessions/",
@@ -2487,6 +2523,598 @@ async def test_quote_session_reserves_promo_and_binds_it_to_checkout(
                 assert reservation is not None
                 assert reservation.checkout_session_id == uuid.UUID(checkout_payload["id"])
                 assert reservation.status == "reserved"
+                checkout_session = db.get(CheckoutSessionModel, uuid.UUID(checkout_payload["id"]))
+                assert checkout_session is not None
+                assert checkout_session.code_set_id is not None
+                code_set = db.get(CheckoutCodeSetModel, checkout_session.code_set_id)
+                assert code_set is not None
+                assert code_set.checkout_session_id == checkout_session.id
+                assert code_set.status == "checkout_open"
+                reservation_group = db.get(GrowthCodeReservationGroupModel, reservation.reservation_group_id)
+                assert reservation_group is not None
+                assert reservation_group.checkout_session_id == checkout_session.id
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
+    monkeypatch.setattr(settings, "gift_codes_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            with sessionmaker() as db:
+                invite_owner = MobileUserModel(
+                    id=uuid.uuid4(),
+                    auth_realm_id=customer_realm.id,
+                    email="basket-invite-owner@example.test",
+                    password_hash=await auth_service.hash_password("InviteOwner123!"),
+                    is_active=True,
+                    status="active",
+                )
+                invite = InviteCodeModel(
+                    id=uuid.uuid4(),
+                    code="INVITEBASKET01",
+                    owner_user_id=invite_owner.id,
+                    free_days=14,
+                    source=InviteSource.ADMIN_GRANT.value,
+                    is_used=False,
+                    expires_at=datetime.now(UTC) + timedelta(days=7),
+                )
+                ambiguous_invite = InviteCodeModel(
+                    id=uuid.uuid4(),
+                    code="AMBIGBASKET",
+                    owner_user_id=invite_owner.id,
+                    free_days=7,
+                    source=InviteSource.ADMIN_GRANT.value,
+                    is_used=False,
+                    expires_at=datetime.now(UTC) + timedelta(days=7),
+                )
+                gift = await IssueGiftCodeUseCase(SyncSessionAdapter(db)).execute(
+                    owner_user_id=uuid.UUID(seeded["customer_user_id"]),
+                    plan_id=uuid.UUID(seeded["plan_id"]),
+                    issuer_type="admin",
+                    issuance_type="admin_manual_gift",
+                    auth_realm_id=customer_realm.id,
+                    reason_code="basket_wrong_context",
+                )
+                now = datetime.now(UTC)
+                fx_policy_version = PolicyVersionModel(
+                    id=uuid.uuid4(),
+                    policy_family="growth_fx",
+                    policy_key="promo-euro-fixed-v1",
+                    subject_type="growth_code",
+                    version_number=1,
+                    payload={"fixed_discount_currency": "EUR"},
+                    approval_state="approved",
+                    version_status="active",
+                    effective_from=now,
+                )
+                fx_rate = FxRateSnapshotModel(
+                    id=uuid.uuid4(),
+                    base_currency="EUR",
+                    quote_currency="USD",
+                    rate=Decimal("1.1"),
+                    inverse_rate=Decimal("0.9090909091"),
+                    source_type="pricebook",
+                    provider_key="pricebook-primary",
+                    provider_rate_id="pb-eur-usd-20260625",
+                    observed_at=now,
+                    fetched_at=now,
+                    valid_until=now + timedelta(minutes=30),
+                    status="active",
+                    metadata_={"pricebook_key": seeded["pricebook_key"]},
+                )
+                fx_rate_id = fx_rate.id
+                fx_promo_code = GrowthCodeModel(
+                    id=uuid.uuid4(),
+                    code_hash=hash_growth_code("PROMOEURO5"),
+                    code_prefix=build_growth_code_prefix("PROMOEURO5"),
+                    code_type="promo",
+                    status="active",
+                    issuer_type="admin",
+                    starts_at=now,
+                )
+                fx_policy_snapshot = {
+                    "policy_version_id": str(fx_policy_version.id),
+                    "fixed_discount_currency": "EUR",
+                    "fx": {
+                        "fixed_discount_currency": "EUR",
+                        "rate_snapshots": [
+                            {
+                                "rate_id": str(fx_rate.id),
+                                "provider": "pricebook-primary",
+                                "provider_priority": 1,
+                                "source_currency": "EUR",
+                                "target_currency": "USD",
+                                "rate": "1.10",
+                                "fetched_at": now.isoformat(),
+                                "expires_at": (now + timedelta(minutes=30)).isoformat(),
+                                "source_type": "pricebook",
+                                "configured_rate_version": "pb-eur-usd-20260625",
+                            }
+                        ],
+                    },
+                }
+                fx_promo_policy = PromoCodePolicyModel(
+                    id=uuid.uuid4(),
+                    growth_code_id=fx_promo_code.id,
+                    discount_type="fixed",
+                    discount_value=5,
+                    currency_code="EUR",
+                    policy_snapshot=fx_policy_snapshot,
+                )
+                missing_fx_promo_code = GrowthCodeModel(
+                    id=uuid.uuid4(),
+                    code_hash=hash_growth_code("PROMOEUROMISSING"),
+                    code_prefix=build_growth_code_prefix("PROMOEUROMISSING"),
+                    code_type="promo",
+                    status="active",
+                    issuer_type="admin",
+                    starts_at=now,
+                )
+                missing_fx_promo_policy = PromoCodePolicyModel(
+                    id=uuid.uuid4(),
+                    growth_code_id=missing_fx_promo_code.id,
+                    discount_type="fixed",
+                    discount_value=4,
+                    currency_code="EUR",
+                    policy_snapshot={
+                        "policy_version_id": str(fx_policy_version.id),
+                        "fixed_discount_currency": "EUR",
+                        "fx_rate_snapshots": [],
+                    },
+                )
+                db.add_all(
+                    [
+                        invite_owner,
+                        invite,
+                        ambiguous_invite,
+                        fx_policy_version,
+                        fx_rate,
+                        fx_promo_code,
+                        fx_promo_policy,
+                        missing_fx_promo_code,
+                        missing_fx_promo_policy,
+                        PromoCodeModel(
+                            id=uuid.uuid4(),
+                            code="AMBIGBASKET",
+                            discount_type="fixed",
+                            discount_value=3,
+                            is_active=True,
+                        ),
+                        PromoCodeModel(
+                            id=uuid.uuid4(),
+                            code="PROMOGROUP10",
+                            discount_type="percent",
+                            discount_value=10,
+                            is_active=True,
+                        ),
+                        PromoCodeModel(
+                            id=uuid.uuid4(),
+                            code="PROMOGROUP5",
+                            discount_type="fixed",
+                            discount_value=5,
+                            is_active=True,
+                        ),
+                        PromoCodeModel(
+                            id=uuid.uuid4(),
+                            code="PROMOEURO5",
+                            discount_type="fixed",
+                            discount_value=5,
+                            is_active=True,
+                        ),
+                        PromoCodeModel(
+                            id=uuid.uuid4(),
+                            code="PROMOEUROMISSING",
+                            discount_type="fixed",
+                            discount_value=4,
+                            is_active=True,
+                        ),
+                    ]
+                )
+                db.commit()
+
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [
+                        {"code": "PROMOGROUP10", "client_slot_id": "percent"},
+                        {"code": "PROMOGROUP5", "client_slot_id": "fixed"},
+                    ],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201, quote_response.text
+            quote_payload = quote_response.json()
+            quote = quote_payload["quote"]
+            assert quote["discount_amount"] == 12.5
+            assert quote["gateway_amount"] == 62.5
+            assert quote["code_input"] is None
+            assert quote["code_set_id"] is not None
+            assert quote["reservation_group_id"] is not None
+            assert len(quote["code_set"]["applications"]) == 2
+            assert [item["position_entered"] for item in quote["code_set"]["applications"]] == [0, 1]
+            assert {item["discount"]["applied_amount"] for item in quote["code_set"]["applications"]} == {
+                "7.50",
+                "5.00",
+            }
+            fixed_application = next(
+                item for item in quote["code_set"]["applications"] if item["client_slot_id"] == "fixed"
+            )
+            fx_conversion = fixed_application["discount"]["fx_conversion"]
+            assert fx_conversion["source_currency"] == "USD"
+            assert fx_conversion["target_currency"] == "USD"
+            assert fx_conversion["source_amount"] == "5.00"
+            assert fx_conversion["applied_amount"] == "5.00"
+            assert fx_conversion["conversion_mode"] == "same_currency"
+            assert fx_conversion["rounding_mode"] == "ROUND_HALF_UP"
+            assert fx_conversion["no_rerate"] is True
+            assert len(fx_conversion["conversion_checksum"]) == 64
+            reservation_ids = [item["reservation_id"] for item in quote["code_set"]["applications"]]
+            assert len(reservation_ids) == 2
+            assert all(reservation_ids)
+            assert "PROMOGROUP10" not in quote_response.text
+            assert "PROMOGROUP5" not in quote_response.text
+
+            reverse_quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [
+                        {"code": "PROMOGROUP5", "client_slot_id": "fixed-reversed"},
+                        {"code": "PROMOGROUP10", "client_slot_id": "percent-reversed"},
+                    ],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert reverse_quote_response.status_code == 201, reverse_quote_response.text
+            reverse_quote = reverse_quote_response.json()["quote"]
+            assert reverse_quote["code_set_hash"] == quote["code_set_hash"]
+            assert reverse_quote["discount_amount"] == quote["discount_amount"]
+            assert reverse_quote["gateway_amount"] == quote["gateway_amount"]
+            assert {item["discount"]["applied_amount"] for item in reverse_quote["code_set"]["applications"]} == {
+                "7.50",
+                "5.00",
+            }
+            assert "PROMOGROUP10" not in reverse_quote_response.text
+            assert "PROMOGROUP5" not in reverse_quote_response.text
+
+            fx_quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [
+                        {"code": "PROMOGROUP10", "client_slot_id": "fx-percent"},
+                        {"code": "PROMOEURO5", "client_slot_id": "eur-fixed"},
+                    ],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert fx_quote_response.status_code == 201, fx_quote_response.text
+            fx_quote_payload = fx_quote_response.json()
+            fx_quote = fx_quote_payload["quote"]
+            assert fx_quote["discount_amount"] == 13.0
+            assert fx_quote["gateway_amount"] == 62.0
+            fx_application = next(
+                item for item in fx_quote["code_set"]["applications"] if item["client_slot_id"] == "eur-fixed"
+            )
+            fx_discount = fx_application["discount"]
+            assert fx_discount["source_currency"] == "EUR"
+            assert fx_discount["target_currency"] == "USD"
+            assert fx_discount["source_amount"] == "5.00"
+            assert fx_discount["applied_amount"] == "5.50"
+            assert fx_discount["fx_conversion"]["conversion_mode"] == "pricebook"
+            assert fx_discount["fx_conversion"]["no_rerate"] is True
+            assert fx_discount["fx_conversion"]["rate_snapshot"]["rate"] == "1.10"
+            assert fx_discount["fx_conversion_id"]
+            assert "PROMOEURO5" not in fx_quote_response.text
+
+            missing_fx_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [{"code": "PROMOEUROMISSING", "client_slot_id": "missing-fx"}],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert missing_fx_response.status_code == 409, missing_fx_response.text
+            assert missing_fx_response.headers["Cache-Control"] == "no-store"
+            assert missing_fx_response.json()["detail"] == {
+                "code": "FX_RATE_UNAVAILABLE",
+                "message_key": "growth.fx.errors.rateUnavailable",
+                "retryable": False,
+            }
+            assert "PROMOEUROMISSING" not in missing_fx_response.text
+
+            duplicate_quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [
+                        {"code": "PROMOGROUP10", "client_slot_id": "duplicate-a"},
+                        {"code": "PROMOGROUP10", "client_slot_id": "duplicate-b"},
+                    ],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert duplicate_quote_response.status_code == 400, duplicate_quote_response.text
+            assert duplicate_quote_response.json()["detail"] == {
+                "code": "CODE_SET_REJECTED",
+                "message_key": "growth.codes.errors.codeSetRejected",
+                "retryable": False,
+            }
+            assert "PROMOGROUP10" not in duplicate_quote_response.text
+
+            ambiguous_quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [{"code": "AMBIGBASKET", "client_slot_id": "ambiguous"}],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert ambiguous_quote_response.status_code == 400, ambiguous_quote_response.text
+            assert ambiguous_quote_response.headers["Cache-Control"] == "no-store"
+            assert ambiguous_quote_response.json()["detail"] == {
+                "code": "CODE_SET_REJECTED",
+                "message_key": "growth.codes.errors.codeSetRejected",
+                "retryable": False,
+            }
+            assert "AMBIGBASKET" not in ambiguous_quote_response.text
+
+            invite_quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [{"code": invite.code, "client_slot_id": "invite-wrong-context"}],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert invite_quote_response.status_code == 400, invite_quote_response.text
+            assert invite_quote_response.headers["Cache-Control"] == "no-store"
+            assert invite_quote_response.json()["detail"] == {
+                "code": "CODE_SET_REJECTED",
+                "message_key": "growth.codes.errors.codeSetRejected",
+                "retryable": False,
+            }
+            assert invite.code not in invite_quote_response.text
+
+            gift_quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [{"code": gift.raw_code, "client_slot_id": "gift-wrong-context"}],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert gift_quote_response.status_code == 400, gift_quote_response.text
+            assert gift_quote_response.headers["Cache-Control"] == "no-store"
+            assert gift_quote_response.json()["detail"] == {
+                "code": "CODE_SET_REJECTED",
+                "message_key": "growth.codes.errors.codeSetRejected",
+                "retryable": False,
+            }
+            assert gift.raw_code not in gift_quote_response.text
+
+            preview_response = await async_client.post(
+                "/api/v1/payments/checkout/quote",
+                headers=headers,
+                json={
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [
+                        {"code": "PROMOGROUP10", "client_slot_id": "percent-preview"},
+                        {"code": "PROMOGROUP5", "client_slot_id": "fixed-preview"},
+                    ],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert preview_response.status_code == 200, preview_response.text
+            preview_quote = preview_response.json()
+            assert preview_quote["code_set_id"] is None
+            assert preview_quote["reservation_group_id"] is None
+            assert preview_quote["code_set_hash"]
+            assert preview_quote["code_set"]["id"] is None
+            assert len(preview_quote["code_set"]["applications"]) == 2
+            assert all(item["status"] == "accepted" for item in preview_quote["code_set"]["applications"])
+            assert all(item["reservation_id"] is None for item in preview_quote["code_set"]["applications"])
+            assert "PROMOGROUP10" not in preview_response.text
+            assert "PROMOGROUP5" not in preview_response.text
+
+            with sessionmaker() as db:
+                quote_session = db.get(QuoteSessionModel, uuid.UUID(quote_payload["id"]))
+                assert quote_session is not None
+                assert quote_session.code_set_id == uuid.UUID(quote["code_set_id"])
+                code_set = db.get(CheckoutCodeSetModel, quote_session.code_set_id)
+                assert code_set is not None
+                assert code_set.status == "reserved"
+                assert code_set.acceptance_mode == "all_or_nothing"
+                assert code_set.aggregate_result["application_count"] == 2
+                assert "PROMOGROUP10" not in str(code_set.aggregate_result)
+                assert "PROMOGROUP5" not in str(code_set.aggregate_result)
+                fx_code_set = db.get(CheckoutCodeSetModel, uuid.UUID(fx_quote["code_set_id"]))
+                assert fx_code_set is not None
+                assert "PROMOEURO5" not in str(fx_code_set.aggregate_result)
+                applications = (
+                    db.execute(
+                        select(CheckoutCodeApplicationModel)
+                        .where(CheckoutCodeApplicationModel.code_set_id == code_set.id)
+                        .order_by(CheckoutCodeApplicationModel.canonical_order)
+                    )
+                    .scalars()
+                    .all()
+                )
+                assert len(applications) == 2
+                assert [application.discount_snapshot["applied_amount"] for application in applications] == [
+                    "7.50",
+                    "5.00",
+                ]
+                persisted_fx_conversion = applications[1].discount_snapshot["fx_conversion"]
+                assert persisted_fx_conversion == fx_conversion
+                assert "PROMOGROUP5" not in str(persisted_fx_conversion)
+                fx_applications = (
+                    db.execute(
+                        select(CheckoutCodeApplicationModel)
+                        .where(CheckoutCodeApplicationModel.code_set_id == uuid.UUID(fx_quote["code_set_id"]))
+                        .order_by(CheckoutCodeApplicationModel.canonical_order)
+                    )
+                    .scalars()
+                    .all()
+                )
+                persisted_fx_application = next(
+                    application
+                    for application in fx_applications
+                    if application.discount_snapshot.get("source_currency") == "EUR"
+                )
+                assert persisted_fx_application.fx_conversion_id == uuid.UUID(fx_discount["fx_conversion_id"])
+                assert persisted_fx_application.discount_snapshot["fx_conversion_id"] == fx_discount["fx_conversion_id"]
+                conversion_row = db.get(FxDiscountConversionModel, persisted_fx_application.fx_conversion_id)
+                assert conversion_row is not None
+                assert conversion_row.code_application_id == persisted_fx_application.id
+                assert conversion_row.growth_code_id == persisted_fx_application.growth_code_id
+                assert conversion_row.policy_version_id == persisted_fx_application.policy_version_id
+                assert conversion_row.fx_rate_snapshot_id == fx_rate_id
+                assert conversion_row.source_currency == "EUR"
+                assert conversion_row.target_currency == "USD"
+                assert conversion_row.conversion_mode == "pricebook"
+                assert conversion_row.target_minor_units == 2
+                assert conversion_row.rounding_mode == "ROUND_HALF_UP"
+                assert conversion_row.applied_amount == Decimal("5.50000000")
+                reservations = [
+                    db.get(GrowthCodeReservationModel, uuid.UUID(reservation_id)) for reservation_id in reservation_ids
+                ]
+                assert all(reservation is not None for reservation in reservations)
+                reservation_group_ids = {
+                    reservation.reservation_group_id for reservation in reservations if reservation
+                }
+                assert reservation_group_ids == {uuid.UUID(quote["reservation_group_id"])}
+                reservation_group = db.get(GrowthCodeReservationGroupModel, uuid.UUID(quote["reservation_group_id"]))
+                assert reservation_group is not None
+                assert reservation_group.status == "reserved"
+                assert reservation_group.code_set_id == code_set.id
+                assert reservation_group.quote_session_id == quote_session.id
+
+            checkout_response = await async_client.post(
+                "/api/v1/checkout-sessions/",
+                headers={**headers, "Idempotency-Key": "multi-code-bind-1"},
+                json={"quote_session_id": quote_payload["id"]},
+            )
+            assert checkout_response.status_code == 201, checkout_response.text
+            checkout_payload = checkout_response.json()
+            assert checkout_payload["quote"]["reservation_group_id"] == quote["reservation_group_id"]
+
+            with sessionmaker() as db:
+                checkout_session = db.get(CheckoutSessionModel, uuid.UUID(checkout_payload["id"]))
+                assert checkout_session is not None
+                assert checkout_session.code_set_id == uuid.UUID(quote["code_set_id"])
+                code_set = db.get(CheckoutCodeSetModel, checkout_session.code_set_id)
+                assert code_set is not None
+                assert code_set.checkout_session_id == checkout_session.id
+                assert code_set.status == "checkout_open"
+                for reservation_id in reservation_ids:
+                    reservation = db.get(GrowthCodeReservationModel, uuid.UUID(reservation_id))
+                    assert reservation is not None
+                    assert reservation.checkout_session_id == checkout_session.id
+                    assert reservation.status == "reserved"
+                reservation_group = db.get(GrowthCodeReservationGroupModel, uuid.UUID(quote["reservation_group_id"]))
+                assert reservation_group is not None
+                assert reservation_group.checkout_session_id == checkout_session.id
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()

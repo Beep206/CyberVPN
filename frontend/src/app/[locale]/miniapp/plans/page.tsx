@@ -1,38 +1,42 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import {
   AlertCircle,
-  Check,
   ChevronRight,
+  CheckCircle,
   Gift,
   Loader2,
   Minus,
   Orbit,
   ShieldCheck,
   Sparkles,
-  Tag,
   Users,
   Zap,
 } from 'lucide-react';
-import { codesApi, invitesApi, miniappApi } from '@/lib/api';
-import { OFFICIAL_WEB_STOREFRONT_KEY } from '@/lib/api/commerce';
+import { Link } from '@/i18n/navigation';
+import { invitesApi, miniappApi } from '@/lib/api';
+import { commerceApi, createClientIdempotencyKey, OFFICIAL_WEB_STOREFRONT_KEY } from '@/lib/api/commerce';
 import type { MiniAppCheckoutFlow } from '@/lib/api/miniapp';
 import type { CheckoutCommitResponse, CheckoutQuoteResponse } from '@/lib/api/payments';
 import type { PlanRecord } from '@/lib/api/plans';
 import type { CurrentEntitlementsResponse } from '@/lib/api/subscriptions';
-import {
-  getGrowthCodeResolutionMessage,
-  getUnsupportedCheckoutCodeMessage,
-} from '@/features/customer-growth/lib/checkout-code-resolution';
+import { getUnsupportedCheckoutCodeMessageKey } from '@/features/customer-growth/lib/checkout-code-resolution';
 import {
   buildPrivateOfferUnlockCopy,
   PrivateOfferUnlock,
   type PrivateOfferSelection,
 } from '@/features/customer-growth/components/PrivateOfferUnlock';
+import {
+  GrowthCodeBasket,
+  createEmptyGrowthCodeBasketSummary,
+  type GrowthCodeBasketPrimarySelection,
+  type GrowthCodeBasketSummary,
+} from '@/features/customer-growth-code-basket/components/GrowthCodeBasket';
+import { buildGrowthCodeBasketCopy } from '@/features/customer-growth-code-basket/lib/copy';
 import {
   areCheckoutCodeDiscountsEnabled,
   areSubscriptionAddonsEnabled,
@@ -66,6 +70,20 @@ type CheckoutAddonLine = {
   qty: number;
   location_code?: string;
 };
+type InviteBenefitPreview = {
+  id: string;
+  count: number;
+  friendDays: number | null;
+  availableAfter: string | null;
+  expiresAt: string | null;
+};
+type CheckoutGrowthEffectsSource =
+  | Pick<CheckoutQuoteResponse, 'growth_effects' | 'gateway_amount' | 'is_zero_gateway' | 'requires_external_payment'>
+  | Pick<CheckoutCommitResponse, 'growth_effects' | 'gateway_amount' | 'is_zero_gateway' | 'requires_external_payment'>;
+type ZeroGatewayActivationReceipt = {
+  contextFingerprint: string;
+  inviteBenefits: InviteBenefitPreview[];
+};
 type CommitCheckoutPayload = {
   flow: MiniAppCheckoutFlow;
   selectedPlanId: string;
@@ -73,10 +91,20 @@ type CommitCheckoutPayload = {
   addonLines: CheckoutAddonLine[];
   effectivePromoCode: string | null;
   effectiveCheckoutCodeInput: string | null;
+  effectiveCheckoutCodes: string[];
   privateCatalogGrantId: string | null;
   telegramStarsAmount: number;
   invoiceSupported: boolean;
 };
+
+function buildMiniAppCheckoutCodes(codes: string[]) {
+  return codes.length > 0
+    ? codes.map((code, index) => ({
+        code,
+        client_slot_id: `miniapp-${index + 1}`,
+      }))
+    : undefined;
+}
 
 const PUBLIC_PLAN_ORDER: PricingTierCode[] = ['basic', 'plus', 'pro', 'max'];
 const RU_TRAFFIC_ADDON_CODES = ['ru_traffic_30gb', 'ru_traffic_50gb', 'ru_traffic_100gb'] as const;
@@ -271,6 +299,108 @@ function getTrafficAddonGib(addon: { delta_entitlements: Record<string, unknown>
   return Math.round(bytes / 1024 ** 3);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readPositiveInteger(value: unknown): number | null {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return Math.trunc(parsed);
+}
+
+function readOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function getIssueInviteBenefitPreviews(
+  source: Pick<CheckoutGrowthEffectsSource, 'growth_effects'> | null | undefined,
+): InviteBenefitPreview[] {
+  const benefitsPreview = source?.growth_effects?.benefits_preview;
+  if (!Array.isArray(benefitsPreview)) {
+    return [];
+  }
+
+  return benefitsPreview.flatMap((benefit, index): InviteBenefitPreview[] => {
+    if (!isRecord(benefit) || benefit.type !== 'issue_invites') {
+      return [];
+    }
+
+    const count = readPositiveInteger(benefit.count ?? benefit.requested_count ?? benefit.issued_count);
+    if (!count) {
+      return [];
+    }
+
+    return [{
+      id: readOptionalString(benefit.benefit_id) ?? readOptionalString(benefit.id) ?? `issue-invites-${index}`,
+      count,
+      friendDays: readPositiveInteger(benefit.friend_days),
+      availableAfter: readOptionalString(benefit.available_after),
+      expiresAt: readOptionalString(benefit.expires_at),
+    }];
+  });
+}
+
+function isZeroGatewayCheckout(source: CheckoutGrowthEffectsSource | null | undefined) {
+  return Boolean(
+    source
+    && (
+      source.is_zero_gateway
+      || source.gateway_amount === 0
+      || (source.requires_external_payment === false && source.gateway_amount <= 0)
+    ),
+  );
+}
+
+function isCompletedZeroGatewayCommit(data: CheckoutCommitResponse) {
+  return Boolean(
+    isZeroGatewayCheckout(data)
+    && (
+      data.status === 'completed'
+      || data.next_action === 'completed'
+      || data.requires_external_payment === false
+    ),
+  );
+}
+
+function getCheckoutCommitTelemetryErrorCode(error: unknown) {
+  if (!isRecord(error)) {
+    return 'checkout_commit_failed';
+  }
+
+  const response = isRecord(error.response) ? error.response : null;
+  if (!response) {
+    return 'checkout_commit_network_failed';
+  }
+
+  const status = typeof response.status === 'number' ? response.status : null;
+  if (status === 401 || status === 403) {
+    return 'checkout_commit_authorization_failed';
+  }
+  if (status === 400 || status === 409 || status === 422) {
+    return 'checkout_commit_validation_failed';
+  }
+  if (typeof status === 'number' && status >= 500) {
+    return 'checkout_commit_service_failed';
+  }
+
+  return 'checkout_commit_failed';
+}
+
+function formatBenefitAvailabilityStage(t: ReturnType<typeof useTranslations>, stage: string) {
+  if (stage === 'settlement') {
+    return t('quote.benefitStages.settlement');
+  }
+  if (stage === 'activation') {
+    return t('quote.benefitStages.activation');
+  }
+
+  return stage;
+}
+
 async function waitForPaymentCompletion(paymentId: string) {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const { data } = await miniappApi.getPayment(paymentId);
@@ -346,6 +476,7 @@ function QuoteBreakdown({
   quote: CheckoutQuoteResponse;
 }) {
   const entitlements = quote.entitlements_snapshot.effective_entitlements;
+  const inviteBenefits = getIssueInviteBenefitPreviews(quote);
 
   return (
     <div className="space-y-4">
@@ -404,6 +535,43 @@ function QuoteBreakdown({
           </div>
         </div>
       </div>
+
+      {inviteBenefits.length > 0 ? (
+        <div className="rounded-2xl border border-matrix-green/20 bg-matrix-green/10 p-4">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-matrix-green">
+            {t('quote.benefitsPreview')}
+          </p>
+          <ul className="mt-3 space-y-2">
+            {inviteBenefits.map((benefit) => (
+              <li key={benefit.id} className="flex items-start gap-3 text-sm font-mono text-white/75">
+                <Gift className="mt-0.5 h-4 w-4 shrink-0 text-matrix-green" aria-hidden="true" />
+                <div>
+                  <p>
+                    {benefit.friendDays
+                      ? t('quote.inviteBenefitWithDays', {
+                          count: benefit.count,
+                          days: benefit.friendDays,
+                        })
+                      : t('quote.inviteBenefit', { count: benefit.count })}
+                  </p>
+                  {benefit.availableAfter ? (
+                    <p className="mt-1 text-xs text-white/45">
+                      {t('quote.benefitAvailableAfter', {
+                        stage: formatBenefitAvailabilityStage(t, benefit.availableAfter),
+                      })}
+                    </p>
+                  ) : null}
+                  {benefit.expiresAt ? (
+                    <p className="mt-1 text-xs text-white/45">
+                      {t('quote.benefitExpiresAt', { date: benefit.expiresAt })}
+                    </p>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -414,6 +582,7 @@ export default function MiniAppPlansPage() {
   const { haptic, hapticNotification, webApp } = useTelegramWebApp();
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const queryClient = useQueryClient();
+  const zeroGatewayReceiptRef = useRef<HTMLDivElement>(null);
   const startParam = webApp?.initDataUnsafe?.start_param ?? null;
   const capabilitiesQuery = useClientCapabilities();
   const clientCapabilities = capabilitiesQuery.data;
@@ -429,17 +598,18 @@ export default function MiniAppPlansPage() {
   const [selectedTrafficAddonCode, setSelectedTrafficAddonCode] = useState<RuTrafficAddonCode | null>(null);
   const [wantsDedicatedIp, setWantsDedicatedIp] = useState(false);
   const [dedicatedIpLocation, setDedicatedIpLocation] = useState('');
-  const [codeInput, setCodeInput] = useState('');
   const [appliedCodeInput, setAppliedCodeInput] = useState<string | null>(null);
   const [appliedCodeType, setAppliedCodeType] = useState<string | null>(null);
+  const [acceptedCheckoutCodes, setAcceptedCheckoutCodes] = useState<string[]>([]);
+  const [codeBasketSummary, setCodeBasketSummary] =
+    useState<GrowthCodeBasketSummary>(() => createEmptyGrowthCodeBasketSummary());
   const [privateOfferSelection, setPrivateOfferSelection] =
     useState<PrivateOfferSelection | null>(null);
-  const [codeFeedback, setCodeFeedback] = useState<{
-    tone: 'success' | 'warning' | 'error';
-    message: string;
-  } | null>(null);
+  const [zeroGatewayReceipt, setZeroGatewayReceipt] =
+    useState<ZeroGatewayActivationReceipt | null>(null);
   const [inviteCode, setInviteCode] = useState('');
   const privateOfferCopy = useMemo(() => buildPrivateOfferUnlockCopy(t), [t]);
+  const growthCodeBasketCopy = useMemo(() => buildGrowthCodeBasketCopy(t), [t]);
 
   const offersQuery = useQuery({
     queryKey: ['miniapp-offers', selectedSubscriptionKey],
@@ -598,22 +768,25 @@ export default function MiniAppPlansPage() {
       : null;
   const effectiveCheckoutCodeInput =
     checkoutCodesEnabled && flow === 'checkout'
-      ? appliedCodeInput
+      ? acceptedCheckoutCodes.length <= 1
+        ? appliedCodeInput
+        : null
       : null;
-  const unsupportedAppliedCodeMessage =
+  const effectiveCheckoutCodes =
+    checkoutCodesEnabled && flow === 'checkout' && acceptedCheckoutCodes.length > 1
+      ? acceptedCheckoutCodes
+      : [];
+  const unsupportedAppliedCodeKey =
     appliedCodeInput && appliedCodeType
-      ? getUnsupportedCheckoutCodeMessage({
+      ? getUnsupportedCheckoutCodeMessageKey({
           codeType: appliedCodeType as 'invite' | 'referral' | 'promo' | 'gift' | 'partner',
           flow: flow === 'none' || flow === 'current' ? 'checkout' : flow,
           partnerCodeEntryAllowed: false,
         })
       : null;
-  const displayedCodeFeedback = unsupportedAppliedCodeMessage
-    ? {
-        tone: 'warning' as const,
-        message: unsupportedAppliedCodeMessage,
-      }
-    : codeFeedback;
+  const unsupportedAppliedCodeMessage = unsupportedAppliedCodeKey
+    ? growthCodeBasketCopy.unsupportedErrors[unsupportedAppliedCodeKey]
+    : null;
 
   const quoteQuery = useQuery({
     queryKey: [
@@ -626,6 +799,7 @@ export default function MiniAppPlansPage() {
       dedicatedIpLocation,
       effectivePromoCode,
       effectiveCheckoutCodeInput,
+      effectiveCheckoutCodes.join('|'),
       privateOfferSelection?.privateCatalogGrantId ?? null,
       privateOfferSelection?.planId ?? null,
       selectedSubscriptionKey,
@@ -644,6 +818,7 @@ export default function MiniAppPlansPage() {
         addons: addonLines,
         code_input: effectiveCheckoutCodeInput ?? undefined,
         promo_code: effectivePromoCode ?? undefined,
+        codes: buildMiniAppCheckoutCodes(effectiveCheckoutCodes),
         private_catalog_grant_id: privateOfferSelection?.privateCatalogGrantId ?? undefined,
         ...(selectedSubscriptionKey ? { subscription_key: selectedSubscriptionKey } : {}),
         use_wallet: 0,
@@ -653,97 +828,56 @@ export default function MiniAppPlansPage() {
     },
   });
 
-  async function handleApplyCode() {
-    if (!checkoutCodesEnabled) {
-      setCodeFeedback({
-        tone: 'warning',
-        message: t('checkoutCodeDisabled'),
-      });
+  const checkoutContextFingerprint = [
+    selectedPlanId,
+    flow,
+    JSON.stringify(addonLines),
+    privateOfferSelection?.privateCatalogGrantId ?? 'public',
+    selectedSubscriptionKey ?? 'default',
+  ].join(':');
+  const zeroGatewayReceiptContextFingerprint = [
+    selectedPlanId ?? 'none',
+    privateOfferSelection?.privateCatalogGrantId ?? 'public',
+    selectedSubscriptionKey ?? 'default',
+  ].join(':');
+  const visibleZeroGatewayReceipt =
+    zeroGatewayReceipt?.contextFingerprint === zeroGatewayReceiptContextFingerprint
+      ? zeroGatewayReceipt
+      : null;
+
+  useEffect(() => {
+    if (visibleZeroGatewayReceipt) {
+      zeroGatewayReceiptRef.current?.focus();
+    }
+  }, [visibleZeroGatewayReceipt]);
+
+  const handleGrowthCodeBasketSelectionChange = (
+    primary: GrowthCodeBasketPrimarySelection | null,
+    summary: GrowthCodeBasketSummary,
+  ) => {
+    setCodeBasketSummary(summary);
+    setAcceptedCheckoutCodes(summary.acceptedCodes);
+
+    if (summary.pendingCount > 0) {
       return;
     }
 
-    if (!checkoutEnabled) {
-      setCodeFeedback({
-        tone: 'warning',
-        message: rolloutMessage || t('checkoutTemporarilyUnavailable'),
-      });
-      return;
-    }
-
-    if (!codeInput.trim()) {
-      setCodeFeedback({
-        tone: 'error',
-        message: t('checkoutCodeEmpty'),
-      });
-      return;
-    }
-
-    if (!selectedPlanId) {
-      setCodeFeedback({
-        tone: 'error',
-        message: t('selectPlanToQuote'),
-      });
-      return;
-    }
-
-    try {
-      const normalizedCode = codeInput.trim().toUpperCase();
-      const resolutionResponse = await codesApi.resolve({
-        code: normalizedCode,
-        action_context: 'checkout',
-        plan_id: selectedPlanId,
-        amount: quoteQuery.data?.displayed_price ?? selectedSku?.price_usd ?? 0,
-        channel: 'miniapp',
-      });
-      const resolution = resolutionResponse.data;
-
-      if (!resolution.accepted) {
-        setAppliedCodeInput(null);
-        setAppliedCodeType(null);
-        setCodeFeedback({
-          tone: 'error',
-          message: getGrowthCodeResolutionMessage(resolution),
-        });
-        return;
-      }
-
-      const unsupportedMessage = getUnsupportedCheckoutCodeMessage({
-        codeType: resolution.code_type,
-        flow: flow === 'none' || flow === 'current' ? 'checkout' : flow,
-        partnerCodeEntryAllowed: false,
-      });
-      if (unsupportedMessage) {
-        setAppliedCodeInput(null);
-        setAppliedCodeType(null);
-        setCodeFeedback({
-          tone: 'warning',
-          message: unsupportedMessage,
-        });
-        return;
-      }
-
-      setAppliedCodeInput(normalizedCode);
-      setAppliedCodeType(resolution.code_type);
-      setCodeInput(normalizedCode);
-      setCodeFeedback({
-        tone: 'success',
-        message: resolution.code_type === 'referral'
-          ? t('checkoutCodeAcceptedReferral')
-          : t('checkoutCodeAccepted', { code: normalizedCode }),
-      });
-      hapticNotification('success');
-      void queryClient.invalidateQueries({ queryKey: ['miniapp-pricing-quote'] });
-    } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { detail?: string } } };
+    if (summary.isDegraded) {
       setAppliedCodeInput(null);
       setAppliedCodeType(null);
-      setCodeFeedback({
-        tone: 'error',
-        message: axiosError.response?.data?.detail || t('quoteError'),
-      });
-      hapticNotification('error');
+      setAcceptedCheckoutCodes([]);
+      hapticNotification('warning');
+      void queryClient.invalidateQueries({ queryKey: ['miniapp-pricing-quote'] });
+      return;
     }
-  }
+
+    setAppliedCodeInput(primary?.code ?? null);
+    setAppliedCodeType(primary?.codeType ?? null);
+    if (primary) {
+      hapticNotification('success');
+    }
+    void queryClient.invalidateQueries({ queryKey: ['miniapp-pricing-quote'] });
+  };
 
   async function refreshMiniAppAccessState() {
     await Promise.all([
@@ -753,6 +887,69 @@ export default function MiniAppPlansPage() {
       queryClient.invalidateQueries({ queryKey: ['usage'] }),
       queryClient.invalidateQueries({ queryKey: ['miniapp-profile-invites'] }),
     ]);
+  }
+
+  async function refreshCompletedMiniAppSettlementState() {
+    await Promise.all([
+      refreshMiniAppAccessState(),
+      queryClient.invalidateQueries({ queryKey: ['orders'] }),
+      queryClient.invalidateQueries({ queryKey: ['payments', 'history'] }),
+      queryClient.invalidateQueries({ queryKey: ['payments-history'] }),
+      queryClient.invalidateQueries({ queryKey: ['miniapp-pricing-quote'] }),
+      queryClient.invalidateQueries({ queryKey: ['current-entitlements'] }),
+      queryClient.invalidateQueries({ queryKey: ['current-service-state'] }),
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] }),
+      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions'] }),
+      queryClient.invalidateQueries({ queryKey: ['growth', 'invites'] }),
+      queryClient.invalidateQueries({ queryKey: ['growth', 'gifts'] }),
+      queryClient.invalidateQueries({ queryKey: ['growth', 'rewards'] }),
+      queryClient.invalidateQueries({ queryKey: ['growth', 'notifications'] }),
+      queryClient.invalidateQueries({
+        queryKey: ['growth', 'notifications', 'counters'],
+      }),
+    ]);
+  }
+
+  async function commitZeroGatewayCheckoutViaCommerce(
+    payload: CommitCheckoutPayload,
+  ): Promise<CheckoutCommitResponse> {
+    const quoteSessionResponse = await commerceApi.createQuoteSession({
+      storefront_key: OFFICIAL_WEB_STOREFRONT_KEY,
+      plan_id: payload.selectedPlanId,
+      addons: payload.addonLines,
+      code_input: payload.effectiveCheckoutCodeInput ?? undefined,
+      promo_code: payload.effectivePromoCode ?? undefined,
+      codes: buildMiniAppCheckoutCodes(payload.effectiveCheckoutCodes),
+      private_catalog_grant_id: payload.privateCatalogGrantId ?? undefined,
+      use_wallet: 0,
+      currency: 'USD',
+      channel: 'miniapp',
+    });
+    const quoteSession = quoteSessionResponse.data;
+    const checkoutSessionResponse = await commerceApi.createCheckoutSession(
+      { quote_session_id: quoteSession.id },
+      createClientIdempotencyKey('miniapp-zero-checkout'),
+    );
+    const orderResponse = await commerceApi.commitOrder({
+      checkout_session_id: checkoutSessionResponse.data.id,
+    });
+    const paymentAttemptResponse = await commerceApi.createPaymentAttempt(
+      { order_id: orderResponse.data.id },
+      createClientIdempotencyKey('miniapp-zero-attempt'),
+    );
+    const paymentAttempt = paymentAttemptResponse.data;
+    const status = paymentAttempt.status === 'succeeded' ? 'completed' : paymentAttempt.status;
+
+    return {
+      ...quoteSession.quote,
+      payment_id: paymentAttempt.payment_id ?? null,
+      status,
+      invoice: paymentAttempt.invoice ?? null,
+      next_action: status === 'completed' ? 'completed' : quoteSession.quote.next_action,
+      requires_external_payment: quoteSession.quote.requires_external_payment ?? false,
+      settlement_mode: quoteSession.quote.settlement_mode ?? 'internal_zero',
+      is_zero_gateway: quoteSession.quote.is_zero_gateway || paymentAttempt.provider === 'internal_zero',
+    };
   }
 
   const activateTrialMutation = useMutation({
@@ -774,6 +971,10 @@ export default function MiniAppPlansPage() {
 
   const commitMutation = useMutation({
     mutationFn: async (payload: CommitCheckoutPayload): Promise<CheckoutCommitResponse> => {
+      if (payload.flow === 'checkout' && isZeroGatewayCheckout(quoteQuery.data)) {
+        return commitZeroGatewayCheckoutViaCommerce(payload);
+      }
+
       const canUseTelegramStarsCheckout =
         telegramStarsRailEnabled
         && payload.flow === 'checkout'
@@ -787,14 +988,15 @@ export default function MiniAppPlansPage() {
         addons: payload.addonLines,
         code_input: payload.effectiveCheckoutCodeInput ?? undefined,
         promo_code: payload.effectivePromoCode ?? undefined,
+        codes: buildMiniAppCheckoutCodes(payload.effectiveCheckoutCodes),
         private_catalog_grant_id: payload.privateCatalogGrantId ?? undefined,
         ...(selectedSubscriptionKey ? { subscription_key: selectedSubscriptionKey } : {}),
         use_wallet: 0,
         currency: canUseTelegramStarsCheckout ? 'XTR' : 'USD',
-      });
+      }, createClientIdempotencyKey('miniapp-checkout'));
       return data;
     },
-    onSuccess: (data, payload) => {
+    onSuccess: async (data, payload) => {
       hapticNotification('success');
       queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] });
       queryClient.invalidateQueries({ queryKey: ['miniapp-config'] });
@@ -809,16 +1011,39 @@ export default function MiniAppPlansPage() {
         path: `/${locale}/miniapp/plans`,
         checkoutFlow: payload.flow,
         paymentRail:
-          telegramStarsRailEnabled
-          && payload.flow === 'checkout'
-          && payload.addonLines.length === 0
-          && payload.telegramStarsAmount > 0
-          && payload.invoiceSupported
-            ? 'telegram_stars_xtr'
-            : 'generic_checkout',
+          isZeroGatewayCheckout(data)
+            ? 'zero_gateway'
+            : telegramStarsRailEnabled
+              && payload.flow === 'checkout'
+              && payload.addonLines.length === 0
+              && payload.telegramStarsAmount > 0
+              && payload.invoiceSupported
+                ? 'telegram_stars_xtr'
+                : 'generic_checkout',
         paymentStatus: data.status,
         subscriptionStatus: currentEntitlements?.status ?? 'none',
       });
+
+      if (isZeroGatewayCheckout(data)) {
+        if (isCompletedZeroGatewayCommit(data)) {
+          await refreshCompletedMiniAppSettlementState();
+          const commitInviteBenefits = getIssueInviteBenefitPreviews(data);
+          setZeroGatewayReceipt({
+            contextFingerprint: zeroGatewayReceiptContextFingerprint,
+            inviteBenefits: commitInviteBenefits.length > 0
+              ? commitInviteBenefits
+              : getIssueInviteBenefitPreviews(quoteQuery.data),
+          });
+
+          webApp?.showAlert(t('zeroGateway.activatedAlert'));
+          return;
+        }
+
+        webApp?.showAlert(
+          data.status === 'completed' ? t('purchaseCompleted') : t('paymentPending'),
+        );
+        return;
+      }
 
       if (data.invoice?.payment_url) {
         openPaymentUrl(data.invoice.payment_url, webApp, async (status) => {
@@ -913,7 +1138,6 @@ export default function MiniAppPlansPage() {
     },
     onError: (error: unknown, payload) => {
       hapticNotification('error');
-      const axiosError = error as { response?: { data?: { detail?: string } } };
       void emitMiniAppRuntimeEvent({
         event: 'miniapp_checkout_failed',
         page: 'plans',
@@ -925,13 +1149,13 @@ export default function MiniAppPlansPage() {
           && payload.flow === 'checkout'
           && payload.addonLines.length === 0
           && payload.telegramStarsAmount > 0
-          && payload.invoiceSupported
+              && payload.invoiceSupported
             ? 'telegram_stars_xtr'
             : 'generic_checkout',
-        errorCode: axiosError.response?.data?.detail ?? 'checkout_commit_failed',
+        errorCode: getCheckoutCommitTelemetryErrorCode(error),
         subscriptionStatus: currentEntitlements?.status ?? 'none',
       });
-      webApp?.showAlert(axiosError.response?.data?.detail || t('paymentError'));
+      webApp?.showAlert(t('paymentError'));
     },
   });
 
@@ -992,11 +1216,17 @@ export default function MiniAppPlansPage() {
         : flow === 'current'
           ? t('flow.current')
           : t('flow.none');
-  const ctaLabel = flow === 'addons'
-    ? t('actions.purchaseAddons')
-    : flow === 'upgrade'
-      ? t('actions.upgradeNow')
-      : t('actions.openPayment');
+  const isSelectedQuoteZeroGateway = isZeroGatewayCheckout(quoteQuery.data);
+  const ctaLabel = isSelectedQuoteZeroGateway
+    ? t('actions.activateFree')
+    : flow === 'addons'
+      ? t('actions.purchaseAddons')
+      : flow === 'upgrade'
+        ? t('actions.upgradeNow')
+        : t('actions.openPayment');
+  const processingLabel = isSelectedQuoteZeroGateway
+    ? t('actions.activatingFree')
+    : t('processing');
 
   return (
     <div className="mx-auto max-w-screen-sm space-y-4">
@@ -1013,6 +1243,61 @@ export default function MiniAppPlansPage() {
                 {t('serviceMaintenanceTitle')}
               </h3>
               <p className="mt-2 text-sm font-mono text-amber-100/85">{rolloutMessage}</p>
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
+
+      {visibleZeroGatewayReceipt ? (
+        <motion.div
+          ref={zeroGatewayReceiptRef}
+          tabIndex={-1}
+          role="status"
+          aria-live="polite"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-[1.5rem] border border-matrix-green/30 bg-matrix-green/10 p-4 outline-none focus:border-matrix-green/70"
+        >
+          <div className="flex items-start gap-3">
+            <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-matrix-green" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <h3 className="font-display text-sm uppercase tracking-[0.14em] text-matrix-green">
+                {t('zeroGateway.title')}
+              </h3>
+              <p className="mt-2 text-sm font-mono leading-relaxed text-white/75">
+                {t('zeroGateway.description')}
+              </p>
+              <p className="mt-2 text-xs font-mono text-white/55">
+                {t('zeroGateway.noInvoice')}
+              </p>
+              {visibleZeroGatewayReceipt.inviteBenefits.length > 0 ? (
+                <ul className="mt-3 space-y-2">
+                  {visibleZeroGatewayReceipt.inviteBenefits.map((benefit) => (
+                    <li key={benefit.id} className="flex items-start gap-2 text-xs font-mono text-white/72">
+                      <Gift className="mt-0.5 h-4 w-4 shrink-0 text-matrix-green" aria-hidden="true" />
+                      <span>
+                        {benefit.friendDays
+                          ? t('quote.inviteBenefitWithDays', {
+                              count: benefit.count,
+                              days: benefit.friendDays,
+                            })
+                          : t('quote.inviteBenefit', { count: benefit.count })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 text-xs font-mono text-white/60">
+                  {t('zeroGateway.rewardHint')}
+                </p>
+              )}
+              <Link
+                href="/miniapp/rewards"
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-matrix-green/40 bg-matrix-green/15 px-4 py-2 font-mono text-sm text-matrix-green transition-colors hover:bg-matrix-green/25 focus:outline-none focus:ring-2 focus:ring-matrix-green/50"
+              >
+                <Users className="h-4 w-4" aria-hidden="true" />
+                {t('zeroGateway.openRewards')}
+              </Link>
             </div>
           </div>
         </motion.div>
@@ -1408,42 +1693,26 @@ export default function MiniAppPlansPage() {
       ) : null}
 
       {checkoutCodesEnabled ? (
-        <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
-          <div className="mb-3 flex items-center gap-2">
-            <Tag className="h-5 w-5 text-neon-cyan" />
-            <h3 className="font-display text-sm uppercase tracking-[0.14em]">{t('havePromoCode')}</h3>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={codeInput}
-              onChange={(event) => setCodeInput(event.target.value.toUpperCase())}
-              placeholder={t('promoCodePlaceholder')}
-              className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
-            />
-            <button
-              type="button"
-              onClick={() => void handleApplyCode()}
-              disabled={!checkoutEnabled}
-              className="rounded-xl bg-neon-cyan px-4 py-3 font-mono text-sm text-black"
-            >
-              {t('apply')}
-            </button>
-          </div>
-          {displayedCodeFeedback ? (
-            <div
-              className={`mt-3 flex items-center gap-2 text-xs font-mono ${
-                displayedCodeFeedback.tone === 'error'
-                  ? 'text-neon-pink'
-                  : displayedCodeFeedback.tone === 'warning'
-                    ? 'text-amber-200'
-                    : 'text-neon-cyan'
-              }`}
-            >
-              <Check className="h-3 w-3" />
-              {displayedCodeFeedback.message}
-            </div>
-          ) : null}
+        <GrowthCodeBasket
+          copy={growthCodeBasketCopy}
+          context={{
+            storefrontKey: OFFICIAL_WEB_STOREFRONT_KEY,
+            planId: selectedPlanId,
+            amount: quoteQuery.data?.displayed_price ?? selectedSku?.price_usd ?? 0,
+            channel: 'miniapp',
+            flow: flow === 'none' || flow === 'current' ? 'checkout' : flow,
+            partnerCodeEntryAllowed: false,
+          }}
+          contextFingerprint={checkoutContextFingerprint}
+          disabled={!checkoutEnabled}
+          onSelectionChange={handleGrowthCodeBasketSelectionChange}
+          variant="miniapp"
+        />
+      ) : null}
+
+      {unsupportedAppliedCodeMessage ? (
+        <div className="rounded-[1.5rem] border border-amber-500/30 bg-amber-500/10 p-4 text-xs font-mono text-amber-100">
+          {unsupportedAppliedCodeMessage}
         </div>
       ) : null}
 
@@ -1500,6 +1769,7 @@ export default function MiniAppPlansPage() {
               subscriptionStatus: currentEntitlements?.status ?? 'none',
             });
 
+            setZeroGatewayReceipt(null);
             commitMutation.mutate({
               flow,
               selectedPlanId,
@@ -1507,6 +1777,7 @@ export default function MiniAppPlansPage() {
               addonLines,
               effectivePromoCode,
               effectiveCheckoutCodeInput,
+              effectiveCheckoutCodes,
               telegramStarsAmount: selectedTelegramStarsAmount,
               privateCatalogGrantId: privateOfferSelection?.privateCatalogGrantId ?? null,
               invoiceSupported: Boolean(webApp?.openInvoice),
@@ -1520,13 +1791,14 @@ export default function MiniAppPlansPage() {
             || !dedicatedIpReady
             || quoteQuery.isError
             || !checkoutEnabled
+            || codeBasketSummary.pendingCount > 0
           }
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-neon-cyan px-4 py-3 font-mono text-black transition-colors hover:bg-neon-cyan/90 disabled:opacity-50"
         >
           {commitMutation.isPending ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              {t('processing')}
+              {processingLabel}
             </>
           ) : (
             <>

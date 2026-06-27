@@ -529,6 +529,117 @@ describe('PurchaseConfirmModal', () => {
     expect(capturedBodies.every((body) => body.code_input == null)).toBe(true);
   });
 
+  it('lets customers manage checkout code basket status and sends multi-code quote requests', async () => {
+    const user = userEvent.setup({ delay: null });
+    const quoteBodies: Record<string, unknown>[] = [];
+    const resolveBodies: Record<string, unknown>[] = [];
+
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.clientCapabilities, () =>
+        HttpResponse.json(createClientCapabilities({
+          growth: {
+            invites: true,
+            referral: false,
+            promo_codes: true,
+            gift_codes: false,
+            checkout_code_discounts: true,
+            growth_hub: false,
+          },
+        }))),
+      http.post(MATCH_ANY_API_ORIGIN.resolveCodes, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        resolveBodies.push(body);
+        return HttpResponse.json({
+          accepted: true,
+          code_type: 'promo',
+          action_context: 'checkout',
+          result: 'accepted',
+          reject_reason: null,
+          conflict_code: null,
+          wrong_context_target: null,
+          issuer_type: 'admin',
+          owner_type: 'admin_campaign',
+          resolved_code_id: `${body.code}-id`,
+          promo_code_id: `${body.code}-promo`,
+          partner_code_id: null,
+          user_message_key: 'growth_codes.promo.accepted',
+        });
+      }),
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        quoteBodies.push(body);
+        return HttpResponse.json(createQuoteSession({
+          quote: createQuote(
+            body.code_input
+              ? {
+                  displayed_price: 19.99,
+                  discount_amount: 10,
+                  gateway_amount: 19.99,
+                  promo_code_id: 'promo-accepted',
+                }
+              : {},
+          ),
+        }), { status: 201 });
+      }),
+    );
+
+    renderWithProviders(
+      <PurchaseConfirmModal
+        isOpen={true}
+        onClose={vi.fn()}
+        plan={createPlan()}
+      />,
+    );
+
+    await screen.findByText('growthCodeBasket.title');
+
+    const input = screen.getByLabelText('growthCodeBasket.inputLabel');
+    await user.type(input, 'save1500');
+    await user.click(screen.getByRole('button', { name: 'growthCodeBasket.addCta' }));
+
+    await waitFor(() => {
+      expect(resolveBodies).toContainEqual(expect.objectContaining({
+        code: 'SAVE1500',
+        action_context: 'checkout',
+        storefront_key: 'cybervpn-web',
+        plan_id: 'plan-pro-001',
+      }));
+      expect(quoteBodies).toContainEqual(expect.objectContaining({
+        code_input: 'SAVE1500',
+      }));
+    });
+    expect(screen.getByText('SAVE...00')).toBeInTheDocument();
+    expect(screen.getByText('checkoutQuote.discountApplied')).toBeInTheDocument();
+
+    await user.type(input, 'save1500');
+    await user.click(screen.getByRole('button', { name: 'growthCodeBasket.addCta' }));
+    expect(await screen.findByText('growthCodeBasket.duplicate')).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, 'loyal10');
+    await user.click(screen.getByRole('button', { name: 'growthCodeBasket.addCta' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('growthCodeBasket.degraded')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'checkoutQuote.payWithCrypto' })).toBeEnabled();
+      expect(quoteBodies).toContainEqual(expect.objectContaining({
+        codes: [
+          { code: 'SAVE1500', client_slot_id: 'web-growth-code-1' },
+          { code: 'LOYAL10', client_slot_id: 'web-growth-code-2' },
+        ],
+      }));
+    });
+
+    await user.click(screen.getByRole('button', {
+      name: 'growthCodeBasket.removeCta: LOYA...10',
+    }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('growthCodeBasket.degraded')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'checkoutQuote.payWithCrypto' })).toBeEnabled();
+    });
+  });
+
   it('uses the private catalog grant when quoting a selected private offer', async () => {
     const user = userEvent.setup({ delay: null });
     const capturedBodies: Record<string, unknown>[] = [];

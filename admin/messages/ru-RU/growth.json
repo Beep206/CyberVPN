@@ -18,6 +18,97 @@
     "unused": "Не использован",
     "used": "Использован"
   },
+  "v6": {
+    "common": {
+      "available": "Доступно",
+      "degraded": "Ограничено",
+      "disabled": "Отключено",
+      "enabled": "Включено",
+      "generatedWrapper": "Generated API wrapper присутствует и используется этой консолью.",
+      "noGeneratedAdminWrapper": "В текущем OpenAPI client нет generated admin wrapper; действие остаётся отключённым.",
+      "refresh": "Обновить capabilities",
+      "refreshing": "Обновляем...",
+      "running": "Выполняем...",
+      "actionFailed": "Действие не выполнено. Проверьте backend validation и permissions."
+    }
+  },
+  "campaigns": {
+    "actions": {
+      "archive": "Архивировать",
+      "pause": "Приостановить",
+      "publish": "Опубликовать",
+      "resume": "Возобновить",
+      "revoke": "Отозвать"
+    },
+    "applying": "Применяем...",
+    "badges": {
+      "version": "v{version}"
+    },
+    "confirmationRequired": "Требуется typed confirmation",
+    "createAction": "Создать кампанию",
+    "createDescription": "Создаёт draft-кампанию через generated admin growth endpoint. Business rules и publish checks остаются на backend.",
+    "createTitle": "Создать кампанию",
+    "creating": "Создаём...",
+    "description": "Admin lifecycle console для backend-authoritative growth campaigns, versions, audited reasons и optimistic concurrency.",
+    "detailEmpty": "Выберите кампанию, чтобы проверить version, schedule и lifecycle controls.",
+    "detailTitle": "Детали кампании",
+    "empty": "По текущему фильтру growth campaigns не найдены.",
+    "eyebrow": "Рост / Кампании",
+    "feedback": {
+      "actionBlocked": "Заполните reason и confirmation перед lifecycle action.",
+      "actionFailed": "Lifecycle action кампании не удался.",
+      "archive": "Запрос archive кампании применён.",
+      "createFailed": "Создать кампанию не удалось.",
+      "created": "Campaign draft создан из backend response.",
+      "pause": "Запрос pause кампании применён.",
+      "publish": "Запрос publish кампании применён.",
+      "required": "Заполните обязательные поля кампании перед отправкой.",
+      "resume": "Запрос resume кампании применён.",
+      "revoke": "Запрос revoke кампании применён.",
+      "updateFailed": "Обновить кампанию не удалось.",
+      "updated": "Version update кампании зафиксирован backend."
+    },
+    "fields": {
+      "action": "Action",
+      "allStatuses": "Все статусы",
+      "campaignKey": "Campaign key",
+      "confirmation": "Введите campaign key",
+      "description": "Описание",
+      "expiresAt": "Истекает",
+      "name": "Название",
+      "priority": "Priority",
+      "reasonCode": "Reason code",
+      "schedule": "Schedule",
+      "stackingGroup": "Stacking group",
+      "stackingMode": "Stacking mode",
+      "startsAt": "Начало",
+      "status": "Статус",
+      "version": "Version"
+    },
+    "inventoryDescription": "Ограниченный список growth campaigns из live admin API.",
+    "inventoryTitle": "Инвентарь кампаний",
+    "lifecycleDescription": "Lifecycle mutations отправляют expected_version и reason_code. Publish, archive и revoke требуют typed confirmation.",
+    "lifecycleTitle": "Lifecycle action",
+    "loading": "Загружаем кампании...",
+    "metaTitle": "Growth-кампании - Ozoxy Admin",
+    "metrics": {
+      "active": "Активные",
+      "activeHint": "Кампании, активные на backend.",
+      "drafts": "Drafts",
+      "draftsHint": "Кампании, которые ещё не опубликованы.",
+      "total": "Кампании",
+      "totalHint": "Campaign records из текущего bounded query.",
+      "version": "Выбранная Version",
+      "versionHint": "Текущая backend version для optimistic lifecycle writes."
+    },
+    "reasonRequired": "Требуется reason code",
+    "selectCampaign": "Выбрать кампанию {key}",
+    "title": "Lifecycle кампаний",
+    "updateAction": "Обновить draft",
+    "updateDescription": "Update включает текущую campaign version и backend audit reason. Active campaigns версионируются backend.",
+    "updateTitle": "Draft version update",
+    "updating": "Обновляем..."
+  },
   "giftCodes": {
     "description": "Admin-консоль для выдачи одиночных или batch клиентских gift-кодов, просмотра redemption-статуса и единого операторского gift-инвентаря.",
     "empty": "По текущему фильтру gift-коды не найдены.",
@@ -109,15 +200,20 @@
     "subnavLabel": "Навигация роста"
   },
   "nav": {
+    "campaigns": "Кампании",
+    "fx": "FX-курсы",
     "giftCodes": "Gift-коды",
     "inviteCodes": "Invite-коды",
     "notifications": "Уведомления",
+    "onboarding": "Онбординг",
     "overview": "Обзор",
     "partners": "Партнёры",
+    "privateAccess": "Приватный доступ",
     "promoCodes": "Промокоды",
     "referrals": "Рефералы",
     "reporting": "Отчётность",
     "rules": "Правила",
+    "siteMode": "Режим сайта",
     "risk": "Risk-сигналы"
   },
   "overview": {
@@ -335,15 +431,20 @@
       "window": "Окно {days} дней"
     },
     "routes": {
+      "campaigns": "Создание draft-кампаний, обновление versioned metadata и audited lifecycle-переходы.",
       "giftCodes": "Выдача одиночных или batch gift-кодов, просмотр live-инвентаря и контроль redemption-состояния.",
       "inviteCodes": "Генерация batch invite-кодов для конкретного пользователя с optional plan-targeting.",
       "notifications": "Отправка операторских growth-notice и проверка per-channel delivery forensics.",
+      "onboarding": "Проверка post-registration onboarding capabilities, обновление runtime settings и сброс states через audited admin APIs.",
       "partners": "Повышение пользователей до партнёров, просмотр live-directory и переход в customer card.",
+      "privateAccess": "Проверка готовности private access, открытие grants и отзыв grants через generated admin endpoints.",
       "promoCodes": "Создание, просмотр, обновление и деактивация кампаний по промокодам.",
       "referrals": "Мониторинг referral-комиссий, топ-referrer'ов и последних earnings по конверсиям.",
       "reporting": "Просмотр persisted rollups, reporting-подписок, управление coverage и exportable delivery artifacts.",
       "rules": "Сборка и симуляция типизированных AST growth-правил через backend compiler.",
-      "risk": "Triage referral abuse-pressure, blocked rewards и lifecycle сигналы риска из growth queue."
+      "siteMode": "Preview cabinet-only routing из реального client capabilities contract и фиксация отсутствующих admin rollback API.",
+      "fx": "Проверка готовности FX из generated capabilities и запуск backend-authoritative conversion simulations.",
+      "risk": "Triage lifecycle risk models, decisions и manual review resolution через generated admin endpoints."
     },
     "routesDescription": "Growth реализован только там, где backend реально даёт admin-покрытие. Каждый маршрут ниже привязан к существующей операторской поверхности.",
     "routesTitle": "Инвентарь Маршрутов",
@@ -562,6 +663,7 @@
       "compiling": "Компилируем...",
       "export": "Экспорт JSON",
       "import": "Импорт JSON",
+      "importFile": "Импорт файла",
       "redo": "Повторить",
       "reset": "Сбросить draft",
       "simulate": "Симулировать",
@@ -591,10 +693,20 @@
     },
     "description": "Консоль в стиле админки для типизированных Growth Codes v6 rules поверх admin catalog, compiler и simulator без side effects.",
     "diff": {
+      "addedLines": "Добавленные строки",
+      "changedLines": "Изменённые строки",
       "description": "Сравнение текущего draft с нормализованным AST из последней backend-компиляции.",
       "draft": "Draft",
       "empty": "Нормализованный AST пока не скомпилирован.",
       "normalized": "Normalized",
+      "removedLines": "Удалённые строки",
+      "status": {
+        "changed": "Найден diff",
+        "invalid": "Draft невалиден",
+        "match": "Канонически совпадает",
+        "uncompiled": "Не скомпилировано"
+      },
+      "statusDescription": "Diff является только локальным evidence; compile и simulation остаются backend-authoritative validation path.",
       "title": "Предпросмотр Version Diff"
     },
     "editor": {
@@ -605,8 +717,12 @@
     "errors": {
       "astInvalid": "AST JSON невалиден: {detail}",
       "catalogFailed": "Не удалось загрузить каталог правил.",
+      "compileRequired": "Скомпилируйте текущий AST перед запросом approval.",
       "compileFailed": "Компиляция правила не удалась.",
       "contextInvalid": "JSON контекста симуляции невалиден: {detail}",
+      "importFailed": "Импорт rule JSON не удался: {detail}",
+      "policySubmitFailed": "Не удалось отправить policy version на approval.",
+      "publishChecklistIncomplete": "Заполните approval checklist перед отправкой.",
       "simulateFailed": "Симуляция правила не удалась.",
       "title": "Ошибка rule-builder"
     },
@@ -618,13 +734,16 @@
       "conditionAdded": "Условие добавлено в AST.",
       "conditionUpdated": "Условие обновлено.",
       "exported": "Draft JSON экспортирован.",
+      "fileImported": "Draft JSON импортирован из файла.",
       "imported": "Draft JSON импортирован.",
       "nodeDuplicated": "Node продублирован.",
+      "nodeMoved": "Node перемещён.",
       "nodeRemoved": "Node удалён.",
       "redo": "Draft повторён.",
       "reset": "Draft сброшен.",
       "rootUpdated": "Root group обновлена.",
       "simulated": "Правило просимулировано backend.",
+      "policySubmitted": "Policy version отправлена на approval.",
       "undo": "Draft отменён.",
       "unsupportedSelection": "Выбранное условие отсутствует в текущем каталоге."
     },
@@ -664,6 +783,30 @@
       "searchPlaceholder": "Field, operator или action",
       "title": "Catalog Palette"
     },
+    "publish": {
+      "approval": "Compiled checksum, normalized AST и impact notes проверены для этого draft.",
+      "backendGap": "Backend policy-version workflow доступен.",
+      "backendWorkflow": "Admin API создаст draft policy version и отправит его в audited approval workflow.",
+      "checklist": {
+        "approval": "Human approval checkbox",
+        "backendWorkflow": "Audited backend policy-version workflow",
+        "blocked": "Заблокировано",
+        "compiled": "Backend compile checksum присутствует",
+        "passed": "Пройдено",
+        "reason": "Reason code заполнен",
+        "title": "Approval Checklist"
+      },
+      "checksum": "Compiled checksum",
+      "description": "Отправьте скомпилированный AST в audited policy-version workflow. Approval, publish, rollback и diff enforced backend.",
+      "notReady": "Checklist incomplete",
+      "policyVersion": "Policy version",
+      "ready": "Готово к отправке",
+      "reasonCode": "Reason code",
+      "submitted": "Draft policy version отправлен на backend approval.",
+      "submit": "Запросить publish approval",
+      "submitting": "Отправляем...",
+      "title": "Publish Approval"
+    },
     "simulator": {
       "actionsTitle": "Actions",
       "checksum": "Checksum",
@@ -681,10 +824,260 @@
       "any": "Any",
       "ariaLabel": "Дерево AST growth-правила",
       "children": "{count} children",
+      "conditionLabel": "Condition {field} {operator}",
       "description": "Tree view condition graph и списка actions в текущем JSON AST.",
       "empty": "В этом AST нет condition tree.",
+      "keyboardHelp": "Enter выбирает condition, Delete удаляет, Control D дублирует, Alt Arrow Up или Down перемещает среди sibling nodes.",
       "title": "Rule Tree"
     }
+  },
+  "fx": {
+    "actions": {
+      "simulate": "Симулировать conversion"
+    },
+    "coverageDescription": "Консоль вызывает generated capabilities и generated v3 FX admin endpoints.",
+    "coverageTitle": "Backend Coverage",
+    "degraded": {
+      "description": "FX status не удалось загрузить из generated admin endpoint. Operator actions остаются read-only, пока backend не ответит.",
+      "title": "Admin FX API ограничен"
+    },
+    "description": "FX readiness console для fixed-discount conversion, свежести курсов, provider status и audited override coverage.",
+    "errors": {
+      "capabilities": "FX capabilities не удалось загрузить."
+    },
+    "eyebrow": "Рост / FX",
+    "fields": {
+      "amount": "Amount",
+      "sourceCurrency": "Source currency",
+      "targetCurrency": "Target currency"
+    },
+    "metaTitle": "Growth FX - Ozoxy Admin",
+    "metrics": {
+      "adminApi": "Admin API",
+      "adminApiHint": "Покрытие generated admin FX endpoints.",
+      "checkoutDiscounts": "Checkout Discounts",
+      "checkoutDiscountsHint": "Client capability для checkout code discounts.",
+      "manualOverride": "Manual Override",
+      "manualOverrideHint": "Manual FX edits остаются отключёнными без audited backend workflow.",
+      "siteMode": "Site Mode",
+      "siteModeHint": "Runtime capability context, полученный тем же generated wrapper."
+    },
+    "simulatorDescription": "Simulation вызывает backend FX engine и возвращает rounded/applied amounts без изменения checkout state.",
+    "simulatorDisabled": "Synthetic FX result не отображается. Операторы ждут authoritative backend simulator.",
+    "simulationResult": "Округлено {rounded}, применено {applied} {currency}",
+    "simulatorTitle": "Conversion Simulator",
+    "title": "FX-курсы"
+  },
+  "privateAccess": {
+    "actions": {
+      "openGrant": "Открыть grant",
+      "revokeGrant": "Отозвать grant"
+    },
+    "actionsDisabled": "Private grant, hidden offer и target identifier не изменяются клиентом без backend-authoritative grant detail.",
+    "coverageDescription": "Generated capabilities загружаются вместе с generated private catalog и grant endpoint coverage.",
+    "coverageTitle": "Backend Coverage",
+    "degraded": {
+      "description": "Private catalog targets не удалось загрузить из generated admin endpoint. Grant actions остаются read-only до появления backend state.",
+      "grantsDescription": "Private grant list не удалось загрузить из generated admin endpoint.",
+      "title": "Private grant API ограничен"
+    },
+    "description": "Private catalog и grant readiness console на generated admin target и grant endpoints.",
+    "errors": {
+      "capabilities": "Private access capabilities не удалось загрузить."
+    },
+    "eyebrow": "Рост / Приватный доступ",
+    "fields": {
+      "grant": "Grant ID",
+      "revokeReason": "Причина отзыва",
+      "subject": "Masked subject"
+    },
+    "emptyGrants": "По текущему support query private grants не найдены.",
+    "grantResult": "Статус grant: {status}",
+    "grantsDescription": "Grant lookup и revoke controls вызывают backend scope, audit reason и object-ownership checks.",
+    "grantsTitle": "Grant Operations",
+    "metaTitle": "Growth Private Access - Ozoxy Admin",
+    "metrics": {
+      "adminApi": "Admin API",
+      "adminApiHint": "Покрытие generated private catalog/grants endpoints.",
+      "giftCodes": "Gift Codes",
+      "giftCodesHint": "Gift code capability из backend readiness.",
+      "growthHub": "Growth Hub",
+      "growthHubHint": "Customer growth hub capability из backend readiness.",
+      "promoCodes": "Promo Codes",
+      "promoCodesHint": "Promo code capability из backend readiness."
+    },
+    "title": "Приватный доступ"
+  },
+  "onboarding": {
+    "actions": {
+      "resetState": "Сбросить state",
+      "updateSettings": "Обновить settings"
+    },
+    "actionsDisabled": "Эта summary console не сбрасывает onboarding state и не изменяет prompt settings.",
+    "coverageDescription": "Страница использует generated client capabilities вместе с generated v3 admin onboarding endpoints.",
+    "coverageTitle": "Backend Coverage",
+    "degraded": {
+      "description": "Prompt settings и user state не удалось загрузить из generated admin onboarding endpoint.",
+      "statesDescription": "Onboarding state list не удалось загрузить из generated admin onboarding endpoint.",
+      "title": "Admin onboarding API ограничен"
+    },
+    "description": "Onboarding capability console для prompt readiness, state-store status и generated admin state inspection.",
+    "empty": "Capability response не содержит onboarding data.",
+    "emptyStates": "По текущему support query onboarding states не найдены.",
+    "errors": {
+      "capabilities": "Onboarding capabilities не удалось загрузить."
+    },
+    "eyebrow": "Рост / Онбординг",
+    "fields": {
+      "settingsReason": "Причина settings",
+      "resetReason": "Reset reason",
+      "state": "State ID",
+      "userLookup": "User lookup"
+    },
+    "flags": {
+      "allowedCodeTypes": "Allowed code types",
+      "partnerInput": "Partner input",
+      "referralInput": "Referral input",
+      "telegramMiniapp": "Telegram Mini App",
+      "webOtp": "Web OTP"
+    },
+    "metaTitle": "Growth Onboarding - Ozoxy Admin",
+    "metrics": {
+      "adminApi": "Admin API",
+      "adminApiHint": "Покрытие generated admin onboarding endpoints.",
+      "flowVersion": "Flow Version",
+      "flowVersionHint": "Server-owned onboarding flow key и version из capabilities.",
+      "prompt": "Prompt",
+      "promptHint": "Post-registration prompt capability.",
+      "stateStore": "State Store",
+      "stateStoreHint": "Persistent onboarding state capability."
+    },
+    "resetResult": "Статус state: {status}",
+    "settingsDescription": "Settings update и state reset controls вызывают backend admin endpoints с permission, reason и audit requirements.",
+    "settingsResult": "Settings сохранены в version {version}",
+    "settingsTitle": "Settings and State",
+    "title": "Post-registration Онбординг"
+  },
+  "risk": {
+    "actions": {
+      "resolveReview": "Resolve review"
+    },
+    "coverageDescription": "Страница вызывает generated v3 risk admin endpoints для models, decisions, reviews и review resolution.",
+    "coverageTitle": "Backend Coverage",
+    "degraded": {
+      "description": "Risk models, decisions или reviews не удалось загрузить из generated admin endpoint.",
+      "title": "Admin risk API ограничен"
+    },
+    "description": "Risk operations console для model lifecycle, decisions и manual review resolution.",
+    "emptyDecisions": "По текущему query risk decisions не найдены.",
+    "emptyModels": "По текущему query risk models не найдены.",
+    "emptyReviews": "По текущему query open risk reviews не найдены.",
+    "errors": {
+      "capabilities": "Risk capabilities не удалось загрузить."
+    },
+    "eyebrow": "Рост / Risk",
+    "fields": {
+      "resolutionReason": "Причина resolution",
+      "review": "Review ID"
+    },
+    "lifecycleDescription": "Model, decision и review rows загружаются из backend risk tables. Review resolution записывает audited backend decision.",
+    "lifecycleTitle": "Risk Lifecycle",
+    "metaTitle": "Growth Risk - Ozoxy Admin",
+    "metrics": {
+      "adminApi": "Admin API",
+      "adminApiHint": "Покрытие generated admin risk endpoints.",
+      "checkoutDiscounts": "Checkout Discounts",
+      "checkoutDiscountsHint": "Checkout code discount capability, используемый risk guard.",
+      "decisions": "Decisions",
+      "decisionsHint": "Последние risk decisions из backend.",
+      "models": "Models",
+      "modelsHint": "Risk model lifecycle rows в backend."
+    },
+    "reviewResult": "Статус review: {status}",
+    "title": "Growth Risk"
+  },
+  "siteMode": {
+    "auditDescription": "Versioned изменения customer site mode из generated admin timeline endpoint.",
+    "auditEmpty": "Изменения customer site mode ещё не записаны.",
+    "auditFields": {
+      "admin": "Админ",
+      "reason": "Reason",
+      "version": "Version"
+    },
+    "auditGenerated": "Generated timeline",
+    "auditLoading": "Загружаем историю аудита site mode...",
+    "auditTitle": "История Аудита",
+    "backendGap": "Backend runtime controls доступны для этого окружения.",
+    "boolean": {
+      "false": "Связана",
+      "true": "Независима"
+    },
+    "description": "Версионированное управление маршрутизацией customer site для full-site, cabinet-only и maintenance режимов.",
+    "empty": "Runtime config не содержит данных режима сайта.",
+    "errors": {
+      "auditLoadFailed": "Историю аудита site mode не удалось загрузить.",
+      "loadFailed": "Не удалось загрузить конфигурацию режима сайта."
+    },
+    "eyebrow": "Рост / Режим сайта",
+    "feedback": {
+      "rollback": "Режим сайта возвращён в full-site.",
+      "rollbackFailed": "Не удалось выполнить rollback режима сайта.",
+      "updated": "Режим сайта обновлён.",
+      "updateFailed": "Не удалось обновить режим сайта."
+    },
+    "fields": {
+      "allowedPrefixes": "Разрешённые prefix paths",
+      "cabinetHosts": "Cabinet hosts",
+      "destination": "Путь назначения cabinet",
+      "mode": "Runtime режим",
+      "preserveKeys": "Сохраняемые query keys",
+      "publicHosts": "Public hosts",
+      "confirmation": "Typed confirmation",
+      "reason": "Причина изменения",
+      "registrationPolicy": "Registration policy",
+      "url": "Preview URL"
+    },
+    "confirmationHint": "Введите {update}, чтобы обновить runtime policy, или {rollback}, чтобы выполнить rollback to full-site.",
+    "loading": "Загружаем режим сайта...",
+    "matrixDescription": "Текущая public/cabinet host policy из authoritative admin runtime config.",
+    "matrixTitle": "Capability Matrix",
+    "metaTitle": "Customer Site Mode - Ozoxy Admin",
+    "metrics": {
+      "cabinetHost": "Cabinet Host",
+      "cabinetHostHint": "Первый configured cabinet host для preview redirects.",
+      "configVersion": "Config Version",
+      "configVersionHint": "Optimistic-lock версия runtime policy.",
+      "destination": "Destination",
+      "destinationHint": "Cabinet destination path из backend.",
+      "mode": "Mode",
+      "modeHint": "Effective customer_site_mode из backend runtime config."
+    },
+    "modes": {
+      "cabinet_only": "Cabinet-only",
+      "full_site": "Full site",
+      "maintenance": "Maintenance"
+    },
+    "preview": {
+      "pass": "Pass-through",
+      "reason": "Reason",
+      "redirect": "Redirect",
+      "source": "Source",
+      "target": "Target"
+    },
+    "previewDescription": "Preview показывает route decision до изменения runtime policy.",
+    "previewTitle": "Route Preview",
+    "reasons": {
+      "allowed_route": "Allowed route",
+      "cabinet_only_redirect": "Cabinet-only redirect",
+      "full_site_passthrough": "Full-site pass-through",
+      "invalid_url": "Invalid URL"
+    },
+    "rollbackAction": "Вернуть full-site",
+    "rollbackUnavailable": "Вернуть full-site",
+    "rollingBack": "Откатываем...",
+    "title": "Customer Site Mode",
+    "updateAction": "Обновить режим сайта",
+    "updating": "Обновляем..."
   },
   "referrals": {
     "abuseQueueDescription": "Повторяющиеся rejection-кластеры и blocked rewards, которые нужно triage’ить до того, как они станут support или fraud-инцидентом.",
@@ -692,7 +1085,9 @@
     "abuseQueueTitle": "Сигналы Для Abuse-Review",
     "badges": {
       "count": "{count} сигналов",
-      "users": "{count} пользователей"
+      "users": "{count} пользователей",
+      "attachments": "{count} attachments",
+      "governance": "{count} governance actions"
     },
     "breakdownDescription": "Текущая referral reward-поза после hold, risk-block и availability transition.",
     "breakdownTitle": "Разбивка По Статусам Reward",
@@ -701,6 +1096,8 @@
     "lifecycleEmpty": "Referral lifecycle events пока не эмитились.",
     "lifecycleTitle": "Referral Lifecycle",
     "liveOverview": "Живой обзор",
+    "generatedSecurityQueue": "Generated security queue",
+    "maskedSubject": "Subject {value}",
     "metaTitle": "Рефералы - Ozoxy Admin",
     "metrics": {
       "activeReservations": "Активные Reservation",
@@ -712,6 +1109,11 @@
       "totalRedemptions": "Всего Redemption'ов",
       "totalRedemptionsHint": "Объём redemption, уже привязанный к lifecycle growth-кодов."
     },
+    "riskReviewsDescription": "Open security review queue из generated risk-review API, только с masked subject identifiers.",
+    "riskReviewsEmpty": "Открытых risk reviews для growth operations сейчас не видно.",
+    "riskReviewsLoadFailed": "Risk review queue не удалось загрузить.",
+    "riskReviewsLoading": "Загружаем risk review queue...",
+    "riskReviewsTitle": "Security Risk Reviews",
     "title": "Referral-Сигналы"
   }
 }

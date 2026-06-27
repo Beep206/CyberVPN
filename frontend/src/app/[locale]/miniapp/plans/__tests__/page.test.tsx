@@ -71,7 +71,23 @@ vi.mock('next-intl', () => ({
       'quote.modes': 'Modes',
       'quote.serverPool': 'Servers',
       'quote.none': 'None',
+      'quote.benefitsPreview': 'Benefits after activation',
+      'quote.inviteBenefitWithDays': '{count} invites · {days} friend days',
+      'quote.inviteBenefit': '{count} invites after activation',
+      'quote.benefitAvailableAfter': 'Available after {stage}',
+      'quote.benefitExpiresAt': 'Expires {date}',
+      'quote.benefitStages.settlement': 'settlement',
+      'quote.benefitStages.activation': 'activation',
       'actions.openPayment': 'Open payment',
+      'actions.activateFree': 'Activate for free',
+      'actions.activatingFree': 'Activating subscription',
+      paymentError: 'Payment error',
+      'zeroGateway.activatedAlert': 'Free activation completed. Your subscription is active.',
+      'zeroGateway.title': 'Subscription activated',
+      'zeroGateway.description': 'Zero checkout completed.',
+      'zeroGateway.noInvoice': 'No Telegram invoice or payment redirect was opened for this order.',
+      'zeroGateway.rewardHint': 'Open rewards after activation.',
+      'zeroGateway.openRewards': 'Open rewards',
       'privateOffer.title': 'Private offer access',
       'privateOffer.description': 'Enter a private access code',
       'privateOffer.codeLabel': 'Private access code',
@@ -487,6 +503,194 @@ describe('MiniAppPlansPage', () => {
 
   });
 
+  it('test_zero_gateway_checkout_activates_without_opening_invoice_and_refreshes_rewards', async () => {
+    const user = userEvent.setup();
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    let zeroGatewaySettled = false;
+
+    try {
+      server.use(
+        http.get(`${API_BASE}/miniapp/offers`, () =>
+          HttpResponse.json(createOffers(
+            zeroGatewaySettled
+              ? { currentEntitlements: createQuoteResponse().entitlements_snapshot }
+              : {},
+          )),
+        ),
+        http.post(`${API_BASE}/miniapp/checkout/quote`, async ({ request }) => {
+          const body = await request.json();
+          requests.push({ url: request.url, body });
+          return HttpResponse.json({
+            ...createQuoteResponse(),
+            displayed_price: 0,
+            discount_amount: 79,
+            gateway_amount: 0,
+            is_zero_gateway: true,
+            requires_external_payment: false,
+            settlement_mode: 'internal_zero',
+            growth_effects: {
+              benefits_preview: [
+                {
+                  type: 'issue_invites',
+                  count: 10,
+                  friend_days: 7,
+                  available_after: 'settlement',
+                },
+              ],
+            },
+          });
+        }),
+        http.post(`${API_BASE}/quotes/`, async ({ request }) => {
+          const body = await request.json();
+          requests.push({ url: request.url, body });
+          return HttpResponse.json({
+            id: 'quote-zero-1',
+            user_id: 'user-1',
+            auth_realm_id: 'realm-1',
+            storefront_id: 'storefront-1',
+            storefront_key: 'cybervpn-web',
+            sale_channel: 'miniapp',
+            currency_code: 'USD',
+            status: 'open',
+            expires_at: '2030-01-01T00:00:00Z',
+            quote: {
+              ...createQuoteResponse(),
+              displayed_price: 0,
+              discount_amount: 79,
+              gateway_amount: 0,
+              is_zero_gateway: true,
+              requires_external_payment: false,
+              settlement_mode: 'internal_zero',
+              growth_effects: {
+                benefits_preview: [
+                  {
+                    type: 'issue_invites',
+                    count: 10,
+                    friend_days: 7,
+                    available_after: 'settlement',
+                  },
+                ],
+              },
+            },
+            created_at: '2026-06-01T00:00:00Z',
+            updated_at: '2026-06-01T00:00:00Z',
+          });
+        }),
+        http.post(`${API_BASE}/checkout-sessions/`, async ({ request }) => {
+          requests.push({ url: request.url, body: await request.json() });
+          return HttpResponse.json({ id: 'checkout-zero-1', quote_session_id: 'quote-zero-1' });
+        }),
+        http.post(`${API_BASE}/orders/commit`, async ({ request }) => {
+          requests.push({ url: request.url, body: await request.json() });
+          return HttpResponse.json({ id: 'order-zero-1', checkout_session_id: 'checkout-zero-1' });
+        }),
+        http.post(`${API_BASE}/payment-attempts/`, async ({ request }) => {
+          requests.push({ url: request.url, body: await request.json() });
+          zeroGatewaySettled = true;
+          return HttpResponse.json({
+            id: 'attempt-zero-1',
+            order_id: 'order-zero-1',
+            payment_id: 'payment-zero-1',
+            provider: 'internal_zero',
+            status: 'succeeded',
+            gateway_amount: 0,
+            invoice: null,
+          });
+        }),
+      );
+
+      render(<PlansPage />, { wrapper: createWrapper() });
+
+      const activateButton = await screen.findByRole('button', { name: 'Activate for free' });
+      await waitFor(() => expect(activateButton).toBeEnabled());
+      expect(screen.getByText('10 invites · 7 friend days')).toBeInTheDocument();
+
+      await user.click(activateButton);
+
+      await waitFor(() => {
+        expect(requests).toContainEqual(
+          expect.objectContaining({
+            url: expect.stringContaining('/payment-attempts/'),
+            body: expect.objectContaining({
+              order_id: 'order-zero-1',
+            }),
+          }),
+        );
+        expect(requests.some((entry) => entry.url.includes('/miniapp/checkout/commit'))).toBe(false);
+        expect(telegramMock.showAlert).toHaveBeenCalledWith(
+          'Free activation completed. Your subscription is active.',
+        );
+      });
+
+      expect(telegramMock.openInvoice).not.toHaveBeenCalled();
+      expect(telegramMock.openTelegramLink).not.toHaveBeenCalled();
+      expect(telegramMock.openLink).not.toHaveBeenCalled();
+      expect(windowOpenSpy).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.getByRole('status')).toHaveTextContent('Subscription activated');
+      });
+      expect(screen.getByText('No Telegram invoice or payment redirect was opened for this order.')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Open rewards/ })).toBeInTheDocument();
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['orders'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['payments', 'history'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['current-entitlements'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['subscriptions'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['growth', 'invites'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['growth', 'rewards'] });
+      expect(runtimeAnalyticsMocks.emitMiniAppRuntimeEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'miniapp_checkout_completed',
+          page: 'plans',
+          paymentRail: 'zero_gateway',
+          paymentStatus: 'completed',
+        }),
+      );
+      expect(JSON.stringify(runtimeAnalyticsMocks.emitMiniAppRuntimeEvent.mock.calls)).not.toContain('payment-zero-1');
+    } finally {
+      invalidateSpy.mockRestore();
+      windowOpenSpy.mockRestore();
+    }
+  });
+
+  it('test_checkout_failure_telemetry_uses_stable_error_code_without_raw_detail', async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.post(`${API_BASE}/miniapp/checkout/commit`, async ({ request }) => {
+        requests.push({ url: request.url, body: await request.json() });
+        return HttpResponse.json(
+          {
+            detail: 'payment-zero-1 FREE100 https://pay.example.invalid/session-secret',
+          },
+          { status: 400 },
+        );
+      }),
+    );
+
+    render(<PlansPage />, { wrapper: createWrapper() });
+
+    const openPaymentButton = await screen.findByRole('button', { name: /Open payment/ });
+    await waitFor(() => expect(openPaymentButton).toBeEnabled());
+    await user.click(openPaymentButton);
+
+    await waitFor(() => {
+      expect(runtimeAnalyticsMocks.emitMiniAppRuntimeEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'miniapp_checkout_failed',
+          errorCode: 'checkout_commit_validation_failed',
+        }),
+      );
+      expect(telegramMock.showAlert).toHaveBeenCalledWith('Payment error');
+    });
+
+    const telemetryCalls = JSON.stringify(runtimeAnalyticsMocks.emitMiniAppRuntimeEvent.mock.calls);
+    expect(telemetryCalls).not.toContain('FREE100');
+    expect(telemetryCalls).not.toContain('payment-zero-1');
+    expect(telemetryCalls).not.toContain('pay.example.invalid');
+  });
+
   it('test_carries_private_offer_grant_into_quote_and_commit', async () => {
     const user = userEvent.setup();
     let preflightBody: Record<string, unknown> | null = null;
@@ -563,6 +767,106 @@ describe('MiniAppPlansPage', () => {
         .filter((entry) => entry.url.includes('/miniapp/checkout/quote'))
         .every((entry) => (entry.body as Record<string, unknown>).private_catalog_grant_id == null),
     ).toBe(true);
+  });
+
+  it('test_applies_checkout_code_basket_and_commits_grouped_multi_code_payload', async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.get(`${API_BASE}/client/capabilities`, () => {
+        const capabilities = createClientCapabilities();
+        return HttpResponse.json({
+          ...capabilities,
+          growth: {
+            ...capabilities.growth,
+            checkout_code_discounts: true,
+          },
+        });
+      }),
+      http.post(`${API_BASE}/miniapp/checkout/quote`, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        requests.push({ url: request.url, body });
+        const hasCodes = Array.isArray(body.codes) && body.codes.length > 0;
+        const hasLegacyCode = Boolean(body.code_input);
+        return HttpResponse.json({
+          ...createQuoteResponse(),
+          displayed_price: hasCodes || hasLegacyCode ? 63.2 : 79,
+          discount_amount: hasCodes || hasLegacyCode ? 15.8 : 0,
+        });
+      }),
+    );
+
+    render(<PlansPage />, { wrapper: createWrapper() });
+
+    await screen.findByText('growthCodeBasket.title');
+    const codeInput = screen.getByLabelText('growthCodeBasket.inputLabel');
+    await user.type(codeInput, 'save1500');
+    await user.click(screen.getByRole('button', { name: 'growthCodeBasket.addCta' }));
+
+    await waitFor(() => {
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          url: expect.stringContaining('/codes/resolve'),
+          body: expect.objectContaining({
+            code: 'SAVE1500',
+            action_context: 'checkout',
+            plan_id: 'plan-plus-365',
+            channel: 'miniapp',
+          }),
+        }),
+      );
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          url: expect.stringContaining('/miniapp/checkout/quote'),
+          body: expect.objectContaining({
+            code_input: 'SAVE1500',
+          }),
+        }),
+      );
+      expect(screen.queryByText('growthCodeBasket.contextChanged')).not.toBeInTheDocument();
+    });
+
+    await user.type(codeInput, 'loyal10');
+    await user.click(screen.getByRole('button', { name: 'growthCodeBasket.addCta' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('growthCodeBasket.degraded')).toBeInTheDocument();
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          url: expect.stringContaining('/miniapp/checkout/quote'),
+          body: expect.objectContaining({
+            codes: [
+              { code: 'SAVE1500', client_slot_id: 'miniapp-1' },
+              { code: 'LOYAL10', client_slot_id: 'miniapp-2' },
+            ],
+          }),
+        }),
+      );
+    });
+    const openPaymentButton = screen.getByRole('button', { name: /Open payment/ });
+    expect(openPaymentButton).toBeEnabled();
+    await user.click(openPaymentButton);
+
+    await waitFor(() => {
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          url: expect.stringContaining('/miniapp/checkout/commit'),
+          body: expect.objectContaining({
+            flow: 'checkout',
+            plan_id: 'plan-plus-365',
+            codes: [
+              { code: 'SAVE1500', client_slot_id: 'miniapp-1' },
+              { code: 'LOYAL10', client_slot_id: 'miniapp-2' },
+            ],
+          }),
+        }),
+      );
+    });
+    const groupedCommit = requests.find((entry) =>
+      entry.url.includes('/miniapp/checkout/commit')
+      && Array.isArray((entry.body as Record<string, unknown>).codes)
+    );
+    expect(groupedCommit?.body).not.toHaveProperty('code_input');
   });
 
   it('test_hides_checkout_code_controls_during_s1_beta', async () => {

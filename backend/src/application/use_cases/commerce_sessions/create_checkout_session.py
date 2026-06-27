@@ -12,8 +12,10 @@ from src.application.use_cases.commerce_sessions.quote_serialization import (
     build_context_snapshot,
     build_subscription_snapshot,
     restore_protected_request_code,
+    restore_protected_request_codes,
     serialize_checkout_result,
 )
+from src.application.use_cases.growth_code_sets.ledger import reservation_ids_from_snapshot
 from src.application.use_cases.growth_code_sets.snapshots import (
     attach_growth_checkout_integrity,
     canonical_growth_checkout_snapshot,
@@ -25,9 +27,10 @@ from src.application.use_cases.partner_attribution.attribution import (
     EnsurePendingPartnerAttributionClaimedUseCase,
     PartnerAttributionError,
 )
-from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
+from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutCodeBasketInput, CheckoutUseCase
 from src.config.settings import settings
 from src.infrastructure.database.models.checkout_session_model import CheckoutSessionModel
+from src.infrastructure.database.models.growth_code_set_model import CheckoutCodeSetModel
 from src.infrastructure.database.models.quote_session_model import QuoteSessionModel
 from src.infrastructure.database.repositories.commerce_session_repo import CommerceSessionRepository
 from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
@@ -180,6 +183,7 @@ class CreateCheckoutSessionUseCase:
                 idempotency_key=idempotency_key,
                 promo_code_id=quote_session.promo_code_id,
                 partner_code_id=quote_session.partner_code_id,
+                code_set_id=quote_session.code_set_id,
                 private_catalog_access_grant_id=quote_session.private_catalog_access_grant_id,
                 request_snapshot=dict(quote_session.request_snapshot),
                 checkout_snapshot={
@@ -282,15 +286,42 @@ class CreateCheckoutSessionUseCase:
                 )
                 for addon in request_snapshot.get("addons", [])
             ],
+            code_basket=[
+                CheckoutCodeBasketInput(
+                    code=str(item["code"]),
+                    client_slot_id=item.get("client_slot_id"),
+                )
+                for item in restore_protected_request_codes(request_snapshot)
+            ],
             sale_channel=request_snapshot["channel"],
         )
-        return build_context_snapshot(resolved_context), serialize_checkout_result(
+        current_quote_snapshot = serialize_checkout_result(
             checkout_result,
             subscription_snapshot=build_subscription_snapshot(
                 result=checkout_result,
                 context=resolved_context,
             ),
         )
+        if quote_session.code_set_id is not None and checkout_result.code_set_applications:
+            stored_code_set = dict((quote_session.quote_snapshot or {}).get("code_set") or {})
+            stored_applications = list(stored_code_set.get("applications") or [])
+            if stored_applications:
+                stored_code_set["applications"] = stored_applications
+                current_quote_snapshot["code_set_id"] = str(quote_session.code_set_id)
+                current_quote_snapshot["code_set_hash"] = (quote_session.quote_snapshot or {}).get("code_set_hash")
+                current_quote_snapshot["reservation_group_id"] = (quote_session.quote_snapshot or {}).get(
+                    "reservation_group_id"
+                )
+                current_quote_snapshot["code_set"] = stored_code_set
+                code_resolution = dict(current_quote_snapshot.get("code_resolution") or {})
+                if code_resolution:
+                    code_resolution["reservation_group_id"] = current_quote_snapshot.get("reservation_group_id")
+                    current_quote_snapshot["code_resolution"] = code_resolution
+                current_quote_snapshot = attach_growth_checkout_integrity(
+                    current_quote_snapshot,
+                    producer="cybervpn-backend.checkout_session.reprice_code_set",
+                )
+        return build_context_snapshot(resolved_context), current_quote_snapshot
 
     async def _bind_reservation_to_checkout_session(
         self,
@@ -299,12 +330,26 @@ class CreateCheckoutSessionUseCase:
         checkout_session: CheckoutSessionModel,
     ) -> None:
         reservation_id = _extract_reservation_id(quote_session.quote_snapshot)
-        if reservation_id is None:
+        reservation_ids = reservation_ids_from_snapshot(quote_session.quote_snapshot)
+        if reservation_id is not None and reservation_id not in reservation_ids:
+            reservation_ids.append(reservation_id)
+        if not reservation_ids:
             return
-        reservation = await self._growth_codes.get_reservation_by_id(reservation_id)
-        if reservation is None:
-            return
-        reservation.checkout_session_id = checkout_session.id
+        for reservation_id in sorted(reservation_ids, key=str):
+            reservation = await self._growth_codes.get_reservation_by_id(reservation_id)
+            if reservation is None:
+                continue
+            reservation.checkout_session_id = checkout_session.id
+        if quote_session.code_set_id is not None:
+            code_set = await self._session.get(CheckoutCodeSetModel, quote_session.code_set_id)
+            if code_set is not None:
+                code_set.checkout_session_id = checkout_session.id
+                code_set.status = "checkout_open"
+            checkout_session.code_set_id = quote_session.code_set_id
+        await self._reservations.bind_groups_to_checkout_session(
+            quote_session_id=quote_session.id,
+            checkout_session_id=checkout_session.id,
+        )
         await self._session.flush()
 
     async def _ensure_partner_attribution_claimed(
@@ -362,9 +407,14 @@ def _sanitize_quote_snapshot(snapshot: dict | None) -> dict:
     sanitized = canonical_growth_checkout_snapshot(snapshot)
     sanitized.pop("partner_attribution", None)
     sanitized.pop("partner_commission_contract_snapshot", None)
+    sanitized.pop("code_set", None)
+    sanitized.pop("code_set_id", None)
+    sanitized.pop("code_set_hash", None)
+    sanitized.pop("reservation_group_id", None)
     code_resolution = dict(sanitized.get("code_resolution") or {})
     if code_resolution:
         code_resolution["reservation_id"] = None
+        code_resolution.pop("reservation_group_id", None)
         policy_snapshot = dict(code_resolution.get("policy_snapshot") or {})
         if policy_snapshot:
             policy_snapshot.pop("commission_contract_snapshot", None)

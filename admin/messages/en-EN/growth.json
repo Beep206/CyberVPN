@@ -4,6 +4,7 @@
   },
   "nav": {
     "overview": "Overview",
+    "campaigns": "Campaigns",
     "promoCodes": "Promo Codes",
     "inviteCodes": "Invite Codes",
     "giftCodes": "Gift Codes",
@@ -11,6 +12,10 @@
     "reporting": "Reporting",
     "notifications": "Notifications",
     "rules": "Rules",
+    "siteMode": "Site Mode",
+    "fx": "FX Rates",
+    "privateAccess": "Private Access",
+    "onboarding": "Onboarding",
     "risk": "Risk Signals",
     "referrals": "Referrals"
   },
@@ -33,6 +38,20 @@
     "backendLimited": "Backend limited",
     "noExpiry": "No expiry"
   },
+  "v6": {
+    "common": {
+      "available": "Available",
+      "degraded": "Degraded",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "generatedWrapper": "Generated API wrapper is present and used by this console.",
+      "noGeneratedAdminWrapper": "No generated admin wrapper exists in the current OpenAPI client; action remains disabled.",
+      "refresh": "Refresh capabilities",
+      "refreshing": "Refreshing...",
+      "running": "Running...",
+      "actionFailed": "Action failed. Check backend validation and permissions."
+    }
+  },
   "overview": {
     "metaTitle": "Growth - Ozoxy Admin",
     "eyebrow": "Acquisition / Retention",
@@ -51,6 +70,7 @@
     "routesTitle": "Route Inventory",
     "routesDescription": "Growth is implemented only where backend admin coverage is real. Each route below maps to an existing operator-safe surface.",
     "routes": {
+      "campaigns": "Create draft campaigns, edit versioned metadata, and request audited lifecycle transitions.",
       "promoCodes": "Create, inspect, update, and deactivate campaign promo codes.",
       "inviteCodes": "Generate invite batches for a specific user with optional plan targeting.",
       "giftCodes": "Issue single or batch customer gift codes, inspect live inventory, and track redemption posture.",
@@ -58,7 +78,11 @@
       "reporting": "Review persisted rollups, reporting subscriptions, governance coverage, and exportable delivery artifacts.",
       "notifications": "Send operator-authored growth notices and inspect per-channel delivery forensics.",
       "rules": "Build and simulate typed growth rule ASTs through the backend compiler.",
-      "risk": "Triage referral abuse pressure, blocked rewards, and lifecycle risk signals from the growth queue.",
+      "siteMode": "Preview cabinet-only routing from the real client capability response and track missing admin rollback APIs.",
+      "fx": "Review FX readiness from generated capabilities and run backend-authoritative conversion simulations.",
+      "privateAccess": "Inspect private-access readiness, open grants, and revoke grants through generated admin endpoints.",
+      "onboarding": "Review post-registration onboarding capabilities, update runtime settings, and reset states through audited admin APIs.",
+      "risk": "Triage growth risk model lifecycle, decisions, and manual review resolution from generated admin endpoints.",
       "referrals": "Monitor referral commissions, top referrers, and recent conversion-linked earnings."
     },
     "liveSignalsTitle": "Live Lifecycle Stream",
@@ -263,6 +287,83 @@
       "exhausted": "Exhausted Promos",
       "coverage": "Coverage",
       "coverageValue": "6 live surfaces"
+    }
+  },
+  "campaigns": {
+    "metaTitle": "Growth Campaigns - Ozoxy Admin",
+    "eyebrow": "Growth / Campaigns",
+    "title": "Campaign Lifecycle",
+    "description": "Admin lifecycle console for backend-authoritative growth campaigns, versions, audited reasons, and optimistic concurrency.",
+    "createTitle": "Create Campaign",
+    "createDescription": "Create a draft campaign through the generated admin growth endpoint. Business rules and publish checks stay in the backend.",
+    "createAction": "Create campaign",
+    "creating": "Creating...",
+    "updateTitle": "Draft Version Update",
+    "updateDescription": "Updates include the current campaign version and backend audit reason. Active campaigns are versioned by the backend.",
+    "updateAction": "Update draft",
+    "updating": "Updating...",
+    "inventoryTitle": "Campaign Inventory",
+    "inventoryDescription": "Bounded list of growth campaigns returned by the live admin API.",
+    "detailTitle": "Campaign Detail",
+    "detailEmpty": "Select a campaign to inspect version, schedule, and lifecycle controls.",
+    "lifecycleTitle": "Lifecycle Action",
+    "lifecycleDescription": "Lifecycle mutations send expected_version and reason_code. Publish, archive, and revoke require typed confirmation.",
+    "loading": "Loading campaigns...",
+    "empty": "No growth campaigns matched the current filter.",
+    "applying": "Applying...",
+    "confirmationRequired": "Typed confirmation required",
+    "reasonRequired": "Reason code required",
+    "selectCampaign": "Select campaign {key}",
+    "metrics": {
+      "total": "Campaigns",
+      "totalHint": "Campaign records returned by the current bounded query.",
+      "active": "Active",
+      "activeHint": "Campaigns currently active in the backend.",
+      "drafts": "Drafts",
+      "draftsHint": "Campaigns not yet published.",
+      "version": "Selected Version",
+      "versionHint": "Current backend version used for optimistic lifecycle writes."
+    },
+    "badges": {
+      "version": "v{version}"
+    },
+    "fields": {
+      "action": "Action",
+      "allStatuses": "All statuses",
+      "campaignKey": "Campaign key",
+      "confirmation": "Type campaign key",
+      "description": "Description",
+      "expiresAt": "Expires at",
+      "name": "Name",
+      "priority": "Priority",
+      "reasonCode": "Reason code",
+      "schedule": "Schedule",
+      "stackingGroup": "Stacking group",
+      "stackingMode": "Stacking mode",
+      "startsAt": "Starts at",
+      "status": "Status",
+      "version": "Version"
+    },
+    "actions": {
+      "publish": "Publish",
+      "pause": "Pause",
+      "resume": "Resume",
+      "archive": "Archive",
+      "revoke": "Revoke"
+    },
+    "feedback": {
+      "created": "Campaign draft created from the backend response.",
+      "createFailed": "Campaign creation failed.",
+      "updated": "Campaign version update committed by the backend.",
+      "updateFailed": "Campaign update failed.",
+      "publish": "Campaign publish request committed.",
+      "pause": "Campaign pause request committed.",
+      "resume": "Campaign resume request committed.",
+      "archive": "Campaign archive request committed.",
+      "revoke": "Campaign revoke request committed.",
+      "actionFailed": "Campaign lifecycle action failed.",
+      "actionBlocked": "Complete reason and confirmation before applying this lifecycle action.",
+      "required": "Fill required campaign fields before submitting."
     }
   },
   "promoCodes": {
@@ -562,6 +663,7 @@
       "compiling": "Compiling...",
       "export": "Export JSON",
       "import": "Import JSON",
+      "importFile": "Import file",
       "redo": "Redo",
       "reset": "Reset draft",
       "simulate": "Simulate",
@@ -591,10 +693,20 @@
     },
     "description": "Design-consistent console for typed Growth Codes v6 rules backed by the admin catalog, compiler, and no-side-effect simulator.",
     "diff": {
+      "addedLines": "Added lines",
+      "changedLines": "Changed lines",
       "description": "Compare the current draft with the normalized AST returned by the last backend compile.",
       "draft": "Draft",
       "empty": "No compiled normalized AST yet.",
       "normalized": "Normalized",
+      "removedLines": "Removed lines",
+      "status": {
+        "changed": "Diff detected",
+        "invalid": "Draft invalid",
+        "match": "Canonical match",
+        "uncompiled": "Not compiled"
+      },
+      "statusDescription": "Diff is local evidence only; compile and simulation remain the backend-authoritative validation path.",
       "title": "Version Diff Preview"
     },
     "editor": {
@@ -605,8 +717,12 @@
     "errors": {
       "astInvalid": "AST JSON is invalid: {detail}",
       "catalogFailed": "Rule catalog could not be loaded.",
+      "compileRequired": "Compile the current AST before requesting approval.",
       "compileFailed": "Rule compile failed.",
       "contextInvalid": "Simulation context JSON is invalid: {detail}",
+      "importFailed": "Rule JSON import failed: {detail}",
+      "policySubmitFailed": "Policy-version approval request failed.",
+      "publishChecklistIncomplete": "Complete the approval checklist before submitting.",
       "simulateFailed": "Rule simulation failed.",
       "title": "Rule builder error"
     },
@@ -618,13 +734,16 @@
       "conditionAdded": "Condition added to AST.",
       "conditionUpdated": "Condition updated.",
       "exported": "Draft JSON exported.",
+      "fileImported": "Draft JSON imported from file.",
       "imported": "Draft JSON imported.",
       "nodeDuplicated": "Node duplicated.",
+      "nodeMoved": "Node moved.",
       "nodeRemoved": "Node removed.",
       "redo": "Draft redone.",
       "reset": "Draft reset.",
       "rootUpdated": "Root group updated.",
       "simulated": "Rule simulated by backend.",
+      "policySubmitted": "Policy version submitted for approval.",
       "undo": "Draft undone.",
       "unsupportedSelection": "Selected condition is not present in the current catalog."
     },
@@ -664,6 +783,30 @@
       "searchPlaceholder": "Field, operator, or action",
       "title": "Catalog Palette"
     },
+    "publish": {
+      "approval": "The compiled checksum, normalized AST, and impact notes have been reviewed for this draft.",
+      "backendGap": "Backend policy-version workflow is available.",
+      "backendWorkflow": "The admin API will create a policy-version draft and submit it to the audited approval workflow.",
+      "checklist": {
+        "approval": "Human approval checkbox",
+        "backendWorkflow": "Audited backend policy-version workflow",
+        "blocked": "Blocked",
+        "compiled": "Backend compile checksum present",
+        "passed": "Passed",
+        "reason": "Reason code present",
+        "title": "Approval Checklist"
+      },
+      "checksum": "Compiled checksum",
+      "description": "Submit the compiled AST into the audited policy-version workflow. Approval, publish, rollback, and diff are enforced by the backend.",
+      "notReady": "Checklist incomplete",
+      "policyVersion": "Policy version",
+      "ready": "Ready to submit",
+      "reasonCode": "Reason code",
+      "submitted": "Policy version draft has been submitted for backend approval.",
+      "submit": "Request publish approval",
+      "submitting": "Submitting...",
+      "title": "Publish Approval"
+    },
     "simulator": {
       "actionsTitle": "Actions",
       "checksum": "Checksum",
@@ -681,9 +824,259 @@
       "any": "Any",
       "ariaLabel": "Growth rule AST tree",
       "children": "{count} children",
+      "conditionLabel": "Condition {field} {operator}",
       "description": "Tree view of the condition graph and action list in the current JSON AST.",
       "empty": "No condition tree in this AST.",
+      "keyboardHelp": "Use Enter to select a condition, Delete to remove it, Control D to duplicate it, and Alt Arrow Up or Down to move it among siblings.",
       "title": "Rule Tree"
+    }
+  },
+  "fx": {
+    "metaTitle": "Growth FX - Ozoxy Admin",
+    "eyebrow": "Growth / FX",
+    "title": "FX Rates",
+    "description": "FX readiness console for fixed-discount conversion, rate freshness, provider status and audited override coverage.",
+    "coverageTitle": "Backend Coverage",
+    "coverageDescription": "The console calls generated capabilities and generated v3 FX admin endpoints.",
+    "simulatorTitle": "Conversion Simulator",
+    "simulatorDescription": "Simulation calls the backend FX engine and returns rounded/applied amounts without mutating checkout state.",
+    "simulatorDisabled": "No synthetic FX result is rendered. Operators must wait for the authoritative backend simulator.",
+    "simulationResult": "Rounded {rounded}, applied {applied} {currency}",
+    "degraded": {
+      "title": "Admin FX API degraded",
+      "description": "FX status could not be loaded from the generated admin endpoint. Operator actions stay read-only until the backend responds."
+    },
+    "metrics": {
+      "adminApi": "Admin API",
+      "adminApiHint": "Generated admin FX endpoint coverage.",
+      "checkoutDiscounts": "Checkout Discounts",
+      "checkoutDiscountsHint": "Client capability for checkout code discounts.",
+      "manualOverride": "Manual Override",
+      "manualOverrideHint": "Manual FX edits stay disabled without audited backend workflow.",
+      "siteMode": "Site Mode",
+      "siteModeHint": "Runtime capability context fetched with the same generated wrapper."
+    },
+    "fields": {
+      "amount": "Amount",
+      "sourceCurrency": "Source currency",
+      "targetCurrency": "Target currency"
+    },
+    "actions": {
+      "simulate": "Simulate conversion"
+    },
+    "errors": {
+      "capabilities": "FX capabilities could not be loaded."
+    }
+  },
+  "privateAccess": {
+    "metaTitle": "Growth Private Access - Ozoxy Admin",
+    "eyebrow": "Growth / Private Access",
+    "title": "Private Access",
+    "description": "Private catalog and grant readiness console backed by generated admin target and grant endpoints.",
+    "coverageTitle": "Backend Coverage",
+    "coverageDescription": "Generated capabilities are loaded together with generated private catalog and grant endpoint coverage.",
+    "grantsTitle": "Grant Operations",
+    "grantsDescription": "Grant lookup and revoke controls call backend scope, audit reason and object-ownership checks.",
+    "actionsDisabled": "No private grant, hidden offer or target identifier is fetched or rendered without an authoritative generated admin endpoint.",
+    "emptyGrants": "No private grants were returned for the current support query.",
+    "grantResult": "Grant status: {status}",
+    "degraded": {
+      "title": "Private grant API degraded",
+      "description": "Private catalog targets could not be loaded from the generated admin endpoint. Grant actions remain read-only until backend state is available.",
+      "grantsDescription": "Private grant list could not be loaded from the generated admin endpoint."
+    },
+    "metrics": {
+      "adminApi": "Admin API",
+      "adminApiHint": "Generated private catalog/grants endpoint coverage.",
+      "giftCodes": "Gift Codes",
+      "giftCodesHint": "Gift code capability from backend readiness.",
+      "growthHub": "Growth Hub",
+      "growthHubHint": "Customer growth hub capability from backend readiness.",
+      "promoCodes": "Promo Codes",
+      "promoCodesHint": "Promo code capability from backend readiness."
+    },
+    "fields": {
+      "grant": "Grant ID",
+      "revokeReason": "Revoke reason",
+      "subject": "Masked subject"
+    },
+    "actions": {
+      "openGrant": "Open grant",
+      "revokeGrant": "Revoke grant"
+    },
+    "errors": {
+      "capabilities": "Private access capabilities could not be loaded."
+    }
+  },
+  "onboarding": {
+    "metaTitle": "Growth Onboarding - Ozoxy Admin",
+    "eyebrow": "Growth / Onboarding",
+    "title": "Post-registration Onboarding",
+    "description": "Onboarding capability console for prompt readiness, state-store status and generated admin state inspection.",
+    "coverageTitle": "Backend Coverage",
+    "coverageDescription": "The page uses generated client capabilities together with generated v3 admin onboarding endpoints.",
+    "settingsTitle": "Settings and State",
+    "settingsDescription": "Settings update and state reset controls call backend admin endpoints with permission, reason and audit requirements.",
+    "actionsDisabled": "No onboarding state is reset and no prompt setting is mutated from this summary console.",
+    "empty": "The capability response did not include onboarding data.",
+    "emptyStates": "No onboarding states were returned for the current support query.",
+    "settingsResult": "Settings saved at version {version}",
+    "resetResult": "State status: {status}",
+    "degraded": {
+      "title": "Admin onboarding API degraded",
+      "description": "Prompt settings and user state could not be loaded from the generated admin onboarding endpoint.",
+      "statesDescription": "Onboarding state list could not be loaded from the generated admin onboarding endpoint."
+    },
+    "metrics": {
+      "adminApi": "Admin API",
+      "adminApiHint": "Generated admin onboarding endpoint coverage.",
+      "flowVersion": "Flow Version",
+      "flowVersionHint": "Server-owned onboarding flow key and version from capabilities.",
+      "prompt": "Prompt",
+      "promptHint": "Post-registration prompt capability.",
+      "stateStore": "State Store",
+      "stateStoreHint": "Persistent onboarding state capability."
+    },
+    "flags": {
+      "allowedCodeTypes": "Allowed code types",
+      "partnerInput": "Partner input",
+      "referralInput": "Referral input",
+      "telegramMiniapp": "Telegram Mini App",
+      "webOtp": "Web OTP"
+    },
+    "fields": {
+      "settingsReason": "Settings reason",
+      "resetReason": "Reset reason",
+      "state": "State ID",
+      "userLookup": "User lookup"
+    },
+    "actions": {
+      "resetState": "Reset state",
+      "updateSettings": "Update settings"
+    },
+    "errors": {
+      "capabilities": "Onboarding capabilities could not be loaded."
+    }
+  },
+  "risk": {
+    "metaTitle": "Growth Risk - Ozoxy Admin",
+    "eyebrow": "Growth / Risk",
+    "title": "Growth Risk",
+    "description": "Risk operations console for model lifecycle, decisions, and manual review resolution.",
+    "coverageTitle": "Backend Coverage",
+    "coverageDescription": "The page calls generated v3 risk admin endpoints for models, decisions, reviews, and review resolution.",
+    "lifecycleTitle": "Risk Lifecycle",
+    "lifecycleDescription": "Model, decision, and review rows are fetched from backend risk tables. Review resolution writes an audited backend decision.",
+    "emptyModels": "No risk models were returned for the current query.",
+    "emptyDecisions": "No risk decisions were returned for the current query.",
+    "emptyReviews": "No open risk reviews were returned for the current query.",
+    "reviewResult": "Review status: {status}",
+    "degraded": {
+      "title": "Admin risk API degraded",
+      "description": "Risk models, decisions or reviews could not be loaded from the generated admin endpoint."
+    },
+    "metrics": {
+      "adminApi": "Admin API",
+      "adminApiHint": "Generated admin risk endpoint coverage.",
+      "checkoutDiscounts": "Checkout Discounts",
+      "checkoutDiscountsHint": "Checkout code discount capability used by the risk guard.",
+      "models": "Models",
+      "modelsHint": "Risk model lifecycle rows in the backend.",
+      "decisions": "Decisions",
+      "decisionsHint": "Recent risk decisions from the backend."
+    },
+    "fields": {
+      "review": "Review ID",
+      "resolutionReason": "Resolution reason"
+    },
+    "actions": {
+      "resolveReview": "Resolve review"
+    },
+    "errors": {
+      "capabilities": "Risk capabilities could not be loaded."
+    }
+  },
+  "siteMode": {
+    "metaTitle": "Customer Site Mode - Ozoxy Admin",
+    "eyebrow": "Growth / Site Mode",
+    "title": "Customer Site Mode",
+    "description": "Versioned customer site routing controls for full-site, cabinet-only, and maintenance modes.",
+    "previewTitle": "Route Preview",
+    "previewDescription": "Preview the route decision that the runtime config will apply before changing the policy.",
+    "matrixTitle": "Capability Matrix",
+    "matrixDescription": "Current public and cabinet host policy from the authoritative admin runtime config.",
+    "loading": "Loading site capabilities...",
+    "empty": "The capability response did not include site mode data.",
+    "backendGap": "Backend runtime controls are available for this environment.",
+    "auditTitle": "Audit History",
+    "auditDescription": "Versioned customer site mode changes from the generated admin timeline endpoint.",
+    "auditGenerated": "Generated timeline",
+    "auditLoading": "Loading site mode audit history...",
+    "auditEmpty": "No customer site mode changes were recorded yet.",
+    "rollbackUnavailable": "Rollback to full-site",
+    "updateAction": "Update site mode",
+    "rollbackAction": "Rollback to full-site",
+    "updating": "Updating...",
+    "rollingBack": "Rolling back...",
+    "feedback": {
+      "updated": "Customer site mode updated.",
+      "updateFailed": "Customer site mode could not be updated.",
+      "rollback": "Customer site mode rolled back to full-site.",
+      "rollbackFailed": "Customer site mode rollback failed."
+    },
+    "fields": {
+      "allowedPrefixes": "Allowed path prefixes",
+      "cabinetHosts": "Cabinet hosts",
+      "destination": "Cabinet destination path",
+      "mode": "Runtime mode",
+      "preserveKeys": "Preserved query keys",
+      "publicHosts": "Public hosts",
+      "confirmation": "Typed confirmation",
+      "reason": "Change reason",
+      "registrationPolicy": "Registration policy",
+      "url": "Preview URL"
+    },
+    "confirmationHint": "Type {update} to update this runtime policy, or {rollback} to rollback to full-site.",
+    "metrics": {
+      "mode": "Mode",
+      "modeHint": "Effective customer_site_mode from client capabilities.",
+      "cabinetHost": "Cabinet Host",
+      "cabinetHostHint": "First configured cabinet host for preview redirects.",
+      "destination": "Destination",
+      "destinationHint": "Cabinet destination path exposed by the backend.",
+      "configVersion": "Config Version",
+      "configVersionHint": "Optimistic-lock version of the runtime policy."
+    },
+    "modes": {
+      "full_site": "Full site",
+      "cabinet_only": "Cabinet-only",
+      "maintenance": "Maintenance"
+    },
+    "preview": {
+      "pass": "Pass-through",
+      "redirect": "Redirect",
+      "reason": "Reason",
+      "source": "Source",
+      "target": "Target"
+    },
+    "reasons": {
+      "allowed_route": "Allowed route",
+      "cabinet_only_redirect": "Cabinet-only redirect",
+      "full_site_passthrough": "Full-site pass-through",
+      "invalid_url": "Invalid URL"
+    },
+    "boolean": {
+      "true": "Independent",
+      "false": "Coupled"
+    },
+    "errors": {
+      "loadFailed": "Site capabilities could not be loaded.",
+      "auditLoadFailed": "Site mode audit history could not be loaded."
+    },
+    "auditFields": {
+      "admin": "Admin",
+      "reason": "Reason",
+      "version": "Version"
     }
   },
   "referrals": {
@@ -699,6 +1092,13 @@
     "lifecycleTitle": "Referral Lifecycle",
     "lifecycleEmpty": "No referral lifecycle events have been emitted yet.",
     "liveOverview": "Live overview",
+    "riskReviewsTitle": "Security Risk Reviews",
+    "riskReviewsDescription": "Open security review queue from the generated risk-review API, with masked subject identifiers only.",
+    "generatedSecurityQueue": "Generated security queue",
+    "riskReviewsLoading": "Loading risk review queue...",
+    "riskReviewsEmpty": "No open risk reviews are visible for growth operations.",
+    "riskReviewsLoadFailed": "Risk review queue could not be loaded.",
+    "maskedSubject": "Subject {value}",
     "metrics": {
       "availableCredit": "Available Credit",
       "availableCreditHint": "Referral reward amount currently available in the canonical non-withdrawable balance.",
@@ -711,7 +1111,9 @@
     },
     "badges": {
       "count": "{count} signals",
-      "users": "{count} users"
+      "users": "{count} users",
+      "attachments": "{count} attachments",
+      "governance": "{count} governance actions"
     }
   }
 }

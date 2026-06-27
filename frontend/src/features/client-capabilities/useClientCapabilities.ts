@@ -50,6 +50,7 @@ export const DISABLED_CLIENT_CAPABILITIES: ClientCapabilitiesResponse = {
   site: {
     customer_site_mode: 'full_site',
     cabinet_only: false,
+    version: 1,
     public_hosts: [],
     cabinet_hosts: [],
     cabinet_destination_path: '/dashboard',

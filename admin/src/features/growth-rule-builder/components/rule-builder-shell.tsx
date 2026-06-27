@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import type { ChangeEvent, KeyboardEvent, ReactNode, RefObject } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   CheckCircle2,
-  Clipboard,
   Copy,
+  Download,
+  FileUp,
   GitCompare,
   ListTree,
   Play,
@@ -25,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { growthApi } from '@/lib/api/growth';
 import type {
   AdminGrowthRuleCompileResponse,
+  AdminGrowthRulePolicyVersionResponse,
   AdminGrowthRuleSimulateResponse,
 } from '@/lib/api/growth';
 import { GrowthEmptyState } from '@/features/growth/components/growth-empty-state';
@@ -42,6 +45,8 @@ import {
   collectRuleTreeRows,
   duplicateNodeAtPath,
   formatJson,
+  isRecord,
+  moveNodeAtPath,
   normalizeRuleCatalog,
   parseConditionInputValue,
   parseJsonObject,
@@ -64,8 +69,51 @@ const CONTEXT_STORAGE_KEY = 'admin:growth-rules:simulation-context-json';
 
 type AutosaveState = 'idle' | 'dirty' | 'saved' | 'restored';
 
+type VersionDiffStatus = 'uncompiled' | 'invalid' | 'match' | 'changed';
+
+interface VersionDiffSummary {
+  status: VersionDiffStatus;
+  normalizedJson: string | null;
+  changedLines: number;
+  addedLines: number;
+  removedLines: number;
+}
+
 function stringifyUnknown(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function downloadDraftJson(draftJson: string) {
+  if (typeof window.URL.createObjectURL !== 'function') {
+    return;
+  }
+
+  const objectUrl = window.URL.createObjectURL(
+    new Blob([draftJson], { type: 'application/json' }),
+  );
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = 'growth-rule-draft.json';
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL?.(objectUrl);
+}
+
+function siblingPath(path: string[], direction: 'up' | 'down'): string[] {
+  const nextPath = [...path];
+  const lastPart = nextPath.at(-1);
+  if (lastPart == null) {
+    return nextPath;
+  }
+
+  const index = Number(lastPart);
+  if (!Number.isInteger(index)) {
+    return nextPath;
+  }
+
+  nextPath[nextPath.length - 1] = String(direction === 'up' ? index - 1 : index + 1);
+  return nextPath;
 }
 
 function parseDraftJson(input: string): { value: JsonObject | null; error: string | null } {
@@ -106,13 +154,120 @@ function countMatchedTraceItems(trace: AdminGrowthRuleSimulateResponse['trace'] 
   return trace?.filter((item) => item.result === true).length ?? 0;
 }
 
+function stableSerialize(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableSerialize(item)).join(',')}]`;
+  }
+
+  if (isRecord(value)) {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`)
+      .join(',')}}`;
+  }
+
+  return JSON.stringify(value) ?? 'null';
+}
+
+function splitJsonLines(value: string): string[] {
+  return value.trimEnd().split('\n');
+}
+
+function buildLineDiffSummary(leftJson: string, rightJson: string) {
+  const leftLines = splitJsonLines(leftJson);
+  const rightLines = splitJsonLines(rightJson);
+  const maxLines = Math.max(leftLines.length, rightLines.length);
+  let changedLines = 0;
+  let addedLines = 0;
+  let removedLines = 0;
+
+  for (let index = 0; index < maxLines; index += 1) {
+    const leftLine = leftLines[index];
+    const rightLine = rightLines[index];
+
+    if (leftLine == null && rightLine != null) {
+      addedLines += 1;
+      continue;
+    }
+
+    if (leftLine != null && rightLine == null) {
+      removedLines += 1;
+      continue;
+    }
+
+    if (leftLine !== rightLine) {
+      changedLines += 1;
+    }
+  }
+
+  return { changedLines, addedLines, removedLines };
+}
+
+function summarizeVersionDiff(
+  draftJson: string,
+  compiledRule: AdminGrowthRuleCompileResponse | null,
+): VersionDiffSummary {
+  if (!compiledRule) {
+    return {
+      status: 'uncompiled',
+      normalizedJson: null,
+      changedLines: 0,
+      addedLines: 0,
+      removedLines: 0,
+    };
+  }
+
+  const parsedDraft = parseDraftJson(draftJson);
+  if (!parsedDraft.value) {
+    return {
+      status: 'invalid',
+      normalizedJson: stringifyUnknown(compiledRule.normalized_ast),
+      changedLines: 0,
+      addedLines: 0,
+      removedLines: 0,
+    };
+  }
+
+  const normalizedJson = stringifyUnknown(compiledRule.normalized_ast);
+  const lineSummary = buildLineDiffSummary(draftJson, normalizedJson);
+  const isCanonicalMatch =
+    stableSerialize(parsedDraft.value) === stableSerialize(compiledRule.normalized_ast);
+
+  return {
+    status: isCanonicalMatch ? 'match' : 'changed',
+    normalizedJson,
+    ...lineSummary,
+  };
+}
+
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement
+    ? Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
+    : false;
+}
+
 export function RuleBuilderShell() {
   const t = useTranslations('Growth');
   const locale = useLocale();
   const astEditorId = useId();
   const astErrorId = useId();
+  const importFileInputId = useId();
   const contextEditorId = useId();
   const contextErrorId = useId();
+  const importFileInputRef = useRef<HTMLInputElement>(null);
+  const shortcutHandlersRef = useRef<{
+    compileDraft: () => void;
+    simulateDraft: () => void;
+    exportDraft: () => void | Promise<void>;
+    undoDraft: () => void;
+    redoDraft: () => void;
+  }>({
+    compileDraft: () => undefined,
+    simulateDraft: () => undefined,
+    exportDraft: () => undefined,
+    undoDraft: () => undefined,
+    redoDraft: () => undefined,
+  });
 
   const [draftJson, setDraftJson] = useState(() => formatJson(DEFAULT_RULE_AST));
   const [contextJson, setContextJson] = useState(() => formatJson(DEFAULT_SIMULATION_CONTEXT));
@@ -126,8 +281,11 @@ export function RuleBuilderShell() {
   const [uiMessage, setUiMessage] = useState<string | null>(null);
   const [autosaveState, setAutosaveState] = useState<AutosaveState>('idle');
   const [compiledRule, setCompiledRule] = useState<AdminGrowthRuleCompileResponse | null>(null);
+  const [policyVersion, setPolicyVersion] = useState<AdminGrowthRulePolicyVersionResponse | null>(null);
   const [simulationResult, setSimulationResult] = useState<AdminGrowthRuleSimulateResponse | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [publishReason, setPublishReason] = useState('growth_rule_publish_review');
+  const [publishApproved, setPublishApproved] = useState(false);
 
   const catalogQuery = useQuery({
     queryKey: ['growth', 'rules', 'catalog'],
@@ -168,17 +326,13 @@ export function RuleBuilderShell() {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const savedDraft = window.localStorage.getItem(DRAFT_STORAGE_KEY);
-      const savedContext = window.localStorage.getItem(CONTEXT_STORAGE_KEY);
+      window.localStorage.removeItem(CONTEXT_STORAGE_KEY);
 
       if (savedDraft) {
         setDraftJson(savedDraft);
         setHistory([savedDraft]);
         setHistoryIndex(0);
         setAutosaveState('restored');
-      }
-
-      if (savedContext) {
-        setContextJson(savedContext);
       }
     }, 0);
 
@@ -188,12 +342,12 @@ export function RuleBuilderShell() {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       window.localStorage.setItem(DRAFT_STORAGE_KEY, draftJson);
-      window.localStorage.setItem(CONTEXT_STORAGE_KEY, contextJson);
+      window.localStorage.removeItem(CONTEXT_STORAGE_KEY);
       setAutosaveState('saved');
     }, 350);
 
     return () => window.clearTimeout(timeoutId);
-  }, [draftJson, contextJson]);
+  }, [draftJson]);
 
   useEffect(() => {
     if (catalogQuery.data == null) {
@@ -268,14 +422,45 @@ export function RuleBuilderShell() {
     },
   });
 
+  const submitPolicyMutation = useMutation({
+    mutationFn: async (payload: { ast: JsonObject; reason: string }) => {
+      const createResponse = await growthApi.createGrowthRulePolicy({
+        policy_key: 'checkout_eligibility',
+        subject_type: 'growth_rule',
+        subject_id: null,
+        ast: payload.ast,
+        change_reason: payload.reason,
+      });
+      const submitResponse = await growthApi.submitGrowthRulePolicy(createResponse.data.id, {
+        change_reason: payload.reason,
+        effective_from: null,
+        effective_to: null,
+      });
+      return submitResponse.data;
+    },
+    onSuccess: (response) => {
+      setPolicyVersion(response);
+      setServerError(null);
+      setUiMessage(t('rules.feedback.policySubmitted'));
+    },
+    onError: (error) => {
+      setServerError(getErrorMessage(error, t('rules.errors.policySubmitFailed')));
+    },
+  });
+
   const pushDraft = (nextAst: JsonObject, messageKey: string) => {
     const nextJson = formatJson(nextAst);
     const nextHistory = [...history.slice(0, historyIndex + 1), nextJson];
     setHistory(nextHistory);
     setHistoryIndex(nextHistory.length - 1);
     setDraftJson(nextJson);
+    setAutosaveState('dirty');
     setUiMessage(t(messageKey));
     setServerError(null);
+    setCompiledRule(null);
+    setSimulationResult(null);
+    setPolicyVersion(null);
+    setPublishApproved(false);
   };
 
   const getCurrentAst = (): JsonObject | null => {
@@ -317,23 +502,49 @@ export function RuleBuilderShell() {
     );
   };
 
-  const duplicateSelectedCondition = () => {
+  const duplicateConditionAtPath = (path: string[]) => {
     const currentAst = getCurrentAst();
-    if (!currentAst || !selectedConditionPath) {
+    if (!currentAst) {
       return;
     }
 
-    pushDraft(duplicateNodeAtPath(currentAst, selectedConditionPath), 'rules.feedback.nodeDuplicated');
+    pushDraft(duplicateNodeAtPath(currentAst, path), 'rules.feedback.nodeDuplicated');
+  };
+
+  const duplicateSelectedCondition = () => {
+    if (!selectedConditionPath) {
+      return;
+    }
+
+    duplicateConditionAtPath(selectedConditionPath);
+  };
+
+  const moveConditionAtPath = (path: string[], direction: 'up' | 'down') => {
+    const currentAst = getCurrentAst();
+    if (!currentAst) {
+      return;
+    }
+
+    pushDraft(moveNodeAtPath(currentAst, path, direction), 'rules.feedback.nodeMoved');
+    setSelectedConditionPath(siblingPath(path, direction));
+  };
+
+  const removeConditionAtPath = (path: string[]) => {
+    const currentAst = getCurrentAst();
+    if (!currentAst) {
+      return;
+    }
+
+    pushDraft(removeNodeAtPath(currentAst, path), 'rules.feedback.nodeRemoved');
+    setSelectedConditionPath(null);
   };
 
   const removeSelectedCondition = () => {
-    const currentAst = getCurrentAst();
-    if (!currentAst || !selectedConditionPath) {
+    if (!selectedConditionPath) {
       return;
     }
 
-    pushDraft(removeNodeAtPath(currentAst, selectedConditionPath), 'rules.feedback.nodeRemoved');
-    setSelectedConditionPath(null);
+    removeConditionAtPath(selectedConditionPath);
   };
 
   const addAction = (action: string) => {
@@ -383,22 +594,38 @@ export function RuleBuilderShell() {
   };
 
   const undoDraft = () => {
+    if (historyIndex === 0) {
+      return;
+    }
+
     const nextIndex = Math.max(0, historyIndex - 1);
     const nextJson = history[nextIndex];
     if (nextJson) {
       setHistoryIndex(nextIndex);
       setDraftJson(nextJson);
       setUiMessage(t('rules.feedback.undo'));
+      setCompiledRule(null);
+      setSimulationResult(null);
+      setPolicyVersion(null);
+      setPublishApproved(false);
     }
   };
 
   const redoDraft = () => {
+    if (historyIndex >= history.length - 1) {
+      return;
+    }
+
     const nextIndex = Math.min(history.length - 1, historyIndex + 1);
     const nextJson = history[nextIndex];
     if (nextJson) {
       setHistoryIndex(nextIndex);
       setDraftJson(nextJson);
       setUiMessage(t('rules.feedback.redo'));
+      setCompiledRule(null);
+      setSimulationResult(null);
+      setPolicyVersion(null);
+      setPublishApproved(false);
     }
   };
 
@@ -407,7 +634,28 @@ export function RuleBuilderShell() {
       await navigator.clipboard.writeText(draftJson);
     }
 
+    downloadDraftJson(draftJson);
     setUiMessage(t('rules.feedback.exported'));
+  };
+
+  const importDraftFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parsed = parseJsonObject(text);
+      pushDraft(parsed, 'rules.feedback.fileImported');
+      setCompiledRule(null);
+      setSimulationResult(null);
+    } catch (error) {
+      setServerError(t('rules.errors.importFailed', {
+        detail: error instanceof Error ? error.message : String(error),
+      }));
+    }
   };
 
   const compileDraft = () => {
@@ -433,6 +681,24 @@ export function RuleBuilderShell() {
     simulateMutation.mutate({ ast: currentAst, context: parsedContext.value });
   };
 
+  const submitPolicyDraft = () => {
+    const currentAst = getCurrentAst();
+    const reason = publishReason.trim();
+    if (!currentAst) {
+      return;
+    }
+    if (!compiledRule) {
+      setServerError(t('rules.errors.compileRequired'));
+      return;
+    }
+    if (!reason || !publishApproved) {
+      setServerError(t('rules.errors.publishChecklistIncomplete'));
+      return;
+    }
+
+    submitPolicyMutation.mutate({ ast: currentAst, reason });
+  };
+
   const selectCondition = (row: RuleTreeRow) => {
     if (row.type !== 'condition') {
       return;
@@ -447,6 +713,66 @@ export function RuleBuilderShell() {
       setUiMessage(t('rules.feedback.unsupportedSelection'));
     }
   };
+
+  useEffect(() => {
+    shortcutHandlersRef.current = {
+      compileDraft,
+      simulateDraft,
+      exportDraft,
+      undoDraft,
+      redoDraft,
+    };
+  });
+
+  useEffect(() => {
+    const handleShortcut = (event: globalThis.KeyboardEvent) => {
+      if (!event.ctrlKey && !event.metaKey) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      if (key === 'enter') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          shortcutHandlersRef.current.simulateDraft();
+          return;
+        }
+
+        shortcutHandlersRef.current.compileDraft();
+        return;
+      }
+
+      if (key === 's') {
+        event.preventDefault();
+        void shortcutHandlersRef.current.exportDraft();
+        return;
+      }
+
+      if (isEditableKeyboardTarget(event.target)) {
+        return;
+      }
+
+      if (key === 'z' && event.shiftKey) {
+        event.preventDefault();
+        shortcutHandlersRef.current.redoDraft();
+        return;
+      }
+
+      if (key === 'z') {
+        event.preventDefault();
+        shortcutHandlersRef.current.undoDraft();
+        return;
+      }
+
+      if (key === 'y') {
+        event.preventDefault();
+        shortcutHandlersRef.current.redoDraft();
+      }
+    };
+
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, []);
 
   return (
     <GrowthPageShell
@@ -464,6 +790,7 @@ export function RuleBuilderShell() {
             onClick={undoDraft}
             disabled={historyIndex === 0}
             aria-label={t('rules.actions.undo')}
+            aria-keyshortcuts="Control+Z Meta+Z"
           >
             <Undo2 className="mr-2 h-4 w-4" aria-hidden="true" />
             {t('rules.actions.undo')}
@@ -476,6 +803,7 @@ export function RuleBuilderShell() {
             onClick={redoDraft}
             disabled={historyIndex >= history.length - 1}
             aria-label={t('rules.actions.redo')}
+            aria-keyshortcuts="Control+Y Meta+Y Control+Shift+Z Meta+Shift+Z"
           >
             <Redo2 className="mr-2 h-4 w-4" aria-hidden="true" />
             {t('rules.actions.redo')}
@@ -487,6 +815,7 @@ export function RuleBuilderShell() {
             onClick={compileDraft}
             disabled={compileMutation.isPending}
             aria-label={t('rules.actions.compile')}
+            aria-keyshortcuts="Control+Enter Meta+Enter"
           >
             <Wand2 className="mr-2 h-4 w-4" aria-hidden="true" />
             {compileMutation.isPending ? t('rules.actions.compiling') : t('rules.actions.compile')}
@@ -498,6 +827,7 @@ export function RuleBuilderShell() {
             onClick={simulateDraft}
             disabled={simulateMutation.isPending}
             aria-label={t('rules.actions.simulate')}
+            aria-keyshortcuts="Control+Shift+Enter Meta+Shift+Enter"
           >
             <Play className="mr-2 h-4 w-4" aria-hidden="true" />
             {simulateMutation.isPending ? t('rules.actions.simulating') : t('rules.actions.simulate')}
@@ -599,11 +929,23 @@ export function RuleBuilderShell() {
             onSelectCondition={selectCondition}
             onRemoveAction={removeAction}
             onSetRootOperator={setRootOperator}
+            onDuplicateCondition={(row) => {
+              setSelectedConditionPath(row.path);
+              duplicateConditionAtPath(row.path);
+            }}
+            onRemoveCondition={(row) => {
+              removeConditionAtPath(row.path);
+            }}
+            onMoveCondition={(row, direction) => {
+              moveConditionAtPath(row.path, direction);
+            }}
           />
           <JsonEditorPanel
             t={t}
             astEditorId={astEditorId}
             astErrorId={astErrorId}
+            importFileInputId={importFileInputId}
+            importFileInputRef={importFileInputRef}
             draftJson={draftJson}
             parseError={parsedDraft.error}
             autosaveState={autosaveState}
@@ -612,8 +954,11 @@ export function RuleBuilderShell() {
               setAutosaveState('dirty');
               setCompiledRule(null);
               setSimulationResult(null);
+              setPolicyVersion(null);
+              setPublishApproved(false);
             }}
             onCommit={commitJsonDraft}
+            onImportFile={importDraftFile}
             onExport={exportDraft}
             onReset={resetDraft}
           />
@@ -650,6 +995,17 @@ export function RuleBuilderShell() {
             onRemoveSelected={removeSelectedCondition}
           />
           <CompilePanel t={t} compiledRule={compiledRule} />
+          <PublishReadinessPanel
+            t={t}
+            compiledRule={compiledRule}
+            reason={publishReason}
+            approved={publishApproved}
+            onReasonChange={setPublishReason}
+            onApprovedChange={setPublishApproved}
+            onSubmit={submitPolicyDraft}
+            isSubmitting={submitPolicyMutation.isPending}
+            policyVersion={policyVersion}
+          />
         </section>
       </div>
 
@@ -838,6 +1194,12 @@ interface RuleTreePanelProps {
   actions: ReturnType<typeof collectRuleActionRows>;
   selectedConditionId: string | null;
   onSelectCondition: (row: RuleTreeRow) => void;
+  onDuplicateCondition: (row: Extract<RuleTreeRow, { type: 'condition' }>) => void;
+  onRemoveCondition: (row: Extract<RuleTreeRow, { type: 'condition' }>) => void;
+  onMoveCondition: (
+    row: Extract<RuleTreeRow, { type: 'condition' }>,
+    direction: 'up' | 'down',
+  ) => void;
   onRemoveAction: (actionIndex: number) => void;
   onSetRootOperator: (operator: 'all' | 'any') => void;
 }
@@ -848,9 +1210,42 @@ function RuleTreePanel({
   actions,
   selectedConditionId,
   onSelectCondition,
+  onDuplicateCondition,
+  onRemoveCondition,
+  onMoveCondition,
   onRemoveAction,
   onSetRootOperator,
 }: RuleTreePanelProps) {
+  const keyboardHelpId = useId();
+
+  function handleConditionKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    row: Extract<RuleTreeRow, { type: 'condition' }>,
+  ) {
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      event.preventDefault();
+      onRemoveCondition(row);
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+      event.preventDefault();
+      onDuplicateCondition(row);
+      return;
+    }
+
+    if (event.altKey && event.key === 'ArrowUp') {
+      event.preventDefault();
+      onMoveCondition(row, 'up');
+      return;
+    }
+
+    if (event.altKey && event.key === 'ArrowDown') {
+      event.preventDefault();
+      onMoveCondition(row, 'down');
+    }
+  }
+
   return (
     <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -887,8 +1282,12 @@ function RuleTreePanel({
       <div
         role="tree"
         aria-label={t('rules.tree.ariaLabel')}
+        aria-describedby={keyboardHelpId}
         className="mt-5 space-y-2"
       >
+        <p id={keyboardHelpId} className="sr-only">
+          {t('rules.tree.keyboardHelp')}
+        </p>
         {rows.length === 0 ? (
           <GrowthEmptyState label={t('rules.tree.empty')} />
         ) : (
@@ -911,6 +1310,11 @@ function RuleTreePanel({
                   <button
                     type="button"
                     onClick={() => onSelectCondition(row)}
+                    onKeyDown={(event) => handleConditionKeyDown(event, row)}
+                    aria-label={t('rules.tree.conditionLabel', {
+                      field: row.field,
+                      operator: row.operator,
+                    })}
                     className="block w-full text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan"
                   >
                     <span className="font-mono text-xs text-neon-cyan">{row.field}</span>
@@ -981,11 +1385,14 @@ interface JsonEditorPanelProps {
   t: TranslationFn;
   astEditorId: string;
   astErrorId: string;
+  importFileInputId: string;
+  importFileInputRef: RefObject<HTMLInputElement | null>;
   draftJson: string;
   parseError: string | null;
   autosaveState: AutosaveState;
   onDraftChange: (value: string) => void;
   onCommit: () => void;
+  onImportFile: (event: ChangeEvent<HTMLInputElement>) => void;
   onExport: () => void;
   onReset: () => void;
 }
@@ -994,11 +1401,14 @@ function JsonEditorPanel({
   t,
   astEditorId,
   astErrorId,
+  importFileInputId,
+  importFileInputRef,
   draftJson,
   parseError,
   autosaveState,
   onDraftChange,
   onCommit,
+  onImportFile,
   onExport,
   onReset,
 }: JsonEditorPanelProps) {
@@ -1042,8 +1452,34 @@ function JsonEditorPanel({
           <Save className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('rules.actions.import')}
         </Button>
-        <Button type="button" variant="outline" size="sm" magnetic={false} onClick={onExport}>
-          <Clipboard className="mr-2 h-4 w-4" aria-hidden="true" />
+        <input
+          ref={importFileInputRef}
+          id={importFileInputId}
+          type="file"
+          accept="application/json,.json"
+          className="sr-only"
+          aria-label={t('rules.actions.importFile')}
+          onChange={onImportFile}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          magnetic={false}
+          onClick={() => importFileInputRef.current?.click()}
+        >
+          <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('rules.actions.importFile')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          magnetic={false}
+          onClick={onExport}
+          aria-keyshortcuts="Control+S Meta+S"
+        >
+          <Download className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('rules.actions.export')}
         </Button>
         <Button type="button" variant="outline" size="sm" magnetic={false} onClick={onReset}>
@@ -1211,6 +1647,131 @@ function CompilePanel({
   );
 }
 
+function PublishReadinessPanel({
+  t,
+  compiledRule,
+  policyVersion,
+  reason,
+  approved,
+  isSubmitting,
+  onReasonChange,
+  onApprovedChange,
+  onSubmit,
+}: {
+  t: TranslationFn;
+  compiledRule: AdminGrowthRuleCompileResponse | null;
+  policyVersion: AdminGrowthRulePolicyVersionResponse | null;
+  reason: string;
+  approved: boolean;
+  isSubmitting: boolean;
+  onReasonChange: (value: string) => void;
+  onApprovedChange: (value: boolean) => void;
+  onSubmit: () => void;
+}) {
+  const isReadyForBackend = Boolean(compiledRule && reason.trim() && approved);
+  const checklist = [
+    {
+      label: t('rules.publish.checklist.compiled'),
+      passed: Boolean(compiledRule),
+    },
+    {
+      label: t('rules.publish.checklist.reason'),
+      passed: Boolean(reason.trim()),
+    },
+    {
+      label: t('rules.publish.checklist.approval'),
+      passed: approved,
+    },
+    {
+      label: t('rules.publish.checklist.backendWorkflow'),
+      passed: true,
+    },
+  ];
+
+  return (
+    <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-300" aria-hidden="true" />
+        <div>
+          <h2 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+            {t('rules.publish.title')}
+          </h2>
+          <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+            {t('rules.publish.description')}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        <InfoLine
+          label={t('rules.publish.checksum')}
+          value={compiledRule?.compiled_checksum ?? t('common.missing')}
+        />
+        <InfoLine
+          label={t('rules.publish.policyVersion')}
+          value={policyVersion ? `#${policyVersion.version_number} ${policyVersion.approval_state}` : t('common.missing')}
+        />
+        <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+          {t('rules.publish.reasonCode')}
+          <input
+            value={reason}
+            onChange={(event) => onReasonChange(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+          />
+        </label>
+        <label className="flex items-start gap-3 rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-3 text-xs font-mono leading-5 text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={approved}
+            onChange={(event) => onApprovedChange(event.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-grid-line/40 bg-terminal-bg text-neon-cyan focus:ring-neon-cyan"
+          />
+          <span>{t('rules.publish.approval')}</span>
+        </label>
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-4">
+          <GrowthStatusChip
+            label={isReadyForBackend ? t('rules.publish.ready') : t('rules.publish.notReady')}
+            tone={isReadyForBackend ? 'warning' : 'neutral'}
+          />
+          <p className="mt-3 text-xs font-mono leading-5 text-amber-100">
+            {policyVersion ? t('rules.publish.submitted') : t('rules.publish.backendWorkflow')}
+          </p>
+        </div>
+        <section aria-label={t('rules.publish.checklist.title')}>
+          <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
+            {t('rules.publish.checklist.title')}
+          </h3>
+          <ul className="mt-3 space-y-2">
+            {checklist.map((item) => (
+              <li
+                key={item.label}
+                className="flex items-center justify-between gap-3 rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-3"
+              >
+                <span className="text-xs font-mono leading-5 text-muted-foreground">
+                  {item.label}
+                </span>
+                <GrowthStatusChip
+                  label={item.passed ? t('rules.publish.checklist.passed') : t('rules.publish.checklist.blocked')}
+                  tone={item.passed ? 'success' : 'warning'}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+        <Button
+          type="button"
+          variant="outline"
+          magnetic={false}
+          disabled={!isReadyForBackend || isSubmitting}
+          onClick={onSubmit}
+        >
+          {isSubmitting ? t('rules.publish.submitting') : t('rules.publish.submit')}
+        </Button>
+      </div>
+    </article>
+  );
+}
+
 interface SimulatorPanelProps {
   t: TranslationFn;
   contextEditorId: string;
@@ -1323,6 +1884,15 @@ function VersionDiffPanel({
   draftJson: string;
   compiledRule: AdminGrowthRuleCompileResponse | null;
 }) {
+  const summary = summarizeVersionDiff(draftJson, compiledRule);
+  const diffTone = summary.status === 'match'
+    ? 'success'
+    : summary.status === 'changed'
+      ? 'warning'
+      : summary.status === 'invalid'
+        ? 'danger'
+        : 'neutral';
+
   return (
     <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
       <div className="flex items-start gap-3">
@@ -1336,12 +1906,40 @@ function VersionDiffPanel({
           </p>
         </div>
       </div>
+      <div
+        role="status"
+        aria-live="polite"
+        className="mt-5 grid gap-3 rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4 sm:grid-cols-[auto_1fr]"
+      >
+        <GrowthStatusChip label={t(`rules.diff.status.${summary.status}`)} tone={diffTone} />
+        <p className="text-xs font-mono leading-5 text-muted-foreground">
+          {t('rules.diff.statusDescription')}
+        </p>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <MetricCell
+          label={t('rules.diff.changedLines')}
+          value={String(summary.changedLines)}
+        />
+        <MetricCell
+          label={t('rules.diff.addedLines')}
+          value={String(summary.addedLines)}
+        />
+        <MetricCell
+          label={t('rules.diff.removedLines')}
+          value={String(summary.removedLines)}
+        />
+      </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <div>
           <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
             {t('rules.diff.draft')}
           </h3>
-          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4 text-xs text-foreground">
+          <pre
+            tabIndex={0}
+            aria-label={t('rules.diff.draft')}
+            className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4 text-xs text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan"
+          >
             {draftJson}
           </pre>
         </div>
@@ -1349,8 +1947,12 @@ function VersionDiffPanel({
           <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
             {t('rules.diff.normalized')}
           </h3>
-          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4 text-xs text-foreground">
-            {compiledRule ? stringifyUnknown(compiledRule.normalized_ast) : t('rules.diff.empty')}
+          <pre
+            tabIndex={0}
+            aria-label={t('rules.diff.normalized')}
+            className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4 text-xs text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan"
+          >
+            {summary.normalizedJson ?? t('rules.diff.empty')}
           </pre>
         </div>
       </div>

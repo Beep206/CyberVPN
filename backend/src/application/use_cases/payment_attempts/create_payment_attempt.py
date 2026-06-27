@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.dto.payment_dto import InvoiceResponseDTO
 from src.application.events import EventOutboxService
 from src.application.use_cases.growth_code_sets.snapshots import read_growth_checkout_v3_snapshot
+from src.application.use_cases.growth_risk.runtime_guard import evaluate_growth_runtime_risk
 from src.application.use_cases.payment_attempts.finalize_completed_payment import FinalizeCompletedPaymentUseCase
 from src.application.use_cases.payment_attempts.snapshot_adapter import build_checkout_result_from_order
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
@@ -72,6 +73,24 @@ class CreatePaymentAttemptUseCase:
             idempotency_key=idempotency_key,
         )
         if existing is not None:
+            await evaluate_growth_runtime_risk(
+                session=self._session,
+                action_context="retry_reconcile",
+                user_id=user_id,
+                auth_realm_id=order.auth_realm_id,
+                storefront_id=order.storefront_id,
+                high_risk_context=False,
+                features={
+                    "checkpoint": "retry_reconcile",
+                    "retry_type": "same_idempotency_key",
+                    "attempt_status": existing.status,
+                    "provider": existing.provider,
+                    "gateway_amount": str(order.gateway_amount),
+                },
+                code_set_id=order.code_set_id,
+                order_id=order.id,
+                enforce=False,
+            )
             return CreatePaymentAttemptResult(
                 payment_attempt=existing,
                 invoice=_invoice_from_snapshot(existing.provider_snapshot or {}),
@@ -82,6 +101,24 @@ class CreatePaymentAttemptUseCase:
 
         active_attempt = await self._attempts.get_active_for_order(order_id)
         if active_attempt is not None:
+            await evaluate_growth_runtime_risk(
+                session=self._session,
+                action_context="retry_reconcile",
+                user_id=user_id,
+                auth_realm_id=order.auth_realm_id,
+                storefront_id=order.storefront_id,
+                high_risk_context=True,
+                features={
+                    "checkpoint": "retry_reconcile",
+                    "retry_type": "active_attempt_conflict",
+                    "attempt_status": active_attempt.status,
+                    "provider": active_attempt.provider,
+                    "gateway_amount": str(order.gateway_amount),
+                },
+                code_set_id=order.code_set_id,
+                order_id=order.id,
+                enforce=False,
+            )
             raise ValueError("An active payment attempt already exists for this order")
 
         latest_attempt = await self._attempts.get_latest_for_order(order_id)
@@ -210,6 +247,30 @@ class CreatePaymentAttemptUseCase:
         quote_snapshot = _quote_snapshot_from_order(order)
         reason_code, funding_source = _zero_payment_reason_and_funding_source(quote_snapshot)
         growth_checkout_snapshot = read_growth_checkout_v3_snapshot(dict(order.pricing_snapshot or {}))
+        await evaluate_growth_runtime_risk(
+            session=self._session,
+            action_context="zero_settlement",
+            user_id=order.user_id,
+            auth_realm_id=order.auth_realm_id,
+            storefront_id=order.storefront_id,
+            high_risk_context=True,
+            features={
+                "checkpoint": "zero_settlement",
+                "zero_gateway": True,
+                "private_catalog": order.private_catalog_access_grant_id is not None,
+                "channel": order.sale_channel,
+                "currency": order.currency_code,
+                "displayed_price": str(order.displayed_price),
+                "discount_amount": str(order.discount_amount),
+                "wallet_amount": str(order.wallet_amount),
+                "reason_code": reason_code,
+                "funding_source": funding_source,
+            },
+            private_grant_id=order.private_catalog_access_grant_id,
+            code_set_id=order.code_set_id,
+            order_id=order.id,
+            enforce=True,
+        )
         payment = PaymentModel(
             external_id=f"internal_zero:{order.id}",
             user_uuid=order.user_id,

@@ -7,7 +7,9 @@ from time import perf_counter
 from uuid import UUID
 
 from src.application.events import EventOutboxService, OutboxActorContext
+from src.application.use_cases.growth_codes.hashing import build_growth_code_prefix, hash_growth_code
 from src.application.use_cases.growth_codes.registry import GrowthCodeRegistryService
+from src.application.use_cases.growth_risk.runtime_guard import evaluate_growth_runtime_risk
 from src.application.use_cases.service_access.entitlements import (
     ActivateEntitlementGrantUseCase,
     CreateEntitlementGrantUseCase,
@@ -76,10 +78,11 @@ class RedeemInviteUseCase:
             InviteCodeExpiredError: code has passed its expiry date.
         """
         started_at = perf_counter()
+        code_ref = _safe_invite_code_ref(code)
         invite = await self._invite_repo.get_by_code(code)
 
         if invite is None:
-            logger.warning("invite_redeem_not_found", extra={"code": code, "user_id": str(user_id)})
+            logger.warning("invite_redeem_not_found", extra={**code_ref, "user_id": str(user_id)})
             observe_growth_code_redemption_duration(
                 code_type="invite",
                 surface=CUSTOMER_REDEEM_SURFACE,
@@ -91,7 +94,7 @@ class RedeemInviteUseCase:
         if invite.owner_user_id == user_id:
             logger.warning(
                 "invite_redeem_self_redemption_blocked",
-                extra={"code": code, "user_id": str(user_id)},
+                extra={**code_ref, "user_id": str(user_id)},
             )
             observe_growth_code_redemption_duration(
                 code_type="invite",
@@ -117,7 +120,7 @@ class RedeemInviteUseCase:
                 return result
             logger.warning(
                 "invite_redeem_already_used",
-                extra={"code": code, "user_id": str(user_id)},
+                extra={**code_ref, "user_id": str(user_id)},
             )
             observe_growth_code_redemption_duration(
                 code_type="invite",
@@ -131,7 +134,7 @@ class RedeemInviteUseCase:
         if expires_at is not None and expires_at < datetime.now(UTC):
             logger.warning(
                 "invite_redeem_expired",
-                extra={"code": code, "expires_at": str(expires_at)},
+                extra={**code_ref, "expires_at": str(expires_at)},
             )
             observe_growth_code_redemption_duration(
                 code_type="invite",
@@ -153,6 +156,24 @@ class RedeemInviteUseCase:
                 duration_seconds=perf_counter() - started_at,
             )
             raise ValueError("Invite code cannot be redeemed for accounts with active access")
+
+        await evaluate_growth_runtime_risk(
+            session=self._session,
+            action_context="invite_redeem",
+            user_id=user_id,
+            auth_realm_id=UUID(current_realm.realm_id),
+            storefront_id=None,
+            high_risk_context=True,
+            features={
+                "checkpoint": "invite_redeem",
+                "code_prefix": build_growth_code_prefix(code),
+                "code_hash": hash_growth_code(code),
+                "free_days": invite.free_days,
+                "owner_user_id": str(invite.owner_user_id) if invite.owner_user_id else None,
+                "source": str(invite.source),
+            },
+            enforce=True,
+        )
 
         shadow_code = await self._registry.ensure_shadow_invite(invite)
         service_identity = await self._service_identities.execute(
@@ -234,7 +255,7 @@ class RedeemInviteUseCase:
         logger.info(
             "invite_redeemed",
             extra={
-                "code": code,
+                **code_ref,
                 "invite_id": str(invite.id),
                 "user_id": str(user_id),
                 "free_days": invite.free_days,
@@ -346,3 +367,12 @@ def _coerce_utc(value: datetime | None) -> datetime | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def _safe_invite_code_ref(code: str) -> dict[str, object]:
+    normalized = code.strip()
+    return {
+        "code_hash": hash_growth_code(normalized),
+        "code_prefix": build_growth_code_prefix(normalized),
+        "code_length": len(normalized),
+    }

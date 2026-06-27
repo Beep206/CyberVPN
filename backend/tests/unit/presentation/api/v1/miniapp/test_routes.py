@@ -493,7 +493,7 @@ def test_commit_miniapp_checkout_forwards_private_catalog_grant(monkeypatch) -> 
         assert body.plan_id == plan_id
         assert body.private_catalog_grant_id == grant_id
         assert user_id
-        return SimpleNamespace(plan_id=plan_id, plan_name="Private Plan", duration_days=30)
+        return SimpleNamespace(plan_id=plan_id, plan_name="Private Plan", duration_days=30, is_zero_gateway=False)
 
     def fake_serialize(_result):
         return SimpleNamespace(model_dump=lambda: {"displayed_price": 79})

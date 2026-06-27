@@ -131,3 +131,43 @@ async def test_update_admin_growth_campaign_maps_active_immutability_to_conflict
 
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail == "ACTIVE_CAMPAIGN_IMMUTABLE"
+
+
+@pytest.mark.asyncio
+async def test_revoke_admin_growth_campaign_writes_required_audit_reason_without_auto_entitlement_revoke(
+    monkeypatch,
+) -> None:
+    class FakeUseCase:
+        async def get_campaign(self, campaign_id):
+            assert campaign_id == CAMPAIGN_ID
+            return _record(status="active")
+
+        async def revoke_campaign(self, **kwargs):
+            assert kwargs["campaign_id"] == CAMPAIGN_ID
+            assert kwargs["actor_admin_id"] == ADMIN_ID
+            assert kwargs["expected_version"] == 3
+            return _record(status="revoked", version=3)
+
+    monkeypatch.setattr(growth_campaigns, "_use_case", lambda _db: FakeUseCase())
+    db = RecordingDB()
+
+    response = await growth_campaigns.revoke_admin_growth_campaign(
+        campaign_id=CAMPAIGN_ID,
+        payload=growth_campaigns.AdminGrowthCampaignActionRequest(
+            expected_version=3,
+            reason_code="refund_abuse_campaign_stop",
+        ),
+        request=_request(),
+        db=db,
+        current_user=_admin(),
+    )
+
+    assert response.status == "revoked"
+    audit_entry = db.added[0]
+    assert audit_entry.action == "growth_campaign.revoked"
+    assert audit_entry.entity_type == "growth_campaign"
+    assert audit_entry.entity_id == str(CAMPAIGN_ID)
+    assert audit_entry.old_value["status"] == "active"
+    assert audit_entry.new_value["status"] == "revoked"
+    assert audit_entry.new_value["reason_code"] == "refund_abuse_campaign_stop"
+    assert "entitlement" not in audit_entry.new_value

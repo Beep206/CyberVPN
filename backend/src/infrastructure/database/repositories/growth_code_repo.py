@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import distinct, func, select
+from sqlalchemy import distinct, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.infrastructure.database.models.growth_benefit_model import GrowthCodeBenefitModel
+from src.infrastructure.database.models.growth_benefit_model import (
+    GrowthCodeBenefitModel,
+    GrowthCodeCapacityCounterModel,
+    GrowthCodeUserCounterModel,
+)
 from src.infrastructure.database.models.growth_code_model import (
     GiftCodePolicyModel,
     GrowthCodeIssuanceModel,
@@ -33,6 +37,95 @@ class GrowthCodeRepository:
 
     async def get_code_by_id(self, growth_code_id: UUID) -> GrowthCodeModel | None:
         return await self._session.get(GrowthCodeModel, growth_code_id)
+
+    async def lock_codes_sorted_for_update(
+        self,
+        growth_code_ids: list[UUID],
+    ) -> list[GrowthCodeModel]:
+        unique_ids = sorted(set(growth_code_ids), key=str)
+        if not unique_ids:
+            return []
+        result = await self._session.execute(
+            select(GrowthCodeModel)
+            .where(GrowthCodeModel.id.in_(unique_ids))
+            .order_by(GrowthCodeModel.id.asc())
+            .with_for_update(of=GrowthCodeModel)
+        )
+        codes = list(result.scalars().all())
+        if len(codes) != len(unique_ids):
+            found_ids = {code.id for code in codes}
+            missing_ids = [growth_code_id for growth_code_id in unique_ids if growth_code_id not in found_ids]
+            raise ValueError(f"Growth code not found: {missing_ids[0]}")
+        return codes
+
+    async def get_or_create_user_counter_for_update(
+        self,
+        *,
+        growth_code_id: UUID,
+        user_id: UUID,
+    ) -> GrowthCodeUserCounterModel:
+        result = await self._session.execute(
+            select(GrowthCodeUserCounterModel)
+            .where(
+                GrowthCodeUserCounterModel.growth_code_id == growth_code_id,
+                GrowthCodeUserCounterModel.user_id == user_id,
+            )
+            .with_for_update(of=GrowthCodeUserCounterModel)
+        )
+        existing = result.scalars().first()
+        if existing is not None:
+            return existing
+
+        counter = GrowthCodeUserCounterModel(
+            growth_code_id=growth_code_id,
+            user_id=user_id,
+            reserved_uses=await self.count_user_active_reservations_for_code(
+                growth_code_id=growth_code_id,
+                user_id=user_id,
+            ),
+            consumed_uses=await self.count_user_redemptions_for_code(
+                growth_code_id=growth_code_id,
+                user_id=user_id,
+            ),
+        )
+        self._session.add(counter)
+        await self._session.flush()
+        return counter
+
+    async def get_or_create_capacity_counter_for_update(
+        self,
+        *,
+        growth_code_id: UUID,
+        capacity_dimension: str,
+        capacity_key_hash: str,
+    ) -> GrowthCodeCapacityCounterModel:
+        result = await self._session.execute(
+            select(GrowthCodeCapacityCounterModel)
+            .where(
+                GrowthCodeCapacityCounterModel.growth_code_id == growth_code_id,
+                GrowthCodeCapacityCounterModel.capacity_dimension == capacity_dimension,
+                GrowthCodeCapacityCounterModel.capacity_key_hash == capacity_key_hash,
+            )
+            .with_for_update(of=GrowthCodeCapacityCounterModel)
+        )
+        existing = result.scalars().first()
+        if existing is not None:
+            return existing
+
+        counter = GrowthCodeCapacityCounterModel(
+            growth_code_id=growth_code_id,
+            capacity_dimension=capacity_dimension,
+            capacity_key_hash=capacity_key_hash,
+            reserved_uses=await self.count_active_reservations_for_capacity(
+                growth_code_id=growth_code_id,
+                capacity_dimension=capacity_dimension,
+                capacity_key_hash=capacity_key_hash,
+            ),
+            consumed_uses=0,
+        )
+        self._session.add(counter)
+        await self._session.flush()
+        return counter
 
     async def get_code_by_hash(self, code_hash: str, *, code_type: str | None = None) -> GrowthCodeModel | None:
         stmt = select(GrowthCodeModel).where(GrowthCodeModel.code_hash == code_hash)
@@ -260,6 +353,15 @@ class GrowthCodeRepository:
     async def get_reservation_by_id(self, reservation_id: UUID) -> GrowthCodeReservationModel | None:
         return await self._session.get(GrowthCodeReservationModel, reservation_id)
 
+    async def lock_reservation_for_update(self, reservation_id: UUID) -> GrowthCodeReservationModel | None:
+        result = await self._session.execute(
+            select(GrowthCodeReservationModel)
+            .where(GrowthCodeReservationModel.id == reservation_id)
+            .with_for_update(of=GrowthCodeReservationModel)
+            .limit(1)
+        )
+        return result.scalars().first()
+
     async def list_reservations(self, growth_code_id: UUID) -> list[GrowthCodeReservationModel]:
         result = await self._session.execute(
             select(GrowthCodeReservationModel)
@@ -272,7 +374,7 @@ class GrowthCodeRepository:
         self,
         *,
         growth_code_id: UUID,
-        quote_session_id: UUID,
+        quote_session_id: UUID | None,
         user_id: UUID,
         status: str = "reserved",
     ) -> GrowthCodeReservationModel | None:
@@ -287,6 +389,47 @@ class GrowthCodeRepository:
             .limit(1)
         )
         return result.scalars().first()
+
+    async def count_user_active_reservations_for_code(
+        self,
+        *,
+        growth_code_id: UUID,
+        user_id: UUID,
+    ) -> int:
+        result = await self._session.execute(
+            select(func.count(GrowthCodeReservationModel.id)).where(
+                GrowthCodeReservationModel.growth_code_id == growth_code_id,
+                GrowthCodeReservationModel.user_id == user_id,
+                GrowthCodeReservationModel.status.in_(("reserved", "committed")),
+            )
+        )
+        return int(result.scalar_one())
+
+    async def count_active_reservations_for_capacity(
+        self,
+        *,
+        growth_code_id: UUID,
+        capacity_dimension: str,
+        capacity_key_hash: str,
+    ) -> int:
+        stmt = select(func.count(GrowthCodeReservationModel.id)).where(
+            GrowthCodeReservationModel.growth_code_id == growth_code_id,
+            GrowthCodeReservationModel.status.in_(("reserved", "committed")),
+        )
+        if capacity_dimension == "risk_subject":
+            stmt = stmt.where(
+                GrowthCodeReservationModel.capacity_context["risk_subject_key_hash"].as_string() == capacity_key_hash
+            )
+        elif capacity_dimension == "device":
+            stmt = stmt.where(GrowthCodeReservationModel.device_key_hash == capacity_key_hash)
+        elif capacity_dimension == "velocity":
+            stmt = stmt.where(
+                GrowthCodeReservationModel.capacity_context["velocity_key_hash"].as_string() == capacity_key_hash
+            )
+        else:
+            return 0
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one())
 
     async def list_reservations_for_quote_session(
         self,
@@ -315,6 +458,24 @@ class GrowthCodeRepository:
             .order_by(GrowthCodeRedemptionModel.redeemed_at.desc(), GrowthCodeRedemptionModel.created_at.desc())
         )
         return list(result.scalars().all())
+
+    async def count_user_redemptions_for_code(
+        self,
+        *,
+        growth_code_id: UUID,
+        user_id: UUID,
+    ) -> int:
+        result = await self._session.execute(
+            select(func.count(GrowthCodeRedemptionModel.id)).where(
+                GrowthCodeRedemptionModel.growth_code_id == growth_code_id,
+                GrowthCodeRedemptionModel.status.in_(("redeemed", "consumed")),
+                or_(
+                    GrowthCodeRedemptionModel.redeemer_user_id == user_id,
+                    GrowthCodeRedemptionModel.beneficiary_user_id == user_id,
+                ),
+            )
+        )
+        return int(result.scalar_one())
 
     async def count_redemptions_for_codes(
         self,

@@ -151,6 +151,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         payment_write_requests_per_minute: int | None = None,
         trial_activate_requests_per_minute: int | None = None,
         growth_sensitive_requests_per_minute: int | None = None,
+        private_catalog_preflight_requests_per_minute: int | None = None,
         support_write_requests_per_minute: int | None = None,
         messaging_write_requests_per_minute: int | None = None,
         messaging_realtime_requests_per_minute: int | None = None,
@@ -177,6 +178,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             payment_write_requests_per_minute=payment_write_requests_per_minute,
             trial_activate_requests_per_minute=trial_activate_requests_per_minute,
             growth_sensitive_requests_per_minute=growth_sensitive_requests_per_minute,
+            private_catalog_preflight_requests_per_minute=private_catalog_preflight_requests_per_minute,
             support_write_requests_per_minute=support_write_requests_per_minute,
             messaging_write_requests_per_minute=messaging_write_requests_per_minute,
             messaging_realtime_requests_per_minute=messaging_realtime_requests_per_minute,
@@ -332,6 +334,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         payment_write_requests_per_minute: int | None,
         trial_activate_requests_per_minute: int | None,
         growth_sensitive_requests_per_minute: int | None,
+        private_catalog_preflight_requests_per_minute: int | None,
         support_write_requests_per_minute: int | None,
         messaging_write_requests_per_minute: int | None,
         messaging_realtime_requests_per_minute: int | None,
@@ -357,6 +360,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             explicit=growth_sensitive_requests_per_minute,
             setting_name="rate_limit_growth_sensitive_requests",
             default=60,
+        )
+        private_catalog_preflight_limit = self._configured_limit(
+            explicit=private_catalog_preflight_requests_per_minute,
+            setting_name="rate_limit_private_catalog_preflight_requests",
+            default=20,
         )
         support_limit = self._configured_limit(
             explicit=support_write_requests_per_minute,
@@ -393,6 +401,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     {
                         "/api/v1/auth/login",
                         "/api/v1/auth/register",
+                        "/api/v1/auth/registration-access/exchange",
                         "/api/v1/auth/refresh",
                         "/api/v1/auth/logout",
                         "/api/v1/auth/resend-otp",
@@ -455,6 +464,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     }
                 ),
                 path_suffixes=("/trial/activate",),
+            ),
+            RateLimitRule(
+                name="s1_private_catalog_preflight",
+                limit=private_catalog_preflight_limit,
+                methods=frozenset({"POST"}),
+                exact_paths=frozenset(
+                    {
+                        "/api/v3/growth/code-sets/preflight",
+                        "/api/v3/growth/code-sets/preflight/",
+                    }
+                ),
             ),
             RateLimitRule(
                 name="s1_growth_sensitive",

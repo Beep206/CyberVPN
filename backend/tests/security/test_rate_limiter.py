@@ -250,11 +250,13 @@ class TestRateLimitMiddlewareConfig:
         [
             ("POST", "/api/v1/auth/login", 7, "s1_auth_sensitive"),
             ("POST", "/api/v1/auth/register", 7, "s1_auth_sensitive"),
+            ("POST", "/api/v1/auth/registration-access/exchange", 7, "s1_auth_sensitive"),
             ("POST", "/api/v1/auth/magic-link/verify-otp", 7, "s1_auth_sensitive"),
             ("POST", "/api/v1/auth/telegram/miniapp", 7, "s1_auth_sensitive"),
             ("POST", "/api/v1/oauth/google/login/callback", 7, "s1_auth_sensitive"),
             ("POST", "/api/v1/oauth/github/login/callback", 7, "s1_auth_sensitive"),
             ("POST", "/api/v1/invites/redeem", 11, "s1_growth_sensitive"),
+            ("POST", "/api/v3/growth/code-sets/preflight", 5, "s1_private_catalog_preflight"),
         ],
     )
     def test_stage2_public_auth_registration_paths_use_sensitive_buckets(
@@ -276,6 +278,7 @@ class TestRateLimitMiddlewareConfig:
             fail_open=False,
             auth_sensitive_requests_per_minute=7,
             growth_sensitive_requests_per_minute=11,
+            private_catalog_preflight_requests_per_minute=5,
         )
         request = Request({"type": "http", "method": method, "path": path, "headers": []})
 

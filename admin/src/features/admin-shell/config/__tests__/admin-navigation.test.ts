@@ -102,9 +102,14 @@ describe('admin-navigation registry', () => {
         expect(growthRoutes).toEqual(
             expect.arrayContaining([
                 '/growth',
+                '/growth/campaigns',
                 '/growth/reporting',
                 '/growth/notifications',
                 '/growth/rules',
+                '/growth/site-mode',
+                '/growth/fx',
+                '/growth/private-access',
+                '/growth/onboarding',
                 '/growth/risk',
                 '/growth/referrals',
             ]),
@@ -149,6 +154,24 @@ describe('admin-navigation registry', () => {
             'disabled',
         );
         expect(getResolvedItem('admin', 'growth-rules')?.accessState).toBe(
+            'enabled',
+        );
+        expect(getResolvedItem('viewer', 'growth-campaigns')?.accessState).toBe(
+            'disabled',
+        );
+        expect(getResolvedItem('admin', 'growth-campaigns')?.accessState).toBe(
+            'enabled',
+        );
+        expect(getResolvedItem('viewer', 'growth-fx')?.accessState).toBe(
+            'disabled',
+        );
+        expect(getResolvedItem('admin', 'growth-fx')?.accessState).toBe(
+            'enabled',
+        );
+        expect(getResolvedItem('viewer', 'growth-private-access')?.accessState).toBe(
+            'disabled',
+        );
+        expect(getResolvedItem('admin', 'growth-onboarding')?.accessState).toBe(
             'enabled',
         );
     });

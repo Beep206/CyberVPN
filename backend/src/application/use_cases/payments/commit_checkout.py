@@ -2,6 +2,7 @@
 
 import json
 import logging
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -11,18 +12,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.dto.payment_dto import InvoiceResponseDTO
-from src.application.events import EventOutboxService
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
-from src.application.use_cases.payments.complete_zero_gateway import (
-    CompleteZeroGatewayUseCase,
-)
-from src.application.use_cases.payments.payment_completed_earnings import (
-    append_payment_completed_partner_earning_publication,
-)
-from src.application.use_cases.payments.post_payment import (
-    PostPaymentProcessingUseCase,
-)
 from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.wallet_repo import WalletRepository
@@ -51,7 +42,6 @@ class CommitCheckoutUseCase:
         self._payments = PaymentRepository(session)
         wallet_repo = WalletRepository(session)
         self._wallet = WalletService(wallet_repo)
-        self._outbox = EventOutboxService(session)
 
     async def execute(
         self,
@@ -128,6 +118,9 @@ class CommitCheckoutUseCase:
             reservation_id = reservation.id
             quote_result.reservation_id = reservation.id
 
+        growth_snapshot = _growth_payment_snapshot(quote_result)
+        code_set_id = getattr(quote_result, "code_set_id", None)
+        reservation_group_id = getattr(quote_result, "reservation_group_id", None)
         metadata = {
             "commission_base_amount": str(quote_result.commission_base_amount),
             "addon_amount": str(quote_result.addon_amount),
@@ -140,6 +133,8 @@ class CommitCheckoutUseCase:
             metadata["checkout_fingerprint"] = checkout_fingerprint
         if reservation_id is not None:
             metadata["growth_code_reservation_id"] = str(reservation_id)
+        if reservation_group_id is not None:
+            metadata["growth_code_reservation_group_id"] = str(reservation_group_id)
         if metadata_extra:
             metadata.update(metadata_extra)
 
@@ -148,32 +143,7 @@ class CommitCheckoutUseCase:
             resolved_plan_id = payment_plan_id
 
         if quote_result.is_zero_gateway:
-            zero_gateway = CompleteZeroGatewayUseCase(self._session)
-            payment = await zero_gateway.execute(
-                user_id=user_id,
-                plan_id=resolved_plan_id,
-                displayed_price=quote_result.displayed_price,
-                discount_amount=quote_result.discount_amount,
-                wallet_amount=quote_result.wallet_amount,
-                promo_code_id=quote_result.promo_code_id,
-                partner_code_id=quote_result.partner_code_id,
-                currency=currency,
-                addons_snapshot=addons_snapshot,
-                entitlements_snapshot=quote_result.entitlements_snapshot,
-                commission_base_amount=quote_result.commission_base_amount,
-                metadata_extra=metadata,
-                subscription_days_override=subscription_days_override,
-            )
-            post_payment = PostPaymentProcessingUseCase(self._session)
-            await post_payment.execute(payment.id, process_cash_rewards=False)
-            if publish_completed_payment_event:
-                await append_payment_completed_partner_earning_publication(
-                    self._outbox,
-                    payment=payment,
-                    payment_attempt=None,
-                    source="zero_gateway_checkout",
-                )
-            return CommitCheckoutResult(payment=payment, status="completed")
+            raise ValueError("ZERO_GATEWAY_REQUIRES_ORDER_PAYMENT_ATTEMPT")
 
         if quote_result.wallet_amount > 0:
             await self._wallet.freeze(user_id, quote_result.wallet_amount)
@@ -212,11 +182,13 @@ class CommitCheckoutUseCase:
             plan_id=resolved_plan_id,
             promo_code_id=quote_result.promo_code_id,
             partner_code_id=quote_result.partner_code_id,
+            code_set_id=code_set_id,
             discount_amount=float(quote_result.discount_amount),
             wallet_amount_used=float(quote_result.wallet_amount),
             final_amount=float(quote_result.gateway_amount),
             addons_snapshot=addons_snapshot,
             entitlements_snapshot=quote_result.entitlements_snapshot,
+            growth_snapshot=growth_snapshot,
             metadata_=metadata,
         )
         payment = await self._payments.create(payment)
@@ -294,6 +266,47 @@ def _should_reserve_direct_growth_code(quote_result) -> bool:
     return getattr(code_type, "value", code_type) == "promo"
 
 
+def _growth_payment_snapshot(quote_result) -> dict | None:
+    growth_checkout_snapshot = getattr(quote_result, "growth_checkout_snapshot", None)
+    if not isinstance(growth_checkout_snapshot, dict):
+        entitlements_snapshot = getattr(quote_result, "entitlements_snapshot", None)
+        if isinstance(entitlements_snapshot, dict):
+            candidate = entitlements_snapshot.get("growth_checkout_snapshot")
+            growth_checkout_snapshot = candidate if isinstance(candidate, dict) else None
+    if not isinstance(growth_checkout_snapshot, dict):
+        return None
+    result_code_set = getattr(quote_result, "code_set_snapshot", None)
+    code_set = result_code_set if isinstance(result_code_set, dict) else growth_checkout_snapshot.get("code_set")
+    growth_effects = growth_checkout_snapshot.get("growth_effects")
+    code_set_id = getattr(quote_result, "code_set_id", None) or _code_set_id_from_snapshot(code_set)
+    reservation_group_id = getattr(quote_result, "reservation_group_id", None)
+    return {
+        "snapshot_version": "payment_growth_snapshot.v6",
+        "code_set_id": str(code_set_id) if code_set_id else None,
+        "code_set_hash": getattr(quote_result, "code_set_hash", None) or _code_set_hash_from_snapshot(code_set),
+        "reservation_group_id": (
+            str(reservation_group_id)
+            if reservation_group_id is not None
+            else growth_checkout_snapshot.get("reservation_group_id")
+        ),
+        "code_set": deepcopy(code_set) if isinstance(code_set, dict) else {},
+        "growth_checkout_snapshot": deepcopy(growth_checkout_snapshot),
+        "growth_effects_snapshot": deepcopy(growth_effects) if isinstance(growth_effects, dict) else {},
+    }
+
+
+def _code_set_id_from_snapshot(code_set: object) -> object:
+    if isinstance(code_set, dict):
+        return code_set.get("id")
+    return None
+
+
+def _code_set_hash_from_snapshot(code_set: object) -> str | None:
+    if isinstance(code_set, dict) and code_set.get("hash"):
+        return str(code_set["hash"])
+    return None
+
+
 def _build_checkout_fingerprint(
     *,
     user_id: UUID,
@@ -318,6 +331,13 @@ def _build_checkout_fingerprint(
         "plan_id": str(quote_result.plan_id) if quote_result.plan_id else None,
         "promo_code_id": str(quote_result.promo_code_id) if quote_result.promo_code_id else None,
         "partner_code_id": str(quote_result.partner_code_id) if quote_result.partner_code_id else None,
+        "code_set_id": str(getattr(quote_result, "code_set_id", None))
+        if getattr(quote_result, "code_set_id", None)
+        else None,
+        "code_set_hash": getattr(quote_result, "code_set_hash", None),
+        "reservation_group_id": str(getattr(quote_result, "reservation_group_id", None))
+        if getattr(quote_result, "reservation_group_id", None)
+        else None,
         "displayed_price": str(quote_result.displayed_price),
         "discount_amount": str(quote_result.discount_amount),
         "wallet_amount": str(quote_result.wallet_amount),

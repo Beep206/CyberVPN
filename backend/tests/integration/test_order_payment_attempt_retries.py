@@ -7,10 +7,13 @@ from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.payments.payment_webhook import ProcessPaymentWebhookUseCase
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.order_model import OrderModel
 from src.infrastructure.database.models.payment_attempt_model import PaymentAttemptModel
+from src.infrastructure.database.models.payment_model import PaymentModel
+from src.infrastructure.database.models.promo_code_model import PromoCodeModel
 from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
 from src.main import app
 from src.presentation.dependencies.services import get_crypto_client
@@ -51,20 +54,24 @@ async def _create_committed_order(
     pricebook_key: str,
     offer_key: str,
     plan_id: str,
+    code_input: str | None = None,
 ) -> dict:
+    payload = {
+        "storefront_key": storefront_key,
+        "pricebook_key": pricebook_key,
+        "offer_key": offer_key,
+        "plan_id": plan_id,
+        "currency": "USD",
+        "channel": "web",
+        "use_wallet": 0,
+        "addons": [],
+    }
+    if code_input is not None:
+        payload["code_input"] = code_input
     quote_response = await async_client.post(
         "/api/v1/quotes/",
         headers=headers,
-        json={
-            "storefront_key": storefront_key,
-            "pricebook_key": pricebook_key,
-            "offer_key": offer_key,
-            "plan_id": plan_id,
-            "currency": "USD",
-            "channel": "web",
-            "use_wallet": 0,
-            "addons": [],
-        },
+        json=payload,
     )
     assert quote_response.status_code == 201
 
@@ -87,7 +94,9 @@ async def _create_committed_order(
 @pytest.mark.asyncio
 async def test_payment_attempts_are_idempotent_and_support_retry_after_terminal_failure(
     async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
     auth_service = AuthService()
     fake_redis = FakeRedis()
     fake_crypto = FakeCryptoBotClient()
@@ -106,6 +115,17 @@ async def test_payment_attempts_are_idempotent_and_support_retry_after_terminal_
     try:
         async with override_realm_test_db(sessionmaker):
             seeded = await _seed_order_context(sessionmaker, auth_service)
+            with sessionmaker() as session:
+                session.add(
+                    PromoCodeModel(
+                        id=uuid.uuid4(),
+                        code="ATTEMPTPROMO10",
+                        discount_type="percent",
+                        discount_value=10,
+                        is_active=True,
+                    )
+                )
+                session.commit()
             customer_realm = AuthRealmModel(
                 id=uuid.UUID(seeded["customer_realm_id"]),
                 realm_key=seeded["customer_realm_key"],
@@ -132,6 +152,7 @@ async def test_payment_attempts_are_idempotent_and_support_retry_after_terminal_
                 pricebook_key=seeded["pricebook_key"],
                 offer_key=seeded["offer_key"],
                 plan_id=seeded["plan_id"],
+                code_input="ATTEMPTPROMO10",
             )
 
             first_attempt_response = await async_client.post(
@@ -145,9 +166,24 @@ async def test_payment_attempts_are_idempotent_and_support_retry_after_terminal_
             assert first_attempt["attempt_number"] == 1
             assert first_attempt["status"] == "pending"
             assert first_attempt["displayed_amount"] == 75.0
-            assert first_attempt["gateway_amount"] == 75.0
-            assert first_attempt["invoice"]["amount"] == 75.0
+            assert first_attempt["gateway_amount"] == 67.5
+            assert first_attempt["invoice"]["amount"] == 67.5
             assert first_attempt["invoice"]["invoice_id"] == "1001"
+            with sessionmaker() as session:
+                order = session.get(OrderModel, uuid.UUID(order_payload["id"]))
+                assert order is not None
+                payment = session.get(PaymentModel, uuid.UUID(first_attempt["payment_id"]))
+                assert payment is not None
+                assert payment.code_set_id == order.code_set_id
+                assert payment.growth_snapshot is not None
+                assert payment.growth_snapshot["snapshot_version"] == "payment_growth_snapshot.v6"
+                assert payment.growth_snapshot["code_set_id"] == str(order.code_set_id)
+                assert payment.growth_snapshot["code_set"]["applications"][0]["reservation_id"] is not None
+                assert payment.growth_snapshot["code_set"]["applications"][0]["discount"]["applied_amount"] == "7.50"
+                assert "ATTEMPTPROMO10" not in str(payment.growth_snapshot)
+                attempt_model = session.get(PaymentAttemptModel, uuid.UUID(first_attempt["id"]))
+                assert attempt_model is not None
+                assert attempt_model.code_set_id == order.code_set_id
 
             duplicate_response = await async_client.post(
                 "/api/v1/payment-attempts/",

@@ -474,6 +474,58 @@ class OrderCodeApplicationModel(Base):
     )
 
 
+class GrowthReversalEventModel(Base):
+    """Idempotent event ledger for refund, cancellation, and campaign reversal workflows."""
+
+    __tablename__ = "growth_reversal_events"
+    __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('refund', 'zero_payment_cancellation', 'campaign_revoke')",
+            name="ck_growth_reversal_events_event_type",
+        ),
+        UniqueConstraint("idempotency_key", name="uq_growth_reversal_events_idempotency_key"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    event_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    event_id: Mapped[uuid.UUID] = mapped_column(nullable=False, index=True)
+    order_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    refund_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("refunds.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    payment_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("payments.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    campaign_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("growth_campaigns.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    reason_code: Mapped[str] = mapped_column(String(120), nullable=False)
+    event_status: Mapped[str] = mapped_column(String(24), nullable=False, default="applied", server_default="applied")
+    event_payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
 class GrowthCodeNamespaceModel(Base):
     """Canonical customer-input namespace preventing cross-type code collisions."""
 

@@ -413,6 +413,7 @@ describe('MiniAppPlansPage checkout code box', () => {
           addons: [],
           currency: 'XTR',
         }),
+        expect.stringMatching(/^miniapp-checkout-/),
       );
     });
 

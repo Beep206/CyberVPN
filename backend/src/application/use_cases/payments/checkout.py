@@ -17,10 +17,18 @@ from src.application.services.stage1_plan_policy import (
     assert_stage1_paid_plan_purchasable,
 )
 from src.application.services.wallet_service import WalletService
+from src.application.use_cases.growth_code_sets.fx import (
+    FxRateSnapshot,
+    conversion_mode_from_payload,
+    convert_fixed_discount,
+    rate_snapshots_from_policy_snapshot,
+)
 from src.application.use_cases.growth_codes import (
     GrowthCodeResolutionOutcome,
     ResolveGrowthCodeUseCase,
 )
+from src.application.use_cases.growth_codes.hashing import hash_growth_code
+from src.application.use_cases.growth_risk.runtime_guard import evaluate_growth_runtime_risk
 from src.application.use_cases.partner_attribution.eligibility import (
     EvaluatePartnerCodeEligibilityCommand,
     EvaluatePartnerCodeEligibilityWithContextUseCase,
@@ -75,6 +83,14 @@ class CheckoutAddonInput:
 
 
 @dataclass(frozen=True)
+class CheckoutCodeBasketInput:
+    """Single customer-entered code in a multi-code checkout basket."""
+
+    code: str
+    client_slot_id: str | None = None
+
+
+@dataclass(frozen=True)
 class CheckoutAddonLine:
     """Priced add-on line resolved against the add-on catalog."""
 
@@ -96,6 +112,30 @@ class CheckoutAppliedDiscount:
     policy_version_id: UUID | None = None
 
 
+@dataclass(frozen=True)
+class _BasketDiscountCandidate:
+    code: str
+    code_hash: str
+    discount_type: str
+    discount_kind: str
+    source_amount: Decimal
+    strategy: str
+    source_currency: str | None = None
+    rate_snapshots: list[FxRateSnapshot] = field(default_factory=list)
+    policy_version_id: UUID | None = None
+    applied_amount: Decimal = Decimal("0")
+    fx_conversion: dict | None = None
+
+
+@dataclass(frozen=True)
+class _BasketEvaluation:
+    applications: list[dict]
+    discount_amount: Decimal
+    discounts: list[CheckoutAppliedDiscount]
+    promo_code_id: UUID | None
+    primary_resolution: GrowthCodeResolutionOutcome | None
+
+
 @dataclass
 class CheckoutResult:
     """Quote result used by both quote and commit endpoints."""
@@ -113,6 +153,7 @@ class CheckoutResult:
     partner_code_id: UUID | None = None
     plan_name: str | None = None
     duration_days: int | None = None
+    currency_code: str = "USD"
     addons: list[CheckoutAddonLine] = field(default_factory=list)
     entitlements_snapshot: dict = field(default_factory=dict)
     commission_base_amount: Decimal = Decimal("0")
@@ -123,6 +164,13 @@ class CheckoutResult:
     partner_commission_contract_snapshot: dict | None = None
     private_catalog_grant_id: UUID | None = None
     private_catalog_snapshot: dict | None = None
+    code_set_applications: list[dict] = field(default_factory=list)
+    code_set_acceptance_mode: str | None = None
+    code_set_id: UUID | None = None
+    code_set_hash: str | None = None
+    reservation_group_id: UUID | None = None
+    code_set_snapshot: dict | None = None
+    growth_checkout_snapshot: dict | None = None
 
 
 class CheckoutUseCase:
@@ -156,6 +204,7 @@ class CheckoutUseCase:
         partner_code: str | None = None,
         use_wallet: Decimal = Decimal("0"),
         addons: list[CheckoutAddonInput] | None = None,
+        code_basket: list[CheckoutCodeBasketInput] | None = None,
         sale_channel: str = "web",
         storefront_id: UUID | None = None,
         private_catalog_grant_id: UUID | None = None,
@@ -195,6 +244,9 @@ class CheckoutUseCase:
         partner_commission_contract_snapshot: dict | None = None
         code_resolution: GrowthCodeResolutionOutcome | None = None
         normalized_growth_code_input = _normalize_code_input(code_input=code_input, promo_code=promo_code)
+        normalized_code_basket = _normalize_code_basket(code_basket or [])
+        if normalized_code_basket and (normalized_growth_code_input or partner_code):
+            raise ValueError("codes cannot be combined with code_input, promo_code, or partner_code")
 
         user = await self._session.get(MobileUserModel, user_id)
         normalized_partner_code = partner_code.strip() if partner_code else None
@@ -250,12 +302,31 @@ class CheckoutUseCase:
         discount_amount = Decimal("0")
         promo_code_id = None
         discounts: list[CheckoutAppliedDiscount] = []
+        code_set_applications: list[dict] = []
         assert_stage1_checkout_codes_enabled(
-            code_input=normalized_growth_code_input,
+            code_input=normalized_growth_code_input
+            or (normalized_code_basket[0][1] if normalized_code_basket else None),
             promo_code=None,
             enabled=settings.checkout_code_discounts_enabled,
         )
-        if normalized_growth_code_input:
+        if normalized_code_basket:
+            basket_evaluation = await self._evaluate_code_basket(
+                normalized_codes=normalized_code_basket,
+                user_id=user_id,
+                plan=plan,
+                displayed_price=displayed_price,
+                base_price=base_price,
+                existing_partner_code_present=partner_code_id is not None,
+                storefront_id=storefront_id,
+                sale_channel=sale_channel,
+                currency=normalized_currency,
+            )
+            discount_amount = basket_evaluation.discount_amount
+            discounts = basket_evaluation.discounts
+            promo_code_id = basket_evaluation.promo_code_id
+            code_resolution = basket_evaluation.primary_resolution
+            code_set_applications = basket_evaluation.applications
+        elif normalized_growth_code_input:
             code_resolution = await self._growth_codes.execute(
                 code=normalized_growth_code_input,
                 action_context=GrowthCodeActionContext.CHECKOUT,
@@ -343,6 +414,35 @@ class CheckoutUseCase:
         if gateway_amount < 0:
             gateway_amount = Decimal("0")
 
+        if normalized_code_basket or normalized_growth_code_input or private_catalog_snapshot or is_zero_gateway:
+            risk_result = await evaluate_growth_runtime_risk(
+                session=self._session,
+                action_context="checkout_eval",
+                user_id=user_id,
+                auth_realm_id=getattr(user, "auth_realm_id", None),
+                storefront_id=storefront_id,
+                high_risk_context=bool(private_catalog_snapshot) or is_zero_gateway,
+                features={
+                    "checkpoint": "checkout_eval",
+                    "channel": sale_channel,
+                    "currency": normalized_currency,
+                    "private_catalog": bool(private_catalog_snapshot),
+                    "zero_gateway": is_zero_gateway,
+                    "stacking_count": len(normalized_code_basket) or (1 if normalized_growth_code_input else 0),
+                    "discount_amount": str(discount_amount),
+                    "displayed_price": str(displayed_price),
+                    "gateway_amount": str(gateway_amount),
+                    "plan_id": str(plan.id),
+                },
+                private_grant_id=private_catalog_grant_id,
+                growth_code_id=code_resolution.growth_code_id if code_resolution is not None else None,
+                enforce=True,
+            )
+            if risk_result.decision.decision_id is not None:
+                for application in code_set_applications:
+                    application.setdefault("risk_decision_id", str(risk_result.decision.decision_id))
+                    application.setdefault("risk_subject_id", str(risk_result.decision.risk_subject_id))
+
         entitlements_snapshot = EntitlementsService.build_snapshot(
             plan=plan,
             addon_lines=[
@@ -388,6 +488,7 @@ class CheckoutUseCase:
             partner_code_id=partner_code_id,
             plan_name=plan.name,
             duration_days=plan.duration_days,
+            currency_code=normalized_currency,
             addons=addon_lines,
             entitlements_snapshot=entitlements_snapshot,
             commission_base_amount=base_price,
@@ -397,7 +498,219 @@ class CheckoutUseCase:
             partner_commission_contract_snapshot=partner_commission_contract_snapshot,
             private_catalog_grant_id=private_catalog_grant_id if private_catalog_snapshot is not None else None,
             private_catalog_snapshot=private_catalog_snapshot,
+            code_set_applications=code_set_applications,
+            code_set_acceptance_mode="all_or_nothing" if code_set_applications else None,
         )
+
+    async def _evaluate_code_basket(
+        self,
+        *,
+        normalized_codes: list[tuple[int, str, str | None]],
+        user_id: UUID,
+        plan: SubscriptionPlanModel,
+        displayed_price: Decimal,
+        base_price: Decimal,
+        existing_partner_code_present: bool,
+        storefront_id: UUID | None,
+        sale_channel: str,
+        currency: str,
+    ) -> "_BasketEvaluation":
+        applications: list[dict] = []
+        discount_candidates: list[_BasketDiscountCandidate] = []
+        seen_hashes: set[str] = set()
+        primary_resolution: GrowthCodeResolutionOutcome | None = None
+        accepted_promo_code_id: UUID | None = None
+
+        for position_entered, normalized_code, client_slot_id in normalized_codes:
+            code_ref = _safe_basket_code_ref(normalized_code)
+            if code_ref["code_hash"] in seen_hashes:
+                applications.append(
+                    _basket_reject_application(
+                        position_entered=position_entered,
+                        code_ref=code_ref,
+                        client_slot_id=client_slot_id,
+                        status="rejected",
+                        reject_reason="duplicate_code",
+                        user_message_key="growth_codes.code.duplicate",
+                    )
+                )
+                continue
+            seen_hashes.add(code_ref["code_hash"])
+
+            resolution = await self._growth_codes.execute(
+                code=normalized_code,
+                action_context=GrowthCodeActionContext.CHECKOUT,
+                user_id=user_id,
+                plan_id=plan.id,
+                amount=displayed_price,
+                storefront_id=storefront_id,
+                existing_partner_code_present=existing_partner_code_present,
+                existing_promo_present=bool(discount_candidates),
+                surface=sale_channel,
+            )
+            application = _basket_application_from_resolution(
+                position_entered=position_entered,
+                code=normalized_code,
+                code_ref=code_ref,
+                client_slot_id=client_slot_id,
+                resolution=resolution,
+                currency=currency,
+            )
+
+            if not resolution.accepted:
+                applications.append(application)
+                continue
+            if resolution.code_type == GrowthCodeType.PARTNER:
+                application["status"] = "rejected"
+                application["reject_reason"] = GrowthCodeRejectReason.CODE_WRONG_CONTEXT.value
+                application["user_message_key"] = "growth_codes.partner.use_partner_code_field"
+                applications.append(application)
+                continue
+            if resolution.code_type not in {GrowthCodeType.PROMO, GrowthCodeType.REFERRAL}:
+                application["status"] = "rejected"
+                application["reject_reason"] = GrowthCodeRejectReason.CODE_WRONG_CONTEXT.value
+                applications.append(application)
+                continue
+
+            discount_candidate = await self._discount_candidate_for_resolution(
+                normalized_code=normalized_code,
+                resolution=resolution,
+                plan=plan,
+                displayed_price=displayed_price,
+                base_price=base_price,
+            )
+            application["discount"] = {
+                "source_amount": str(discount_candidate.source_amount.quantize(Decimal("0.01"))),
+                "source_currency": discount_candidate.source_currency or currency,
+                "target_amount": str(discount_candidate.source_amount.quantize(Decimal("0.01"))),
+                "target_currency": currency,
+                "applied_amount": "0.00",
+                "strategy": discount_candidate.strategy,
+            }
+            applications.append(application)
+            discount_candidates.append(discount_candidate)
+            if primary_resolution is None:
+                primary_resolution = resolution
+            if accepted_promo_code_id is None and resolution.promo_code_id is not None:
+                accepted_promo_code_id = resolution.promo_code_id
+
+        rejected = [item for item in applications if item.get("status") != "accepted"]
+        if rejected:
+            raise ValueError("CODE_SET_REJECTED")
+
+        discount_amount, selected = _select_basket_discounts(
+            candidates=discount_candidates,
+            displayed_price=displayed_price,
+            currency=currency,
+        )
+        discounts: list[CheckoutAppliedDiscount] = []
+        selected_by_hash = {item.code_hash: item for item in selected}
+        for application in applications:
+            code_hash = str((application.get("code_ref") or {}).get("code_hash") or "")
+            selected_candidate = selected_by_hash.get(code_hash)
+            if selected_candidate is None:
+                continue
+            discount = dict(application.get("discount") or {})
+            discount["applied_amount"] = str(selected_candidate.applied_amount.quantize(Decimal("0.01")))
+            if selected_candidate.fx_conversion is not None:
+                discount["fx_conversion"] = selected_candidate.fx_conversion
+                discount["fx_conversion_id"] = None
+            application["discount"] = discount
+            discounts.append(
+                CheckoutAppliedDiscount(
+                    discount_type=selected_candidate.discount_type,
+                    code=selected_candidate.code,
+                    amount=selected_candidate.applied_amount,
+                    policy_version_id=selected_candidate.policy_version_id,
+                )
+            )
+
+        applications.sort(key=lambda item: (int(item.get("canonical_order") or 0), str(item.get("growth_code_id"))))
+        return _BasketEvaluation(
+            applications=applications,
+            discount_amount=discount_amount,
+            discounts=discounts,
+            promo_code_id=accepted_promo_code_id,
+            primary_resolution=primary_resolution,
+        )
+
+    async def _discount_candidate_for_resolution(
+        self,
+        *,
+        normalized_code: str,
+        resolution: GrowthCodeResolutionOutcome,
+        plan: SubscriptionPlanModel,
+        displayed_price: Decimal,
+        base_price: Decimal,
+    ) -> "_BasketDiscountCandidate":
+        policy_version_id = _policy_version_id_from_snapshot(resolution.policy_snapshot)
+        if resolution.code_type == GrowthCodeType.PROMO:
+            promo = await self._promo_repo.get_active_by_code(normalized_code)
+            if promo is None:
+                raise ValueError("Promo code is not valid")
+            if promo.discount_type == "percent":
+                amount = displayed_price * (Decimal(str(promo.discount_value)) / Decimal("100"))
+                strategy = "primary_percent"
+            else:
+                amount = Decimal(str(promo.discount_value))
+                strategy = "fixed_after_percent"
+            promo_policy = (
+                await self._growth_code_repo.get_promo_policy(resolution.growth_code_id)
+                if resolution.growth_code_id is not None
+                else None
+            )
+            policy_snapshot = _merge_policy_snapshots(
+                resolution.policy_snapshot,
+                promo_policy.policy_snapshot if promo_policy is not None else None,
+            )
+            policy_version_id = _policy_version_id_from_snapshot(policy_snapshot) or policy_version_id
+            return _BasketDiscountCandidate(
+                code=normalized_code,
+                code_hash=hash_growth_code(normalized_code),
+                discount_type=GrowthCodeType.PROMO.value,
+                discount_kind=promo.discount_type,
+                source_amount=max(amount, Decimal("0")),
+                strategy=strategy,
+                source_currency=_fixed_discount_source_currency(
+                    policy_snapshot=policy_snapshot,
+                    quote_currency=None,
+                ),
+                rate_snapshots=rate_snapshots_from_policy_snapshot(policy_snapshot),
+                policy_version_id=policy_version_id,
+            )
+        if resolution.code_type == GrowthCodeType.REFERRAL and resolution.growth_code_id is not None:
+            referral_policy = await self._growth_code_repo.get_referral_policy(resolution.growth_code_id)
+            if referral_policy is None:
+                raise ValueError("Referral code is not configured")
+            if referral_policy.eligible_durations and plan.duration_days not in referral_policy.eligible_durations:
+                raise ValueError("Referral code is not eligible for this plan")
+            if referral_policy.eligible_plan_families and plan.plan_code not in referral_policy.eligible_plan_families:
+                raise ValueError("Referral code is not eligible for this plan")
+            if referral_policy.friend_discount_type == "percent":
+                amount = base_price * (Decimal(str(referral_policy.friend_discount_value or 0)) / Decimal("100"))
+                strategy = "primary_percent"
+                kind = "percent"
+            else:
+                amount = Decimal(str(referral_policy.friend_discount_value or 0))
+                strategy = "fixed_after_percent"
+                kind = "fixed"
+            policy_snapshot = _merge_policy_snapshots(resolution.policy_snapshot, referral_policy.policy_snapshot)
+            policy_version_id = _policy_version_id_from_snapshot(policy_snapshot) or policy_version_id
+            return _BasketDiscountCandidate(
+                code=normalized_code,
+                code_hash=hash_growth_code(normalized_code),
+                discount_type=GrowthCodeType.REFERRAL.value,
+                discount_kind=kind,
+                source_amount=max(amount, Decimal("0")),
+                strategy=strategy,
+                source_currency=_fixed_discount_source_currency(
+                    policy_snapshot=policy_snapshot,
+                    quote_currency=None,
+                ),
+                rate_snapshots=rate_snapshots_from_policy_snapshot(policy_snapshot),
+                policy_version_id=policy_version_id,
+            )
+        raise ValueError("Growth code is not valid")
 
     async def _ensure_commission_contract_snapshot(
         self,
@@ -826,3 +1139,240 @@ def _normalize_code_input(*, code_input: str | None, promo_code: str | None) -> 
     if normalized_code_input and normalized_promo_code and normalized_code_input != normalized_promo_code:
         raise ValueError("code_input and promo_code must match when both are provided")
     return normalized_code_input or normalized_promo_code
+
+
+def _normalize_code_basket(
+    code_basket: list[CheckoutCodeBasketInput],
+) -> list[tuple[int, str, str | None]]:
+    if not code_basket:
+        return []
+    if len(code_basket) > 5:
+        raise ValueError("codes supports at most 5 entries")
+    normalized: list[tuple[int, str, str | None]] = []
+    for index, item in enumerate(code_basket):
+        code = item.code.strip()
+        if not code:
+            raise ValueError("codes entries cannot be empty")
+        if len(code) > 64:
+            raise ValueError("codes entries cannot exceed 64 characters")
+        normalized.append((index, code, item.client_slot_id))
+    return normalized
+
+
+def _safe_basket_code_ref(code: str) -> dict:
+    normalized = code.strip()
+    return {
+        "redacted": True,
+        "code_hash": hash_growth_code(normalized),
+        "code_prefix": normalized[:3].upper() if len(normalized) > 4 else "***",
+        "code_length": len(normalized),
+    }
+
+
+def _basket_reject_application(
+    *,
+    position_entered: int,
+    code_ref: dict,
+    client_slot_id: str | None,
+    status: str,
+    reject_reason: str,
+    user_message_key: str,
+) -> dict:
+    return {
+        "position_entered": position_entered,
+        "canonical_order": position_entered,
+        "growth_code_id": None,
+        "masked_code": _masked_code_from_ref(code_ref),
+        "roles": [],
+        "status": status,
+        "reject_reason": reject_reason,
+        "user_message_key": user_message_key,
+        "discount": _empty_discount(),
+        "benefits": [],
+        "reservation_id": None,
+        "code_ref": code_ref,
+        "client_slot_id": client_slot_id,
+        "evaluation_trace": {
+            "source": "checkout_code_basket",
+            "schema_version": "checkout_code_set.v6",
+        },
+    }
+
+
+def _basket_application_from_resolution(
+    *,
+    position_entered: int,
+    code: str,
+    code_ref: dict,
+    client_slot_id: str | None,
+    resolution: GrowthCodeResolutionOutcome,
+    currency: str,
+) -> dict:
+    policy_snapshot = dict(resolution.policy_snapshot or {})
+    code_type = resolution.code_type.value if resolution.code_type else "unknown"
+    return {
+        "position_entered": position_entered,
+        "canonical_order": position_entered,
+        "growth_code_id": str(resolution.growth_code_id) if resolution.growth_code_id else None,
+        "masked_code": _masked_code_from_ref(code_ref),
+        "roles": _roles_for_resolution(resolution),
+        "status": "accepted" if resolution.accepted else resolution.result.value,
+        "reject_reason": resolution.reject_reason.value if resolution.reject_reason else None,
+        "conflict_code": resolution.conflict_code,
+        "wrong_context_target": resolution.wrong_context_target.value if resolution.wrong_context_target else None,
+        "user_message_key": resolution.user_message_key,
+        "policy_version_id": _string_or_none(policy_snapshot.get("policy_version_id")),
+        "rule_checksum": policy_snapshot.get("rule_checksum"),
+        "discount": {
+            **_empty_discount(currency=currency),
+            "strategy": "not_selected",
+        },
+        "benefits": list(policy_snapshot.get("benefits") or []),
+        "reservation_id": None,
+        "risk_decision_id": _string_or_none(policy_snapshot.get("risk_decision_id")),
+        "fx_conversion_id": None,
+        "code_ref": code_ref,
+        "legacy_code_type": code_type,
+        "legacy_code_id": _string_or_none(resolution.promo_code_id or resolution.partner_code_id),
+        "client_slot_id": client_slot_id,
+        "evaluation_trace": {
+            "source": "checkout_code_basket",
+            "schema_version": "checkout_code_set.v6",
+            "message_key": resolution.user_message_key,
+            "code_type": code_type,
+            "code_hash": hash_growth_code(code),
+        },
+    }
+
+
+def _roles_for_resolution(resolution: GrowthCodeResolutionOutcome) -> list[str]:
+    if resolution.code_type == GrowthCodeType.PROMO:
+        roles = ["discount"]
+        if (resolution.policy_snapshot or {}).get("benefits"):
+            roles.append("benefit")
+        return roles
+    if resolution.code_type == GrowthCodeType.REFERRAL:
+        return ["attribution", "discount"]
+    if resolution.code_type == GrowthCodeType.PARTNER:
+        return ["attribution"]
+    if resolution.code_type in {GrowthCodeType.INVITE, GrowthCodeType.GIFT}:
+        return ["benefit"]
+    return []
+
+
+def _select_basket_discounts(
+    *,
+    candidates: list[_BasketDiscountCandidate],
+    displayed_price: Decimal,
+    currency: str,
+) -> tuple[Decimal, list[_BasketDiscountCandidate]]:
+    percent_candidates = [item for item in candidates if item.discount_kind == "percent"]
+    fixed_candidates = [item for item in candidates if item.discount_kind != "percent"]
+    selected: list[_BasketDiscountCandidate] = []
+    remaining = displayed_price
+    if percent_candidates:
+        primary = max(percent_candidates, key=lambda item: (item.source_amount, item.code_hash))
+        applied = min(primary.source_amount, remaining)
+        selected.append(
+            _BasketDiscountCandidate(
+                code=primary.code,
+                code_hash=primary.code_hash,
+                discount_type=primary.discount_type,
+                discount_kind=primary.discount_kind,
+                source_amount=primary.source_amount,
+                strategy=primary.strategy,
+                source_currency=primary.source_currency,
+                rate_snapshots=primary.rate_snapshots,
+                policy_version_id=primary.policy_version_id,
+                applied_amount=applied,
+                fx_conversion=None,
+            )
+        )
+        remaining -= applied
+    for fixed in sorted(fixed_candidates, key=lambda item: (-item.source_amount, item.code_hash)):
+        if remaining <= 0:
+            break
+        conversion = convert_fixed_discount(
+            source_amount=fixed.source_amount,
+            source_currency=fixed.source_currency or currency,
+            quote_currency=currency,
+            discountable_amount=remaining,
+            rate_snapshots=fixed.rate_snapshots,
+        )
+        applied = conversion.applied_amount
+        conversion_payload = conversion.to_payload()
+        selected.append(
+            _BasketDiscountCandidate(
+                code=fixed.code,
+                code_hash=fixed.code_hash,
+                discount_type=fixed.discount_type,
+                discount_kind=fixed.discount_kind,
+                source_amount=fixed.source_amount,
+                strategy=fixed.strategy,
+                source_currency=fixed.source_currency or currency,
+                rate_snapshots=fixed.rate_snapshots,
+                policy_version_id=fixed.policy_version_id,
+                applied_amount=applied,
+                fx_conversion={
+                    **conversion_payload,
+                    "conversion_mode": conversion_mode_from_payload(conversion_payload.get("rate_snapshot")),
+                    "rounding_mode": "ROUND_HALF_UP",
+                    "no_rerate": True,
+                },
+            )
+        )
+        remaining -= applied
+    discount_amount = displayed_price - max(remaining, Decimal("0"))
+    return max(discount_amount, Decimal("0")), selected
+
+
+def _empty_discount(*, currency: str = "USD") -> dict:
+    return {
+        "source_amount": "0.00",
+        "source_currency": currency,
+        "target_amount": "0.00",
+        "target_currency": currency,
+        "applied_amount": "0.00",
+    }
+
+
+def _policy_version_id_from_snapshot(snapshot: dict | None) -> UUID | None:
+    raw_value = (snapshot or {}).get("policy_version_id")
+    if raw_value in (None, ""):
+        return None
+    return UUID(str(raw_value))
+
+
+def _merge_policy_snapshots(*snapshots: dict | None) -> dict:
+    merged: dict = {}
+    for snapshot in snapshots:
+        if isinstance(snapshot, dict):
+            merged.update(snapshot)
+    return merged
+
+
+def _fixed_discount_source_currency(*, policy_snapshot: dict, quote_currency: str | None) -> str | None:
+    for key in ("fixed_discount_currency", "discount_currency", "source_currency", "currency_code"):
+        value = policy_snapshot.get(key)
+        if value not in (None, ""):
+            return str(value)
+    fx_payload = policy_snapshot.get("fx")
+    if isinstance(fx_payload, dict):
+        for key in ("fixed_discount_currency", "discount_currency", "source_currency"):
+            value = fx_payload.get(key)
+            if value not in (None, ""):
+                return str(value)
+    return quote_currency
+
+
+def _string_or_none(value: object) -> str | None:
+    if value in (None, ""):
+        return None
+    return str(value)
+
+
+def _masked_code_from_ref(code_ref: dict) -> str:
+    prefix = str(code_ref.get("code_prefix") or "***")[:12]
+    code_hash = str(code_ref.get("code_hash") or "")
+    suffix = code_hash[:12] if code_hash else "unknown"
+    return f"{prefix}...{suffix}"[:32]

@@ -446,6 +446,7 @@ describe('MiniApp Plans Page', () => {
           plan_id: 'plan-plus-365',
           currency: 'USD',
         }),
+        expect.stringMatching(/^miniapp-checkout-/),
       );
       expect(telegramMock.openTelegramLink).toHaveBeenCalledWith(
         'https://t.me/CryptoBot?start=pay_ABC123',
@@ -480,6 +481,7 @@ describe('MiniApp Plans Page', () => {
         expect.objectContaining({
           currency: 'USD',
         }),
+        expect.stringMatching(/^miniapp-checkout-/),
       );
     });
   });

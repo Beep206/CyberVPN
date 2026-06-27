@@ -7,6 +7,11 @@ const GROWTH_PAGE_CONFIG = {
     titleKey: 'overview.metaTitle',
     descriptionKey: 'overview.description',
   },
+  campaigns: {
+    canonicalPath: '/growth/campaigns',
+    titleKey: 'campaigns.metaTitle',
+    descriptionKey: 'campaigns.description',
+  },
   promoCodes: {
     canonicalPath: '/growth/promo-codes',
     titleKey: 'promoCodes.metaTitle',
@@ -41,6 +46,26 @@ const GROWTH_PAGE_CONFIG = {
     canonicalPath: '/growth/rules',
     titleKey: 'rules.metaTitle',
     descriptionKey: 'rules.description',
+  },
+  siteMode: {
+    canonicalPath: '/growth/site-mode',
+    titleKey: 'siteMode.metaTitle',
+    descriptionKey: 'siteMode.description',
+  },
+  fx: {
+    canonicalPath: '/growth/fx',
+    titleKey: 'fx.metaTitle',
+    descriptionKey: 'fx.description',
+  },
+  privateAccess: {
+    canonicalPath: '/growth/private-access',
+    titleKey: 'privateAccess.metaTitle',
+    descriptionKey: 'privateAccess.description',
+  },
+  onboarding: {
+    canonicalPath: '/growth/onboarding',
+    titleKey: 'onboarding.metaTitle',
+    descriptionKey: 'onboarding.description',
   },
   risk: {
     canonicalPath: '/growth/risk',

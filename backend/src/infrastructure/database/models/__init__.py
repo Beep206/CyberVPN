@@ -44,6 +44,7 @@ from src.infrastructure.database.models.governance_action_model import Governanc
 from src.infrastructure.database.models.growth_benefit_model import (
     GrowthBenefitFulfillmentModel,
     GrowthCodeBenefitModel,
+    GrowthCodeCapacityCounterModel,
     GrowthCodeUserCounterModel,
     InviteBatchModel,
 )
@@ -67,6 +68,7 @@ from src.infrastructure.database.models.growth_code_set_model import (
     GrowthCodeNamespaceModel,
     GrowthCodeReservationGroupModel,
     GrowthPrivateCatalogPolicyModel,
+    GrowthReversalEventModel,
     GrowthRuleCatalogVersionModel,
     GrowthRuleDefinitionModel,
     OrderCodeApplicationModel,
@@ -256,6 +258,7 @@ __all__ = [
     "GovernanceActionModel",
     "GrowthBenefitFulfillmentModel",
     "GrowthCampaignModel",
+    "GrowthCodeCapacityCounterModel",
     "GrowthCodeBenefitModel",
     "GrowthCodeIssuanceModel",
     "GrowthCodeModel",
@@ -271,6 +274,7 @@ __all__ = [
     "GrowthReportingDeliveryModel",
     "GrowthReportingRefreshRunModel",
     "GrowthReportingSubscriptionModel",
+    "GrowthReversalEventModel",
     "GrowthRiskDecisionModel",
     "GrowthRuleCatalogVersionModel",
     "GrowthRuleDefinitionModel",

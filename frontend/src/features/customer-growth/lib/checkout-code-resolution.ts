@@ -1,83 +1,110 @@
 import type { ResolveGrowthCodeResponse } from '@/lib/api/codes';
 
 export type CheckoutCodeFlow = 'checkout' | 'upgrade' | 'addons';
+export type GrowthCodeResolutionMessageKey =
+  | 'conflictPartnerCodeReferral'
+  | 'conflictPartnerCode'
+  | 'conflictPartnerBindingReferral'
+  | 'conflictPartnerBinding'
+  | 'conflictPromoPresent'
+  | 'wrongContextInvite'
+  | 'wrongContextGift'
+  | 'wrongContextPartner'
+  | 'wrongContextCheckout'
+  | 'wrongContextRedeem'
+  | 'notFound'
+  | 'expired'
+  | 'inactive'
+  | 'exhausted'
+  | 'alreadyUsed'
+  | 'inviteSelfRedemption'
+  | 'notEligibleForSku'
+  | 'notEligibleForSurface'
+  | 'blockedByRisk'
+  | 'requiresAuth'
+  | 'generic';
 
-export function getGrowthCodeResolutionMessage(
+export type UnsupportedCheckoutCodeMessageKey =
+  | 'partnerUnavailable'
+  | 'upgradePromoOnly'
+  | 'addonsPromoOnly';
+
+export function getGrowthCodeResolutionMessageKey(
   resolution: Pick<
     ResolveGrowthCodeResponse,
     'code_type' | 'reject_reason' | 'conflict_code' | 'wrong_context_target' | 'result'
   >,
-): string {
+): GrowthCodeResolutionMessageKey {
   if (resolution.result === 'conflicted') {
     if (resolution.conflict_code === 'partner_code_present') {
       return resolution.code_type === 'referral'
-        ? 'Referral discounts cannot be combined with a partner code.'
-        : 'This code cannot be combined with a partner code.';
+        ? 'conflictPartnerCodeReferral'
+        : 'conflictPartnerCode';
     }
     if (resolution.conflict_code === 'partner_binding_present') {
       return resolution.code_type === 'referral'
-        ? 'Referral discounts cannot be combined with active partner attribution.'
-        : 'This code cannot be combined with active partner attribution.';
+        ? 'conflictPartnerBindingReferral'
+        : 'conflictPartnerBinding';
     }
     if (resolution.conflict_code === 'promo_present') {
-      return 'Partner codes cannot be combined with another discount code.';
+      return 'conflictPromoPresent';
     }
   }
 
   if (resolution.reject_reason === 'code_wrong_context') {
     if (resolution.code_type === 'invite') {
-      return 'Invite codes redeem outside checkout. Open the rewards hub instead.';
+      return 'wrongContextInvite';
     }
     if (resolution.code_type === 'gift') {
-      return 'Gift codes redeem outside checkout. Open the rewards hub instead.';
+      return 'wrongContextGift';
     }
     if (resolution.code_type === 'partner') {
-      return 'Partner codes can only be used in partner-enabled checkout flows.';
+      return 'wrongContextPartner';
     }
     if (resolution.wrong_context_target === 'checkout') {
-      return 'This code must be applied in checkout.';
+      return 'wrongContextCheckout';
     }
-    return 'This code must be redeemed outside checkout.';
+    return 'wrongContextRedeem';
   }
 
   if (resolution.reject_reason === 'code_not_found') {
-    return 'Code not found.';
+    return 'notFound';
   }
   if (resolution.reject_reason === 'code_expired') {
-    return 'Code expired.';
+    return 'expired';
   }
   if (resolution.reject_reason === 'code_not_active') {
-    return 'Code is inactive.';
+    return 'inactive';
   }
   if (resolution.reject_reason === 'code_exhausted') {
-    return 'Code usage limit reached.';
+    return 'exhausted';
   }
   if (
     resolution.reject_reason === 'code_already_redeemed'
     || resolution.reject_reason === 'gift_already_redeemed'
   ) {
-    return 'Code has already been used.';
+    return 'alreadyUsed';
   }
   if (resolution.reject_reason === 'invite_self_redemption_blocked') {
-    return 'You cannot redeem your own invite code.';
+    return 'inviteSelfRedemption';
   }
   if (resolution.reject_reason === 'code_not_eligible_for_sku') {
-    return 'This code does not apply to the selected checkout basket.';
+    return 'notEligibleForSku';
   }
   if (resolution.reject_reason === 'code_not_eligible_for_surface') {
-    return 'This code is not available on the current surface.';
+    return 'notEligibleForSurface';
   }
   if (resolution.reject_reason === 'code_blocked_by_risk') {
-    return 'This code is blocked by risk policy.';
+    return 'blockedByRisk';
   }
   if (resolution.reject_reason === 'code_requires_auth') {
-    return 'Sign in first to use this code.';
+    return 'requiresAuth';
   }
 
-  return 'Code could not be applied.';
+  return 'generic';
 }
 
-export function getUnsupportedCheckoutCodeMessage({
+export function getUnsupportedCheckoutCodeMessageKey({
   codeType,
   flow,
   partnerCodeEntryAllowed,
@@ -85,15 +112,13 @@ export function getUnsupportedCheckoutCodeMessage({
   codeType: ResolveGrowthCodeResponse['code_type'];
   flow: CheckoutCodeFlow;
   partnerCodeEntryAllowed: boolean;
-}): string | null {
+}): UnsupportedCheckoutCodeMessageKey | null {
   if (codeType === 'partner' && !partnerCodeEntryAllowed) {
-    return 'Partner codes are not available on this checkout surface.';
+    return 'partnerUnavailable';
   }
 
   if (flow !== 'checkout' && codeType && codeType !== 'promo') {
-    return flow === 'upgrade'
-      ? 'Only promo codes can be used during subscription upgrades right now.'
-      : 'Only promo codes can be used for add-ons right now.';
+    return flow === 'upgrade' ? 'upgradePromoOnly' : 'addonsPromoOnly';
   }
 
   return null;

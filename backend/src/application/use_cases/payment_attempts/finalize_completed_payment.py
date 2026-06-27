@@ -7,11 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService, OutboxActorContext
 from src.application.use_cases.growth_benefits.fulfill import FulfillGrowthBenefitsUseCase, FulfillmentResult
+from src.application.use_cases.growth_code_sets.ledger import reservation_ids_from_snapshot
 from src.application.use_cases.growth_code_sets.snapshots import read_growth_checkout_v3_snapshot
 from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
+from src.application.use_cases.growth_risk.runtime_guard import evaluate_growth_runtime_risk
 from src.application.use_cases.payments.payment_completed_earnings import (
     append_payment_completed_partner_earning_publication,
 )
+from src.infrastructure.database.models.growth_code_set_model import CheckoutCodeSetModel
 from src.infrastructure.database.models.order_model import OrderModel
 from src.infrastructure.database.models.payment_attempt_model import PaymentAttemptModel
 from src.infrastructure.database.models.payment_model import PaymentModel
@@ -50,16 +53,45 @@ class FinalizeCompletedPaymentUseCase:
         if order.settlement_status == "paid":
             return []
 
-        reservation_id = _extract_reservation_id(quote_snapshot)
-        if reservation_id is not None:
-            await self._reservations.consume_for_settlement(
-                reservation_id=reservation_id,
+        reservation_ids = reservation_ids_from_snapshot(quote_snapshot)
+        fallback_reservation_id = _extract_reservation_id(quote_snapshot)
+        if fallback_reservation_id is not None and fallback_reservation_id not in reservation_ids:
+            reservation_ids.append(fallback_reservation_id)
+        if reservation_ids:
+            await self._reservations.consume_group_for_settlement(
+                reservation_ids=reservation_ids,
                 order_id=order.id,
                 payment_id=payment.id,
                 user_id=order.user_id,
             )
+        if order.code_set_id is not None:
+            code_set = await self._session.get(CheckoutCodeSetModel, order.code_set_id)
+            if code_set is not None:
+                code_set.status = "consumed"
+                code_set.payment_id = payment.id
 
         order.settlement_status = "paid"
+        await evaluate_growth_runtime_risk(
+            session=self._session,
+            action_context="benefit_fulfill",
+            user_id=order.user_id,
+            auth_realm_id=order.auth_realm_id,
+            storefront_id=order.storefront_id,
+            high_risk_context=_decimal(quote_snapshot.get("gateway_amount")) <= Decimal("0"),
+            features={
+                "checkpoint": "benefit_fulfill",
+                "zero_gateway": _decimal(quote_snapshot.get("gateway_amount")) <= Decimal("0"),
+                "private_catalog": order.private_catalog_access_grant_id is not None,
+                "channel": order.sale_channel,
+                "currency": order.currency_code,
+                "payment_provider": payment.provider,
+                "has_growth_effects": bool(read_growth_checkout_v3_snapshot(dict(order.pricing_snapshot or {}))),
+            },
+            private_grant_id=order.private_catalog_access_grant_id,
+            code_set_id=order.code_set_id,
+            order_id=order.id,
+            enforce=True,
+        )
         benefit_results = await self._fulfill_benefits(
             order=order,
             payment=payment,
@@ -97,8 +129,9 @@ class FinalizeCompletedPaymentUseCase:
             source=source,
         )
         for benefit_result in benefit_results:
+            fulfillment_event_status = benefit_result.status.replace("_", "-")
             await self._outbox.append_event(
-                event_name="growth_benefit.fulfillment.completed",
+                event_name=f"growth_benefit.fulfillment.{fulfillment_event_status}",
                 aggregate_type="growth_benefit_fulfillment",
                 aggregate_id=str(benefit_result.fulfillment_id),
                 partition_key=str(order.user_id),

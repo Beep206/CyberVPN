@@ -48,7 +48,7 @@ def _enabled_runtime() -> CustomerOnboardingRuntimeConfig:
 
 
 def _flow_token_service() -> CustomerOnboardingFlowTokenService:
-    return CustomerOnboardingFlowTokenService(secret="0" * 32, clock=lambda: 1_000_000)
+    return CustomerOnboardingFlowTokenService(secret="unit-flow-token-placeholder", clock=lambda: 1_000_000)
 
 
 def _patch_flow_tokens(monkeypatch: pytest.MonkeyPatch, service: CustomerOnboardingFlowTokenService) -> None:

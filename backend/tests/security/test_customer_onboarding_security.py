@@ -41,7 +41,7 @@ def _patch_config(monkeypatch: pytest.MonkeyPatch, runtime: CustomerOnboardingRu
 
 
 def _patch_flow_tokens(monkeypatch: pytest.MonkeyPatch) -> CustomerOnboardingFlowTokenService:
-    flow_tokens = CustomerOnboardingFlowTokenService(secret="1" * 32, clock=lambda: 1_000_000)
+    flow_tokens = CustomerOnboardingFlowTokenService(secret="security-flow-token-placeholder", clock=lambda: 1_000_000)
     monkeypatch.setattr(routes, "CustomerOnboardingFlowTokenService", lambda: flow_tokens)
     return flow_tokens
 
@@ -55,7 +55,7 @@ def test_onboarding_apply_rejects_registration_access_token_payload_field(
         CustomerOnboardingApplyRequest.model_validate(
             {
                 "code": "SAVE20",
-                "registration_access_token": "f5f84084-3237-429f-889c-9f70e834d41f",
+                "registration_access_token": str(uuid4()),
             }
         )
 
@@ -71,7 +71,7 @@ async def test_onboarding_apply_rejects_uuid_like_registration_access_token_with
 
     with pytest.raises(HTTPException) as exc_info:
         await routes.apply_customer_onboarding_growth_code(
-            payload=CustomerOnboardingApplyRequest(code="f5f84084-3237-429f-889c-9f70e834d41f"),
+            payload=CustomerOnboardingApplyRequest(code=str(uuid4())),
             user_id=uuid4(),
             db=db,
         )

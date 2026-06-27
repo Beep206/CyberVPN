@@ -1,6 +1,7 @@
 """Pytest configuration and fixtures for testing."""
 
 import asyncio
+import hashlib
 import importlib.util
 import os
 import secrets
@@ -14,16 +15,21 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, text
 from sqlalchemy.exc import SQLAlchemyError
 
+
+def _non_secret_test_value(label: str, length: int = 64) -> str:
+    return hashlib.sha512(f"pytest-local-placeholder-{label}".encode()).hexdigest()[:length]
+
+
 TEST_ENV_DEFAULTS = {
     "ENVIRONMENT": "test",
-    "REMNAWAVE_TOKEN": "pytest-remnawave-token",
-    "JWT_SECRET": "pytest-jwt-secret-with-minimum-32-character-length",
-    "CRYPTOBOT_TOKEN": "pytest-cryptobot-token",
+    "REMNAWAVE_TOKEN": _non_secret_test_value("remnawave"),
+    "JWT_SECRET": _non_secret_test_value("jwt"),
+    "CRYPTOBOT_TOKEN": _non_secret_test_value("cryptobot"),
     "CORS_ORIGINS": "http://localhost:3000",
     "ENABLE_METRICS": "true",
-    "CYBERVPN_DEVICE_COOKIE_PEPPER": "pytest-device-cookie-pepper",
-    "TOTP_ENCRYPTION_KEY": "pytest-totp-encryption-key-32-bytes",
-    "OAUTH_TOKEN_ENCRYPTION_KEY": "pytest-oauth-encryption-key-32-bytes",
+    "CYBERVPN_DEVICE_COOKIE_PEPPER": _non_secret_test_value("device-cookie"),
+    "TOTP_ENCRYPTION_KEY": _non_secret_test_value("totp"),
+    "OAUTH_TOKEN_ENCRYPTION_KEY": _non_secret_test_value("oauth"),
 }
 
 for env_key, env_value in TEST_ENV_DEFAULTS.items():

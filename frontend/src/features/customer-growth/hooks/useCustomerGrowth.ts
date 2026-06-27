@@ -21,7 +21,10 @@ import type {
   GrowthNotificationItem,
   GrowthNotificationPreferences,
 } from '@/lib/api/growth-notifications';
-import { getGrowthCodeResolutionMessage } from '@/features/customer-growth/lib/checkout-code-resolution';
+import {
+  getGrowthCodeResolutionMessageKey,
+  type GrowthCodeResolutionMessageKey,
+} from '@/features/customer-growth/lib/checkout-code-resolution';
 import {
   areGiftCodesEnabled,
   areInviteCodesEnabled,
@@ -398,7 +401,7 @@ class GrowthRedeemResolutionError extends Error {
   resolution: ResolveGrowthCodeResponse;
 
   constructor(resolution: ResolveGrowthCodeResponse) {
-    super(getGrowthCodeResolutionMessage(resolution));
+    super('growth_redeem_resolution_error');
     this.name = 'GrowthRedeemResolutionError';
     this.resolution = resolution;
   }
@@ -458,9 +461,15 @@ export function getGiftRedeemErrorMessage(error: unknown): string {
   }
 }
 
-export function getGrowthRedeemErrorMessage(error: unknown): string {
+export type GrowthCodeResolutionMessageMap = Record<GrowthCodeResolutionMessageKey, string>;
+
+export function getGrowthRedeemErrorMessage(
+  error: unknown,
+  options: { resolutionMessages?: GrowthCodeResolutionMessageMap } = {},
+): string {
   if (isGrowthRedeemResolutionError(error)) {
-    return getGrowthCodeResolutionMessage(error.resolution);
+    const key = getGrowthCodeResolutionMessageKey(error.resolution);
+    return options.resolutionMessages?.[key] ?? error.resolution.user_message_key;
   }
 
   if (error instanceof AxiosError) {

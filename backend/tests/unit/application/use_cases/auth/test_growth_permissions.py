@@ -22,6 +22,24 @@ GROWTH_PERMISSIONS = (
     Permission.GROWTH_RULES_VALIDATE,
     Permission.GROWTH_RULES_PUBLISH,
     Permission.GROWTH_RULES_APPROVE,
+    Permission.GROWTH_RISK_DECISIONS_VIEW,
+    Permission.GROWTH_RISK_REVIEWS_MANAGE,
+    Permission.GROWTH_RISK_MODELS_MANAGE,
+    Permission.GROWTH_RISK_MODELS_APPROVE,
+    Permission.GROWTH_RISK_THRESHOLDS_MANAGE,
+    Permission.GROWTH_PRIVATE_CATALOG_VIEW,
+    Permission.GROWTH_PRIVATE_CATALOG_MANAGE,
+    Permission.GROWTH_PRIVATE_GRANTS_VIEW,
+    Permission.GROWTH_PRIVATE_GRANTS_REVOKE,
+    Permission.GROWTH_FX_VIEW,
+    Permission.GROWTH_FX_MANAGE,
+    Permission.GROWTH_FX_OVERRIDE,
+    Permission.GROWTH_FX_APPROVE,
+    Permission.GROWTH_CODE_SETS_INSPECT,
+    Permission.GROWTH_CODE_SETS_EXPORT,
+    Permission.GROWTH_ONBOARDING_VIEW,
+    Permission.GROWTH_ONBOARDING_MANAGE,
+    Permission.GROWTH_ONBOARDING_RESET,
 )
 
 
@@ -71,3 +89,14 @@ async def test_growth_campaign_publish_dependency_allows_admin() -> None:
     resolved = await checker(user=user, current_realm=_admin_realm())
 
     assert resolved is user
+
+
+@pytest.mark.asyncio
+async def test_growth_risk_review_manage_dependency_rejects_operator() -> None:
+    checker = require_permission(Permission.GROWTH_RISK_REVIEWS_MANAGE)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await checker(user=_admin_user(AdminRole.OPERATOR), current_realm=_admin_realm())
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "Missing permission: growth.risk.reviews.manage"

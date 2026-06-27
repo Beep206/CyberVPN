@@ -54,6 +54,7 @@ import {
   useReferralStatus,
   useUpdateGrowthNotificationPreferences,
 } from '@/features/customer-growth/hooks/useCustomerGrowth';
+import { buildGrowthCodeBasketCopy } from '@/features/customer-growth-code-basket/lib/copy';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { Link } from '@/i18n/navigation';
 import { getMiniAppRewardsNavigationItems } from '@/shared/cabinet-navigation';
@@ -203,6 +204,11 @@ export function MiniAppRewardsRoute({
 
 function MiniAppReferralExperience({ view }: { view: MiniAppRewardsView }) {
   const t = useTranslations('MiniApp.referral');
+  const plansT = useTranslations('MiniApp.plans');
+  const growthCodeResolutionMessages = useMemo(
+    () => buildGrowthCodeBasketCopy(plansT).resolutionErrors,
+    [plansT],
+  );
   const locale = useLocale();
   const { haptic, hapticNotification, webApp } = useTelegramWebApp();
 
@@ -363,7 +369,7 @@ function MiniAppReferralExperience({ view }: { view: MiniAppRewardsView }) {
       );
     } catch (error) {
       hapticNotification('error');
-      setRedeemError(getGrowthRedeemErrorMessage(error));
+      setRedeemError(getGrowthRedeemErrorMessage(error, { resolutionMessages: growthCodeResolutionMessages }));
     }
   };
 

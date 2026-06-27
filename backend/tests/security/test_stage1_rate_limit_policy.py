@@ -43,6 +43,7 @@ def _s1_middleware(**overrides: int) -> RateLimitMiddleware:
         messaging_realtime_requests_per_minute=overrides.get("messaging_realtime", 60),
         messaging_admin_read_requests_per_minute=overrides.get("messaging_admin_read", 120),
         messaging_broadcast_requests_per_minute=overrides.get("messaging_broadcast", 10),
+        private_catalog_preflight_requests_per_minute=overrides.get("private_catalog", 20),
     )
 
 
@@ -120,6 +121,7 @@ class _FakeRedisClient:
         ("/api/v1/referral/code", "GET", "s1_growth_sensitive", 60),
         ("/api/v1/promo/validate", "POST", "s1_growth_sensitive", 60),
         ("/api/v1/gifts/redeem", "POST", "s1_growth_sensitive", 60),
+        ("/api/v3/growth/code-sets/preflight", "POST", "s1_private_catalog_preflight", 20),
         ("/api/v1/admin/mobile-users/user-id/notes", "POST", "s1_support_write", 30),
         ("/api/v1/admin/mobile-users/user-id/devices/device-id", "DELETE", "s1_support_write", 30),
         ("/api/v1/me/conversations/conv_1/messages", "POST", "messaging_write", 30),
@@ -202,6 +204,44 @@ async def test_stage1_payment_write_bucket_returns_429_when_shared_category_budg
         first = await client.post("/api/v1/payments/checkout/quote")
         second = await client.post("/api/v1/payments/checkout/commit")
         third = await client.post("/api/v1/payments/checkout/quote")
+
+    assert [first.status_code, second.status_code, third.status_code] == [200, 200, 429]
+    assert third.json() == {"detail": "Too many requests"}
+    assert third.headers["Retry-After"] == "60"
+
+
+@pytest.mark.asyncio
+async def test_stage1_private_catalog_preflight_bucket_returns_429_when_budget_is_exceeded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    RateLimitMiddleware._circuit_breaker = None
+    fake_redis = _FakeRedisClient()
+    monkeypatch.setattr(
+        "src.presentation.middleware.rate_limit.get_redis_pool",
+        lambda: object(),
+    )
+    monkeypatch.setattr(
+        "src.presentation.middleware.rate_limit.redis.Redis",
+        lambda connection_pool: fake_redis,
+    )
+
+    app = FastAPI()
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=100,
+        window_seconds=60,
+        fail_open=False,
+        private_catalog_preflight_requests_per_minute=2,
+    )
+
+    @app.post("/api/v3/growth/code-sets/preflight")
+    async def preflight() -> dict[str, str]:
+        return {"status": "checked"}
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://backend") as client:
+        first = await client.post("/api/v3/growth/code-sets/preflight")
+        second = await client.post("/api/v3/growth/code-sets/preflight")
+        third = await client.post("/api/v3/growth/code-sets/preflight")
 
     assert [first.status_code, second.status_code, third.status_code] == [200, 200, 429]
     assert third.json() == {"detail": "Too many requests"}

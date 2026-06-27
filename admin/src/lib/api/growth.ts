@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, apiV3Client } from './client';
 import type { operations } from './generated/types';
 
 type AdminListPromosResponse =
@@ -38,15 +38,120 @@ type AdminGrowthSignalsOverviewResponse =
 type AdminGrowthAbuseSignalsResponse =
   operations['list_growth_abuse_signals_api_v1_admin_growth_signals_abuse_queue_get']['responses'][200]['content']['application/json'];
 type AdminGrowthRuleCatalogResponse =
-  operations['get_growth_rule_catalog_api_v1_admin_growth_rules_catalog_get']['responses'][200]['content']['application/json'];
+  operations['get_v3_growth_rule_catalog_api_v3_admin_growth_rule_catalog_get']['responses'][200]['content']['application/json'];
 type AdminGrowthRuleCompileRequest =
-  operations['compile_growth_rule_api_v1_admin_growth_rules_compile_post']['requestBody']['content']['application/json'];
+  operations['compile_v3_growth_policy_api_v3_admin_growth_policies_compile_post']['requestBody']['content']['application/json'];
 type AdminGrowthRuleCompileResponse =
-  operations['compile_growth_rule_api_v1_admin_growth_rules_compile_post']['responses'][200]['content']['application/json'];
+  operations['compile_v3_growth_policy_api_v3_admin_growth_policies_compile_post']['responses'][200]['content']['application/json'];
 type AdminGrowthRuleSimulateRequest =
-  operations['simulate_growth_rule_api_v1_admin_growth_rules_simulate_post']['requestBody']['content']['application/json'];
+  operations['preview_v3_growth_policy_impact_api_v3_admin_growth_policies_impact_preview_post']['requestBody']['content']['application/json'];
 type AdminGrowthRuleSimulateResponse =
-  operations['simulate_growth_rule_api_v1_admin_growth_rules_simulate_post']['responses'][200]['content']['application/json'];
+  operations['preview_v3_growth_policy_impact_api_v3_admin_growth_policies_impact_preview_post']['responses'][200]['content']['application/json'];
+type AdminGrowthRulePolicyListParams =
+  operations['list_growth_rule_policies_api_v1_admin_growth_policy_versions_get']['parameters']['query'];
+type AdminGrowthRulePolicyListResponse =
+  operations['list_growth_rule_policies_api_v1_admin_growth_policy_versions_get']['responses'][200]['content']['application/json'];
+type AdminGrowthRulePolicyCreateRequest =
+  operations['create_growth_rule_policy_api_v1_admin_growth_policy_versions_post']['requestBody']['content']['application/json'];
+type AdminGrowthRulePolicyVersionResponse =
+  operations['create_growth_rule_policy_api_v1_admin_growth_policy_versions_post']['responses'][201]['content']['application/json'];
+type AdminGrowthRulePolicyActionRequest =
+  operations['submit_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__submit_post']['requestBody']['content']['application/json'];
+type AdminGrowthRulePolicyRollbackRequest =
+  operations['rollback_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__rollback_post']['requestBody']['content']['application/json'];
+type AdminGrowthRulePolicyDiffResponse =
+  operations['diff_growth_rule_policy_api_v1_admin_growth_policy_versions__policy_version_id__diff_get']['responses'][200]['content']['application/json'];
+type AdminGrowthCampaignListParams =
+  operations['list_admin_growth_campaigns_api_v1_admin_growth_campaigns_get']['parameters']['query'];
+type AdminGrowthCampaignListResponse =
+  operations['list_admin_growth_campaigns_api_v1_admin_growth_campaigns_get']['responses'][200]['content']['application/json'];
+type AdminGrowthCampaignCreateRequest =
+  operations['create_admin_growth_campaign_api_v1_admin_growth_campaigns_post']['requestBody']['content']['application/json'];
+type AdminGrowthCampaignResponse =
+  operations['create_admin_growth_campaign_api_v1_admin_growth_campaigns_post']['responses'][201]['content']['application/json'];
+type AdminGrowthCampaignPatchRequest =
+  operations['update_admin_growth_campaign_api_v1_admin_growth_campaigns__campaign_id__patch']['requestBody']['content']['application/json'];
+type AdminGrowthCampaignActionRequest =
+  operations['publish_admin_growth_campaign_api_v1_admin_growth_campaigns__campaign_id__publish_post']['requestBody']['content']['application/json'];
+type ClientCapabilityResponse =
+  operations['get_client_capabilities_api_v1_client_capabilities_get']['responses'][200]['content']['application/json'];
+type AdminCustomerSiteRuntimeConfigResponse =
+  operations['get_admin_customer_site_runtime_config_api_v1_admin_system_config_customer_site_runtime_get']['responses'][200]['content']['application/json'];
+type AdminCustomerSiteRuntime = AdminCustomerSiteRuntimeConfigResponse['site'];
+type UpdateAdminCustomerSiteRuntimeConfigRequest =
+  operations['update_admin_customer_site_runtime_config_api_v1_admin_system_config_customer_site_runtime_put']['requestBody']['content']['application/json'];
+type ExecuteAdminCustomerSiteRuntimeActionRequest =
+  operations['execute_admin_customer_site_runtime_action_api_v1_admin_system_config_customer_site_runtime_actions_post']['requestBody']['content']['application/json'];
+type AdminCustomerSiteRuntimeTimelineParams =
+  operations['get_admin_customer_site_runtime_timeline_api_v1_admin_system_config_customer_site_runtime_timeline_get']['parameters']['query'];
+type AdminCustomerSiteRuntimeTimelineResponse =
+  operations['get_admin_customer_site_runtime_timeline_api_v1_admin_system_config_customer_site_runtime_timeline_get']['responses'][200]['content']['application/json'];
+type AdminGrowthCodeSetInspectParams =
+  operations['inspect_growth_code_sets_api_v3_admin_growth_code_sets_inspect_get']['parameters']['query'];
+type AdminGrowthCodeSetInspectResponse =
+  operations['inspect_growth_code_sets_api_v3_admin_growth_code_sets_inspect_get']['responses'][200]['content']['application/json'];
+type AdminGrowthFxStatusResponse =
+  operations['get_growth_fx_status_api_v3_admin_growth_fx_status_get']['responses'][200]['content']['application/json'];
+type AdminGrowthFxRateListParams =
+  operations['list_growth_fx_rates_api_v3_admin_growth_fx_rates_get']['parameters']['query'];
+type AdminGrowthFxRateListResponse =
+  operations['list_growth_fx_rates_api_v3_admin_growth_fx_rates_get']['responses'][200]['content']['application/json'];
+type AdminGrowthFxConfiguredRateRequest =
+  operations['create_configured_growth_fx_rate_api_v3_admin_growth_fx_configured_rates_post']['requestBody']['content']['application/json'];
+type AdminGrowthFxRateResponse =
+  operations['create_configured_growth_fx_rate_api_v3_admin_growth_fx_configured_rates_post']['responses'][201]['content']['application/json'];
+type AdminGrowthFxXtrTableRequest =
+  operations['create_growth_fx_xtr_table_api_v3_admin_growth_fx_xtr_tables_post']['requestBody']['content']['application/json'];
+type AdminGrowthFxSimulateRequest =
+  operations['simulate_growth_fx_conversion_api_v3_admin_growth_fx_simulate_post']['requestBody']['content']['application/json'];
+type AdminGrowthFxSimulationResponse =
+  operations['simulate_growth_fx_conversion_api_v3_admin_growth_fx_simulate_post']['responses'][200]['content']['application/json'];
+type AdminGrowthFxProviderActionRequest =
+  operations['disable_growth_fx_provider_api_v3_admin_growth_fx_providers__provider_key__disable_post']['requestBody']['content']['application/json'];
+type AdminGrowthPrivateTargetListParams =
+  operations['list_private_catalog_targets_api_v3_admin_growth_private_catalog_targets_get']['parameters']['query'];
+type AdminGrowthPrivateTargetListResponse =
+  operations['list_private_catalog_targets_api_v3_admin_growth_private_catalog_targets_get']['responses'][200]['content']['application/json'];
+type AdminGrowthPrivateGrantListParams =
+  operations['list_private_catalog_grants_api_v3_admin_growth_private_grants_get']['parameters']['query'];
+type AdminGrowthPrivateGrantListResponse =
+  operations['list_private_catalog_grants_api_v3_admin_growth_private_grants_get']['responses'][200]['content']['application/json'];
+type AdminGrowthPrivateGrantResponse =
+  operations['get_private_catalog_grant_api_v3_admin_growth_private_grants__grant_id__get']['responses'][200]['content']['application/json'];
+type AdminGrowthPrivateGrantRevokeRequest =
+  operations['revoke_private_catalog_grant_api_v3_admin_growth_private_grants__grant_id__revoke_post']['requestBody']['content']['application/json'];
+type AdminGrowthOnboardingRuntimeResponse =
+  operations['get_growth_onboarding_settings_api_v3_admin_growth_onboarding_settings_get']['responses'][200]['content']['application/json'];
+type AdminGrowthOnboardingRuntimeUpdateRequest =
+  operations['update_growth_onboarding_settings_api_v3_admin_growth_onboarding_settings_put']['requestBody']['content']['application/json'];
+type AdminGrowthOnboardingStateListParams =
+  operations['list_growth_onboarding_states_api_v3_admin_growth_onboarding_states_get']['parameters']['query'];
+type AdminGrowthOnboardingStateListResponse =
+  operations['list_growth_onboarding_states_api_v3_admin_growth_onboarding_states_get']['responses'][200]['content']['application/json'];
+type AdminGrowthOnboardingStateResponse =
+  operations['get_growth_onboarding_state_api_v3_admin_growth_onboarding_states__state_id__get']['responses'][200]['content']['application/json'];
+type AdminGrowthOnboardingApplicationListParams =
+  operations['list_growth_onboarding_applications_api_v3_admin_growth_onboarding_applications_get']['parameters']['query'];
+type AdminGrowthOnboardingApplicationListResponse =
+  operations['list_growth_onboarding_applications_api_v3_admin_growth_onboarding_applications_get']['responses'][200]['content']['application/json'];
+type AdminGrowthOnboardingStateResetRequest =
+  operations['reset_growth_onboarding_state_api_v3_admin_growth_onboarding_states__state_id__reset_post']['requestBody']['content']['application/json'];
+type AdminGrowthRiskModelListParams =
+  operations['list_growth_risk_models_api_v3_admin_growth_risk_models_get']['parameters']['query'];
+type AdminGrowthRiskModelListResponse =
+  operations['list_growth_risk_models_api_v3_admin_growth_risk_models_get']['responses'][200]['content']['application/json'];
+type AdminGrowthRiskDecisionListParams =
+  operations['list_growth_risk_decisions_api_v3_admin_growth_risk_decisions_get']['parameters']['query'];
+type AdminGrowthRiskDecisionListResponse =
+  operations['list_growth_risk_decisions_api_v3_admin_growth_risk_decisions_get']['responses'][200]['content']['application/json'];
+type AdminGrowthRiskReviewListParams =
+  operations['list_growth_risk_reviews_api_v3_admin_growth_risk_reviews_get']['parameters']['query'];
+type AdminGrowthRiskReviewListResponse =
+  operations['list_growth_risk_reviews_api_v3_admin_growth_risk_reviews_get']['responses'][200]['content']['application/json'];
+type AdminGrowthRiskReviewResolveRequest =
+  operations['resolve_growth_risk_review_api_v3_admin_growth_risk_reviews__risk_review_id__resolve_post']['requestBody']['content']['application/json'];
+type AdminGrowthRiskReviewResponse =
+  operations['resolve_growth_risk_review_api_v3_admin_growth_risk_reviews__risk_review_id__resolve_post']['responses'][200]['content']['application/json'];
 
 export interface AdminGrowthCodeLookupRequest {
   code: string;
@@ -809,13 +914,214 @@ export const growthApi = {
     apiClient.post<AdminGrowthCodeLookupResponse>('/admin/growth-codes/lookup', data),
 
   getGrowthRuleCatalog: () =>
-    apiClient.get<AdminGrowthRuleCatalogResponse>('/admin/growth/rules/catalog'),
+    apiV3Client.get<AdminGrowthRuleCatalogResponse>('/admin/growth/rule-catalog'),
 
   compileGrowthRule: (data: AdminGrowthRuleCompileRequest) =>
-    apiClient.post<AdminGrowthRuleCompileResponse>('/admin/growth/rules/compile', data),
+    apiV3Client.post<AdminGrowthRuleCompileResponse>('/admin/growth/policies/compile', data),
 
   simulateGrowthRule: (data: AdminGrowthRuleSimulateRequest) =>
-    apiClient.post<AdminGrowthRuleSimulateResponse>('/admin/growth/rules/simulate', data),
+    apiV3Client.post<AdminGrowthRuleSimulateResponse>('/admin/growth/policies/impact-preview', data),
+
+  listGrowthRulePolicies: (params?: AdminGrowthRulePolicyListParams) =>
+    apiV3Client.get<AdminGrowthRulePolicyListResponse>('/admin/growth/policy-versions', { params }),
+
+  createGrowthRulePolicy: (data: AdminGrowthRulePolicyCreateRequest) =>
+    apiV3Client.post<AdminGrowthRulePolicyVersionResponse>('/admin/growth/policy-versions', data),
+
+  submitGrowthRulePolicy: (policyVersionId: string, data: AdminGrowthRulePolicyActionRequest) =>
+    apiV3Client.post<AdminGrowthRulePolicyVersionResponse>(
+      `/admin/growth/policy-versions/${policyVersionId}/submit`,
+      data,
+    ),
+
+  approveGrowthRulePolicy: (policyVersionId: string, data: AdminGrowthRulePolicyActionRequest) =>
+    apiV3Client.post<AdminGrowthRulePolicyVersionResponse>(
+      `/admin/growth/policy-versions/${policyVersionId}/approve`,
+      data,
+    ),
+
+  rejectGrowthRulePolicy: (policyVersionId: string, data: AdminGrowthRulePolicyActionRequest) =>
+    apiV3Client.post<AdminGrowthRulePolicyVersionResponse>(
+      `/admin/growth/policy-versions/${policyVersionId}/reject`,
+      data,
+    ),
+
+  publishGrowthRulePolicy: (policyVersionId: string, data: AdminGrowthRulePolicyActionRequest) =>
+    apiV3Client.post<AdminGrowthRulePolicyVersionResponse>(
+      `/admin/growth/policy-versions/${policyVersionId}/publish`,
+      data,
+    ),
+
+  rollbackGrowthRulePolicy: (
+    policyVersionId: string,
+    data: AdminGrowthRulePolicyRollbackRequest,
+  ) =>
+    apiV3Client.post<AdminGrowthRulePolicyVersionResponse>(
+      `/admin/growth/policy-versions/${policyVersionId}/rollback`,
+      data,
+    ),
+
+  diffGrowthRulePolicy: (policyVersionId: string, compareToPolicyVersionId?: string) =>
+    apiV3Client.get<AdminGrowthRulePolicyDiffResponse>(
+      compareToPolicyVersionId
+        ? `/admin/growth/policy-versions/${policyVersionId}/diff/${compareToPolicyVersionId}`
+        : `/admin/growth/policy-versions/${policyVersionId}/diff`,
+    ),
+
+  listGrowthCampaigns: (params?: AdminGrowthCampaignListParams) =>
+    apiClient.get<AdminGrowthCampaignListResponse>('/admin/growth/campaigns', { params }),
+
+  createGrowthCampaign: (data: AdminGrowthCampaignCreateRequest) =>
+    apiClient.post<AdminGrowthCampaignResponse>('/admin/growth/campaigns', data),
+
+  getGrowthCampaign: (campaignId: string) =>
+    apiClient.get<AdminGrowthCampaignResponse>(`/admin/growth/campaigns/${campaignId}`),
+
+  updateGrowthCampaign: (campaignId: string, data: AdminGrowthCampaignPatchRequest) =>
+    apiClient.patch<AdminGrowthCampaignResponse>(`/admin/growth/campaigns/${campaignId}`, data),
+
+  publishGrowthCampaign: (campaignId: string, data: AdminGrowthCampaignActionRequest) =>
+    apiClient.post<AdminGrowthCampaignResponse>(
+      `/admin/growth/campaigns/${campaignId}/publish`,
+      data,
+    ),
+
+  pauseGrowthCampaign: (campaignId: string, data: AdminGrowthCampaignActionRequest) =>
+    apiClient.post<AdminGrowthCampaignResponse>(
+      `/admin/growth/campaigns/${campaignId}/pause`,
+      data,
+    ),
+
+  resumeGrowthCampaign: (campaignId: string, data: AdminGrowthCampaignActionRequest) =>
+    apiClient.post<AdminGrowthCampaignResponse>(
+      `/admin/growth/campaigns/${campaignId}/resume`,
+      data,
+    ),
+
+  archiveGrowthCampaign: (campaignId: string, data: AdminGrowthCampaignActionRequest) =>
+    apiClient.post<AdminGrowthCampaignResponse>(
+      `/admin/growth/campaigns/${campaignId}/archive`,
+      data,
+    ),
+
+  revokeGrowthCampaign: (campaignId: string, data: AdminGrowthCampaignActionRequest) =>
+    apiClient.post<AdminGrowthCampaignResponse>(
+      `/admin/growth/campaigns/${campaignId}/revoke`,
+      data,
+    ),
+
+  getClientCapabilities: () =>
+    apiClient.get<ClientCapabilityResponse>('/client/capabilities'),
+
+  getCustomerSiteRuntime: () =>
+    apiClient.get<AdminCustomerSiteRuntimeConfigResponse>('/admin/system-config/customer-site-runtime'),
+
+  updateCustomerSiteRuntime: (data: UpdateAdminCustomerSiteRuntimeConfigRequest) =>
+    apiClient.put<AdminCustomerSiteRuntimeConfigResponse>('/admin/system-config/customer-site-runtime', data),
+
+  executeCustomerSiteRuntimeAction: (data: ExecuteAdminCustomerSiteRuntimeActionRequest) =>
+    apiClient.post<AdminCustomerSiteRuntimeConfigResponse>('/admin/system-config/customer-site-runtime/actions', data),
+
+  getCustomerSiteRuntimeTimeline: (params?: AdminCustomerSiteRuntimeTimelineParams) =>
+    apiClient.get<AdminCustomerSiteRuntimeTimelineResponse>(
+      '/admin/system-config/customer-site-runtime/timeline',
+      { params },
+    ),
+
+  inspectGrowthCodeSets: (params?: AdminGrowthCodeSetInspectParams) =>
+    apiV3Client.get<AdminGrowthCodeSetInspectResponse>('/admin/growth/code-sets/inspect', {
+      params,
+    }),
+
+  getGrowthFxStatus: () =>
+    apiV3Client.get<AdminGrowthFxStatusResponse>('/admin/growth/fx/status'),
+
+  listGrowthFxRates: (params?: AdminGrowthFxRateListParams) =>
+    apiV3Client.get<AdminGrowthFxRateListResponse>('/admin/growth/fx/rates', { params }),
+
+  createConfiguredGrowthFxRate: (data: AdminGrowthFxConfiguredRateRequest) =>
+    apiV3Client.post<AdminGrowthFxRateResponse>('/admin/growth/fx/configured-rates', data),
+
+  createGrowthFxXtrTable: (data: AdminGrowthFxXtrTableRequest) =>
+    apiV3Client.post<AdminGrowthFxRateResponse>('/admin/growth/fx/xtr-tables', data),
+
+  approveGrowthFxRate: (rateId: string, data: AdminGrowthFxProviderActionRequest) =>
+    apiV3Client.post<AdminGrowthFxRateResponse>(`/admin/growth/fx/rates/${rateId}/approve`, data),
+
+  simulateGrowthFxConversion: (data: AdminGrowthFxSimulateRequest) =>
+    apiV3Client.post<AdminGrowthFxSimulationResponse>('/admin/growth/fx/simulate', data),
+
+  disableGrowthFxProvider: (providerKey: string, data: AdminGrowthFxProviderActionRequest) =>
+    apiV3Client.post<AdminGrowthFxStatusResponse>(
+      `/admin/growth/fx/providers/${providerKey}/disable`,
+      data,
+    ),
+
+  enableGrowthFxProvider: (providerKey: string, data: AdminGrowthFxProviderActionRequest) =>
+    apiV3Client.post<AdminGrowthFxStatusResponse>(
+      `/admin/growth/fx/providers/${providerKey}/enable`,
+      data,
+    ),
+
+  listPrivateCatalogTargets: (params?: AdminGrowthPrivateTargetListParams) =>
+    apiV3Client.get<AdminGrowthPrivateTargetListResponse>('/admin/growth/private-catalog/targets', {
+      params,
+    }),
+
+  listPrivateCatalogGrants: (params?: AdminGrowthPrivateGrantListParams) =>
+    apiV3Client.get<AdminGrowthPrivateGrantListResponse>('/admin/growth/private-grants', { params }),
+
+  getPrivateCatalogGrant: (grantId: string) =>
+    apiV3Client.get<AdminGrowthPrivateGrantResponse>(`/admin/growth/private-grants/${grantId}`),
+
+  revokePrivateCatalogGrant: (grantId: string, data: AdminGrowthPrivateGrantRevokeRequest) =>
+    apiV3Client.post<AdminGrowthPrivateGrantResponse>(
+      `/admin/growth/private-grants/${grantId}/revoke`,
+      data,
+    ),
+
+  getGrowthOnboardingSettings: () =>
+    apiV3Client.get<AdminGrowthOnboardingRuntimeResponse>('/admin/growth/onboarding/settings'),
+
+  updateGrowthOnboardingSettings: (data: AdminGrowthOnboardingRuntimeUpdateRequest) =>
+    apiV3Client.put<AdminGrowthOnboardingRuntimeResponse>('/admin/growth/onboarding/settings', data),
+
+  listGrowthOnboardingStates: (params?: AdminGrowthOnboardingStateListParams) =>
+    apiV3Client.get<AdminGrowthOnboardingStateListResponse>('/admin/growth/onboarding/states', {
+      params,
+    }),
+
+  getGrowthOnboardingState: (stateId: string) =>
+    apiV3Client.get<AdminGrowthOnboardingStateResponse>(
+      `/admin/growth/onboarding/states/${stateId}`,
+    ),
+
+  listGrowthOnboardingApplications: (params?: AdminGrowthOnboardingApplicationListParams) =>
+    apiV3Client.get<AdminGrowthOnboardingApplicationListResponse>(
+      '/admin/growth/onboarding/applications',
+      { params },
+    ),
+
+  resetGrowthOnboardingState: (stateId: string, data: AdminGrowthOnboardingStateResetRequest) =>
+    apiV3Client.post<AdminGrowthOnboardingStateResponse>(
+      `/admin/growth/onboarding/states/${stateId}/reset`,
+      data,
+    ),
+
+  listGrowthRiskModels: (params?: AdminGrowthRiskModelListParams) =>
+    apiV3Client.get<AdminGrowthRiskModelListResponse>('/admin/growth/risk/models', { params }),
+
+  listGrowthRiskDecisions: (params?: AdminGrowthRiskDecisionListParams) =>
+    apiV3Client.get<AdminGrowthRiskDecisionListResponse>('/admin/growth/risk/decisions', { params }),
+
+  listGrowthRiskReviews: (params?: AdminGrowthRiskReviewListParams) =>
+    apiV3Client.get<AdminGrowthRiskReviewListResponse>('/admin/growth/risk/reviews', { params }),
+
+  resolveGrowthRiskReview: (riskReviewId: string, data: AdminGrowthRiskReviewResolveRequest) =>
+    apiV3Client.post<AdminGrowthRiskReviewResponse>(
+      `/admin/growth/risk/reviews/${riskReviewId}/resolve`,
+      data,
+    ),
 
   listGiftCodes: (params?: AdminListGiftCodesParams) =>
     apiClient.get<AdminListGiftCodesResponse>('/admin/gift-codes', { params }),
@@ -840,9 +1146,62 @@ export type {
   AdminGrowthRuleCompileResponse,
   AdminGrowthRuleSimulateRequest,
   AdminGrowthRuleSimulateResponse,
+  AdminGrowthRulePolicyActionRequest,
+  AdminGrowthRulePolicyCreateRequest,
+  AdminGrowthRulePolicyDiffResponse,
+  AdminGrowthRulePolicyListParams,
+  AdminGrowthRulePolicyListResponse,
+  AdminGrowthRulePolicyRollbackRequest,
+  AdminGrowthRulePolicyVersionResponse,
+  AdminGrowthCampaignActionRequest,
+  AdminGrowthCampaignCreateRequest,
+  AdminGrowthCampaignListParams,
+  AdminGrowthCampaignListResponse,
+  AdminGrowthCampaignPatchRequest,
+  AdminGrowthCampaignResponse,
+  AdminCustomerSiteRuntime,
+  AdminCustomerSiteRuntimeConfigResponse,
+  ExecuteAdminCustomerSiteRuntimeActionRequest,
+  AdminCustomerSiteRuntimeTimelineParams,
+  AdminCustomerSiteRuntimeTimelineResponse,
+  AdminGrowthCodeSetInspectParams,
+  AdminGrowthCodeSetInspectResponse,
+  AdminGrowthFxConfiguredRateRequest,
+  AdminGrowthFxProviderActionRequest,
+  AdminGrowthFxRateListParams,
+  AdminGrowthFxRateListResponse,
+  AdminGrowthFxRateResponse,
+  AdminGrowthFxSimulateRequest,
+  AdminGrowthFxSimulationResponse,
+  AdminGrowthFxStatusResponse,
+  AdminGrowthFxXtrTableRequest,
+  AdminGrowthPrivateGrantListParams,
+  AdminGrowthPrivateGrantListResponse,
+  AdminGrowthPrivateGrantResponse,
+  AdminGrowthPrivateGrantRevokeRequest,
+  AdminGrowthPrivateTargetListParams,
+  AdminGrowthPrivateTargetListResponse,
+  AdminGrowthOnboardingApplicationListParams,
+  AdminGrowthOnboardingApplicationListResponse,
+  AdminGrowthOnboardingRuntimeResponse,
+  AdminGrowthOnboardingRuntimeUpdateRequest,
+  AdminGrowthOnboardingStateListParams,
+  AdminGrowthOnboardingStateListResponse,
+  AdminGrowthOnboardingStateResetRequest,
+  AdminGrowthOnboardingStateResponse,
+  AdminGrowthRiskDecisionListParams,
+  AdminGrowthRiskDecisionListResponse,
+  AdminGrowthRiskModelListParams,
+  AdminGrowthRiskModelListResponse,
+  AdminGrowthRiskReviewListParams,
+  AdminGrowthRiskReviewListResponse,
+  AdminGrowthRiskReviewResolveRequest,
+  AdminGrowthRiskReviewResponse,
+  UpdateAdminCustomerSiteRuntimeConfigRequest,
   AdminGrowthSignalsOverviewResponse,
   AdminCreateInviteCodesRequest,
   AdminCreateInviteCodesResponse,
+  ClientCapabilityResponse,
   AdminPartnerDetailResponse,
   AdminPartnersListParams,
   AdminPartnersListResponse,

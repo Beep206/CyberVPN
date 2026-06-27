@@ -1,0 +1,117 @@
+groups:
+  - name: growth_codes_v6_recording_rules
+    interval: 30s
+    rules:
+      - record: growth_codes_v6:zero_gateway_external_provider_requests:increase10m
+        expr: |
+          sum(increase(cybervpn_growth_v6_zero_gateway_external_provider_requests_total[10m]))
+
+      - record: growth_codes_v6:reservation_leak_candidates
+        expr: |
+          sum(cybervpn_growth_v6_reservations{status="reserved"})
+          - sum(cybervpn_growth_v6_quote_sessions{status=~"active|committed"})
+
+      - record: growth_codes_v6:risk_blocked:increase15m
+        expr: |
+          sum(increase(cybervpn_growth_v6_runtime_risk_decisions_total{final_action=~"challenge|review|deny"}[15m]))
+
+      - record: growth_codes_v6:manual_fx_pending_approval_oldest_age_seconds
+        expr: |
+          max(cybervpn_growth_v6_fx_pending_approval_oldest_age_seconds)
+
+      - record: growth_codes_v6:provider_reconciliation_mismatches:increase30m
+        expr: |
+          sum(increase(cybervpn_growth_v6_provider_reconciliation_mismatches_total[30m]))
+
+  - name: growth_codes_v6_alerts
+    interval: 30s
+    rules:
+      - alert: GrowthCodesV6ZeroGatewayExternalProviderLeak
+        expr: |
+          growth_codes_v6:zero_gateway_external_provider_requests:increase10m > 0
+        for: 2m
+        keep_firing_for: 15m
+        labels:
+          severity: critical
+          service: customer-growth
+          component: growth-codes-v6-zero-gateway
+        annotations:
+          summary: "Growth Codes v6 zero-gateway attempted an external provider request"
+          description: "A checkout priced to zero must settle through internal_zero only. Inspect payment_attempts, provider logs, order snapshots and idempotency keys without exposing raw customer codes or secrets."
+          runbook_path: "docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+
+      - alert: GrowthCodesV6ReservationLeakCandidate
+        expr: |
+          growth_codes_v6:reservation_leak_candidates > 0
+        for: 20m
+        keep_firing_for: 20m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-codes-v6-reservations
+        annotations:
+          summary: "Growth Codes v6 reservations may be leaking"
+          description: "Reserved Growth Codes v6 rows exceed active or committed quote sessions. Inspect reservation groups, quote expiration workers and release/replacement idempotency."
+          runbook_path: "docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+
+      - alert: GrowthCodesV6RiskBlockedSpike
+        expr: |
+          growth_codes_v6:risk_blocked:increase15m >= 5
+        for: 5m
+        keep_firing_for: 20m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-codes-v6-risk
+        annotations:
+          summary: "Growth Codes v6 runtime risk blocks spiked"
+          description: "Runtime risk decisions with challenge, review or deny increased. Inspect risk decision traces, model version, rule policy version, and admin review queue before changing campaign policy."
+          runbook_path: "docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+
+      - alert: GrowthCodesV6FxApprovalAging
+        expr: |
+          growth_codes_v6:manual_fx_pending_approval_oldest_age_seconds > 3600
+        for: 15m
+        keep_firing_for: 30m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-codes-v6-fx
+        annotations:
+          summary: "Growth Codes v6 manual FX override is awaiting checker approval"
+          description: "A configured FX or managed XTR rate has stayed pending approval for more than one hour. Use the maker-checker admin endpoint; do not enable provider records to bypass approval."
+          runbook_path: "docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+
+      - alert: GrowthCodesV6ProviderReconciliationMismatch
+        expr: |
+          growth_codes_v6:provider_reconciliation_mismatches:increase30m > 0
+        for: 5m
+        keep_firing_for: 30m
+        labels:
+          severity: critical
+          service: customer-growth
+          component: growth-codes-v6-reconciliation
+        annotations:
+          summary: "Growth Codes v6 provider reconciliation mismatch"
+          description: "A provider ledger, internal_zero order, refund, reservation or benefit reversal did not reconcile. Freeze affected campaign changes and run the reconciliation section in the runbook."
+          runbook_path: "docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+
+      - alert: GrowthCodesV6RawOnboardingIdempotencyPayloadDetected
+        expr: |
+          sum(cybervpn_growth_v6_raw_onboarding_idempotency_payload_detected) > 0
+        for: 1m
+        keep_firing_for: 15m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-codes-v6-onboarding
+        annotations:
+          summary: "Growth Codes v6 onboarding support payload contains raw idempotency material"
+          description: "Support-facing onboarding state must expose only hash and presence flags. Re-run the scrub migration, inspect admin response serializers, and avoid copying raw idempotency keys into tickets."
+          runbook_path: "docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/GROWTH_CODES_V6_OPERATIONS_RUNBOOK.md"

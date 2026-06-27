@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -8,11 +9,20 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.use_cases.growth_risk.runtime_guard import (
+    GrowthRiskRuntimeBlockedError,
+    evaluate_growth_runtime_risk,
+)
 from src.application.use_cases.private_catalog import (
     PrivateCatalogPreflightCommand,
     PrivateCatalogPreflightUseCase,
 )
-from src.application.use_cases.private_catalog.preflight import PrivateCatalogCodeInput
+from src.application.use_cases.private_catalog.preflight import (
+    PrivateCatalogCodeInput,
+    PrivateCatalogRiskBlockedError,
+    PrivatePolicyRecord,
+    PrivateStorefrontRecord,
+)
 from src.infrastructure.database.repositories.private_catalog_repo import SqlAlchemyPrivateCatalogRepository
 from src.presentation.api.shared.private_catalog_session import ensure_private_catalog_anonymous_session
 from src.presentation.dependencies.auth import get_optional_current_mobile_user_id
@@ -156,4 +166,52 @@ async def preflight_growth_code_set(
 
 
 def _use_case(db: AsyncSession) -> PrivateCatalogPreflightUseCase:
-    return PrivateCatalogPreflightUseCase(SqlAlchemyPrivateCatalogRepository(db))
+    class _RuntimeRiskGuard:
+        async def evaluate_private_preflight(
+            self,
+            *,
+            user_id: UUID | None,
+            anonymous_session_id: str | None,
+            storefront: PrivateStorefrontRecord,
+            policy: PrivatePolicyRecord,
+            code_set_id: UUID,
+            code_set_hash: str,
+            channel: str,
+            currency: str,
+            code_count: int,
+        ) -> str:
+            try:
+                result = await evaluate_growth_runtime_risk(
+                    session=db,
+                    action_context="private_preflight",
+                    user_id=user_id,
+                    auth_realm_id=storefront.auth_realm_id,
+                    storefront_id=storefront.id,
+                    high_risk_context=True,
+                    features={
+                        "private_catalog": True,
+                        "authenticated": user_id is not None,
+                        "anonymous": user_id is None,
+                        "anonymous_subject_hash": _hash_optional(anonymous_session_id),
+                        "channel": channel,
+                        "currency": currency,
+                        "code_count": code_count,
+                        "target_plan_count": len(policy.target_plan_ids),
+                        "requires_auth": policy.requires_auth,
+                        "code_set_hash": code_set_hash,
+                    },
+                    growth_code_id=policy.growth_code_id,
+                    code_set_id=code_set_id,
+                    enforce=True,
+                )
+            except GrowthRiskRuntimeBlockedError as exc:
+                raise PrivateCatalogRiskBlockedError(exc.action) from exc
+            return result.decision.final_action
+
+    return PrivateCatalogPreflightUseCase(SqlAlchemyPrivateCatalogRepository(db), _RuntimeRiskGuard())
+
+
+def _hash_optional(value: str | None) -> str | None:
+    if not value:
+        return None
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()

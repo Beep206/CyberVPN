@@ -8,6 +8,7 @@ export type MiniAppRuntimeEventName =
   | 'miniapp_checkout_completed'
   | 'miniapp_checkout_failed'
   | 'miniapp_payment_status_resolved'
+  | 'zero_gateway_activated'
   | 'miniapp_config_loaded'
   | 'miniapp_config_failed';
 

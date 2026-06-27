@@ -16,6 +16,10 @@ PARTNER_PLATFORM_EVENT_FAMILIES = {
         "invite.generated_from_order",
         "invite.redeemed",
         "invite.owner_reward_created",
+        "invite.batch.issued",
+        "invite.batch.revoked",
+        "invite.batch.extended",
+        "invite.batch.resend_requested",
     ),
     "referral": (
         "referral.reward_pending",

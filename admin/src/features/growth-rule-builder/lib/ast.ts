@@ -349,6 +349,42 @@ export function duplicateNodeAtPath(ast: JsonObject, path: string[]): JsonObject
   return nextAst;
 }
 
+export function moveNodeAtPath(
+  ast: JsonObject,
+  path: string[],
+  direction: 'up' | 'down',
+): JsonObject {
+  const nextAst = cloneJsonObject(ast);
+  if (path.length < 2) {
+    return nextAst;
+  }
+
+  const parentPath = path.slice(0, -1);
+  const lastPart = path.at(-1);
+  const parent = getMutableNodeAtPath(nextAst, parentPath);
+
+  if (!Array.isArray(parent) || lastPart == null) {
+    return nextAst;
+  }
+
+  const currentIndex = Number(lastPart);
+  if (!Number.isInteger(currentIndex)) {
+    return nextAst;
+  }
+
+  const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+  if (nextIndex < 0 || nextIndex >= parent.length) {
+    return nextAst;
+  }
+
+  const [node] = parent.splice(currentIndex, 1);
+  if (node !== undefined) {
+    parent.splice(nextIndex, 0, node);
+  }
+
+  return nextAst;
+}
+
 export function addActionToAst(
   ast: JsonObject,
   action: string,

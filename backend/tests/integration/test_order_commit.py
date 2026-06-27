@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.growth_codes.hashing import build_growth_code_prefix, hash_growth_code
+from src.application.use_cases.refunds.create_refund import CreateRefundUseCase
+from src.application.use_cases.refunds.update_refund import UpdateRefundUseCase
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -24,10 +28,12 @@ from src.infrastructure.database.models.growth_code_model import GrowthCodeModel
 from src.infrastructure.database.models.growth_code_set_model import (
     CheckoutCodeApplicationModel,
     CheckoutCodeSetModel,
+    GrowthCodeReservationGroupModel,
     GrowthPrivateCatalogPolicyModel,
     OrderCodeApplicationModel,
     PrivateCatalogAccessGrantModel,
 )
+from src.infrastructure.database.models.growth_risk_fx_model import GrowthRiskDecisionModel
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.invoice_profile_model import InvoiceProfileModel
 from src.infrastructure.database.models.legal_document_model import LegalDocumentModel
@@ -52,6 +58,7 @@ from src.infrastructure.database.models.subscription_plan_model import Subscript
 from src.main import app
 from tests.helpers.realm_auth import (
     FakeRedis,
+    SyncSessionAdapter,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -604,6 +611,41 @@ async def test_private_catalog_grant_lifecycle_persists_quote_checkout_and_order
                 assert grant.status == "consumed"
                 assert grant.consumed_order_id == order_id
                 assert order.private_catalog_access_grant_id == grant_id
+                assert order.code_set_id is not None
+                growth_snapshot = order.pricing_snapshot["growth_checkout_snapshot"]
+                private_application = growth_snapshot["code_set"]["applications"][0]
+                assert private_application["growth_code_id"] == str(private_growth_code.id)
+                assert private_application["roles"] == ["catalog_access"]
+                assert private_application["private_access"]["grant_id"] == str(grant_id)
+                assert "grant_token_hash" not in str(growth_snapshot)
+
+                code_set = db.get(CheckoutCodeSetModel, order.code_set_id)
+                assert code_set is not None
+                assert code_set.private_access_grant_id == grant_id
+                checkout_application = db.execute(
+                    select(CheckoutCodeApplicationModel).where(CheckoutCodeApplicationModel.code_set_id == code_set.id)
+                ).scalar_one()
+                assert checkout_application.growth_code_id == private_growth_code.id
+                assert checkout_application.resolution_status == "accepted"
+                assert checkout_application.discount_snapshot["applied_amount"] == "0.00"
+                assert checkout_application.private_access_snapshot["grant_id"] == str(grant_id)
+
+                order_application = db.execute(
+                    select(OrderCodeApplicationModel).where(OrderCodeApplicationModel.order_id == order.id)
+                ).scalar_one()
+                assert order_application.code_set_id == code_set.id
+                assert order_application.growth_code_id == private_growth_code.id
+                assert order_application.application_role == "catalog_access"
+                assert order_application.application_status == "applied"
+                assert float(order_application.discount_amount) == 0.0
+                assert order_application.reservation_id is None
+                assert order_application.application_snapshot["application"]["private_access"]["grant_id"] == str(
+                    grant_id
+                )
+                assert order_application.application_snapshot["snapshot_integrity"]["producer"] == (
+                    "cybervpn-backend.order_code_ledger"
+                )
+                assert len(order_application.application_snapshot["snapshot_integrity"]["checksum"]) == 64
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()
@@ -955,6 +997,12 @@ async def test_order_commit_consumes_reserved_promo(
                 assert reservation.checkout_session_id == uuid.UUID(checkout_response.json()["id"])
                 assert reservation.consumed_order_id == uuid.UUID(order_payload["id"])
                 assert reservation.release_reason == "order_commit"
+                assert reservation.reservation_group_id is not None
+                reservation_group = db.get(GrowthCodeReservationGroupModel, reservation.reservation_group_id)
+                assert reservation_group is not None
+                assert reservation_group.status == "consumed"
+                assert reservation_group.order_id == uuid.UUID(order_payload["id"])
+                assert reservation_group.release_reason == "order_commit"
                 order = db.get(OrderModel, uuid.UUID(order_payload["id"]))
                 checkout_session = db.get(CheckoutSessionModel, uuid.UUID(checkout_response.json()["id"]))
                 assert order is not None
@@ -983,7 +1031,216 @@ async def test_order_commit_consumes_reserved_promo(
                 assert float(order_application.discount_amount) == 7.5
                 assert order_application.currency_code == "USD"
                 assert order_application.reservation_id == uuid.UUID(reservation_id)
+                assert order_application.application_snapshot["snapshot_version"] == "order_code_application.v6"
                 assert "PROMOCOMMIT10" not in str(order_application.application_snapshot)
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_order_commit_consumes_multi_code_set(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_order_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            with sessionmaker() as db:
+                db.add_all(
+                    [
+                        PromoCodeModel(
+                            id=uuid.uuid4(),
+                            code="BASKETPERCENT10",
+                            discount_type="percent",
+                            discount_value=10,
+                            is_active=True,
+                        ),
+                        PromoCodeModel(
+                            id=uuid.uuid4(),
+                            code="BASKETFIXED5",
+                            discount_type="fixed",
+                            discount_value=5,
+                            is_active=True,
+                        ),
+                    ]
+                )
+                db.commit()
+
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [
+                        {"code": "BASKETFIXED5", "client_slot_id": "fixed"},
+                        {"code": "BASKETPERCENT10", "client_slot_id": "percent"},
+                    ],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201, quote_response.text
+            quote_payload = quote_response.json()
+            assert quote_payload["quote"]["base_price"] == 75.0
+            assert quote_payload["quote"]["discount_amount"] == 12.5
+            assert quote_payload["quote"]["gateway_amount"] == 62.5
+            assert len(quote_payload["quote"]["discounts"]) == 2
+            assert "BASKETFIXED5" not in str(quote_payload)
+            assert "BASKETPERCENT10" not in str(quote_payload)
+
+            checkout_response = await async_client.post(
+                "/api/v1/checkout-sessions/",
+                headers={**headers, "Idempotency-Key": "order-checkout-code-set-1"},
+                json={"quote_session_id": quote_payload["id"]},
+            )
+            assert checkout_response.status_code == 201, checkout_response.text
+
+            order_response = await async_client.post(
+                "/api/v1/orders/commit",
+                headers=headers,
+                json={"checkout_session_id": checkout_response.json()["id"]},
+            )
+            assert order_response.status_code == 201, order_response.text
+            order_payload = order_response.json()
+
+            with sessionmaker() as db:
+                quote_session = db.get(QuoteSessionModel, uuid.UUID(quote_payload["id"]))
+                checkout_session = db.get(CheckoutSessionModel, uuid.UUID(checkout_response.json()["id"]))
+                order = db.get(OrderModel, uuid.UUID(order_payload["id"]))
+                assert quote_session is not None
+                assert checkout_session is not None
+                assert order is not None
+                assert quote_session.code_set_id is not None
+                assert checkout_session.code_set_id == quote_session.code_set_id
+                assert order.code_set_id == quote_session.code_set_id
+                assert "BASKETFIXED5" not in str(quote_session.request_snapshot)
+                assert "BASKETPERCENT10" not in str(quote_session.request_snapshot)
+                assert "BASKETFIXED5" not in str(quote_session.quote_snapshot)
+                assert "BASKETPERCENT10" not in str(quote_session.quote_snapshot)
+
+                code_set = db.get(CheckoutCodeSetModel, quote_session.code_set_id)
+                assert code_set is not None
+                assert code_set.status == "consumed"
+                assert code_set.acceptance_mode == "all_or_nothing"
+                assert code_set.aggregate_result["application_count"] == 2
+                assert code_set.aggregate_result["accepted_count"] == 2
+                assert "BASKETFIXED5" not in str(code_set.aggregate_result)
+                assert "BASKETPERCENT10" not in str(code_set.aggregate_result)
+
+                reservations = (
+                    db.execute(
+                        select(GrowthCodeReservationModel)
+                        .where(GrowthCodeReservationModel.quote_session_id == quote_session.id)
+                        .order_by(GrowthCodeReservationModel.growth_code_id.asc())
+                    )
+                    .scalars()
+                    .all()
+                )
+                assert len(reservations) == 2
+                assert {reservation.status for reservation in reservations} == {"consumed"}
+                assert {reservation.checkout_session_id for reservation in reservations} == {checkout_session.id}
+                assert {reservation.consumed_order_id for reservation in reservations} == {order.id}
+                assert len({reservation.reservation_group_id for reservation in reservations}) == 1
+
+                reservation_group = db.get(GrowthCodeReservationGroupModel, reservations[0].reservation_group_id)
+                assert reservation_group is not None
+                assert reservation_group.status == "consumed"
+                assert reservation_group.order_id == order.id
+                assert reservation_group.release_reason == "order_commit"
+
+                checkout_applications = (
+                    db.execute(
+                        select(CheckoutCodeApplicationModel)
+                        .where(CheckoutCodeApplicationModel.code_set_id == code_set.id)
+                        .order_by(CheckoutCodeApplicationModel.canonical_order.asc())
+                    )
+                    .scalars()
+                    .all()
+                )
+                assert len(checkout_applications) == 2
+                assert {application.resolution_status for application in checkout_applications} == {"accepted"}
+                assert {application.reservation_id for application in checkout_applications} == {
+                    reservation.id for reservation in reservations
+                }
+                assert {application.discount_snapshot["applied_amount"] for application in checkout_applications} == {
+                    "5.00",
+                    "7.50",
+                }
+                assert all("BASKET" not in str(application.discount_snapshot) for application in checkout_applications)
+
+                order_applications = (
+                    db.execute(
+                        select(OrderCodeApplicationModel)
+                        .where(OrderCodeApplicationModel.order_id == order.id)
+                        .order_by(OrderCodeApplicationModel.created_at.asc())
+                    )
+                    .scalars()
+                    .all()
+                )
+                assert len(order_applications) == 2
+                assert sum(float(application.discount_amount) for application in order_applications) == 12.5
+                assert {application.reservation_id for application in order_applications} == {
+                    reservation.id for reservation in reservations
+                }
+                for application in order_applications:
+                    snapshot = application.application_snapshot
+                    assert snapshot["snapshot_version"] == "order_code_application.v6"
+                    assert snapshot["snapshot_integrity"]["producer"] == "cybervpn-backend.order_code_ledger"
+                    assert len(snapshot["snapshot_integrity"]["checksum"]) == 64
+                    assert snapshot["application"]["discount"]["applied_amount"] in {"5.00", "7.50"}
+                fixed_application = next(
+                    application
+                    for application in order_applications
+                    if application.application_snapshot["application"]["discount"]["applied_amount"] == "5.00"
+                )
+                assert (
+                    fixed_application.application_snapshot["application"]["discount"]["fx_conversion"]["no_rerate"]
+                    is True
+                )
+                assert all(
+                    "BASKETFIXED5" not in str(application.application_snapshot) for application in order_applications
+                )
+                assert all(
+                    "BASKETPERCENT10" not in str(application.application_snapshot) for application in order_applications
+                )
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()
@@ -1090,6 +1347,14 @@ async def test_zero_gateway_payment_attempt_creates_internal_payment_and_succeed
                 assert reservation.consumed_order_id == order.id
                 assert reservation.consumed_payment_id is None
                 assert reservation.committed_at is not None
+                assert reservation.reservation_group_id is not None
+                reservation_group = db.get(GrowthCodeReservationGroupModel, reservation.reservation_group_id)
+                assert reservation_group is not None
+                assert reservation_group.status == "committed"
+                assert reservation_group.order_id == order.id
+                code_set = db.get(CheckoutCodeSetModel, order.code_set_id)
+                assert code_set is not None
+                assert code_set.status == "committed"
                 assert (
                     db.execute(select(PaymentModel).where(PaymentModel.external_id == f"internal_zero:{order.id}"))
                     .scalars()
@@ -1166,12 +1431,91 @@ async def test_zero_gateway_payment_attempt_creates_internal_payment_and_succeed
                 assert reservation.consumed_payment_id == payment.id
                 assert reservation.consumed_at is not None
                 assert reservation.release_reason == "payment_settlement"
+                reservation_group = db.get(GrowthCodeReservationGroupModel, reservation.reservation_group_id)
+                assert reservation_group is not None
+                assert reservation_group.status == "consumed"
+                assert reservation_group.payment_id == payment.id
+                code_set = db.get(CheckoutCodeSetModel, order.code_set_id)
+                assert code_set is not None
+                assert code_set.status == "consumed"
+                assert code_set.payment_id == payment.id
                 attempts = (
                     db.execute(select(PaymentAttemptModel).where(PaymentAttemptModel.order_id == order.id))
                     .scalars()
                     .all()
                 )
                 assert len(attempts) == 1
+                risk_decisions = (
+                    db.execute(
+                        select(GrowthRiskDecisionModel)
+                        .where(GrowthRiskDecisionModel.order_id == order.id)
+                        .order_by(GrowthRiskDecisionModel.decided_at.asc())
+                    )
+                    .scalars()
+                    .all()
+                )
+                risk_contexts = {decision.action_context for decision in risk_decisions}
+                assert {"zero_settlement", "benefit_fulfill"}.issubset(risk_contexts)
+                assert all(decision.final_action == "allow" for decision in risk_decisions)
+
+                adapter = SyncSessionAdapter(db)
+                refund_result = await CreateRefundUseCase(adapter).execute(
+                    order_id=order.id,
+                    user_id=order.user_id,
+                    current_realm=RealmResolution(auth_realm=customer_realm, source="test"),
+                    idempotency_key="zero-payment-refund-1",
+                    amount=Decimal("75.00"),
+                    payment_attempt_id=attempt.id,
+                    reason_code="customer_request",
+                    reason_text="Regression proof for per-code reversal ledger",
+                )
+                assert refund_result.created is True
+
+                updated_refund = await UpdateRefundUseCase(adapter).execute(
+                    refund_id=refund_result.refund.id,
+                    refund_status="succeeded",
+                    external_reference="zero-refund-1",
+                    provider_snapshot={"provider_result": "local_reconciled"},
+                    skip_provider_execution=True,
+                    source_context={"source_test": "zero_gateway_code_ledger_reversal"},
+                )
+                assert updated_refund.refund_status == "succeeded"
+                db.expire_all()
+
+                refreshed_order = db.get(OrderModel, order.id)
+                assert refreshed_order is not None
+                assert refreshed_order.settlement_status == "refunded"
+                refreshed_payment = db.get(PaymentModel, payment.id)
+                assert refreshed_payment is not None
+                assert refreshed_payment.status == "refunded"
+                order_applications = (
+                    db.execute(select(OrderCodeApplicationModel).where(OrderCodeApplicationModel.order_id == order.id))
+                    .scalars()
+                    .all()
+                )
+                assert len(order_applications) == 1
+                reversed_application = order_applications[0]
+                assert reversed_application.application_status == "reversed"
+                reversal_snapshot = reversed_application.application_snapshot
+                assert reversal_snapshot["reversal_state"] == "refund_reversed"
+                assert reversal_snapshot["last_reversal"]["refund_id"] == str(refund_result.refund.id)
+                assert reversal_snapshot["last_reversal"]["reversal_reason"] == "refund_succeeded"
+                assert "PROMOZERO100" not in str(reversal_snapshot)
+
+                refund_event = (
+                    db.execute(
+                        select(OutboxEventModel).where(
+                            OutboxEventModel.event_name == "refund.provider_state_reconciled",
+                            OutboxEventModel.aggregate_id == str(refund_result.refund.id),
+                        )
+                    )
+                    .scalars()
+                    .one()
+                )
+                growth_reversal = refund_event.event_payload["growth_code_reversal"]
+                assert growth_reversal["order_code_application_count"] == 1
+                assert growth_reversal["order_code_application_ids"] == [str(reversed_application.id)]
+                assert "PROMOZERO100" not in str(refund_event.event_payload)
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()

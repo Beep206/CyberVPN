@@ -57,6 +57,34 @@ def restore_protected_request_code(request_snapshot: dict[str, Any], field_name:
     if raw_value is not None:
         return raw_value
     code_ref = request_snapshot.get(f"{field_name}_ref")
+    return _restore_protected_code_ref(code_ref)
+
+
+def restore_protected_request_codes(request_snapshot: dict[str, Any]) -> list[dict[str, str | None]]:
+    """Recover encrypted multi-code basket entries for quote drift checks."""
+    raw_codes = request_snapshot.get("codes")
+    if isinstance(raw_codes, list):
+        restored = []
+        for item in raw_codes:
+            if not isinstance(item, dict):
+                continue
+            raw_code = _normalize_optional_code(item.get("code"))
+            if raw_code is not None:
+                restored.append({"code": raw_code, "client_slot_id": item.get("client_slot_id")})
+        if restored:
+            return restored
+
+    restored_refs = []
+    for item in request_snapshot.get("codes_ref") or []:
+        if not isinstance(item, dict):
+            continue
+        code = _restore_protected_code_ref(item.get("code_ref"))
+        if code is not None:
+            restored_refs.append({"code": code, "client_slot_id": item.get("client_slot_id")})
+    return restored_refs
+
+
+def _restore_protected_code_ref(code_ref: object) -> str | None:
     if not isinstance(code_ref, dict):
         return None
     encrypted_value = code_ref.get("encrypted_value")
@@ -89,6 +117,9 @@ def serialize_checkout_result(
         "gateway_amount": float(result.gateway_amount),
         "partner_markup": float(result.partner_markup),
         "is_zero_gateway": result.is_zero_gateway,
+        "requires_external_payment": not result.is_zero_gateway,
+        "settlement_mode": "internal_zero" if result.is_zero_gateway else "external_gateway",
+        "next_action": "commit_and_activate" if result.is_zero_gateway else "create_payment_attempt",
         "plan_id": str(result.plan_id) if result.plan_id else None,
         "plan_name": result.plan_name,
         "duration_days": result.duration_days,
@@ -114,6 +145,18 @@ def serialize_checkout_result(
             }
             for discount in result.discounts
         ],
+        "growth_effects": {
+            "discount": {
+                "amount": float(result.discount_amount),
+                "currency": result.currency_code,
+                "discount_count": len(result.discounts),
+            },
+            "benefits_preview": [
+                benefit
+                for application in result.code_set_applications
+                for benefit in list(application.get("benefits") or [])
+            ],
+        },
         "commission_base_amount": float(result.commission_base_amount),
         "addons": [
             {
@@ -370,6 +413,7 @@ def build_request_snapshot(
     use_wallet: float,
     addons: list[dict[str, Any]],
     private_catalog_grant_id: str | None = None,
+    codes: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
         "storefront_key": storefront_key,
@@ -384,6 +428,14 @@ def build_request_snapshot(
         "code_input_ref": _safe_code_ref(code_input, include_encrypted_value=True),
         "promo_code_ref": _safe_code_ref(promo_code, include_encrypted_value=True),
         "partner_code_ref": _safe_code_ref(partner_code, include_encrypted_value=True),
+        "codes": None,
+        "codes_ref": [
+            {
+                "client_slot_id": item.get("client_slot_id"),
+                "code_ref": _safe_code_ref(str(item.get("code") or ""), include_encrypted_value=True),
+            }
+            for item in codes or []
+        ],
         "private_catalog_grant_id": private_catalog_grant_id,
         "use_wallet": use_wallet,
         "addons": addons,

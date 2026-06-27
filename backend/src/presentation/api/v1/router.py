@@ -42,6 +42,7 @@ from src.presentation.api.v1.helix.routes import router as helix_router
 from src.presentation.api.v1.hosts.routes import router as hosts_router
 from src.presentation.api.v1.inbounds.routes import router as inbounds_router
 from src.presentation.api.v1.invites.routes import admin_router as invite_admin_router
+from src.presentation.api.v1.invites.routes import invite_batch_admin_router
 from src.presentation.api.v1.invites.routes import router as invite_codes_router
 from src.presentation.api.v1.invoice_profiles.routes import router as invoice_profiles_router
 from src.presentation.api.v1.keygen.routes import router as keygen_router
@@ -255,6 +256,7 @@ api_router.include_router(billing_router)
 # Codes & wallet
 api_router.include_router(invite_codes_router)
 api_router.include_router(invite_admin_router)
+api_router.include_router(invite_batch_admin_router)
 api_router.include_router(codes_router)
 api_router.include_router(promo_codes_router)
 api_router.include_router(referral_router)

@@ -278,6 +278,231 @@ def test_update_admin_miniapp_runtime_config_blocks_live_mode_when_launch_gates_
         raise AssertionError("Expected HTTPException")
 
 
+def test_update_admin_customer_site_runtime_config_persists_versioned_policy_and_audit(monkeypatch) -> None:
+    updated_by = uuid4()
+    state = {
+        "model": SimpleNamespace(
+            key=system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
+            description="Existing customer site rollout",
+            updated_at=datetime(2026, 4, 22, 10, 45, tzinfo=UTC),
+            updated_by=uuid4(),
+        ),
+        "value": {
+            "mode": "full_site",
+            "version": 7,
+            "public_hosts": ["cyber-vpn.net", "www.cyber-vpn.net"],
+            "cabinet_hosts": ["my.cyber-vpn.net"],
+            "cabinet_destination_path": "/dashboard",
+            "allowed_path_prefixes": ["/login", "/register"],
+            "preserve_query_keys": ["ref", "utm_campaign"],
+        },
+    }
+
+    class FakeDbSession:
+        def __init__(self) -> None:
+            self.added: list[object] = []
+            self.flushed = 0
+
+        def add(self, value: object) -> None:
+            self.added.append(value)
+
+        async def flush(self) -> None:
+            self.flushed += 1
+
+    class FakeSystemConfigRepository:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def get_by_key(self, key: str):
+            assert key == system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY
+            return state["model"]
+
+        async def get_value(self, key: str, default=None):
+            assert key == system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY
+            return state["value"] if state["value"] is not None else default
+
+        async def set(self, key: str, value, updated_by=None, description=None):
+            state["value"] = value
+            state["model"] = SimpleNamespace(
+                key=key,
+                description=description,
+                updated_at=datetime(2026, 4, 22, 12, 0, tzinfo=UTC),
+                updated_by=updated_by,
+            )
+            return state["model"]
+
+    monkeypatch.setattr(system_config_routes, "SystemConfigRepository", FakeSystemConfigRepository)
+
+    fake_db = FakeDbSession()
+    response = asyncio.run(
+        system_config_routes.update_admin_customer_site_runtime_config(
+            payload=system_config_routes.UpdateAdminCustomerSiteRuntimeConfigRequest(
+                mode="cabinet_only",
+                public_hosts=[" Cyber-VPN.NET ", "www.cyber-vpn.net"],
+                cabinet_hosts=["MY.CYBER-VPN.NET"],
+                cabinet_destination_path="/dashboard/",
+                allowed_path_prefixes=["/login", "/register", "/status"],
+                preserve_query_keys=["ref", "utm_campaign", "code"],
+                expected_version=7,
+                change_reason="enable private beta routing",
+            ),
+            request=_build_request(),
+            db=fake_db,
+            current_user=SimpleNamespace(id=updated_by),
+        )
+    )
+
+    assert response.site.mode == "cabinet_only"
+    assert response.site.version == 8
+    assert response.site.cabinet_only is True
+    assert response.site.public_hosts == ["cyber-vpn.net", "www.cyber-vpn.net"]
+    assert response.site.cabinet_hosts == ["my.cyber-vpn.net"]
+    assert response.site.cabinet_destination_path == "/dashboard"
+    assert response.last_change_reason == "enable private beta routing"
+    assert state["value"]["version"] == 8
+    assert state["value"]["mode"] == "cabinet_only"
+    assert len(fake_db.added) == 1
+    audit_entry = fake_db.added[0]
+    assert audit_entry.action == "system_config.customer_site_runtime.updated"
+    assert audit_entry.entity_id == "customer_site.runtime"
+    assert audit_entry.old_value["mode"] == "full_site"
+    assert audit_entry.old_value["version"] == 7
+    assert audit_entry.new_value["site"]["mode"] == "cabinet_only"
+    assert audit_entry.new_value["site"]["version"] == 8
+    assert audit_entry.new_value["change_reason"] == "enable private beta routing"
+    assert fake_db.flushed == 1
+
+
+def test_update_admin_customer_site_runtime_config_rejects_stale_version(monkeypatch) -> None:
+    class FakeSystemConfigRepository:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def get_by_key(self, key: str):
+            return SimpleNamespace(key=key, description="Existing customer site rollout")
+
+        async def get_value(self, key: str, default=None):
+            assert key == system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY
+            return {
+                "mode": "cabinet_only",
+                "version": 9,
+                "public_hosts": ["cyber-vpn.net"],
+                "cabinet_hosts": ["my.cyber-vpn.net"],
+                "cabinet_destination_path": "/dashboard",
+                "allowed_path_prefixes": ["/login"],
+                "preserve_query_keys": ["ref"],
+            }
+
+        async def set(self, key: str, value, updated_by=None, description=None):
+            raise AssertionError("set should not be called for stale site-mode version")
+
+    monkeypatch.setattr(system_config_routes, "SystemConfigRepository", FakeSystemConfigRepository)
+
+    try:
+        asyncio.run(
+            system_config_routes.update_admin_customer_site_runtime_config(
+                payload=system_config_routes.UpdateAdminCustomerSiteRuntimeConfigRequest(
+                    mode="full_site",
+                    public_hosts=["cyber-vpn.net"],
+                    cabinet_hosts=["my.cyber-vpn.net"],
+                    cabinet_destination_path="/dashboard",
+                    allowed_path_prefixes=["/login"],
+                    preserve_query_keys=["ref"],
+                    expected_version=8,
+                    change_reason="stale operator tab",
+                ),
+                request=_build_request(),
+                db=SimpleNamespace(add=lambda value: None, flush=lambda: None),
+                current_user=SimpleNamespace(id=uuid4()),
+            )
+        )
+    except system_config_routes.HTTPException as exc:
+        assert exc.status_code == 409
+        assert exc.detail["error"] == "customer_site_runtime_version_conflict"
+        assert exc.detail["current_version"] == 9
+    else:
+        raise AssertionError("Expected HTTPException")
+
+
+def test_execute_admin_customer_site_runtime_action_rolls_back_to_full_site(monkeypatch) -> None:
+    updated_by = uuid4()
+    state = {
+        "model": SimpleNamespace(
+            key=system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
+            description="Existing customer site rollout",
+            updated_at=datetime(2026, 4, 22, 10, 45, tzinfo=UTC),
+            updated_by=uuid4(),
+        ),
+        "value": {
+            "mode": "cabinet_only",
+            "version": 11,
+            "public_hosts": ["cyber-vpn.net"],
+            "cabinet_hosts": ["my.cyber-vpn.net"],
+            "cabinet_destination_path": "/dashboard",
+            "allowed_path_prefixes": ["/login", "/register", "/status"],
+            "preserve_query_keys": ["ref", "utm_campaign"],
+        },
+    }
+
+    class FakeDbSession:
+        def __init__(self) -> None:
+            self.added: list[object] = []
+
+        def add(self, value: object) -> None:
+            self.added.append(value)
+
+        async def flush(self) -> None:
+            pass
+
+    class FakeSystemConfigRepository:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def get_by_key(self, key: str):
+            assert key == system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY
+            return state["model"]
+
+        async def get_value(self, key: str, default=None):
+            assert key == system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY
+            return state["value"]
+
+        async def set(self, key: str, value, updated_by=None, description=None):
+            state["value"] = value
+            state["model"] = SimpleNamespace(
+                key=key,
+                description=description,
+                updated_at=datetime(2026, 4, 22, 12, 5, tzinfo=UTC),
+                updated_by=updated_by,
+            )
+            return state["model"]
+
+    monkeypatch.setattr(system_config_routes, "SystemConfigRepository", FakeSystemConfigRepository)
+
+    fake_db = FakeDbSession()
+    response = asyncio.run(
+        system_config_routes.execute_admin_customer_site_runtime_action(
+            payload=system_config_routes.ExecuteAdminCustomerSiteRuntimeActionRequest(
+                action="rollback_to_full_site",
+                expected_version=11,
+                change_reason="marketing site restored",
+            ),
+            request=_build_request(),
+            db=fake_db,
+            current_user=SimpleNamespace(id=updated_by),
+        )
+    )
+
+    assert response.site.mode == "full_site"
+    assert response.site.version == 12
+    assert response.site.public_hosts == ["cyber-vpn.net"]
+    assert response.site.allowed_path_prefixes == ["/login", "/register", "/status"]
+    audit_entry = fake_db.added[0]
+    assert audit_entry.action == "system_config.customer_site_runtime.action_executed"
+    assert audit_entry.old_value["mode"] == "cabinet_only"
+    assert audit_entry.new_value["site"]["mode"] == "full_site"
+    assert audit_entry.new_value["change_reason"] == "marketing site restored"
+
+
 def test_get_admin_miniapp_launch_readiness_returns_defaults(monkeypatch) -> None:
     state = {
         "model": None,

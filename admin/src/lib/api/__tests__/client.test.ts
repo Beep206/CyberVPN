@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   CANONICAL_API_BASE_PATH,
+  CANONICAL_API_V3_BASE_PATH,
   CANONICAL_IDEMPOTENCY_HEADER,
   CANONICAL_REQUEST_ID_HEADER,
   tokenStorage,
@@ -112,11 +113,19 @@ describe('resolveApiBaseUrl', () => {
   it('uses configured absolute API origin in Vitest for MSW Node interception', () => {
     expect(resolveApiBaseUrl()).toBe('http://localhost:8000/api/v1');
   });
+
+  it('resolves v3 API base URLs for versioned admin growth operations', () => {
+    expect(resolveApiBaseUrl(CANONICAL_API_V3_BASE_PATH)).toBe('http://localhost:8000/api/v3');
+  });
 });
 
 describe('canonical API contract constants', () => {
   it('freezes the browser api base path', () => {
     expect(CANONICAL_API_BASE_PATH).toBe('/api/v1');
+  });
+
+  it('freezes the browser v3 api base path', () => {
+    expect(CANONICAL_API_V3_BASE_PATH).toBe('/api/v3');
   });
 
   it('freezes the request correlation header name', () => {

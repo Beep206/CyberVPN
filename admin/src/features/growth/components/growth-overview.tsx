@@ -2,11 +2,16 @@
 
 import { useState } from 'react';
 import {
+  BadgeDollarSign,
   BellRing,
   ChartColumnIncreasing,
   Download,
+  Fingerprint,
+  Flag,
   Gift,
+  Globe2,
   ListTree,
+  LockKeyhole,
   RefreshCw,
   ShieldAlert,
   TicketPlus,
@@ -700,6 +705,12 @@ export function GrowthOverview({
           <div className="mt-5 grid gap-3">
             {[
               {
+                href: '/growth/campaigns',
+                title: t('nav.campaigns'),
+                description: t('overview.routes.campaigns'),
+                icon: Flag,
+              },
+              {
                 href: '/growth/promo-codes',
                 title: t('nav.promoCodes'),
                 description: t('overview.routes.promoCodes'),
@@ -740,6 +751,30 @@ export function GrowthOverview({
                 title: t('nav.rules'),
                 description: t('overview.routes.rules'),
                 icon: ListTree,
+              },
+              {
+                href: '/growth/site-mode',
+                title: t('nav.siteMode'),
+                description: t('overview.routes.siteMode'),
+                icon: Globe2,
+              },
+              {
+                href: '/growth/fx',
+                title: t('nav.fx'),
+                description: t('overview.routes.fx'),
+                icon: BadgeDollarSign,
+              },
+              {
+                href: '/growth/private-access',
+                title: t('nav.privateAccess'),
+                description: t('overview.routes.privateAccess'),
+                icon: LockKeyhole,
+              },
+              {
+                href: '/growth/onboarding',
+                title: t('nav.onboarding'),
+                description: t('overview.routes.onboarding'),
+                icon: Fingerprint,
               },
               {
                 href: '/growth/risk',

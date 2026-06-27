@@ -173,7 +173,13 @@ class GrowthCodeRegistryService:
             await self._session.flush()
 
         promo_policy = await self._codes.get_promo_policy(code.id)
+        existing_policy_snapshot = (
+            dict(promo_policy.policy_snapshot or {})
+            if promo_policy is not None and promo_policy.policy_snapshot
+            else {}
+        )
         policy_snapshot = {
+            **existing_policy_snapshot,
             "currency": promo.currency,
             "legacy_description": promo.description,
             "is_single_use": promo.is_single_use,
@@ -278,7 +284,13 @@ class GrowthCodeRegistryService:
             await self._session.flush()
 
         referral_policy = await self._codes.get_referral_policy(code.id)
+        existing_policy_snapshot = (
+            dict(referral_policy.policy_snapshot or {})
+            if referral_policy is not None and referral_policy.policy_snapshot
+            else {}
+        )
         policy_snapshot = {
+            **existing_policy_snapshot,
             "friend_discount_schedule": {"type": "percent", "value": 10},
             "duration_reward_schedule": {"90": 4, "180": 6, "365": 10},
             "plan_families": ["basic", "plus", "pro", "max"],

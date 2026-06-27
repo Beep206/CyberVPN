@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
@@ -208,7 +209,8 @@ class CustomerOnboardingStateSqlAlchemyRepository:
         state.skipped_at = now
         state.result_payload = {
             "message_key": "onboarding.skipped",
-            "idempotency_key": idempotency_key,
+            "idempotency_key_present": idempotency_key is not None,
+            "idempotency_key_hash": _hash_public_identifier(idempotency_key) if idempotency_key is not None else None,
         }
         await self._session.flush()
         return CustomerOnboardingSkipResult(status="skipped", message_key="onboarding.skipped")
@@ -317,3 +319,7 @@ def _bounded_or_none(value: str | None, max_length: int) -> str | None:
         return None
     normalized = value.strip()[:max_length]
     return normalized or None
+
+
+def _hash_public_identifier(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()

@@ -388,6 +388,7 @@ if settings.rate_limit_enabled:
         payment_write_requests_per_minute=settings.rate_limit_payment_write_requests,
         trial_activate_requests_per_minute=settings.rate_limit_trial_activate_requests,
         growth_sensitive_requests_per_minute=settings.rate_limit_growth_sensitive_requests,
+        private_catalog_preflight_requests_per_minute=settings.rate_limit_private_catalog_preflight_requests,
         support_write_requests_per_minute=settings.rate_limit_support_write_requests,
         messaging_write_requests_per_minute=settings.rate_limit_messaging_write_requests,
         messaging_realtime_requests_per_minute=settings.rate_limit_messaging_realtime_requests,

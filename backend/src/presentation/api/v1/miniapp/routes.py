@@ -1028,10 +1028,10 @@ async def commit_miniapp_checkout(
             require_stage1_telegram_stars_enabled()
         else:
             require_stage1_payments_enabled()
-        if body.flow in {"addons", "upgrade"} and not idempotency_key:
+        if not idempotency_key:
             raise HTTPException(
                 status_code=400,
-                detail="Idempotency-Key header is required for Mini App add-on and upgrade commits",
+                detail="Idempotency-Key header is required for Mini App checkout commits",
             )
 
         rollout = await _get_miniapp_runtime_config(db)
@@ -1155,6 +1155,11 @@ async def commit_miniapp_checkout(
                 user_id=user_id,
             )
             quote = _serialize_base_checkout_quote(result)
+            if result.is_zero_gateway:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="ZERO_GATEWAY_REQUIRES_ORDER_PAYMENT_ATTEMPT",
+                )
 
             can_use_stars = body.currency.upper() == "XTR" and body.use_wallet <= 0 and len(body.addons) == 0
             if can_use_stars:

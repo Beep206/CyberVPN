@@ -122,6 +122,29 @@ class PrivateCatalogRiskResult:
     action: str
 
 
+class PrivateCatalogRiskBlockedError(ValueError):
+    def __init__(self, action: str) -> None:
+        super().__init__("PRIVATE_CATALOG_RISK_REVIEW_REQUIRED")
+        self.action = action
+
+
+class PrivateCatalogRiskGuard(Protocol):
+    async def evaluate_private_preflight(
+        self,
+        *,
+        user_id: UUID | None,
+        anonymous_session_id: str | None,
+        storefront: PrivateStorefrontRecord,
+        policy: PrivatePolicyRecord,
+        code_set_id: UUID,
+        code_set_hash: str,
+        channel: str,
+        currency: str,
+        code_count: int,
+    ) -> str:
+        raise NotImplementedError
+
+
 @dataclass(frozen=True, slots=True)
 class PrivateCatalogPreflightResult:
     code_set_id: UUID | None
@@ -166,8 +189,13 @@ class PrivateCatalogRepository(Protocol):
 
 
 class PrivateCatalogPreflightUseCase:
-    def __init__(self, repository: PrivateCatalogRepository) -> None:
+    def __init__(
+        self,
+        repository: PrivateCatalogRepository,
+        risk_guard: PrivateCatalogRiskGuard | None = None,
+    ) -> None:
         self._repository = repository
+        self._risk_guard = risk_guard
 
     async def execute(self, command: PrivateCatalogPreflightCommand) -> PrivateCatalogPreflightResult:
         normalized_codes = tuple(normalize_customer_input_code(item.code) for item in command.codes)
@@ -187,6 +215,31 @@ class PrivateCatalogPreflightUseCase:
             channel=command.channel,
         )
         code_set_id = build_private_code_set_id(code_set_hash)
+        duplicate_hashes = _duplicate_code_hashes(normalized_codes)
+        if duplicate_hashes:
+            duplicate_applications = tuple(
+                PrivateCatalogApplicationResult(
+                    client_slot_id=input_item.client_slot_id,
+                    masked_code=normalized.masked_code,
+                    status="rejected",
+                    roles=(),
+                    message_key=(
+                        "growth.errors.duplicateCode"
+                        if normalized.code_hash in duplicate_hashes
+                        else "growth.code.notEligible"
+                    ),
+                )
+                for input_item, normalized in zip(command.codes, normalized_codes, strict=True)
+            )
+            return PrivateCatalogPreflightResult(
+                code_set_id=code_set_id,
+                code_set_hash=code_set_hash,
+                status="rejected",
+                applications=duplicate_applications,
+                private_catalog_grant=None,
+                private_offers=(),
+                risk=PrivateCatalogRiskResult(action="allow"),
+            )
         rejected = PrivateCatalogPreflightResult(
             code_set_id=code_set_id,
             code_set_hash=code_set_hash,
@@ -228,6 +281,40 @@ class PrivateCatalogPreflightUseCase:
         if not plan_previews:
             return rejected
 
+        risk_action = "allow"
+        if self._risk_guard is not None:
+            try:
+                risk_action = await self._risk_guard.evaluate_private_preflight(
+                    user_id=command.user_id,
+                    anonymous_session_id=command.anonymous_session_id,
+                    storefront=storefront,
+                    policy=matched_policy,
+                    code_set_id=code_set_id,
+                    code_set_hash=code_set_hash,
+                    channel=command.channel,
+                    currency=command.currency,
+                    code_count=len(command.codes),
+                )
+            except PrivateCatalogRiskBlockedError as exc:
+                risk_applications = list(applications)
+                matched_application = risk_applications[matched_index]
+                risk_applications[matched_index] = PrivateCatalogApplicationResult(
+                    client_slot_id=matched_application.client_slot_id,
+                    masked_code=matched_application.masked_code,
+                    status="rejected",
+                    roles=(),
+                    message_key="growth.risk.verificationRequired",
+                )
+                return PrivateCatalogPreflightResult(
+                    code_set_id=code_set_id,
+                    code_set_hash=code_set_hash,
+                    status="denied_by_risk",
+                    applications=tuple(risk_applications),
+                    private_catalog_grant=None,
+                    private_offers=(),
+                    risk=PrivateCatalogRiskResult(action=exc.action),
+                )
+
         issued_at = datetime.now(UTC)
         expires_at = issued_at + timedelta(seconds=matched_policy.grant_ttl_seconds)
         grant = await self._repository.create_private_catalog_grant(
@@ -268,7 +355,7 @@ class PrivateCatalogPreflightUseCase:
                 )
                 for plan in plan_previews
             ),
-            risk=PrivateCatalogRiskResult(action="allow"),
+            risk=PrivateCatalogRiskResult(action=risk_action),
         )
 
 
@@ -295,3 +382,13 @@ def build_private_code_set_hash(
 
 def build_private_code_set_id(code_set_hash: str) -> UUID:
     return uuid5(PRIVATE_CODE_SET_UUID_NAMESPACE, code_set_hash)
+
+
+def _duplicate_code_hashes(normalized_codes: tuple[NormalizedCustomerCode, ...]) -> set[str]:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for code in normalized_codes:
+        if code.code_hash in seen:
+            duplicates.add(code.code_hash)
+        seen.add(code.code_hash)
+    return duplicates

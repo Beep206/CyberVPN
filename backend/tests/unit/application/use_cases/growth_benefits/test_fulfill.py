@@ -40,6 +40,7 @@ class FakeGrowthBenefitFulfillmentRepository:
         self.create_fulfillment_calls = 0
         self.create_invite_batch_calls = 0
         self.create_invite_code_calls = 0
+        self.wallet_credits: list[dict] = []
         self.duplicate_next_fulfillment_create = False
         self.duplicate_next_invite_batch_create = False
 
@@ -186,6 +187,31 @@ class FakeGrowthBenefitFulfillmentRepository:
             self.invite_codes_by_batch.setdefault(record.batch_id, []).append(record)
         return records
 
+    async def apply_wallet_credit_benefit(
+        self,
+        *,
+        user_id: UUID,
+        fulfillment_id: UUID,
+        amount,
+        currency: str,
+        description_key: str,
+    ) -> dict:
+        for credit in self.wallet_credits:
+            if credit["fulfillment_id"] == str(fulfillment_id):
+                return {**credit, "duplicate": True}
+        credit = {
+            "wallet_transaction_id": str(uuid4()),
+            "fulfillment_id": str(fulfillment_id),
+            "user_id": str(user_id),
+            "amount": str(amount),
+            "currency": currency,
+            "description_key": description_key,
+            "balance_after": str(amount),
+            "duplicate": False,
+        }
+        self.wallet_credits.append(credit)
+        return credit
+
 
 def _issue_invites_config(*, allow_zero: bool, count: int = 10) -> dict:
     return {
@@ -208,6 +234,7 @@ def _issue_invites_config(*, allow_zero: bool, count: int = 10) -> dict:
 def _benefit(
     *,
     benefit_id: UUID = BENEFIT_ID,
+    benefit_type: str = "issue_invites",
     config: dict | None = None,
     merge_mode: str = "append",
     source_priority: int | None = None,
@@ -215,7 +242,7 @@ def _benefit(
 ) -> dict:
     payload = {
         "benefit_id": str(benefit_id),
-        "type": "issue_invites",
+        "type": benefit_type,
         "trigger_type": trigger_type,
         "merge_mode": merge_mode,
         "sort_order": 0,
@@ -290,9 +317,11 @@ async def test_issue_invites_records_completed_fulfillment_batch_and_codes_once(
     batch = repo.invite_batches_by_key[expected_batch_key]
     assert fulfillment.config_snapshot["count"] == 10
     assert fulfillment.config_snapshot["allow_zero_net_payment"] is True
+    assert fulfillment.config_snapshot["reversal_policy"] == "revoke_if_unused"
     assert fulfillment.result_payload["invite_batch_id"] == str(batch.id)
     assert fulfillment.result_payload["requested_count"] == 10
     assert fulfillment.result_payload["issued_count"] == 10
+    assert fulfillment.result_payload["reversal_policy"] == "revoke_if_unused"
     assert len(fulfillment.result_payload["invite_code_ids"]) == 10
     assert len(fulfillment.result_payload["invite_code_refs"]) == 10
     assert {item["status"] for item in fulfillment.result_payload["invite_code_refs"]} == {"issued"}
@@ -320,6 +349,163 @@ async def test_issue_invites_records_completed_fulfillment_batch_and_codes_once(
         },
         default=str,
     )
+
+
+@pytest.mark.asyncio
+async def test_issue_invites_accepts_spec_reversal_policy_without_legacy_mode() -> None:
+    repo = FakeGrowthBenefitFulfillmentRepository()
+    config = _issue_invites_config(allow_zero=True, count=2)
+    config.pop("reversal_mode")
+    config["reversal_policy"] = "revoke_if_unused"
+
+    results = await _execute(repo, _snapshot(benefits=[_benefit(config=config)]))
+
+    expected_fulfillment_key = build_growth_benefit_idempotency_key(
+        benefit_id=BENEFIT_ID,
+        payment_id=PAYMENT_ID,
+    )
+    fulfillment = repo.fulfillments_by_key[expected_fulfillment_key]
+    assert results[0].status == "completed"
+    assert fulfillment.config_snapshot["reversal_mode"] == "revoke_if_unused"
+    assert fulfillment.config_snapshot["reversal_policy"] == "revoke_if_unused"
+    assert fulfillment.result_payload["reversal_policy"] == "revoke_if_unused"
+
+
+@pytest.mark.asyncio
+async def test_wallet_credit_records_completed_fulfillment_and_wallet_side_effect_once() -> None:
+    repo = FakeGrowthBenefitFulfillmentRepository()
+    wallet_benefit_id = UUID("00000000-0000-0000-0000-000000000611")
+    snapshot = _snapshot(
+        net_paid="25",
+        benefits=[
+            _benefit(
+                benefit_id=wallet_benefit_id,
+                benefit_type="wallet_credit",
+                config={
+                    "amount": "3.50",
+                    "currency": "USD",
+                    "description_key": "growth.benefit.walletCredit",
+                    "allow_zero_net_payment": False,
+                    "minimum_net_paid_amount": "10.00",
+                    "reversal_mode": "manual_review",
+                },
+            )
+        ],
+    )
+
+    results = await _execute(repo, snapshot)
+    replay = await _execute(repo, snapshot)
+
+    assert len(results) == 1
+    assert results[0].benefit_id == wallet_benefit_id
+    assert results[0].benefit_type == "wallet_credit"
+    assert results[0].status == "completed"
+    assert results[0].result_payload["side_effect_mode"] == "wallet_transaction"
+    assert results[0].result_payload["reversal_policy"] == "manual_review"
+    assert results[0].result_payload["wallet_credit"]["amount"] == "3.50"
+    assert results[0].result_payload["wallet_credit"]["currency"] == "USD"
+    assert len(repo.wallet_credits) == 1
+    assert replay[0].duplicate is True
+    assert replay[0].result_payload == results[0].result_payload
+    assert repo.create_invite_batch_calls == 0
+    assert repo.create_invite_code_calls == 0
+
+
+@pytest.mark.parametrize(
+    ("benefit_type", "config", "expected_key"),
+    [
+        (
+            "bonus_days",
+            {
+                "days": 14,
+                "grant_mode": "create_reward_allocation",
+                "entitlement_profile_key": "bonus_access_v1",
+                "allow_zero_net_payment": True,
+                "minimum_net_paid_amount": "0",
+                "reversal_mode": "revoke_unapplied",
+            },
+            "days",
+        ),
+        (
+            "issue_gift",
+            {
+                "count": 2,
+                "friend_days": 30,
+                "expiry_mode": "relative",
+                "expiry_days": 45,
+                "absolute_expires_at": None,
+                "entitlement_mode": "profile_key",
+                "entitlement_profile_key": "gift_access_v1",
+                "plan_id": None,
+                "entitlement_snapshot": None,
+                "allow_zero_net_payment": True,
+                "minimum_net_paid_amount": "0",
+                "reversal_mode": "revoke_unredeemed",
+            },
+            "count",
+        ),
+        (
+            "grant_addon",
+            {
+                "addon_code": "extra_device",
+                "quantity": 1,
+                "duration_mode": "match_plan",
+                "duration_days": None,
+                "location_code": None,
+                "allow_zero_net_payment": True,
+                "minimum_net_paid_amount": "0",
+                "reversal_mode": "revoke_addon",
+            },
+            "addon_code",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_non_invite_non_wallet_benefits_record_queued_fulfillment_without_silent_skip(
+    benefit_type: str,
+    config: dict,
+    expected_key: str,
+) -> None:
+    repo = FakeGrowthBenefitFulfillmentRepository()
+    snapshot = _snapshot(benefits=[_benefit(benefit_type=benefit_type, config=config)])
+
+    results = await _execute(repo, snapshot)
+
+    assert len(results) == 1
+    assert results[0].benefit_type == benefit_type
+    assert results[0].status == "queued"
+    assert results[0].result_payload["benefit_type"] == benefit_type
+    assert results[0].result_payload["side_effect_mode"] == "queued_domain_worker"
+    assert results[0].result_payload["config"][expected_key] == config[expected_key]
+    assert repo.create_fulfillment_calls == 1
+    assert repo.create_invite_batch_calls == 0
+    assert repo.create_invite_code_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_wallet_credit_zero_net_without_allow_flag_rejects_before_persistence() -> None:
+    repo = FakeGrowthBenefitFulfillmentRepository()
+    snapshot = _snapshot(
+        benefits=[
+            _benefit(
+                benefit_type="wallet_credit",
+                config={
+                    "amount": "5.00",
+                    "currency": "USD",
+                    "description_key": "growth.benefit.walletCredit",
+                    "allow_zero_net_payment": False,
+                    "minimum_net_paid_amount": "0",
+                    "reversal_mode": "manual_review",
+                },
+            )
+        ]
+    )
+
+    with pytest.raises(GrowthBenefitSettlementNotEligibleError, match="zero-net"):
+        await _execute(repo, snapshot)
+
+    assert repo.fulfillments_by_key == {}
+    assert repo.wallet_credits == []
 
 
 @pytest.mark.asyncio

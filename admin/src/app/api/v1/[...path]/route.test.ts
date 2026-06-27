@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 import { GET, POST } from './route';
+import { GET as GET_V3 } from '../../v3/[...path]/route';
 
 function createContext(path: string[]) {
   return {
@@ -78,6 +79,44 @@ describe('admin API proxy route', () => {
     expect(response.status).toBe(200);
     expect(readSetCookieHeaders(response).join('\n')).toContain('access_token=next');
     await expect(response.json()).resolves.toEqual({ role: 'operator' });
+  });
+
+  it('proxies v3 browser API calls through the same admin host boundary', async () => {
+    vi.stubEnv('API_INTERNAL_ORIGIN', 'http://backend.local');
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ status: 'healthy' }), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ) as typeof fetch;
+
+    const request = new NextRequest('http://127.0.0.1:13001/api/v3/admin/growth/fx/status', {
+      headers: {
+        'x-request-id': 'req-v3',
+      },
+    });
+    request.cookies.set('access_token', 'current');
+
+    const response = await GET_V3(request, createContext(['admin', 'growth', 'fx', 'status']));
+    const init = getFetchInit();
+    const headers = init.headers as Headers;
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://backend.local/api/v3/admin/growth/fx/status',
+      expect.objectContaining({
+        method: 'GET',
+        cache: 'no-store',
+        redirect: 'manual',
+      }),
+    );
+    expect(headers.get('x-forwarded-host')).toBe('admin.cyber-vpn.net');
+    expect(headers.get('x-forwarded-proto')).toBe('https');
+    expect(headers.get('cookie')).toBe('access_token=current');
+    expect(headers.get('x-request-id')).toBe('req-v3');
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ status: 'healthy' });
   });
 
   it('forwards mutating request bodies with canonical realm and CSRF headers for approved local-stage admin', async () => {

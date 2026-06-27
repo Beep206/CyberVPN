@@ -1,12 +1,17 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonRequest,
     CheckoutQuoteResponse,
 )
+
+
+class QuoteCodeBasketItemRequest(BaseModel):
+    code: str = Field(..., min_length=1, max_length=64)
+    client_slot_id: str | None = Field(None, min_length=1, max_length=80)
 
 
 class CreateQuoteSessionRequest(BaseModel):
@@ -18,6 +23,7 @@ class CreateQuoteSessionRequest(BaseModel):
     code_input: str | None = Field(None, max_length=64)
     promo_code: str | None = Field(None, max_length=50)
     partner_code: str | None = Field(None, max_length=30)
+    codes: list["QuoteCodeBasketItemRequest"] = Field(default_factory=list, max_length=5)
     private_catalog_grant_id: UUID | None = None
     use_wallet: float = Field(0, ge=0)
     currency: str = Field("USD", min_length=3, max_length=12)
@@ -29,6 +35,12 @@ class CreateQuoteSessionRequest(BaseModel):
         if not value.isupper():
             raise ValueError("Currency code must be uppercase")
         return value
+
+    @model_validator(mode="after")
+    def validate_code_inputs_are_not_mixed(self) -> "CreateQuoteSessionRequest":
+        if self.codes and (self.code_input or self.promo_code or self.partner_code):
+            raise ValueError("codes cannot be combined with code_input, promo_code, or partner_code")
+        return self
 
 
 class QuoteSessionResponse(BaseModel):

@@ -1,6 +1,22 @@
 from fastapi import APIRouter
 
+from src.presentation.api.v1.admin.growth_rules import router as admin_growth_rules_router
+from src.presentation.api.v3.admin_growth_code_sets import router as admin_growth_code_sets_router
+from src.presentation.api.v3.admin_growth_fx import router as admin_growth_fx_router
+from src.presentation.api.v3.admin_growth_onboarding import router as admin_growth_onboarding_router
+from src.presentation.api.v3.admin_growth_policies import router as admin_growth_policies_router
+from src.presentation.api.v3.admin_growth_private_catalog import router as admin_growth_private_catalog_router
+from src.presentation.api.v3.admin_growth_risk import router as admin_growth_risk_router
+from src.presentation.api.v3.admin_growth_rule_builder import router as admin_growth_rule_builder_router
 from src.presentation.api.v3.growth_code_sets import router as growth_code_sets_router
 
 api_v3_router = APIRouter(prefix="/api/v3")
+api_v3_router.include_router(admin_growth_code_sets_router)
+api_v3_router.include_router(admin_growth_fx_router)
+api_v3_router.include_router(admin_growth_onboarding_router)
+api_v3_router.include_router(admin_growth_policies_router)
+api_v3_router.include_router(admin_growth_private_catalog_router)
+api_v3_router.include_router(admin_growth_risk_router)
+api_v3_router.include_router(admin_growth_rule_builder_router)
+api_v3_router.include_router(admin_growth_rules_router)
 api_v3_router.include_router(growth_code_sets_router)

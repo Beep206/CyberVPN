@@ -44,10 +44,22 @@ _ACTION_CATALOG: dict[str, dict[str, Any]] = {
     "unlock_private_catalog": {"result": "allow", "params": ["private_policy_key"]},
 }
 
-_FORBIDDEN_EXECUTABLE_TEXT = re.compile(
-    r"\b(?:eval|exec|function|import|select\s+.+\s+from|insert\s+into|update\s+.+\s+set|delete\s+from|"
-    r"javascript:|python:|jinja|subprocess|__import__|os\.system)\b",
-    re.IGNORECASE,
+_FORBIDDEN_EXECUTABLE_TERMS = frozenset(
+    {
+        "eval",
+        "exec",
+        "function",
+        "import",
+        "jinja",
+        "subprocess",
+    }
+)
+_FORBIDDEN_EXECUTABLE_SUBSTRINGS = ("javascript:", "python:", "__import__", "os.system")
+_FORBIDDEN_SQL_TERM_SEQUENCES = (
+    ("select", "from"),
+    ("insert", "into"),
+    ("update", "set"),
+    ("delete", "from"),
 )
 _UNSAFE_REGEX_PATTERNS = (
     re.compile(r"\(\?"),  # lookarounds, flags, named groups and other advanced constructs
@@ -338,7 +350,7 @@ def _assert_safe_regex(value: object) -> None:
 
 def _assert_no_executable_text(value: object) -> None:
     if isinstance(value, str):
-        if _FORBIDDEN_EXECUTABLE_TEXT.search(value):
+        if _contains_forbidden_executable_text(value):
             raise RuleValidationError("RULE_EXECUTABLE_TEXT_FORBIDDEN", "Rule cannot contain executable code")
         return
     if isinstance(value, dict):
@@ -348,6 +360,41 @@ def _assert_no_executable_text(value: object) -> None:
     if isinstance(value, list):
         for nested_value in value:
             _assert_no_executable_text(nested_value)
+
+
+def _contains_forbidden_executable_text(value: str) -> bool:
+    normalized = value.casefold()
+    if any(marker in normalized for marker in _FORBIDDEN_EXECUTABLE_SUBSTRINGS):
+        return True
+    tokens = _ascii_word_tokens(normalized)
+    if any(term in tokens for term in _FORBIDDEN_EXECUTABLE_TERMS):
+        return True
+    return any(_contains_ordered_terms(tokens, sequence) for sequence in _FORBIDDEN_SQL_TERM_SEQUENCES)
+
+
+def _ascii_word_tokens(value: str) -> tuple[str, ...]:
+    tokens: list[str] = []
+    current: list[str] = []
+    for char in value:
+        if char.isascii() and (char.isalnum() or char == "_"):
+            current.append(char)
+            continue
+        if current:
+            tokens.append("".join(current))
+            current.clear()
+    if current:
+        tokens.append("".join(current))
+    return tuple(tokens)
+
+
+def _contains_ordered_terms(tokens: tuple[str, ...], terms: tuple[str, ...]) -> bool:
+    position = 0
+    for token in tokens:
+        if token == terms[position]:
+            position += 1
+            if position == len(terms):
+                return True
+    return False
 
 
 def _validate_payload_size(ast: dict[str, Any]) -> None:

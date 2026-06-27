@@ -190,7 +190,6 @@ async def _log_registration_attempt(
     status_code=status.HTTP_200_OK,
     responses={
         403: {"description": "Invalid, expired, or already exchanged registration access token"},
-        409: {"description": "Registration access token was already exchanged with a different key or host"},
     },
 )
 async def exchange_registration_access(
@@ -211,14 +210,6 @@ async def exchange_registration_access(
         auth_realm_id=current_realm.auth_realm.id,
     )
     if result is None:
-        if await service.has_token(request.registration_access_token):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "detail": "Registration access token must be retried with the original exchange context.",
-                    "code": "REGISTRATION_ACCESS_EXCHANGE_CONFLICT",
-                },
-            )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
@@ -277,7 +268,7 @@ async def register(
     if not settings.registration_enabled:
         logger.warning(
             "Registration attempt blocked - registration disabled",
-            extra={"email": sanitize_email(request.email), "login": sanitize_username(request.login)},
+            extra={"reason": "registration_disabled"},
         )
         await _log_registration_attempt(
             audit_repo=audit_repo,
@@ -304,7 +295,7 @@ async def register(
         if not registration_access_session_token and not invite_token:
             logger.warning(
                 "Registration attempt blocked - missing invite token",
-                extra={"email": sanitize_email(request.email), "login": sanitize_username(request.login)},
+                extra={"reason": "invite_token_required"},
             )
             await _log_registration_attempt(
                 audit_repo=audit_repo,

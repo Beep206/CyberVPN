@@ -232,3 +232,43 @@ class GrowthCodeUserCounterModel(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
+
+
+class GrowthCodeCapacityCounterModel(Base):
+    """Hashed non-user reservation and consumption counters for risk/device/velocity caps."""
+
+    __tablename__ = "growth_code_capacity_counters"
+    __table_args__ = (
+        PrimaryKeyConstraint(
+            "growth_code_id",
+            "capacity_dimension",
+            "capacity_key_hash",
+            name="pk_growth_code_capacity_counters",
+        ),
+        CheckConstraint(
+            "capacity_dimension IN ('risk_subject', 'device', 'velocity')",
+            name="ck_growth_code_capacity_counters_dimension",
+        ),
+        CheckConstraint("reserved_uses >= 0", name="ck_growth_code_capacity_counters_reserved_non_negative"),
+        CheckConstraint("consumed_uses >= 0", name="ck_growth_code_capacity_counters_consumed_non_negative"),
+    )
+
+    growth_code_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("growth_codes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    capacity_dimension: Mapped[str] = mapped_column(String(30), nullable=False)
+    capacity_key_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    reserved_uses: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    consumed_uses: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )

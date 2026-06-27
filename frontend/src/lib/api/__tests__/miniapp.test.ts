@@ -7,6 +7,7 @@ const apiClientMock = vi.hoisted(() => ({
 
 vi.mock('../client', () => ({
   apiClient: apiClientMock,
+  CANONICAL_IDEMPOTENCY_HEADER: 'Idempotency-Key',
 }));
 
 import { miniappApi } from '../miniapp';
@@ -134,9 +135,13 @@ describe('miniappApi', () => {
     const response = { status: 200, data: { payment_id: 'payment-stars-1', status: 'pending' } };
     apiClientMock.post.mockResolvedValue(response);
 
-    const result = await miniappApi.commitCheckout(payload);
+    const result = await miniappApi.commitCheckout(payload, 'miniapp-checkout-idem');
 
-    expect(apiClientMock.post).toHaveBeenCalledWith('/miniapp/checkout/commit', payload);
+    expect(apiClientMock.post).toHaveBeenCalledWith('/miniapp/checkout/commit', payload, {
+      headers: {
+        'Idempotency-Key': 'miniapp-checkout-idem',
+      },
+    });
     expect(result).toBe(response);
   });
 

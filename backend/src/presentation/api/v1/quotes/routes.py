@@ -5,8 +5,10 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.commerce_sessions import CreateQuoteSessionUseCase, GetQuoteSessionUseCase
+from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationError
 from src.application.use_cases.partner_attribution.attribution import PartnerAttributionError
 from src.application.use_cases.partner_attribution.utils import PARTNER_ATTRIBUTION_COOKIE_NAME
+from src.presentation.api.shared.growth_customer_errors import growth_customer_error_from_value_error
 from src.presentation.api.shared.private_catalog_session import (
     PRIVATE_CATALOG_ANONYMOUS_SESSION_COOKIE,
     private_catalog_anonymous_session_subject,
@@ -100,6 +102,7 @@ async def create_quote_session(
             code_input=payload.code_input,
             promo_code=payload.promo_code,
             partner_code=payload.partner_code,
+            codes=[item.model_dump() for item in payload.codes],
             use_wallet=payload.use_wallet,
             currency=payload.currency,
             channel=payload.channel,
@@ -118,7 +121,24 @@ async def create_quote_session(
     except PartnerAttributionError as exc:
         await db.rollback()
         return _partner_attribution_error_response(exc)
+    except GrowthCodeReservationError as exc:
+        await db.rollback()
+        response = JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": {"code": exc.code, "message_key": exc.message_key, "retryable": False}},
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
     except ValueError as exc:
+        mapped_error = growth_customer_error_from_value_error(exc)
+        if mapped_error is not None:
+            await db.rollback()
+            response = JSONResponse(
+                status_code=mapped_error.status_code,
+                content={"detail": mapped_error.detail()},
+            )
+            response.headers["Cache-Control"] = "no-store"
+            return response
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if attribution_cookie_token:
         _clear_attribution_cookie(response)

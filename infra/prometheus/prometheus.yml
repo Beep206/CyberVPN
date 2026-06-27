@@ -20,6 +20,7 @@ rule_files:
   - /etc/prometheus/rules/partner_platform_alerts.yml
   - /etc/prometheus/rules/customer_growth_notification_alerts.yml
   - /etc/prometheus/rules/customer_growth_reporting_alerts.yml
+  - /etc/prometheus/rules/growth_codes_v6_alerts.yml
   - /etc/prometheus/rules/nats_alerts.yml
   - /etc/prometheus/rules/control_plane_alerts.yml
   - /etc/prometheus/rules/stage1_dashboard_recording_rules.yml

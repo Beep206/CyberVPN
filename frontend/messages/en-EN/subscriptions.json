@@ -228,7 +228,8 @@
     "trafficPolicy": "Traffic policy",
     "total": "Checkout total",
     "tryAgain": "Try again",
-    "updatingQuote": "Updating quote..."
+    "updatingQuote": "Updating quote...",
+    "discountApplied": "Discount applied: {amount}."
   },
   "privateOffer": {
     "title": "Private offer access",
@@ -260,5 +261,71 @@
     "serverPool": "Servers: {servers}",
     "support": "Support: {support}",
     "quoteError": "Private offer quote failed. Retry or clear the private offer."
+  },
+  "growthCodeBasket": {
+    "title": "Checkout code basket",
+    "description": "Add codes to check backend status before quote. Checkout prices accepted compatible codes together.",
+    "inputLabel": "Checkout code",
+    "placeholder": "SAVE20",
+    "addCta": "Add code",
+    "addingCta": "Checking...",
+    "empty": "No checkout codes added.",
+    "maxCount": "Up to {count} codes can be checked.",
+    "duplicate": "This code is already in the basket.",
+    "inputRequired": "Enter a code first.",
+    "maxReached": "Remove a code before adding more than {count}.",
+    "missingPlan": "Select a plan before checking codes.",
+    "contextChanged": "Plan, private offer, or quote context changed. Recheck this code.",
+    "removeCta": "Remove code",
+    "retryCta": "Retry code check",
+    "degraded": "Accepted codes will be priced together. Remove a code only when the backend marks it rejected or conflicted.",
+    "pendingCheckout": "Code status is still checking. Checkout stays locked until it finishes.",
+    "primaryApplied": "This accepted code is the one currently priced for checkout.",
+    "acceptedQueued": "Accepted for grouped checkout pricing.",
+    "networkError": "Code status is temporarily unavailable. Retry without retyping.",
+    "status": {
+      "idle": "Recheck needed",
+      "checking": "Checking",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "warning": "Action needed",
+      "networkError": "Retry needed"
+    },
+    "codeTypes": {
+      "invite": "Invite code",
+      "referral": "Referral code",
+      "promo": "Promo code",
+      "gift": "Gift code",
+      "partner": "Partner code",
+      "unknown": "Code"
+    },
+    "errors": {
+      "conflictPartnerCodeReferral": "Referral discounts cannot be combined with a partner code.",
+      "conflictPartnerCode": "This code cannot be combined with a partner code.",
+      "conflictPartnerBindingReferral": "Referral discounts cannot be combined with active partner attribution.",
+      "conflictPartnerBinding": "This code cannot be combined with active partner attribution.",
+      "conflictPromoPresent": "Partner codes cannot be combined with another discount code.",
+      "wrongContextInvite": "Invite codes redeem in the rewards hub, not checkout.",
+      "wrongContextGift": "Gift codes redeem in the rewards hub, not checkout.",
+      "wrongContextPartner": "Partner codes are not enabled on this checkout surface.",
+      "wrongContextCheckout": "This code must be applied in checkout.",
+      "wrongContextRedeem": "This code must be redeemed outside checkout.",
+      "notFound": "Code not found.",
+      "expired": "Code expired.",
+      "inactive": "Code is inactive.",
+      "exhausted": "Code usage limit reached.",
+      "alreadyUsed": "Code has already been used.",
+      "inviteSelfRedemption": "You cannot redeem your own invite code.",
+      "notEligibleForSku": "This code does not apply to the selected checkout basket.",
+      "notEligibleForSurface": "This code is not available on the current surface.",
+      "blockedByRisk": "This code needs additional verification before it can be used.",
+      "requiresAuth": "Sign in again to use this code.",
+      "generic": "Code could not be applied."
+    },
+    "unsupported": {
+      "partnerUnavailable": "Partner codes are not available on this checkout surface.",
+      "upgradePromoOnly": "Only promo codes can be used during subscription upgrades right now.",
+      "addonsPromoOnly": "Only promo codes can be used for add-ons right now."
+    }
   }
 }

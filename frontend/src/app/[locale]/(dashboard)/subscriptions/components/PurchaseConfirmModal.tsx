@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Modal } from '@/shared/ui/modal';
 import {
@@ -8,9 +8,9 @@ import {
   createClientIdempotencyKey,
   OFFICIAL_WEB_SALE_CHANNEL,
   OFFICIAL_WEB_STOREFRONT_KEY,
+  type CreateQuoteSessionRequest,
   type QuoteSessionResponse,
 } from '@/lib/api/commerce';
-import { codesApi } from '@/lib/api/codes';
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
@@ -19,20 +19,21 @@ import {
   CreditCard,
   Percent,
   ShieldCheck,
-  Tag,
   Zap,
 } from 'lucide-react';
 import { AxiosError } from 'axios';
-import { CyberInput } from '@/features/auth/components/CyberInput';
-import {
-  getGrowthCodeResolutionMessage,
-  getUnsupportedCheckoutCodeMessage,
-} from '@/features/customer-growth/lib/checkout-code-resolution';
 import {
   buildPrivateOfferUnlockCopy,
   PrivateOfferUnlock,
   type PrivateOfferSelection,
 } from '@/features/customer-growth/components/PrivateOfferUnlock';
+import {
+  GrowthCodeBasket,
+  createEmptyGrowthCodeBasketSummary,
+  type GrowthCodeBasketPrimarySelection,
+  type GrowthCodeBasketSummary,
+} from '@/features/customer-growth-code-basket/components/GrowthCodeBasket';
+import { buildGrowthCodeBasketCopy } from '@/features/customer-growth-code-basket/lib/copy';
 import {
   areCheckoutCodeDiscountsEnabled,
   arePromoCodesEnabled,
@@ -68,22 +69,33 @@ const MAX_QUOTE_EXPIRY_TIMER_MS = 2_147_483_647;
 
 function buildQuoteRequest(
   plan: SubscriptionPlan,
-  codeInput?: string,
+  codeInputs?: string[],
   privateOffer?: PrivateOfferSelection | null,
-) {
+): CreateQuoteSessionRequest {
   const quoteHandoff = plan.public_catalog_quote;
   const catalogPrice = plan.public_catalog_price;
+  const acceptedCodes = (codeInputs ?? []).filter((code) => code.trim().length > 0);
 
-  return {
+  const request: CreateQuoteSessionRequest = {
     storefront_key: OFFICIAL_WEB_STOREFRONT_KEY,
     plan_id: privateOffer?.planId ?? quoteHandoff?.planId ?? plan.uuid,
     addons: [],
-    code_input: codeInput || undefined,
     private_catalog_grant_id: privateOffer?.privateCatalogGrantId ?? undefined,
     use_wallet: 0,
     currency: quoteHandoff?.currency ?? catalogPrice?.currency ?? 'USD',
     channel: OFFICIAL_WEB_SALE_CHANNEL,
   };
+
+  if (acceptedCodes.length === 1) {
+    request.code_input = acceptedCodes[0];
+  } else if (acceptedCodes.length > 1) {
+    request.codes = acceptedCodes.map((code, index) => ({
+      code,
+      client_slot_id: `web-growth-code-${index + 1}`,
+    }));
+  }
+
+  return request;
 }
 
 function getPublicCatalogAmount(plan: SubscriptionPlan): number {
@@ -115,28 +127,32 @@ export function PurchaseConfirmModal({
   const { data: capabilities } = useClientCapabilities();
   const [step, setStep] = useState<ModalStep>('confirm');
   const [error, setError] = useState('');
-  const [codeInput, setCodeInput] = useState('');
-  const [codeError, setCodeError] = useState('');
-  const [codeFeedback, setCodeFeedback] = useState<string | null>(null);
   const [quoteSession, setQuoteSession] = useState<QuoteSessionResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteExpired, setQuoteExpired] = useState(false);
   const [appliedCodeInput, setAppliedCodeInput] = useState<string | null>(null);
+  const [appliedCodeInputs, setAppliedCodeInputs] = useState<string[]>([]);
+  const [appliedCodeType, setAppliedCodeType] =
+    useState<GrowthCodeBasketPrimarySelection['codeType']>(null);
+  const [codeBasketSummary, setCodeBasketSummary] =
+    useState<GrowthCodeBasketSummary>(() => createEmptyGrowthCodeBasketSummary());
   const [privateOfferSelection, setPrivateOfferSelection] =
     useState<PrivateOfferSelection | null>(null);
   const [successMessage, setSuccessMessage] = useState(t('checkoutQuote.paymentPageOpened'));
+  const quoteRequestId = useRef(0);
   const privateOfferCopy = useMemo(() => buildPrivateOfferUnlockCopy(t), [t]);
+  const growthCodeBasketCopy = useMemo(() => buildGrowthCodeBasketCopy(t), [t]);
 
   const handleClose = () => {
     setStep('confirm');
     setError('');
-    setCodeInput('');
-    setCodeError('');
-    setCodeFeedback(null);
     setQuoteSession(null);
     setQuoteLoading(false);
     setQuoteExpired(false);
     setAppliedCodeInput(null);
+    setAppliedCodeInputs([]);
+    setAppliedCodeType(null);
+    setCodeBasketSummary(createEmptyGrowthCodeBasketSummary());
     setPrivateOfferSelection(null);
     setSuccessMessage(t('checkoutQuote.paymentPageOpened'));
     onClose();
@@ -144,6 +160,46 @@ export function PurchaseConfirmModal({
 
   const planPrice = plan ? getPlanPrice(plan, locale) : null;
   const checkoutQuoteLoadError = t('checkoutQuote.loadError');
+
+  const requestQuoteSession = useCallback(async ({
+    codeInputs,
+    privateOffer,
+    fallbackError,
+  }: {
+    codeInputs?: string[];
+    privateOffer?: PrivateOfferSelection | null;
+    fallbackError: string;
+  }) => {
+    const activePlan = plan;
+    if (!activePlan) {
+      return;
+    }
+
+    const requestId = quoteRequestId.current + 1;
+    quoteRequestId.current = requestId;
+    setQuoteLoading(true);
+    setError('');
+
+    try {
+      const response = await commerceApi.createQuoteSession(
+        buildQuoteRequest(activePlan, codeInputs, privateOffer ?? null),
+      );
+
+      if (requestId === quoteRequestId.current) {
+        setQuoteSession(response.data);
+        setQuoteExpired(false);
+      }
+    } catch (err) {
+      if (requestId === quoteRequestId.current) {
+        setQuoteSession(null);
+        setError(getQuoteErrorMessage(err, fallbackError));
+      }
+    } finally {
+      if (requestId === quoteRequestId.current) {
+        setQuoteLoading(false);
+      }
+    }
+  }, [plan]);
 
   useEffect(() => {
     const activePlan = plan;
@@ -159,11 +215,12 @@ export function PurchaseConfirmModal({
     async function loadInitialQuote() {
       setQuoteLoading(true);
       setError('');
-      setCodeError('');
-      setCodeFeedback(null);
       setQuoteSession(null);
       setQuoteExpired(false);
       setAppliedCodeInput(null);
+      setAppliedCodeInputs([]);
+      setAppliedCodeType(null);
+      setCodeBasketSummary(createEmptyGrowthCodeBasketSummary());
       setPrivateOfferSelection(null);
 
       try {
@@ -220,106 +277,16 @@ export function PurchaseConfirmModal({
     };
   }, [quoteSession]);
 
-  const handleApplyCode = async () => {
-    const activePlan = plan;
-    if (!codeInput.trim()) {
-      setCodeError(t('checkoutQuote.checkoutCodeRequired'));
-      return;
-    }
-    if (!activePlan) {
-      return;
-    }
-
-    setQuoteLoading(true);
-    setCodeError('');
-    setCodeFeedback(null);
-    setError('');
-
-    try {
-      const normalizedCode = codeInput.trim().toUpperCase();
-      const quotePlanId =
-        privateOfferSelection?.planId
-        ?? activePlan.public_catalog_quote?.planId
-        ?? activePlan.uuid;
-      const resolutionResponse = await codesApi.resolve({
-        code: normalizedCode,
-        action_context: 'checkout',
-        storefront_key: OFFICIAL_WEB_STOREFRONT_KEY,
-        plan_id: quotePlanId,
-        amount: getPublicCatalogAmount(activePlan),
-        channel: OFFICIAL_WEB_SALE_CHANNEL,
-      });
-      const resolution = resolutionResponse.data;
-
-      if (!resolution.accepted) {
-        setAppliedCodeInput(null);
-        setCodeError(getGrowthCodeResolutionMessage(resolution));
-
-        const fallbackQuote = await commerceApi.createQuoteSession(
-          buildQuoteRequest(activePlan, undefined, privateOfferSelection),
-        );
-        setQuoteSession(fallbackQuote.data);
-        return;
-      }
-
-      const unsupportedMessage = getUnsupportedCheckoutCodeMessage({
-        codeType: resolution.code_type,
-        flow: 'checkout',
-        partnerCodeEntryAllowed:
-          canOfficialWebSurfaceAccess('partner_code_entry'),
-      });
-      if (unsupportedMessage) {
-        setAppliedCodeInput(null);
-        setCodeError(unsupportedMessage);
-
-        const fallbackQuote = await commerceApi.createQuoteSession(
-          buildQuoteRequest(activePlan, undefined, privateOfferSelection),
-        );
-        setQuoteSession(fallbackQuote.data);
-        return;
-      }
-
-      const response = await commerceApi.createQuoteSession(
-        buildQuoteRequest(activePlan, normalizedCode, privateOfferSelection),
-      );
-      setQuoteSession(response.data);
-      setQuoteExpired(false);
-      setAppliedCodeInput(normalizedCode);
-      setCodeInput(normalizedCode);
-      setCodeFeedback(
-        resolution.code_type === 'referral'
-          ? t('checkoutQuote.referralCodeAccepted')
-          : t('checkoutQuote.checkoutCodeAccepted'),
-      );
-    } catch (err) {
-      setAppliedCodeInput(null);
-      setCodeFeedback(null);
-      setCodeError(getQuoteErrorMessage(err, t('checkoutQuote.checkoutCodeInvalid')));
-
-      try {
-        const fallbackQuote = await commerceApi.createQuoteSession(
-          buildQuoteRequest(activePlan, undefined, privateOfferSelection),
-        );
-        setQuoteSession(fallbackQuote.data);
-      } catch {
-        setQuoteSession(null);
-      }
-    } finally {
-      setQuoteLoading(false);
-    }
-  };
-
   const handleRefreshQuote = async () => {
     const activePlan = plan;
     if (!activePlan) return;
 
     setQuoteLoading(true);
     setError('');
-    setCodeError('');
 
     try {
       const response = await commerceApi.createQuoteSession(
-        buildQuoteRequest(activePlan, appliedCodeInput ?? undefined, privateOfferSelection),
+        buildQuoteRequest(activePlan, appliedCodeInputs, privateOfferSelection),
       );
       setQuoteSession(response.data);
       setQuoteExpired(false);
@@ -343,22 +310,36 @@ export function PurchaseConfirmModal({
       return;
     }
 
-    setQuoteLoading(true);
-    try {
-      const response = await commerceApi.createQuoteSession(
-        buildQuoteRequest(activePlan, appliedCodeInput ?? undefined, selection),
-      );
-      setQuoteSession(response.data);
-    } catch (err) {
-      if (selection) {
-        setPrivateOfferSelection(null);
-      }
-      setQuoteSession(null);
-      setError(getQuoteErrorMessage(err, t('privateOffer.quoteError')));
-    } finally {
-      setQuoteLoading(false);
+    await requestQuoteSession({
+      codeInputs: appliedCodeInputs,
+      privateOffer: selection,
+      fallbackError: t('privateOffer.quoteError'),
+    });
+  }, [appliedCodeInputs, plan, privateOfferSelection, requestQuoteSession, t]);
+
+  const handleGrowthCodeBasketSelectionChange = useCallback((
+    primary: GrowthCodeBasketPrimarySelection | null,
+    summary: GrowthCodeBasketSummary,
+  ) => {
+    setCodeBasketSummary(summary);
+
+    if (summary.pendingCount > 0) {
+      return;
     }
-  }, [appliedCodeInput, plan, privateOfferSelection, t]);
+
+    const nextCodes = summary.isDegraded ? [] : summary.acceptedCodes;
+    const nextCode = nextCodes[0] ?? null;
+    const nextCodeType = summary.isDegraded ? null : primary?.codeType ?? null;
+    setAppliedCodeInput(nextCode);
+    setAppliedCodeInputs(nextCodes);
+    setAppliedCodeType(nextCodeType);
+
+    void requestQuoteSession({
+      codeInputs: nextCodes,
+      privateOffer: privateOfferSelection,
+      fallbackError: checkoutQuoteLoadError,
+    });
+  }, [checkoutQuoteLoadError, privateOfferSelection, requestQuoteSession]);
 
   const handlePurchase = async () => {
     const activePlan = plan;
@@ -372,7 +353,7 @@ export function PurchaseConfirmModal({
     markPerformance(PerformanceMarks.PURCHASE_FLOW_START, {
       planId: privateOfferSelection?.planId ?? activePlan.uuid,
       planName: activePlan.display_name,
-      hasPromoCode: !!appliedCodeInput,
+      hasPromoCode: appliedCodeInputs.length > 0,
     });
 
     setStep('processing');
@@ -456,6 +437,12 @@ export function PurchaseConfirmModal({
   const quotedBase = quote?.base_price ?? planPrice?.amount ?? plan.price_usd;
   const hasDiscount = (quote?.discount_amount ?? 0) > 0;
   const quotedGateway = quote?.gateway_amount ?? planPrice?.amount ?? plan.price_usd;
+  const quotePlanId =
+    privateOfferSelection?.planId
+    ?? plan.public_catalog_quote?.planId
+    ?? plan.uuid;
+  const codeBasketBlocksCheckout =
+    codeBasketSummary.pendingCount > 0 || codeBasketSummary.isDegraded;
   const showPromoControls =
     arePromoCodesEnabled(capabilities) &&
     areCheckoutCodeDiscountsEnabled(capabilities);
@@ -579,65 +566,56 @@ export function PurchaseConfirmModal({
           />
 
           {showPromoControls ? (
-            <div className="cyber-card p-4 bg-terminal-bg">
-              <div className="flex items-center gap-3 mb-3">
-                <Tag className="h-5 w-5 text-neon-purple" />
-                <h4 className="text-sm font-display text-neon-purple">
-                  {t('checkoutCodes.title')}
-                </h4>
-              </div>
+            <GrowthCodeBasket
+              copy={growthCodeBasketCopy}
+              context={{
+                storefrontKey: OFFICIAL_WEB_STOREFRONT_KEY,
+                planId: quotePlanId,
+                amount: getPublicCatalogAmount(plan),
+                channel: OFFICIAL_WEB_SALE_CHANNEL,
+                flow: 'checkout',
+                partnerCodeEntryAllowed:
+                  canOfficialWebSurfaceAccess('partner_code_entry'),
+              }}
+              contextFingerprint={[
+                OFFICIAL_WEB_STOREFRONT_KEY,
+                OFFICIAL_WEB_SALE_CHANNEL,
+                quotePlanId,
+                quoteCurrency,
+                getPublicCatalogAmount(plan),
+                privateOfferSelection?.privateCatalogGrantId ?? 'public',
+              ].join(':')}
+              disabled={quoteLoading}
+              onSelectionChange={handleGrowthCodeBasketSelectionChange}
+              variant="web"
+            />
+          ) : null}
 
-              <div className="space-y-3">
-                <CyberInput
-                  label={t('checkoutQuote.checkoutCodeLabel')}
-                  type="text"
-                  value={codeInput}
-                  onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                  placeholder={t('checkoutQuote.checkoutCodePlaceholder')}
-                  prefix="code"
-                  error={codeError}
-                  disabled={quoteLoading}
-                  onKeyDown={(e) => e.key === 'Enter' && handleApplyCode()}
-                />
-
-                {showQuoteAdjustmentBanner ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-start gap-2 p-3 bg-matrix-green/10 border border-matrix-green/30 rounded"
-                  >
-                    <Percent className="h-4 w-4 text-matrix-green flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <ShieldCheck className="h-3 w-3 text-matrix-green" />
-                        <span className="text-xs font-semibold text-matrix-green uppercase tracking-[0.18em]">
-                          {t('checkoutQuote.checkoutCodeAccepted')}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {(quote?.discount_amount ?? 0) > 0
-                          ? `${appliedCodeInput} applied: ${formatMoney(locale, quote?.discount_amount ?? 0, quoteCurrency)} off`
-                          : `${appliedCodeInput} applied`}
-                      </p>
-                    </div>
-                  </motion.div>
+          {showQuoteAdjustmentBanner ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-start gap-2 rounded border border-matrix-green/30 bg-matrix-green/10 p-3"
+            >
+              <Percent className="mt-0.5 h-4 w-4 flex-shrink-0 text-matrix-green" />
+              <div className="flex-1">
+                <div className="mb-1 flex items-center gap-2">
+                  <ShieldCheck className="h-3 w-3 text-matrix-green" />
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-matrix-green">
+                    {appliedCodeType === 'referral'
+                      ? t('checkoutQuote.referralCodeAccepted')
+                      : t('checkoutQuote.checkoutCodeAccepted')}
+                  </span>
+                </div>
+                {(quote?.discount_amount ?? 0) > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t('checkoutQuote.discountApplied', {
+                      amount: formatMoney(locale, quote?.discount_amount ?? 0, quoteCurrency),
+                    })}
+                  </p>
                 ) : null}
-
-                {codeFeedback ? (
-                  <div className="rounded border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-2 text-xs text-neon-cyan">
-                    {codeFeedback}
-                  </div>
-                ) : null}
-
-                <button
-                  onClick={handleApplyCode}
-                  disabled={quoteLoading || !codeInput.trim()}
-                  className="w-full px-3 py-2 bg-neon-purple/20 hover:bg-neon-purple/30 border border-neon-purple/50 text-neon-purple font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {quoteLoading ? t('checkoutQuote.updatingQuote') : t('checkoutQuote.applyCode')}
-                </button>
               </div>
-            </div>
+            </motion.div>
           ) : null}
 
           <div className="p-4 bg-neon-cyan/5 border border-neon-cyan/30 rounded-lg">
@@ -675,7 +653,13 @@ export function PurchaseConfirmModal({
             </button>
             <button
               onClick={handlePurchase}
-              disabled={quoteLoading || Boolean(error) || quoteExpired || !quoteSession}
+              disabled={
+                quoteLoading
+                || Boolean(error)
+                || quoteExpired
+                || !quoteSession
+                || codeBasketBlocksCheckout
+              }
               className="flex-1 px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors hover:shadow-[0_0_15px_rgba(0,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {quote?.is_zero_gateway ? t('checkoutQuote.activateNow') : t('checkoutQuote.payWithCrypto')}

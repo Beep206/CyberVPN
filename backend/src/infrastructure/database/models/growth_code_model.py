@@ -505,6 +505,15 @@ class GrowthCodeReservationModel(Base):
         nullable=True,
         index=True,
     )
+    risk_subject_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("risk_subjects.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    risk_decision_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
+    device_key_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    velocity_bucket: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
+    capacity_context: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     reserved_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

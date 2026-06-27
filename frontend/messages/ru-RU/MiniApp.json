@@ -76,7 +76,9 @@
     "actions": {
       "openPayment": "Открыть оплату",
       "purchaseAddons": "Купить дополнения",
-      "upgradeNow": "Сменить тариф"
+      "upgradeNow": "Сменить тариф",
+      "activateFree": "Активировать бесплатно",
+      "activatingFree": "Активируем подписку"
     },
     "activateTrial": "Активировать пробный доступ",
     "activating": "Активация...",
@@ -170,7 +172,16 @@
       "serverPool": "Пул серверов",
       "total": "Итого",
       "traffic": "Трафик",
-      "walletAmount": "Кошелёк"
+      "walletAmount": "Кошелёк",
+      "benefitsPreview": "Бонусы после активации",
+      "inviteBenefitWithDays": "{count} инвайтов · {days} дней другу",
+      "inviteBenefit": "{count} инвайтов после активации",
+      "benefitAvailableAfter": "Доступно после: {stage}",
+      "benefitExpiresAt": "Истекает {date}",
+      "benefitStages": {
+        "settlement": "settlement",
+        "activation": "активации"
+      }
     },
     "privateOffer": {
       "title": "Доступ к приватному предложению",
@@ -227,7 +238,81 @@
     "trialActivated": "Пробный доступ активирован. У вас есть 3 дня входного доступа.",
     "trialError": "Не удалось активировать пробный доступ. Попробуйте ещё раз.",
     "trialLabel": "Пробный доступ",
-    "trialTemporarilyUnavailable": "Активация пробного доступа временно недоступна. Попробуйте позже."
+    "trialTemporarilyUnavailable": "Активация пробного доступа временно недоступна. Попробуйте позже.",
+    "growthCodeBasket": {
+      "title": "Корзина кодов для checkout",
+      "description": "Добавьте коды, чтобы проверить статус на backend перед quote. Checkout рассчитывает совместимые принятые коды вместе.",
+      "inputLabel": "Код для checkout",
+      "placeholder": "PROMO2026",
+      "addCta": "Добавить код",
+      "addingCta": "Проверяем...",
+      "empty": "Коды для checkout не добавлены.",
+      "maxCount": "Можно проверить до {count} кодов.",
+      "duplicate": "Этот код уже есть в корзине.",
+      "inputRequired": "Сначала введите код.",
+      "maxReached": "Удалите код перед добавлением больше {count}.",
+      "missingPlan": "Выберите тариф перед проверкой кодов.",
+      "contextChanged": "Тариф, приватное предложение или quote изменились. Проверьте код снова.",
+      "removeCta": "Удалить код",
+      "retryCta": "Повторить проверку кода",
+      "degraded": "Принятые коды будут рассчитаны вместе. Удаляйте код только если backend отметил его как отклонённый или конфликтующий.",
+      "pendingCheckout": "Статус кода ещё проверяется. Checkout заблокирован до завершения проверки.",
+      "primaryApplied": "Этот принятый код сейчас учитывается в цене checkout.",
+      "acceptedQueued": "Принят для группового расчёта checkout.",
+      "networkError": "Статус кода временно недоступен. Повторите без повторного ввода.",
+      "status": {
+        "idle": "Нужна проверка",
+        "checking": "Проверяется",
+        "accepted": "Принят",
+        "rejected": "Отклонён",
+        "warning": "Требуется действие",
+        "networkError": "Повторите"
+      },
+      "codeTypes": {
+        "invite": "Инвайт-код",
+        "referral": "Реферальный код",
+        "promo": "Промокод",
+        "gift": "Подарочный код",
+        "partner": "Партнёрский код",
+        "unknown": "Код"
+      },
+      "errors": {
+        "conflictPartnerCodeReferral": "Реферальную скидку нельзя объединить с партнёрским кодом.",
+        "conflictPartnerCode": "Этот код нельзя объединить с партнёрским кодом.",
+        "conflictPartnerBindingReferral": "Реферальную скидку нельзя объединить с активной партнёрской атрибуцией.",
+        "conflictPartnerBinding": "Этот код нельзя объединить с активной партнёрской атрибуцией.",
+        "conflictPromoPresent": "Партнёрский код нельзя объединить с другим кодом скидки.",
+        "wrongContextInvite": "Инвайт-коды активируются в центре наград, а не в checkout.",
+        "wrongContextGift": "Подарочные коды активируются в центре наград, а не в checkout.",
+        "wrongContextPartner": "Партнёрские коды не включены на этой поверхности checkout.",
+        "wrongContextCheckout": "Этот код нужно применить в checkout.",
+        "wrongContextRedeem": "Этот код нужно активировать вне checkout.",
+        "notFound": "Код не найден.",
+        "expired": "Срок действия кода истёк.",
+        "inactive": "Код неактивен.",
+        "exhausted": "Лимит использования кода исчерпан.",
+        "alreadyUsed": "Код уже использован.",
+        "inviteSelfRedemption": "Нельзя активировать собственный инвайт-код.",
+        "notEligibleForSku": "Код не подходит для выбранной корзины checkout.",
+        "notEligibleForSurface": "Код недоступен на текущей поверхности.",
+        "blockedByRisk": "Для этого кода нужна дополнительная проверка перед использованием.",
+        "requiresAuth": "Войдите снова, чтобы использовать этот код.",
+        "generic": "Код не удалось применить."
+      },
+      "unsupported": {
+        "partnerUnavailable": "Партнёрские коды недоступны на этой поверхности checkout.",
+        "upgradePromoOnly": "При апгрейде подписки сейчас доступны только промокоды.",
+        "addonsPromoOnly": "Для дополнений сейчас доступны только промокоды."
+      }
+    },
+    "zeroGateway": {
+      "activatedAlert": "Бесплатная активация завершена. Подписка активна.",
+      "title": "Подписка активирована",
+      "description": "Checkout завершился с нулевой суммой через провайдера, и backend активировал доступ без внешней оплаты.",
+      "noInvoice": "Telegram invoice и платёжный redirect для этого заказа не открывались.",
+      "rewardHint": "Откройте награды, чтобы увидеть инвайт-батчи и подарки после публикации backend.",
+      "openRewards": "Открыть награды"
+    }
   },
   "profile": {
     "accountDeleted": "Аккаунт удалён",

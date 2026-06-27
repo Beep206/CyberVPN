@@ -1,4 +1,4 @@
-import { ReferralSignalsConsole } from '@/features/growth/components/referral-signals-console';
+import { GrowthRiskConsole } from '@/features/growth/components/growth-v6-operations-console';
 import { getGrowthPageMetadata } from '@/features/growth/lib/page-metadata';
 
 export async function generateMetadata({
@@ -11,5 +11,5 @@ export async function generateMetadata({
 }
 
 export default function GrowthRiskPage() {
-  return <ReferralSignalsConsole />;
+  return <GrowthRiskConsole />;
 }

@@ -50,6 +50,24 @@ class Permission(StrEnum):
     GROWTH_RULES_VALIDATE = "growth.rules.validate"
     GROWTH_RULES_PUBLISH = "growth.rules.publish"
     GROWTH_RULES_APPROVE = "growth.rules.approve"
+    GROWTH_RISK_DECISIONS_VIEW = "growth.risk.decisions.view"
+    GROWTH_RISK_REVIEWS_MANAGE = "growth.risk.reviews.manage"
+    GROWTH_RISK_MODELS_MANAGE = "growth.risk.models.manage"
+    GROWTH_RISK_MODELS_APPROVE = "growth.risk.models.approve"
+    GROWTH_RISK_THRESHOLDS_MANAGE = "growth.risk.thresholds.manage"
+    GROWTH_PRIVATE_CATALOG_VIEW = "growth.private_catalog.view"
+    GROWTH_PRIVATE_CATALOG_MANAGE = "growth.private_catalog.manage"
+    GROWTH_PRIVATE_GRANTS_VIEW = "growth.private_grants.view"
+    GROWTH_PRIVATE_GRANTS_REVOKE = "growth.private_grants.revoke"
+    GROWTH_FX_VIEW = "growth.fx.view"
+    GROWTH_FX_MANAGE = "growth.fx.manage"
+    GROWTH_FX_OVERRIDE = "growth.fx.override"
+    GROWTH_FX_APPROVE = "growth.fx.approve"
+    GROWTH_CODE_SETS_INSPECT = "growth.code_sets.inspect"
+    GROWTH_CODE_SETS_EXPORT = "growth.code_sets.export"
+    GROWTH_ONBOARDING_VIEW = "growth.onboarding.view"
+    GROWTH_ONBOARDING_MANAGE = "growth.onboarding.manage"
+    GROWTH_ONBOARDING_RESET = "growth.onboarding.reset"
     # Subscriptions
     SUBSCRIPTION_CREATE = "subscription_create"
     VPN_CREDENTIAL_REGENERATE = "vpn_credential_regenerate"
@@ -157,6 +175,24 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
         Permission.GROWTH_RULES_VALIDATE,
         Permission.GROWTH_RULES_PUBLISH,
         Permission.GROWTH_RULES_APPROVE,
+        Permission.GROWTH_RISK_DECISIONS_VIEW,
+        Permission.GROWTH_RISK_REVIEWS_MANAGE,
+        Permission.GROWTH_RISK_MODELS_MANAGE,
+        Permission.GROWTH_RISK_MODELS_APPROVE,
+        Permission.GROWTH_RISK_THRESHOLDS_MANAGE,
+        Permission.GROWTH_PRIVATE_CATALOG_VIEW,
+        Permission.GROWTH_PRIVATE_CATALOG_MANAGE,
+        Permission.GROWTH_PRIVATE_GRANTS_VIEW,
+        Permission.GROWTH_PRIVATE_GRANTS_REVOKE,
+        Permission.GROWTH_FX_VIEW,
+        Permission.GROWTH_FX_MANAGE,
+        Permission.GROWTH_FX_OVERRIDE,
+        Permission.GROWTH_FX_APPROVE,
+        Permission.GROWTH_CODE_SETS_INSPECT,
+        Permission.GROWTH_CODE_SETS_EXPORT,
+        Permission.GROWTH_ONBOARDING_VIEW,
+        Permission.GROWTH_ONBOARDING_MANAGE,
+        Permission.GROWTH_ONBOARDING_RESET,
         Permission.SUBSCRIPTION_CREATE,
         Permission.VPN_CREDENTIAL_REGENERATE,
         Permission.VIEW_ANALYTICS,
