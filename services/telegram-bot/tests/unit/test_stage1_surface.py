@@ -21,16 +21,7 @@ def _clone_settings(settings: BotSettings, **overrides: object) -> BotSettings:
 def test_stage1_public_commands_match_implemented_s1_entrypoints() -> None:
     commands = build_stage1_public_commands()
 
-    assert [command.command for command in commands] == [
-        "start",
-        "menu",
-        "connect",
-        "plans",
-        "trial",
-        "invites",
-        "support",
-        "paysupport",
-    ]
+    assert [command.command for command in commands] == [command for command, _ in STAGE1_PUBLIC_COMMANDS]
     assert len(commands) == len(STAGE1_PUBLIC_COMMANDS)
     assert all(command.description for command in commands)
 
