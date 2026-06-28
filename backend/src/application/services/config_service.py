@@ -236,6 +236,8 @@ class CustomerOnboardingRuntimeConfig:
     web_otp_enabled: bool = False
     telegram_miniapp_enabled: bool = False
     state_store_ready: bool = False
+    telegram_bot_code_apply_enabled: bool = False
+    connection_bootstrap_enabled: bool = True
     flow_key: str = "post_registration_growth_code_v1"
     version: int = 1
     allowed_code_types: tuple[OnboardingCodeType, ...] = ("promo", "invite", "gift")
@@ -249,6 +251,14 @@ class CustomerOnboardingRuntimeConfig:
             and self.state_store_ready
             and (self.web_otp_enabled or self.telegram_miniapp_enabled)
         )
+
+    @property
+    def telegram_bot_code_apply_available(self) -> bool:
+        return self.telegram_bot_code_apply_enabled and self.state_store_ready
+
+    @property
+    def connection_bootstrap_available(self) -> bool:
+        return self.connection_bootstrap_enabled
 
 
 @dataclass(frozen=True)
@@ -490,6 +500,8 @@ class ConfigService:
                 "web_otp_enabled": False,
                 "telegram_miniapp_enabled": False,
                 "state_store_ready": False,
+                "telegram_bot_code_apply_enabled": False,
+                "connection_bootstrap_enabled": True,
                 "flow_key": "post_registration_growth_code_v1",
                 "version": 1,
                 "allowed_code_types": ["promo", "invite", "gift"],
@@ -515,6 +527,8 @@ class ConfigService:
             web_otp_enabled=bool(val.get("web_otp_enabled", False)),
             telegram_miniapp_enabled=bool(val.get("telegram_miniapp_enabled", False)),
             state_store_ready=bool(val.get("state_store_ready", False)),
+            telegram_bot_code_apply_enabled=bool(val.get("telegram_bot_code_apply_enabled", False)),
+            connection_bootstrap_enabled=bool(val.get("connection_bootstrap_enabled", True)),
             flow_key=flow_key or "post_registration_growth_code_v1",
             version=_normalize_positive_int(val.get("version")),
             allowed_code_types=filtered_code_types or ("promo", "invite", "gift"),

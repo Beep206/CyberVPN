@@ -91,14 +91,27 @@ def mask_code(code: str) -> str:
     return f"{normalized[:2]}***{normalized[-2:]}"
 
 
-def onboarding_code_idempotency_key(telegram_id: int, code: str) -> str:
-    digest = hashlib.sha256(f"telegram_bot:{telegram_id}:{code.strip()}".encode()).hexdigest()
-    return f"tg-code-{digest}"
+def onboarding_code_idempotency_key(
+    *,
+    telegram_id: int,
+    code: str,
+    message_id: int | None = None,
+    session_id: str | None = None,
+) -> str:
+    attempt_ref = str(message_id or session_id or "manual")
+    digest = hashlib.sha256(code.strip().encode()).hexdigest()[:16]
+    return f"tg-code:{telegram_id}:{attempt_ref}:{digest}"
 
 
 def _code_apply_error_message_key(exc: Exception) -> str:
-    if isinstance(exc, APIError) and exc.status_code in {401, 403}:
-        return "bot-onboarding-code-apply-unavailable"
+    if isinstance(exc, APIError):
+        detail: object = exc.detail
+        detail_code = detail.get("code") if isinstance(detail, dict) else None
+        if exc.status_code in {401, 403} or detail_code in {
+            "CUSTOMER_ONBOARDING_STATE_UNAVAILABLE",
+            "CUSTOMER_ONBOARDING_TELEGRAM_CODE_APPLY_UNAVAILABLE",
+        }:
+            return "bot-onboarding-code-apply-unavailable"
     return "code-not-found"
 
 
@@ -361,7 +374,11 @@ async def apply_code_and_open_connection(
         await api_client.apply_telegram_onboarding_code(
             message.from_user.id,
             normalized_code,
-            idempotency_key=onboarding_code_idempotency_key(message.from_user.id, normalized_code),
+            idempotency_key=onboarding_code_idempotency_key(
+                telegram_id=message.from_user.id,
+                code=normalized_code,
+                message_id=message.message_id,
+            ),
         )
     except Exception as exc:
         logger.warning(

@@ -134,10 +134,37 @@ async def apply_customer_onboarding_growth_code(
         current_realm=current_realm,
     )
     runtime_config = await ConfigService(SystemConfigRepository(db)).get_customer_onboarding_runtime_config()
+    state_repo = CustomerOnboardingStateSqlAlchemyRepository(db)
+    allow_without_prompt = False
     try:
+        if payload.source_surface == "telegram_bot":
+            if not runtime_config.telegram_bot_code_apply_available:
+                raise CustomerOnboardingUnavailableError(
+                    code="CUSTOMER_ONBOARDING_TELEGRAM_CODE_APPLY_UNAVAILABLE",
+                    message_key="onboarding.telegram_code_apply_unavailable",
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+            existing_state = await state_repo.get_current(
+                user_id=resolved_user_id,
+                flow_key=runtime_config.flow_key,
+                version=runtime_config.version,
+            )
+            if existing_state is None:
+                await state_repo.ensure_pending(
+                    user_id=resolved_user_id,
+                    runtime_config=runtime_config,
+                    source_channel="telegram_bot",
+                    auth_channel="telegram_bot",
+                )
+                logger.info(
+                    "customer_onboarding_state_auto_created",
+                    extra={"source_surface": payload.source_surface, "flow_key": runtime_config.flow_key},
+                )
+            allow_without_prompt = True
+
         result = await ApplyCustomerOnboardingGrowthCodeUseCase(
             runtime_config=runtime_config,
-            state_repo=CustomerOnboardingStateSqlAlchemyRepository(db),
+            state_repo=state_repo,
             flow_tokens=CustomerOnboardingFlowTokenService(),
         ).execute(
             user_id=resolved_user_id,
@@ -145,6 +172,7 @@ async def apply_customer_onboarding_growth_code(
             flow_token=payload.flow_token,
             idempotency_key=payload.idempotency_key,
             require_flow_token=payload.source_surface != "telegram_bot",
+            allow_without_prompt=allow_without_prompt,
             code_applier=CustomerOnboardingGrowthCodeApplier(db, current_realm=resolved_realm),
         )
     except CustomerOnboardingUnavailableError as exc:

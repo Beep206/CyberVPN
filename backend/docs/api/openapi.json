@@ -64367,6 +64367,16 @@
             "title": "State Store",
             "default": false
           },
+          "telegram_bot_code_apply": {
+            "type": "boolean",
+            "title": "Telegram Bot Code Apply",
+            "default": false
+          },
+          "connection_bootstrap": {
+            "type": "boolean",
+            "title": "Connection Bootstrap",
+            "default": true
+          },
           "flow_key": {
             "type": "string",
             "title": "Flow Key",

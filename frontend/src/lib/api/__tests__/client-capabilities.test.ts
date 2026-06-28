@@ -82,6 +82,8 @@ const RUNTIME_CAPABILITIES: ClientCapabilitiesResponse = {
     web_otp: true,
     telegram_miniapp: true,
     state_store: true,
+    telegram_bot_code_apply: false,
+    connection_bootstrap: true,
     flow_key: 'post_registration_growth_code_v1',
     version: 1,
     allowed_code_types: ['promo', 'invite', 'gift'],

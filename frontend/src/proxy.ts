@@ -235,11 +235,85 @@ function getRouteSegment(pathname: string): string {
   return hasLocale ? segments[1] ?? '' : firstSegment ?? '';
 }
 
-function getRequestLocale(pathname: string): string {
+function getRequestLocaleFromPathname(pathname: string): string | null {
   const firstSegment = pathname.split('/').filter(Boolean)[0];
   return locales.includes(firstSegment as (typeof locales)[number])
     ? firstSegment
-    : defaultLocale;
+    : null;
+}
+
+function isSupportedLocale(value: string | null | undefined): value is (typeof locales)[number] {
+  return locales.includes(value as (typeof locales)[number]);
+}
+
+function resolveLocaleFromAcceptLanguage(header: string | null): string | null {
+  if (!header) {
+    return null;
+  }
+
+  const preferences = header
+    .split(',')
+    .map((part) => {
+      const [language, ...params] = part.trim().split(';');
+      const qParam = params.find((param) => param.trim().startsWith('q='));
+      const q = qParam ? Number(qParam.split('=')[1]) : 1;
+      return { language: language.trim(), q: Number.isFinite(q) ? q : 0 };
+    })
+    .filter((item) => item.language)
+    .sort((a, b) => b.q - a.q);
+
+  for (const item of preferences) {
+    const exact = locales.find((locale) => locale.toLowerCase() === item.language.toLowerCase());
+    if (exact) {
+      return exact;
+    }
+
+    const languagePrefix = item.language.split('-')[0]?.toLowerCase();
+    const prefixed = locales.find((locale) => locale.toLowerCase().startsWith(`${languagePrefix}-`));
+    if (prefixed) {
+      return prefixed;
+    }
+  }
+
+  return null;
+}
+
+function resolvePreferredLocale(request: NextRequest): string {
+  const pathnameLocale = getRequestLocaleFromPathname(request.nextUrl.pathname);
+  if (pathnameLocale) {
+    return pathnameLocale;
+  }
+
+  const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
+  if (isSupportedLocale(cookieLocale)) {
+    return cookieLocale;
+  }
+
+  return resolveLocaleFromAcceptLanguage(request.headers.get('accept-language')) ?? defaultLocale;
+}
+
+function isNextInternalNavigationRequest(request: NextRequest): boolean {
+  return (
+    request.nextUrl.searchParams.has('_rsc')
+    || request.headers.get('rsc') === '1'
+    || request.headers.has('next-router-state-tree')
+    || request.headers.has('next-router-prefetch')
+    || request.headers.get('accept')?.toLowerCase().includes('text/x-component') === true
+  );
+}
+
+function isCrossOriginTarget(request: NextRequest, target: URL): boolean {
+  const sourceHost = normalizedHostname(request);
+  const targetHost = normalizeHostnameCandidate(target.host);
+  return Boolean(targetHost && targetHost !== sourceHost);
+}
+
+function redirectOrInternalNotFound(request: NextRequest, target: URL): NextResponse {
+  if (isNextInternalNavigationRequest(request) && isCrossOriginTarget(request, target)) {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  return NextResponse.redirect(target);
 }
 
 function getUnlocalizedPathname(pathname: string): string {
@@ -298,7 +372,7 @@ function getLegacyReferralCode(request: NextRequest, routeSegment: string): stri
 }
 
 function buildReferralRegisterRedirectUrl(request: NextRequest, rawCode: string): URL {
-  const locale = getRequestLocale(request.nextUrl.pathname);
+  const locale = resolvePreferredLocale(request);
   const target = new URL(`/${locale}/register`, CABINET_ORIGIN);
   target.searchParams.set('ref', rawCode);
 
@@ -572,7 +646,7 @@ function buildMaintenanceRedirect(
     return null;
   }
 
-  const locale = getRequestLocale(request.nextUrl.pathname);
+  const locale = resolvePreferredLocale(request);
   const publicHost = firstConfiguredHost(snapshot.publicHosts, PUBLIC_PRIMARY_HOST);
   const target = buildWhitelistedRedirectUrl(
     request,
@@ -619,9 +693,10 @@ function buildCabinetOnlyRedirect(
       return new NextResponse(null, { status: 404 });
     }
 
-    const locale = getRequestLocale(request.nextUrl.pathname);
+    const locale = resolvePreferredLocale(request);
     const publicHost = firstConfiguredHost(snapshot.publicHosts, PUBLIC_PRIMARY_HOST);
-    return NextResponse.redirect(
+    return redirectOrInternalNotFound(
+      request,
       buildWhitelistedRedirectUrl(
         request,
         `https://${publicHost}`,
@@ -634,11 +709,16 @@ function buildCabinetOnlyRedirect(
   if (isAllowedByRuntimePrefix(unlocalizedPathname, snapshot.allowedPathPrefixes)) {
     if (isPublicHost && AUTH_ROUTE_SEGMENTS.has(routeSegment)) {
       const cabinetHost = firstConfiguredHost(snapshot.cabinetHosts, CABINET_PRIMARY_HOST);
-      return NextResponse.redirect(
+      const locale = resolvePreferredLocale(request);
+      const targetPathname = getRequestLocaleFromPathname(request.nextUrl.pathname) === null
+        ? localizedRuntimePath(locale, unlocalizedPathname)
+        : request.nextUrl.pathname;
+      return redirectOrInternalNotFound(
+        request,
         buildWhitelistedRedirectUrl(
           request,
           `https://${cabinetHost}`,
-          request.nextUrl.pathname,
+          targetPathname,
           AUTH_REDIRECT_PRESERVE_QUERY_KEYS,
         ),
       );
@@ -647,9 +727,10 @@ function buildCabinetOnlyRedirect(
     return null;
   }
 
-  const locale = getRequestLocale(request.nextUrl.pathname);
+  const locale = resolvePreferredLocale(request);
   const cabinetHost = firstConfiguredHost(snapshot.cabinetHosts, CABINET_PRIMARY_HOST);
-  return NextResponse.redirect(
+  return redirectOrInternalNotFound(
+    request,
     buildWhitelistedRedirectUrl(
       request,
       `https://${cabinetHost}`,
@@ -720,6 +801,9 @@ export async function proxy(request: NextRequest) {
     (hostname === PUBLIC_PRIMARY_HOST || hostname === PUBLIC_WWW_HOST)
     && CABINET_ROUTE_SEGMENTS.has(routeSegment)
   ) {
+    if (isNextInternalNavigationRequest(request)) {
+      return new NextResponse(null, { status: 404 });
+    }
     return NextResponse.redirect(buildCanonicalRedirectUrl(request, CABINET_ORIGIN));
   }
 
@@ -732,7 +816,7 @@ export async function proxy(request: NextRequest) {
     if (!routeSegment) {
       return NextResponse.redirect(
         buildExternalRequestRedirectUrl(request, CABINET_ORIGIN, {
-          pathname: `/${defaultLocale}/dashboard`,
+          pathname: `/${resolvePreferredLocale(request)}/dashboard`,
           allowedHosts: CABINET_REDIRECT_ALLOWED_HOSTS,
         }),
       );

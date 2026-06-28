@@ -149,7 +149,7 @@ class CustomerOnboardingConnectionBootstrapUseCase:
         else:
             preferred_layout = "desktop_panel"
 
-        if not self._runtime.post_registration_code_prompt_enabled:
+        if not self._runtime.connection_bootstrap_available:
             return CustomerConnectionBootstrapResult(
                 available=False,
                 status="disabled",

@@ -108,6 +108,8 @@ def _build_client_capabilities(
             web_otp=onboarding_runtime.web_otp_enabled,
             telegram_miniapp=onboarding_runtime.telegram_miniapp_enabled,
             state_store=onboarding_runtime.state_store_ready,
+            telegram_bot_code_apply=onboarding_runtime.telegram_bot_code_apply_available,
+            connection_bootstrap=onboarding_runtime.connection_bootstrap_available,
             flow_key=onboarding_runtime.flow_key,
             version=onboarding_runtime.version,
             allowed_code_types=list(onboarding_runtime.allowed_code_types),

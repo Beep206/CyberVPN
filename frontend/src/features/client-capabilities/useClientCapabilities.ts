@@ -65,6 +65,8 @@ export const DISABLED_CLIENT_CAPABILITIES: ClientCapabilitiesResponse = {
     web_otp: false,
     telegram_miniapp: false,
     state_store: false,
+    telegram_bot_code_apply: false,
+    connection_bootstrap: true,
     flow_key: 'post_registration_growth_code_v1',
     version: 1,
     allowed_code_types: [],

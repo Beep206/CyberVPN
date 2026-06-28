@@ -19495,6 +19495,16 @@ export interface components {
              */
             state_store: boolean;
             /**
+             * Telegram Bot Code Apply
+             * @default false
+             */
+            telegram_bot_code_apply: boolean;
+            /**
+             * Connection Bootstrap
+             * @default true
+             */
+            connection_bootstrap: boolean;
+            /**
              * Flow Key
              * @default post_registration_growth_code_v1
              */

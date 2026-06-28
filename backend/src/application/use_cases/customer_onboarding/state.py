@@ -334,6 +334,7 @@ class ApplyCustomerOnboardingGrowthCodeUseCase:
         flow_token: str | None,
         idempotency_key: str | None,
         require_flow_token: bool = True,
+        allow_without_prompt: bool = False,
         code_applier: CustomerOnboardingCodeApplier | None = None,
     ) -> CustomerOnboardingApplyResult:
         if _looks_like_registration_access_token(code):
@@ -342,13 +343,19 @@ class ApplyCustomerOnboardingGrowthCodeUseCase:
                 message_key="onboarding.code.registration_access_token_not_accepted",
                 status_code=422,
             )
-        if not self._runtime.post_registration_code_prompt_enabled:
+        if not self._runtime.post_registration_code_prompt_enabled and not allow_without_prompt:
             return CustomerOnboardingApplyResult(
                 status="skipped",
                 message_key="onboarding.disabled",
                 commit_required=False,
             )
-        if not self._runtime.available:
+        if allow_without_prompt:
+            if not self._runtime.state_store_ready:
+                raise CustomerOnboardingUnavailableError(
+                    code="CUSTOMER_ONBOARDING_STATE_UNAVAILABLE",
+                    message_key="onboarding.state_unavailable",
+                )
+        elif not self._runtime.available:
             raise CustomerOnboardingUnavailableError(
                 code="CUSTOMER_ONBOARDING_STATE_UNAVAILABLE",
                 message_key="onboarding.state_unavailable",
@@ -368,7 +375,7 @@ class ApplyCustomerOnboardingGrowthCodeUseCase:
             )
         normalized = normalize_customer_input_code(code)
 
-        return await self._state_repo.apply_growth_code(
+        result = await self._state_repo.apply_growth_code(
             user_id=user_id,
             flow_key=self._runtime.flow_key,
             version=self._runtime.version,
@@ -377,6 +384,20 @@ class ApplyCustomerOnboardingGrowthCodeUseCase:
             masked_code=mask_customer_input_code(normalized.normalized_code),
             idempotency_key=_normalize_idempotency_key(idempotency_key),
             code_applier=code_applier,
+        )
+        return self._enforce_allowed_code_types(result)
+
+    def _enforce_allowed_code_types(
+        self,
+        result: CustomerOnboardingApplyResult,
+    ) -> CustomerOnboardingApplyResult:
+        code_type = result.code_type
+        if code_type is None or code_type in self._runtime.allowed_code_types:
+            return result
+        raise CustomerOnboardingUnavailableError(
+            code="CUSTOMER_ONBOARDING_CODE_TYPE_NOT_ALLOWED",
+            message_key="growth_codes.code.wrong_context",
+            status_code=422,
         )
 
 

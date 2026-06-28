@@ -10,6 +10,29 @@ import { LANGUAGES } from '@/i18n/languages';
 import { Modal } from '@/shared/ui/modal';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 
+const LOCALE_COOKIE_MAX_AGE_SECONDS = 31_536_000;
+
+function persistLocaleCookie(locale: string): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    const domain = window.location.hostname === 'cyber-vpn.net' || window.location.hostname.endsWith('.cyber-vpn.net')
+        ? '; Domain=.cyber-vpn.net'
+        : '';
+    document.cookie = [
+        `NEXT_LOCALE=${encodeURIComponent(locale)}`,
+        'Path=/',
+        `Max-Age=${LOCALE_COOKIE_MAX_AGE_SECONDS}`,
+        'SameSite=Lax',
+    ].join('; ') + domain + secure;
+}
+
+function localizePath(pathname: string, locale: string): string {
+    return `/${locale}${pathname === '/' ? '' : pathname}`;
+}
+
 export function LanguageSelector() {
     const t = useTranslations('LanguageSelector');
     const locale = useLocale();
@@ -30,9 +53,16 @@ export function LanguageSelector() {
     );
 
     const handleLanguageChange = (newLocale: string) => {
+        persistLocaleCookie(newLocale);
+        const targetPath = localizePath(pathname, newLocale);
         startTransition(() => {
             router.replace(pathname, { locale: newLocale });
         });
+        window.setTimeout(() => {
+            if (window.location.pathname !== targetPath) {
+                window.location.assign(targetPath);
+            }
+        }, 900);
         setIsOpen(false);
     };
 

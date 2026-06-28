@@ -167,6 +167,8 @@ describe('Growth v6 operations consoles', () => {
           web_otp: true,
           telegram_miniapp: false,
           state_store: true,
+          telegram_bot_code_apply: false,
+          connection_bootstrap: true,
           flow_key: 'post_registration_growth_code_v1',
           version: 3,
           allowed_code_types: ['promo', 'invite', 'gift'],

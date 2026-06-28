@@ -264,6 +264,7 @@ function findApplicationForItem(
 ): CheckoutCodeSetRejectionApplication | null {
   return (
     applications.find((application) => application.client_slot_id === item.id)
+    // Public API reports position_entered as 1-based.
     ?? applications.find((application) => application.position_entered === index + 1)
     ?? applications[index]
     ?? null

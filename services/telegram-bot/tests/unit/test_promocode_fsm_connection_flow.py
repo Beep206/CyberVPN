@@ -25,6 +25,7 @@ def _message(text: str) -> Message:
     message = MagicMock(spec=Message)
     message.from_user = User(id=123456, is_bot=False, first_name="Test")
     message.chat = SimpleNamespace(id=123456, type="private")
+    message.message_id = 777
     message.text = text
     message.answer = AsyncMock()
     return message
@@ -75,7 +76,11 @@ async def test_promocode_fsm_text_uses_connection_flow_without_discount_copy_or_
     api_client.apply_telegram_onboarding_code.assert_awaited_once_with(
         123456,
         "GiftSecret42",
-        idempotency_key=onboarding_code_idempotency_key(123456, "GiftSecret42"),
+        idempotency_key=onboarding_code_idempotency_key(
+            telegram_id=123456,
+            code="GiftSecret42",
+            message_id=777,
+        ),
     )
     api_client.get_customer_connection_bootstrap.assert_awaited_once_with(123456, platform_hint="unknown")
     state.clear.assert_awaited_once()

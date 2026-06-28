@@ -39,6 +39,7 @@ def _message(*, chat_type: str = "private", text: str = "/connect") -> Message:
     message = MagicMock(spec=Message)
     message.from_user = User(id=123456, is_bot=False, first_name="Test")
     message.chat = SimpleNamespace(id=123456 if chat_type == "private" else -100, type=chat_type)
+    message.message_id = 777
     message.text = text
     message.answer = AsyncMock()
     return message
@@ -399,7 +400,11 @@ async def test_code_command_uses_real_backend_apply_contract(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     request = AsyncMock(return_value={"status": "completed"})
-    idempotency_key = connection_handlers.onboarding_code_idempotency_key(123456, "GiftSecret42")
+    idempotency_key = connection_handlers.onboarding_code_idempotency_key(
+        telegram_id=123456,
+        code="GiftSecret42",
+        message_id=777,
+    )
     client = CyberVPNAPIClient(
         BackendSettings(
             api_url="https://backend.example",

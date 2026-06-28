@@ -11,9 +11,36 @@ import { AuthFormCard } from './AuthFormCard';
 import { CyberOtpInput } from './CyberOtpInput';
 import { cn } from '@/lib/utils';
 import { useRouter } from '@/i18n/navigation';
-import { authApi, OtpErrorResponse } from '@/lib/api/auth';
+import { authApi } from '@/lib/api/auth';
+import type { CustomerOnboardingAuthSummary, OtpErrorResponse } from '@/lib/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
+import { customerOnboardingApi } from '@/features/customer-onboarding/api';
 import { getPostAuthDestination } from '@/features/customer-onboarding/routing';
+
+function localizeWebPath(path: string, locale: string): string {
+    if (!path.startsWith('/')) {
+        return `/${locale}/dashboard`;
+    }
+    if (path === `/${locale}` || path.startsWith(`/${locale}/`)) {
+        return path;
+    }
+    return `/${locale}${path === '/' ? '' : path}`;
+}
+
+async function resolvePostOtpOnboarding(
+    onboarding: CustomerOnboardingAuthSummary | null | undefined,
+): Promise<CustomerOnboardingAuthSummary | null> {
+    if (onboarding) {
+        return onboarding;
+    }
+
+    try {
+        const response = await customerOnboardingApi.current();
+        return response.data;
+    } catch {
+        return null;
+    }
+}
 
 export function OtpVerificationForm() {
     const router = useRouter();
@@ -34,6 +61,7 @@ export function OtpVerificationForm() {
     const [error, setError] = useState<string | null>(null);
     const [errorCode, setErrorCode] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [redirectDestination, setRedirectDestination] = useState<string | null>(null);
     const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
     const [resendsRemaining, setResendsRemaining] = useState<number | null>(null);
 
@@ -49,6 +77,7 @@ export function OtpVerificationForm() {
     }, [timeLeft]);
 
     const handleVerify = useCallback(async (codeToVerify?: string) => {
+        if (success) return;
         const normalizedCode = (codeToVerify ?? otp).replace(/\D/gu, '').slice(0, 6);
         if (normalizedCode.length !== 6 || !email) return;
 
@@ -59,14 +88,24 @@ export function OtpVerificationForm() {
         try {
             // Use auth store to verify OTP and auto-login (stores tokens + sets isAuthenticated)
             const result = await verifyOtpAndLogin(email, normalizedCode);
+            const onboarding = await resolvePostOtpOnboarding(result.onboarding);
+            const destination = getPostAuthDestination({
+                onboarding,
+                surface: 'web',
+            });
+            const localizedDestination = localizeWebPath(destination, locale);
 
             // Success - auth store now has user and isAuthenticated=true
             setSuccess(true);
+            setRedirectDestination(localizedDestination);
             setIsLoading(false);
-            router.push(getPostAuthDestination({
-                onboarding: result.onboarding,
-                surface: 'web',
-            }));
+            router.replace(destination);
+            router.refresh();
+            window.setTimeout(() => {
+                if (window.location.pathname !== localizedDestination) {
+                    window.location.assign(localizedDestination);
+                }
+            }, 900);
 
         } catch (err) {
             const axiosError = err as AxiosError<{ detail: OtpErrorResponse }>;
@@ -85,7 +124,7 @@ export function OtpVerificationForm() {
             setIsLoading(false);
             setOtp(''); // Clear OTP on error
         }
-    }, [email, otp, router, verifyOtpAndLogin]);
+    }, [email, locale, otp, router, success, verifyOtpAndLogin]);
 
     useEffect(() => {
         if (!email || urlCode.length !== 6 || autoVerifyStartedRef.current) {
@@ -188,6 +227,7 @@ export function OtpVerificationForm() {
                     <CyberOtpInput
                         value={otp}
                         onChange={(val) => {
+                            if (success) return;
                             setOtp(val);
                             if (error) {
                                 setError(null);
@@ -250,6 +290,18 @@ export function OtpVerificationForm() {
                             )}
                         </Button>
                     </div>
+
+                    {success && redirectDestination && (
+                        <div className="flex justify-center">
+                            <Button
+                                onClick={() => window.location.assign(redirectDestination)}
+                                className="min-w-[200px] h-12 border-matrix-green/50 text-matrix-green hover:bg-matrix-green/10"
+                                variant="outline"
+                            >
+                                ACCESS_GRANTED
+                            </Button>
+                        </div>
+                    )}
 
                     <div className="text-center">
                         <button

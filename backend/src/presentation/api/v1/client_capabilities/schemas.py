@@ -72,6 +72,8 @@ class ClientOnboardingCapabilities(BaseModel):
     web_otp: bool = False
     telegram_miniapp: bool = False
     state_store: bool = False
+    telegram_bot_code_apply: bool = False
+    connection_bootstrap: bool = True
     flow_key: str = "post_registration_growth_code_v1"
     version: int = 1
     allowed_code_types: list[Literal["promo", "invite", "gift"]] = Field(default_factory=list)
