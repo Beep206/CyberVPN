@@ -111,6 +111,7 @@ function headersToBackendRecord(
   source.forEach((value, key) => {
     headers[key] = value;
   });
+  headers.host = ADMIN_CANONICAL_HOST;
   headers["content-length"] = String(Buffer.byteLength(bodyText));
   return headers;
 }
@@ -415,10 +416,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   let backendResponse: BackendAuthResponse;
+  const backendBody = JSON.stringify({ code });
+  const backendUrl = `${getBackendBaseUrl()}/api/v1/2fa/complete`;
+  const backendHeaders = buildForwardHeaders(request, transaction.token);
   try {
-    const backendBody = JSON.stringify({ code });
-    const backendUrl = `${getBackendBaseUrl()}/api/v1/2fa/complete`;
-    const backendHeaders = buildForwardHeaders(request, transaction.token);
     backendResponse = process.env.NODE_ENV === "production"
       ? await postBackendJson(backendUrl, backendHeaders, backendBody)
       : await fetchBackendJson(backendUrl, backendHeaders, backendBody);
