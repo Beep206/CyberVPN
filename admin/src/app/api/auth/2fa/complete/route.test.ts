@@ -64,7 +64,9 @@ describe("POST /api/auth/2fa/complete", () => {
         headers: {
           "content-type": "application/json",
           "x-forwarded-for": "203.0.113.10",
+          "x-forwarded-host": "api.cyber-vpn.net",
           "x-forwarded-proto": "https",
+          "x-auth-realm": "customer",
         },
       },
     );
@@ -88,6 +90,7 @@ describe("POST /api/auth/2fa/complete", () => {
     );
     expect(forwardedHeaders.get("x-forwarded-proto")).toBe("https");
     expect(forwardedHeaders.get("x-forwarded-for")).toBe("203.0.113.10");
+    expect(forwardedHeaders.get("x-auth-realm")).toBeNull();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       redirect_to: "/ru-RU/dashboard?welcome=true",
@@ -207,7 +210,7 @@ describe("POST /api/auth/2fa/complete", () => {
       "admin.cyber-vpn.net",
     );
     expect(forwardedHeaders.get("x-forwarded-proto")).toBe("https");
-    expect(forwardedHeaders.get("x-auth-realm")).toBe("admin");
+    expect(forwardedHeaders.get("x-auth-realm")).toBeNull();
     expect(setCookieHeaders).toContain("access_token=");
     expect(setCookieHeaders).toContain("refresh_token=");
     expect(setCookieHeaders).not.toContain("Secure");

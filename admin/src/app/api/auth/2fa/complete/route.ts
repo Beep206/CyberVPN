@@ -71,38 +71,20 @@ function buildForwardHeaders(request: NextRequest, token: string): Headers {
     "content-type": "application/json",
   });
 
-  const useCanonicalAdminForwarding = isApprovedLocalStageAdminOrigin(request);
   const forwardedFor = request.headers.get("x-forwarded-for");
-  const forwardedHost = useCanonicalAdminForwarding
-    ? ADMIN_CANONICAL_HOST
-    : request.headers.get("x-forwarded-host") ||
-      request.headers.get("host") ||
-      request.nextUrl.host;
-  const forwardedProto = useCanonicalAdminForwarding
-    ? ADMIN_CANONICAL_PROTO
-    : request.headers.get("x-forwarded-proto") ||
-      request.nextUrl.protocol.replace(/:$/, "");
   const userAgent = request.headers.get("user-agent");
   const acceptLanguage = request.headers.get("accept-language");
-  const authRealm = request.headers.get("x-auth-realm");
 
   if (forwardedFor) {
     headers.set("x-forwarded-for", forwardedFor);
   }
-  if (forwardedHost) {
-    headers.set("x-forwarded-host", forwardedHost);
-  }
-  if (forwardedProto) {
-    headers.set("x-forwarded-proto", forwardedProto);
-  }
+  headers.set("x-forwarded-host", ADMIN_CANONICAL_HOST);
+  headers.set("x-forwarded-proto", ADMIN_CANONICAL_PROTO);
   if (userAgent) {
     headers.set("user-agent", userAgent);
   }
   if (acceptLanguage) {
     headers.set("accept-language", acceptLanguage);
-  }
-  if (authRealm) {
-    headers.set("x-auth-realm", authRealm);
   }
 
   return headers;
