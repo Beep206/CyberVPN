@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
+import type { IncomingHttpHeaders } from "node:http";
 
 import {
   parsePendingTwoFactorCookieValue,
@@ -18,6 +21,8 @@ function getBackendBaseUrl(): string {
 
 const ADMIN_CANONICAL_HOST = "admin.cyber-vpn.net";
 const ADMIN_CANONICAL_PROTO = "https";
+const MAX_BACKEND_RESPONSE_BYTES = 64 * 1024;
+const BACKEND_REQUEST_TIMEOUT_MS = 10_000;
 const APPROVED_LOCAL_STAGE_ADMIN_ORIGINS = new Set([
   "http://127.0.0.1:13001",
   "http://localhost:13001",
@@ -90,7 +95,41 @@ function buildForwardHeaders(request: NextRequest, token: string): Headers {
   return headers;
 }
 
-function getSetCookieHeaders(response: Response): string[] {
+interface BackendAuthResponse {
+  ok: boolean;
+  status: number;
+  bodyText: string;
+  headers: IncomingHttpHeaders;
+  setCookieHeaders: string[];
+}
+
+function headersToBackendRecord(
+  source: Headers,
+  bodyText: string,
+): Record<string, string> {
+  const headers: Record<string, string> = {};
+  source.forEach((value, key) => {
+    headers[key] = value;
+  });
+  headers["content-length"] = String(Buffer.byteLength(bodyText));
+  return headers;
+}
+
+function getBackendSetCookieHeaders(response: BackendAuthResponse): string[] {
+  if (response.setCookieHeaders.length > 0) {
+    return response.setCookieHeaders;
+  }
+
+  const setCookie = response.headers["set-cookie"];
+  if (Array.isArray(setCookie)) {
+    return setCookie;
+  }
+  return typeof setCookie === "string"
+    ? splitCombinedSetCookieHeader(setCookie)
+    : [];
+}
+
+function getFetchSetCookieHeaders(response: Response): string[] {
   const headers = response.headers as Headers & {
     getSetCookie?: () => string[];
   };
@@ -104,6 +143,85 @@ function getSetCookieHeaders(response: Response): string[] {
 
   const setCookie = response.headers.get("set-cookie");
   return setCookie ? splitCombinedSetCookieHeader(setCookie) : [];
+}
+
+async function fetchBackendJson(
+  url: string,
+  headers: Headers,
+  bodyText: string,
+): Promise<BackendAuthResponse> {
+  const response = await fetch(url, {
+    method: "POST",
+    cache: "no-store",
+    headers,
+    body: bodyText,
+  });
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    bodyText: await response.text(),
+    headers: Object.fromEntries(response.headers.entries()),
+    setCookieHeaders: getFetchSetCookieHeaders(response),
+  };
+}
+
+function postBackendJson(
+  url: string,
+  headers: Headers,
+  bodyText: string,
+): Promise<BackendAuthResponse> {
+  const target = new URL(url);
+  const transport = target.protocol === "https:" ? httpsRequest : httpRequest;
+
+  return new Promise((resolve, reject) => {
+    const request = transport(
+      target,
+      {
+        method: "POST",
+        headers: headersToBackendRecord(headers, bodyText),
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        let totalBytes = 0;
+
+        response.on("data", (chunk: Buffer | string) => {
+          const buffer = Buffer.isBuffer(chunk)
+            ? chunk
+            : Buffer.from(chunk);
+          totalBytes += buffer.byteLength;
+          if (totalBytes > MAX_BACKEND_RESPONSE_BYTES) {
+            request.destroy(new Error("Backend 2FA response is too large."));
+            return;
+          }
+          chunks.push(buffer);
+        });
+
+        response.on("end", () => {
+          const status = response.statusCode ?? 502;
+          const setCookie = response.headers["set-cookie"];
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            bodyText: Buffer.concat(chunks).toString("utf8"),
+            headers: response.headers,
+            setCookieHeaders: Array.isArray(setCookie)
+              ? setCookie
+              : typeof setCookie === "string"
+                ? splitCombinedSetCookieHeader(setCookie)
+                : [],
+          });
+        });
+      },
+    );
+
+    request.setTimeout(BACKEND_REQUEST_TIMEOUT_MS, () => {
+      request.destroy(new Error("Backend 2FA request timed out."));
+    });
+    request.on("error", reject);
+    request.write(bodyText);
+    request.end();
+  });
 }
 
 function splitCombinedSetCookieHeader(headerValue: string): string[] {
@@ -143,11 +261,11 @@ function splitCombinedSetCookieHeader(headerValue: string): string[] {
 }
 
 async function appendBackendAuthCookies(
-  source: Response,
+  source: BackendAuthResponse,
   target: NextResponse,
   request: NextRequest,
 ): Promise<void> {
-  const headerValues = getSetCookieHeaders(source);
+  const headerValues = getBackendSetCookieHeaders(source);
   if (headerValues.length > 0) {
     for (const headerValue of headerValues) {
       const normalizedHeaderValue = normalizeSetCookieForRequest(
@@ -170,13 +288,13 @@ async function appendBackendAuthCookies(
 }
 
 async function appendJsonTokenFallbackCookies(
-  source: Response,
+  source: BackendAuthResponse,
   target: NextResponse,
   request: NextRequest,
 ): Promise<void> {
   let payload: { access_token?: string; refresh_token?: string };
   try {
-    payload = (await source.clone().json()) as {
+    payload = JSON.parse(source.bodyText) as {
       access_token?: string;
       refresh_token?: string;
     };
@@ -251,10 +369,10 @@ function deletePendingTwoFactorCookie(
 }
 
 async function readErrorPayload(
-  response: Response,
+  response: BackendAuthResponse,
 ): Promise<{ detail: string }> {
   try {
-    const payload = (await response.json()) as { detail?: string };
+    const payload = JSON.parse(response.bodyText) as { detail?: string };
     return {
       detail: payload.detail || "Two-factor verification failed.",
     };
@@ -296,17 +414,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  let backendResponse: Response;
+  let backendResponse: BackendAuthResponse;
   try {
-    backendResponse = await fetch(
-      `${getBackendBaseUrl()}/api/v1/2fa/complete`,
-      {
-        method: "POST",
-        cache: "no-store",
-        headers: buildForwardHeaders(request, transaction.token),
-        body: JSON.stringify({ code }),
-      },
-    );
+    const backendBody = JSON.stringify({ code });
+    const backendUrl = `${getBackendBaseUrl()}/api/v1/2fa/complete`;
+    const backendHeaders = buildForwardHeaders(request, transaction.token);
+    backendResponse = process.env.NODE_ENV === "production"
+      ? await postBackendJson(backendUrl, backendHeaders, backendBody)
+      : await fetchBackendJson(backendUrl, backendHeaders, backendBody);
   } catch {
     return NextResponse.json(
       { detail: "Authentication service is unavailable." },
