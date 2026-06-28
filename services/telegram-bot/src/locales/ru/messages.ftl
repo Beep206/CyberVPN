@@ -432,6 +432,7 @@ config-instructions = 📖 <b>Инструкция по подключению</
 
 # ── Growth Connection UX ─────────────────────────────────────────────────
 bot-onboarding-code-applied = ✅ Код <b>{ $code }</b> принят.
+bot-onboarding-code-child-invites = 🎟 Выдано инвайт-кодов: <b>{ $count }</b>, доступно: <b>{ $available }</b>.
 
 bot-onboarding-connection-ready = 🔐 <b>VPN-доступ готов</b>
 

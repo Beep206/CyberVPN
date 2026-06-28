@@ -34,6 +34,18 @@ import {
   useClientCapabilities,
 } from '@/features/client-capabilities/useClientCapabilities';
 
+type InviteInventoryResponse = Awaited<ReturnType<typeof invitesApi.getMyInvites>>['data'];
+type InviteCodeItem = Extract<InviteInventoryResponse, unknown[]>[number];
+
+function normalizeInviteInventory(response: InviteInventoryResponse): InviteCodeItem[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  const batched = response.batches.flatMap((group) => group.invites);
+  return [...batched, ...(response.unbatched ?? [])];
+}
+
 function pollingInterval(intervalMs: number) {
   if (
     typeof document !== 'undefined' &&
@@ -123,11 +135,11 @@ export function useInviteCodes() {
   const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useQuery({
-    queryKey: ['growth', 'invites'],
+    queryKey: ['growth', 'invites', 'batch'],
     enabled: capabilitiesReady && areInviteCodesEnabled(capabilities),
     queryFn: async () => {
-      const response = await invitesApi.getMyInvites();
-      return response.data;
+      const response = await invitesApi.getMyInvites({ group_by: 'batch' });
+      return normalizeInviteInventory(response.data);
     },
     staleTime: 2 * 60 * 1000,
   });

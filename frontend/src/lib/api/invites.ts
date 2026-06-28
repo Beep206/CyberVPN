@@ -5,6 +5,7 @@ import type { operations } from './generated/types';
 type RedeemInviteRequest = operations['redeem_invite_api_v1_invites_redeem_post']['requestBody']['content']['application/json'];
 type RedeemInviteResponse = operations['redeem_invite_api_v1_invites_redeem_post']['responses'][200]['content']['application/json'];
 type MyInvitesResponse = operations['list_my_invites_api_v1_invites_my_get']['responses'][200]['content']['application/json'];
+type MyInvitesParams = operations['list_my_invites_api_v1_invites_my_get']['parameters']['query'];
 
 /**
  * Invites API client
@@ -31,6 +32,6 @@ export const invitesApi = {
    *
    * Returns all invite codes created by or for the authenticated user.
    */
-  getMyInvites: () =>
-    apiClient.get<MyInvitesResponse>('/invites/my'),
+  getMyInvites: (params?: MyInvitesParams) =>
+    apiClient.get<MyInvitesResponse>('/invites/my', { params }),
 };

@@ -22,5 +22,4 @@ def hash_growth_code(raw_code: str) -> str:
 
 
 def build_growth_code_prefix(raw_code: str) -> str:
-    normalized = normalize_growth_code_value(raw_code).upper()
-    return normalized[:8]
+    return hash_growth_code(raw_code)[:8].upper()

@@ -91,6 +91,37 @@ def mask_code(code: str) -> str:
     return f"{normalized[:2]}***{normalized[-2:]}"
 
 
+def _as_dict(value: object) -> dict[str, object]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _safe_int(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def _render_apply_notice(i18n: I18nContext, apply_result: dict[str, object], *, code: str) -> str:
+    lines = [_i18n_get(i18n, "bot-onboarding-code-applied", code=mask_code(code))]
+    child_invites = _as_dict(apply_result.get("child_invites"))
+    generated_count = _safe_int(child_invites.get("generated_count"))
+    available_count = _safe_int(child_invites.get("available_count"))
+    if generated_count is not None and generated_count > 0:
+        lines.append(
+            _i18n_get(
+                i18n,
+                "bot-onboarding-code-child-invites",
+                count=generated_count,
+                available=available_count if available_count is not None else generated_count,
+            )
+        )
+    return "\n".join(lines)
+
+
 def onboarding_code_idempotency_key(
     *,
     telegram_id: int,
@@ -371,7 +402,7 @@ async def apply_code_and_open_connection(
         return
 
     try:
-        await api_client.apply_telegram_onboarding_code(
+        apply_result = await api_client.apply_telegram_onboarding_code(
             message.from_user.id,
             normalized_code,
             idempotency_key=onboarding_code_idempotency_key(
@@ -392,7 +423,7 @@ async def apply_code_and_open_connection(
         return
 
     CONNECTION_FLOW_TOTAL.labels(status="success", action="apply_code").inc()
-    await message.answer(_i18n_get(i18n, "bot-onboarding-code-applied", code=mask_code(normalized_code)))
+    await message.answer(_render_apply_notice(i18n, apply_result, code=normalized_code))
     await _send_bootstrap_message(message, i18n, api_client, cache)
 
 

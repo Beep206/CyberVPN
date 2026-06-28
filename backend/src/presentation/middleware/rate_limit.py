@@ -484,6 +484,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     {
                         "/api/v1/promo/validate",
                         "/api/v1/invites/redeem",
+                        "/api/v1/customer/onboarding/growth-code/apply",
+                        "/api/v1/customer/onboarding/growth-code/preview",
+                        "/api/v1/customer-onboarding/growth-code/apply",
+                        "/api/v1/customer-onboarding/growth-code/preview",
                         "/api/v1/gifts/purchase/quote",
                         "/api/v1/gifts/purchase/commit",
                         "/api/v1/gifts/redeem",

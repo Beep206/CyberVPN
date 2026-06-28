@@ -106,6 +106,7 @@ class CustomerOnboardingAppliedCode:
     redemption_id: UUID | None = None
     entitlement_grant_id: UUID | None = None
     entitlement_snapshot: dict[str, object] | None = None
+    child_invites: dict[str, object] | None = None
     safe_details: dict[str, object] | None = None
 
 
@@ -240,6 +241,7 @@ class CustomerOnboardingApplyResult:
     commit_required: bool = True
     code_type: Literal["promo", "invite", "gift"] | None = None
     connection_required: bool = False
+    safe_details: dict[str, object] | None = None
 
 
 @dataclass(frozen=True, slots=True)

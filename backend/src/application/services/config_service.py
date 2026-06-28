@@ -15,6 +15,24 @@ OnboardingCodeType = Literal["promo", "invite", "gift"]
 PASSKEY_ADMIN_POLICY_CONFIG_KEY = "passkeys.admin_policy"
 CUSTOMER_SITE_RUNTIME_CONFIG_KEY = "customer_site.runtime"
 CUSTOMER_ONBOARDING_RUNTIME_CONFIG_KEY = "customer_onboarding.runtime"
+MANDATORY_CABINET_ALLOWED_PREFIXES: tuple[str, ...] = (
+    "/dashboard",
+    "/subscriptions",
+    "/payment-history",
+    "/referral",
+    "/rewards",
+    "/rewards/referral",
+    "/rewards/gifts",
+    "/rewards/invites",
+    "/rewards/codes",
+    "/rewards/notifications",
+    "/messages",
+    "/wallet",
+    "/settings",
+    "/support",
+    "/servers",
+    "/onboarding",
+)
 
 
 def _normalize_customer_site_mode(value: object, *, fallback: CustomerSiteMode = "full_site") -> CustomerSiteMode:
@@ -59,6 +77,17 @@ def _normalize_path_tuple(value: object, *, default: tuple[str, ...] = (), max_i
         normalized.append(candidate)
         if len(normalized) >= max_items:
             break
+    return tuple(normalized)
+
+
+def _union_path_tuples(*groups: tuple[str, ...], max_items: int = 100) -> tuple[str, ...]:
+    normalized: list[str] = []
+    for group in groups:
+        for item in group:
+            if item not in normalized and _is_safe_path(item):
+                normalized.append(item)
+            if len(normalized) >= max_items:
+                return tuple(normalized)
     return tuple(normalized)
 
 
@@ -175,16 +204,7 @@ class CustomerSiteRuntimeConfig:
         "/p/",
     )
     cabinet_allowed_prefixes: tuple[str, ...] = (
-        "/dashboard",
-        "/subscriptions",
-        "/payment-history",
-        "/referral",
-        "/rewards",
-        "/wallet",
-        "/settings",
-        "/support",
-        "/messages",
-        "/servers",
+        *MANDATORY_CABINET_ALLOWED_PREFIXES,
         "/monitoring",
         "/analytics",
         "/users",
@@ -198,7 +218,6 @@ class CustomerSiteRuntimeConfig:
         "/magic-link",
         "/oauth",
         "/telegram-link",
-        "/onboarding",
     )
     cabinet_marketing_route_action: CustomerSiteCabinetMarketingRouteAction = "redirect_public"
     public_marketing_destination_path: str = "/"
@@ -464,9 +483,13 @@ class ConfigService:
                 default=CustomerSiteRuntimeConfig.allowed_path_prefixes,
                 max_items=100,
             ),
-            cabinet_allowed_prefixes=_normalize_path_tuple(
-                val.get("cabinet_allowed_prefixes"),
-                default=CustomerSiteRuntimeConfig.cabinet_allowed_prefixes,
+            cabinet_allowed_prefixes=_union_path_tuples(
+                MANDATORY_CABINET_ALLOWED_PREFIXES,
+                _normalize_path_tuple(
+                    val.get("cabinet_allowed_prefixes"),
+                    default=CustomerSiteRuntimeConfig.cabinet_allowed_prefixes,
+                    max_items=100,
+                ),
                 max_items=100,
             ),
             cabinet_marketing_route_action=_normalize_customer_site_cabinet_marketing_action(

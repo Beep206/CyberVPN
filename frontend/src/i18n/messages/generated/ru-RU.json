@@ -321,6 +321,14 @@
       "verifyingIdentity": "Проверка вашей личности"
     },
     "onboarding": {
+      "activation": {
+        "childInvites": "Выдано инвайт-кодов: {count}, доступно: {available}",
+        "devices": "Лимит устройств: {count}",
+        "period": "Период доступа: {days} дней",
+        "plan": "Тариф: {plan}",
+        "title": "Сводка активации",
+        "traffic": "Трафик: {traffic}"
+      },
       "allowedAny": "Промо, инвайт или подарочный код",
       "allowedLabel": "Допустимые типы кодов",
       "apply": "Применить код",

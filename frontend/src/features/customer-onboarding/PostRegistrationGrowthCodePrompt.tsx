@@ -24,8 +24,31 @@ type OnboardingMutationResult =
   | CustomerOnboardingApplyResponse
   | CustomerOnboardingSkipResponse;
 
+type SafeApplyDetails = CustomerOnboardingApplyResponse & {
+  entitlement?: Record<string, unknown> | null;
+  child_invites?: Record<string, unknown> | null;
+};
+
 function normalizeCodeInput(value: string): string {
   return value.trim().toUpperCase();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function readNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) {
+    return Number(value);
+  }
+  return null;
 }
 
 function createIdempotencyKey(prefix: string): string {
@@ -145,6 +168,7 @@ export function PostRegistrationGrowthCodePrompt({
   const [debouncedPreviewCode, setDebouncedPreviewCode] = useState('');
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [connectionRequested, setConnectionRequested] = useState(false);
+  const [lastApplyResult, setLastApplyResult] = useState<SafeApplyDetails | null>(null);
 
   const fallbackDestination = surface === 'miniapp' ? '/miniapp/home' : '/dashboard';
 
@@ -248,6 +272,7 @@ export function PostRegistrationGrowthCodePrompt({
     },
     onSuccess: async (result) => {
       const showConnection = shouldShowConnectionPanel(result);
+      setLastApplyResult(result as SafeApplyDetails);
       setFeedback({
         kind: 'success',
         message: t(getResultMessageKey(result.message_key), {
@@ -279,6 +304,7 @@ export function PostRegistrationGrowthCodePrompt({
       return data;
     },
     onSuccess: async (result) => {
+      setLastApplyResult(null);
       setFeedback({
         kind: 'success',
         message: t('messages.skipped'),
@@ -294,6 +320,51 @@ export function PostRegistrationGrowthCodePrompt({
   });
 
   const shouldRenderConnectionPanel = connectionRequested || current?.connection_required === true;
+  const activationRows = useMemo(() => {
+    if (!lastApplyResult) {
+      return [];
+    }
+
+    const rows: string[] = [];
+    const entitlement = isRecord(lastApplyResult.entitlement) ? lastApplyResult.entitlement : null;
+    if (entitlement) {
+      const displayName = readString(entitlement.display_name)
+        ?? readString(entitlement.plan_code)
+        ?? readString(entitlement.plan_uuid);
+      if (displayName) {
+        rows.push(t('activation.plan', { plan: displayName }));
+      }
+
+      const periodDays = readNumber(entitlement.period_days);
+      if (periodDays !== null && periodDays > 0) {
+        rows.push(t('activation.period', { days: periodDays }));
+      }
+
+      const deviceLimit = readNumber(entitlement.device_limit);
+      if (deviceLimit !== null && deviceLimit > 0) {
+        rows.push(t('activation.devices', { count: deviceLimit }));
+      }
+
+      const trafficLabel = readString(entitlement.display_traffic_label);
+      if (trafficLabel) {
+        rows.push(t('activation.traffic', { traffic: trafficLabel }));
+      }
+    }
+
+    const childInvites = isRecord(lastApplyResult.child_invites) ? lastApplyResult.child_invites : null;
+    if (childInvites) {
+      const generatedCount = readNumber(childInvites.generated_count);
+      const availableCount = readNumber(childInvites.available_count);
+      if (generatedCount !== null && generatedCount > 0) {
+        rows.push(t('activation.childInvites', {
+          count: generatedCount,
+          available: availableCount ?? generatedCount,
+        }));
+      }
+    }
+
+    return rows;
+  }, [lastApplyResult, t]);
 
   useEffect(() => {
     if (!currentQuery.isSuccess || !current) {
@@ -325,6 +396,7 @@ export function PostRegistrationGrowthCodePrompt({
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFeedback(null);
+    setLastApplyResult(null);
     if (!canSubmit || applyMutation.isPending || skipMutation.isPending) {
       return;
     }
@@ -372,7 +444,29 @@ export function PostRegistrationGrowthCodePrompt({
         </div>
 
         {shouldRenderConnectionPanel ? (
-          <ConnectionBootstrapPanel surface={surface} />
+          <div className="mt-6 space-y-4">
+            {activationRows.length > 0 ? (
+              <div
+                className="rounded-lg border border-matrix-green/35 bg-matrix-green/10 p-4 text-sm text-matrix-green"
+                role="status"
+              >
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs uppercase tracking-[0.14em] text-foreground">
+                      {t('activation.title')}
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {activationRows.map((row) => (
+                        <li key={row}>{row}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            <ConnectionBootstrapPanel surface={surface} />
+          </div>
         ) : currentQuery.isLoading ? (
           <div className="mt-6 flex items-center gap-3 rounded-lg border border-grid-line/40 p-4 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin text-neon-cyan" aria-hidden="true" />

@@ -18,6 +18,12 @@ class InviteCodeRepository:
         result = await self._session.execute(select(InviteCodeModel).where(InviteCodeModel.code == code))
         return result.scalar_one_or_none()
 
+    async def get_by_code_for_update(self, code: str) -> InviteCodeModel | None:
+        result = await self._session.execute(
+            select(InviteCodeModel).where(InviteCodeModel.code == code).with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_owner(self, owner_user_id: UUID, offset: int = 0, limit: int = 50) -> list[InviteCodeModel]:
         result = await self._session.execute(
             select(InviteCodeModel)
@@ -56,5 +62,6 @@ class InviteCodeRepository:
         invite_code.is_used = True
         invite_code.used_by_user_id = used_by_user_id
         invite_code.used_at = datetime.now(UTC)
+        invite_code.status = "redeemed"
         await self._session.flush()
         return invite_code

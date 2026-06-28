@@ -117,6 +117,7 @@ class CustomerOnboardingStateSqlAlchemyRepository:
                 next_destination=str(state.result_payload.get("next_destination") or "/dashboard"),
                 code_type=_snapshot_code_type(state.result_payload),
                 connection_required=bool(state.result_payload.get("connection_required")),
+                safe_details=dict(state.result_payload),
             )
         if state.status == "skipped":
             return CustomerOnboardingApplyResult(
@@ -137,6 +138,7 @@ class CustomerOnboardingStateSqlAlchemyRepository:
                 next_destination=str(existing_application.safe_result_snapshot.get("next_destination") or "/dashboard"),
                 code_type=_snapshot_code_type(existing_application.safe_result_snapshot),
                 connection_required=bool(existing_application.safe_result_snapshot.get("connection_required")),
+                safe_details=dict(existing_application.safe_result_snapshot),
             )
 
         now = datetime.now(UTC)
@@ -186,6 +188,7 @@ class CustomerOnboardingStateSqlAlchemyRepository:
             next_destination=applied_code.next_destination,
             code_type=applied_code.code_type,
             connection_required=_connection_required_for_applied_code(applied_code),
+            safe_details=snapshot,
         )
 
     async def skip(
@@ -471,6 +474,8 @@ def _safe_application_snapshot(applied_code: CustomerOnboardingAppliedCode) -> d
             snapshot[key] = str(value)
     if applied_code.entitlement_snapshot is not None:
         snapshot["entitlement_snapshot"] = dict(applied_code.entitlement_snapshot)
+    if applied_code.child_invites is not None:
+        snapshot["child_invites"] = dict(applied_code.child_invites)
     if applied_code.safe_details is not None:
         snapshot.update(dict(applied_code.safe_details))
     return snapshot

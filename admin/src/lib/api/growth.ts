@@ -19,6 +19,8 @@ type AdminCreateInviteCodesRequest =
   operations['admin_create_invites_api_v1_admin_invite_codes_post']['requestBody']['content']['application/json'];
 type AdminCreateInviteCodesResponse =
   operations['admin_create_invites_api_v1_admin_invite_codes_post']['responses'][201]['content']['application/json'];
+type AdminListInviteBatchesParams =
+  operations['admin_list_invite_batches_api_v1_admin_invite_batches_get']['parameters']['query'];
 type AdminPromotePartnerRequest =
   operations['admin_promote_partner_api_v1_admin_partners_promote_post']['requestBody']['content']['application/json'];
 type AdminPromotePartnerResponse =
@@ -184,6 +186,389 @@ export interface AdminGrowthCodeLookupResponse {
   promo_code_id?: string | null;
   partner_code_id?: string | null;
   user_message_key: string;
+}
+
+export interface AdminInviteCodeSummaryResponse {
+  id: string;
+  code_prefix?: string | null;
+  code_hash?: string | null;
+  status: string;
+  is_used: boolean;
+  used_by_user_id?: string | null;
+  used_at?: string | null;
+  revoked_at?: string | null;
+  expires_at?: string | null;
+  created_at: string;
+  campaign_id?: string | null;
+  campaign_version_id?: string | null;
+  root_invite_code_id?: string | null;
+  parent_invite_code_id?: string | null;
+  generation_depth?: number;
+  grant_mode?: string | null;
+  grant_plan_id?: string | null;
+  grant_duration_days?: number | null;
+  child_grant_plan_id?: string | null;
+  child_grant_duration_days?: number | null;
+}
+
+export interface AdminListInviteCodesParams {
+  campaign_id?: string;
+  campaign_key?: string;
+  batch_id?: string;
+  owner_user_id?: string;
+  used_by_user_id?: string;
+  root_invite_code_id?: string;
+  parent_invite_code_id?: string;
+  status?: string;
+  used?: boolean;
+  plan_id?: string;
+  plan_code?: string;
+  generation_depth?: number;
+  created_from?: string;
+  created_to?: string;
+  used_from?: string;
+  used_to?: string;
+  expires_from?: string;
+  expires_to?: string;
+  prefix?: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface AdminInviteCampaignCreateRequest {
+  campaign_key: string;
+  name: string;
+  description?: string | null;
+  owner_mode?: string;
+  starts_at?: string | null;
+  expires_at?: string | null;
+  allowed_surfaces?: string[];
+  allowed_geos?: string[];
+  allowed_markets?: string[];
+  allowed_segments?: string[];
+  risk_policy_key?: string | null;
+  grant_plan_id?: string | null;
+  grant_plan_code?: string | null;
+  grant_duration_days?: number;
+  child_invite_count?: number;
+  child_invite_free_days?: number;
+  child_invite_expiry_days?: number;
+  child_grant_plan_id?: string | null;
+  child_grant_plan_code?: string | null;
+  child_grant_duration_days?: number | null;
+  max_generation_depth?: number;
+  require_no_active_access?: boolean;
+  block_self_redemption?: boolean;
+  risk_policy?: Record<string, unknown>;
+  export_policy?: Record<string, unknown>;
+  notification_policy?: Record<string, unknown>;
+  caps?: Record<string, unknown>;
+  publish?: boolean;
+  reason?: string | null;
+}
+
+export interface AdminInviteCampaignVersionResponse {
+  id: string;
+  campaign_id: string;
+  version: number;
+  status: string;
+  grant_mode: string;
+  grant_plan_id?: string | null;
+  grant_duration_days?: number | null;
+  grant_snapshot: Record<string, unknown>;
+  child_invite_count: number;
+  child_invite_free_days: number;
+  child_invite_expiry_days: number;
+  child_grant_plan_id?: string | null;
+  child_grant_duration_days?: number | null;
+  child_grant_snapshot: Record<string, unknown>;
+  max_generation_depth: number;
+  block_self_redemption: boolean;
+  require_no_active_access: boolean;
+  allowed_surfaces: string[];
+  risk_policy: Record<string, unknown>;
+  redemption_policy: Record<string, unknown>;
+  child_policy: Record<string, unknown>;
+  issue_policy: Record<string, unknown>;
+  export_policy: Record<string, unknown>;
+  notification_policy: Record<string, unknown>;
+  checksum: string;
+  created_by_admin_id: string;
+  published_by_admin_id?: string | null;
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminInviteCampaignResponse {
+  id: string;
+  campaign_key: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  owner_mode: string;
+  current_version_id?: string | null;
+  starts_at?: string | null;
+  expires_at?: string | null;
+  allowed_surfaces: string[];
+  allowed_geos: Record<string, unknown>;
+  risk_policy: Record<string, unknown>;
+  export_policy: Record<string, unknown>;
+  notification_policy: Record<string, unknown>;
+  caps: Record<string, unknown>;
+  created_by_admin_id: string;
+  updated_by_admin_id?: string | null;
+  published_at?: string | null;
+  paused_at?: string | null;
+  archived_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  current_version?: AdminInviteCampaignVersionResponse | null;
+}
+
+export interface AdminInviteCampaignListResponse {
+  items: AdminInviteCampaignResponse[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface AdminInviteCampaignActionRequest {
+  reason: string;
+}
+
+export interface AdminInviteCampaignVersionCreateRequest {
+  grant_plan_id?: string | null;
+  grant_plan_code?: string | null;
+  grant_duration_days?: number;
+  child_invite_count?: number;
+  child_invite_free_days?: number;
+  child_invite_expiry_days?: number;
+  child_grant_plan_id?: string | null;
+  child_grant_plan_code?: string | null;
+  child_grant_duration_days?: number | null;
+  max_generation_depth?: number;
+  require_no_active_access?: boolean;
+  block_self_redemption?: boolean;
+  allowed_surfaces?: string[];
+  risk_policy?: Record<string, unknown>;
+  export_policy?: Record<string, unknown>;
+  notification_policy?: Record<string, unknown>;
+  reason?: string | null;
+}
+
+export interface AdminInviteCampaignVersionValidationResponse {
+  version_id: string;
+  checksum: string;
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface AdminInviteCampaignBatchCreateRequest {
+  owner_user_id?: string | null;
+  owner_user_ids?: string[];
+  count: number;
+  version_id?: string | null;
+  idempotency_key?: string | null;
+  expires_at?: string | null;
+  expiry_days?: number | null;
+  reason: string;
+}
+
+export interface AdminInviteBatchResponse {
+  id: string;
+  owner_user_id?: string | null;
+  campaign_id?: string | null;
+  invite_campaign_id?: string | null;
+  invite_campaign_version_id?: string | null;
+  root_invite_code_id?: string | null;
+  parent_invite_code_id?: string | null;
+  source_redemption_id?: string | null;
+  root_owner_user_id?: string | null;
+  generation_depth?: number;
+  batch_kind?: string | null;
+  source_growth_code_id?: string | null;
+  source_benefit_id?: string | null;
+  source_order_id?: string | null;
+  source_payment_id?: string | null;
+  source_type: string;
+  requested_count: number;
+  issued_count: number;
+  friend_days: number;
+  expiry_mode: string;
+  expiry_days?: number | null;
+  expires_at?: string | null;
+  entitlement_mode: string;
+  entitlement_profile_key?: string | null;
+  plan_id?: string | null;
+  entitlement_snapshot: Record<string, unknown>;
+  grant_mode?: string | null;
+  grant_plan_id?: string | null;
+  grant_duration_days?: number | null;
+  grant_snapshot?: Record<string, unknown> | null;
+  child_grant_plan_id?: string | null;
+  child_grant_duration_days?: number | null;
+  child_policy?: Record<string, unknown> | null;
+  risk_policy?: Record<string, unknown> | null;
+  redemption_policy?: Record<string, unknown> | null;
+  issue_policy?: Record<string, unknown> | null;
+  status: string;
+  idempotency_key: string;
+  revoked_at?: string | null;
+  revoked_by_admin_id?: string | null;
+  revoked_reason?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminInviteBatchListResponse {
+  items: AdminInviteBatchResponse[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface AdminInviteCampaignBatchCreateResponse {
+  campaign: AdminInviteCampaignResponse;
+  batch: AdminInviteBatchResponse;
+  raw_codes: string[];
+}
+
+export interface AdminInviteRedemptionResponse {
+  id: string;
+  invite_code_id: string;
+  campaign_id?: string | null;
+  campaign_version_id?: string | null;
+  root_invite_code_id?: string | null;
+  parent_invite_code_id?: string | null;
+  inviter_user_id?: string | null;
+  invitee_user_id: string;
+  generation_depth: number;
+  source_surface: string;
+  entitlement_grant_id?: string | null;
+  granted_plan_id?: string | null;
+  granted_plan_code?: string | null;
+  granted_duration_days?: number | null;
+  child_batch_id?: string | null;
+  child_issued_count?: number;
+  status: string;
+  blocked_reason?: string | null;
+  risk_decision: Record<string, unknown>;
+  grant_snapshot: Record<string, unknown>;
+  redeemed_at?: string | null;
+  reversed_at?: string | null;
+  created_at: string;
+}
+
+export interface AdminInviteRedemptionListResponse {
+  items: AdminInviteRedemptionResponse[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface AdminInviteTreeNodeResponse {
+  invite_code_id: string;
+  parent_invite_code_id?: string | null;
+  root_invite_code_id: string;
+  owner_user_id?: string | null;
+  used_by_user_id?: string | null;
+  generation_depth: number;
+  status: string;
+  grant_mode?: string | null;
+  grant_plan_id?: string | null;
+  child_batch_id?: string | null;
+  granted_plan_id?: string | null;
+  granted_plan_code?: string | null;
+  child_count: number;
+  created_at?: string | null;
+  used_at?: string | null;
+}
+
+export interface AdminInviteTreeEdgeResponse {
+  id: string;
+  root_invite_code_id: string;
+  parent_invite_code_id?: string | null;
+  redeemed_invite_code_id: string;
+  redemption_id: string;
+  inviter_user_id?: string | null;
+  invitee_user_id: string;
+  generation_depth: number;
+  status: string;
+  child_batch_id?: string | null;
+  granted_plan_id?: string | null;
+  granted_plan_code?: string | null;
+}
+
+export interface AdminInviteTreeResponse {
+  root_invite_code_id: string;
+  nodes: AdminInviteTreeNodeResponse[];
+  edges: AdminInviteTreeEdgeResponse[];
+  stats: Record<string, unknown>;
+}
+
+export interface AdminInviteTreeRootResponse {
+  root_invite_code_id: string;
+  campaign_id?: string | null;
+  campaign_key?: string | null;
+  owner_user_id?: string | null;
+  generation_depth?: number;
+  status: string;
+  issued_count: number;
+  redeemed_count: number;
+  child_invites_issued_count: number;
+  max_depth_reached: number;
+  created_at?: string | null;
+}
+
+export interface AdminInviteTreeRootListResponse {
+  items: AdminInviteTreeRootResponse[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface AdminInviteCampaignAnalyticsResponse {
+  campaign_id: string;
+  issued_count: number;
+  issued_total?: number;
+  redeemed_count: number;
+  redeemed_total?: number;
+  blocked_count: number;
+  active_vpn_total?: number;
+  child_invites_issued_total?: number;
+  max_depth_reached?: number;
+  depth_breakdown?: Record<string, number>;
+  conversion?: {
+    issued_to_redeemed_pct?: number;
+    redeemed_to_connected_pct?: number;
+  };
+}
+
+export interface AdminInviteBatchActionRequest {
+  reason: string;
+}
+
+export interface AdminExtendInviteBatchRequest extends AdminInviteBatchActionRequest {
+  expiry_days?: number | null;
+  expires_at?: string | null;
+}
+
+export interface AdminInviteBatchExportCodeResponse {
+  id: string;
+  code: string;
+  code_prefix?: string | null;
+  code_hash?: string | null;
+  status: string;
+  is_used: boolean;
+  expires_at?: string | null;
+}
+
+export interface AdminInviteBatchExportResponse {
+  batch_id: string;
+  exported_count: number;
+  codes: AdminInviteBatchExportCodeResponse[];
 }
 
 export interface AdminGrowthSignalCount {
@@ -753,6 +1138,83 @@ export const growthApi = {
 
   createInviteCodes: (data: AdminCreateInviteCodesRequest) =>
     apiClient.post<AdminCreateInviteCodesResponse>('/admin/invite-codes', data),
+
+  listInviteCodes: (params?: AdminListInviteCodesParams) =>
+    apiClient.get<AdminInviteCodeSummaryResponse[]>('/admin/invite-codes', { params }),
+
+  listInviteBatches: (params?: AdminListInviteBatchesParams) =>
+    apiClient.get<AdminInviteBatchListResponse>('/admin/invite-batches', { params }),
+
+  exportInviteBatch: (batchId: string) =>
+    apiClient.get<AdminInviteBatchExportResponse>(`/admin/invite-batches/${batchId}/export`),
+
+  revokeInviteBatch: (batchId: string, data: AdminInviteBatchActionRequest) =>
+    apiClient.post<AdminInviteBatchResponse>(`/admin/invite-batches/${batchId}/revoke`, data),
+
+  extendInviteBatch: (batchId: string, data: AdminExtendInviteBatchRequest) =>
+    apiClient.post<AdminInviteBatchResponse>(`/admin/invite-batches/${batchId}/extend`, data),
+
+  resendInviteBatch: (batchId: string, data: AdminInviteBatchActionRequest) =>
+    apiClient.post<AdminInviteBatchResponse>(`/admin/invite-batches/${batchId}/resend`, data),
+
+  listInviteCampaigns: (params?: { status?: string; campaign_key?: string; offset?: number; limit?: number }) =>
+    apiClient.get<AdminInviteCampaignListResponse>('/admin/invite-campaigns', { params }),
+
+  createInviteCampaign: (data: AdminInviteCampaignCreateRequest) =>
+    apiClient.post<AdminInviteCampaignResponse>('/admin/invite-campaigns', data),
+
+  createInviteCampaignVersion: (campaignId: string, data: AdminInviteCampaignVersionCreateRequest) =>
+    apiClient.post<AdminInviteCampaignVersionResponse>(`/admin/invite-campaigns/${campaignId}/versions`, data),
+
+  validateInviteCampaignVersion: (campaignId: string, versionId: string) =>
+    apiClient.post<AdminInviteCampaignVersionValidationResponse>(
+      `/admin/invite-campaigns/${campaignId}/versions/${versionId}/validate`,
+    ),
+
+  publishInviteCampaignVersion: (
+    campaignId: string,
+    versionId: string,
+    data: AdminInviteCampaignActionRequest,
+  ) =>
+    apiClient.post<AdminInviteCampaignResponse>(
+      `/admin/invite-campaigns/${campaignId}/versions/${versionId}/publish`,
+      data,
+    ),
+
+  createInviteCampaignBatch: (campaignId: string, data: AdminInviteCampaignBatchCreateRequest) =>
+    apiClient.post<AdminInviteCampaignBatchCreateResponse>(
+      `/admin/invite-campaigns/${campaignId}/batches`,
+      data,
+    ),
+
+  listInviteCampaignRedemptions: (
+    campaignId: string,
+    params?: { status?: string; offset?: number; limit?: number },
+  ) =>
+    apiClient.get<AdminInviteRedemptionListResponse>(
+      `/admin/invite-campaigns/${campaignId}/redemptions`,
+      { params },
+    ),
+
+  reverseInviteRedemption: (redemptionId: string, data: AdminInviteCampaignActionRequest) =>
+    apiClient.post<AdminInviteRedemptionResponse>(
+      `/admin/invite-redemptions/${redemptionId}/reverse`,
+      data,
+    ),
+
+  getInviteCampaignAnalytics: (campaignId: string) =>
+    apiClient.get<AdminInviteCampaignAnalyticsResponse>(
+      `/admin/invite-campaigns/${campaignId}/analytics`,
+    ),
+
+  getInviteTree: (rootInviteCodeId: string) =>
+    apiClient.get<AdminInviteTreeResponse>(`/admin/invite-trees/${rootInviteCodeId}`),
+
+  listInviteTreeRoots: (params?: { campaign_id?: string; offset?: number; limit?: number }) =>
+    apiClient.get<AdminInviteTreeRootListResponse>('/admin/invite-trees', { params }),
+
+  getInviteTreeForUser: (userId: string) =>
+    apiClient.get<AdminInviteTreeResponse>(`/admin/invite-trees/users/${userId}`),
 
   promotePartner: (data: AdminPromotePartnerRequest) =>
     apiClient.post<AdminPromotePartnerResponse>('/admin/partners/promote', data),

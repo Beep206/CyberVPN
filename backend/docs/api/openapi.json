@@ -23117,15 +23117,20 @@
         "summary": "Admin: create invite codes",
         "description": "Create one or more invite codes (admin only).",
         "operationId": "admin_create_invites_api_v1_admin_invite_codes_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AdminCreateInviteRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -23133,10 +23138,10 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/InviteCodeResponse"
                   },
-                  "type": "array",
                   "title": "Response Admin Create Invites Api V1 Admin Invite Codes Post"
                 }
               }
@@ -23152,12 +23157,394 @@
               }
             }
           }
-        },
+        }
+      },
+      "get": {
+        "tags": [
+          "invites"
+        ],
+        "summary": "Admin: list invite code inventory",
+        "operationId": "admin_list_invite_codes_api_v1_admin_invite_codes_get",
         "security": [
           {
             "HTTPBearer": []
           }
-        ]
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Campaign Id"
+            }
+          },
+          {
+            "name": "campaign_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Campaign Key"
+            }
+          },
+          {
+            "name": "batch_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Batch Id"
+            }
+          },
+          {
+            "name": "owner_user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Owner User Id"
+            }
+          },
+          {
+            "name": "used_by_user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Used By User Id"
+            }
+          },
+          {
+            "name": "root_invite_code_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Root Invite Code Id"
+            }
+          },
+          {
+            "name": "parent_invite_code_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parent Invite Code Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "used",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Used"
+            }
+          },
+          {
+            "name": "plan_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Plan Id"
+            }
+          },
+          {
+            "name": "plan_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Plan Code"
+            }
+          },
+          {
+            "name": "generation_depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Generation Depth"
+            }
+          },
+          {
+            "name": "created_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created From"
+            }
+          },
+          {
+            "name": "created_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created To"
+            }
+          },
+          {
+            "name": "used_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Used From"
+            }
+          },
+          {
+            "name": "used_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Used To"
+            }
+          },
+          {
+            "name": "expires_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Expires From"
+            }
+          },
+          {
+            "name": "expires_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Expires To"
+            }
+          },
+          {
+            "name": "prefix",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 12
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Prefix"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminInviteCodeSummaryResponse"
+                  },
+                  "title": "Response Admin List Invite Codes Api V1 Admin Invite Codes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/admin/invite-batches": {
@@ -23513,6 +23900,994 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdminInviteBatchExportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns": {
+      "get": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: list flexible invite campaigns",
+        "operationId": "admin_list_invite_campaigns_api_v1_admin_invite_campaigns_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "campaign_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Campaign Key"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: create flexible invite campaign",
+        "operationId": "admin_create_invite_campaign_api_v1_admin_invite_campaigns_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminInviteCampaignCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}": {
+      "get": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: get flexible invite campaign",
+        "operationId": "admin_get_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}/versions": {
+      "post": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: create draft invite campaign version",
+        "operationId": "admin_create_invite_campaign_version_api_v1_admin_invite_campaigns__campaign_id__versions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminInviteCampaignVersionCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignVersionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}/versions/{version_id}/validate": {
+      "post": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: validate invite campaign version before publish",
+        "operationId": "admin_validate_invite_campaign_version_api_v1_admin_invite_campaigns__campaign_id__versions__version_id__validate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          },
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignVersionValidationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}/versions/{version_id}/publish": {
+      "post": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: publish invite campaign version",
+        "operationId": "admin_publish_invite_campaign_version_api_v1_admin_invite_campaigns__campaign_id__versions__version_id__publish_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          },
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminInviteCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}/pause": {
+      "post": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: pause invite campaign",
+        "operationId": "admin_pause_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__pause_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminInviteCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}/resume": {
+      "post": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: resume invite campaign",
+        "operationId": "admin_resume_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__resume_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminInviteCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}/archive": {
+      "post": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: archive invite campaign",
+        "operationId": "admin_archive_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__archive_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminInviteCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}/batches": {
+      "post": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: create root invite batch for campaign",
+        "operationId": "admin_create_invite_campaign_batch_api_v1_admin_invite_campaigns__campaign_id__batches_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminInviteCampaignBatchCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignBatchCreateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}/redemptions": {
+      "get": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: list invite redemptions for campaign",
+        "operationId": "admin_list_invite_campaign_redemptions_api_v1_admin_invite_campaigns__campaign_id__redemptions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteRedemptionListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-campaigns/{campaign_id}/analytics": {
+      "get": {
+        "tags": [
+          "admin",
+          "invite-campaigns"
+        ],
+        "summary": "Admin: invite campaign analytics",
+        "operationId": "admin_get_invite_campaign_analytics_api_v1_admin_invite_campaigns__campaign_id__analytics_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Admin Get Invite Campaign Analytics Api V1 Admin Invite Campaigns  Campaign Id  Analytics Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-redemptions/{redemption_id}/reverse": {
+      "post": {
+        "tags": [
+          "admin",
+          "invite-redemptions"
+        ],
+        "summary": "Admin: reverse invite redemption",
+        "operationId": "admin_reverse_invite_redemption_api_v1_admin_invite_redemptions__redemption_id__reverse_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "redemption_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Redemption Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminInviteCampaignActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteRedemptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-trees": {
+      "get": {
+        "tags": [
+          "admin",
+          "invite-trees"
+        ],
+        "summary": "Admin: list invite tree roots",
+        "operationId": "admin_list_invite_tree_roots_api_v1_admin_invite_trees_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Campaign Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteTreeRootListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-trees/users/{user_id}": {
+      "get": {
+        "tags": [
+          "admin",
+          "invite-trees"
+        ],
+        "summary": "Admin: get invite tree for a user",
+        "operationId": "admin_get_invite_tree_for_user_api_v1_admin_invite_trees_users__user_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteTreeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-trees/{root_invite_code_id}": {
+      "get": {
+        "tags": [
+          "admin",
+          "invite-trees"
+        ],
+        "summary": "Admin: get invite tree by root invite code",
+        "operationId": "admin_get_invite_tree_api_v1_admin_invite_trees__root_invite_code_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "root_invite_code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Root Invite Code Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminInviteTreeResponse"
                 }
               }
             }
@@ -57573,8 +58948,15 @@
             "title": "Id"
           },
           "owner_user_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Owner User Id"
           },
           "campaign_id": {
@@ -57588,6 +58970,94 @@
               }
             ],
             "title": "Campaign Id"
+          },
+          "invite_campaign_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Campaign Id"
+          },
+          "invite_campaign_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Campaign Version Id"
+          },
+          "root_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Code Id"
+          },
+          "parent_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Invite Code Id"
+          },
+          "source_redemption_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Redemption Id"
+          },
+          "root_owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Owner User Id"
+          },
+          "generation_depth": {
+            "type": "integer",
+            "title": "Generation Depth",
+            "default": 0
+          },
+          "batch_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Kind"
           },
           "source_growth_code_id": {
             "anyOf": [
@@ -57711,6 +59181,123 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Entitlement Snapshot"
+          },
+          "grant_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Mode"
+          },
+          "grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Id"
+          },
+          "grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Days"
+          },
+          "grant_snapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Snapshot"
+          },
+          "child_grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Id"
+          },
+          "child_grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Days"
+          },
+          "child_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Policy"
+          },
+          "risk_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Policy"
+          },
+          "redemption_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redemption Policy"
+          },
+          "issue_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Policy"
           },
           "status": {
             "type": "string",
@@ -57924,8 +59511,15 @@
             "title": "Id"
           },
           "owner_user_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Owner User Id"
           },
           "campaign_id": {
@@ -57939,6 +59533,94 @@
               }
             ],
             "title": "Campaign Id"
+          },
+          "invite_campaign_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Campaign Id"
+          },
+          "invite_campaign_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Campaign Version Id"
+          },
+          "root_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Code Id"
+          },
+          "parent_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Invite Code Id"
+          },
+          "source_redemption_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Redemption Id"
+          },
+          "root_owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Owner User Id"
+          },
+          "generation_depth": {
+            "type": "integer",
+            "title": "Generation Depth",
+            "default": 0
+          },
+          "batch_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Kind"
           },
           "source_growth_code_id": {
             "anyOf": [
@@ -58063,6 +59745,123 @@
             "type": "object",
             "title": "Entitlement Snapshot"
           },
+          "grant_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Mode"
+          },
+          "grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Id"
+          },
+          "grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Days"
+          },
+          "grant_snapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Snapshot"
+          },
+          "child_grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Id"
+          },
+          "child_grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Days"
+          },
+          "child_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Policy"
+          },
+          "risk_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Policy"
+          },
+          "redemption_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redemption Policy"
+          },
+          "issue_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Policy"
+          },
           "status": {
             "type": "string",
             "title": "Status"
@@ -58135,6 +59934,1023 @@
         ],
         "title": "AdminInviteBatchResponse",
         "description": "Admin invite batch summary."
+      },
+      "AdminInviteCampaignActionRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 240,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "AdminInviteCampaignActionRequest"
+      },
+      "AdminInviteCampaignBatchCreateRequest": {
+        "properties": {
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "owner_user_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Owner User Ids"
+          },
+          "count": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Count",
+            "default": 1
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "expiry_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3660.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry Days",
+            "default": 30
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 240,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "AdminInviteCampaignBatchCreateRequest"
+      },
+      "AdminInviteCampaignBatchCreateResponse": {
+        "properties": {
+          "campaign": {
+            "$ref": "#/components/schemas/AdminInviteCampaignResponse"
+          },
+          "batch": {
+            "$ref": "#/components/schemas/AdminInviteBatchResponse"
+          },
+          "raw_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Raw Codes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaign",
+          "batch",
+          "raw_codes"
+        ],
+        "title": "AdminInviteCampaignBatchCreateResponse"
+      },
+      "AdminInviteCampaignCreateRequest": {
+        "properties": {
+          "campaign_key": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "title": "Campaign Key"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "owner_mode": {
+            "type": "string",
+            "maxLength": 30,
+            "title": "Owner Mode",
+            "default": "selected_user"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "allowed_surfaces": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Surfaces"
+          },
+          "allowed_geos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Allowed Geos"
+          },
+          "allowed_markets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Allowed Markets"
+          },
+          "allowed_segments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Allowed Segments"
+          },
+          "risk_policy_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Policy Key"
+          },
+          "grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Id"
+          },
+          "grant_plan_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Code",
+            "default": "premium_smart_ru"
+          },
+          "grant_duration_days": {
+            "type": "integer",
+            "maximum": 3660.0,
+            "minimum": 1.0,
+            "title": "Grant Duration Days",
+            "default": 365
+          },
+          "child_invite_count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Child Invite Count",
+            "default": 10
+          },
+          "child_invite_free_days": {
+            "type": "integer",
+            "maximum": 3660.0,
+            "minimum": 1.0,
+            "title": "Child Invite Free Days",
+            "default": 365
+          },
+          "child_invite_expiry_days": {
+            "type": "integer",
+            "maximum": 3660.0,
+            "minimum": 1.0,
+            "title": "Child Invite Expiry Days",
+            "default": 30
+          },
+          "child_grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Id"
+          },
+          "child_grant_plan_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Code",
+            "default": "premium_smart_ru"
+          },
+          "child_grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3660.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Days",
+            "default": 365
+          },
+          "max_generation_depth": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Max Generation Depth",
+            "default": 5
+          },
+          "require_no_active_access": {
+            "type": "boolean",
+            "title": "Require No Active Access",
+            "default": true
+          },
+          "block_self_redemption": {
+            "type": "boolean",
+            "title": "Block Self Redemption",
+            "default": true
+          },
+          "risk_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Risk Policy"
+          },
+          "export_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Export Policy"
+          },
+          "notification_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Notification Policy"
+          },
+          "caps": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Caps"
+          },
+          "publish": {
+            "type": "boolean",
+            "title": "Publish",
+            "default": false
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 240
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaign_key",
+          "name"
+        ],
+        "title": "AdminInviteCampaignCreateRequest",
+        "description": "Create a flexible invite campaign with an initial draft version."
+      },
+      "AdminInviteCampaignListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminInviteCampaignResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "AdminInviteCampaignListResponse"
+      },
+      "AdminInviteCampaignResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "campaign_key": {
+            "type": "string",
+            "title": "Campaign Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "owner_mode": {
+            "type": "string",
+            "title": "Owner Mode"
+          },
+          "current_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version Id"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "allowed_surfaces": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Surfaces"
+          },
+          "allowed_geos": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Allowed Geos"
+          },
+          "risk_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Risk Policy"
+          },
+          "export_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Export Policy"
+          },
+          "notification_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Notification Policy"
+          },
+          "caps": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Caps"
+          },
+          "created_by_admin_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Created By Admin Id"
+          },
+          "updated_by_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By Admin Id"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused At"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminInviteCampaignVersionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "campaign_key",
+          "name",
+          "status",
+          "owner_mode",
+          "allowed_surfaces",
+          "allowed_geos",
+          "risk_policy",
+          "export_policy",
+          "notification_policy",
+          "caps",
+          "created_by_admin_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminInviteCampaignResponse"
+      },
+      "AdminInviteCampaignVersionCreateRequest": {
+        "properties": {
+          "grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Id"
+          },
+          "grant_plan_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Code",
+            "default": "premium_smart_ru"
+          },
+          "grant_duration_days": {
+            "type": "integer",
+            "maximum": 3660.0,
+            "minimum": 1.0,
+            "title": "Grant Duration Days",
+            "default": 365
+          },
+          "child_invite_count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Child Invite Count",
+            "default": 10
+          },
+          "child_invite_free_days": {
+            "type": "integer",
+            "maximum": 3660.0,
+            "minimum": 1.0,
+            "title": "Child Invite Free Days",
+            "default": 365
+          },
+          "child_invite_expiry_days": {
+            "type": "integer",
+            "maximum": 3660.0,
+            "minimum": 1.0,
+            "title": "Child Invite Expiry Days",
+            "default": 30
+          },
+          "child_grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Id"
+          },
+          "child_grant_plan_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Code",
+            "default": "premium_smart_ru"
+          },
+          "child_grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3660.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Days",
+            "default": 365
+          },
+          "max_generation_depth": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Max Generation Depth",
+            "default": 5
+          },
+          "require_no_active_access": {
+            "type": "boolean",
+            "title": "Require No Active Access",
+            "default": true
+          },
+          "block_self_redemption": {
+            "type": "boolean",
+            "title": "Block Self Redemption",
+            "default": true
+          },
+          "allowed_surfaces": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Surfaces"
+          },
+          "risk_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Risk Policy"
+          },
+          "export_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Export Policy"
+          },
+          "notification_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Notification Policy"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 240
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "title": "AdminInviteCampaignVersionCreateRequest"
+      },
+      "AdminInviteCampaignVersionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Campaign Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "grant_mode": {
+            "type": "string",
+            "title": "Grant Mode"
+          },
+          "grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Id"
+          },
+          "grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Days"
+          },
+          "grant_snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Grant Snapshot"
+          },
+          "child_invite_count": {
+            "type": "integer",
+            "title": "Child Invite Count"
+          },
+          "child_invite_free_days": {
+            "type": "integer",
+            "title": "Child Invite Free Days"
+          },
+          "child_invite_expiry_days": {
+            "type": "integer",
+            "title": "Child Invite Expiry Days"
+          },
+          "child_grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Id"
+          },
+          "child_grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Days"
+          },
+          "child_grant_snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Child Grant Snapshot"
+          },
+          "max_generation_depth": {
+            "type": "integer",
+            "title": "Max Generation Depth"
+          },
+          "block_self_redemption": {
+            "type": "boolean",
+            "title": "Block Self Redemption"
+          },
+          "require_no_active_access": {
+            "type": "boolean",
+            "title": "Require No Active Access"
+          },
+          "allowed_surfaces": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Surfaces"
+          },
+          "risk_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Risk Policy"
+          },
+          "redemption_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Redemption Policy"
+          },
+          "child_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Child Policy"
+          },
+          "issue_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Issue Policy"
+          },
+          "export_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Export Policy"
+          },
+          "notification_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Notification Policy"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          },
+          "created_by_admin_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Created By Admin Id"
+          },
+          "published_by_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published By Admin Id"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "campaign_id",
+          "version",
+          "status",
+          "grant_mode",
+          "grant_snapshot",
+          "child_invite_count",
+          "child_invite_free_days",
+          "child_invite_expiry_days",
+          "child_grant_snapshot",
+          "max_generation_depth",
+          "block_self_redemption",
+          "require_no_active_access",
+          "allowed_surfaces",
+          "risk_policy",
+          "redemption_policy",
+          "child_policy",
+          "issue_policy",
+          "export_policy",
+          "notification_policy",
+          "checksum",
+          "created_by_admin_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminInviteCampaignVersionResponse"
+      },
+      "AdminInviteCampaignVersionValidationResponse": {
+        "properties": {
+          "version_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Version Id"
+          },
+          "checksum": {
+            "type": "string",
+            "title": "Checksum"
+          },
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version_id",
+          "checksum",
+          "valid",
+          "errors",
+          "warnings"
+        ],
+        "title": "AdminInviteCampaignVersionValidationResponse"
       },
       "AdminInviteCodeSummaryResponse": {
         "properties": {
@@ -58225,6 +61041,116 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "campaign_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Id"
+          },
+          "campaign_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Version Id"
+          },
+          "root_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Code Id"
+          },
+          "parent_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Invite Code Id"
+          },
+          "generation_depth": {
+            "type": "integer",
+            "title": "Generation Depth",
+            "default": 0
+          },
+          "grant_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Mode"
+          },
+          "grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Id"
+          },
+          "grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Days"
+          },
+          "child_grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Id"
+          },
+          "child_grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Days"
           }
         },
         "type": "object",
@@ -58236,6 +61162,672 @@
         ],
         "title": "AdminInviteCodeSummaryResponse",
         "description": "Admin-safe invite code summary for batch views."
+      },
+      "AdminInviteRedemptionListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminInviteRedemptionResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "AdminInviteRedemptionListResponse"
+      },
+      "AdminInviteRedemptionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "invite_code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invite Code Id"
+          },
+          "campaign_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Id"
+          },
+          "campaign_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Version Id"
+          },
+          "root_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Code Id"
+          },
+          "parent_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Invite Code Id"
+          },
+          "inviter_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inviter User Id"
+          },
+          "invitee_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invitee User Id"
+          },
+          "generation_depth": {
+            "type": "integer",
+            "title": "Generation Depth"
+          },
+          "source_surface": {
+            "type": "string",
+            "title": "Source Surface"
+          },
+          "entitlement_grant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entitlement Grant Id"
+          },
+          "granted_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted Plan Id"
+          },
+          "granted_plan_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted Plan Code"
+          },
+          "granted_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted Duration Days"
+          },
+          "child_batch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Batch Id"
+          },
+          "child_issued_count": {
+            "type": "integer",
+            "title": "Child Issued Count",
+            "default": 0
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "risk_decision": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Risk Decision"
+          },
+          "grant_snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Grant Snapshot"
+          },
+          "redeemed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redeemed At"
+          },
+          "reversed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reversed At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "invite_code_id",
+          "invitee_user_id",
+          "generation_depth",
+          "source_surface",
+          "status",
+          "risk_decision",
+          "grant_snapshot",
+          "created_at"
+        ],
+        "title": "AdminInviteRedemptionResponse"
+      },
+      "AdminInviteTreeEdgeResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "root_invite_code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Root Invite Code Id"
+          },
+          "parent_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Invite Code Id"
+          },
+          "redeemed_invite_code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Redeemed Invite Code Id"
+          },
+          "redemption_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Redemption Id"
+          },
+          "inviter_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inviter User Id"
+          },
+          "invitee_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invitee User Id"
+          },
+          "generation_depth": {
+            "type": "integer",
+            "title": "Generation Depth"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "child_batch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Batch Id"
+          },
+          "granted_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted Plan Id"
+          },
+          "granted_plan_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted Plan Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "root_invite_code_id",
+          "redeemed_invite_code_id",
+          "redemption_id",
+          "invitee_user_id",
+          "generation_depth",
+          "status"
+        ],
+        "title": "AdminInviteTreeEdgeResponse"
+      },
+      "AdminInviteTreeNodeResponse": {
+        "properties": {
+          "invite_code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invite Code Id"
+          },
+          "parent_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Invite Code Id"
+          },
+          "root_invite_code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Root Invite Code Id"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "used_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used By User Id"
+          },
+          "generation_depth": {
+            "type": "integer",
+            "title": "Generation Depth"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "grant_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Mode"
+          },
+          "grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Id"
+          },
+          "child_batch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Batch Id"
+          },
+          "granted_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted Plan Id"
+          },
+          "granted_plan_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted Plan Code"
+          },
+          "child_count": {
+            "type": "integer",
+            "title": "Child Count",
+            "default": 0
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invite_code_id",
+          "root_invite_code_id",
+          "generation_depth",
+          "status"
+        ],
+        "title": "AdminInviteTreeNodeResponse"
+      },
+      "AdminInviteTreeResponse": {
+        "properties": {
+          "root_invite_code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Root Invite Code Id"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/AdminInviteTreeNodeResponse"
+            },
+            "type": "array",
+            "title": "Nodes"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/AdminInviteTreeEdgeResponse"
+            },
+            "type": "array",
+            "title": "Edges"
+          },
+          "stats": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Stats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "root_invite_code_id",
+          "nodes",
+          "edges",
+          "stats"
+        ],
+        "title": "AdminInviteTreeResponse"
+      },
+      "AdminInviteTreeRootListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminInviteTreeRootResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "AdminInviteTreeRootListResponse"
+      },
+      "AdminInviteTreeRootResponse": {
+        "properties": {
+          "root_invite_code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Root Invite Code Id"
+          },
+          "campaign_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Id"
+          },
+          "campaign_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Key"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "generation_depth": {
+            "type": "integer",
+            "title": "Generation Depth",
+            "default": 0
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "issued_count": {
+            "type": "integer",
+            "title": "Issued Count",
+            "default": 0
+          },
+          "redeemed_count": {
+            "type": "integer",
+            "title": "Redeemed Count",
+            "default": 0
+          },
+          "child_invites_issued_count": {
+            "type": "integer",
+            "title": "Child Invites Issued Count",
+            "default": 0
+          },
+          "max_depth_reached": {
+            "type": "integer",
+            "title": "Max Depth Reached",
+            "default": 0
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "root_invite_code_id",
+          "status"
+        ],
+        "title": "AdminInviteTreeRootResponse"
       },
       "AdminIssueGiftCodeBatchRequest": {
         "properties": {
@@ -70296,6 +73888,94 @@
             ],
             "title": "Campaign Id"
           },
+          "invite_campaign_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Campaign Id"
+          },
+          "invite_campaign_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Campaign Version Id"
+          },
+          "root_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Code Id"
+          },
+          "parent_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Invite Code Id"
+          },
+          "source_redemption_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Redemption Id"
+          },
+          "root_owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Owner User Id"
+          },
+          "generation_depth": {
+            "type": "integer",
+            "title": "Generation Depth",
+            "default": 0
+          },
+          "batch_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Kind"
+          },
           "source_growth_code_id": {
             "anyOf": [
               {
@@ -70348,6 +74028,75 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "grant_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Mode"
+          },
+          "grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Id"
+          },
+          "grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Days"
+          },
+          "child_grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Id"
+          },
+          "child_grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Days"
+          },
+          "child_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Policy"
           }
         },
         "type": "object",
@@ -70530,6 +74279,46 @@
             "type": "boolean",
             "title": "Connection Required",
             "default": false
+          },
+          "code_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "promo",
+                  "invite",
+                  "gift"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Type"
+          },
+          "entitlement": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entitlement"
+          },
+          "child_invites": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invites"
           }
         },
         "type": "object",
@@ -76136,6 +79925,71 @@
             ],
             "title": "Batch Id"
           },
+          "campaign_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Id"
+          },
+          "campaign_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Version Id"
+          },
+          "root_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Code Id"
+          },
+          "parent_invite_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Invite Code Id"
+          },
+          "source_redemption_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Redemption Id"
+          },
+          "generation_depth": {
+            "type": "integer",
+            "title": "Generation Depth",
+            "default": 0
+          },
           "status": {
             "anyOf": [
               {
@@ -76168,6 +80022,75 @@
               }
             ],
             "title": "Code Prefix"
+          },
+          "grant_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Mode"
+          },
+          "grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Id"
+          },
+          "grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Days"
+          },
+          "child_grant_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Id"
+          },
+          "child_grant_duration_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Days"
+          },
+          "child_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Policy"
           }
         },
         "type": "object",

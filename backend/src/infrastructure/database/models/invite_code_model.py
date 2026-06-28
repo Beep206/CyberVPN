@@ -27,9 +27,9 @@ class InviteCodeModel(Base):
         index=True,
     )
 
-    owner_user_id: Mapped[uuid.UUID] = mapped_column(
+    owner_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("mobile_users.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
 
@@ -47,6 +47,43 @@ class InviteCodeModel(Base):
         ForeignKey("invite_batches.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
+    )
+
+    campaign_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("invite_campaigns.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    campaign_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("invite_campaign_versions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    root_invite_code_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("invite_codes.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    parent_invite_code_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("invite_codes.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    source_redemption_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("invite_redemptions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    generation_depth: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
     )
 
     source_growth_code_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -92,6 +129,65 @@ class InviteCodeModel(Base):
     )
 
     entitlement_snapshot: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
+    grant_mode: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="legacy_invite_access",
+        server_default="legacy_invite_access",
+    )
+
+    grant_plan_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("subscription_plans.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    grant_duration_days: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    grant_snapshot: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
+    child_grant_plan_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("subscription_plans.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    child_grant_duration_days: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    child_policy: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
+    risk_policy: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
+    redemption_policy: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
+    issue_policy: Mapped[dict[str, Any]] = mapped_column(
         JSON,
         nullable=False,
         default=dict,

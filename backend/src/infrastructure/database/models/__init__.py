@@ -97,6 +97,14 @@ from src.infrastructure.database.models.growth_risk_fx_model import (
     RiskFeatureSnapshotModel,
     RiskModelVersionModel,
 )
+from src.infrastructure.database.models.invite_campaign_model import (
+    InviteCampaignDailyRollupModel,
+    InviteCampaignModel,
+    InviteCampaignVersionModel,
+    InviteRedemptionModel,
+    InviteTreeClosureModel,
+    InviteTreeEdgeModel,
+)
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.invoice_profile_model import InvoiceProfileModel
 from src.infrastructure.database.models.legal_document_model import LegalDocumentModel
@@ -286,9 +294,15 @@ __all__ = [
     "GrowthRuleDefinitionModel",
     "GrowthSignupAttributionModel",
     "GrowthRewardAllocationModel",
+    "InviteCampaignDailyRollupModel",
+    "InviteCampaignModel",
+    "InviteCampaignVersionModel",
     "InviteBatchModel",
     "InviteCodePolicyModel",
     "InviteCodeModel",
+    "InviteRedemptionModel",
+    "InviteTreeClosureModel",
+    "InviteTreeEdgeModel",
     "LegalDocumentModel",
     "LegalDocumentSetItemModel",
     "LegalDocumentSetModel",

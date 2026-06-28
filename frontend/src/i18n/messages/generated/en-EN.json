@@ -324,6 +324,14 @@
       "verifyingIdentity": "Verifying your identity"
     },
     "onboarding": {
+      "activation": {
+        "childInvites": "{count} invite codes issued, {available} available",
+        "devices": "Device limit: {count}",
+        "period": "Access period: {days} days",
+        "plan": "Plan: {plan}",
+        "title": "Activation summary",
+        "traffic": "Traffic: {traffic}"
+      },
       "allowedAny": "Promo, invite, or gift codes",
       "allowedLabel": "Accepted code types",
       "apply": "Apply code",

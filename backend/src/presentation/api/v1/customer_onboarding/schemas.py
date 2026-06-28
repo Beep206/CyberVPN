@@ -34,6 +34,9 @@ class CustomerOnboardingApplyResponse(BaseModel):
     masked_code: str | None = None
     next_destination: str = "/dashboard"
     connection_required: bool = False
+    code_type: Literal["promo", "invite", "gift"] | None = None
+    entitlement: dict[str, object] | None = None
+    child_invites: dict[str, object] | None = None
 
 
 class CustomerOnboardingPreviewRequest(BaseModel):

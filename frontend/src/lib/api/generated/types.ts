@@ -6476,7 +6476,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Admin: list invite code inventory */
+        get: operations["admin_list_invite_codes_api_v1_admin_invite_codes_get"];
         put?: never;
         /**
          * Admin: create invite codes
@@ -6583,6 +6584,262 @@ export interface paths {
         };
         /** Admin: export raw invite codes for a batch */
         get: operations["admin_export_invite_batch_api_v1_admin_invite_batches__batch_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: list flexible invite campaigns */
+        get: operations["admin_list_invite_campaigns_api_v1_admin_invite_campaigns_get"];
+        put?: never;
+        /** Admin: create flexible invite campaign */
+        post: operations["admin_create_invite_campaign_api_v1_admin_invite_campaigns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: get flexible invite campaign */
+        get: operations["admin_get_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: create draft invite campaign version */
+        post: operations["admin_create_invite_campaign_version_api_v1_admin_invite_campaigns__campaign_id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}/versions/{version_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: validate invite campaign version before publish */
+        post: operations["admin_validate_invite_campaign_version_api_v1_admin_invite_campaigns__campaign_id__versions__version_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}/versions/{version_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: publish invite campaign version */
+        post: operations["admin_publish_invite_campaign_version_api_v1_admin_invite_campaigns__campaign_id__versions__version_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: pause invite campaign */
+        post: operations["admin_pause_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: resume invite campaign */
+        post: operations["admin_resume_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: archive invite campaign */
+        post: operations["admin_archive_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: create root invite batch for campaign */
+        post: operations["admin_create_invite_campaign_batch_api_v1_admin_invite_campaigns__campaign_id__batches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}/redemptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: list invite redemptions for campaign */
+        get: operations["admin_list_invite_campaign_redemptions_api_v1_admin_invite_campaigns__campaign_id__redemptions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-campaigns/{campaign_id}/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: invite campaign analytics */
+        get: operations["admin_get_invite_campaign_analytics_api_v1_admin_invite_campaigns__campaign_id__analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-redemptions/{redemption_id}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin: reverse invite redemption */
+        post: operations["admin_reverse_invite_redemption_api_v1_admin_invite_redemptions__redemption_id__reverse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-trees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: list invite tree roots */
+        get: operations["admin_list_invite_tree_roots_api_v1_admin_invite_trees_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-trees/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: get invite tree for a user */
+        get: operations["admin_get_invite_tree_for_user_api_v1_admin_invite_trees_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-trees/{root_invite_code_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin: get invite tree by root invite code */
+        get: operations["admin_get_invite_tree_api_v1_admin_invite_trees__root_invite_code_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -17248,13 +17505,29 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /**
-             * Owner User Id
-             * Format: uuid
-             */
-            owner_user_id: string;
+            /** Owner User Id */
+            owner_user_id: string | null;
             /** Campaign Id */
             campaign_id?: string | null;
+            /** Invite Campaign Id */
+            invite_campaign_id?: string | null;
+            /** Invite Campaign Version Id */
+            invite_campaign_version_id?: string | null;
+            /** Root Invite Code Id */
+            root_invite_code_id?: string | null;
+            /** Parent Invite Code Id */
+            parent_invite_code_id?: string | null;
+            /** Source Redemption Id */
+            source_redemption_id?: string | null;
+            /** Root Owner User Id */
+            root_owner_user_id?: string | null;
+            /**
+             * Generation Depth
+             * @default 0
+             */
+            generation_depth: number;
+            /** Batch Kind */
+            batch_kind?: string | null;
             /** Source Growth Code Id */
             source_growth_code_id?: string | null;
             /** Source Benefit Id */
@@ -17287,6 +17560,36 @@ export interface components {
             entitlement_snapshot: {
                 [key: string]: unknown;
             };
+            /** Grant Mode */
+            grant_mode?: string | null;
+            /** Grant Plan Id */
+            grant_plan_id?: string | null;
+            /** Grant Duration Days */
+            grant_duration_days?: number | null;
+            /** Grant Snapshot */
+            grant_snapshot?: {
+                [key: string]: unknown;
+            } | null;
+            /** Child Grant Plan Id */
+            child_grant_plan_id?: string | null;
+            /** Child Grant Duration Days */
+            child_grant_duration_days?: number | null;
+            /** Child Policy */
+            child_policy?: {
+                [key: string]: unknown;
+            } | null;
+            /** Risk Policy */
+            risk_policy?: {
+                [key: string]: unknown;
+            } | null;
+            /** Redemption Policy */
+            redemption_policy?: {
+                [key: string]: unknown;
+            } | null;
+            /** Issue Policy */
+            issue_policy?: {
+                [key: string]: unknown;
+            } | null;
             /** Status */
             status: string;
             /** Idempotency Key */
@@ -17372,13 +17675,29 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /**
-             * Owner User Id
-             * Format: uuid
-             */
-            owner_user_id: string;
+            /** Owner User Id */
+            owner_user_id: string | null;
             /** Campaign Id */
             campaign_id?: string | null;
+            /** Invite Campaign Id */
+            invite_campaign_id?: string | null;
+            /** Invite Campaign Version Id */
+            invite_campaign_version_id?: string | null;
+            /** Root Invite Code Id */
+            root_invite_code_id?: string | null;
+            /** Parent Invite Code Id */
+            parent_invite_code_id?: string | null;
+            /** Source Redemption Id */
+            source_redemption_id?: string | null;
+            /** Root Owner User Id */
+            root_owner_user_id?: string | null;
+            /**
+             * Generation Depth
+             * @default 0
+             */
+            generation_depth: number;
+            /** Batch Kind */
+            batch_kind?: string | null;
             /** Source Growth Code Id */
             source_growth_code_id?: string | null;
             /** Source Benefit Id */
@@ -17411,6 +17730,36 @@ export interface components {
             entitlement_snapshot: {
                 [key: string]: unknown;
             };
+            /** Grant Mode */
+            grant_mode?: string | null;
+            /** Grant Plan Id */
+            grant_plan_id?: string | null;
+            /** Grant Duration Days */
+            grant_duration_days?: number | null;
+            /** Grant Snapshot */
+            grant_snapshot?: {
+                [key: string]: unknown;
+            } | null;
+            /** Child Grant Plan Id */
+            child_grant_plan_id?: string | null;
+            /** Child Grant Duration Days */
+            child_grant_duration_days?: number | null;
+            /** Child Policy */
+            child_policy?: {
+                [key: string]: unknown;
+            } | null;
+            /** Risk Policy */
+            risk_policy?: {
+                [key: string]: unknown;
+            } | null;
+            /** Redemption Policy */
+            redemption_policy?: {
+                [key: string]: unknown;
+            } | null;
+            /** Issue Policy */
+            issue_policy?: {
+                [key: string]: unknown;
+            } | null;
             /** Status */
             status: string;
             /** Idempotency Key */
@@ -17431,6 +17780,415 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** AdminInviteCampaignActionRequest */
+        AdminInviteCampaignActionRequest: {
+            /** Reason */
+            reason: string;
+        };
+        /** AdminInviteCampaignBatchCreateRequest */
+        AdminInviteCampaignBatchCreateRequest: {
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Owner User Ids */
+            owner_user_ids?: string[];
+            /**
+             * Count
+             * @default 1
+             */
+            count: number;
+            /** Version Id */
+            version_id?: string | null;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Expiry Days
+             * @default 30
+             */
+            expiry_days: number | null;
+            /** Reason */
+            reason: string;
+        };
+        /** AdminInviteCampaignBatchCreateResponse */
+        AdminInviteCampaignBatchCreateResponse: {
+            campaign: components["schemas"]["AdminInviteCampaignResponse"];
+            batch: components["schemas"]["AdminInviteBatchResponse"];
+            /** Raw Codes */
+            raw_codes: string[];
+        };
+        /**
+         * AdminInviteCampaignCreateRequest
+         * @description Create a flexible invite campaign with an initial draft version.
+         */
+        AdminInviteCampaignCreateRequest: {
+            /** Campaign Key */
+            campaign_key: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Owner Mode
+             * @default selected_user
+             */
+            owner_mode: string;
+            /** Starts At */
+            starts_at?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Allowed Surfaces */
+            allowed_surfaces?: string[];
+            /** Allowed Geos */
+            allowed_geos?: string[];
+            /** Allowed Markets */
+            allowed_markets?: string[];
+            /** Allowed Segments */
+            allowed_segments?: string[];
+            /** Risk Policy Key */
+            risk_policy_key?: string | null;
+            /** Grant Plan Id */
+            grant_plan_id?: string | null;
+            /**
+             * Grant Plan Code
+             * @default premium_smart_ru
+             */
+            grant_plan_code: string | null;
+            /**
+             * Grant Duration Days
+             * @default 365
+             */
+            grant_duration_days: number;
+            /**
+             * Child Invite Count
+             * @default 10
+             */
+            child_invite_count: number;
+            /**
+             * Child Invite Free Days
+             * @default 365
+             */
+            child_invite_free_days: number;
+            /**
+             * Child Invite Expiry Days
+             * @default 30
+             */
+            child_invite_expiry_days: number;
+            /** Child Grant Plan Id */
+            child_grant_plan_id?: string | null;
+            /**
+             * Child Grant Plan Code
+             * @default premium_smart_ru
+             */
+            child_grant_plan_code: string | null;
+            /**
+             * Child Grant Duration Days
+             * @default 365
+             */
+            child_grant_duration_days: number | null;
+            /**
+             * Max Generation Depth
+             * @default 5
+             */
+            max_generation_depth: number;
+            /**
+             * Require No Active Access
+             * @default true
+             */
+            require_no_active_access: boolean;
+            /**
+             * Block Self Redemption
+             * @default true
+             */
+            block_self_redemption: boolean;
+            /** Risk Policy */
+            risk_policy?: {
+                [key: string]: unknown;
+            };
+            /** Export Policy */
+            export_policy?: {
+                [key: string]: unknown;
+            };
+            /** Notification Policy */
+            notification_policy?: {
+                [key: string]: unknown;
+            };
+            /** Caps */
+            caps?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Publish
+             * @default false
+             */
+            publish: boolean;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** AdminInviteCampaignListResponse */
+        AdminInviteCampaignListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminInviteCampaignResponse"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /** AdminInviteCampaignResponse */
+        AdminInviteCampaignResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Campaign Key */
+            campaign_key: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Status */
+            status: string;
+            /** Owner Mode */
+            owner_mode: string;
+            /** Current Version Id */
+            current_version_id?: string | null;
+            /** Starts At */
+            starts_at?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Allowed Surfaces */
+            allowed_surfaces: string[];
+            /** Allowed Geos */
+            allowed_geos: {
+                [key: string]: unknown;
+            };
+            /** Risk Policy */
+            risk_policy: {
+                [key: string]: unknown;
+            };
+            /** Export Policy */
+            export_policy: {
+                [key: string]: unknown;
+            };
+            /** Notification Policy */
+            notification_policy: {
+                [key: string]: unknown;
+            };
+            /** Caps */
+            caps: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created By Admin Id
+             * Format: uuid
+             */
+            created_by_admin_id: string;
+            /** Updated By Admin Id */
+            updated_by_admin_id?: string | null;
+            /** Published At */
+            published_at?: string | null;
+            /** Paused At */
+            paused_at?: string | null;
+            /** Archived At */
+            archived_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            current_version?: components["schemas"]["AdminInviteCampaignVersionResponse"] | null;
+        };
+        /** AdminInviteCampaignVersionCreateRequest */
+        AdminInviteCampaignVersionCreateRequest: {
+            /** Grant Plan Id */
+            grant_plan_id?: string | null;
+            /**
+             * Grant Plan Code
+             * @default premium_smart_ru
+             */
+            grant_plan_code: string | null;
+            /**
+             * Grant Duration Days
+             * @default 365
+             */
+            grant_duration_days: number;
+            /**
+             * Child Invite Count
+             * @default 10
+             */
+            child_invite_count: number;
+            /**
+             * Child Invite Free Days
+             * @default 365
+             */
+            child_invite_free_days: number;
+            /**
+             * Child Invite Expiry Days
+             * @default 30
+             */
+            child_invite_expiry_days: number;
+            /** Child Grant Plan Id */
+            child_grant_plan_id?: string | null;
+            /**
+             * Child Grant Plan Code
+             * @default premium_smart_ru
+             */
+            child_grant_plan_code: string | null;
+            /**
+             * Child Grant Duration Days
+             * @default 365
+             */
+            child_grant_duration_days: number | null;
+            /**
+             * Max Generation Depth
+             * @default 5
+             */
+            max_generation_depth: number;
+            /**
+             * Require No Active Access
+             * @default true
+             */
+            require_no_active_access: boolean;
+            /**
+             * Block Self Redemption
+             * @default true
+             */
+            block_self_redemption: boolean;
+            /** Allowed Surfaces */
+            allowed_surfaces?: string[];
+            /** Risk Policy */
+            risk_policy?: {
+                [key: string]: unknown;
+            };
+            /** Export Policy */
+            export_policy?: {
+                [key: string]: unknown;
+            };
+            /** Notification Policy */
+            notification_policy?: {
+                [key: string]: unknown;
+            };
+            /** Reason */
+            reason?: string | null;
+        };
+        /** AdminInviteCampaignVersionResponse */
+        AdminInviteCampaignVersionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Campaign Id
+             * Format: uuid
+             */
+            campaign_id: string;
+            /** Version */
+            version: number;
+            /** Status */
+            status: string;
+            /** Grant Mode */
+            grant_mode: string;
+            /** Grant Plan Id */
+            grant_plan_id?: string | null;
+            /** Grant Duration Days */
+            grant_duration_days?: number | null;
+            /** Grant Snapshot */
+            grant_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Child Invite Count */
+            child_invite_count: number;
+            /** Child Invite Free Days */
+            child_invite_free_days: number;
+            /** Child Invite Expiry Days */
+            child_invite_expiry_days: number;
+            /** Child Grant Plan Id */
+            child_grant_plan_id?: string | null;
+            /** Child Grant Duration Days */
+            child_grant_duration_days?: number | null;
+            /** Child Grant Snapshot */
+            child_grant_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Max Generation Depth */
+            max_generation_depth: number;
+            /** Block Self Redemption */
+            block_self_redemption: boolean;
+            /** Require No Active Access */
+            require_no_active_access: boolean;
+            /** Allowed Surfaces */
+            allowed_surfaces: string[];
+            /** Risk Policy */
+            risk_policy: {
+                [key: string]: unknown;
+            };
+            /** Redemption Policy */
+            redemption_policy: {
+                [key: string]: unknown;
+            };
+            /** Child Policy */
+            child_policy: {
+                [key: string]: unknown;
+            };
+            /** Issue Policy */
+            issue_policy: {
+                [key: string]: unknown;
+            };
+            /** Export Policy */
+            export_policy: {
+                [key: string]: unknown;
+            };
+            /** Notification Policy */
+            notification_policy: {
+                [key: string]: unknown;
+            };
+            /** Checksum */
+            checksum: string;
+            /**
+             * Created By Admin Id
+             * Format: uuid
+             */
+            created_by_admin_id: string;
+            /** Published By Admin Id */
+            published_by_admin_id?: string | null;
+            /** Published At */
+            published_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AdminInviteCampaignVersionValidationResponse */
+        AdminInviteCampaignVersionValidationResponse: {
+            /**
+             * Version Id
+             * Format: uuid
+             */
+            version_id: string;
+            /** Checksum */
+            checksum: string;
+            /** Valid */
+            valid: boolean;
+            /** Errors */
+            errors: string[];
+            /** Warnings */
+            warnings: string[];
         };
         /**
          * AdminInviteCodeSummaryResponse
@@ -17463,6 +18221,262 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Campaign Id */
+            campaign_id?: string | null;
+            /** Campaign Version Id */
+            campaign_version_id?: string | null;
+            /** Root Invite Code Id */
+            root_invite_code_id?: string | null;
+            /** Parent Invite Code Id */
+            parent_invite_code_id?: string | null;
+            /**
+             * Generation Depth
+             * @default 0
+             */
+            generation_depth: number;
+            /** Grant Mode */
+            grant_mode?: string | null;
+            /** Grant Plan Id */
+            grant_plan_id?: string | null;
+            /** Grant Duration Days */
+            grant_duration_days?: number | null;
+            /** Child Grant Plan Id */
+            child_grant_plan_id?: string | null;
+            /** Child Grant Duration Days */
+            child_grant_duration_days?: number | null;
+        };
+        /** AdminInviteRedemptionListResponse */
+        AdminInviteRedemptionListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminInviteRedemptionResponse"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /** AdminInviteRedemptionResponse */
+        AdminInviteRedemptionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Invite Code Id
+             * Format: uuid
+             */
+            invite_code_id: string;
+            /** Campaign Id */
+            campaign_id?: string | null;
+            /** Campaign Version Id */
+            campaign_version_id?: string | null;
+            /** Root Invite Code Id */
+            root_invite_code_id?: string | null;
+            /** Parent Invite Code Id */
+            parent_invite_code_id?: string | null;
+            /** Inviter User Id */
+            inviter_user_id?: string | null;
+            /**
+             * Invitee User Id
+             * Format: uuid
+             */
+            invitee_user_id: string;
+            /** Generation Depth */
+            generation_depth: number;
+            /** Source Surface */
+            source_surface: string;
+            /** Entitlement Grant Id */
+            entitlement_grant_id?: string | null;
+            /** Granted Plan Id */
+            granted_plan_id?: string | null;
+            /** Granted Plan Code */
+            granted_plan_code?: string | null;
+            /** Granted Duration Days */
+            granted_duration_days?: number | null;
+            /** Child Batch Id */
+            child_batch_id?: string | null;
+            /**
+             * Child Issued Count
+             * @default 0
+             */
+            child_issued_count: number;
+            /** Status */
+            status: string;
+            /** Blocked Reason */
+            blocked_reason?: string | null;
+            /** Risk Decision */
+            risk_decision: {
+                [key: string]: unknown;
+            };
+            /** Grant Snapshot */
+            grant_snapshot: {
+                [key: string]: unknown;
+            };
+            /** Redeemed At */
+            redeemed_at?: string | null;
+            /** Reversed At */
+            reversed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminInviteTreeEdgeResponse */
+        AdminInviteTreeEdgeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Root Invite Code Id
+             * Format: uuid
+             */
+            root_invite_code_id: string;
+            /** Parent Invite Code Id */
+            parent_invite_code_id?: string | null;
+            /**
+             * Redeemed Invite Code Id
+             * Format: uuid
+             */
+            redeemed_invite_code_id: string;
+            /**
+             * Redemption Id
+             * Format: uuid
+             */
+            redemption_id: string;
+            /** Inviter User Id */
+            inviter_user_id?: string | null;
+            /**
+             * Invitee User Id
+             * Format: uuid
+             */
+            invitee_user_id: string;
+            /** Generation Depth */
+            generation_depth: number;
+            /** Status */
+            status: string;
+            /** Child Batch Id */
+            child_batch_id?: string | null;
+            /** Granted Plan Id */
+            granted_plan_id?: string | null;
+            /** Granted Plan Code */
+            granted_plan_code?: string | null;
+        };
+        /** AdminInviteTreeNodeResponse */
+        AdminInviteTreeNodeResponse: {
+            /**
+             * Invite Code Id
+             * Format: uuid
+             */
+            invite_code_id: string;
+            /** Parent Invite Code Id */
+            parent_invite_code_id?: string | null;
+            /**
+             * Root Invite Code Id
+             * Format: uuid
+             */
+            root_invite_code_id: string;
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Used By User Id */
+            used_by_user_id?: string | null;
+            /** Generation Depth */
+            generation_depth: number;
+            /** Status */
+            status: string;
+            /** Grant Mode */
+            grant_mode?: string | null;
+            /** Grant Plan Id */
+            grant_plan_id?: string | null;
+            /** Child Batch Id */
+            child_batch_id?: string | null;
+            /** Granted Plan Id */
+            granted_plan_id?: string | null;
+            /** Granted Plan Code */
+            granted_plan_code?: string | null;
+            /**
+             * Child Count
+             * @default 0
+             */
+            child_count: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Used At */
+            used_at?: string | null;
+        };
+        /** AdminInviteTreeResponse */
+        AdminInviteTreeResponse: {
+            /**
+             * Root Invite Code Id
+             * Format: uuid
+             */
+            root_invite_code_id: string;
+            /** Nodes */
+            nodes: components["schemas"]["AdminInviteTreeNodeResponse"][];
+            /** Edges */
+            edges: components["schemas"]["AdminInviteTreeEdgeResponse"][];
+            /** Stats */
+            stats: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminInviteTreeRootListResponse */
+        AdminInviteTreeRootListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminInviteTreeRootResponse"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /** AdminInviteTreeRootResponse */
+        AdminInviteTreeRootResponse: {
+            /**
+             * Root Invite Code Id
+             * Format: uuid
+             */
+            root_invite_code_id: string;
+            /** Campaign Id */
+            campaign_id?: string | null;
+            /** Campaign Key */
+            campaign_key?: string | null;
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /**
+             * Generation Depth
+             * @default 0
+             */
+            generation_depth: number;
+            /** Status */
+            status: string;
+            /**
+             * Issued Count
+             * @default 0
+             */
+            issued_count: number;
+            /**
+             * Redeemed Count
+             * @default 0
+             */
+            redeemed_count: number;
+            /**
+             * Child Invites Issued Count
+             * @default 0
+             */
+            child_invites_issued_count: number;
+            /**
+             * Max Depth Reached
+             * @default 0
+             */
+            max_depth_reached: number;
+            /** Created At */
+            created_at?: string | null;
         };
         /** AdminIssueGiftCodeBatchRequest */
         AdminIssueGiftCodeBatchRequest: {
@@ -22005,6 +23019,25 @@ export interface components {
             status: string;
             /** Campaign Id */
             campaign_id?: string | null;
+            /** Invite Campaign Id */
+            invite_campaign_id?: string | null;
+            /** Invite Campaign Version Id */
+            invite_campaign_version_id?: string | null;
+            /** Root Invite Code Id */
+            root_invite_code_id?: string | null;
+            /** Parent Invite Code Id */
+            parent_invite_code_id?: string | null;
+            /** Source Redemption Id */
+            source_redemption_id?: string | null;
+            /** Root Owner User Id */
+            root_owner_user_id?: string | null;
+            /**
+             * Generation Depth
+             * @default 0
+             */
+            generation_depth: number;
+            /** Batch Kind */
+            batch_kind?: string | null;
             /** Source Growth Code Id */
             source_growth_code_id?: string | null;
             /** Source Benefit Id */
@@ -22018,6 +23051,20 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Grant Mode */
+            grant_mode?: string | null;
+            /** Grant Plan Id */
+            grant_plan_id?: string | null;
+            /** Grant Duration Days */
+            grant_duration_days?: number | null;
+            /** Child Grant Plan Id */
+            child_grant_plan_id?: string | null;
+            /** Child Grant Duration Days */
+            child_grant_duration_days?: number | null;
+            /** Child Policy */
+            child_policy?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** CustomerMessagingMessageResponse */
         CustomerMessagingMessageResponse: {
@@ -22088,6 +23135,16 @@ export interface components {
              * @default false
              */
             connection_required: boolean;
+            /** Code Type */
+            code_type?: ("promo" | "invite" | "gift") | null;
+            /** Entitlement */
+            entitlement?: {
+                [key: string]: unknown;
+            } | null;
+            /** Child Invites */
+            child_invites?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * CustomerOnboardingAuthSummaryResponse
@@ -24363,12 +25420,41 @@ export interface components {
             } | null;
             /** Batch Id */
             batch_id?: string | null;
+            /** Campaign Id */
+            campaign_id?: string | null;
+            /** Campaign Version Id */
+            campaign_version_id?: string | null;
+            /** Root Invite Code Id */
+            root_invite_code_id?: string | null;
+            /** Parent Invite Code Id */
+            parent_invite_code_id?: string | null;
+            /** Source Redemption Id */
+            source_redemption_id?: string | null;
+            /**
+             * Generation Depth
+             * @default 0
+             */
+            generation_depth: number;
             /** Status */
             status?: string | null;
             /** Code Hash */
             code_hash?: string | null;
             /** Code Prefix */
             code_prefix?: string | null;
+            /** Grant Mode */
+            grant_mode?: string | null;
+            /** Grant Plan Id */
+            grant_plan_id?: string | null;
+            /** Grant Duration Days */
+            grant_duration_days?: number | null;
+            /** Child Grant Plan Id */
+            child_grant_plan_id?: string | null;
+            /** Child Grant Duration Days */
+            child_grant_duration_days?: number | null;
+            /** Child Policy */
+            child_policy?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * InviteTokenInfo
@@ -50601,6 +51687,57 @@ export interface operations {
             };
         };
     };
+    admin_list_invite_codes_api_v1_admin_invite_codes_get: {
+        parameters: {
+            query?: {
+                campaign_id?: string | null;
+                campaign_key?: string | null;
+                batch_id?: string | null;
+                owner_user_id?: string | null;
+                used_by_user_id?: string | null;
+                root_invite_code_id?: string | null;
+                parent_invite_code_id?: string | null;
+                status?: string | null;
+                used?: boolean | null;
+                plan_id?: string | null;
+                plan_code?: string | null;
+                generation_depth?: number | null;
+                created_from?: string | null;
+                created_to?: string | null;
+                used_from?: string | null;
+                used_to?: string | null;
+                expires_from?: string | null;
+                expires_to?: string | null;
+                prefix?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCodeSummaryResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_create_invites_api_v1_admin_invite_codes_post: {
         parameters: {
             query?: never;
@@ -50822,6 +51959,545 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminInviteBatchExportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_list_invite_campaigns_api_v1_admin_invite_campaigns_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                campaign_key?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_create_invite_campaign_api_v1_admin_invite_campaigns_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteCampaignCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_create_invite_campaign_version_api_v1_admin_invite_campaigns__campaign_id__versions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteCampaignVersionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_validate_invite_campaign_version_api_v1_admin_invite_campaigns__campaign_id__versions__version_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignVersionValidationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_publish_invite_campaign_version_api_v1_admin_invite_campaigns__campaign_id__versions__version_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteCampaignActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_pause_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteCampaignActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_resume_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteCampaignActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_archive_invite_campaign_api_v1_admin_invite_campaigns__campaign_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteCampaignActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_create_invite_campaign_batch_api_v1_admin_invite_campaigns__campaign_id__batches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteCampaignBatchCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteCampaignBatchCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_list_invite_campaign_redemptions_api_v1_admin_invite_campaigns__campaign_id__redemptions_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteRedemptionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_invite_campaign_analytics_api_v1_admin_invite_campaigns__campaign_id__analytics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_reverse_invite_redemption_api_v1_admin_invite_redemptions__redemption_id__reverse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                redemption_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminInviteCampaignActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteRedemptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_list_invite_tree_roots_api_v1_admin_invite_trees_get: {
+        parameters: {
+            query?: {
+                campaign_id?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteTreeRootListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_invite_tree_for_user_api_v1_admin_invite_trees_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteTreeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_invite_tree_api_v1_admin_invite_trees__root_invite_code_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                root_invite_code_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminInviteTreeResponse"];
                 };
             };
             /** @description Validation Error */

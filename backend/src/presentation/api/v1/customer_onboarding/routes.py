@@ -32,6 +32,10 @@ from src.application.use_cases.customer_onboarding import (
     PreviewCustomerOnboardingGrowthCodeUseCase,
     SkipCustomerOnboardingUseCase,
 )
+from src.application.use_cases.customer_subscriptions import (
+    CustomerSubscriptionServiceAccessUseCase,
+    ListCustomerSubscriptionsUseCase,
+)
 from src.application.use_cases.gifts import RedeemGiftCodeUseCase
 from src.application.use_cases.growth_codes import GrowthCodeResolutionOutcome, ResolveGrowthCodeUseCase
 from src.application.use_cases.invites.redeem_invite import RedeemInviteUseCase
@@ -125,10 +129,14 @@ async def apply_customer_onboarding_growth_code(
     current_realm: RealmResolution = Depends(get_request_customer_realm),
     db: AsyncSession = Depends(get_db),
 ) -> CustomerOnboardingApplyResponse:
+    trusted_source_surface = _trusted_apply_source_surface(
+        requested_source_surface=payload.source_surface,
+        telegram_bot_secret=telegram_bot_secret,
+    )
     resolved_user_id, resolved_realm = await _resolve_customer_onboarding_actor(
         db=db,
         authenticated_user_id=user_id,
-        source_surface=payload.source_surface,
+        source_surface=trusted_source_surface,
         telegram_id=payload.telegram_id,
         telegram_bot_secret=telegram_bot_secret,
         current_realm=current_realm,
@@ -137,7 +145,7 @@ async def apply_customer_onboarding_growth_code(
     state_repo = CustomerOnboardingStateSqlAlchemyRepository(db)
     allow_without_prompt = False
     try:
-        if payload.source_surface == "telegram_bot":
+        if trusted_source_surface == "telegram_bot":
             if not runtime_config.telegram_bot_code_apply_available:
                 raise CustomerOnboardingUnavailableError(
                     code="CUSTOMER_ONBOARDING_TELEGRAM_CODE_APPLY_UNAVAILABLE",
@@ -158,7 +166,7 @@ async def apply_customer_onboarding_growth_code(
                 )
                 logger.info(
                     "customer_onboarding_state_auto_created",
-                    extra={"source_surface": payload.source_surface, "flow_key": runtime_config.flow_key},
+                    extra={"source_surface": trusted_source_surface, "flow_key": runtime_config.flow_key},
                 )
             allow_without_prompt = True
 
@@ -171,12 +179,19 @@ async def apply_customer_onboarding_growth_code(
             code=payload.code,
             flow_token=payload.flow_token,
             idempotency_key=payload.idempotency_key,
-            require_flow_token=payload.source_surface != "telegram_bot",
+            require_flow_token=trusted_source_surface != "telegram_bot",
             allow_without_prompt=allow_without_prompt,
-            code_applier=CustomerOnboardingGrowthCodeApplier(db, current_realm=resolved_realm),
+            code_applier=CustomerOnboardingGrowthCodeApplier(
+                db,
+                current_realm=resolved_realm,
+                source_surface=trusted_source_surface,
+            ),
         )
     except CustomerOnboardingUnavailableError as exc:
-        await db.rollback()
+        if exc.code.startswith("CUSTOMER_ONBOARDING_CODE_"):
+            await db.commit()
+        else:
+            await db.rollback()
         observe_customer_onboarding_apply(status=exc.code, code_type=None)
         raise _onboarding_http_error(exc) from exc
     if result.commit_required:
@@ -265,7 +280,10 @@ async def get_customer_onboarding_connection_bootstrap(
         auth_realm_id=resolved_realm.auth_realm.id,
     )
     config_snapshot = await _resolve_connection_config(
+        db=db,
         mobile_user=mobile_user,
+        user_id=resolved_user_id,
+        auth_realm_id=resolved_realm.auth_realm.id,
         remnawave_client=remnawave_client,
     )
     result = await CustomerOnboardingConnectionBootstrapUseCase(
@@ -340,12 +358,16 @@ def _current_response(state: CustomerOnboardingCurrentState) -> CustomerOnboardi
 
 
 def _apply_response(result: CustomerOnboardingApplyResult) -> CustomerOnboardingApplyResponse:
+    safe_details = dict(result.safe_details or {})
     return CustomerOnboardingApplyResponse(
         status=cast(Literal["pending", "completed", "skipped"], result.status),
         message_key=result.message_key,
         masked_code=result.masked_code,
         next_destination=result.next_destination,
         connection_required=result.connection_required,
+        code_type=result.code_type,
+        entitlement=_entitlement_apply_summary(safe_details.get("entitlement_snapshot")),
+        child_invites=_dict_or_none(safe_details.get("child_invites")),
     )
 
 
@@ -360,6 +382,23 @@ def _preview_response(result: CustomerOnboardingPreviewResult) -> CustomerOnboar
         next_action=result.next_action,
         safe_details=dict(result.safe_details or {}),
     )
+
+
+def _first_child_invite_plan_code(invites: tuple[object, ...]) -> str | None:
+    if not invites:
+        return None
+    snapshot = dict(
+        getattr(invites[0], "grant_snapshot", None) or getattr(invites[0], "entitlement_snapshot", {}) or {}
+    )
+    value = snapshot.get("plan_code")
+    return value if isinstance(value, str) and value else None
+
+
+def _first_child_invite_days(invites: tuple[object, ...]) -> int | None:
+    if not invites:
+        return None
+    value = getattr(invites[0], "grant_duration_days", None) or getattr(invites[0], "free_days", None)
+    return int(value) if value is not None else None
 
 
 def _skip_response(result: CustomerOnboardingSkipResult) -> CustomerOnboardingSkipResponse:
@@ -424,6 +463,17 @@ def _parse_connection_session_id(value: str) -> UUID:
                 "message_key": "onboarding.connection.invalid_session",
             },
         ) from exc
+
+
+def _trusted_apply_source_surface(
+    *,
+    requested_source_surface: ConnectionSurface,
+    telegram_bot_secret: str | None,
+) -> ConnectionSurface:
+    del telegram_bot_secret
+    if requested_source_surface == "telegram_bot":
+        return "telegram_bot"
+    return requested_source_surface
 
 
 async def _resolve_customer_onboarding_actor(
@@ -512,7 +562,10 @@ async def _resolve_customer_realm_for_mobile_user(
 
 async def _resolve_connection_config(
     *,
+    db: AsyncSession,
     mobile_user: MobileUserModel,
+    user_id: UUID,
+    auth_realm_id: UUID,
     remnawave_client: RemnawaveClient,
 ) -> _ConnectionConfigSnapshot:
     if mobile_user.remnawave_uuid:
@@ -544,6 +597,28 @@ async def _resolve_connection_config(
                     config_profile_name="telegram_subscription",
                     service_identity_ready=True,
                 )
+
+    subscription_result = await ListCustomerSubscriptionsUseCase(db).execute(
+        customer_account_id=user_id,
+        auth_realm_id=auth_realm_id,
+    )
+    if subscription_result.default_subscription_key:
+        try:
+            result = await CustomerSubscriptionServiceAccessUseCase(db).get_config(
+                customer_account_id=user_id,
+                auth_realm_id=auth_realm_id,
+                subscription_key=subscription_result.default_subscription_key,
+                remnawave_client=remnawave_client,
+            )
+        except (LookupError, PermissionError):
+            result = None
+        if result is not None:
+            return _connection_snapshot_from_result(
+                result,
+                fallback_subscription_url=mobile_user.subscription_url,
+                config_profile_name="subscription_entitlement",
+                service_identity_ready=True,
+            )
 
     if mobile_user.subscription_url:
         subscription_url = normalize_public_subscription_url(mobile_user.subscription_url) or str(
@@ -585,6 +660,30 @@ def _snapshot_str(snapshot: dict[str, object], key: str) -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def _dict_or_none(value: object) -> dict[str, object] | None:
+    return dict(value) if isinstance(value, dict) else None
+
+
+def _entitlement_apply_summary(value: object) -> dict[str, object] | None:
+    if not isinstance(value, dict):
+        return None
+    effective = value.get("effective_entitlements")
+    effective_entitlements = dict(effective) if isinstance(effective, dict) else {}
+    return {
+        "plan_uuid": value.get("plan_uuid"),
+        "plan_code": value.get("plan_code"),
+        "display_name": value.get("display_name"),
+        "period_days": value.get("period_days"),
+        "expires_at": value.get("expires_at"),
+        "device_limit": effective_entitlements.get("device_limit"),
+        "traffic_policy": effective_entitlements.get("traffic_policy"),
+        "display_traffic_label": effective_entitlements.get("display_traffic_label"),
+        "connection_modes": effective_entitlements.get("connection_modes") or [],
+        "server_pool": effective_entitlements.get("server_pool") or [],
+        "is_trial": bool(value.get("is_trial", False)),
+    }
+
+
 def _nested_snapshot_int(snapshot: dict[str, object], section: str, key: str) -> int | None:
     nested = snapshot.get(section)
     if not isinstance(nested, dict):
@@ -623,9 +722,10 @@ def _onboarding_http_error(exc: CustomerOnboardingUnavailableError) -> HTTPExcep
 
 
 class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
-    def __init__(self, session: AsyncSession, *, current_realm: RealmResolution) -> None:
+    def __init__(self, session: AsyncSession, *, current_realm: RealmResolution, source_surface: str) -> None:
         self._session = session
         self._current_realm = current_realm
+        self._source_surface = source_surface
         self._resolver = ResolveGrowthCodeUseCase(session)
         self._invite_redeemer = RedeemInviteUseCase(session)
         self._gift_redeemer = RedeemGiftCodeUseCase(session)
@@ -666,6 +766,7 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
                     code=code,
                     user_id=user_id,
                     current_realm=self._current_realm,
+                    source_surface=self._source_surface,
                 )
             except InviteCodeNotFoundError as exc:
                 raise CustomerOnboardingUnavailableError(
@@ -701,6 +802,25 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
                 redemption_id=redeemed.redemption.id,
                 entitlement_grant_id=redeemed.entitlement_grant_id,
                 entitlement_snapshot=redeemed.entitlement_snapshot,
+                child_invites={
+                    "generated_count": len(redeemed.child_invites),
+                    "issued_count": len(redeemed.child_invites),
+                    "count": len(redeemed.child_invites),
+                    "batch_id": str(redeemed.child_batch.id) if redeemed.child_batch is not None else None,
+                    "available_count": sum(1 for invite in redeemed.child_invites if not invite.is_used),
+                    "friend_plan_code": _first_child_invite_plan_code(redeemed.child_invites),
+                    "friend_days": (
+                        int(redeemed.child_batch.friend_days)
+                        if redeemed.child_batch is not None
+                        else _first_child_invite_days(redeemed.child_invites)
+                    ),
+                    "grant_plan_code": _first_child_invite_plan_code(redeemed.child_invites),
+                    "grant_duration_days": _first_child_invite_days(redeemed.child_invites),
+                    "generation_depth": (
+                        int(redeemed.child_invites[0].generation_depth) if redeemed.child_invites else None
+                    ),
+                },
+                next_destination="/onboarding/connect",
             )
 
         if outcome.code_type == GrowthCodeType.GIFT:
@@ -722,6 +842,7 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
                 redemption_id=redeemed_gift.redemption.id,
                 entitlement_grant_id=redeemed_gift.entitlement_grant_id,
                 entitlement_snapshot=redeemed_gift.entitlement_snapshot,
+                next_destination="/onboarding/connect",
             )
 
         raise _onboarding_code_rejected(outcome)
