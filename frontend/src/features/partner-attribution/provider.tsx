@@ -14,6 +14,9 @@ import {
 } from './storage';
 
 const RETRY_DELAYS_MS = [1_000, 3_000, 10_000, 30_000] as const;
+const CLAIM_SUPPRESSION_PREFIX = 'cybervpn.partner_attribution.claim_suppressed.v1';
+const DEFAULT_CLAIM_SUPPRESSION_MS = 10 * 60 * 1_000;
+const TRANSIENT_CLAIM_SUPPRESSION_MS = 30_000;
 const TERMINAL_CODES = new Set([
   'PARTNER_TRANSFER_TOKEN_INVALID',
   'PARTNER_TRANSFER_TOKEN_EXPIRED',
@@ -26,9 +29,56 @@ const TERMINAL_CODES = new Set([
   'PARTNER_OWNER_TYPE_INVALID',
 ]);
 
+function canUseSessionStorage(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return typeof window.sessionStorage !== 'undefined';
+  } catch {
+    return false;
+  }
+}
+
+function getClaimSuppressionKey(claimKey: string): string {
+  return `${CLAIM_SUPPRESSION_PREFIX}:${claimKey}`;
+}
+
+function isClaimSuppressed(claimKey: string): boolean {
+  if (!canUseSessionStorage()) return false;
+  const storageKey = getClaimSuppressionKey(claimKey);
+  try {
+    const raw = window.sessionStorage.getItem(storageKey);
+    if (!raw) return false;
+    const expiresAt = Number.parseInt(raw, 10);
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      window.sessionStorage.removeItem(storageKey);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function suppressClaim(claimKey: string, ttlMs = DEFAULT_CLAIM_SUPPRESSION_MS): void {
+  if (!canUseSessionStorage()) return;
+  try {
+    window.sessionStorage.setItem(getClaimSuppressionKey(claimKey), String(Date.now() + ttlMs));
+  } catch {
+    // Session storage can be blocked; in-memory in-flight guards still prevent local duplicate bursts.
+  }
+}
+
 function getApiErrorCode(error: unknown): string | null {
   const detail = (error as AxiosError<{ detail?: { code?: unknown } }>).response?.data?.detail;
   return typeof detail?.code === 'string' ? detail.code : null;
+}
+
+function getRetryAfterMs(error: unknown): number | null {
+  const retryAfter = (error as AxiosError).response?.headers?.['retry-after'];
+  const value = Array.isArray(retryAfter) ? retryAfter[0] : retryAfter;
+  const seconds = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return seconds * 1_000;
 }
 
 function shouldRetry(error: unknown): boolean {
@@ -136,9 +186,12 @@ export function PartnerAttributionProvider() {
       : `${userId}:partner-cookie-only`;
     if (claimAttemptRef.current === claimKey) return;
     if (claimInFlightRef.current === claimKey) return;
+    if (isClaimSuppressed(claimKey)) return;
     claimInFlightRef.current = claimKey;
 
     void withPartnerAttributionRetry(() => partnerAttributionApi.claim()).then((response) => {
+      claimAttemptRef.current = claimKey;
+      suppressClaim(claimKey);
       if (
         response.data.status === 'claimed' ||
         response.data.status === 'already_claimed' ||
@@ -149,11 +202,14 @@ export function PartnerAttributionProvider() {
       ) {
         clearPartnerAttribution();
       }
-      if (response.data.status !== 'no_pending' || snapshot) {
-        claimAttemptRef.current = claimKey;
-      }
     }).catch((error) => {
-      if (TERMINAL_CODES.has(getApiErrorCode(error) ?? '')) {
+      const code = getApiErrorCode(error);
+      const retryAfterMs = getRetryAfterMs(error);
+      const suppressionMs =
+        retryAfterMs ?? (shouldRetry(error) ? TRANSIENT_CLAIM_SUPPRESSION_MS : DEFAULT_CLAIM_SUPPRESSION_MS);
+      claimAttemptRef.current = claimKey;
+      suppressClaim(claimKey, suppressionMs);
+      if (TERMINAL_CODES.has(code ?? '')) {
         claimAttemptRef.current = claimKey;
         clearPartnerAttribution();
       }
