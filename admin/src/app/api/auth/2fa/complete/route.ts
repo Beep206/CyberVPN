@@ -8,9 +8,9 @@ import {
 import { getDefaultPostLoginPath } from "@/features/auth/lib/redirect-path";
 
 function getBackendBaseUrl(): string {
-  const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  const baseUrl = process.env.API_INTERNAL_ORIGIN ?? process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
   if (!baseUrl) {
-    throw new Error("API_URL or NEXT_PUBLIC_API_URL must be configured.");
+    throw new Error("API_INTERNAL_ORIGIN, API_URL or NEXT_PUBLIC_API_URL must be configured.");
   }
 
   return baseUrl.replace(/\/$/, "");
