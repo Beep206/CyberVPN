@@ -84,17 +84,20 @@ async def cleanup_growth_reporting_artifacts() -> dict[str, Any]:
             )
             raise
 
-    result = {
-        "rollups_deleted": int(response.get("rollups_deleted", 0) or 0),
-        "refresh_runs_deleted": int(response.get("refresh_runs_deleted", 0) or 0),
-        "deliveries_deleted": int(response.get("deliveries_deleted", 0) or 0),
+    rollups_deleted = int(response.get("rollups_deleted", 0) or 0)
+    refresh_runs_deleted = int(response.get("refresh_runs_deleted", 0) or 0)
+    deliveries_deleted = int(response.get("deliveries_deleted", 0) or 0)
+    result: dict[str, object] = {
+        "rollups_deleted": rollups_deleted,
+        "refresh_runs_deleted": refresh_runs_deleted,
+        "deliveries_deleted": deliveries_deleted,
         "executed_at": response.get("executed_at"),
     }
     _record_cleanup_result(
         result="success",
-        rollups_deleted=result["rollups_deleted"],
-        refresh_runs_deleted=result["refresh_runs_deleted"],
-        deliveries_deleted=result["deliveries_deleted"],
+        rollups_deleted=rollups_deleted,
+        refresh_runs_deleted=refresh_runs_deleted,
+        deliveries_deleted=deliveries_deleted,
         duration_seconds=perf_counter() - started,
     )
     logger.info("growth_reporting_cleanup_complete", **result)

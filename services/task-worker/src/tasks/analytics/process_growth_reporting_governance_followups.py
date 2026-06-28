@@ -86,21 +86,24 @@ async def process_growth_reporting_governance_followups() -> dict[str, Any]:
             )
             raise
 
-    result = {
+    scanned_count = int(response.get("scanned_count", 0) or 0)
+    open_count = int(response.get("open_count", 0) or 0)
+    overdue_count = int(response.get("overdue_count", 0) or 0)
+    result: dict[str, object] = {
         "processed_at": response.get("processed_at"),
-        "scanned_count": int(response.get("scanned_count", 0) or 0),
+        "scanned_count": scanned_count,
         "opened_count": int(response.get("opened_count", 0) or 0),
         "reopened_count": int(response.get("reopened_count", 0) or 0),
         "auto_resolved_count": int(response.get("auto_resolved_count", 0) or 0),
         "reminded_count": int(response.get("reminded_count", 0) or 0),
-        "open_count": int(response.get("open_count", 0) or 0),
-        "overdue_count": int(response.get("overdue_count", 0) or 0),
+        "open_count": open_count,
+        "overdue_count": overdue_count,
     }
     _record_followup_result(
         result="success",
-        scanned_count=result["scanned_count"],
-        open_count=result["open_count"],
-        overdue_count=result["overdue_count"],
+        scanned_count=scanned_count,
+        open_count=open_count,
+        overdue_count=overdue_count,
         duration_seconds=perf_counter() - started,
     )
     logger.info("growth_reporting_governance_followups_complete", **result)

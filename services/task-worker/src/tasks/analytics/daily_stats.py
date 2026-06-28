@@ -3,6 +3,7 @@
 import json
 from collections import Counter, defaultdict
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import structlog
 from sqlalchemy import func, select
@@ -18,6 +19,21 @@ from src.services.remnawave_client import RemnawaveClient
 from src.utils.constants import REDIS_PREFIX, STATS_DAILY_KEY
 
 logger = structlog.get_logger(__name__)
+
+
+def _redis_json_value(value: bytes | str | tuple[bytes | str, Any] | list[Any]) -> bytes | str | None:
+    """Return the JSON payload portion from Redis zrange-style values."""
+    candidate: Any
+    if isinstance(value, tuple):
+        candidate = value[0]
+    elif isinstance(value, list):
+        candidate = value[0] if value else None
+    else:
+        candidate = value
+
+    if isinstance(candidate, (bytes, str)):
+        return candidate
+    return None
 
 
 @broker.task(task_name="aggregate_daily_stats", queue="analytics")
@@ -167,8 +183,11 @@ async def aggregate_daily_stats() -> dict:
             for key in keys:
                 events = await redis.zrangebyscore(key, start_ts, end_ts)
                 for event in events:
+                    event_payload = _redis_json_value(event)
+                    if event_payload is None:
+                        continue
                     try:
-                        payload = json.loads(event)
+                        payload = json.loads(event_payload)
                     except json.JSONDecodeError:
                         continue
                     if payload.get("status") == "offline":

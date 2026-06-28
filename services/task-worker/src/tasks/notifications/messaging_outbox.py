@@ -104,10 +104,15 @@ async def process_messaging_outbox(
     """Process local messaging outbox consumers without external push delivery."""
 
     settings = get_settings()
+    configured_batch_size = (
+        batch_size
+        if batch_size is not None
+        else int(getattr(settings, "messaging_outbox_batch_size", settings.notification_batch_size))
+    )
     processor = MessagingOutboxProcessor(
         session_factory=get_session_factory(),
         consumer_keys=tuple(consumer_keys or SUPPORTED_MESSAGING_OUTBOX_CONSUMERS),
-        batch_size=batch_size or getattr(settings, "messaging_outbox_batch_size", settings.notification_batch_size),
+        batch_size=configured_batch_size,
         lease_owner=lease_owner or f"task-worker-messaging-outbox-{uuid.uuid4().hex}",
         lease_seconds=getattr(settings, "messaging_outbox_lease_seconds", 30),
         retry_after_seconds=getattr(settings, "messaging_outbox_retry_after_seconds", 30),

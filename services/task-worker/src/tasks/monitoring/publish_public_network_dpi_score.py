@@ -247,18 +247,22 @@ def _build_probe_targets(
 
         country_id, public_name = _normalize_country_code(node.get("country_code"))
         node_uuid = str(node.get("uuid") or "").strip()
-        related_inbounds = inbounds_by_node_uuid.get(node_uuid) or [None]
+        related_inbounds: list[dict[str, Any] | None] = list(inbounds_by_node_uuid.get(node_uuid) or [])
+        if not related_inbounds:
+            related_inbounds = [None]
 
-        for inbound in related_inbounds:
-            inbound_uuid = str((inbound or {}).get("uuid") or "").strip()
+        for related_inbound in related_inbounds:
+            inbound_uuid = str((related_inbound or {}).get("uuid") or "").strip()
             related_hosts = hosts_by_inbound_uuid.get(inbound_uuid) if inbound_uuid else None
-            bindings = related_hosts or [None]
+            bindings: list[dict[str, Any] | None] = list(related_hosts or [])
+            if not bindings:
+                bindings = [None]
 
-            for host in bindings:
+            for host_binding in bindings:
                 if probes_per_country[country_id] >= MAX_PROBES_PER_COUNTRY or len(targets) >= MAX_PROBES_TOTAL:
                     break
 
-                target = _build_target_from_binding(node=node, inbound=inbound, host=host)
+                target = _build_target_from_binding(node=node, inbound=related_inbound, host=host_binding)
                 if target is None:
                     continue
                 target["public_name"] = public_name
@@ -563,10 +567,10 @@ def _build_publish_payload(
     now = datetime.now(UTC)
     expires_at = now + timedelta(minutes=SNAPSHOT_TTL_MINUTES)
     countries_tracked = len(countries)
-    last_updated_at = max(
-        (country.get("lastUpdatedAt") for country in countries if country.get("lastUpdatedAt")),
-        default=None,
-    )
+    last_updated_candidates = [
+        value for country in countries if isinstance(value := country.get("lastUpdatedAt"), str) and value
+    ]
+    last_updated_at = max(last_updated_candidates, default=None)
     publishable_country_count = sum(1 for country in countries if _is_country_publishable(country))
     enabled = (
         freshness_status == "fresh"

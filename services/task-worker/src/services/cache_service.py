@@ -273,7 +273,7 @@ class CacheService:
         try:
             result = await self._redis.zadd(prefixed_key, mapping)
             logger.debug("cache.zadd", key=key, added=result, total_members=len(mapping))
-            return result
+            return int(result)
         except RedisError as e:
             logger.error("cache.zadd.failed", key=key, error=str(e))
             raise

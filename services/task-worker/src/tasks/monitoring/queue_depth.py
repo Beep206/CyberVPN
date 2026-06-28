@@ -6,6 +6,7 @@ This provides visibility into task backlog and helps identify processing bottlen
 
 import asyncio
 import json
+from collections.abc import Mapping
 
 import structlog
 from redis.asyncio import Redis
@@ -21,6 +22,8 @@ TASKIQ_STREAM_KEY = "taskiq"
 TASKIQ_GROUP_NAME = "taskiq"
 EMAIL_QUEUE_NAME = "email"
 QUEUE_DEPTH_POLL_INTERVAL_SECONDS = 15
+RedisScalar = bytes | str | int | float
+RedisFields = Mapping[bytes | str, bytes | str] | None
 
 
 async def get_redis_client() -> Redis:
@@ -36,14 +39,31 @@ async def get_redis_client() -> Redis:
 REDIS_DEPENDENCY = TaskiqDepends(get_redis_client)
 
 
-def _extract_queue_name(fields: dict[str, str]) -> str | None:
+def _decode_redis_text(value: RedisScalar | None) -> str | None:
+    """Normalize Redis stream values returned as bytes or strings."""
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _extract_queue_name(fields: RedisFields) -> str | None:
     """Extract the TaskIQ queue label from a Redis stream entry payload."""
+    if not fields:
+        return None
+
     raw_payload = fields.get("data")
-    if not raw_payload:
+    if raw_payload is None:
+        raw_payload = fields.get(b"data")
+    raw_payload_text = _decode_redis_text(raw_payload)
+    if not raw_payload_text:
         return None
 
     try:
-        payload = json.loads(raw_payload)
+        payload = json.loads(raw_payload_text)
     except json.JSONDecodeError:
         logger.warning("queue_depth_invalid_taskiq_payload")
         return None
@@ -105,7 +125,11 @@ async def _measure_email_queue_backlog(redis: Redis) -> int:
             "+",
             pending_total,
         )
-        pending_ids = [entry["message_id"] for entry in pending_entries if entry.get("message_id")]
+        pending_ids: list[str] = []
+        for entry in pending_entries:
+            pending_id = _decode_redis_text(entry.get("message_id"))
+            if pending_id:
+                pending_ids.append(pending_id)
         backlog += await _count_entries_for_queue(
             redis,
             stream_key=TASKIQ_STREAM_KEY,
@@ -121,7 +145,9 @@ async def _measure_email_queue_backlog(redis: Redis) -> int:
             max="+",
             count=lag_total,
         )
-        backlog += sum(1 for _, fields in unread_entries if _extract_queue_name(fields) == EMAIL_QUEUE_NAME)
+        for _, fields in unread_entries:
+            if _extract_queue_name(fields) == EMAIL_QUEUE_NAME:
+                backlog += 1
 
     return backlog
 
