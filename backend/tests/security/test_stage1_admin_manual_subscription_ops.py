@@ -154,6 +154,137 @@ async def test_stage1_manual_subscription_gateway_creates_new_remnawave_user(mon
     assert payload["external_squad_uuid"] == ru_bundle_squad_uuid
 
 
+@pytest.mark.asyncio
+async def test_stage1_manual_subscription_gateway_uses_smart_ru_external_squad(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
+    customer_id = uuid4()
+    remnawave_uuid = uuid4()
+    smart_ru_squad_uuid = str(uuid4())
+    smart_ru_internal_squad_uuid = str(uuid4())
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", smart_ru_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", smart_ru_internal_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    request = build_stage1_manual_subscription_request(
+        customer_account_id=customer_id,
+        actor_admin_id=uuid4(),
+        email="Premium@Example.Test",
+        username=None,
+        telegram_id=None,
+        plan_code="premium_smart_ru",
+        reason="grant controlled premium smart ru access",
+        duration_days=30,
+        requested_at=now,
+        traffic_limit_bytes=None,
+        device_limit=5,
+        previous_subscription_url=None,
+    )
+    fake_gateway = FakeRemnawaveUserGateway(
+        applied_user=_build_user(
+            uuid=remnawave_uuid,
+            short_uuid="smart-manual-short",
+            subscription_url="https://sub.example.local/smart-secret-token",
+            expires_at=now + timedelta(days=30),
+        ),
+    )
+
+    result = await RemnawaveStage1ManualSubscriptionGateway(fake_gateway).apply_manual_subscription(request)
+
+    assert result.created is True
+    assert result.remnawave_uuid == str(remnawave_uuid)
+    payload = fake_gateway.created[0][1]
+    assert payload["email"] == "premium@example.test"
+    assert payload["hwid_device_limit"] == 5
+    assert payload["external_squad_uuid"] == smart_ru_squad_uuid
+    assert payload["active_internal_squads"] == [smart_ru_internal_squad_uuid]
+
+
+@pytest.mark.asyncio
+async def test_stage1_manual_subscription_gateway_updates_existing_smart_ru_user(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
+    customer_id = uuid4()
+    remnawave_uuid = uuid4()
+    smart_ru_squad_uuid = str(uuid4())
+    smart_ru_internal_squad_uuid = str(uuid4())
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", smart_ru_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", smart_ru_internal_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    request = build_stage1_manual_subscription_request(
+        customer_account_id=customer_id,
+        actor_admin_id=uuid4(),
+        email="Premium@Example.Test",
+        username=None,
+        telegram_id=None,
+        plan_code="premium_smart_ru",
+        reason="extend controlled premium smart ru access",
+        duration_days=30,
+        requested_at=now,
+        traffic_limit_bytes=None,
+        device_limit=5,
+        existing_remnawave_uuid=str(remnawave_uuid),
+        previous_subscription_url="https://sub.example.local/old-smart-token",
+    )
+    fake_gateway = FakeRemnawaveUserGateway(
+        applied_user=_build_user(
+            uuid=remnawave_uuid,
+            short_uuid="smart-manual-short",
+            subscription_url="https://sub.example.local/new-smart-token",
+            expires_at=now + timedelta(days=30),
+        ),
+    )
+
+    result = await RemnawaveStage1ManualSubscriptionGateway(fake_gateway).apply_manual_subscription(request)
+
+    assert result.created is False
+    assert result.remnawave_uuid == str(remnawave_uuid)
+    assert fake_gateway.created == []
+    assert fake_gateway.updated[0][0] == remnawave_uuid
+    payload = fake_gateway.updated[0][1]
+    assert payload["external_squad_uuid"] == smart_ru_squad_uuid
+    assert payload["active_internal_squads"] == [smart_ru_internal_squad_uuid]
+
+
+@pytest.mark.asyncio
+async def test_stage1_manual_subscription_gateway_fails_closed_when_smart_ru_squads_are_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", "")
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", str(uuid4()))
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    request = build_stage1_manual_subscription_request(
+        customer_account_id=uuid4(),
+        actor_admin_id=uuid4(),
+        email="Premium@Example.Test",
+        username=None,
+        telegram_id=None,
+        plan_code="premium_smart_ru",
+        reason="grant controlled premium smart ru access",
+        duration_days=30,
+        requested_at=now,
+        traffic_limit_bytes=None,
+        device_limit=5,
+        previous_subscription_url=None,
+    )
+    fake_gateway = FakeRemnawaveUserGateway(
+        applied_user=_build_user(
+            uuid=uuid4(),
+            short_uuid="unused-smart-manual-short",
+            subscription_url="https://sub.example.local/unused-smart-token",
+            expires_at=now + timedelta(days=30),
+        ),
+    )
+
+    with pytest.raises(Stage1ManualSubscriptionError, match="REMNAWAVE_SMART_RU_EXTERNAL_SQUAD_UUID"):
+        await RemnawaveStage1ManualSubscriptionGateway(fake_gateway).apply_manual_subscription(request)
+
+    assert fake_gateway.created == []
+    assert fake_gateway.updated == []
+
+
 def test_stage1_manual_subscription_request_rejects_unsafe_values() -> None:
     base = {
         "customer_account_id": uuid4(),

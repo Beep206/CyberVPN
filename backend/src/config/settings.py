@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     remnawave_webhook_secret: SecretStr = SecretStr("")
     remnawave_webhook_max_age_seconds: int = 300
     remnawave_webhook_future_skew_seconds: int = 60
+    remnawave_webhook_max_body_bytes: int = 65536
     remnawave_default_user_expire_days: int = 7
     remnawave_default_internal_squad_uuid: str = ""
     remnawave_default_internal_squad_name: str = "Default-Squad"
@@ -73,8 +74,15 @@ class Settings(BaseSettings):
     remnawave_ru_bundle_external_squad_uuid: str = ""
     remnawave_ru_bundle_plan_codes: str = "ru_start,ru_basic"
     remnawave_ru_bundle_subscription_template_name: str = "Mihomo (RU bundle)"
+    remnawave_smart_ru_external_squad_uuid: str = ""
+    remnawave_smart_ru_internal_squad_uuid: str = ""
+    remnawave_smart_ru_plan_codes: str = "premium_smart_ru"
+    remnawave_smart_ru_subscription_template_name: str = "CyberVPN Premium Smart RU"
     remnawave_request_retries: int = 1
     remnawave_retry_backoff_seconds: float = 0.25
+    remnawave_abuse_auto_disable_enabled: bool = False
+    remnawave_abuse_torrent_disable_after: int = 2
+    remnawave_abuse_torrent_window_hours: int = 24
     stage1_trial_provisioning_enabled: bool = False
     stage1_paid_provisioning_enabled: bool = False
     stage1_provisioning_retry_claiming_enabled: bool = False

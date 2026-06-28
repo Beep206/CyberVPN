@@ -1,5 +1,8 @@
 ---
-remnawave_edge_image: remnawave/node:2.7.4
+# Remnawave 2.7.4 was requested in the Premium Smart RU TZ, but no public
+# remnawave/node:2.7.4 tag was available during the 2026-06-28 rollout.
+# Keep 2.7.0 pinned until the registry exposes a verified newer node tag.
+remnawave_edge_image: remnawave/node:2.7.0
 remnawave_edge_node_port: 2222
 remnawave_edge_secret_key: "{{ vault_remnawave_edge_secret_key }}"
 remnawave_edge_log_dir: /var/log/remnanode

@@ -1,0 +1,29 @@
+[Unit]
+Description=CyberVPN Remnawave RU Moscow node API IPv4-to-IPv6 proxy
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/socat TCP-LISTEN:32230,bind=172.30.3.1,fork,reuseaddr,keepalive TCP6:[2a12:5940:e38b::2]:22230
+Restart=always
+RestartSec=3
+DynamicUser=true
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+SystemCallArchitectures=native
+TasksMax=64
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

@@ -10,11 +10,12 @@ from src.application.services.stage1_plan_policy import S1_PAID_PLAN_DURATIONS, 
 def test_plan_seed_contains_full_canonical_matrix() -> None:
     specs = build_plan_seed_specs()
 
-    assert len(specs) == 36
+    assert len(specs) == 40
     assert {spec.plan_code for spec in specs} == {
         "start",
         "ru_start",
         "ru_basic",
+        "premium_smart_ru",
         "basic",
         "plus",
         "pro",
@@ -75,6 +76,21 @@ def test_plan_seed_matches_public_and_hidden_examples() -> None:
     assert specs["ru_basic_30"].features["remnawave_external_squad"] == "S1_RU_BUNDLE"
     assert specs["ru_basic_30"].features["remnawave_subscription_template"] == "Mihomo (RU bundle)"
 
+    assert specs["premium_smart_ru_30"].display_name == "Premium Smart RU"
+    assert specs["premium_smart_ru_30"].catalog_visibility == "hidden"
+    assert specs["premium_smart_ru_30"].sale_channels == ["admin"]
+    assert specs["premium_smart_ru_30"].device_limit == 5
+    assert specs["premium_smart_ru_30"].price_usd == Decimal("0.00")
+    assert specs["premium_smart_ru_30"].traffic_policy["mode"] == "fair_use"
+    assert specs["premium_smart_ru_30"].connection_modes == ["standard", "stealth", "smart_routing"]
+    assert specs["premium_smart_ru_30"].server_pool == ["premium_smart_ru"]
+    assert specs["premium_smart_ru_30"].support_sla == "priority"
+    assert specs["premium_smart_ru_30"].features["price_status"] == "TODO_OWNER_APPROVAL"
+    assert specs["premium_smart_ru_30"].features["remnawave_external_squad"] == "CYBERVPN_PREMIUM_SMART_RU"
+    assert specs["premium_smart_ru_30"].features["remnawave_subscription_template"] == "CyberVPN Premium Smart RU"
+    assert specs["premium_smart_ru_30"].features["torrent_policy"] == "blocked"
+    assert specs["premium_smart_ru_30"].features["tor_policy"] == "blocked"
+
     assert specs["test_365"].connection_modes[-1] == "experimental"
     assert specs["test_365"].invite_bundle == {"count": 3, "friend_days": 14, "expiry_days": 60}
 
@@ -95,6 +111,7 @@ def test_addon_seed_matches_phase1_catalog() -> None:
     }
     assert addons["extra_device"].price_usd == Decimal("6.00")
     assert addons["extra_device"].max_quantity_by_plan["plus"] == 3
+    assert addons["extra_device"].max_quantity_by_plan["premium_smart_ru"] == 3
     assert addons["extra_device"].max_quantity_by_plan["development"] == 0
     assert addons["extra_device"].delta_entitlements == {"device_limit": 1}
 
@@ -102,6 +119,7 @@ def test_addon_seed_matches_phase1_catalog() -> None:
     assert addons["dedicated_ip"].requires_location is True
     assert addons["dedicated_ip"].max_quantity_by_plan["ru_start"] == 0
     assert addons["dedicated_ip"].max_quantity_by_plan["ru_basic"] == 0
+    assert addons["dedicated_ip"].max_quantity_by_plan["premium_smart_ru"] == 1
     assert addons["dedicated_ip"].max_quantity_by_plan["plus"] == 1
     assert addons["dedicated_ip"].max_quantity_by_plan["max"] == 3
     assert addons["dedicated_ip"].delta_entitlements == {"dedicated_ip_count": 1}

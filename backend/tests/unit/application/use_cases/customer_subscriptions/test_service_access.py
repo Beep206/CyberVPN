@@ -6,10 +6,13 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import HTTPException
 
+from src.application.use_cases.customer_subscriptions import service_access as service_access_module
 from src.application.use_cases.customer_subscriptions.service_access import (
     CustomerSubscriptionServiceAccessUseCase,
 )
+from src.config.settings import settings
 from src.domain.enums import AccessDeliveryChannelType, DeviceCredentialType
 from src.presentation.api.v1.access_delivery_channels.schemas import GetCurrentServiceStateRequest
 from src.presentation.api.v1.customer_subscriptions import routes as customer_subscription_routes
@@ -85,6 +88,129 @@ async def test_selected_subscription_state_returns_ready_requested_device_creden
     assert result.device_credential is device_credential
     assert result.access_delivery_channel is access_delivery_channel
     assert result.resolved_channel_subject_ref == "desktop-ready"
+
+
+@pytest.mark.asyncio
+async def test_selected_subscription_lazy_provisioning_uses_smart_ru_squads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    customer_account_id = uuid.uuid4()
+    auth_realm_id = uuid.uuid4()
+    service_identity_id = uuid.uuid4()
+    smart_external_squad_uuid = str(uuid.uuid4())
+    smart_internal_squad_uuid = str(uuid.uuid4())
+
+    class FakeRemnawaveUserGateway:
+        def __init__(self, client) -> None:
+            captured["remnawave_client"] = client
+
+        async def create(self, username: str, **kwargs):
+            captured["remnawave_username"] = username
+            captured["remnawave_payload"] = kwargs
+            return SimpleNamespace(
+                uuid=uuid.uuid4(),
+                subscription_url="https://subscription.example.local/sub/redacted-smart",
+            )
+
+    class FakeCreateServiceIdentityUseCase:
+        def __init__(self, session) -> None:
+            captured["identity_session"] = session
+
+        async def execute(self, **kwargs):
+            captured["identity_kwargs"] = kwargs
+            return SimpleNamespace(
+                service_identity=SimpleNamespace(
+                    id=service_identity_id,
+                    service_key="svc-smart-ready",
+                    provider_subject_ref=kwargs["provider_subject_ref"],
+                    service_context=kwargs["service_context"],
+                )
+            )
+
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", smart_external_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", smart_internal_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    monkeypatch.setattr(service_access_module, "RemnawaveUserGateway", FakeRemnawaveUserGateway)
+    monkeypatch.setattr(service_access_module, "CreateServiceIdentityUseCase", FakeCreateServiceIdentityUseCase)
+
+    session = SimpleNamespace(
+        get=AsyncMock(return_value=SimpleNamespace(email="smart-user@example.test")),
+        flush=AsyncMock(),
+    )
+    use_case = CustomerSubscriptionServiceAccessUseCase(session)
+    use_case._ensure_provisioning_profile = AsyncMock()
+    use_case._store_subscription_url = AsyncMock()
+    item = _subscription_summary()
+    item.plan_code = "premium_smart_ru"
+    item.display_name = "Premium Smart RU"
+    item.effective_entitlements = {"device_limit": 5}
+    grant = SimpleNamespace(
+        id=item.entitlement_grant_id,
+        customer_account_id=customer_account_id,
+        auth_realm_id=auth_realm_id,
+        source_order_id=uuid.uuid4(),
+        origin_storefront_id=None,
+        service_identity_id=None,
+    )
+
+    service_identity = await use_case._ensure_grant_service_identity(
+        item=item,
+        grant=grant,
+        provider_name="remnawave",
+        remnawave_client=SimpleNamespace(),
+        existing=None,
+    )
+
+    payload = captured["remnawave_payload"]
+    assert payload["external_squad_uuid"] == smart_external_squad_uuid
+    assert payload["active_internal_squads"] == [smart_internal_squad_uuid]
+    assert payload["hwid_device_limit"] == 5
+    assert captured["identity_kwargs"]["service_context"]["plan_code"] == "premium_smart_ru"
+    assert grant.service_identity_id == service_identity_id
+    assert service_identity.id == service_identity_id
+    session.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_selected_subscription_lazy_provisioning_fails_closed_when_smart_ru_squads_are_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    customer_account_id = uuid.uuid4()
+    auth_realm_id = uuid.uuid4()
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", "")
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", str(uuid.uuid4()))
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+
+    session = SimpleNamespace(
+        get=AsyncMock(return_value=SimpleNamespace(email="smart-user@example.test")),
+        flush=AsyncMock(),
+    )
+    use_case = CustomerSubscriptionServiceAccessUseCase(session)
+    item = _subscription_summary()
+    item.plan_code = "premium_smart_ru"
+    item.display_name = "Premium Smart RU"
+    grant = SimpleNamespace(
+        id=item.entitlement_grant_id,
+        customer_account_id=customer_account_id,
+        auth_realm_id=auth_realm_id,
+        source_order_id=uuid.uuid4(),
+        origin_storefront_id=None,
+        service_identity_id=None,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await use_case._ensure_grant_service_identity(
+            item=item,
+            grant=grant,
+            provider_name="remnawave",
+            remnawave_client=SimpleNamespace(),
+            existing=None,
+        )
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail == "Selected subscription VPN identity requires Premium Smart RU routing configuration"
+    session.flush.assert_not_awaited()
 
 
 @pytest.mark.asyncio

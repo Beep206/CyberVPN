@@ -255,6 +255,7 @@ class PlanCode(StrEnum):
     START = "start"
     RU_START = "ru_start"
     RU_BASIC = "ru_basic"
+    PREMIUM_SMART_RU = "premium_smart_ru"
     BASIC = "basic"
     PLUS = "plus"
     PRO = "pro"

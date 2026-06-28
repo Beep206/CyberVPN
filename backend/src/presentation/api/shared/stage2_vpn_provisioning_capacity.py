@@ -11,6 +11,10 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from urllib.parse import parse_qs, urlsplit
 
+from src.infrastructure.remnawave.smart_ru_bundle import (
+    SMART_RU_BUNDLE_TEMPLATE_NAME,
+    is_smart_ru_plan,
+)
 from src.infrastructure.remnawave.stage1_ru_bundle import (
     STAGE1_RU_BUNDLE_TEMPLATE_NAME,
     is_stage1_ru_bundle_plan,
@@ -263,15 +267,21 @@ def evaluate_s2_ru_bundle(
     """Ensure Mihomo RU bundle is used only for approved RU plans."""
 
     normalized_plan_code = plan_code.strip().lower() if plan_code else None
-    should_apply = is_stage1_ru_bundle_plan(normalized_plan_code)
+    should_apply_legacy_ru = is_stage1_ru_bundle_plan(normalized_plan_code)
+    should_apply_smart_ru = is_smart_ru_plan(normalized_plan_code)
+    should_apply = should_apply_legacy_ru or should_apply_smart_ru
+    expected_template = SMART_RU_BUNDLE_TEMPLATE_NAME if should_apply_smart_ru else STAGE1_RU_BUNDLE_TEMPLATE_NAME
     issues: list[str] = []
     if should_apply:
-        if template_name != STAGE1_RU_BUNDLE_TEMPLATE_NAME:
+        if template_name != expected_template:
             issues.append("ru_plan_requires_mihomo_ru_bundle_template")
         if not external_squad_uuid_present:
             issues.append("ru_plan_requires_external_squad")
     else:
-        if external_squad_uuid_present or template_name == STAGE1_RU_BUNDLE_TEMPLATE_NAME:
+        if external_squad_uuid_present or template_name in {
+            STAGE1_RU_BUNDLE_TEMPLATE_NAME,
+            SMART_RU_BUNDLE_TEMPLATE_NAME,
+        }:
             issues.append("non_ru_plan_must_not_use_ru_bundle")
 
     return S2RuBundleDecision(

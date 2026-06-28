@@ -42,6 +42,11 @@ from src.infrastructure.database.models.provisioning_profile_model import Provis
 from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.database.repositories.service_access_repo import ServiceAccessRepository
 from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.remnawave.smart_ru_bundle import (
+    SmartRuConfigurationError,
+    resolve_smart_ru_external_squad_uuid,
+    resolve_smart_ru_internal_squad_uuids,
+)
 from src.infrastructure.remnawave.stage1_ru_bundle import resolve_stage1_ru_bundle_external_squad_uuid
 from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
@@ -311,8 +316,21 @@ class CustomerSubscriptionServiceAccessUseCase:
             "trafficLimitStrategy": STAGE1_PAID_TRAFFIC_LIMIT_STRATEGY,
             "hwid_device_limit": max(1, int(effective.get("device_limit") or 1)),
         }
-        if ru_bundle_squad_uuid := resolve_stage1_ru_bundle_external_squad_uuid(item.plan_code):
-            payload["external_squad_uuid"] = ru_bundle_squad_uuid
+        try:
+            smart_ru_external_squad_uuid = resolve_smart_ru_external_squad_uuid(item.plan_code)
+            smart_ru_internal_squad_uuids = resolve_smart_ru_internal_squad_uuids(item.plan_code)
+        except SmartRuConfigurationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Selected subscription VPN identity requires Premium Smart RU routing configuration",
+            ) from exc
+        external_squad_uuid = smart_ru_external_squad_uuid or resolve_stage1_ru_bundle_external_squad_uuid(
+            item.plan_code
+        )
+        if external_squad_uuid:
+            payload["external_squad_uuid"] = external_squad_uuid
+        if smart_ru_internal_squad_uuids:
+            payload["active_internal_squads"] = smart_ru_internal_squad_uuids
 
         created_user = await gateway.create(
             username=f"cvpn_s_{grant.id.hex[:28]}",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from src.infrastructure.remnawave.smart_ru_bundle import SMART_RU_BUNDLE_TEMPLATE_NAME
 from src.infrastructure.remnawave.stage1_ru_bundle import STAGE1_RU_BUNDLE_TEMPLATE_NAME
 from src.presentation.api.shared.stage2_vpn_provisioning_capacity import (
     S2_PUBLIC_CANARY_USERS_PER_CONNECTED_NODE,
@@ -107,6 +108,7 @@ def test_s2_ru_bundle_applies_only_to_russian_hidden_plans(monkeypatch) -> None:
     from src.config.settings import settings
 
     monkeypatch.setattr(settings, "remnawave_ru_bundle_plan_codes", "ru_start,ru_basic")
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
 
     ru_start = evaluate_s2_ru_bundle(
         plan_code="ru_start",
@@ -123,6 +125,16 @@ def test_s2_ru_bundle_applies_only_to_russian_hidden_plans(monkeypatch) -> None:
         template_name=STAGE1_RU_BUNDLE_TEMPLATE_NAME,
         external_squad_uuid_present=True,
     )
+    premium_smart_ru = evaluate_s2_ru_bundle(
+        plan_code="premium_smart_ru",
+        template_name=SMART_RU_BUNDLE_TEMPLATE_NAME,
+        external_squad_uuid_present=True,
+    )
+    unsafe_smart_on_global = evaluate_s2_ru_bundle(
+        plan_code="basic",
+        template_name=SMART_RU_BUNDLE_TEMPLATE_NAME,
+        external_squad_uuid_present=True,
+    )
 
     assert isinstance(ru_start, S2RuBundleDecision)
     assert ru_start.allowed is True
@@ -131,6 +143,10 @@ def test_s2_ru_bundle_applies_only_to_russian_hidden_plans(monkeypatch) -> None:
     assert global_plan.should_apply_ru_bundle is False
     assert unsafe_global.allowed is False
     assert "non_ru_plan_must_not_use_ru_bundle" in unsafe_global.issues
+    assert premium_smart_ru.allowed is True
+    assert premium_smart_ru.should_apply_ru_bundle is True
+    assert unsafe_smart_on_global.allowed is False
+    assert "non_ru_plan_must_not_use_ru_bundle" in unsafe_smart_on_global.issues
 
 
 def test_s2_support_reprovisioning_steps_are_secret_free() -> None:

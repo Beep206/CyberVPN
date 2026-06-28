@@ -54,7 +54,16 @@ def _build_preview_payload() -> dict[str, object]:
         "sample_prices": {
             spec.name: str(spec.price_usd)
             for spec in plan_specs
-            if spec.name in {"basic_365", "plus_365", "pro_365", "max_365", "test_365", "development_365"}
+            if spec.name
+            in {
+                "basic_365",
+                "plus_365",
+                "pro_365",
+                "max_365",
+                "test_365",
+                "development_365",
+                "premium_smart_ru_365",
+            }
         },
         "addons": {
             spec.code: {

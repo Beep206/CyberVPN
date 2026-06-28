@@ -61,6 +61,8 @@ def build_remnawave_webhook_log_payload(
                     "uuid",
                     "user_uuid",
                     "userUuid",
+                    "user_id",
+                    "userId",
                     "node_uuid",
                     "nodeUuid",
                     "subscription_uuid",

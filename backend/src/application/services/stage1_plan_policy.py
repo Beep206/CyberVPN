@@ -9,7 +9,7 @@ from typing import Any
 S1_PAID_PLAN_POLICY_ID = "stage1_beta_paid_plans_v1"
 S1_ADDON_POLICY_ID = "stage1_beta_addons_ru_traffic_v2"
 S1_PAID_PLAN_CODES = ("basic", "plus", "pro", "max")
-S1_PRIVATE_PLAN_CODES = ("start", "ru_start", "ru_basic", "test", "development")
+S1_PRIVATE_PLAN_CODES = ("start", "ru_start", "ru_basic", "premium_smart_ru", "test", "development")
 S1_PAID_PLAN_DURATIONS = (30, 90, 180, 365)
 S1_PUBLIC_PAID_SALE_CHANNELS = ("web", "miniapp", "telegram_bot")
 S1_RU_TRAFFIC_ADDON_CODES = ("ru_traffic_30gb", "ru_traffic_50gb", "ru_traffic_100gb")

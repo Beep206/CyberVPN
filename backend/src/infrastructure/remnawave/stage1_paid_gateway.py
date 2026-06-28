@@ -9,6 +9,11 @@ from src.application.use_cases.subscriptions.stage1_paid_provisioning import (
     Stage1PaidProvisioningRequest,
     Stage1PaidProvisioningResult,
 )
+from src.infrastructure.remnawave.smart_ru_bundle import (
+    SmartRuConfigurationError,
+    resolve_smart_ru_external_squad_uuid,
+    resolve_smart_ru_internal_squad_uuids,
+)
 from src.infrastructure.remnawave.stage1_ru_bundle import resolve_stage1_ru_bundle_external_squad_uuid
 from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
@@ -32,8 +37,18 @@ class RemnawaveStage1PaidProvisioningGateway:
             "trafficLimitStrategy": request.traffic_limit_strategy,
             "hwid_device_limit": request.device_limit,
         }
-        if ru_bundle_squad_uuid := resolve_stage1_ru_bundle_external_squad_uuid(request.plan_code):
-            payload["external_squad_uuid"] = ru_bundle_squad_uuid
+        try:
+            smart_ru_external_squad_uuid = resolve_smart_ru_external_squad_uuid(request.plan_code)
+            smart_ru_internal_squad_uuids = resolve_smart_ru_internal_squad_uuids(request.plan_code)
+        except SmartRuConfigurationError as exc:
+            raise Stage1PaidProvisioningError(str(exc)) from exc
+        external_squad_uuid = smart_ru_external_squad_uuid or resolve_stage1_ru_bundle_external_squad_uuid(
+            request.plan_code
+        )
+        if external_squad_uuid:
+            payload["external_squad_uuid"] = external_squad_uuid
+        if smart_ru_internal_squad_uuids:
+            payload["active_internal_squads"] = smart_ru_internal_squad_uuids
         payload = {key: value for key, value in payload.items() if value is not None or key == "traffic_limit_bytes"}
 
         if request.existing_remnawave_uuid:

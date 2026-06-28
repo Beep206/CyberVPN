@@ -1,4 +1,7 @@
 ---
 # Copy to vault.yml and encrypt with ansible-vault before production rollout.
 # SECRET_KEY must match the node payload you would otherwise copy from the Remnawave panel.
-vault_remnawave_edge_secret_key: "replace-with-a-long-random-secret-key"
+vault_remnawave_edge_secret_key_s1_ru_msk_3: "replace-with-s1-ru-msk-3-secret-key"
+vault_remnawave_edge_secret_key_s1_ru_spb_3: "replace-with-s1-ru-spb-3-secret-key"
+vault_remnawave_edge_secret_key_s1_nl_4: "replace-with-s1-nl-4-secret-key"
+vault_remnawave_edge_secret_key_s1_de_3: "replace-with-s1-de-3-secret-key"

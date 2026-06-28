@@ -85,6 +85,14 @@ def test_stage1_public_filter_removes_hidden_internal_and_unsupported_periods() 
     valid = _build_plan(plan_code="basic", duration_days=30, name="basic_30")
     unsupported_period = _build_plan(plan_code="basic", duration_days=60, name="basic_60")
     hidden = _build_plan(plan_code="start", catalog_visibility="hidden", duration_days=30, name="start_30")
+    premium_smart_ru = _build_plan(
+        plan_code="premium_smart_ru",
+        catalog_visibility="hidden",
+        duration_days=30,
+        name="premium_smart_ru_30",
+        price_usd=Decimal("0.00"),
+        sale_channels=["admin"],
+    )
     hidden_public_family = _build_plan(
         plan_code="basic",
         catalog_visibility="hidden",
@@ -100,7 +108,7 @@ def test_stage1_public_filter_removes_hidden_internal_and_unsupported_periods() 
     )
 
     filtered = filter_stage1_public_paid_plans(
-        [unsupported_period, hidden, hidden_public_family, valid, inactive, wrong_channel],
+        [unsupported_period, hidden, premium_smart_ru, hidden_public_family, valid, inactive, wrong_channel],
         sale_channel="web",
     )
 

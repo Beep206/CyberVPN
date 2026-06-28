@@ -264,8 +264,13 @@ async def test_remnawave_paid_gateway_uses_create_and_update_contracts(monkeypat
     requested_at = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
     existing_remnawave_uuid = uuid4()
     ru_bundle_squad_uuid = str(uuid4())
+    smart_ru_squad_uuid = str(uuid4())
+    smart_ru_internal_squad_uuid = str(uuid4())
     monkeypatch.setattr(settings, "remnawave_ru_bundle_external_squad_uuid", ru_bundle_squad_uuid)
     monkeypatch.setattr(settings, "remnawave_ru_bundle_plan_codes", "ru_start,ru_basic")
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", smart_ru_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", smart_ru_internal_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
     create_request = build_stage1_paid_provisioning_request(
         customer_account_id=uuid4(),
         order_id=uuid4(),
@@ -296,21 +301,96 @@ async def test_remnawave_paid_gateway_uses_create_and_update_contracts(monkeypat
         device_limit=5,
         existing_remnawave_uuid=str(existing_remnawave_uuid),
     )
+    smart_request = build_stage1_paid_provisioning_request(
+        customer_account_id=uuid4(),
+        order_id=uuid4(),
+        email="premium-smart-user@example.test",
+        username=None,
+        telegram_id=None,
+        plan_code="premium_smart_ru",
+        order_status=STAGE1_PAID_ORDER_STATUS,
+        settlement_status=STAGE1_PAID_SETTLEMENT_STATUS,
+        plan_duration_days=30,
+        paid_at=requested_at,
+        provisioning_requested_at=requested_at,
+        traffic_limit_bytes=None,
+        device_limit=5,
+    )
+    smart_existing_remnawave_uuid = uuid4()
+    smart_update_request = build_stage1_paid_provisioning_request(
+        customer_account_id=uuid4(),
+        order_id=uuid4(),
+        email="premium-smart-renewal@example.test",
+        username=None,
+        telegram_id=None,
+        plan_code="premium_smart_ru",
+        order_status=STAGE1_PAID_ORDER_STATUS,
+        settlement_status=STAGE1_PAID_SETTLEMENT_STATUS,
+        plan_duration_days=90,
+        paid_at=requested_at,
+        provisioning_requested_at=requested_at,
+        traffic_limit_bytes=None,
+        device_limit=5,
+        existing_remnawave_uuid=str(smart_existing_remnawave_uuid),
+    )
 
     create_result = await gateway.provision_paid_access(create_request)
     update_result = await gateway.provision_paid_access(update_request)
+    smart_result = await gateway.provision_paid_access(smart_request)
+    smart_update_result = await gateway.provision_paid_access(smart_update_request)
 
     assert create_result.created is True
     assert update_result.created is False
+    assert smart_result.created is True
+    assert smart_update_result.created is False
     assert user_gateway.created_payloads[0][0] == create_request.remnawave_username
     assert user_gateway.created_payloads[0][1]["expire_at"] == create_request.access_expires_at
     assert user_gateway.created_payloads[0][1]["traffic_limit_bytes"] == create_request.traffic_limit_bytes
     assert user_gateway.created_payloads[0][1]["external_squad_uuid"] == ru_bundle_squad_uuid
+    assert user_gateway.created_payloads[1][0] == smart_request.remnawave_username
+    assert user_gateway.created_payloads[1][1]["external_squad_uuid"] == smart_ru_squad_uuid
+    assert user_gateway.created_payloads[1][1]["active_internal_squads"] == [smart_ru_internal_squad_uuid]
     assert user_gateway.updated_payloads[0][0] == existing_remnawave_uuid
     assert user_gateway.updated_payloads[0][1]["expire_at"] == update_request.access_expires_at
     assert user_gateway.updated_payloads[0][1]["traffic_limit_bytes"] is None
     assert user_gateway.updated_payloads[0][1]["hwid_device_limit"] == 5
     assert "external_squad_uuid" not in user_gateway.updated_payloads[0][1]
+    assert user_gateway.updated_payloads[1][0] == smart_existing_remnawave_uuid
+    assert user_gateway.updated_payloads[1][1]["external_squad_uuid"] == smart_ru_squad_uuid
+    assert user_gateway.updated_payloads[1][1]["active_internal_squads"] == [smart_ru_internal_squad_uuid]
+
+
+@pytest.mark.asyncio
+async def test_remnawave_paid_gateway_fails_closed_when_smart_ru_squads_are_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user_gateway = FakeRemnawaveUserGateway()
+    gateway = RemnawaveStage1PaidProvisioningGateway(user_gateway)  # type: ignore[arg-type]
+    requested_at = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", "")
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", str(uuid4()))
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    request = build_stage1_paid_provisioning_request(
+        customer_account_id=uuid4(),
+        order_id=uuid4(),
+        email="premium-smart-user@example.test",
+        username=None,
+        telegram_id=None,
+        plan_code="premium_smart_ru",
+        order_status=STAGE1_PAID_ORDER_STATUS,
+        settlement_status=STAGE1_PAID_SETTLEMENT_STATUS,
+        plan_duration_days=30,
+        paid_at=requested_at,
+        provisioning_requested_at=requested_at,
+        traffic_limit_bytes=None,
+        device_limit=5,
+    )
+
+    with pytest.raises(Stage1PaidProvisioningError, match="REMNAWAVE_SMART_RU_EXTERNAL_SQUAD_UUID"):
+        await gateway.provision_paid_access(request)
+
+    assert user_gateway.created_payloads == []
+    assert user_gateway.updated_payloads == []
 
 
 @pytest.mark.asyncio

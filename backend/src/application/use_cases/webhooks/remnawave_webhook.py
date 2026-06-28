@@ -1,5 +1,8 @@
+import hashlib
+import math
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.webhooks.webhook_log_redaction import (
@@ -8,6 +11,7 @@ from src.application.use_cases.webhooks.webhook_log_redaction import (
     remnawave_event_type,
     signature_fingerprint,
 )
+from src.config.settings import settings
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
 from src.infrastructure.messaging.websocket_manager import ws_manager
 from src.infrastructure.remnawave.webhook_validator import RemnawaveWebhookValidator
@@ -21,13 +25,25 @@ _REMNAWAVE_WEBSOCKET_DATA_ALLOWLIST = frozenset(
         "usedTrafficBytes",
         "trafficLimitBytes",
         "lifetimeUsedTrafficBytes",
+        "userId",
+        "userUuid",
+        "user_uuid",
+        "node_uuid",
         "nodeUuid",
         "nodeName",
+        "node_name",
         "squadUuid",
         "squadName",
+        "blocked",
+        "blockDuration",
+        "block_duration",
     }
 )
-_REMNAWAVE_WEBSOCKET_VALUE_TYPES = (str, int, float, bool, type(None))
+_REMNAWAVE_TORRENT_BLOCKER_REPORT_EVENT = "torrent_blocker.report"
+_REMNAWAVE_WEBSOCKET_EVENT_MAX_LENGTH = 100
+_REMNAWAVE_WEBSOCKET_STRING_MAX_LENGTH = 160
+_REMNAWAVE_WEBSOCKET_NUMBER_ABS_MAX = 10**15
+_UNSAFE_WEBSOCKET_VALUE = object()
 
 
 class ProcessRemnawaveWebhookUseCase:
@@ -42,6 +58,23 @@ class ProcessRemnawaveWebhookUseCase:
         timestamp: str | None,
     ) -> dict:
         import json
+
+        if len(body) > settings.remnawave_webhook_max_body_bytes:
+            log = WebhookLog(
+                source="remnawave",
+                event_type=None,
+                payload=build_invalid_body_webhook_log_payload(
+                    source="remnawave",
+                    body=body,
+                    signature=signature,
+                    validation_reason="body_too_large",
+                ),
+                signature_fingerprint=signature_fingerprint(signature),
+                is_valid=False,
+                error_message="body_too_large",
+            )
+            self._session.add(log)
+            return {"status": "invalid_payload"}
 
         validation = self._validator.validate_request(
             body,
@@ -68,15 +101,18 @@ class ProcessRemnawaveWebhookUseCase:
             self._session.add(log)
             return {"status": "invalid_payload"}
 
+        body_sha256 = hashlib.sha256(body).hexdigest()
+        log_payload = build_remnawave_webhook_log_payload(
+            payload,
+            signature=signature,
+            is_valid=validation.is_valid,
+            validation_reason=validation.reason,
+        )
+        log_payload["body_sha256"] = body_sha256
         log = WebhookLog(
             source="remnawave",
             event_type=remnawave_event_type(payload),
-            payload=build_remnawave_webhook_log_payload(
-                payload,
-                signature=signature,
-                is_valid=validation.is_valid,
-                validation_reason=validation.reason,
-            ),
+            payload=log_payload,
             signature_fingerprint=signature_fingerprint(signature),
             is_valid=validation.is_valid,
             error_message=validation.reason,
@@ -90,6 +126,15 @@ class ProcessRemnawaveWebhookUseCase:
 
         event = payload.get("event", "")
         data = payload.get("data", {})
+        if event == _REMNAWAVE_TORRENT_BLOCKER_REPORT_EVENT and not isinstance(data, dict):
+            log.is_valid = False
+            log.error_message = "invalid_torrent_blocker_report"
+            return {"status": "invalid_payload"}
+        if await _has_seen_remnawave_webhook(
+            self._session, event=remnawave_event_type(payload), body_sha256=body_sha256
+        ):
+            log.error_message = "duplicate_webhook"
+            return {"status": "duplicate", "event": remnawave_event_type(payload) or ""}
 
         websocket_payload = _build_remnawave_websocket_payload(event, data)
         await ws_manager.broadcast("events", websocket_payload)
@@ -98,16 +143,61 @@ class ProcessRemnawaveWebhookUseCase:
 
 
 def _build_remnawave_websocket_payload(event: object, data: object) -> dict[str, Any]:
-    safe_event = event if isinstance(event, str) else ""
+    safe_event = event if isinstance(event, str) and len(event) <= _REMNAWAVE_WEBSOCKET_EVENT_MAX_LENGTH else ""
     safe_data: dict[str, Any] = {}
 
     if isinstance(data, dict):
-        safe_data = {
-            key: value
-            for key, value in data.items()
-            if key in _REMNAWAVE_WEBSOCKET_DATA_ALLOWLIST
-            and isinstance(key, str)
-            and isinstance(value, _REMNAWAVE_WEBSOCKET_VALUE_TYPES)
-        }
+        for key, value in data.items():
+            if not isinstance(key, str) or key not in _REMNAWAVE_WEBSOCKET_DATA_ALLOWLIST:
+                continue
+            safe_value = _safe_websocket_value(value)
+            if safe_value is not _UNSAFE_WEBSOCKET_VALUE:
+                safe_data[key] = safe_value
 
-    return {"event": safe_event, "data": safe_data}
+    payload = {"event": safe_event, "data": safe_data}
+    if safe_event == _REMNAWAVE_TORRENT_BLOCKER_REPORT_EVENT:
+        payload["abuse_type"] = "torrent"
+        payload["admin_notification"] = True
+    return payload
+
+
+async def _has_seen_remnawave_webhook(
+    session: AsyncSession,
+    *,
+    event: str | None,
+    body_sha256: str,
+) -> bool:
+    if event is None or not hasattr(session, "execute"):
+        return False
+
+    statement = (
+        select(WebhookLog.id)
+        .where(
+            WebhookLog.source == "remnawave",
+            WebhookLog.event_type == event,
+            WebhookLog.is_valid.is_(True),
+            WebhookLog.payload["body_sha256"].as_string() == body_sha256,
+        )
+        .limit(1)
+    )
+    no_autoflush = getattr(session, "no_autoflush", None)
+    if no_autoflush is None:
+        result = await session.execute(statement)
+    else:
+        with no_autoflush:
+            result = await session.execute(statement)
+    return result.scalar_one_or_none() is not None
+
+
+def _safe_websocket_value(value: object) -> object:
+    if isinstance(value, str):
+        return value if len(value) <= _REMNAWAVE_WEBSOCKET_STRING_MAX_LENGTH else _UNSAFE_WEBSOCKET_VALUE
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, int):
+        return value if abs(value) <= _REMNAWAVE_WEBSOCKET_NUMBER_ABS_MAX else _UNSAFE_WEBSOCKET_VALUE
+    if isinstance(value, float):
+        if math.isfinite(value) and abs(value) <= _REMNAWAVE_WEBSOCKET_NUMBER_ABS_MAX:
+            return value
+        return _UNSAFE_WEBSOCKET_VALUE
+    return _UNSAFE_WEBSOCKET_VALUE

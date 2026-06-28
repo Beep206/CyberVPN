@@ -427,6 +427,8 @@ services:
     <<: *runtime-defaults
     profiles: ["vpn-node-local"]
     image: ${REMNAWAVE_NODE_IMAGE:-remnawave/node:2.7.0}
+    cap_add:
+      - NET_ADMIN
     env_file:
       - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave-node.env
         required: true
