@@ -97,6 +97,8 @@ function mockCustomerSiteRuntime(overrides: SiteRuntimeOverrides = {}) {
         '/subscriptions',
         '/support',
         '/settings',
+        '/rewards',
+        '/messages',
         '/onboarding',
         '/login',
         '/register',
@@ -180,6 +182,16 @@ describe('proxy routing', () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/ru-RU/support');
+  });
+
+  it('redirects public rewards and messages routes to cabinet host', async () => {
+    for (const path of ['/en-EN/rewards/invites', '/en-EN/messages']) {
+      const req = createRequest(path, undefined, 'https://cyber-vpn.net');
+      const res = await proxy(req);
+
+      expect(res.status).toBe(307);
+      expect(res.headers.get('location')).toBe(`https://my.cyber-vpn.net${path}`);
+    }
   });
 
   it('redirects short referral links to localized cabinet registration', async () => {
@@ -414,6 +426,20 @@ describe('proxy routing', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('allows cabinet rewards and messages RSC requests in cabinet-only runtime', async () => {
+    mockCustomerSiteRuntime({
+      cabinet_allowed_prefixes: ['/dashboard', '/rewards', '/messages'],
+    });
+
+    for (const path of ['/en-EN/rewards/invites?_rsc=probe', '/en-EN/messages?_rsc=probe']) {
+      const req = createProxiedRequest(path, 'my.cyber-vpn.net');
+      const res = await proxy(req);
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get('location')).toBeNull();
+    }
   });
 
   it('redirects cabinet marketing routes to configured public destination in cabinet-only runtime', async () => {

@@ -170,6 +170,7 @@ ssh_cmd "$remote_sudo install -d -o '$user' -g '$user' '$remote_src'"
 log "syncing source without secrets/heavy build artifacts"
 rsync -az --delete \
   --exclude='.git/' \
+  --exclude='.codex/' \
   --exclude='.private/' \
   --exclude='.env' \
   --exclude='.env.*' \
