@@ -17,6 +17,7 @@ const LOCALE_SEGMENT_RE = /^[a-z]{2}(?:-[A-Z]{2})?$/;
 const SITE_RUNTIME_QUERY_KEY = ['growth', 'site-mode', 'customer-site-runtime'];
 const SITE_TIMELINE_QUERY_KEY = ['growth', 'site-mode', 'customer-site-runtime', 'timeline'];
 const SITE_MODE_OPTIONS = ['full_site', 'cabinet_only', 'maintenance'] as const;
+const CABINET_MARKETING_ACTION_OPTIONS = ['redirect_public', 'allow', 'not_found'] as const;
 
 interface SiteModeFormState {
   mode: AdminCustomerSiteRuntime['mode'];
@@ -24,6 +25,11 @@ interface SiteModeFormState {
   cabinetHosts: string;
   cabinetDestinationPath: string;
   allowedPathPrefixes: string;
+  cabinetAllowedPathPrefixes: string;
+  cabinetMarketingRouteAction: NonNullable<AdminCustomerSiteRuntime['cabinet_marketing_route_action']>;
+  publicMarketingDestinationPath: string;
+  legalPathPrefixes: string;
+  operationalPathPrefixes: string;
   preserveQueryKeys: string;
   changeReason: string;
   confirmation: string;
@@ -48,6 +54,14 @@ function pathIsAllowed(pathname: string, prefixes: string[] | undefined) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
+function siteRouteClass(pathname: string, site: AdminCustomerSiteRuntime | undefined) {
+  if (pathIsAllowed(pathname, site?.legal_path_prefixes)) return 'legal_route';
+  if (pathIsAllowed(pathname, site?.operational_path_prefixes)) return 'operational_route';
+  if (pathIsAllowed(pathname, site?.cabinet_allowed_prefixes)) return 'cabinet_route';
+  if (pathIsAllowed(pathname, site?.allowed_path_prefixes)) return 'allowed_route';
+  return 'marketing_route';
+}
+
 function buildPreservedSearch(source: URL, preserveKeys: string[] | undefined) {
   const result = new URLSearchParams();
   for (const key of preserveKeys ?? []) {
@@ -67,15 +81,28 @@ function previewCabinetRoute(
     const source = new URL(rawUrl);
     const publicHosts = site?.public_hosts ?? [];
     const cabinetHost = firstValue(site?.cabinet_hosts, 'my.cyber-vpn.net');
+    const publicHost = firstValue(site?.public_hosts, 'cyber-vpn.net');
     const destinationPath = site?.cabinet_destination_path || '/dashboard';
     const mode = site?.mode ?? 'full_site';
     const isPublicHost = publicHosts.length === 0 || publicHosts.includes(source.host);
-    const isAllowed = pathIsAllowed(source.pathname, site?.allowed_path_prefixes);
-    const shouldRedirect = mode === 'cabinet_only' && isPublicHost && !isAllowed;
+    const isCabinetHost = Boolean(site?.cabinet_hosts?.includes(source.host));
+    const routeClass = siteRouteClass(source.pathname, site);
+    const safePublicRoute = routeClass === 'legal_route' || routeClass === 'operational_route';
+    const publicAllowedRoute = safePublicRoute || routeClass === 'allowed_route';
+    const cabinetAllowedRoute = safePublicRoute || routeClass === 'cabinet_route';
+    const cabinetMarketingAction = site?.cabinet_marketing_route_action ?? 'redirect_public';
+    const shouldRedirect =
+      mode === 'cabinet_only'
+      && ((isPublicHost && !publicAllowedRoute) || (isCabinetHost && !cabinetAllowedRoute && cabinetMarketingAction === 'redirect_public'));
     const firstSegment = source.pathname.split('/').filter(Boolean)[0];
     const localePrefix = firstSegment && LOCALE_SEGMENT_RE.test(firstSegment) ? `/${firstSegment}` : '';
-    const normalizedDestination = destinationPath.startsWith('/') ? destinationPath : `/${destinationPath}`;
-    const target = new URL(`https://${cabinetHost}${localePrefix}${normalizedDestination}`);
+    const normalizedCabinetDestination = destinationPath.startsWith('/') ? destinationPath : `/${destinationPath}`;
+    const normalizedPublicDestination = (site?.public_marketing_destination_path || '/').startsWith('/')
+      ? site?.public_marketing_destination_path || '/'
+      : `/${site?.public_marketing_destination_path || ''}`;
+    const redirectHost = isCabinetHost ? publicHost : cabinetHost;
+    const redirectPath = isCabinetHost ? normalizedPublicDestination : normalizedCabinetDestination;
+    const target = new URL(`https://${redirectHost}${localePrefix}${redirectPath}`);
     const preservedSearch = buildPreservedSearch(source, site?.preserve_query_keys);
 
     target.search = preservedSearch;
@@ -86,7 +113,13 @@ function previewCabinetRoute(
       target: shouldRedirect ? target.toString() : source.toString(),
       shouldRedirect,
       mode,
-      reason: shouldRedirect ? 'cabinet_only_redirect' : isAllowed ? 'allowed_route' : 'full_site_passthrough',
+      reason: shouldRedirect
+        ? 'cabinet_only_redirect'
+        : mode === 'cabinet_only' && isCabinetHost && !cabinetAllowedRoute && cabinetMarketingAction === 'not_found'
+          ? 'cabinet_marketing_not_found'
+          : publicAllowedRoute || cabinetAllowedRoute
+            ? routeClass
+            : 'full_site_passthrough',
     };
   } catch (error) {
     return {
@@ -118,6 +151,11 @@ function formFromSite(site: AdminCustomerSiteRuntime | undefined): SiteModeFormS
     cabinetHosts: csvFromValues(site?.cabinet_hosts),
     cabinetDestinationPath: site?.cabinet_destination_path ?? '/dashboard',
     allowedPathPrefixes: csvFromValues(site?.allowed_path_prefixes),
+    cabinetAllowedPathPrefixes: csvFromValues(site?.cabinet_allowed_prefixes),
+    cabinetMarketingRouteAction: site?.cabinet_marketing_route_action ?? 'redirect_public',
+    publicMarketingDestinationPath: site?.public_marketing_destination_path ?? '/',
+    legalPathPrefixes: csvFromValues(site?.legal_path_prefixes),
+    operationalPathPrefixes: csvFromValues(site?.operational_path_prefixes),
     preserveQueryKeys: csvFromValues(site?.preserve_query_keys),
     changeReason: '',
     confirmation: '',
@@ -134,6 +172,11 @@ function buildUpdatePayload(
     cabinet_hosts: valuesFromCsv(form.cabinetHosts),
     cabinet_destination_path: form.cabinetDestinationPath.trim(),
     allowed_path_prefixes: valuesFromCsv(form.allowedPathPrefixes),
+    cabinet_allowed_prefixes: valuesFromCsv(form.cabinetAllowedPathPrefixes),
+    cabinet_marketing_route_action: form.cabinetMarketingRouteAction,
+    public_marketing_destination_path: form.publicMarketingDestinationPath.trim(),
+    legal_path_prefixes: valuesFromCsv(form.legalPathPrefixes),
+    operational_path_prefixes: valuesFromCsv(form.operationalPathPrefixes),
     preserve_query_keys: valuesFromCsv(form.preserveQueryKeys),
     expected_version: site.version,
     change_reason: form.changeReason.trim(),
@@ -333,6 +376,26 @@ export function CustomerSiteModeConsole() {
                 value={(site.allowed_path_prefixes ?? []).join(', ') || t('common.missing')}
               />
               <InfoLine
+                label={t('siteMode.fields.cabinetAllowedPrefixes')}
+                value={(site.cabinet_allowed_prefixes ?? []).join(', ') || t('common.missing')}
+              />
+              <InfoLine
+                label={t('siteMode.fields.cabinetMarketingAction')}
+                value={t(`siteMode.cabinetMarketingActions.${site.cabinet_marketing_route_action ?? 'redirect_public'}`)}
+              />
+              <InfoLine
+                label={t('siteMode.fields.publicMarketingDestination')}
+                value={site.public_marketing_destination_path ?? t('common.missing')}
+              />
+              <InfoLine
+                label={t('siteMode.fields.legalPrefixes')}
+                value={(site.legal_path_prefixes ?? []).join(', ') || t('common.missing')}
+              />
+              <InfoLine
+                label={t('siteMode.fields.operationalPrefixes')}
+                value={(site.operational_path_prefixes ?? []).join(', ') || t('common.missing')}
+              />
+              <InfoLine
                 label={t('siteMode.fields.preserveKeys')}
                 value={(site.preserve_query_keys ?? []).join(', ') || t('common.missing')}
               />
@@ -376,6 +439,43 @@ export function CustomerSiteModeConsole() {
                 label={t('siteMode.fields.allowedPrefixes')}
                 value={form.allowedPathPrefixes}
                 onChange={(value) => setFormOverrides((current) => ({ ...current, allowedPathPrefixes: value }))}
+              />
+              <SiteModeInput
+                label={t('siteMode.fields.cabinetAllowedPrefixes')}
+                value={form.cabinetAllowedPathPrefixes}
+                onChange={(value) => setFormOverrides((current) => ({ ...current, cabinetAllowedPathPrefixes: value }))}
+              />
+              <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                {t('siteMode.fields.cabinetMarketingAction')}
+                <select
+                  value={form.cabinetMarketingRouteAction}
+                  onChange={(event) => setFormOverrides((current) => ({
+                    ...current,
+                    cabinetMarketingRouteAction: event.target.value as SiteModeFormState['cabinetMarketingRouteAction'],
+                  }))}
+                  className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+                >
+                  {CABINET_MARKETING_ACTION_OPTIONS.map((action) => (
+                    <option key={action} value={action}>
+                      {t(`siteMode.cabinetMarketingActions.${action}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <SiteModeInput
+                label={t('siteMode.fields.publicMarketingDestination')}
+                value={form.publicMarketingDestinationPath}
+                onChange={(value) => setFormOverrides((current) => ({ ...current, publicMarketingDestinationPath: value }))}
+              />
+              <SiteModeInput
+                label={t('siteMode.fields.legalPrefixes')}
+                value={form.legalPathPrefixes}
+                onChange={(value) => setFormOverrides((current) => ({ ...current, legalPathPrefixes: value }))}
+              />
+              <SiteModeInput
+                label={t('siteMode.fields.operationalPrefixes')}
+                value={form.operationalPathPrefixes}
+                onChange={(value) => setFormOverrides((current) => ({ ...current, operationalPathPrefixes: value }))}
               />
               <SiteModeInput
                 label={t('siteMode.fields.preserveKeys')}

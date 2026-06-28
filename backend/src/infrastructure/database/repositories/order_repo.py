@@ -27,6 +27,16 @@ class OrderRepository:
         )
         return result.scalars().first()
 
+    async def get_by_id_for_update(self, order_id: UUID) -> OrderModel | None:
+        result = await self._session.execute(
+            select(OrderModel)
+            .execution_options(populate_existing=True)
+            .options(selectinload(OrderModel.items))
+            .where(OrderModel.id == order_id)
+            .with_for_update(of=OrderModel)
+        )
+        return result.scalars().first()
+
     async def get_by_checkout_session_id(self, checkout_session_id: UUID) -> OrderModel | None:
         result = await self._session.execute(
             select(OrderModel)

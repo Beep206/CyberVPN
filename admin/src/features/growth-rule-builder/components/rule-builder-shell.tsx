@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ChangeEvent, KeyboardEvent, ReactNode, RefObject } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -10,6 +10,7 @@ import {
   Download,
   FileUp,
   GitCompare,
+  History,
   ListTree,
   Play,
   Plus,
@@ -27,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { growthApi } from '@/lib/api/growth';
 import type {
   AdminGrowthRuleCompileResponse,
+  AdminGrowthRulePolicyDiffResponse,
   AdminGrowthRulePolicyVersionResponse,
   AdminGrowthRuleSimulateResponse,
 } from '@/lib/api/growth';
@@ -34,6 +36,8 @@ import { GrowthEmptyState } from '@/features/growth/components/growth-empty-stat
 import { GrowthPageShell } from '@/features/growth/components/growth-page-shell';
 import { GrowthStatusChip } from '@/features/growth/components/growth-status-chip';
 import { getErrorMessage } from '@/features/growth/lib/formatting';
+import { hasAdminPermission } from '@/shared/lib/admin-rbac';
+import { useAuthStore } from '@/stores/auth-store';
 import {
   DEFAULT_RULE_AST,
   DEFAULT_SIMULATION_CONTEXT,
@@ -66,6 +70,7 @@ import { cn } from '@/lib/utils';
 
 const DRAFT_STORAGE_KEY = 'admin:growth-rules:draft-json';
 const CONTEXT_STORAGE_KEY = 'admin:growth-rules:simulation-context-json';
+const POLICY_VERSIONS_QUERY_KEY = ['growth', 'rules', 'policy-versions'];
 
 type AutosaveState = 'idle' | 'dirty' | 'saved' | 'restored';
 
@@ -249,6 +254,12 @@ function isEditableKeyboardTarget(target: EventTarget | null): boolean {
 export function RuleBuilderShell() {
   const t = useTranslations('Growth');
   const locale = useLocale();
+  const queryClient = useQueryClient();
+  const role = useAuthStore((state) => state.user?.role);
+  const canEditRules = hasAdminPermission(role, 'growth.rules.edit');
+  const canValidateRules = hasAdminPermission(role, 'growth.rules.validate');
+  const canPublishRules = hasAdminPermission(role, 'growth.rules.publish');
+  const canApproveRules = hasAdminPermission(role, 'growth.rules.approve');
   const astEditorId = useId();
   const astErrorId = useId();
   const importFileInputId = useId();
@@ -286,6 +297,10 @@ export function RuleBuilderShell() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [publishReason, setPublishReason] = useState('growth_rule_publish_review');
   const [publishApproved, setPublishApproved] = useState(false);
+  const [policyActionIdInput, setPolicyActionIdInput] = useState('');
+  const [policyCompareIdInput, setPolicyCompareIdInput] = useState('');
+  const [policyActionReason, setPolicyActionReason] = useState('growth_rule_lifecycle_review');
+  const [policyDiff, setPolicyDiff] = useState<AdminGrowthRulePolicyDiffResponse | null>(null);
 
   const catalogQuery = useQuery({
     queryKey: ['growth', 'rules', 'catalog'],
@@ -294,6 +309,19 @@ export function RuleBuilderShell() {
       return response.data.catalog;
     },
     staleTime: 60_000,
+  });
+
+  const policyVersionsQuery = useQuery({
+    queryKey: POLICY_VERSIONS_QUERY_KEY,
+    queryFn: async () => {
+      const response = await growthApi.listGrowthRulePolicies({
+        policy_key: 'checkout_eligibility',
+        include_inactive: true,
+        limit: 8,
+      });
+      return response.data;
+    },
+    staleTime: 30_000,
   });
 
   const catalog = normalizeRuleCatalog(catalogQuery.data);
@@ -322,6 +350,17 @@ export function RuleBuilderShell() {
   const treeRows = parsedDraft.value ? collectRuleTreeRows(parsedDraft.value) : [];
   const actionRows = parsedDraft.value ? collectRuleActionRows(parsedDraft.value) : [];
   const selectedConditionId = selectedConditionPath ? rulePathToId(selectedConditionPath) : null;
+  const policyVersions = policyVersionsQuery.data?.items ?? [];
+  const newestPolicyVersion = policyVersion ?? policyVersions[0] ?? null;
+  const activePolicyVersionId = policyActionIdInput.trim() || newestPolicyVersion?.id || '';
+  const persistedSelectedPolicyVersion =
+    policyVersions.find((version) => version.id === activePolicyVersionId) ?? null;
+  const selectedPolicyVersion =
+    policyVersion?.id === activePolicyVersionId
+      ? policyVersion
+      : persistedSelectedPolicyVersion ?? newestPolicyVersion ?? null;
+  const defaultComparePolicyVersion = policyVersions.find((version) => version.id !== activePolicyVersionId);
+  const comparePolicyVersionId = policyCompareIdInput.trim() || defaultComparePolicyVersion?.id || '';
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -442,13 +481,117 @@ export function RuleBuilderShell() {
       setPolicyVersion(response);
       setServerError(null);
       setUiMessage(t('rules.feedback.policySubmitted'));
+      void queryClient.invalidateQueries({ queryKey: POLICY_VERSIONS_QUERY_KEY });
     },
     onError: (error) => {
       setServerError(getErrorMessage(error, t('rules.errors.policySubmitFailed')));
     },
   });
 
+  const approvePolicyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.approveGrowthRulePolicy(activePolicyVersionId, {
+        change_reason: policyActionReason,
+        effective_from: null,
+        effective_to: null,
+      });
+      return response.data;
+    },
+    onSuccess: (response) => {
+      setPolicyVersion(response);
+      setServerError(null);
+      setUiMessage(t('rules.feedback.policyApproved'));
+      void queryClient.invalidateQueries({ queryKey: POLICY_VERSIONS_QUERY_KEY });
+    },
+    onError: (error) => {
+      setServerError(getErrorMessage(error, t('rules.errors.policyActionFailed')));
+    },
+  });
+
+  const rejectPolicyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.rejectGrowthRulePolicy(activePolicyVersionId, {
+        change_reason: policyActionReason,
+        effective_from: null,
+        effective_to: null,
+      });
+      return response.data;
+    },
+    onSuccess: (response) => {
+      setPolicyVersion(response);
+      setServerError(null);
+      setUiMessage(t('rules.feedback.policyRejected'));
+      void queryClient.invalidateQueries({ queryKey: POLICY_VERSIONS_QUERY_KEY });
+    },
+    onError: (error) => {
+      setServerError(getErrorMessage(error, t('rules.errors.policyActionFailed')));
+    },
+  });
+
+  const publishPolicyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.publishGrowthRulePolicy(activePolicyVersionId, {
+        change_reason: policyActionReason,
+        effective_from: null,
+        effective_to: null,
+      });
+      return response.data;
+    },
+    onSuccess: (response) => {
+      setPolicyVersion(response);
+      setServerError(null);
+      setUiMessage(t('rules.feedback.policyPublished'));
+      void queryClient.invalidateQueries({ queryKey: POLICY_VERSIONS_QUERY_KEY });
+    },
+    onError: (error) => {
+      setServerError(getErrorMessage(error, t('rules.errors.policyActionFailed')));
+    },
+  });
+
+  const rollbackPolicyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.rollbackGrowthRulePolicy(activePolicyVersionId, {
+        change_reason: policyActionReason,
+        effective_from: null,
+      });
+      return response.data;
+    },
+    onSuccess: (response) => {
+      setPolicyVersion(response);
+      setServerError(null);
+      setUiMessage(t('rules.feedback.policyRolledBack'));
+      void queryClient.invalidateQueries({ queryKey: POLICY_VERSIONS_QUERY_KEY });
+    },
+    onError: (error) => {
+      setServerError(getErrorMessage(error, t('rules.errors.policyActionFailed')));
+    },
+  });
+
+  const diffPolicyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.diffGrowthRulePolicy(
+        activePolicyVersionId,
+        comparePolicyVersionId || undefined,
+      );
+      return response.data;
+    },
+    onSuccess: (response) => {
+      setPolicyDiff(response);
+      setServerError(null);
+      setUiMessage(t('rules.feedback.policyDiffLoaded'));
+    },
+    onError: (error) => {
+      setPolicyDiff(null);
+      setServerError(getErrorMessage(error, t('rules.errors.policyDiffFailed')));
+    },
+  });
+
   const pushDraft = (nextAst: JsonObject, messageKey: string) => {
+    if (!canEditRules) {
+      setServerError(t('rules.permission.readOnly'));
+      return;
+    }
+
     const nextJson = formatJson(nextAst);
     const nextHistory = [...history.slice(0, historyIndex + 1), nextJson];
     setHistory(nextHistory);
@@ -461,6 +604,16 @@ export function RuleBuilderShell() {
     setSimulationResult(null);
     setPolicyVersion(null);
     setPublishApproved(false);
+  };
+
+  const importDraftAst = (nextAst: JsonObject, messageKey: string) => {
+    if (!canEditRules) {
+      setServerError(t('rules.permission.readOnly'));
+      return;
+    }
+
+    pushDraft(nextAst, messageKey);
+    compileMutation.mutate(nextAst);
   };
 
   const getCurrentAst = (): JsonObject | null => {
@@ -583,7 +736,7 @@ export function RuleBuilderShell() {
       return;
     }
 
-    pushDraft(currentAst, 'rules.feedback.imported');
+    importDraftAst(currentAst, 'rules.feedback.imported');
   };
 
   const resetDraft = () => {
@@ -594,6 +747,11 @@ export function RuleBuilderShell() {
   };
 
   const undoDraft = () => {
+    if (!canEditRules) {
+      setServerError(t('rules.permission.readOnly'));
+      return;
+    }
+
     if (historyIndex === 0) {
       return;
     }
@@ -612,6 +770,11 @@ export function RuleBuilderShell() {
   };
 
   const redoDraft = () => {
+    if (!canEditRules) {
+      setServerError(t('rules.permission.readOnly'));
+      return;
+    }
+
     if (historyIndex >= history.length - 1) {
       return;
     }
@@ -644,13 +807,15 @@ export function RuleBuilderShell() {
     if (!file) {
       return;
     }
+    if (!canEditRules) {
+      setServerError(t('rules.permission.readOnly'));
+      return;
+    }
 
     try {
       const text = await file.text();
       const parsed = parseJsonObject(text);
-      pushDraft(parsed, 'rules.feedback.fileImported');
-      setCompiledRule(null);
-      setSimulationResult(null);
+      importDraftAst(parsed, 'rules.feedback.fileImported');
     } catch (error) {
       setServerError(t('rules.errors.importFailed', {
         detail: error instanceof Error ? error.message : String(error),
@@ -659,6 +824,11 @@ export function RuleBuilderShell() {
   };
 
   const compileDraft = () => {
+    if (!canValidateRules) {
+      setServerError(t('rules.permission.validateDenied'));
+      return;
+    }
+
     const currentAst = getCurrentAst();
     if (!currentAst) {
       return;
@@ -668,6 +838,11 @@ export function RuleBuilderShell() {
   };
 
   const simulateDraft = () => {
+    if (!canValidateRules) {
+      setServerError(t('rules.permission.validateDenied'));
+      return;
+    }
+
     const currentAst = getCurrentAst();
     if (!currentAst) {
       return;
@@ -682,6 +857,11 @@ export function RuleBuilderShell() {
   };
 
   const submitPolicyDraft = () => {
+    if (!canPublishRules) {
+      setServerError(t('rules.permission.publishDenied'));
+      return;
+    }
+
     const currentAst = getCurrentAst();
     const reason = publishReason.trim();
     if (!currentAst) {
@@ -697,6 +877,38 @@ export function RuleBuilderShell() {
     }
 
     submitPolicyMutation.mutate({ ast: currentAst, reason });
+  };
+
+  const approvePolicyVersion = () => {
+    if (!canApproveRules) {
+      setServerError(t('rules.permission.approveDenied'));
+      return;
+    }
+    approvePolicyMutation.mutate();
+  };
+
+  const rejectPolicyVersion = () => {
+    if (!canApproveRules) {
+      setServerError(t('rules.permission.approveDenied'));
+      return;
+    }
+    rejectPolicyMutation.mutate();
+  };
+
+  const publishPolicyVersion = () => {
+    if (!canPublishRules) {
+      setServerError(t('rules.permission.publishDenied'));
+      return;
+    }
+    publishPolicyMutation.mutate();
+  };
+
+  const rollbackPolicyVersion = () => {
+    if (!canPublishRules) {
+      setServerError(t('rules.permission.publishDenied'));
+      return;
+    }
+    rollbackPolicyMutation.mutate();
   };
 
   const selectCondition = (row: RuleTreeRow) => {
@@ -788,7 +1000,7 @@ export function RuleBuilderShell() {
             size="sm"
             magnetic={false}
             onClick={undoDraft}
-            disabled={historyIndex === 0}
+            disabled={!canEditRules || historyIndex === 0}
             aria-label={t('rules.actions.undo')}
             aria-keyshortcuts="Control+Z Meta+Z"
           >
@@ -801,7 +1013,7 @@ export function RuleBuilderShell() {
             size="sm"
             magnetic={false}
             onClick={redoDraft}
-            disabled={historyIndex >= history.length - 1}
+            disabled={!canEditRules || historyIndex >= history.length - 1}
             aria-label={t('rules.actions.redo')}
             aria-keyshortcuts="Control+Y Meta+Y Control+Shift+Z Meta+Shift+Z"
           >
@@ -813,7 +1025,7 @@ export function RuleBuilderShell() {
             size="sm"
             magnetic={false}
             onClick={compileDraft}
-            disabled={compileMutation.isPending}
+            disabled={!canValidateRules || compileMutation.isPending}
             aria-label={t('rules.actions.compile')}
             aria-keyshortcuts="Control+Enter Meta+Enter"
           >
@@ -825,7 +1037,7 @@ export function RuleBuilderShell() {
             size="sm"
             magnetic={false}
             onClick={simulateDraft}
-            disabled={simulateMutation.isPending}
+            disabled={!canValidateRules || simulateMutation.isPending}
             aria-label={t('rules.actions.simulate')}
             aria-keyshortcuts="Control+Shift+Enter Meta+Shift+Enter"
           >
@@ -867,7 +1079,7 @@ export function RuleBuilderShell() {
         {uiMessage}
       </div>
 
-      {serverError || parsedDraft.error || parsedContext.error || catalogQuery.error ? (
+      {serverError || parsedDraft.error || parsedContext.error || catalogQuery.error || policyVersionsQuery.error ? (
         <div
           role="alert"
           className="rounded-lg border border-neon-pink/30 bg-neon-pink/10 p-4 text-sm font-mono leading-6 text-neon-pink"
@@ -886,16 +1098,26 @@ export function RuleBuilderShell() {
                   ?? (parsedContext.error
                     ? t('rules.errors.contextInvalid', { detail: parsedContext.error })
                     : null)
-                  ?? getErrorMessage(catalogQuery.error, t('rules.errors.catalogFailed'))}
+                  ?? getErrorMessage(
+                    catalogQuery.error ?? policyVersionsQuery.error,
+                    catalogQuery.error
+                      ? t('rules.errors.catalogFailed')
+                      : t('rules.errors.policyListFailed'),
+                  )}
               </p>
             </div>
           </div>
         </div>
       ) : null}
 
+      {!canEditRules ? (
+        <RulePermissionNotice>{t('rules.permission.readOnly')}</RulePermissionNotice>
+      ) : null}
+
       <div className="grid gap-6 2xl:grid-cols-[minmax(17rem,0.85fr)_minmax(0,1.35fr)_minmax(20rem,1fr)]">
         <RulePalette
           t={t}
+          canEdit={canEditRules}
           catalog={catalog}
           isLoading={catalogQuery.isLoading}
           search={catalogSearch}
@@ -923,6 +1145,7 @@ export function RuleBuilderShell() {
         <section className="space-y-6">
           <RuleTreePanel
             t={t}
+            canEdit={canEditRules}
             rows={treeRows}
             actions={actionRows}
             selectedConditionId={selectedConditionId}
@@ -950,6 +1173,10 @@ export function RuleBuilderShell() {
             parseError={parsedDraft.error}
             autosaveState={autosaveState}
             onDraftChange={(value) => {
+              if (!canEditRules) {
+                setServerError(t('rules.permission.readOnly'));
+                return;
+              }
               setDraftJson(value);
               setAutosaveState('dirty');
               setCompiledRule(null);
@@ -961,12 +1188,14 @@ export function RuleBuilderShell() {
             onImportFile={importDraftFile}
             onExport={exportDraft}
             onReset={resetDraft}
+            canEdit={canEditRules}
           />
         </section>
 
         <section className="space-y-6">
           <RuleInspectorPanel
             t={t}
+            canEdit={canEditRules}
             catalog={catalog}
             selectedField={selectedField}
             selectedOperator={selectedOperator}
@@ -1005,6 +1234,32 @@ export function RuleBuilderShell() {
             onSubmit={submitPolicyDraft}
             isSubmitting={submitPolicyMutation.isPending}
             policyVersion={policyVersion}
+            canPublish={canPublishRules}
+          />
+          <PolicyLifecyclePanel
+            t={t}
+            policies={policyVersions}
+            isLoading={policyVersionsQuery.isLoading}
+            policyId={activePolicyVersionId}
+            comparePolicyId={comparePolicyVersionId}
+            reason={policyActionReason}
+            canApprove={canApproveRules}
+            canPublish={canPublishRules}
+            policyDiff={policyDiff}
+            selectedPolicy={selectedPolicyVersion}
+            onPolicyIdChange={setPolicyActionIdInput}
+            onComparePolicyIdChange={setPolicyCompareIdInput}
+            onReasonChange={setPolicyActionReason}
+            onApprove={approvePolicyVersion}
+            onReject={rejectPolicyVersion}
+            onPublish={publishPolicyVersion}
+            onRollback={rollbackPolicyVersion}
+            onDiff={() => diffPolicyMutation.mutate()}
+            isApprovePending={approvePolicyMutation.isPending}
+            isRejectPending={rejectPolicyMutation.isPending}
+            isPublishPending={publishPolicyMutation.isPending}
+            isRollbackPending={rollbackPolicyMutation.isPending}
+            isDiffPending={diffPolicyMutation.isPending}
           />
         </section>
       </div>
@@ -1018,12 +1273,17 @@ export function RuleBuilderShell() {
           contextError={parsedContext.error}
           simulationResult={simulationResult}
           onContextChange={(value) => {
+            if (!canValidateRules) {
+              setServerError(t('rules.permission.validateDenied'));
+              return;
+            }
             setContextJson(value);
             setAutosaveState('dirty');
             setSimulationResult(null);
           }}
           onSimulate={simulateDraft}
           isSimulating={simulateMutation.isPending}
+          canValidate={canValidateRules}
         />
         <VersionDiffPanel t={t} draftJson={draftJson} compiledRule={compiledRule} />
       </div>
@@ -1036,8 +1296,34 @@ interface TranslationFn {
   (key: string, values: Record<string, string | number>): string;
 }
 
+function RulePermissionNotice({ children }: { children: ReactNode }) {
+  return (
+    <div
+      role="note"
+      className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-4 text-xs font-mono leading-5 text-amber-100"
+    >
+      {children}
+    </div>
+  );
+}
+
+function policyTone(value: string | null | undefined) {
+  const normalizedValue = value?.toLowerCase();
+  if (normalizedValue === 'approved' || normalizedValue === 'active' || normalizedValue === 'published') {
+    return 'success' as const;
+  }
+  if (normalizedValue === 'pending_approval' || normalizedValue === 'draft') {
+    return 'warning' as const;
+  }
+  if (normalizedValue === 'rejected' || normalizedValue === 'inactive') {
+    return 'danger' as const;
+  }
+  return 'neutral' as const;
+}
+
 interface RulePaletteProps {
   t: TranslationFn;
+  canEdit: boolean;
   catalog: GrowthRuleCatalog;
   isLoading: boolean;
   search: string;
@@ -1054,6 +1340,7 @@ interface RulePaletteProps {
 
 function RulePalette({
   t,
+  canEdit,
   catalog,
   isLoading,
   search,
@@ -1108,6 +1395,7 @@ function RulePalette({
           <button
             key={field}
             type="button"
+            disabled={!canEdit}
             onClick={() => onSelectField(field, spec)}
             className={cn(
               'w-full rounded-lg border p-3 text-left transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan',
@@ -1130,6 +1418,7 @@ function RulePalette({
           <button
             key={operator}
             type="button"
+            disabled={!canEdit}
             onClick={() => onSelectOperator(operator)}
             className={cn(
               'rounded-lg border px-3 py-2 text-left font-mono text-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan',
@@ -1152,6 +1441,7 @@ function RulePalette({
           <button
             key={action}
             type="button"
+            disabled={!canEdit}
             onClick={() => onAddAction(action)}
             className="w-full rounded-lg border border-grid-line/20 bg-terminal-bg/50 p-3 text-left transition-colors hover:border-matrix-green/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-matrix-green"
           >
@@ -1190,6 +1480,7 @@ function PaletteGroup({
 
 interface RuleTreePanelProps {
   t: TranslationFn;
+  canEdit: boolean;
   rows: RuleTreeRow[];
   actions: ReturnType<typeof collectRuleActionRows>;
   selectedConditionId: string | null;
@@ -1206,6 +1497,7 @@ interface RuleTreePanelProps {
 
 function RuleTreePanel({
   t,
+  canEdit,
   rows,
   actions,
   selectedConditionId,
@@ -1222,6 +1514,10 @@ function RuleTreePanel({
     event: KeyboardEvent<HTMLButtonElement>,
     row: Extract<RuleTreeRow, { type: 'condition' }>,
   ) {
+    if (!canEdit) {
+      return;
+    }
+
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       onRemoveCondition(row);
@@ -1263,6 +1559,7 @@ function RuleTreePanel({
             variant="outline"
             size="sm"
             magnetic={false}
+            disabled={!canEdit}
             onClick={() => onSetRootOperator('all')}
           >
             {t('rules.tree.all')}
@@ -1272,6 +1569,7 @@ function RuleTreePanel({
             variant="outline"
             size="sm"
             magnetic={false}
+            disabled={!canEdit}
             onClick={() => onSetRootOperator('any')}
           >
             {t('rules.tree.any')}
@@ -1367,6 +1665,7 @@ function RuleTreePanel({
                   variant="ghost"
                   size="sm"
                   magnetic={false}
+                  disabled={!canEdit}
                   onClick={() => onRemoveAction(action.index)}
                   aria-label={t('rules.actionsPanel.remove')}
                 >
@@ -1383,6 +1682,7 @@ function RuleTreePanel({
 
 interface JsonEditorPanelProps {
   t: TranslationFn;
+  canEdit: boolean;
   astEditorId: string;
   astErrorId: string;
   importFileInputId: string;
@@ -1399,6 +1699,7 @@ interface JsonEditorPanelProps {
 
 function JsonEditorPanel({
   t,
+  canEdit,
   astEditorId,
   astErrorId,
   importFileInputId,
@@ -1435,6 +1736,7 @@ function JsonEditorPanel({
       <textarea
         id={astEditorId}
         value={draftJson}
+        disabled={!canEdit}
         onChange={(event) => onDraftChange(event.target.value)}
         aria-invalid={Boolean(parseError)}
         aria-describedby={parseError ? astErrorId : undefined}
@@ -1448,7 +1750,7 @@ function JsonEditorPanel({
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button type="button" size="sm" magnetic={false} onClick={onCommit}>
+        <Button type="button" size="sm" magnetic={false} onClick={onCommit} disabled={!canEdit}>
           <Save className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('rules.actions.import')}
         </Button>
@@ -1459,6 +1761,7 @@ function JsonEditorPanel({
           accept="application/json,.json"
           className="sr-only"
           aria-label={t('rules.actions.importFile')}
+          disabled={!canEdit}
           onChange={onImportFile}
         />
         <Button
@@ -1466,6 +1769,7 @@ function JsonEditorPanel({
           variant="outline"
           size="sm"
           magnetic={false}
+          disabled={!canEdit}
           onClick={() => importFileInputRef.current?.click()}
         >
           <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -1482,7 +1786,7 @@ function JsonEditorPanel({
           <Download className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('rules.actions.export')}
         </Button>
-        <Button type="button" variant="outline" size="sm" magnetic={false} onClick={onReset}>
+        <Button type="button" variant="outline" size="sm" magnetic={false} onClick={onReset} disabled={!canEdit}>
           <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('rules.actions.reset')}
         </Button>
@@ -1493,6 +1797,7 @@ function JsonEditorPanel({
 
 interface RuleInspectorPanelProps {
   t: TranslationFn;
+  canEdit: boolean;
   catalog: GrowthRuleCatalog;
   selectedField: string;
   selectedOperator: string;
@@ -1510,6 +1815,7 @@ interface RuleInspectorPanelProps {
 
 function RuleInspectorPanel({
   t,
+  canEdit,
   catalog,
   selectedField,
   selectedOperator,
@@ -1538,6 +1844,7 @@ function RuleInspectorPanel({
           {t('rules.inspector.field')}
           <select
             value={selectedField}
+            disabled={!canEdit}
             onChange={(event) => onFieldChange(event.target.value)}
             className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
           >
@@ -1553,6 +1860,7 @@ function RuleInspectorPanel({
           {t('rules.inspector.operator')}
           <select
             value={selectedOperator}
+            disabled={!canEdit}
             onChange={(event) => onOperatorChange(event.target.value)}
             className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
           >
@@ -1568,6 +1876,7 @@ function RuleInspectorPanel({
           {t('rules.inspector.value')}
           <input
             value={conditionValue}
+            disabled={!canEdit}
             onChange={(event) => onValueChange(event.target.value)}
             className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
           />
@@ -1575,7 +1884,7 @@ function RuleInspectorPanel({
       </div>
 
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
-        <Button type="button" magnetic={false} onClick={onAddCondition}>
+        <Button type="button" magnetic={false} onClick={onAddCondition} disabled={!canEdit}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('rules.inspector.addCondition')}
         </Button>
@@ -1584,7 +1893,7 @@ function RuleInspectorPanel({
           variant="outline"
           magnetic={false}
           onClick={onUpdateSelected}
-          disabled={!hasSelectedCondition}
+          disabled={!canEdit || !hasSelectedCondition}
         >
           <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('rules.inspector.updateSelected')}
@@ -1594,7 +1903,7 @@ function RuleInspectorPanel({
           variant="outline"
           magnetic={false}
           onClick={onDuplicateSelected}
-          disabled={!hasSelectedCondition}
+          disabled={!canEdit || !hasSelectedCondition}
         >
           <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('rules.inspector.duplicateSelected')}
@@ -1604,7 +1913,7 @@ function RuleInspectorPanel({
           variant="outline"
           magnetic={false}
           onClick={onRemoveSelected}
-          disabled={!hasSelectedCondition}
+          disabled={!canEdit || !hasSelectedCondition}
         >
           <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('rules.inspector.removeSelected')}
@@ -1653,6 +1962,7 @@ function PublishReadinessPanel({
   policyVersion,
   reason,
   approved,
+  canPublish,
   isSubmitting,
   onReasonChange,
   onApprovedChange,
@@ -1663,12 +1973,13 @@ function PublishReadinessPanel({
   policyVersion: AdminGrowthRulePolicyVersionResponse | null;
   reason: string;
   approved: boolean;
+  canPublish: boolean;
   isSubmitting: boolean;
   onReasonChange: (value: string) => void;
   onApprovedChange: (value: boolean) => void;
   onSubmit: () => void;
 }) {
-  const isReadyForBackend = Boolean(compiledRule && reason.trim() && approved);
+  const isReadyForBackend = Boolean(compiledRule && reason.trim() && approved && canPublish);
   const checklist = [
     {
       label: t('rules.publish.checklist.compiled'),
@@ -1715,6 +2026,7 @@ function PublishReadinessPanel({
           {t('rules.publish.reasonCode')}
           <input
             value={reason}
+            disabled={!canPublish}
             onChange={(event) => onReasonChange(event.target.value)}
             className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
           />
@@ -1723,6 +2035,7 @@ function PublishReadinessPanel({
           <input
             type="checkbox"
             checked={approved}
+            disabled={!canPublish}
             onChange={(event) => onApprovedChange(event.target.checked)}
             className="mt-1 h-4 w-4 rounded border-grid-line/40 bg-terminal-bg text-neon-cyan focus:ring-neon-cyan"
           />
@@ -1772,8 +2085,265 @@ function PublishReadinessPanel({
   );
 }
 
+function PolicyLifecyclePanel({
+  t,
+  policies,
+  selectedPolicy,
+  isLoading,
+  policyId,
+  comparePolicyId,
+  reason,
+  canApprove,
+  canPublish,
+  policyDiff,
+  isApprovePending,
+  isRejectPending,
+  isPublishPending,
+  isRollbackPending,
+  isDiffPending,
+  onPolicyIdChange,
+  onComparePolicyIdChange,
+  onReasonChange,
+  onApprove,
+  onReject,
+  onPublish,
+  onRollback,
+  onDiff,
+}: {
+  t: TranslationFn;
+  policies: AdminGrowthRulePolicyVersionResponse[];
+  selectedPolicy: AdminGrowthRulePolicyVersionResponse | null;
+  isLoading: boolean;
+  policyId: string;
+  comparePolicyId: string;
+  reason: string;
+  canApprove: boolean;
+  canPublish: boolean;
+  policyDiff: AdminGrowthRulePolicyDiffResponse | null;
+  isApprovePending: boolean;
+  isRejectPending: boolean;
+  isPublishPending: boolean;
+  isRollbackPending: boolean;
+  isDiffPending: boolean;
+  onPolicyIdChange: (value: string) => void;
+  onComparePolicyIdChange: (value: string) => void;
+  onReasonChange: (value: string) => void;
+  onApprove: () => void;
+  onReject: () => void;
+  onPublish: () => void;
+  onRollback: () => void;
+  onDiff: () => void;
+}) {
+  const reasonPresent = Boolean(reason.trim());
+  const selectedApprovalState = selectedPolicy?.approval_state.toLowerCase();
+  const canRunApprove = Boolean(canApprove && policyId && reasonPresent);
+  const canRunPublish = Boolean(
+    canPublish && policyId && reasonPresent && selectedApprovalState === 'approved',
+  );
+  const canRunRollback = Boolean(canPublish && policyId && reasonPresent);
+
+  return (
+    <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+      <div className="flex items-start gap-3">
+        <History className="mt-0.5 h-5 w-5 text-neon-cyan" aria-hidden="true" />
+        <div>
+          <h2 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+            {t('rules.lifecycle.title')}
+          </h2>
+          <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+            {t('rules.lifecycle.description')}
+          </p>
+        </div>
+      </div>
+
+      {!canApprove && !canPublish ? (
+        <div className="mt-5">
+          <RulePermissionNotice>{t('rules.permission.auditReadOnly')}</RulePermissionNotice>
+        </div>
+      ) : null}
+
+      <div className="mt-5 grid gap-4">
+        <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+          {t('rules.lifecycle.policyId')}
+          <input
+            value={policyId}
+            onChange={(event) => onPolicyIdChange(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+          />
+        </label>
+        <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+          {t('rules.lifecycle.comparePolicyId')}
+          <input
+            value={comparePolicyId}
+            onChange={(event) => onComparePolicyIdChange(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+          />
+        </label>
+        <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+          {t('rules.lifecycle.reasonCode')}
+          <input
+            value={reason}
+            disabled={!canApprove && !canPublish}
+            onChange={(event) => onReasonChange(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+          />
+        </label>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          magnetic={false}
+          disabled={!policyId || isDiffPending}
+          onClick={onDiff}
+        >
+          <GitCompare className="mr-2 h-4 w-4" aria-hidden="true" />
+          {isDiffPending ? t('rules.lifecycle.loadingDiff') : t('rules.lifecycle.loadDiff')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          magnetic={false}
+          disabled={!canRunApprove || isApprovePending}
+          onClick={onApprove}
+        >
+          {isApprovePending ? t('rules.lifecycle.running') : t('rules.lifecycle.approve')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          magnetic={false}
+          disabled={!canRunApprove || isRejectPending}
+          onClick={onReject}
+        >
+          {isRejectPending ? t('rules.lifecycle.running') : t('rules.lifecycle.reject')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          magnetic={false}
+          disabled={!canRunPublish || isPublishPending}
+          onClick={onPublish}
+        >
+          {isPublishPending ? t('rules.lifecycle.running') : t('rules.lifecycle.publish')}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          magnetic={false}
+          disabled={!canRunRollback || isRollbackPending}
+          onClick={onRollback}
+        >
+          {isRollbackPending ? t('rules.lifecycle.running') : t('rules.lifecycle.rollback')}
+        </Button>
+      </div>
+
+      <section className="mt-6" aria-label={t('rules.lifecycle.auditTitle')}>
+        <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
+          {t('rules.lifecycle.auditTitle')}
+        </h3>
+        {isLoading ? (
+          <p className="mt-3 text-xs font-mono text-muted-foreground">
+            {t('rules.lifecycle.loadingPolicies')}
+          </p>
+        ) : policies.length ? (
+          <div className="mt-3 space-y-3">
+            {policies.map((policy) => (
+              <div
+                key={policy.id}
+                className="rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <GrowthStatusChip
+                    label={`#${policy.version_number}`}
+                    tone="info"
+                  />
+                  <GrowthStatusChip
+                    label={policy.approval_state}
+                    tone={policyTone(policy.approval_state)}
+                  />
+                  <GrowthStatusChip
+                    label={policy.version_status}
+                    tone={policyTone(policy.version_status)}
+                  />
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <InfoLine label={t('rules.lifecycle.auditFields.id')} value={policy.id} />
+                  <InfoLine
+                    label={t('rules.lifecycle.auditFields.checksum')}
+                    value={policy.compiled_checksum ?? t('common.missing')}
+                  />
+                  <InfoLine
+                    label={t('rules.lifecycle.auditFields.createdBy')}
+                    value={policy.created_by_admin_user_id ?? t('common.missing')}
+                  />
+                  <InfoLine
+                    label={t('rules.lifecycle.auditFields.approvedBy')}
+                    value={policy.approved_by_admin_user_id ?? t('common.missing')}
+                  />
+                  <InfoLine
+                    label={t('rules.lifecycle.auditFields.approvedAt')}
+                    value={policy.approved_at ?? t('common.missing')}
+                  />
+                  <InfoLine
+                    label={t('rules.lifecycle.auditFields.effectiveFrom')}
+                    value={policy.effective_from}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3">
+            <GrowthEmptyState label={t('rules.lifecycle.emptyPolicies')} />
+          </div>
+        )}
+      </section>
+
+      <section className="mt-6" aria-label={t('rules.lifecycle.backendDiffTitle')}>
+        <h3 className="text-xs font-display uppercase tracking-[0.2em] text-white">
+          {t('rules.lifecycle.backendDiffTitle')}
+        </h3>
+        {policyDiff ? (
+          <div className="mt-3 rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <GrowthStatusChip
+                label={policyDiff.changed ? t('rules.lifecycle.diffChanged') : t('rules.lifecycle.diffUnchanged')}
+                tone={policyDiff.changed ? 'warning' : 'success'}
+              />
+              <GrowthStatusChip
+                label={policyDiff.policy_version_id}
+                tone="neutral"
+              />
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <InfoLine
+                label={t('rules.lifecycle.auditFields.currentChecksum')}
+                value={policyDiff.current_checksum ?? t('common.missing')}
+              />
+              <InfoLine
+                label={t('rules.lifecycle.auditFields.compareChecksum')}
+                value={policyDiff.compare_checksum ?? t('common.missing')}
+              />
+            </div>
+            <pre className="mt-4 max-h-44 overflow-auto whitespace-pre-wrap break-words text-xs text-foreground">
+              {stringifyUnknown(policyDiff.changed_fields)}
+            </pre>
+          </div>
+        ) : (
+          <div className="mt-3">
+            <GrowthEmptyState label={t('rules.lifecycle.emptyDiff')} />
+          </div>
+        )}
+      </section>
+    </article>
+  );
+}
+
 interface SimulatorPanelProps {
   t: TranslationFn;
+  canValidate: boolean;
   contextEditorId: string;
   contextErrorId: string;
   contextJson: string;
@@ -1786,6 +2356,7 @@ interface SimulatorPanelProps {
 
 function SimulatorPanel({
   t,
+  canValidate,
   contextEditorId,
   contextErrorId,
   contextJson,
@@ -1806,7 +2377,13 @@ function SimulatorPanel({
             {t('rules.simulator.description')}
           </p>
         </div>
-        <Button type="button" size="sm" magnetic={false} onClick={onSimulate} disabled={isSimulating}>
+        <Button
+          type="button"
+          size="sm"
+          magnetic={false}
+          onClick={onSimulate}
+          disabled={!canValidate || isSimulating}
+        >
           <Play className="mr-2 h-4 w-4" aria-hidden="true" />
           {isSimulating ? t('rules.actions.simulating') : t('rules.actions.simulate')}
         </Button>
@@ -1821,6 +2398,7 @@ function SimulatorPanel({
       <textarea
         id={contextEditorId}
         value={contextJson}
+        disabled={!canValidate}
         onChange={(event) => onContextChange(event.target.value)}
         aria-invalid={Boolean(contextError)}
         aria-describedby={contextError ? contextErrorId : undefined}

@@ -143,6 +143,7 @@ class Settings(BaseSettings):
     telegram_oidc_allowed_audience: str = ""
     telegram_oidc_clock_skew_seconds: int = 60
     telegram_bot_internal_secret: SecretStr = SecretStr("")
+    backend_internal_secret: SecretStr = SecretStr("")
     frontend_observability_internal_secret: SecretStr = SecretStr("")
     payment_settlement_worker_enabled: bool = True
     payment_settlement_worker_secret: SecretStr = SecretStr("")
@@ -583,6 +584,54 @@ class Settings(BaseSettings):
         telegram_secret = self.telegram_bot_internal_secret.get_secret_value().strip()
         if telegram_secret and hmac.compare_digest(worker_secret, telegram_secret):
             raise ValueError("PAYMENT_SETTLEMENT_WORKER_SECRET must differ from TELEGRAM_BOT_INTERNAL_SECRET.")
+
+        backend_secret = self.backend_internal_secret.get_secret_value().strip()
+        if backend_secret and hmac.compare_digest(worker_secret, backend_secret):
+            raise ValueError("PAYMENT_SETTLEMENT_WORKER_SECRET must differ from BACKEND_INTERNAL_SECRET.")
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_telegram_bot_internal_secret(self) -> Self:
+        if self.environment.lower() != "production":
+            return self
+
+        telegram_secret = self.telegram_bot_internal_secret.get_secret_value().strip()
+        if not telegram_secret:
+            return self
+        if len(telegram_secret) < 16:
+            raise ValueError("TELEGRAM_BOT_INTERNAL_SECRET must be a real internal credential in production.")
+
+        telegram_secret_lower = telegram_secret.lower()
+        for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS:
+            if marker in telegram_secret_lower:
+                raise ValueError("TELEGRAM_BOT_INTERNAL_SECRET must not be a placeholder/test value in production.")
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_backend_internal_secret(self) -> Self:
+        if self.environment.lower() != "production":
+            return self
+
+        backend_secret = self.backend_internal_secret.get_secret_value().strip()
+        if not backend_secret:
+            return self
+        if len(backend_secret) < 16:
+            raise ValueError("BACKEND_INTERNAL_SECRET must be a real internal credential in production.")
+
+        backend_secret_lower = backend_secret.lower()
+        for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS:
+            if marker in backend_secret_lower:
+                raise ValueError("BACKEND_INTERNAL_SECRET must not be a placeholder/test value in production.")
+
+        telegram_secret = self.telegram_bot_internal_secret.get_secret_value().strip()
+        if telegram_secret and hmac.compare_digest(backend_secret, telegram_secret):
+            raise ValueError("BACKEND_INTERNAL_SECRET must differ from TELEGRAM_BOT_INTERNAL_SECRET.")
+
+        worker_secret = self.payment_settlement_worker_secret.get_secret_value().strip()
+        if worker_secret and hmac.compare_digest(backend_secret, worker_secret):
+            raise ValueError("BACKEND_INTERNAL_SECRET must differ from PAYMENT_SETTLEMENT_WORKER_SECRET.")
 
         return self
 

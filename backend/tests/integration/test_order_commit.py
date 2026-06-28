@@ -1699,6 +1699,7 @@ async def test_zero_gateway_payment_attempt_fulfills_issue_invites_benefit(
 
                 assert fulfillment.status == "completed"
                 assert fulfillment.payment_id == payment.id
+                assert fulfillment.idempotency_key.startswith("growth-benefit:")
                 assert fulfillment.config_snapshot["count"] == 2
                 assert fulfillment.result_payload["invite_batch_id"] == str(batch.id)
                 assert fulfillment.result_payload["issued_count"] == 2
@@ -1712,6 +1713,9 @@ async def test_zero_gateway_payment_attempt_fulfills_issue_invites_benefit(
                 assert {invite.source_payment_id for invite in invite_codes} == {payment.id}
                 assert all(invite.code_hash and len(invite.code_hash) == 64 for invite in invite_codes)
                 assert payment.growth_snapshot["benefit_fulfillments"][0]["fulfillment_id"] == str(fulfillment.id)
+                assert payment.growth_snapshot["benefit_fulfillments"][0]["idempotency_key_present"] is True
+                assert payment.growth_snapshot["benefit_fulfillments"][0]["idempotency_key_hash"].startswith("sha256:")
+                assert "idempotency_key" not in payment.growth_snapshot["benefit_fulfillments"][0]
                 assert outbox_event.aggregate_id == str(fulfillment.id)
                 assert outbox_event.event_payload["result_payload"]["invite_batch_id"] == str(batch.id)
                 persisted_payload = str(
@@ -1722,6 +1726,7 @@ async def test_zero_gateway_payment_attempt_fulfills_issue_invites_benefit(
                     }
                 )
                 assert promo_code not in persisted_payload
+                assert fulfillment.idempotency_key not in persisted_payload
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()

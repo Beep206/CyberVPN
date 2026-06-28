@@ -407,6 +407,7 @@ class GrowthCodeRejectReason(StrEnum):
     CODE_CONFLICTS_WITH_PARTNER_CODE = "code_conflicts_with_partner_code"
     CODE_CONFLICTS_WITH_PARTNER_BINDING = "code_conflicts_with_partner_binding"
     CODE_CONFLICTS_WITH_PROMO = "code_conflicts_with_promo"
+    CODE_NAMESPACE_AMBIGUOUS = "code_namespace_ambiguous"
     CODE_WRONG_CONTEXT = "code_wrong_context"
     CODE_REQUIRES_AUTH = "code_requires_auth"
     CODE_BLOCKED_BY_RISK = "code_blocked_by_risk"

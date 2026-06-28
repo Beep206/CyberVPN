@@ -22,6 +22,7 @@ pytestmark = [pytest.mark.integration]
 
 PREVIOUS_REVISION = "20260626_onboard_idem"
 REGISTRATION_ACCESS_IDEMPOTENCY_REVISION = "20260626_reg_access_idem"
+CURRENT_HEAD_REVISION = "20260627_growth_v62_db"
 
 
 @pytest.mark.asyncio
@@ -66,7 +67,7 @@ async def test_postgres_registration_access_idempotency_migration_scrubs_raw_val
             raw_row_id=raw_row_id,
             hashed_row_id=hashed_row_id,
             expected_raw=expected_raw,
-            expected_revision=REGISTRATION_ACCESS_IDEMPOTENCY_REVISION,
+            expected_revision=CURRENT_HEAD_REVISION,
         )
 
         await asyncio.to_thread(_run_alembic, url, "downgrade", PREVIOUS_REVISION)
@@ -84,7 +85,7 @@ async def test_postgres_registration_access_idempotency_migration_scrubs_raw_val
             raw_row_id=raw_row_id,
             hashed_row_id=hashed_row_id,
             expected_raw=expected_raw,
-            expected_revision=REGISTRATION_ACCESS_IDEMPOTENCY_REVISION,
+            expected_revision=CURRENT_HEAD_REVISION,
         )
     finally:
         await _drop_database(database_name)

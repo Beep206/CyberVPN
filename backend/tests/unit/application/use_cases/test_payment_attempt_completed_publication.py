@@ -53,7 +53,7 @@ async def test_completed_order_payment_attempt_publishes_payment_completed_after
         status=PaymentAttemptStatus.SUCCEEDED.value,
     )
     quote_result = SimpleNamespace(duration_days=30)
-    append_event = AsyncMock(return_value=SimpleNamespace(id=uuid4()))
+    finalize_execute = AsyncMock(return_value=[])
 
     class _CommitCheckout:
         def __init__(self, _session, _crypto_client) -> None:
@@ -63,12 +63,21 @@ async def test_completed_order_payment_attempt_publishes_payment_completed_after
             assert kwargs["publish_completed_payment_event"] is False
             return SimpleNamespace(payment=payment, status="completed", invoice=None)
 
+    class _Finalizer:
+        def __init__(self, _session) -> None:
+            pass
+
+        async def execute(self, **kwargs):
+            order.settlement_status = "paid"
+            return await finalize_execute(**kwargs)
+
     monkeypatch.setattr(
         create_attempt_module,
         "build_checkout_result_from_order",
         lambda _order: quote_result,
     )
     monkeypatch.setattr(create_attempt_module, "CommitCheckoutUseCase", _CommitCheckout)
+    monkeypatch.setattr(create_attempt_module, "FinalizeCompletedPaymentUseCase", _Finalizer)
 
     use_case = CreatePaymentAttemptUseCase.__new__(CreatePaymentAttemptUseCase)
     use_case._session = SimpleNamespace(commit=AsyncMock())
@@ -81,7 +90,6 @@ async def test_completed_order_payment_attempt_publishes_payment_completed_after
         create=AsyncMock(return_value=created_attempt),
         get_by_id=AsyncMock(return_value=created_attempt),
     )
-    use_case._outbox = SimpleNamespace(append_event=append_event)
 
     result = await use_case.execute(
         order_id=order_id,
@@ -93,12 +101,11 @@ async def test_completed_order_payment_attempt_publishes_payment_completed_after
     assert result.payment_attempt is created_attempt
     assert result.created is True
     assert order.settlement_status == "paid"
-    append_event.assert_awaited_once()
-    append_kwargs = append_event.await_args.kwargs
-    assert append_kwargs["event_name"] == "payment.completed"
-    assert append_kwargs["event_key"] == f"payment.completed:{payment_id}"
-    assert append_kwargs["event_payload"]["payment_id"] == str(payment_id)
-    assert append_kwargs["event_payload"]["payment_attempt_id"] == str(attempt_id)
-    assert append_kwargs["event_payload"]["order_id"] == str(order_id)
-    assert append_kwargs["source_context"]["source"] == "zero_gateway_order_payment_attempt"
+    finalize_execute.assert_awaited_once()
+    finalize_kwargs = finalize_execute.await_args.kwargs
+    assert finalize_kwargs["order"] is order
+    assert finalize_kwargs["payment"] is payment
+    assert finalize_kwargs["payment_attempt"] is created_attempt
+    assert finalize_kwargs["quote_snapshot"] == {"plan_name": "Wallet Plan", "duration_days": 30}
+    assert finalize_kwargs["source"] == "completed_order_payment_attempt"
     use_case._session.commit.assert_awaited_once()

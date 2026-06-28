@@ -30,9 +30,11 @@ import {
 import {
   GrowthCodeBasket,
   createEmptyGrowthCodeBasketSummary,
+  type GrowthCodeBasketHandle,
   type GrowthCodeBasketPrimarySelection,
   type GrowthCodeBasketSummary,
 } from '@/features/customer-growth-code-basket/components/GrowthCodeBasket';
+import { extractCheckoutCodeSetRejection } from '@/features/customer-growth-code-basket/lib/code-set-rejection';
 import { buildGrowthCodeBasketCopy } from '@/features/customer-growth-code-basket/lib/copy';
 import {
   areCheckoutCodeDiscountsEnabled,
@@ -107,7 +109,11 @@ function getPublicCatalogAmount(plan: SubscriptionPlan): number {
   return Number.isFinite(amount) ? amount : plan.price_usd;
 }
 
-function getQuoteErrorMessage(err: unknown, fallback: string) {
+function getQuoteErrorMessage(err: unknown, fallback: string, codeSetRejectedFallback: string) {
+  if (extractCheckoutCodeSetRejection(err)) {
+    return codeSetRejectedFallback;
+  }
+
   if (err instanceof AxiosError) {
     const detail = err.response?.data?.detail;
     return detail || fallback;
@@ -140,8 +146,11 @@ export function PurchaseConfirmModal({
     useState<PrivateOfferSelection | null>(null);
   const [successMessage, setSuccessMessage] = useState(t('checkoutQuote.paymentPageOpened'));
   const quoteRequestId = useRef(0);
+  const growthCodeBasketRef = useRef<GrowthCodeBasketHandle>(null);
   const privateOfferCopy = useMemo(() => buildPrivateOfferUnlockCopy(t), [t]);
   const growthCodeBasketCopy = useMemo(() => buildGrowthCodeBasketCopy(t), [t]);
+  const checkoutQuoteCodeSetRejected = t('checkoutQuote.codeSetRejected');
+  const privateOfferQuoteError = t('privateOffer.quoteError');
 
   const handleClose = () => {
     setStep('confirm');
@@ -191,15 +200,23 @@ export function PurchaseConfirmModal({
       }
     } catch (err) {
       if (requestId === quoteRequestId.current) {
+        const codeSetRejection = extractCheckoutCodeSetRejection(err);
+        if (codeSetRejection) {
+          growthCodeBasketRef.current?.applyServerApplications(codeSetRejection.applications);
+        }
         setQuoteSession(null);
-        setError(getQuoteErrorMessage(err, fallbackError));
+        setError(getQuoteErrorMessage(
+          err,
+          fallbackError,
+          checkoutQuoteCodeSetRejected,
+        ));
       }
     } finally {
       if (requestId === quoteRequestId.current) {
         setQuoteLoading(false);
       }
     }
-  }, [plan]);
+  }, [checkoutQuoteCodeSetRejected, plan]);
 
   useEffect(() => {
     const activePlan = plan;
@@ -232,7 +249,11 @@ export function PurchaseConfirmModal({
         }
       } catch (err) {
         if (!isCancelled) {
-          setError(getQuoteErrorMessage(err, checkoutQuoteLoadError));
+          setError(getQuoteErrorMessage(
+            err,
+            checkoutQuoteLoadError,
+            checkoutQuoteCodeSetRejected,
+          ));
         }
       } finally {
         if (!isCancelled) {
@@ -246,7 +267,7 @@ export function PurchaseConfirmModal({
     return () => {
       isCancelled = true;
     };
-  }, [checkoutQuoteLoadError, isOpen, plan]);
+  }, [checkoutQuoteCodeSetRejected, checkoutQuoteLoadError, isOpen, plan]);
 
   useEffect(() => {
     if (!quoteSession) {
@@ -291,7 +312,15 @@ export function PurchaseConfirmModal({
       setQuoteSession(response.data);
       setQuoteExpired(false);
     } catch (err) {
-      setError(getQuoteErrorMessage(err, t('checkoutQuote.refreshError')));
+      const codeSetRejection = extractCheckoutCodeSetRejection(err);
+      if (codeSetRejection) {
+        growthCodeBasketRef.current?.applyServerApplications(codeSetRejection.applications);
+      }
+      setError(getQuoteErrorMessage(
+        err,
+        t('checkoutQuote.refreshError'),
+        checkoutQuoteCodeSetRejected,
+      ));
     } finally {
       setQuoteLoading(false);
     }
@@ -313,9 +342,9 @@ export function PurchaseConfirmModal({
     await requestQuoteSession({
       codeInputs: appliedCodeInputs,
       privateOffer: selection,
-      fallbackError: t('privateOffer.quoteError'),
+      fallbackError: privateOfferQuoteError,
     });
-  }, [appliedCodeInputs, plan, privateOfferSelection, requestQuoteSession, t]);
+  }, [appliedCodeInputs, plan, privateOfferQuoteError, privateOfferSelection, requestQuoteSession]);
 
   const handleGrowthCodeBasketSelectionChange = useCallback((
     primary: GrowthCodeBasketPrimarySelection | null,
@@ -327,9 +356,9 @@ export function PurchaseConfirmModal({
       return;
     }
 
-    const nextCodes = summary.isDegraded ? [] : summary.acceptedCodes;
+    const nextCodes = summary.acceptedCodes;
     const nextCode = nextCodes[0] ?? null;
-    const nextCodeType = summary.isDegraded ? null : primary?.codeType ?? null;
+    const nextCodeType = primary?.codeType ?? null;
     setAppliedCodeInput(nextCode);
     setAppliedCodeInputs(nextCodes);
     setAppliedCodeType(nextCodeType);
@@ -415,6 +444,14 @@ export function PurchaseConfirmModal({
         handleClose();
       }, 2200);
     } catch (err) {
+      const codeSetRejection = extractCheckoutCodeSetRejection(err);
+      if (codeSetRejection) {
+        growthCodeBasketRef.current?.applyServerApplications(codeSetRejection.applications);
+        setStep('confirm');
+        setError(checkoutQuoteCodeSetRejected);
+        return;
+      }
+
       setStep('error');
       if (err instanceof AxiosError) {
         const detail = err.response?.data?.detail;
@@ -567,6 +604,7 @@ export function PurchaseConfirmModal({
 
           {showPromoControls ? (
             <GrowthCodeBasket
+              ref={growthCodeBasketRef}
               copy={growthCodeBasketCopy}
               context={{
                 storefrontKey: OFFICIAL_WEB_STOREFRONT_KEY,
@@ -586,6 +624,7 @@ export function PurchaseConfirmModal({
                 privateOfferSelection?.privateCatalogGrantId ?? 'public',
               ].join(':')}
               disabled={quoteLoading}
+              slotIdPrefix="web-growth-code"
               onSelectionChange={handleGrowthCodeBasketSelectionChange}
               variant="web"
             />

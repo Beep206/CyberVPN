@@ -9,15 +9,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.dto.payment_dto import InvoiceResponseDTO
-from src.application.events import EventOutboxService
 from src.application.use_cases.growth_code_sets.snapshots import read_growth_checkout_v3_snapshot
 from src.application.use_cases.growth_risk.runtime_guard import evaluate_growth_runtime_risk
 from src.application.use_cases.payment_attempts.finalize_completed_payment import FinalizeCompletedPaymentUseCase
 from src.application.use_cases.payment_attempts.snapshot_adapter import build_checkout_result_from_order
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
-from src.application.use_cases.payments.payment_completed_earnings import (
-    append_payment_completed_partner_earning_publication,
-)
 from src.domain.enums import PaymentAttemptStatus
 from src.infrastructure.database.models.payment_attempt_model import PaymentAttemptModel
 from src.infrastructure.database.models.payment_model import PaymentModel
@@ -47,7 +43,6 @@ class CreatePaymentAttemptUseCase:
         self._crypto_client = crypto_client
         self._orders = OrderRepository(session)
         self._attempts = PaymentAttemptRepository(session)
-        self._outbox = EventOutboxService(session)
 
     async def execute(
         self,
@@ -189,13 +184,14 @@ class CreatePaymentAttemptUseCase:
             terminal_at=datetime.now(UTC) if status in TERMINAL_PAYMENT_ATTEMPT_STATUSES else None,
         )
         created_attempt = await self._attempts.create(attempt)
-        order.settlement_status = "paid" if status == PaymentAttemptStatus.SUCCEEDED.value else "pending_payment"
+        order.settlement_status = "pending_payment"
         if status == PaymentAttemptStatus.SUCCEEDED.value:
-            await append_payment_completed_partner_earning_publication(
-                self._outbox,
+            await FinalizeCompletedPaymentUseCase(self._session).execute(
+                order=order,
                 payment=commit_result.payment,
                 payment_attempt=created_attempt,
-                source="zero_gateway_order_payment_attempt",
+                quote_snapshot=_quote_snapshot_from_order(order),
+                source="completed_order_payment_attempt",
             )
 
         await self._session.commit()

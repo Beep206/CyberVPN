@@ -97,7 +97,7 @@ def _record_run_result(
 async def process_growth_reporting_deliveries() -> dict[str, Any]:
     """Claim due growth reporting deliveries from backend, send email, and finalize status."""
     settings = get_settings()
-    if not settings.backend_api_url or settings.backend_internal_secret is None:
+    if not settings.backend_api_url or settings.telegram_bot_internal_secret is None:
         logger.info("growth_reporting_delivery_skipped", reason="backend_api_not_configured")
         _record_run_result(
             result="skipped",
@@ -114,7 +114,7 @@ async def process_growth_reporting_deliveries() -> dict[str, Any]:
     failed_count = 0
 
     async with BackendAPIClient() as backend:
-        if not backend.enabled:
+        if not backend.telegram_bot_internal_enabled:
             logger.info("growth_reporting_delivery_skipped", reason="backend_api_disabled")
             _record_run_result(
                 result="skipped",

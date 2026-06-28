@@ -86,17 +86,30 @@ def _require_telegram_bot_secret(secret: str | None) -> None:
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
 
 
+def _is_valid_backend_internal_secret(secret: str | None) -> bool:
+    configured = settings.backend_internal_secret.get_secret_value().strip()
+    if not configured or not secret:
+        return False
+    return hmac.compare_digest(secret.strip(), configured)
+
+
+def _require_backend_internal_secret(secret: str | None) -> None:
+    if _is_valid_backend_internal_secret(secret):
+        return
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
 @router.post("/internal/provisioning-retries/run")
 async def run_stage1_provisioning_retries(
     limit: int = Query(25, ge=1, le=100),
     worker_id: str = Query("task-worker", min_length=1, max_length=120),
     db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
-    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    backend_internal_secret: str | None = Header(default=None, alias="X-Backend-Internal-Secret"),
 ) -> dict:
     """Run a bounded durable S1 provisioning retry pass for the task worker."""
 
-    _require_telegram_bot_secret(telegram_bot_secret)
+    _require_backend_internal_secret(backend_internal_secret)
     repository = Stage1ProvisioningRetryJobRepository(db)
     if not settings.stage1_provisioning_retry_claiming_enabled:
         metrics = await repository.metrics_snapshot(now=datetime.now(UTC))

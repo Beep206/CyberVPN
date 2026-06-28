@@ -22,6 +22,8 @@ from tenacity import (
     wait_exponential,
 )
 
+from src.models.connection import ConnectionBootstrapResponse, ConnectionPlatform, MarkConnectedResponse
+
 logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
@@ -979,6 +981,74 @@ class CyberVPNAPIClient:
                 "code": code,
             },
         )
+
+    # ── Growth onboarding connection ───────────────────────────────────
+
+    async def apply_telegram_onboarding_code(
+        self,
+        telegram_id: int,
+        code: str,
+        *,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        """Apply a growth/onboarding code from a Telegram private chat."""
+        return await self._request_auth_backend_dict(
+            "POST",
+            "/customer/onboarding/growth-code/apply",
+            json={
+                "telegram_id": telegram_id,
+                "code": code,
+                "source_surface": "telegram_bot",
+                "idempotency_key": idempotency_key,
+            },
+        )
+
+    async def get_customer_connection_bootstrap(
+        self,
+        telegram_id: int,
+        *,
+        platform_hint: ConnectionPlatform = "unknown",
+    ) -> ConnectionBootstrapResponse:
+        """Fetch the shared customer connection bootstrap payload for Telegram."""
+        data = await self._request_auth_backend_dict(
+            "GET",
+            "/customer/onboarding/connection/bootstrap",
+            params={
+                "surface": "telegram_bot",
+                "platform_hint": platform_hint,
+                "telegram_id": telegram_id,
+            },
+        )
+        return ConnectionBootstrapResponse.model_validate(data)
+
+    async def mark_customer_connection_connected(
+        self,
+        telegram_id: int,
+        *,
+        platform: ConnectionPlatform,
+        source_surface: str = "telegram_bot",
+        flow_key: str | None = None,
+        version: int | None = None,
+        connection_session_id: str,
+    ) -> MarkConnectedResponse:
+        """Record a user-confirmed connection in the shared onboarding state."""
+        payload: dict[str, Any] = {
+            "telegram_id": telegram_id,
+            "platform": platform,
+            "source_surface": source_surface,
+        }
+        if flow_key is not None:
+            payload["flow_key"] = flow_key
+        if version is not None:
+            payload["version"] = version
+        payload["connection_session_id"] = connection_session_id
+
+        data = await self._request_auth_backend_dict(
+            "POST",
+            "/customer/onboarding/connection/mark-connected",
+            json=payload,
+        )
+        return MarkConnectedResponse.model_validate(data)
 
     # ── Admin ────────────────────────────────────────────────────────
 

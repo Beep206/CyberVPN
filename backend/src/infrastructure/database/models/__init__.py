@@ -28,6 +28,7 @@ from src.infrastructure.database.models.customer_growth_notification_read_state_
 )
 from src.infrastructure.database.models.customer_onboarding_model import (
     CustomerCodeIntentModel,
+    CustomerConnectionSessionModel,
     CustomerOnboardingCodeApplicationModel,
     CustomerOnboardingStateModel,
     CustomerPrincipalLinkModel,
@@ -89,6 +90,8 @@ from src.infrastructure.database.models.growth_reporting_subscription_model impo
 from src.infrastructure.database.models.growth_reward_allocation_model import GrowthRewardAllocationModel
 from src.infrastructure.database.models.growth_risk_fx_model import (
     FxDiscountConversionModel,
+    FxProviderConfigModel,
+    FxProviderRefreshRunModel,
     FxRateSnapshotModel,
     GrowthRiskDecisionModel,
     RiskFeatureSnapshotModel,
@@ -238,6 +241,7 @@ __all__ = [
     "CheckoutCodeApplicationModel",
     "CheckoutCodeSetModel",
     "CustomerCodeIntentModel",
+    "CustomerConnectionSessionModel",
     "CustomerGrowthNotificationReadStateModel",
     "CustomerGrowthNotificationDeliveryModel",
     "CustomerGrowthNotificationDeliveryEventModel",
@@ -253,6 +257,8 @@ __all__ = [
     "EntitlementGrantModel",
     "FCMTokenModel",
     "FxDiscountConversionModel",
+    "FxProviderConfigModel",
+    "FxProviderRefreshRunModel",
     "FxRateSnapshotModel",
     "GiftCodePolicyModel",
     "GovernanceActionModel",

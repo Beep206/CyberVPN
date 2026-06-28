@@ -5,6 +5,7 @@ from uuid import UUID
 
 import pytest
 from fastapi import Response
+from prometheus_client import REGISTRY, generate_latest
 from pydantic import ValidationError
 from starlette.requests import Request
 
@@ -58,6 +59,27 @@ class RecordingUseCase:
                 ),
             ),
             risk=PrivateCatalogRiskResult(action="allow"),
+        )
+
+
+class RejectedUseCase:
+    async def execute(self, _command):
+        return PrivateCatalogPreflightResult(
+            code_set_id=None,
+            code_set_hash="9" * 64,
+            status="rejected",
+            applications=(
+                PrivateCatalogApplicationResult(
+                    client_slot_id="slot-risk",
+                    masked_code="PR-R...SS",
+                    status="rejected",
+                    roles=(),
+                    message_key="growth_codes.code_set.rejected",
+                ),
+            ),
+            private_catalog_grant=None,
+            private_offers=(),
+            risk=PrivateCatalogRiskResult(action="block"),
         )
 
 
@@ -149,3 +171,32 @@ def test_code_set_preflight_request_forbids_user_id_mass_assignment() -> None:
                 "user_id": str(UUID("20000000-0000-0000-0000-000000000099")),
             }
         )
+
+
+@pytest.mark.asyncio
+async def test_code_set_preflight_route_emits_v62_rejection_metric(monkeypatch) -> None:
+    monkeypatch.setattr(growth_code_sets, "_use_case", lambda _db: RejectedUseCase())
+    response = Response()
+
+    result = await growth_code_sets.preflight_growth_code_set(
+        payload=growth_code_sets.CodeSetPreflightRequest(
+            codes=[
+                growth_code_sets.CodeSetPreflightCodeRequest(
+                    code="PR-RU90-ACCESS",
+                    client_slot_id="slot-risk",
+                )
+            ],
+            storefront_key="ru",
+            channel="web",
+            currency="RUB",
+        ),
+        request=_request(),
+        response=response,
+        db=object(),
+        user_id=UUID("20000000-0000-0000-0000-000000000099"),
+    )
+
+    assert result.status == "rejected"
+    metric_payload = generate_latest(REGISTRY).decode()
+    assert "checkout_code_set_rejected_total" in metric_payload
+    assert 'reason="risk_block"' in metric_payload

@@ -21,6 +21,7 @@ backend:
   telegram_bot_token: ""
   telegram_bot_username: ""
   telegram_bot_internal_secret: ""
+  internal_secret: ""
   totp_encryption_key: replace-with-backend-totp-encryption-key
   oauth_token_encryption_key: replace-with-backend-oauth-token-encryption-key
 

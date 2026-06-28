@@ -32,6 +32,7 @@ def mock_settings_for_imports():
     settings.remnawave_api_token.get_secret_value.return_value = "test-token"
     settings.backend_api_url = "http://localhost:8000/api/v1"
     settings.backend_internal_secret.get_secret_value.return_value = "internal-secret"
+    settings.telegram_bot_internal_secret.get_secret_value.return_value = "telegram-internal-secret"
     settings.payment_settlement_worker_secret.get_secret_value.return_value = "settlement-worker-secret"
     settings.helix_enabled = True
     settings.helix_adapter_url = "http://localhost:8090"
@@ -125,6 +126,7 @@ def mock_settings():
     settings.remnawave_api_token.get_secret_value.return_value = "test-token"
     settings.backend_api_url = "http://localhost:8000/api/v1"
     settings.backend_internal_secret.get_secret_value.return_value = "internal-secret"
+    settings.telegram_bot_internal_secret.get_secret_value.return_value = "telegram-internal-secret"
     settings.payment_settlement_worker_secret.get_secret_value.return_value = "settlement-worker-secret"
     settings.helix_enabled = True
     settings.helix_adapter_url = "http://localhost:8090"

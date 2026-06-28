@@ -50,7 +50,7 @@ def _record_followup_result(
 async def process_growth_reporting_governance_followups() -> dict[str, Any]:
     """Trigger backend-owned governance follow-up automation through the internal service API."""
     settings = get_settings()
-    if not settings.backend_api_url or settings.backend_internal_secret is None:
+    if not settings.backend_api_url or settings.telegram_bot_internal_secret is None:
         logger.info("growth_reporting_governance_followups_skipped", reason="backend_api_not_configured")
         _record_followup_result(
             result="skipped",
@@ -63,7 +63,7 @@ async def process_growth_reporting_governance_followups() -> dict[str, Any]:
 
     started = perf_counter()
     async with BackendAPIClient() as backend:
-        if not backend.enabled:
+        if not backend.telegram_bot_internal_enabled:
             logger.info("growth_reporting_governance_followups_skipped", reason="backend_api_disabled")
             _record_followup_result(
                 result="skipped",

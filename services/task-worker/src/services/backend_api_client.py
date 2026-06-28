@@ -23,10 +23,15 @@ class BackendAPIClient:
 
     def __init__(self) -> None:
         self._settings = get_settings()
-        self._enabled = bool(
+        self._backend_internal_enabled = bool(
             self._settings.backend_api_url
             and self._settings.backend_internal_secret is not None
             and self._settings.backend_internal_secret.get_secret_value().strip()
+        )
+        self._telegram_bot_internal_enabled = bool(
+            self._settings.backend_api_url
+            and self._settings.telegram_bot_internal_secret is not None
+            and self._settings.telegram_bot_internal_secret.get_secret_value().strip()
         )
         self._payment_settlement_enabled = bool(
             self._settings.backend_api_url
@@ -37,14 +42,22 @@ class BackendAPIClient:
 
     @property
     def enabled(self) -> bool:
-        return self._enabled
+        return self._backend_internal_enabled or self._telegram_bot_internal_enabled
+
+    @property
+    def backend_internal_enabled(self) -> bool:
+        return self._backend_internal_enabled
+
+    @property
+    def telegram_bot_internal_enabled(self) -> bool:
+        return self._telegram_bot_internal_enabled
 
     @property
     def payment_settlement_enabled(self) -> bool:
         return self._payment_settlement_enabled
 
     async def __aenter__(self) -> BackendAPIClient:
-        if not self._enabled and not self._payment_settlement_enabled:
+        if not self.enabled and not self._payment_settlement_enabled:
             return self
 
         headers = {
@@ -64,13 +77,25 @@ class BackendAPIClient:
             await self._client.aclose()
 
     def _telegram_bot_secret_headers(self) -> dict[str, str]:
-        secret = self._settings.backend_internal_secret
+        secret = self._settings.telegram_bot_internal_secret
         value = secret.get_secret_value().strip() if secret is not None else ""
         return {"X-Telegram-Bot-Secret": value}
 
+    def _backend_internal_secret_headers(self) -> dict[str, str]:
+        secret = self._settings.backend_internal_secret
+        value = secret.get_secret_value().strip() if secret is not None else ""
+        return {"X-Backend-Internal-Secret": value}
+
+    def _require_backend_internal_enabled(self, operation: str) -> None:
+        if not self._backend_internal_enabled:
+            raise BackendAPIError(f"{operation} API is not configured")
+
+    def _require_telegram_bot_internal_enabled(self, operation: str) -> None:
+        if not self._telegram_bot_internal_enabled:
+            raise BackendAPIError(f"{operation} API is not configured")
+
     async def reconcile_telegram_stars_refund(self, payload: dict[str, Any]) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend reconciliation")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -83,21 +108,19 @@ class BackendAPIClient:
             logger.error(
                 "backend_reconciliation_failed",
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(f"Backend reconciliation failed: {response.status_code} {response.text}")
+            raise BackendAPIError(f"Backend reconciliation failed: {response.status_code}")
         return response.json()
 
     async def run_stage1_payment_reconciliation(self, payload: dict[str, Any]) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_backend_internal_enabled("Internal backend reconciliation")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
         response = await self._client.post(
             "payments/internal/reconciliation/run",
             params=payload,
-            headers=self._telegram_bot_secret_headers(),
+            headers=self._backend_internal_secret_headers(),
         )
         if response.status_code >= 400:
             logger.error(
@@ -108,15 +131,14 @@ class BackendAPIClient:
         return response.json()
 
     async def run_stage1_provisioning_retries(self, payload: dict[str, Any]) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend provisioning retry API is not configured")
+        self._require_backend_internal_enabled("Internal backend provisioning retry")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
         response = await self._client.post(
             "subscriptions/internal/provisioning-retries/run",
             params=payload,
-            headers=self._telegram_bot_secret_headers(),
+            headers=self._backend_internal_secret_headers(),
         )
         if response.status_code >= 400:
             logger.error(
@@ -151,8 +173,7 @@ class BackendAPIClient:
         return response.json()
 
     async def get_public_network_regions(self) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -164,14 +185,12 @@ class BackendAPIClient:
             logger.error(
                 "backend_public_network_regions_failed",
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(f"Public network regions request failed: {response.status_code} {response.text}")
+            raise BackendAPIError(f"Public network regions request failed: {response.status_code}")
         return response.json()
 
     async def publish_public_network_dpi_score(self, payload: dict[str, Any]) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -184,14 +203,12 @@ class BackendAPIClient:
             logger.error(
                 "backend_public_network_dpi_publish_failed",
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(f"Public network DPI publish failed: {response.status_code} {response.text}")
+            raise BackendAPIError(f"Public network DPI publish failed: {response.status_code}")
         return response.json()
 
     async def claim_partner_bot_provisioning_job(self, payload: dict[str, Any]) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -204,9 +221,8 @@ class BackendAPIClient:
             logger.error(
                 "backend_partner_bot_claim_failed",
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(f"Partner bot claim failed: {response.status_code} {response.text}")
+            raise BackendAPIError(f"Partner bot claim failed: {response.status_code}")
         return response.json()
 
     async def finalize_partner_bot_provisioning_job(
@@ -215,8 +231,7 @@ class BackendAPIClient:
         provisioning_job_id: str,
         payload: dict[str, Any],
     ) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -230,14 +245,12 @@ class BackendAPIClient:
                 "backend_partner_bot_finalize_failed",
                 provisioning_job_id=provisioning_job_id,
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(f"Partner bot finalize failed: {response.status_code} {response.text}")
+            raise BackendAPIError(f"Partner bot finalize failed: {response.status_code}")
         return response.json()
 
     async def refresh_growth_reporting(self, payload: dict[str, Any]) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -250,14 +263,30 @@ class BackendAPIClient:
             logger.error(
                 "backend_growth_reporting_refresh_failed",
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(f"Growth reporting refresh failed: {response.status_code} {response.text}")
+            raise BackendAPIError(f"Growth reporting refresh failed: {response.status_code}")
+        return response.json()
+
+    async def refresh_growth_fx_rates(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self._require_backend_internal_enabled("Internal backend growth FX refresh")
+        if self._client is None:
+            raise RuntimeError("BackendAPIClient must be used as a context manager")
+
+        response = await self._client.post(
+            "admin/growth-fx/internal/refresh",
+            params=payload,
+            headers=self._backend_internal_secret_headers(),
+        )
+        if response.status_code >= 400:
+            logger.error(
+                "backend_growth_fx_refresh_failed",
+                status_code=response.status_code,
+            )
+            raise BackendAPIError(f"Growth FX refresh failed: {response.status_code}")
         return response.json()
 
     async def claim_growth_reporting_deliveries(self, payload: dict[str, Any]) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -270,9 +299,8 @@ class BackendAPIClient:
             logger.error(
                 "backend_growth_reporting_claim_failed",
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(f"Growth reporting claim failed: {response.status_code} {response.text}")
+            raise BackendAPIError(f"Growth reporting claim failed: {response.status_code}")
         return response.json()
 
     async def complete_growth_reporting_delivery(
@@ -281,8 +309,7 @@ class BackendAPIClient:
         delivery_id: str,
         payload: dict[str, Any],
     ) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -296,14 +323,12 @@ class BackendAPIClient:
                 "backend_growth_reporting_complete_failed",
                 delivery_id=delivery_id,
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(f"Growth reporting complete failed: {response.status_code} {response.text}")
+            raise BackendAPIError(f"Growth reporting complete failed: {response.status_code}")
         return response.json()
 
     async def cleanup_growth_reporting_artifacts(self) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -315,14 +340,12 @@ class BackendAPIClient:
             logger.error(
                 "backend_growth_reporting_cleanup_failed",
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(f"Growth reporting cleanup failed: {response.status_code} {response.text}")
+            raise BackendAPIError(f"Growth reporting cleanup failed: {response.status_code}")
         return response.json()
 
     async def process_growth_reporting_governance_followups(self) -> dict[str, Any]:
-        if not self._enabled:
-            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        self._require_telegram_bot_internal_enabled("Internal Telegram bot audience backend")
         if self._client is None:
             raise RuntimeError("BackendAPIClient must be used as a context manager")
 
@@ -334,9 +357,6 @@ class BackendAPIClient:
             logger.error(
                 "backend_growth_reporting_governance_followups_failed",
                 status_code=response.status_code,
-                response=response.text,
             )
-            raise BackendAPIError(
-                f"Growth reporting governance follow-up processing failed: {response.status_code} {response.text}"
-            )
+            raise BackendAPIError(f"Growth reporting governance follow-up processing failed: {response.status_code}")
         return response.json()

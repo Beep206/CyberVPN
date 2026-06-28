@@ -336,6 +336,7 @@ promocode-cancelled = ✅ Promo code entry cancelled.
 code-enter-prompt = 🎟 Enter a code. The backend will determine the code type and available action.
 code-activated = ✅ Code <b>{ $code }</b> activated! Result: <b>{ $discount }</b>
 code-not-found = ❌ Code not found.
+bot-onboarding-code-apply-unavailable = ❌ This code cannot be applied from Telegram right now. Open CyberVPN and try again, or contact support.
 code-expired = ❌ This code has expired.
 code-already-used = ℹ️ This code has already been used.
 code-usage-limit = ⚠️ Code usage limit reached.
@@ -421,6 +422,92 @@ config-instructions = 📖 <b>Connection guide</b>
     2) Copy the connection link
     3) Import the configuration
     4) Connect
+
+# ── Growth Connection UX ─────────────────────────────────────────────────
+bot-onboarding-code-applied = ✅ Code <b>{ $code }</b> accepted.
+
+bot-onboarding-connection-ready = 🔐 <b>Your VPN access is ready</b>
+
+    Profile: <b>{ $profile }</b>
+    Choose how to add it to your VPN app. Link and QR delivery only work in this private chat.
+
+bot-onboarding-connection-profile-default = CyberVPN
+bot-onboarding-connection-no-active-entitlement = No active VPN access was found for this Telegram account. Apply a code or choose a plan first.
+bot-onboarding-connection-pending-config = Access is active, but the VPN profile is still being prepared. Try again in a minute.
+bot-onboarding-connection-config-unavailable = The VPN profile is not available yet. Try again later or contact support.
+bot-onboarding-connection-disabled = VPN connection delivery is temporarily unavailable.
+bot-onboarding-connection-private-chat-required = Open this bot in a private chat to receive VPN links or QR codes.
+bot-onboarding-connection-session-expired = This connection session expired. Send /connect again.
+bot-onboarding-connection-link-message = 🔗 <b>Connection link</b>
+
+    <code>{ $url }</code>
+
+    Copy it into your VPN app. Do not share this link.
+
+bot-onboarding-connection-qr-caption = Scan this QR code in your VPN app. Do not share it.
+bot-onboarding-connection-mark-connected-confirmed = ✅ Connection recorded. You can return here if you need the link or instructions again.
+bot-onboarding-connection-dashboard-message = Open the CyberVPN app or Mini App to manage your subscription and devices.
+bot-onboarding-connection-help = <b>CyberVPN connection help</b>
+
+    Use /code to apply an invite, gift, or promo code.
+    Use /connect to get your private VPN link or QR code.
+    Use /instructions to reopen setup instructions.
+
+bot-onboarding-connection-instructions-generic = 📖 <b>Setup instructions</b>
+
+    1) Install Hiddify, Streisand, V2rayNG, or another compatible VPN app.
+    2) Tap Link or QR in this chat.
+    3) Import the profile.
+    4) Connect and check that traffic goes through VPN.
+
+bot-onboarding-connection-instructions-ios = 📖 <b>iOS setup</b>
+
+    1) Install Streisand or Hiddify from the App Store.
+    2) Tap Link or QR in this chat.
+    3) Import the profile into the app.
+    4) Allow the VPN profile when iOS asks.
+    5) Connect.
+
+bot-onboarding-connection-instructions-android = 📖 <b>Android setup</b>
+
+    1) Install Hiddify or V2rayNG.
+    2) Tap Link or QR in this chat.
+    3) Import the profile into the app.
+    4) Connect and keep the app allowed in battery settings.
+
+bot-onboarding-connection-instructions-windows = 📖 <b>Windows setup</b>
+
+    1) Install Hiddify or Nekoray.
+    2) Tap Link and copy the connection URL.
+    3) Import from clipboard in the app.
+    4) Connect.
+
+bot-onboarding-connection-instructions-macos = 📖 <b>macOS setup</b>
+
+    1) Install Streisand or Hiddify.
+    2) Tap Link or QR in this chat.
+    3) Import the profile into the app.
+    4) Connect.
+
+bot-onboarding-connection-instructions-linux = 📖 <b>Linux setup</b>
+
+    1) Install Hiddify or Nekoray.
+    2) Tap Link and copy the connection URL.
+    3) Import from clipboard in the app.
+    4) Connect.
+
+bot-onboarding-connection-open-link-button = 🔗 Link
+bot-onboarding-connection-show-qr-button = 📷 QR
+bot-onboarding-connection-mark-connected-button = ✅ I connected
+bot-onboarding-connection-dashboard-button = 📊 Dashboard
+bot-onboarding-connection-open-private-chat-button = Open private chat
+bot-onboarding-connection-connect-button = Connect VPN
+bot-onboarding-connection-instructions-button = Instructions
+bot-onboarding-connection-platform-ios = iOS
+bot-onboarding-connection-platform-android = Android
+bot-onboarding-connection-platform-windows = Windows
+bot-onboarding-connection-platform-macos = macOS
+bot-onboarding-connection-platform-linux = Linux
 
 # ── Access / Conditions ──────────────────────────────────────────────────
 access-rules = 📜 <b>Terms of Use</b>

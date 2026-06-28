@@ -35,6 +35,7 @@ def _production_settings(**overrides: object) -> Settings:
         "oauth_token_encryption_key": SecretStr(STRONG_SECRET),
         "oauth_enabled_login_providers": [],
         "payment_settlement_worker_secret": SecretStr("liveSettlementWorkerCredentialForChecksOnly"),
+        "telegram_bot_internal_secret": SecretStr("liveTelegramBotInternalCredentialForChecksOnly"),
     }
     values.update(overrides)
     return _settings(**values)

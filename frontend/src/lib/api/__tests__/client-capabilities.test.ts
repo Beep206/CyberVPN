@@ -71,6 +71,8 @@ const RUNTIME_CAPABILITIES: ClientCapabilitiesResponse = {
     public_hosts: ['cyber-vpn.net'],
     cabinet_hosts: ['app.cyber-vpn.net'],
     cabinet_destination_path: '/dashboard',
+    cabinet_marketing_route_action: 'redirect_public',
+    public_marketing_destination_path: '/',
     allowed_path_prefixes: ['/dashboard', '/rewards'],
     preserve_query_keys: ['ref', 'partner'],
     registration_policy_independent: true,

@@ -96,6 +96,11 @@ def _build_client_capabilities(
             cabinet_hosts=list(site_runtime.cabinet_hosts),
             cabinet_destination_path=site_runtime.cabinet_destination_path,
             allowed_path_prefixes=list(site_runtime.allowed_path_prefixes),
+            cabinet_allowed_prefixes=list(site_runtime.cabinet_allowed_prefixes),
+            cabinet_marketing_route_action=site_runtime.cabinet_marketing_route_action,
+            public_marketing_destination_path=site_runtime.public_marketing_destination_path,
+            legal_path_prefixes=list(site_runtime.legal_path_prefixes),
+            operational_path_prefixes=list(site_runtime.operational_path_prefixes),
             preserve_query_keys=list(site_runtime.preserve_query_keys),
         ),
         onboarding=ClientOnboardingCapabilities(

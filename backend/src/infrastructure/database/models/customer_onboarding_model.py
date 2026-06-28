@@ -210,6 +210,68 @@ class CustomerOnboardingCodeApplicationModel(Base):
     )
 
 
+class CustomerConnectionSessionModel(Base):
+    """Shared post-onboarding VPN connection flow state across customer surfaces."""
+
+    __tablename__ = "customer_connection_sessions"
+    __table_args__ = (
+        CheckConstraint(
+            "source_surface IN ('web','miniapp','telegram_bot')",
+            name="ck_customer_connection_sessions_source_surface",
+        ),
+        CheckConstraint(
+            "acknowledged_source_surface IS NULL OR acknowledged_source_surface IN ('web','miniapp','telegram_bot')",
+            name="ck_customer_connection_sessions_ack_surface",
+        ),
+        CheckConstraint(
+            "status IN ('pending','available','acknowledged','expired','unavailable','cancelled')",
+            name="ck_customer_connection_sessions_status",
+        ),
+        CheckConstraint(
+            "selected_platform IS NULL OR selected_platform IN ('ios','android','windows','macos','linux','unknown')",
+            name="ck_customer_connection_sessions_platform",
+        ),
+        UniqueConstraint(
+            "mobile_user_id",
+            "subscription_config_hash",
+            name="uq_customer_connection_sessions_user_config_hash",
+        ),
+        UniqueConstraint("session_key_hash", name="uq_customer_connection_sessions_session_key_hash"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    mobile_user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("mobile_users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    onboarding_state_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("customer_onboarding_states.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    source_surface: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
+    subscription_config_hash: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    session_key_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    selected_platform: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    acknowledged_source_surface: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
 class CustomerPrincipalLinkModel(Base):
     """Canonical mapping from external principals to a mobile user."""
 

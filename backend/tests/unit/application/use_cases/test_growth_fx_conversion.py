@@ -28,6 +28,7 @@ def _rate(
     fetched_delta_minutes: int = -5,
     expires_delta_minutes: int = 30,
     managed_xtr: bool = False,
+    provider_enabled: bool = True,
 ) -> FxRateSnapshot:
     return FxRateSnapshot(
         rate_id=UUID(rate_id),
@@ -39,6 +40,7 @@ def _rate(
         fetched_at=NOW + timedelta(minutes=fetched_delta_minutes),
         expires_at=NOW + timedelta(minutes=expires_delta_minutes),
         managed_xtr=managed_xtr,
+        provider_enabled=provider_enabled,
     )
 
 
@@ -110,6 +112,20 @@ def test_fixed_discount_rejects_stale_or_missing_rate() -> None:
             quote_currency="RUB",
             discountable_amount=Decimal("2000.00"),
             rate_snapshots=[_rate(expires_delta_minutes=-1)],
+            now=NOW,
+        )
+
+    assert exc.value.code == "FX_RATE_UNAVAILABLE"
+
+
+def test_fixed_discount_rejects_disabled_provider_rate_snapshot() -> None:
+    with pytest.raises(FxConversionError) as exc:
+        convert_fixed_discount(
+            source_amount=Decimal("10.00"),
+            source_currency="USD",
+            quote_currency="RUB",
+            discountable_amount=Decimal("2000.00"),
+            rate_snapshots=[_rate(provider="disabled-provider", provider_enabled=False)],
             now=NOW,
         )
 

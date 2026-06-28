@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     from src.config import BotSettings
     from src.services.api_client import CyberVPNAPIClient
+    from src.services.cache_service import CacheService
 
 logger = structlog.get_logger(__name__)
 
@@ -91,11 +92,7 @@ async def _build_my_invites_response(
     api_client: CyberVPNAPIClient,
 ) -> tuple[str, InlineKeyboardMarkup]:
     invites = await api_client.get_invite_codes(user_id)
-    active_count = sum(
-        1
-        for invite in invites
-        if not bool(invite.get("is_used")) and not _is_invite_expired(invite)
-    )
+    active_count = sum(1 for invite in invites if not bool(invite.get("is_used")) and not _is_invite_expired(invite))
     text = i18n.get(
         "my-invites-info",
         count=len(invites),
@@ -187,27 +184,13 @@ async def connect_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
+    cache: CacheService,
+    settings: BotSettings | None = None,
 ) -> None:
     """Handle connect/subscription menu callback."""
-    user_id = callback.from_user.id
+    from src.handlers.connection import open_connection_from_callback
 
-    try:
-        text, reply_markup = await _build_connect_menu_response(
-            user_id=user_id,
-            i18n=i18n,
-            api_client=api_client,
-        )
-
-        await callback.message.edit_text(
-            text=text,
-            reply_markup=reply_markup,
-        )
-    except Exception as e:
-        logger.error("connect_menu_error", user_id=user_id, error=str(e))
-        await callback.answer(i18n.get("error-generic"), show_alert=True)
-        return
-
-    await callback.answer()
+    await open_connection_from_callback(callback, i18n, api_client, cache, settings)
 
 
 @router.message(Command("connect"))
@@ -215,24 +198,16 @@ async def connect_command_handler(
     message: Message,
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
+    cache: CacheService,
+    settings: BotSettings | None = None,
 ) -> None:
     """Open the VPN access/config surface from the Telegram command list."""
     if message.from_user is None:
         return
 
-    user_id = message.from_user.id
-    try:
-        text, reply_markup = await _build_connect_menu_response(
-            user_id=user_id,
-            i18n=i18n,
-            api_client=api_client,
-        )
-    except Exception as e:
-        logger.error("connect_command_error", user_id=user_id, error=str(e))
-        await message.answer(i18n.get("error-generic"))
-        return
+    from src.handlers.connection import open_connection_from_message
 
-    await message.answer(text=text, reply_markup=reply_markup)
+    await open_connection_from_message(message, i18n, api_client, cache, settings)
 
 
 @router.callback_query(F.data.in_({"menu:invite", "growth:invites"}))

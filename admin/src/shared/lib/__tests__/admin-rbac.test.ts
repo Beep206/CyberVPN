@@ -91,6 +91,10 @@ describe('admin-rbac', () => {
       'growth.rules.validate',
       'growth.rules.publish',
       'growth.rules.approve',
+      'growth.fx.view',
+      'growth.fx.manage',
+      'growth.fx.override',
+      'growth.fx.approve',
     ] as const;
 
     for (const role of ['admin', 'super_admin', 'owner/super_admin'] as const) {

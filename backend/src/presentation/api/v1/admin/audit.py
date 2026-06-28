@@ -66,8 +66,11 @@ STAGE1_REQUIRED_ADMIN_AUDIT_ACTIONS = frozenset(
         "growth_private_grant.revoked",
         "growth_fx.configured_rate.created",
         "growth_fx.xtr_table.created",
+        "growth_fx.rate.refresh_requested",
         "growth_fx.provider.enabled",
         "growth_fx.provider.disabled",
+        "growth_fx.rate.approved",
+        "growth_fx.rate.rejected",
         "growth_onboarding_settings.updated",
         "growth_onboarding_state.reset",
     }

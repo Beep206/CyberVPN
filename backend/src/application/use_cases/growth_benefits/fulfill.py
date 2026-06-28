@@ -14,6 +14,7 @@ from uuid import UUID
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from src.application.use_cases.growth_codes.hashing import build_growth_code_prefix, hash_growth_code
+from src.infrastructure.monitoring.instrumentation.growth_codes import observe_growth_benefit_fulfillment
 
 
 class GrowthBenefitConfigurationError(ValueError):
@@ -492,6 +493,51 @@ class GrowthBenefitFulfillmentRepository(Protocol):
     ) -> dict[str, Any]:
         raise NotImplementedError
 
+    async def apply_bonus_days_benefit(
+        self,
+        *,
+        user_id: UUID,
+        order_id: UUID,
+        payment_id: UUID,
+        fulfillment_id: UUID,
+        benefit_id: UUID,
+        growth_code_id: UUID,
+        days: int,
+        grant_mode: str,
+        entitlement_profile_key: str | None,
+        reversal_mode: str,
+        occurred_at: datetime,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    async def issue_gift_benefit(
+        self,
+        *,
+        user_id: UUID,
+        order_id: UUID,
+        payment_id: UUID,
+        fulfillment_id: UUID,
+        benefit_id: UUID,
+        growth_code_id: UUID,
+        config: IssueGiftBenefitConfig,
+        occurred_at: datetime,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    async def grant_addon_benefit(
+        self,
+        *,
+        user_id: UUID,
+        order_id: UUID,
+        payment_id: UUID,
+        fulfillment_id: UUID,
+        benefit_id: UUID,
+        growth_code_id: UUID,
+        config: GrantAddonBenefitConfig,
+        occurred_at: datetime,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
 
 @dataclass(frozen=True, slots=True)
 class _PreparedBenefit:
@@ -552,7 +598,9 @@ class FulfillGrowthBenefitsUseCase:
             )
 
             if _has_recorded_result(fulfillment):
-                results.append(_result_from_record(fulfillment, prepared.benefit.benefit_type, duplicate=True))
+                result = _result_from_record(fulfillment, prepared.benefit.benefit_type, duplicate=True)
+                observe_growth_benefit_fulfillment(benefit_type=result.benefit_type, status=result.status)
+                results.append(result)
                 continue
 
             if prepared.benefit.benefit_type != BenefitType.ISSUE_INVITES:
@@ -563,7 +611,9 @@ class FulfillGrowthBenefitsUseCase:
                     command=command,
                     now=now,
                 )
-                results.append(_result_from_record(fulfillment, prepared.benefit.benefit_type, duplicate=duplicate))
+                result = _result_from_record(fulfillment, prepared.benefit.benefit_type, duplicate=duplicate)
+                observe_growth_benefit_fulfillment(benefit_type=result.benefit_type, status=result.status)
+                results.append(result)
                 continue
 
             if not isinstance(config, IssueInvitesBenefitConfig):
@@ -610,18 +660,18 @@ class FulfillGrowthBenefitsUseCase:
                 result_payload=result_payload,
                 completed_at=now,
             )
-            results.append(
-                FulfillmentResult(
-                    fulfillment_id=fulfillment.id,
-                    benefit_id=fulfillment.benefit_id,
-                    benefit_type=prepared.benefit.benefit_type.value,
-                    growth_code_id=fulfillment.growth_code_id,
-                    idempotency_key=fulfillment.idempotency_key,
-                    status=fulfillment.status,
-                    duplicate=duplicate or batch_duplicate,
-                    result_payload=result_payload,
-                )
+            result = FulfillmentResult(
+                fulfillment_id=fulfillment.id,
+                benefit_id=fulfillment.benefit_id,
+                benefit_type=prepared.benefit.benefit_type.value,
+                growth_code_id=fulfillment.growth_code_id,
+                idempotency_key=fulfillment.idempotency_key,
+                status=fulfillment.status,
+                duplicate=duplicate or batch_duplicate,
+                result_payload=result_payload,
             )
+            observe_growth_benefit_fulfillment(benefit_type=result.benefit_type, status=result.status)
+            results.append(result)
 
         return results
 
@@ -693,6 +743,105 @@ class FulfillGrowthBenefitsUseCase:
                     "currency": config.currency,
                     "description_key": config.description_key,
                     **wallet_result,
+                },
+                "reversal_mode": config.reversal_mode,
+                "reversal_policy": _canonical_reversal_policy(config.reversal_mode),
+            }
+            return await self._repository.set_fulfillment_result(
+                fulfillment_id=fulfillment.id,
+                status=FulfillmentStatus.COMPLETED.value,
+                result_payload=result_payload,
+                completed_at=now,
+            )
+
+        if benefit.benefit_type == BenefitType.BONUS_DAYS:
+            if not isinstance(config, BonusDaysBenefitConfig):
+                raise GrowthBenefitConfigurationError("bonus_days benefit config is invalid")
+            bonus_result = await self._repository.apply_bonus_days_benefit(
+                user_id=command.user_id,
+                order_id=command.order_id,
+                payment_id=command.payment_id,
+                fulfillment_id=fulfillment.id,
+                benefit_id=benefit.benefit_id,
+                growth_code_id=fulfillment.growth_code_id,
+                days=config.days,
+                grant_mode=config.grant_mode,
+                entitlement_profile_key=config.entitlement_profile_key,
+                reversal_mode=config.reversal_mode,
+                occurred_at=now,
+            )
+            result_payload = {
+                "benefit_type": benefit.benefit_type.value,
+                "side_effect_mode": bonus_result.get("side_effect_mode"),
+                "bonus_days": {
+                    "days": config.days,
+                    "grant_mode": config.grant_mode,
+                    "entitlement_profile_key": config.entitlement_profile_key,
+                    **bonus_result,
+                },
+                "reversal_mode": config.reversal_mode,
+                "reversal_policy": _canonical_reversal_policy(config.reversal_mode),
+            }
+            return await self._repository.set_fulfillment_result(
+                fulfillment_id=fulfillment.id,
+                status=FulfillmentStatus.COMPLETED.value,
+                result_payload=result_payload,
+                completed_at=now,
+            )
+
+        if benefit.benefit_type == BenefitType.ISSUE_GIFT:
+            if not isinstance(config, IssueGiftBenefitConfig):
+                raise GrowthBenefitConfigurationError("issue_gift benefit config is invalid")
+            gift_result = await self._repository.issue_gift_benefit(
+                user_id=command.user_id,
+                order_id=command.order_id,
+                payment_id=command.payment_id,
+                fulfillment_id=fulfillment.id,
+                benefit_id=benefit.benefit_id,
+                growth_code_id=fulfillment.growth_code_id,
+                config=config,
+                occurred_at=now,
+            )
+            result_payload = {
+                "benefit_type": benefit.benefit_type.value,
+                "side_effect_mode": "gift_code_issuance",
+                "issue_gift": {
+                    "requested_count": config.count,
+                    "friend_days": config.friend_days,
+                    **gift_result,
+                },
+                "reversal_mode": config.reversal_mode,
+                "reversal_policy": _canonical_reversal_policy(config.reversal_mode),
+            }
+            return await self._repository.set_fulfillment_result(
+                fulfillment_id=fulfillment.id,
+                status=FulfillmentStatus.COMPLETED.value,
+                result_payload=result_payload,
+                completed_at=now,
+            )
+
+        if benefit.benefit_type == BenefitType.GRANT_ADDON:
+            if not isinstance(config, GrantAddonBenefitConfig):
+                raise GrowthBenefitConfigurationError("grant_addon benefit config is invalid")
+            addon_result = await self._repository.grant_addon_benefit(
+                user_id=command.user_id,
+                order_id=command.order_id,
+                payment_id=command.payment_id,
+                fulfillment_id=fulfillment.id,
+                benefit_id=benefit.benefit_id,
+                growth_code_id=fulfillment.growth_code_id,
+                config=config,
+                occurred_at=now,
+            )
+            result_payload = {
+                "benefit_type": benefit.benefit_type.value,
+                "side_effect_mode": addon_result.get("side_effect_mode"),
+                "grant_addon": {
+                    "addon_code": config.addon_code,
+                    "quantity": config.quantity,
+                    "duration_mode": config.duration_mode,
+                    "location_code": config.location_code,
+                    **addon_result,
                 },
                 "reversal_mode": config.reversal_mode,
                 "reversal_policy": _canonical_reversal_policy(config.reversal_mode),

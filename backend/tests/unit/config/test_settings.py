@@ -59,6 +59,7 @@ class TestWeakSecretPatterns:
             remnawave_token=SecretStr(self.VALID_TOKEN),
             cryptobot_token=SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
             payment_settlement_worker_secret=SecretStr(self.VALID_WORKER_SECRET),
+            telegram_bot_internal_secret=SecretStr(""),
             cors_origins=self.PRODUCTION_CORS_ORIGINS,
             oauth_token_encryption_key=SecretStr(self.STRONG_SECRET),
             oauth_enabled_login_providers=[],
@@ -129,6 +130,7 @@ class TestS1CorsAndCookieSettings:
     VALID_TOKEN = TestWeakSecretPatterns.VALID_TOKEN
     VALID_PRODUCTION_PROVIDER_TOKEN = TestWeakSecretPatterns.VALID_PRODUCTION_PROVIDER_TOKEN
     VALID_WORKER_SECRET = TestWeakSecretPatterns.VALID_WORKER_SECRET
+    VALID_BACKEND_INTERNAL_SECRET = "liveBackendInternalCredentialAlpha123456"
 
     def _production_settings(self, **overrides):
         values = {
@@ -137,6 +139,7 @@ class TestS1CorsAndCookieSettings:
             "remnawave_token": SecretStr(self.VALID_TOKEN),
             "cryptobot_token": SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
             "payment_settlement_worker_secret": SecretStr(self.VALID_WORKER_SECRET),
+            "telegram_bot_internal_secret": SecretStr(""),
             "oauth_token_encryption_key": SecretStr(self.STRONG_SECRET),
             "oauth_enabled_login_providers": [],
             "cors_origins": [
@@ -176,6 +179,55 @@ class TestS1CorsAndCookieSettings:
     def test_s1_production_rejects_http_cors_origin(self) -> None:
         with pytest.raises(ValidationError, match="https"):
             self._production_settings(cors_origins="http://cyber-vpn.net")
+
+    def test_s1_production_rejects_short_telegram_bot_internal_secret(self) -> None:
+        with pytest.raises(ValidationError, match="TELEGRAM_BOT_INTERNAL_SECRET"):
+            self._production_settings(telegram_bot_internal_secret=SecretStr("short-secret"))
+
+    def test_s1_production_rejects_placeholder_telegram_bot_internal_secret(self) -> None:
+        with pytest.raises(ValidationError, match="TELEGRAM_BOT_INTERNAL_SECRET"):
+            self._production_settings(
+                telegram_bot_internal_secret=SecretStr("local-telegram-internal-placeholder-secret")
+            )
+
+    def test_s1_production_accepts_strong_telegram_bot_internal_secret(self) -> None:
+        settings = self._production_settings(
+            telegram_bot_internal_secret=SecretStr("StrongTelegramInternalCredentialForChecksOnly")
+        )
+
+        assert settings.telegram_bot_internal_secret.get_secret_value() == (
+            "StrongTelegramInternalCredentialForChecksOnly"
+        )
+
+    def test_s1_production_rejects_short_backend_internal_secret(self) -> None:
+        with pytest.raises(ValidationError, match="BACKEND_INTERNAL_SECRET"):
+            self._production_settings(backend_internal_secret=SecretStr("short-secret"))
+
+    def test_s1_production_rejects_placeholder_backend_internal_secret(self) -> None:
+        with pytest.raises(ValidationError, match="BACKEND_INTERNAL_SECRET"):
+            self._production_settings(backend_internal_secret=SecretStr("local-backend-internal-placeholder-secret"))
+
+    def test_s1_production_rejects_backend_internal_secret_reuse_for_telegram_bot(self) -> None:
+        with pytest.raises(ValidationError, match="must differ"):
+            self._production_settings(
+                backend_internal_secret=SecretStr(self.VALID_BACKEND_INTERNAL_SECRET),
+                telegram_bot_internal_secret=SecretStr(self.VALID_BACKEND_INTERNAL_SECRET),
+            )
+
+    def test_s1_production_rejects_backend_internal_secret_reuse_for_payment_settlement_worker(self) -> None:
+        with pytest.raises(ValidationError, match="must differ"):
+            self._production_settings(
+                backend_internal_secret=SecretStr(self.VALID_BACKEND_INTERNAL_SECRET),
+                payment_settlement_worker_secret=SecretStr(self.VALID_BACKEND_INTERNAL_SECRET),
+            )
+
+    def test_s1_production_accepts_strong_backend_internal_secret_distinct_from_telegram(self) -> None:
+        settings = self._production_settings(
+            backend_internal_secret=SecretStr(self.VALID_BACKEND_INTERNAL_SECRET),
+            telegram_bot_internal_secret=SecretStr("StrongTelegramInternalCredentialForChecksOnly"),
+        )
+
+        assert settings.backend_internal_secret.get_secret_value() == self.VALID_BACKEND_INTERNAL_SECRET
 
     def test_s1_production_rejects_cors_origin_with_path(self) -> None:
         with pytest.raises(ValidationError, match="path"):
@@ -352,6 +404,7 @@ class TestPaymentSettlementWorkerSettings:
             "cookie_secure": True,
             "admin_2fa_required": True,
             "payment_settlement_worker_secret": SecretStr(self.VALID_WORKER_SECRET),
+            "telegram_bot_internal_secret": SecretStr(""),
         }
         values.update(overrides)
         return Settings(**values)
@@ -364,6 +417,13 @@ class TestPaymentSettlementWorkerSettings:
         with pytest.raises(ValidationError, match="must differ"):
             self._production_settings(
                 telegram_bot_internal_secret=SecretStr(self.VALID_WORKER_SECRET),
+                payment_settlement_worker_secret=SecretStr(self.VALID_WORKER_SECRET),
+            )
+
+    def test_production_rejects_backend_secret_reuse_for_payment_settlement_worker(self) -> None:
+        with pytest.raises(ValidationError, match="must differ"):
+            self._production_settings(
+                backend_internal_secret=SecretStr(self.VALID_WORKER_SECRET),
                 payment_settlement_worker_secret=SecretStr(self.VALID_WORKER_SECRET),
             )
 
@@ -391,6 +451,7 @@ class TestS2OAuthProductionReadiness:
             "remnawave_token": SecretStr(self.VALID_TOKEN),
             "cryptobot_token": SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
             "payment_settlement_worker_secret": SecretStr(self.VALID_WORKER_SECRET),
+            "telegram_bot_internal_secret": SecretStr(""),
             "oauth_token_encryption_key": SecretStr(self.STRONG_SECRET),
             "oauth_web_base_url": "",
             "google_client_id": "",

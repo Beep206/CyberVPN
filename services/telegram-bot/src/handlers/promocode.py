@@ -12,7 +12,9 @@ if TYPE_CHECKING:
     from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
+    from src.config import BotSettings
     from src.services.api_client import CyberVPNAPIClient
+    from src.services.cache_service import CacheService
 
 logger = structlog.get_logger(__name__)
 
@@ -24,14 +26,29 @@ async def enter_promocode_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
     state: FSMContext,
+    settings: BotSettings | None = None,
 ) -> None:
     """Start promo code entry flow."""
-    await callback.message.edit_text(
+    from src.handlers.connection import _callback_message, _private_gate, telegram_user_fingerprint
+
+    if not await _private_gate(callback, i18n, settings):
+        return
+
+    message = _callback_message(callback)
+    if message is None:
+        await callback.answer(i18n.get("bot-onboarding-connection-private-chat-required"), show_alert=True)
+        return
+
+    await message.edit_text(
         text=i18n.get("code-enter-prompt"),
     )
 
     await state.set_state(PromoCodeState.entering_code)
-    logger.info("code_entry_started", user_id=callback.from_user.id, callback_data=callback.data)
+    logger.info(
+        "code_entry_started",
+        telegram_user_fingerprint=telegram_user_fingerprint(callback.from_user.id),
+        callback_data=callback.data,
+    )
 
     await callback.answer()
 
@@ -42,65 +59,36 @@ async def promocode_entered_handler(
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
     state: FSMContext,
+    cache: CacheService | None = None,
+    settings: BotSettings | None = None,
 ) -> None:
-    """Handle promo code input and activation."""
+    """Handle universal growth-code input and open the shared connection flow."""
     if message.from_user is None or message.text is None:
+        await state.clear()
+        return
+    if cache is None:
+        await message.answer(i18n.get("error-generic"))
         await state.clear()
         return
 
     user_id = message.from_user.id
-    code = message.text.strip().upper()
+    code = message.text.strip()
+    from src.handlers.connection import apply_code_and_open_connection, code_fingerprint, telegram_user_fingerprint
 
-    try:
-        # Validate and activate promo code
-        result = await api_client.activate_promocode(user_id, code)
-
-        discount_type = result.get("discount_type", "percentage")
-        discount_value = result.get("discount_value", 0)
-        discount_currency = result.get("currency") or result.get("currency_code") or i18n.get("currency")
-
-        if discount_type == "percentage":
-            discount_text = f"{discount_value}%"
-        else:
-            discount_text = f"{discount_value} {discount_currency}"
-
-        await message.answer(
-            text=i18n.get(
-                "code-activated",
-                code=code,
-                discount=discount_text,
-            ),
-        )
-
-        # Clear state
-        await state.clear()
-
-        logger.info(
-            "promocode_activated",
-            user_id=user_id,
-            code=code,
-            discount_type=discount_type,
-            discount_value=discount_value,
-        )
-
-    except Exception as e:
-        error_msg = str(e)
-        logger.error("code_activation_error", user_id=user_id, code=code, error=error_msg)
-
-        # Determine error type
-        if "not found" in error_msg.lower():
-            await message.answer(i18n.get("code-not-found"))
-        elif "expired" in error_msg.lower():
-            await message.answer(i18n.get("code-expired"))
-        elif "already used" in error_msg.lower():
-            await message.answer(i18n.get("code-already-used"))
-        elif "usage limit" in error_msg.lower():
-            await message.answer(i18n.get("code-usage-limit"))
-        else:
-            await message.answer(i18n.get("error-generic"))
-
-        # Clear state
-        await state.clear()
+    await apply_code_and_open_connection(
+        message,
+        i18n,
+        api_client,
+        cache,
+        settings,
+        code=code,
+    )
+    await state.clear()
+    logger.info(
+        "onboarding_code_text_submitted",
+        telegram_user_fingerprint=telegram_user_fingerprint(user_id),
+        code_fingerprint=code_fingerprint(code),
+    )
 
 
 @router.callback_query(F.data == "promocode:cancel")
@@ -112,12 +100,15 @@ async def cancel_promocode_handler(
     """Cancel promo code entry."""
     await state.clear()
 
+    from src.handlers.connection import _callback_message, telegram_user_fingerprint
     from src.keyboards.menu import main_menu_keyboard
 
-    await callback.message.edit_text(
-        text=i18n.get("code-cancelled"),
-        reply_markup=main_menu_keyboard(i18n),
-    )
+    message = _callback_message(callback)
+    if message is not None:
+        await message.edit_text(
+            text=i18n.get("code-cancelled"),
+            reply_markup=main_menu_keyboard(i18n),
+        )
 
-    logger.info("promocode_entry_cancelled", user_id=callback.from_user.id)
+    logger.info("promocode_entry_cancelled", telegram_user_fingerprint=telegram_user_fingerprint(callback.from_user.id))
     await callback.answer()

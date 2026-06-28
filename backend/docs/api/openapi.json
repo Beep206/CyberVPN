@@ -6848,7 +6848,7 @@
             }
           },
           {
-            "name": "X-Telegram-Bot-Secret",
+            "name": "X-Backend-Internal-Secret",
             "in": "header",
             "required": false,
             "schema": {
@@ -6860,7 +6860,7 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Telegram-Bot-Secret"
+              "title": "X-Backend-Internal-Secret"
             }
           }
         ],
@@ -10514,11 +10514,75 @@
         ],
         "summary": "Apply Customer Onboarding Growth Code",
         "operationId": "apply_customer_onboarding_growth_code_api_v1_customer_onboarding_growth_code_apply_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CustomerOnboardingApplyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOnboardingApplyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/onboarding/growth-code/preview": {
+      "post": {
+        "tags": [
+          "customer-onboarding"
+        ],
+        "summary": "Preview Customer Onboarding Growth Code",
+        "operationId": "preview_customer_onboarding_growth_code_api_v1_customer_onboarding_growth_code_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerOnboardingPreviewRequest"
               }
             }
           },
@@ -10530,7 +10594,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerOnboardingApplyResponse"
+                  "$ref": "#/components/schemas/CustomerOnboardingPreviewResponse"
                 }
               }
             }
@@ -10597,6 +10661,174 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/v1/customer/onboarding/connection/bootstrap": {
+      "get": {
+        "tags": [
+          "customer-onboarding"
+        ],
+        "summary": "Get Customer Onboarding Connection Bootstrap",
+        "operationId": "get_customer_onboarding_connection_bootstrap_api_v1_customer_onboarding_connection_bootstrap_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "surface",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "web",
+                "miniapp",
+                "telegram_bot"
+              ],
+              "type": "string",
+              "default": "web",
+              "title": "Surface"
+            }
+          },
+          {
+            "name": "platform_hint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ios",
+                "android",
+                "windows",
+                "macos",
+                "linux",
+                "unknown"
+              ],
+              "type": "string",
+              "default": "unknown",
+              "title": "Platform Hint"
+            }
+          },
+          {
+            "name": "telegram_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOnboardingConnectionBootstrapResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/onboarding/connection/mark-connected": {
+      "post": {
+        "tags": [
+          "customer-onboarding"
+        ],
+        "summary": "Mark Customer Onboarding Connection Connected",
+        "operationId": "mark_customer_onboarding_connection_connected_api_v1_customer_onboarding_connection_mark_connected_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkOnboardingConnectionConnectedRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkOnboardingConnectionConnectedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/gifts/purchase/quote": {
@@ -22248,11 +22480,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/CheckoutCodeSetRejectedErrorResponse"
                 }
               }
             }
@@ -22462,7 +22694,7 @@
             }
           },
           {
-            "name": "X-Telegram-Bot-Secret",
+            "name": "X-Backend-Internal-Secret",
             "in": "header",
             "required": false,
             "schema": {
@@ -22474,7 +22706,7 @@
                   "type": "null"
                 }
               ],
-              "title": "X-Telegram-Bot-Secret"
+              "title": "X-Backend-Internal-Secret"
             }
           }
         ],
@@ -29794,11 +30026,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/CheckoutCodeSetRejectedErrorResponse"
                 }
               }
             }
@@ -31958,6 +32190,74 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdminGrowthReportingRefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/growth-fx/internal/refresh": {
+      "post": {
+        "tags": [
+          "admin",
+          "growth"
+        ],
+        "summary": "Internal Refresh Growth Fx Rates",
+        "operationId": "internal_refresh_growth_fx_rates_api_v1_admin_growth_fx_internal_refresh_post",
+        "parameters": [
+          {
+            "name": "idempotency_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 160
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency Key"
+            }
+          },
+          {
+            "name": "X-Backend-Internal-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Backend-Internal-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalGrowthFxRefreshResponse"
                 }
               }
             }
@@ -38504,14 +38804,14 @@
             }
           },
           "422": {
-            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/CheckoutCodeSetRejectedErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unprocessable Content"
           }
         }
       }
@@ -41474,6 +41774,52 @@
         ]
       }
     },
+    "/api/v3/admin/growth/fx/rates/refresh": {
+      "post": {
+        "tags": [
+          "admin-growth-fx-v3"
+        ],
+        "summary": "Refresh Growth Fx Rates",
+        "operationId": "refresh_growth_fx_rates_api_v3_admin_growth_fx_rates_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthFxRefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthFxRefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v3/admin/growth/fx/rates/{rate_id}/approve": {
       "post": {
         "tags": [
@@ -41481,6 +41827,64 @@
         ],
         "summary": "Approve Growth Fx Rate",
         "operationId": "approve_growth_fx_rate_api_v3_admin_growth_fx_rates__rate_id__approve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rate_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Rate Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrowthFxProviderActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrowthFxRateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/admin/growth/fx/rates/{rate_id}/reject": {
+      "post": {
+        "tags": [
+          "admin-growth-fx-v3"
+        ],
+        "summary": "Reject Growth Fx Rate",
+        "operationId": "reject_growth_fx_rate_api_v3_admin_growth_fx_rates__rate_id__reject_post",
         "security": [
           {
             "HTTPBearer": []
@@ -48434,6 +48838,42 @@
             "type": "array",
             "title": "Allowed Path Prefixes"
           },
+          "cabinet_allowed_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cabinet Allowed Prefixes"
+          },
+          "cabinet_marketing_route_action": {
+            "type": "string",
+            "enum": [
+              "redirect_public",
+              "allow",
+              "not_found"
+            ],
+            "title": "Cabinet Marketing Route Action",
+            "default": "redirect_public"
+          },
+          "public_marketing_destination_path": {
+            "type": "string",
+            "title": "Public Marketing Destination Path",
+            "default": "/"
+          },
+          "legal_path_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Legal Path Prefixes"
+          },
+          "operational_path_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Operational Path Prefixes"
+          },
           "preserve_query_keys": {
             "items": {
               "type": "string"
@@ -50936,6 +51376,18 @@
             "format": "uuid",
             "title": "Id"
           },
+          "provider_config_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Config Id"
+          },
           "base_currency": {
             "type": "string",
             "title": "Base Currency"
@@ -50967,6 +51419,11 @@
             "type": "string",
             "title": "Provider Key"
           },
+          "provider_priority": {
+            "type": "integer",
+            "title": "Provider Priority",
+            "default": 100
+          },
           "provider_rate_id": {
             "anyOf": [
               {
@@ -50997,6 +51454,68 @@
             "type": "string",
             "title": "Status"
           },
+          "approval_state": {
+            "type": "string",
+            "title": "Approval State",
+            "default": "approved"
+          },
+          "approved_by_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By Admin Id"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason"
+          },
+          "checksum": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checksum"
+          },
+          "raw_provider_payload_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Provider Payload Hash"
+          },
           "metadata": {
             "additionalProperties": true,
             "type": "object",
@@ -51026,6 +51545,248 @@
           "created_at"
         ],
         "title": "AdminGrowthFxRateResponse"
+      },
+      "AdminGrowthFxRefreshRequest": {
+        "properties": {
+          "provider_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Key"
+          },
+          "base_currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 12,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Currency"
+          },
+          "quote_currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 12,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Currency"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "change_reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Change Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "change_reason"
+        ],
+        "title": "AdminGrowthFxRefreshRequest"
+      },
+      "AdminGrowthFxRefreshResponse": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/AdminGrowthFxRefreshRunResponse"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "created_snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/AdminGrowthFxRateResponse"
+            },
+            "type": "array",
+            "title": "Created Snapshots"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runs",
+          "created_snapshots"
+        ],
+        "title": "AdminGrowthFxRefreshResponse"
+      },
+      "AdminGrowthFxRefreshRunResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "provider_config_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Config Id"
+          },
+          "provider_key": {
+            "type": "string",
+            "title": "Provider Key"
+          },
+          "run_key": {
+            "type": "string",
+            "title": "Run Key"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "trigger_type": {
+            "type": "string",
+            "title": "Trigger Type"
+          },
+          "requested_by_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By Admin Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "pairs_requested": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Pairs Requested"
+          },
+          "pairs_succeeded": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Pairs Succeeded"
+          },
+          "pairs_failed": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Pairs Failed"
+          },
+          "created_snapshot_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Created Snapshot Ids"
+          },
+          "provider_payload_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Payload Hash"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "provider_config_id",
+          "provider_key",
+          "run_key",
+          "status",
+          "trigger_type",
+          "requested_by_admin_id",
+          "started_at",
+          "finished_at",
+          "pairs_requested",
+          "pairs_succeeded",
+          "pairs_failed",
+          "created_snapshot_ids",
+          "provider_payload_hash",
+          "error_code",
+          "error_message"
+        ],
+        "title": "AdminGrowthFxRefreshRunResponse"
       },
       "AdminGrowthFxSimulateRequest": {
         "properties": {
@@ -62431,6 +63192,49 @@
         ],
         "title": "CheckoutCodeSetApplicationResponse"
       },
+      "CheckoutCodeSetRejectedDetailResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "const": "CODE_SET_REJECTED",
+            "title": "Code"
+          },
+          "message_key": {
+            "type": "string",
+            "title": "Message Key"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable",
+            "default": false
+          },
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/CheckoutCodeSetApplicationResponse"
+            },
+            "type": "array",
+            "title": "Applications"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message_key"
+        ],
+        "title": "CheckoutCodeSetRejectedDetailResponse"
+      },
+      "CheckoutCodeSetRejectedErrorResponse": {
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/CheckoutCodeSetRejectedDetailResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "CheckoutCodeSetRejectedErrorResponse"
+      },
       "CheckoutCodeSetResponse": {
         "properties": {
           "id": {
@@ -63738,6 +64542,42 @@
             },
             "type": "array",
             "title": "Allowed Path Prefixes"
+          },
+          "cabinet_allowed_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cabinet Allowed Prefixes"
+          },
+          "cabinet_marketing_route_action": {
+            "type": "string",
+            "enum": [
+              "redirect_public",
+              "allow",
+              "not_found"
+            ],
+            "title": "Cabinet Marketing Route Action",
+            "default": "redirect_public"
+          },
+          "public_marketing_destination_path": {
+            "type": "string",
+            "title": "Public Marketing Destination Path",
+            "default": "/"
+          },
+          "legal_path_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Legal Path Prefixes"
+          },
+          "operational_path_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Operational Path Prefixes"
           },
           "preserve_query_keys": {
             "items": {
@@ -69614,6 +70454,28 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "source_surface": {
+            "type": "string",
+            "enum": [
+              "web",
+              "miniapp",
+              "telegram_bot"
+            ],
+            "title": "Source Surface",
+            "default": "web"
+          },
+          "telegram_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Id"
           }
         },
         "additionalProperties": false,
@@ -69653,6 +70515,11 @@
             "type": "string",
             "title": "Next Destination",
             "default": "/dashboard"
+          },
+          "connection_required": {
+            "type": "boolean",
+            "title": "Connection Required",
+            "default": false
           }
         },
         "type": "object",
@@ -69722,6 +70589,11 @@
             "type": "boolean",
             "title": "Referral Already Attributed",
             "default": false
+          },
+          "connection_required": {
+            "type": "boolean",
+            "title": "Connection Required",
+            "default": false
           }
         },
         "type": "object",
@@ -69736,6 +70608,316 @@
         ],
         "title": "CustomerOnboardingAuthSummaryResponse",
         "description": "Post-registration onboarding summary safe for browser auth responses."
+      },
+      "CustomerOnboardingConnectionAppRecommendation": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "platform_store": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform Store"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CustomerOnboardingConnectionAppRecommendation"
+      },
+      "CustomerOnboardingConnectionBootstrapResponse": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "no_active_entitlement",
+              "service_identity_pending",
+              "config_unavailable",
+              "disabled"
+            ],
+            "title": "Status"
+          },
+          "message_key": {
+            "type": "string",
+            "title": "Message Key"
+          },
+          "subscription_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Url"
+          },
+          "qr_payload": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qr Payload"
+          },
+          "config_profile_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Profile Name"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "device_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Limit"
+          },
+          "traffic_limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traffic Limit Bytes"
+          },
+          "instructions": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerOnboardingConnectionInstruction"
+            },
+            "type": "array",
+            "title": "Instructions"
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "web",
+              "miniapp",
+              "telegram_bot"
+            ],
+            "title": "Surface",
+            "default": "web"
+          },
+          "preferred_layout": {
+            "type": "string",
+            "enum": [
+              "desktop_panel",
+              "mobile_panel",
+              "bot_messages"
+            ],
+            "title": "Preferred Layout",
+            "default": "desktop_panel"
+          },
+          "supported_actions": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "copy_subscription_url",
+                "open_subscription_url",
+                "show_qr",
+                "send_qr_image",
+                "show_instructions",
+                "mark_connected",
+                "open_dashboard",
+                "open_miniapp"
+              ]
+            },
+            "type": "array",
+            "title": "Supported Actions"
+          },
+          "connection_session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connection Session Id"
+          },
+          "telegram_payload": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TelegramConnectionPayloadResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "flow_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Key"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available",
+          "status",
+          "message_key"
+        ],
+        "title": "CustomerOnboardingConnectionBootstrapResponse"
+      },
+      "CustomerOnboardingConnectionInstruction": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android",
+              "windows",
+              "macos",
+              "linux"
+            ],
+            "title": "Platform"
+          },
+          "title_key": {
+            "type": "string",
+            "title": "Title Key"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerOnboardingConnectionInstructionStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "recommended_apps": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerOnboardingConnectionAppRecommendation"
+            },
+            "type": "array",
+            "title": "Recommended Apps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "title_key"
+        ],
+        "title": "CustomerOnboardingConnectionInstruction"
+      },
+      "CustomerOnboardingConnectionInstructionStep": {
+        "properties": {
+          "order": {
+            "type": "integer",
+            "maximum": 6.0,
+            "minimum": 1.0,
+            "title": "Order"
+          },
+          "title_key": {
+            "type": "string",
+            "title": "Title Key"
+          },
+          "body_key": {
+            "type": "string",
+            "title": "Body Key"
+          },
+          "action_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Url"
+          },
+          "copy_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copy Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order",
+          "title_key",
+          "body_key"
+        ],
+        "title": "CustomerOnboardingConnectionInstructionStep"
       },
       "CustomerOnboardingCurrentResponse": {
         "properties": {
@@ -69797,6 +70979,11 @@
             "type": "boolean",
             "title": "Referral Already Attributed",
             "default": false
+          },
+          "connection_required": {
+            "type": "boolean",
+            "title": "Connection Required",
+            "default": false
           }
         },
         "type": "object",
@@ -69810,6 +70997,116 @@
           "server_state_available"
         ],
         "title": "CustomerOnboardingCurrentResponse"
+      },
+      "CustomerOnboardingPreviewRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Code"
+          },
+          "flow_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 240,
+                "minLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Token"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "CustomerOnboardingPreviewRequest"
+      },
+      "CustomerOnboardingPreviewResponse": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "detected_code_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "promo",
+                  "invite",
+                  "gift",
+                  "referral",
+                  "partner"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detected Code Type"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "preview_available",
+              "not_found",
+              "ambiguous",
+              "wrong_context",
+              "not_eligible",
+              "expired",
+              "already_used",
+              "blocked"
+            ],
+            "title": "Status"
+          },
+          "message_key": {
+            "type": "string",
+            "title": "Message Key"
+          },
+          "masked_code": {
+            "type": "string",
+            "title": "Masked Code"
+          },
+          "matched_code_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matched Code Types"
+          },
+          "next_action": {
+            "type": "string",
+            "enum": [
+              "apply_now",
+              "stage_for_checkout",
+              "redeem_entitlement",
+              "resolve_ambiguity",
+              "none"
+            ],
+            "title": "Next Action"
+          },
+          "safe_details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Safe Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted",
+          "detected_code_type",
+          "status",
+          "message_key",
+          "masked_code",
+          "next_action"
+        ],
+        "title": "CustomerOnboardingPreviewResponse"
       },
       "CustomerOnboardingSkipRequest": {
         "properties": {
@@ -73200,6 +74497,7 @@
           "code_conflicts_with_partner_code",
           "code_conflicts_with_partner_binding",
           "code_conflicts_with_promo",
+          "code_namespace_ambiguous",
           "code_wrong_context",
           "code_requires_auth",
           "code_blocked_by_risk",
@@ -74568,6 +75866,55 @@
         ],
         "title": "InternalCompleteGrowthReportingDeliveryRequest"
       },
+      "InternalGrowthFxRefreshResponse": {
+        "properties": {
+          "triggered_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Triggered At"
+          },
+          "run_count": {
+            "type": "integer",
+            "title": "Run Count"
+          },
+          "created_snapshot_count": {
+            "type": "integer",
+            "title": "Created Snapshot Count"
+          },
+          "run_statuses": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Run Statuses"
+          },
+          "skipped": {
+            "type": "boolean",
+            "title": "Skipped",
+            "default": false
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "triggered_at",
+          "run_count",
+          "created_snapshot_count",
+          "run_statuses"
+        ],
+        "title": "InternalGrowthFxRefreshResponse"
+      },
       "InternalGrowthReportingDeliveryDispatchResponse": {
         "properties": {
           "delivery_id": {
@@ -75508,6 +76855,145 @@
         ],
         "title": "MagicLinkVerifyResponse",
         "description": "Response for successful magic link verification with auto-login."
+      },
+      "MarkOnboardingConnectionConnectedRequest": {
+        "properties": {
+          "connection_session_id": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Connection Session Id"
+          },
+          "flow_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Key"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ios",
+                  "android",
+                  "windows",
+                  "macos",
+                  "linux",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform",
+            "default": "unknown"
+          },
+          "source_surface": {
+            "type": "string",
+            "enum": [
+              "web",
+              "miniapp",
+              "telegram_bot"
+            ],
+            "title": "Source Surface",
+            "default": "web"
+          },
+          "telegram_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "connection_session_id"
+        ],
+        "title": "MarkOnboardingConnectionConnectedRequest"
+      },
+      "MarkOnboardingConnectionConnectedResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "recorded",
+              "already_recorded",
+              "not_required"
+            ],
+            "title": "Status"
+          },
+          "next_destination": {
+            "type": "string",
+            "title": "Next Destination"
+          },
+          "connected_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connected At"
+          },
+          "flow_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Key"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "next_destination"
+        ],
+        "title": "MarkOnboardingConnectionConnectedResponse"
       },
       "MarkOutboxPublicationFailedRequest": {
         "properties": {
@@ -99076,6 +100562,79 @@
         "title": "TelegramCallbackRequest",
         "description": "Telegram OAuth callback data.\n\nContains all fields sent by Telegram Login Widget.\nThe hash field is used to validate the data integrity."
       },
+      "TelegramConnectionPayloadResponse": {
+        "properties": {
+          "intro_message_key": {
+            "type": "string",
+            "title": "Intro Message Key"
+          },
+          "safe_profile_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Profile Label"
+          },
+          "subscription_url_button_text_key": {
+            "type": "string",
+            "title": "Subscription Url Button Text Key",
+            "default": "onboarding.connection.openLink"
+          },
+          "instructions_button_text_key": {
+            "type": "string",
+            "title": "Instructions Button Text Key",
+            "default": "onboarding.connection.instructions"
+          },
+          "mark_connected_button_text_key": {
+            "type": "string",
+            "title": "Mark Connected Button Text Key",
+            "default": "onboarding.connection.connected"
+          },
+          "dashboard_button_text_key": {
+            "type": "string",
+            "title": "Dashboard Button Text Key",
+            "default": "onboarding.connection.goDashboard"
+          },
+          "qr_caption_key": {
+            "type": "string",
+            "title": "Qr Caption Key",
+            "default": "onboarding.connection.qrCaption"
+          },
+          "bot_connection_session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bot Connection Session Id"
+          },
+          "preferred_platform": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android",
+              "windows",
+              "macos",
+              "linux",
+              "unknown"
+            ],
+            "title": "Preferred Platform",
+            "default": "unknown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "intro_message_key"
+        ],
+        "title": "TelegramConnectionPayloadResponse"
+      },
       "TelegramLinkResponse": {
         "properties": {
           "linked": {
@@ -101107,6 +102666,59 @@
             "type": "array",
             "maxItems": 50,
             "title": "Allowed Path Prefixes"
+          },
+          "cabinet_allowed_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Cabinet Allowed Prefixes"
+          },
+          "cabinet_marketing_route_action": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "redirect_public",
+                  "allow",
+                  "not_found"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cabinet Marketing Route Action"
+          },
+          "public_marketing_destination_path": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Marketing Destination Path"
+          },
+          "legal_path_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Legal Path Prefixes"
+          },
+          "operational_path_prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Operational Path Prefixes"
           },
           "preserve_query_keys": {
             "items": {

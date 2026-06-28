@@ -24,6 +24,7 @@ from src.application.use_cases.private_catalog.preflight import (
     PrivateStorefrontRecord,
 )
 from src.infrastructure.database.repositories.private_catalog_repo import SqlAlchemyPrivateCatalogRepository
+from src.infrastructure.monitoring.instrumentation.growth_codes import observe_checkout_code_set_rejected
 from src.presentation.api.shared.private_catalog_session import ensure_private_catalog_anonymous_session
 from src.presentation.dependencies.auth import get_optional_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
@@ -122,6 +123,8 @@ async def preflight_growth_code_set(
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    if result.status != "accepted":
+        observe_checkout_code_set_rejected(reason=_code_set_rejection_reason(result))
     response.headers["Cache-Control"] = "no-store, private"
     return CodeSetPreflightResponse(
         code_set_id=result.code_set_id,
@@ -215,3 +218,10 @@ def _hash_optional(value: str | None) -> str | None:
     if not value:
         return None
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _code_set_rejection_reason(result: Any) -> str:
+    risk_action = str(getattr(getattr(result, "risk", None), "action", "") or "").strip().lower()
+    if risk_action and risk_action not in {"allow", "accepted"}:
+        return f"risk_{risk_action}"
+    return str(getattr(result, "status", None) or "rejected")

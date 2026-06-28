@@ -1,6 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -20,6 +28,13 @@ import {
   getUnsupportedCheckoutCodeMessageKey,
   type UnsupportedCheckoutCodeMessageKey,
 } from '@/features/customer-growth/lib/checkout-code-resolution';
+import {
+  type CheckoutCodeApplicationStatus,
+  type CheckoutCodeSetRejectionApplication,
+  isCheckoutCodeSetAcceptedStatus,
+  isCheckoutCodeSetBlockingStatus,
+  normalizeCheckoutCodeApplicationStatus,
+} from '../lib/code-set-rejection';
 import type { GrowthCodeBasketCopy } from '../lib/copy';
 
 type GrowthCodeBasketStatus =
@@ -38,6 +53,7 @@ type GrowthCodeBasketItem = {
   message: string;
   codeType: ResolveGrowthCodeResponse['code_type'];
   resolution?: ResolveGrowthCodeResponse;
+  applicationStatus?: CheckoutCodeApplicationStatus;
 };
 
 export type GrowthCodeBasketPrimarySelection = {
@@ -72,6 +88,7 @@ type GrowthCodeBasketProps = {
   contextFingerprint: string;
   disabled?: boolean;
   maxCodes?: number;
+  slotIdPrefix?: string;
   variant?: 'web' | 'miniapp';
   className?: string;
   onSelectionChange: (
@@ -86,6 +103,7 @@ type ResolveItemInput = {
 };
 
 const DEFAULT_MAX_CODES = 5;
+const DEFAULT_SLOT_ID_PREFIX = 'code-slot';
 
 function normalizeGrowthCodeInput(value: string) {
   return value.trim().toUpperCase().slice(0, 64);
@@ -114,20 +132,35 @@ function buildEmptySummary(): GrowthCodeBasketSummary {
 
 function buildSummary(items: GrowthCodeBasketItem[]): GrowthCodeBasketSummary {
   const acceptedCodes = items
-    .filter((item) => item.status === 'accepted' && item.resolution?.accepted)
+    .filter((item) =>
+      item.status === 'accepted'
+      && (
+        item.resolution?.accepted === true
+        || isCheckoutCodeSetAcceptedStatus(item.applicationStatus)
+      )
+    )
     .map((item) => item.code);
   const acceptedCount = acceptedCodes.length;
   const pendingCount = items.filter((item) => item.status === 'checking').length;
+  const warningCount = items.filter((item) => item.status === 'warning' || item.status === 'idle').length;
+  const rejectedCount = items.filter((item) => item.status === 'rejected').length;
+  const networkErrorCount = items.filter((item) => item.status === 'network_error').length;
 
   return {
     acceptedCodes,
     acceptedCount,
     pendingCount,
-    warningCount: items.filter((item) => item.status === 'warning').length,
-    rejectedCount: items.filter((item) => item.status === 'rejected').length,
-    networkErrorCount: items.filter((item) => item.status === 'network_error').length,
+    warningCount,
+    rejectedCount,
+    networkErrorCount,
     totalCount: items.length,
-    isDegraded: false,
+    isDegraded: items.some((item) =>
+      item.status === 'idle'
+      || item.status === 'warning'
+      || item.status === 'rejected'
+      || item.status === 'network_error'
+      || isCheckoutCodeSetBlockingStatus(item.applicationStatus)
+    ),
   };
 }
 
@@ -170,16 +203,102 @@ function getUnsupportedKey(
   });
 }
 
-export function GrowthCodeBasket({
+function normalizeWrongContextTarget(value: unknown): 'checkout' | 'redeem' | null {
+  return value === 'checkout' || value === 'redeem' ? value : null;
+}
+
+function buildApplicationMessage({
+  application,
+  item,
+  status,
+  copy,
+}: {
+  application: CheckoutCodeSetRejectionApplication;
+  item: GrowthCodeBasketItem;
+  status: CheckoutCodeApplicationStatus;
+  copy: GrowthCodeBasketCopy;
+}): string {
+  const codeType = item.resolution?.code_type ?? item.codeType ?? 'unknown';
+  const prefix = copy.codeTypes[codeType ?? 'unknown'];
+
+  if (status === 'accepted') {
+    return `${prefix}: ${copy.applicationMessages.accepted}`;
+  }
+  if (status === 'applied') {
+    return `${prefix}: ${copy.applicationMessages.applied}`;
+  }
+  if (status === 'not_selected') {
+    return `${prefix}: ${copy.applicationMessages.notSelected}`;
+  }
+  if (status === 'ambiguous') {
+    return copy.resolutionErrors.namespaceAmbiguous;
+  }
+  if (status === 'wrong_context') {
+    const messageKey = getGrowthCodeResolutionMessageKey({
+      code_type: item.resolution?.code_type ?? item.codeType,
+      reject_reason: application.reject_reason ?? 'code_wrong_context',
+      conflict_code: application.conflict_code,
+      wrong_context_target: normalizeWrongContextTarget(application.wrong_context_target),
+      result: 'rejected',
+    });
+    return copy.resolutionErrors[messageKey] || copy.applicationMessages.wrongContext;
+  }
+  if (status === 'rejected') {
+    const messageKey = getGrowthCodeResolutionMessageKey({
+      code_type: item.resolution?.code_type ?? item.codeType,
+      reject_reason: application.reject_reason,
+      conflict_code: application.conflict_code,
+      wrong_context_target: normalizeWrongContextTarget(application.wrong_context_target),
+      result: application.conflict_code ? 'conflicted' : 'rejected',
+    });
+    return copy.resolutionErrors[messageKey] || copy.applicationMessages.rejected;
+  }
+
+  return copy.applicationMessages.unknown;
+}
+
+function findApplicationForItem(
+  applications: readonly CheckoutCodeSetRejectionApplication[],
+  item: GrowthCodeBasketItem,
+  index: number,
+): CheckoutCodeSetRejectionApplication | null {
+  return (
+    applications.find((application) => application.client_slot_id === item.id)
+    ?? applications.find((application) => application.position_entered === index + 1)
+    ?? applications[index]
+    ?? null
+  );
+}
+
+function getBasketStatusForApplication(
+  status: CheckoutCodeApplicationStatus,
+): GrowthCodeBasketStatus {
+  if (isCheckoutCodeSetAcceptedStatus(status)) {
+    return 'accepted';
+  }
+  if (status === 'rejected') {
+    return 'rejected';
+  }
+  return 'warning';
+}
+
+export type GrowthCodeBasketHandle = {
+  applyServerApplications: (
+    applications: readonly CheckoutCodeSetRejectionApplication[],
+  ) => void;
+};
+
+export const GrowthCodeBasket = forwardRef<GrowthCodeBasketHandle, GrowthCodeBasketProps>(function GrowthCodeBasket({
   copy,
   context,
   contextFingerprint,
   disabled = false,
   maxCodes = DEFAULT_MAX_CODES,
+  slotIdPrefix = DEFAULT_SLOT_ID_PREFIX,
   variant = 'web',
   className = '',
   onSelectionChange,
-}: GrowthCodeBasketProps) {
+}, ref) {
   const inputId = useId();
   const errorId = useId();
   const statusId = useId();
@@ -242,6 +361,7 @@ export function GrowthCodeBasket({
               status: 'checking',
               message: copy.status.checking,
               resolution: undefined,
+              applicationStatus: undefined,
             }
           : item,
       ),
@@ -279,6 +399,7 @@ export function GrowthCodeBasket({
                 codeType: resolution.code_type,
                 message: `${copy.codeTypes[codeType]}: ${message}`,
                 resolution,
+                applicationStatus: undefined,
               }
             : item,
         ),
@@ -298,11 +419,12 @@ export function GrowthCodeBasket({
           item.id === itemId
             ? {
                 ...item,
-                status: 'network_error',
-                message,
-                resolution: undefined,
-              }
-            : item,
+              status: 'network_error',
+              message,
+              resolution: undefined,
+              applicationStatus: undefined,
+            }
+          : item,
         ),
       );
     }
@@ -324,9 +446,45 @@ export function GrowthCodeBasket({
         status: 'idle',
         message: copy.contextChanged,
         resolution: undefined,
+        applicationStatus: undefined,
       })),
     );
   }, [commitItems, contextFingerprint, copy.contextChanged]);
+
+  const applyServerApplications = useCallback((
+    applications: readonly CheckoutCodeSetRejectionApplication[],
+  ) => {
+    if (applications.length === 0) {
+      return;
+    }
+
+    commitItems((currentItems) =>
+      currentItems.map((item, index) => {
+        const application = findApplicationForItem(applications, item, index);
+        if (!application) {
+          return item;
+        }
+
+        const applicationStatus = normalizeCheckoutCodeApplicationStatus(application.status);
+        return {
+          ...item,
+          maskedCode: application.masked_code || item.maskedCode,
+          status: getBasketStatusForApplication(applicationStatus),
+          applicationStatus,
+          message: buildApplicationMessage({
+            application,
+            item,
+            status: applicationStatus,
+            copy,
+          }),
+        };
+      }),
+    );
+  }, [commitItems, copy]);
+
+  useImperativeHandle(ref, () => ({
+    applyServerApplications,
+  }), [applyServerApplications]);
 
   const handleAdd = async () => {
     const normalizedCode = normalizeGrowthCodeInput(inputValue);
@@ -352,7 +510,7 @@ export function GrowthCodeBasket({
       return;
     }
 
-    const itemId = `code-slot-${nextItemId.current + 1}`;
+    const itemId = `${slotIdPrefix}-${nextItemId.current + 1}`;
     nextItemId.current += 1;
     const nextItem: GrowthCodeBasketItem = {
       id: itemId,
@@ -465,6 +623,9 @@ export function GrowthCodeBasket({
             const isAcceptedQueued =
               item.status === 'accepted'
               && summary.acceptedCount > 1;
+            const statusLabel = item.applicationStatus
+              ? copy.applicationStatuses[item.applicationStatus]
+              : copy.status[item.status];
 
             return (
               <div
@@ -479,7 +640,7 @@ export function GrowthCodeBasket({
                         {item.maskedCode}
                       </span>
                       <span className="rounded-full border border-current/25 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em]">
-                        {copy.status[item.status]}
+                        {statusLabel}
                       </span>
                     </div>
                     <p className="mt-1 text-xs leading-relaxed opacity-90">
@@ -522,14 +683,18 @@ export function GrowthCodeBasket({
         </p>
       ) : null}
 
-      {summary.acceptedCount > 1 ? (
+      {summary.isDegraded ? (
+        <div className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-3 text-xs font-mono text-amber-100">
+          {copy.partialRejected}
+        </div>
+      ) : summary.acceptedCount > 1 ? (
         <div className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-3 text-xs font-mono text-amber-100">
           {copy.degraded}
         </div>
       ) : null}
     </section>
   );
-}
+});
 
 export function createEmptyGrowthCodeBasketSummary(): GrowthCodeBasketSummary {
   return buildEmptySummary();

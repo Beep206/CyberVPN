@@ -14,12 +14,16 @@ SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 PROMOTE_SCRIPT_PATH = SCRIPTS_DIR / "promote_control_plane_release.py"
 VAULT_BOOTSTRAP_SCRIPT_PATH = SCRIPTS_DIR / "bootstrap_control_plane_vault.py"
 
-PROMOTE_SPEC = importlib.util.spec_from_file_location("promote_control_plane_release", PROMOTE_SCRIPT_PATH)
+PROMOTE_SPEC = importlib.util.spec_from_file_location(
+    "promote_control_plane_release", PROMOTE_SCRIPT_PATH
+)
 PROMOTE_MODULE = importlib.util.module_from_spec(PROMOTE_SPEC)
 assert PROMOTE_SPEC and PROMOTE_SPEC.loader
 PROMOTE_SPEC.loader.exec_module(PROMOTE_MODULE)
 
-VAULT_SPEC = importlib.util.spec_from_file_location("bootstrap_control_plane_vault", VAULT_BOOTSTRAP_SCRIPT_PATH)
+VAULT_SPEC = importlib.util.spec_from_file_location(
+    "bootstrap_control_plane_vault", VAULT_BOOTSTRAP_SCRIPT_PATH
+)
 VAULT_MODULE = importlib.util.module_from_spec(VAULT_SPEC)
 assert VAULT_SPEC and VAULT_SPEC.loader
 VAULT_SPEC.loader.exec_module(VAULT_MODULE)
@@ -69,12 +73,18 @@ class PromoteControlPlaneReleaseTests(unittest.TestCase):
             )
 
             payload = yaml.safe_load(output_path.read_text(encoding="utf-8"))
-            self.assertEqual(payload["control_plane_release_source_commit"], "abcdef1234567890")
+            self.assertEqual(
+                payload["control_plane_release_source_commit"], "abcdef1234567890"
+            )
             self.assertEqual(
                 payload["control_plane_release_images"]["backend"],
                 "ghcr.io/example/backend@sha256:" + "a" * 64,
             )
-            self.assertTrue(payload["control_plane_release_name"].startswith("control-plane-staging-"))
+            self.assertTrue(
+                payload["control_plane_release_name"].startswith(
+                    "control-plane-staging-"
+                )
+            )
 
 
 class BootstrapControlPlaneVaultTests(unittest.TestCase):
@@ -99,6 +109,7 @@ class BootstrapControlPlaneVaultTests(unittest.TestCase):
                     "telegram_bot_token": "backend-telegram-token",
                     "telegram_bot_username": "CyberVPNStageBot",
                     "telegram_bot_internal_secret": "backend-telegram-internal",
+                    "internal_secret": "backend-internal",
                     "totp_encryption_key": "totp-key",
                     "oauth_token_encryption_key": "oauth-key",
                 },
@@ -110,12 +121,28 @@ class BootstrapControlPlaneVaultTests(unittest.TestCase):
             }
         )
 
-        self.assertEqual(payload["vault_control_plane_postgres_password"], "postgres-secret")
+        self.assertEqual(
+            payload["vault_control_plane_postgres_password"], "postgres-secret"
+        )
         self.assertEqual(payload["vault_control_plane_registry_username"], "octocat")
-        self.assertEqual(payload["vault_control_plane_backend_jwt_secret"], "backend-jwt")
-        self.assertEqual(payload["vault_control_plane_backend_telegram_bot_token"], "backend-telegram-token")
-        self.assertEqual(payload["vault_control_plane_backend_telegram_bot_username"], "CyberVPNStageBot")
-        self.assertEqual(payload["vault_control_plane_backend_telegram_bot_internal_secret"], "backend-telegram-internal")
+        self.assertEqual(
+            payload["vault_control_plane_backend_jwt_secret"], "backend-jwt"
+        )
+        self.assertEqual(
+            payload["vault_control_plane_backend_telegram_bot_token"],
+            "backend-telegram-token",
+        )
+        self.assertEqual(
+            payload["vault_control_plane_backend_telegram_bot_username"],
+            "CyberVPNStageBot",
+        )
+        self.assertEqual(
+            payload["vault_control_plane_backend_telegram_bot_internal_secret"],
+            "backend-telegram-internal",
+        )
+        self.assertEqual(
+            payload["vault_control_plane_backend_internal_secret"], "backend-internal"
+        )
         self.assertEqual(payload["vault_control_plane_worker_telegram_bot_token"], "")
         self.assertEqual(payload["vault_control_plane_backend_env_extra"], {})
 
@@ -142,6 +169,7 @@ class BootstrapControlPlaneVaultTests(unittest.TestCase):
                         "vault_control_plane_backend_telegram_bot_token": "",
                         "vault_control_plane_backend_telegram_bot_username": "",
                         "vault_control_plane_backend_telegram_bot_internal_secret": "",
+                        "vault_control_plane_backend_internal_secret": "backend-internal",
                         "vault_control_plane_backend_totp_encryption_key": "totp-key",
                         "vault_control_plane_backend_oauth_token_encryption_key": "oauth-key",
                         "vault_control_plane_worker_remnawave_api_token": "worker-rw",
@@ -172,8 +200,16 @@ class BootstrapControlPlaneVaultTests(unittest.TestCase):
             )
 
             payload = yaml.safe_load(output_path.read_text(encoding="utf-8"))
-            self.assertEqual(payload["vault_control_plane_manifest_signing_key"], "signing-key")
-            self.assertEqual(payload["vault_control_plane_worker_admin_telegram_ids"], "")
+            self.assertEqual(
+                payload["vault_control_plane_manifest_signing_key"], "signing-key"
+            )
+            self.assertEqual(
+                payload["vault_control_plane_backend_internal_secret"],
+                "backend-internal",
+            )
+            self.assertEqual(
+                payload["vault_control_plane_worker_admin_telegram_ids"], ""
+            )
 
 
 if __name__ == "__main__":

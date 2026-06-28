@@ -200,6 +200,14 @@ async def test_payment_webhook_application_logs_redact_provider_external_ids(cap
             assert process_cash_rewards is False
             return {"cash_rewards_deferred": True}
 
+    class _Settlement:
+        async def execute(self, **_kwargs) -> SimpleNamespace:
+            return SimpleNamespace(status="legacy_non_order", legacy_post_payment_required=True)
+
+    monkeypatch.setattr(
+        "src.application.use_cases.payments.payment_webhook.SettleCompletedPaymentAttemptUseCase",
+        lambda _session: _Settlement(),
+    )
     monkeypatch.setattr(
         "src.application.use_cases.payments.post_payment.PostPaymentProcessingUseCase",
         lambda _session: _PostPaymentProcessing(),
@@ -248,6 +256,73 @@ async def test_payment_webhook_application_logs_redact_provider_external_ids(cap
     assert raw_external_id not in caplog.text
     assert any(getattr(record, "external_id_fingerprint", None) == expected_fingerprint for record in caplog.records)
     assert all(record.__dict__.get("external_id") != raw_external_id for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_payment_webhook_does_not_run_legacy_post_payment_for_missing_order_attempt(monkeypatch) -> None:
+    raw_external_id = "order-provider-invoice-777"
+    payment = SimpleNamespace(
+        id=uuid4(),
+        user_uuid=uuid4(),
+        status="pending",
+        provider="cryptobot",
+        currency="USD",
+        amount=Decimal("12.34"),
+        metadata_={"checkout_mode": "order_payment_attempt", "order_id": str(uuid4())},
+        wallet_amount_used=Decimal("0"),
+    )
+    paid_repo = SimpleNamespace(
+        get_by_external_id_for_update=AsyncMock(return_value=payment),
+        get_by_external_id=AsyncMock(return_value=payment),
+        update=AsyncMock(return_value=payment),
+    )
+    post_payment_execute = AsyncMock()
+    append_event = AsyncMock()
+
+    class _Settlement:
+        async def execute(self, **_kwargs) -> SimpleNamespace:
+            return SimpleNamespace(
+                status="order_attempt_missing",
+                legacy_post_payment_required=False,
+                payment_id=payment.id,
+                payment_attempt_id=None,
+                order_id=None,
+                benefit_results=(),
+                reason="order_payment_attempt_not_found",
+            )
+
+    class _PostPaymentProcessing:
+        async def execute(self, _payment_id, *, process_cash_rewards: bool) -> dict[str, Any]:
+            return await post_payment_execute(_payment_id, process_cash_rewards=process_cash_rewards)
+
+    monkeypatch.setattr(
+        "src.application.use_cases.payments.payment_webhook.PaymentRepository",
+        lambda _session: paid_repo,
+    )
+    monkeypatch.setattr(
+        "src.application.use_cases.payments.payment_webhook.SettleCompletedPaymentAttemptUseCase",
+        lambda _session: _Settlement(),
+    )
+    monkeypatch.setattr(
+        "src.application.use_cases.payments.post_payment.PostPaymentProcessingUseCase",
+        lambda _session: _PostPaymentProcessing(),
+    )
+    session = SimpleNamespace(commit=AsyncMock())
+    use_case = ProcessPaymentWebhookUseCase(  # type: ignore[arg-type]
+        session=session,
+        webhook_handler=object(),
+    )
+    use_case._attempts = SimpleNamespace(get_by_payment_id=AsyncMock(return_value=None))  # type: ignore[assignment]
+    use_case._outbox = SimpleNamespace(append_event=append_event)  # type: ignore[assignment]
+
+    result = await use_case._handle_invoice_paid(raw_external_id)
+
+    assert result["status"] == "processed"
+    assert result["post_payment"]["settlement"]["status"] == "order_attempt_missing"
+    paid_repo.update.assert_awaited_once_with(payment)
+    post_payment_execute.assert_not_awaited()
+    append_event.assert_not_awaited()
+    session.commit.assert_awaited_once()
 
 
 @pytest.mark.asyncio

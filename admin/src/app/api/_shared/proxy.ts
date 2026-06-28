@@ -21,6 +21,28 @@ const HOP_BY_HOP_HEADERS = new Set([
   'transfer-encoding',
   'upgrade',
 ]);
+const INTERNAL_SECRET_HEADERS = new Set([
+  'x-backend-internal-secret',
+  'x-payment-settlement-worker-secret',
+  'x-telegram-bot-secret',
+]);
+const SAFE_FORWARD_HEADERS = new Set([
+  'accept',
+  'accept-language',
+  'content-language',
+  'content-type',
+  'cookie',
+  'idempotency-key',
+  'origin',
+  'referer',
+  'user-agent',
+  'x-correlation-id',
+  'x-csrf-token',
+  'x-idempotency-key',
+  'x-request-id',
+  'x-requested-with',
+  'x-xsrf-token',
+]);
 
 export interface ApiProxyRouteContext {
   params: Promise<{
@@ -113,13 +135,10 @@ function buildForwardHeaders(request: NextRequest, path: string[]): Headers {
   for (const [key, value] of request.headers.entries()) {
     const normalizedKey = key.toLowerCase();
 
-    if (
-      HOP_BY_HOP_HEADERS.has(normalizedKey)
-      || normalizedKey === 'host'
-      || normalizedKey === 'x-forwarded-host'
-      || normalizedKey === 'x-forwarded-proto'
-      || normalizedKey === 'x-forwarded-port'
-    ) {
+    if (!SAFE_FORWARD_HEADERS.has(normalizedKey)
+      || HOP_BY_HOP_HEADERS.has(normalizedKey)
+      || INTERNAL_SECRET_HEADERS.has(normalizedKey)
+      || normalizedKey === 'host') {
       continue;
     }
 

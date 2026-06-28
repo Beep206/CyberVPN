@@ -23,7 +23,7 @@ TRANSACTION_PAGE_SIZE = 100
 async def reconcile_telegram_stars_refunds() -> dict[str, Any]:
     """Sync outgoing Telegram Stars refund transactions back into backend state."""
     settings = get_settings()
-    if not settings.backend_api_url or settings.backend_internal_secret is None:
+    if not settings.backend_api_url or settings.telegram_bot_internal_secret is None:
         logger.info("telegram_stars_reconciliation_skipped", reason="backend_api_not_configured")
         return {"skipped": True, "reason": "backend_api_not_configured"}
 
@@ -32,7 +32,7 @@ async def reconcile_telegram_stars_refunds() -> dict[str, Any]:
     actions: Counter[str] = Counter()
 
     async with TelegramClient() as telegram, BackendAPIClient() as backend:
-        if not backend.enabled:
+        if not backend.telegram_bot_internal_enabled:
             logger.info("telegram_stars_reconciliation_skipped", reason="backend_api_disabled")
             return {"skipped": True, "reason": "backend_api_disabled"}
 

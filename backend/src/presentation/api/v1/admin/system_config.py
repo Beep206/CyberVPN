@@ -126,6 +126,11 @@ def _serialize_customer_site_runtime(
         cabinet_hosts=list(config.cabinet_hosts),
         cabinet_destination_path=config.cabinet_destination_path,
         allowed_path_prefixes=list(config.allowed_path_prefixes),
+        cabinet_allowed_prefixes=list(config.cabinet_allowed_prefixes),
+        cabinet_marketing_route_action=config.cabinet_marketing_route_action,
+        public_marketing_destination_path=config.public_marketing_destination_path,
+        legal_path_prefixes=list(config.legal_path_prefixes),
+        operational_path_prefixes=list(config.operational_path_prefixes),
         preserve_query_keys=list(config.preserve_query_keys),
         cabinet_only=config.cabinet_only,
         registration_policy_independent=True,
@@ -486,6 +491,25 @@ def _build_customer_site_runtime_update_payload(
         "allowed_path_prefixes": _normalize_customer_site_path_prefixes(
             payload.allowed_path_prefixes,
             fallback=current.allowed_path_prefixes,
+        ),
+        "cabinet_allowed_prefixes": _normalize_customer_site_path_prefixes(
+            payload.cabinet_allowed_prefixes,
+            fallback=current.cabinet_allowed_prefixes,
+        ),
+        "cabinet_marketing_route_action": (
+            payload.cabinet_marketing_route_action or current.cabinet_marketing_route_action
+        ),
+        "public_marketing_destination_path": _normalize_customer_site_path(
+            payload.public_marketing_destination_path or current.public_marketing_destination_path,
+            fallback=current.public_marketing_destination_path,
+        ),
+        "legal_path_prefixes": _normalize_customer_site_path_prefixes(
+            payload.legal_path_prefixes,
+            fallback=current.legal_path_prefixes,
+        ),
+        "operational_path_prefixes": _normalize_customer_site_path_prefixes(
+            payload.operational_path_prefixes,
+            fallback=current.operational_path_prefixes,
         ),
         "preserve_query_keys": _normalize_customer_site_query_keys(
             payload.preserve_query_keys,

@@ -24,6 +24,7 @@ from src.utils.constants import (
     SCHEDULE_DAILY_STATS,
     SCHEDULE_DISABLE_EXPIRED,
     SCHEDULE_FINANCIAL_STATS,
+    SCHEDULE_GROWTH_FX_REFRESH,
     SCHEDULE_GROWTH_REPORTING_CLEANUP,
     SCHEDULE_GROWTH_REPORTING_DELIVERY,
     SCHEDULE_GROWTH_REPORTING_GOVERNANCE_FOLLOWUP,
@@ -206,6 +207,10 @@ from src.tasks.analytics.refresh_growth_reporting import refresh_growth_reportin
 refresh_growth_reporting_rollups = _schedule_task(
     refresh_growth_reporting_rollups, [{"cron": SCHEDULE_GROWTH_REPORTING_REFRESH}]
 )
+
+from src.tasks.analytics.refresh_growth_fx import refresh_growth_fx_rates
+
+refresh_growth_fx_rates = _schedule_task(refresh_growth_fx_rates, [{"cron": SCHEDULE_GROWTH_FX_REFRESH}])
 
 from src.tasks.analytics.process_growth_reporting_governance_followups import (
     process_growth_reporting_governance_followups,

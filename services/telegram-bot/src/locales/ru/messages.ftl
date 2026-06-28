@@ -343,6 +343,7 @@ promocode-cancelled = ✅ Ввод промокода отменён.
 code-enter-prompt = 🎟 Введите код. Сервис определит тип кода и доступное действие.
 code-activated = ✅ Код <b>{ $code }</b> активирован! Результат: <b>{ $discount }</b>
 code-not-found = ❌ Код не найден.
+bot-onboarding-code-apply-unavailable = ❌ Сейчас этот код нельзя применить из Telegram. Откройте CyberVPN и попробуйте ещё раз или обратитесь в поддержку.
 code-expired = ❌ Срок действия кода истёк.
 code-already-used = ℹ️ Этот код уже использован.
 code-usage-limit = ⚠️ Лимит использования кода исчерпан.
@@ -428,6 +429,92 @@ config-instructions = 📖 <b>Инструкция по подключению</
     2) Скопируйте ссылку подключения
     3) Импортируйте конфигурацию
     4) Подключитесь
+
+# ── Growth Connection UX ─────────────────────────────────────────────────
+bot-onboarding-code-applied = ✅ Код <b>{ $code }</b> принят.
+
+bot-onboarding-connection-ready = 🔐 <b>VPN-доступ готов</b>
+
+    Профиль: <b>{ $profile }</b>
+    Выберите, как добавить его в VPN-приложение. Ссылка и QR доступны только в этом личном чате.
+
+bot-onboarding-connection-profile-default = CyberVPN
+bot-onboarding-connection-no-active-entitlement = Для этого Telegram-аккаунта не найден активный VPN-доступ. Сначала примените код или выберите тариф.
+bot-onboarding-connection-pending-config = Доступ активен, но VPN-профиль ещё готовится. Попробуйте через минуту.
+bot-onboarding-connection-config-unavailable = VPN-профиль пока недоступен. Попробуйте позже или обратитесь в поддержку.
+bot-onboarding-connection-disabled = Выдача VPN-подключения временно недоступна.
+bot-onboarding-connection-private-chat-required = Откройте этого бота в личном чате, чтобы получить VPN-ссылку или QR-код.
+bot-onboarding-connection-session-expired = Эта сессия подключения истекла. Отправьте /connect ещё раз.
+bot-onboarding-connection-link-message = 🔗 <b>Ссылка подключения</b>
+
+    <code>{ $url }</code>
+
+    Скопируйте её в VPN-приложение. Не пересылайте эту ссылку.
+
+bot-onboarding-connection-qr-caption = Отсканируйте этот QR-код в VPN-приложении. Не пересылайте его.
+bot-onboarding-connection-mark-connected-confirmed = ✅ Подключение записано. Вы можете вернуться сюда за ссылкой или инструкцией.
+bot-onboarding-connection-dashboard-message = Откройте приложение CyberVPN или Mini App, чтобы управлять подпиской и устройствами.
+bot-onboarding-connection-help = <b>Помощь по подключению CyberVPN</b>
+
+    Используйте /code, чтобы применить invite, gift или promo-код.
+    Используйте /connect, чтобы получить приватную VPN-ссылку или QR-код.
+    Используйте /instructions, чтобы открыть инструкции снова.
+
+bot-onboarding-connection-instructions-generic = 📖 <b>Инструкция подключения</b>
+
+    1) Установите Hiddify, Streisand, V2rayNG или другое совместимое VPN-приложение.
+    2) Нажмите Link или QR в этом чате.
+    3) Импортируйте профиль.
+    4) Подключитесь и проверьте, что трафик идёт через VPN.
+
+bot-onboarding-connection-instructions-ios = 📖 <b>iOS</b>
+
+    1) Установите Streisand или Hiddify из App Store.
+    2) Нажмите Link или QR в этом чате.
+    3) Импортируйте профиль в приложение.
+    4) Разрешите VPN-профиль, когда iOS спросит.
+    5) Подключитесь.
+
+bot-onboarding-connection-instructions-android = 📖 <b>Android</b>
+
+    1) Установите Hiddify или V2rayNG.
+    2) Нажмите Link или QR в этом чате.
+    3) Импортируйте профиль в приложение.
+    4) Подключитесь и разрешите приложению работу в фоне.
+
+bot-onboarding-connection-instructions-windows = 📖 <b>Windows</b>
+
+    1) Установите Hiddify или Nekoray.
+    2) Нажмите Link и скопируйте URL подключения.
+    3) Импортируйте из буфера обмена в приложении.
+    4) Подключитесь.
+
+bot-onboarding-connection-instructions-macos = 📖 <b>macOS</b>
+
+    1) Установите Streisand или Hiddify.
+    2) Нажмите Link или QR в этом чате.
+    3) Импортируйте профиль в приложение.
+    4) Подключитесь.
+
+bot-onboarding-connection-instructions-linux = 📖 <b>Linux</b>
+
+    1) Установите Hiddify или Nekoray.
+    2) Нажмите Link и скопируйте URL подключения.
+    3) Импортируйте из буфера обмена в приложении.
+    4) Подключитесь.
+
+bot-onboarding-connection-open-link-button = 🔗 Link
+bot-onboarding-connection-show-qr-button = 📷 QR
+bot-onboarding-connection-mark-connected-button = ✅ Я подключился
+bot-onboarding-connection-dashboard-button = 📊 Кабинет
+bot-onboarding-connection-open-private-chat-button = Открыть личный чат
+bot-onboarding-connection-connect-button = Подключить VPN
+bot-onboarding-connection-instructions-button = Инструкция
+bot-onboarding-connection-platform-ios = iOS
+bot-onboarding-connection-platform-android = Android
+bot-onboarding-connection-platform-windows = Windows
+bot-onboarding-connection-platform-macos = macOS
+bot-onboarding-connection-platform-linux = Linux
 
 # ── Доступ / Условия ────────────────────────────────────────────────────
 access-rules = 📜 <b>Правила использования</b>

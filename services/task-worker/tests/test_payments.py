@@ -353,6 +353,34 @@ async def test_reconcile_stage1_payments_skips_without_backend_config(mock_setti
 
 
 @pytest.mark.asyncio
+async def test_stage1_reconciliation_backend_client_uses_backend_internal_secret(mock_settings):
+    """Test S1 reconciliation runner uses the task-worker backend audience credential."""
+    from src.services.backend_api_client import BackendAPIClient
+
+    mock_settings.backend_api_url = "https://backend.example.test/api/v1"
+    mock_settings.backend_internal_secret.get_secret_value.return_value = "backend-internal-secret"
+
+    with (
+        patch("src.services.backend_api_client.get_settings", return_value=mock_settings),
+        patch("src.services.backend_api_client.httpx.AsyncClient") as client_cls,
+    ):
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"summary": {"total_items": 0}}
+        http_client = AsyncMock()
+        http_client.post.return_value = response
+        client_cls.return_value = http_client
+
+        async with BackendAPIClient() as backend:
+            result = await backend.run_stage1_payment_reconciliation({"limit": 3})
+
+    assert result == {"summary": {"total_items": 0}}
+    request_headers = http_client.post.await_args.kwargs["headers"]
+    assert request_headers == {"X-Backend-Internal-Secret": "backend-internal-secret"}
+    assert "X-Telegram-Bot-Secret" not in request_headers
+
+
+@pytest.mark.asyncio
 async def test_stage1_provisioning_retry_worker_skips_when_claiming_disabled(mock_settings):
     """Test provisioning retry worker is disabled by default before Security review."""
     mock_settings.stage1_provisioning_retry_claiming_enabled = False
@@ -412,6 +440,34 @@ async def test_stage1_provisioning_retry_worker_calls_backend_and_updates_metric
         before_errors + 1
     )
     assert _metric_value(STAGE1_PROVISIONING_RETRY_JOBS_CURRENT, state="queued") == 3
+
+
+@pytest.mark.asyncio
+async def test_stage1_provisioning_backend_client_uses_backend_internal_secret(mock_settings):
+    """Test S1 provisioning retry runner uses the task-worker backend audience credential."""
+    from src.services.backend_api_client import BackendAPIClient
+
+    mock_settings.backend_api_url = "https://backend.example.test/api/v1"
+    mock_settings.backend_internal_secret.get_secret_value.return_value = "backend-internal-secret"
+
+    with (
+        patch("src.services.backend_api_client.get_settings", return_value=mock_settings),
+        patch("src.services.backend_api_client.httpx.AsyncClient") as client_cls,
+    ):
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"claimed": 0}
+        http_client = AsyncMock()
+        http_client.post.return_value = response
+        client_cls.return_value = http_client
+
+        async with BackendAPIClient() as backend:
+            result = await backend.run_stage1_provisioning_retries({"limit": 3, "worker_id": "unit"})
+
+    assert result == {"claimed": 0}
+    request_headers = http_client.post.await_args.kwargs["headers"]
+    assert request_headers == {"X-Backend-Internal-Secret": "backend-internal-secret"}
+    assert "X-Telegram-Bot-Secret" not in request_headers
 
 
 @pytest.mark.asyncio

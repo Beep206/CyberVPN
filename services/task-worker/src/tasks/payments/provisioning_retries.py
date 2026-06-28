@@ -43,7 +43,7 @@ async def process_stage1_provisioning_retries() -> dict[str, Any]:
 
     try:
         async with BackendAPIClient() as backend:
-            if not backend.enabled:
+            if not backend.backend_internal_enabled:
                 STAGE1_PROVISIONING_RETRY_RUNS_TOTAL.labels(result="skipped").inc()
                 STAGE1_PROVISIONING_RETRY_CLAIMS_TOTAL.labels(result="backend_api_disabled").inc()
                 logger.info("stage1_provisioning_retry_skipped", reason="backend_api_disabled")

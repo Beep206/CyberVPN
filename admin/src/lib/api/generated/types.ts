@@ -3334,6 +3334,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/customer/onboarding/growth-code/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Customer Onboarding Growth Code */
+        post: operations["preview_customer_onboarding_growth_code_api_v1_customer_onboarding_growth_code_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/customer/onboarding/growth-code/skip": {
         parameters: {
             query?: never;
@@ -3345,6 +3362,40 @@ export interface paths {
         put?: never;
         /** Skip Customer Onboarding Growth Code */
         post: operations["skip_customer_onboarding_growth_code_api_v1_customer_onboarding_growth_code_skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer/onboarding/connection/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Customer Onboarding Connection Bootstrap */
+        get: operations["get_customer_onboarding_connection_bootstrap_api_v1_customer_onboarding_connection_bootstrap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer/onboarding/connection/mark-connected": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Customer Onboarding Connection Connected */
+        post: operations["mark_customer_onboarding_connection_connected_api_v1_customer_onboarding_connection_mark_connected_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9304,6 +9355,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/growth-fx/internal/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Internal Refresh Growth Fx Rates */
+        post: operations["internal_refresh_growth_fx_rates_api_v1_admin_growth_fx_internal_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/growth-reporting/internal/governance/followups/process": {
         parameters: {
             query?: never;
@@ -11975,6 +12043,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v3/admin/growth/fx/rates/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh Growth Fx Rates */
+        post: operations["refresh_growth_fx_rates_api_v3_admin_growth_fx_rates_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v3/admin/growth/fx/rates/{rate_id}/approve": {
         parameters: {
             query?: never;
@@ -11986,6 +12071,23 @@ export interface paths {
         put?: never;
         /** Approve Growth Fx Rate */
         post: operations["approve_growth_fx_rate_api_v3_admin_growth_fx_rates__rate_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v3/admin/growth/fx/rates/{rate_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Growth Fx Rate */
+        post: operations["reject_growth_fx_rate_api_v3_admin_growth_fx_rates__rate_id__reject_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14292,6 +14394,23 @@ export interface components {
             cabinet_destination_path: string;
             /** Allowed Path Prefixes */
             allowed_path_prefixes?: string[];
+            /** Cabinet Allowed Prefixes */
+            cabinet_allowed_prefixes?: string[];
+            /**
+             * Cabinet Marketing Route Action
+             * @default redirect_public
+             * @enum {string}
+             */
+            cabinet_marketing_route_action: "redirect_public" | "allow" | "not_found";
+            /**
+             * Public Marketing Destination Path
+             * @default /
+             */
+            public_marketing_destination_path: string;
+            /** Legal Path Prefixes */
+            legal_path_prefixes?: string[];
+            /** Operational Path Prefixes */
+            operational_path_prefixes?: string[];
             /** Preserve Query Keys */
             preserve_query_keys?: string[];
             /**
@@ -15057,6 +15176,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Provider Config Id */
+            provider_config_id?: string | null;
             /** Base Currency */
             base_currency: string;
             /** Quote Currency */
@@ -15069,6 +15190,11 @@ export interface components {
             source_type: string;
             /** Provider Key */
             provider_key: string;
+            /**
+             * Provider Priority
+             * @default 100
+             */
+            provider_priority: number;
             /** Provider Rate Id */
             provider_rate_id: string | null;
             /**
@@ -15088,6 +15214,21 @@ export interface components {
             valid_until: string;
             /** Status */
             status: string;
+            /**
+             * Approval State
+             * @default approved
+             */
+            approval_state: string;
+            /** Approved By Admin Id */
+            approved_by_admin_id?: string | null;
+            /** Approved At */
+            approved_at?: string | null;
+            /** Rejection Reason */
+            rejection_reason?: string | null;
+            /** Checksum */
+            checksum?: string | null;
+            /** Raw Provider Payload Hash */
+            raw_provider_payload_hash?: string | null;
             /** Metadata */
             metadata: {
                 [key: string]: unknown;
@@ -15097,6 +15238,73 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** AdminGrowthFxRefreshRequest */
+        AdminGrowthFxRefreshRequest: {
+            /** Provider Key */
+            provider_key?: string | null;
+            /** Base Currency */
+            base_currency?: string | null;
+            /** Quote Currency */
+            quote_currency?: string | null;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+            /** Change Reason */
+            change_reason: string;
+        };
+        /** AdminGrowthFxRefreshResponse */
+        AdminGrowthFxRefreshResponse: {
+            /** Runs */
+            runs: components["schemas"]["AdminGrowthFxRefreshRunResponse"][];
+            /** Created Snapshots */
+            created_snapshots: components["schemas"]["AdminGrowthFxRateResponse"][];
+        };
+        /** AdminGrowthFxRefreshRunResponse */
+        AdminGrowthFxRefreshRunResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Provider Config Id */
+            provider_config_id: string | null;
+            /** Provider Key */
+            provider_key: string;
+            /** Run Key */
+            run_key: string;
+            /** Status */
+            status: string;
+            /** Trigger Type */
+            trigger_type: string;
+            /** Requested By Admin Id */
+            requested_by_admin_id: string | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Finished At */
+            finished_at: string | null;
+            /** Pairs Requested */
+            pairs_requested: {
+                [key: string]: unknown;
+            }[];
+            /** Pairs Succeeded */
+            pairs_succeeded: {
+                [key: string]: unknown;
+            }[];
+            /** Pairs Failed */
+            pairs_failed: {
+                [key: string]: unknown;
+            }[];
+            /** Created Snapshot Ids */
+            created_snapshot_ids: string[];
+            /** Provider Payload Hash */
+            provider_payload_hash: string | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Error Message */
+            error_message: string | null;
         };
         /** AdminGrowthFxSimulateRequest */
         AdminGrowthFxSimulateRequest: {
@@ -18863,6 +19071,27 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** CheckoutCodeSetRejectedDetailResponse */
+        CheckoutCodeSetRejectedDetailResponse: {
+            /**
+             * Code
+             * @constant
+             */
+            code: "CODE_SET_REJECTED";
+            /** Message Key */
+            message_key: string;
+            /**
+             * Retryable
+             * @default false
+             */
+            retryable: boolean;
+            /** Applications */
+            applications?: components["schemas"]["CheckoutCodeSetApplicationResponse"][];
+        };
+        /** CheckoutCodeSetRejectedErrorResponse */
+        CheckoutCodeSetRejectedErrorResponse: {
+            detail: components["schemas"]["CheckoutCodeSetRejectedDetailResponse"];
+        };
         /** CheckoutCodeSetResponse */
         CheckoutCodeSetResponse: {
             /** Id */
@@ -19403,6 +19632,23 @@ export interface components {
             cabinet_destination_path: string;
             /** Allowed Path Prefixes */
             allowed_path_prefixes?: string[];
+            /** Cabinet Allowed Prefixes */
+            cabinet_allowed_prefixes?: string[];
+            /**
+             * Cabinet Marketing Route Action
+             * @default redirect_public
+             * @enum {string}
+             */
+            cabinet_marketing_route_action: "redirect_public" | "allow" | "not_found";
+            /**
+             * Public Marketing Destination Path
+             * @default /
+             */
+            public_marketing_destination_path: string;
+            /** Legal Path Prefixes */
+            legal_path_prefixes?: string[];
+            /** Operational Path Prefixes */
+            operational_path_prefixes?: string[];
             /** Preserve Query Keys */
             preserve_query_keys?: string[];
             /**
@@ -21802,6 +22048,14 @@ export interface components {
             flow_token?: string | null;
             /** Idempotency Key */
             idempotency_key?: string | null;
+            /**
+             * Source Surface
+             * @default web
+             * @enum {string}
+             */
+            source_surface: "web" | "miniapp" | "telegram_bot";
+            /** Telegram Id */
+            telegram_id?: number | null;
         };
         /** CustomerOnboardingApplyResponse */
         CustomerOnboardingApplyResponse: {
@@ -21819,6 +22073,11 @@ export interface components {
              * @default /dashboard
              */
             next_destination: string;
+            /**
+             * Connection Required
+             * @default false
+             */
+            connection_required: boolean;
         };
         /**
          * CustomerOnboardingAuthSummaryResponse
@@ -21849,6 +22108,94 @@ export interface components {
              * @default false
              */
             referral_already_attributed: boolean;
+            /**
+             * Connection Required
+             * @default false
+             */
+            connection_required: boolean;
+        };
+        /** CustomerOnboardingConnectionAppRecommendation */
+        CustomerOnboardingConnectionAppRecommendation: {
+            /** Name */
+            name: string;
+            /** Url */
+            url?: string | null;
+            /** Platform Store */
+            platform_store?: string | null;
+        };
+        /** CustomerOnboardingConnectionBootstrapResponse */
+        CustomerOnboardingConnectionBootstrapResponse: {
+            /** Available */
+            available: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "available" | "no_active_entitlement" | "service_identity_pending" | "config_unavailable" | "disabled";
+            /** Message Key */
+            message_key: string;
+            /** Subscription Url */
+            subscription_url?: string | null;
+            /** Qr Payload */
+            qr_payload?: string | null;
+            /** Config Profile Name */
+            config_profile_name?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Device Limit */
+            device_limit?: number | null;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+            /** Instructions */
+            instructions?: components["schemas"]["CustomerOnboardingConnectionInstruction"][];
+            /**
+             * Surface
+             * @default web
+             * @enum {string}
+             */
+            surface: "web" | "miniapp" | "telegram_bot";
+            /**
+             * Preferred Layout
+             * @default desktop_panel
+             * @enum {string}
+             */
+            preferred_layout: "desktop_panel" | "mobile_panel" | "bot_messages";
+            /** Supported Actions */
+            supported_actions?: ("copy_subscription_url" | "open_subscription_url" | "show_qr" | "send_qr_image" | "show_instructions" | "mark_connected" | "open_dashboard" | "open_miniapp")[];
+            /** Connection Session Id */
+            connection_session_id?: string | null;
+            telegram_payload?: components["schemas"]["TelegramConnectionPayloadResponse"] | null;
+            /** Flow Key */
+            flow_key?: string | null;
+            /** Version */
+            version?: number | null;
+        };
+        /** CustomerOnboardingConnectionInstruction */
+        CustomerOnboardingConnectionInstruction: {
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "ios" | "android" | "windows" | "macos" | "linux";
+            /** Title Key */
+            title_key: string;
+            /** Steps */
+            steps?: components["schemas"]["CustomerOnboardingConnectionInstructionStep"][];
+            /** Recommended Apps */
+            recommended_apps?: components["schemas"]["CustomerOnboardingConnectionAppRecommendation"][];
+        };
+        /** CustomerOnboardingConnectionInstructionStep */
+        CustomerOnboardingConnectionInstructionStep: {
+            /** Order */
+            order: number;
+            /** Title Key */
+            title_key: string;
+            /** Body Key */
+            body_key: string;
+            /** Action Url */
+            action_url?: string | null;
+            /** Copy Value */
+            copy_value?: string | null;
         };
         /** CustomerOnboardingCurrentResponse */
         CustomerOnboardingCurrentResponse: {
@@ -21876,6 +22223,45 @@ export interface components {
              * @default false
              */
             referral_already_attributed: boolean;
+            /**
+             * Connection Required
+             * @default false
+             */
+            connection_required: boolean;
+        };
+        /** CustomerOnboardingPreviewRequest */
+        CustomerOnboardingPreviewRequest: {
+            /** Code */
+            code: string;
+            /** Flow Token */
+            flow_token?: string | null;
+        };
+        /** CustomerOnboardingPreviewResponse */
+        CustomerOnboardingPreviewResponse: {
+            /** Accepted */
+            accepted: boolean;
+            /** Detected Code Type */
+            detected_code_type: ("promo" | "invite" | "gift" | "referral" | "partner") | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "preview_available" | "not_found" | "ambiguous" | "wrong_context" | "not_eligible" | "expired" | "already_used" | "blocked";
+            /** Message Key */
+            message_key: string;
+            /** Masked Code */
+            masked_code: string;
+            /** Matched Code Types */
+            matched_code_types?: string[];
+            /**
+             * Next Action
+             * @enum {string}
+             */
+            next_action: "apply_now" | "stage_for_checkout" | "redeem_entitlement" | "resolve_ambiguity" | "none";
+            /** Safe Details */
+            safe_details?: {
+                [key: string]: unknown;
+            };
         };
         /** CustomerOnboardingSkipRequest */
         CustomerOnboardingSkipRequest: {
@@ -23273,7 +23659,7 @@ export interface components {
          * GrowthCodeRejectReason
          * @enum {string}
          */
-        GrowthCodeRejectReason: "code_not_found" | "code_expired" | "code_not_active" | "code_exhausted" | "code_already_redeemed" | "code_not_eligible_for_sku" | "code_not_eligible_for_surface" | "code_conflicts_with_partner_code" | "code_conflicts_with_partner_binding" | "code_conflicts_with_promo" | "code_wrong_context" | "code_requires_auth" | "code_blocked_by_risk" | "gift_already_redeemed" | "invite_self_redemption_blocked";
+        GrowthCodeRejectReason: "code_not_found" | "code_expired" | "code_not_active" | "code_exhausted" | "code_already_redeemed" | "code_not_eligible_for_sku" | "code_not_eligible_for_surface" | "code_conflicts_with_partner_code" | "code_conflicts_with_partner_binding" | "code_conflicts_with_promo" | "code_namespace_ambiguous" | "code_wrong_context" | "code_requires_auth" | "code_blocked_by_risk" | "gift_already_redeemed" | "invite_self_redemption_blocked";
         /**
          * GrowthCodeResolutionStatus
          * @enum {string}
@@ -23850,6 +24236,29 @@ export interface components {
             /** Failure Message */
             failure_message?: string | null;
         };
+        /** InternalGrowthFxRefreshResponse */
+        InternalGrowthFxRefreshResponse: {
+            /**
+             * Triggered At
+             * Format: date-time
+             */
+            triggered_at: string;
+            /** Run Count */
+            run_count: number;
+            /** Created Snapshot Count */
+            created_snapshot_count: number;
+            /** Run Statuses */
+            run_statuses: {
+                [key: string]: number;
+            };
+            /**
+             * Skipped
+             * @default false
+             */
+            skipped: boolean;
+            /** Reason */
+            reason?: string | null;
+        };
         /** InternalGrowthReportingDeliveryDispatchResponse */
         InternalGrowthReportingDeliveryDispatchResponse: {
             /** Delivery Id */
@@ -24316,6 +24725,44 @@ export interface components {
             requires_2fa: boolean;
             /** Tfa Token */
             tfa_token?: string | null;
+        };
+        /** MarkOnboardingConnectionConnectedRequest */
+        MarkOnboardingConnectionConnectedRequest: {
+            /** Connection Session Id */
+            connection_session_id: string;
+            /** Flow Key */
+            flow_key?: string | null;
+            /** Version */
+            version?: number | null;
+            /**
+             * Platform
+             * @default unknown
+             */
+            platform: ("ios" | "android" | "windows" | "macos" | "linux" | "unknown") | null;
+            /**
+             * Source Surface
+             * @default web
+             * @enum {string}
+             */
+            source_surface: "web" | "miniapp" | "telegram_bot";
+            /** Telegram Id */
+            telegram_id?: number | null;
+        };
+        /** MarkOnboardingConnectionConnectedResponse */
+        MarkOnboardingConnectionConnectedResponse: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "recorded" | "already_recorded" | "not_required";
+            /** Next Destination */
+            next_destination: string;
+            /** Connected At */
+            connected_at?: string | null;
+            /** Flow Key */
+            flow_key?: string | null;
+            /** Version */
+            version?: number | null;
         };
         /** MarkOutboxPublicationFailedRequest */
         MarkOutboxPublicationFailedRequest: {
@@ -33969,6 +34416,46 @@ export interface components {
              */
             state: string;
         };
+        /** TelegramConnectionPayloadResponse */
+        TelegramConnectionPayloadResponse: {
+            /** Intro Message Key */
+            intro_message_key: string;
+            /** Safe Profile Label */
+            safe_profile_label?: string | null;
+            /**
+             * Subscription Url Button Text Key
+             * @default onboarding.connection.openLink
+             */
+            subscription_url_button_text_key: string;
+            /**
+             * Instructions Button Text Key
+             * @default onboarding.connection.instructions
+             */
+            instructions_button_text_key: string;
+            /**
+             * Mark Connected Button Text Key
+             * @default onboarding.connection.connected
+             */
+            mark_connected_button_text_key: string;
+            /**
+             * Dashboard Button Text Key
+             * @default onboarding.connection.goDashboard
+             */
+            dashboard_button_text_key: string;
+            /**
+             * Qr Caption Key
+             * @default onboarding.connection.qrCaption
+             */
+            qr_caption_key: string;
+            /** Bot Connection Session Id */
+            bot_connection_session_id?: string | null;
+            /**
+             * Preferred Platform
+             * @default unknown
+             * @enum {string}
+             */
+            preferred_platform: "ios" | "android" | "windows" | "macos" | "linux" | "unknown";
+        };
         /**
          * TelegramLinkResponse
          * @description Response schema for authenticated Telegram account linking.
@@ -34937,6 +35424,16 @@ export interface components {
             cabinet_destination_path: string;
             /** Allowed Path Prefixes */
             allowed_path_prefixes?: string[];
+            /** Cabinet Allowed Prefixes */
+            cabinet_allowed_prefixes?: string[];
+            /** Cabinet Marketing Route Action */
+            cabinet_marketing_route_action?: ("redirect_public" | "allow" | "not_found") | null;
+            /** Public Marketing Destination Path */
+            public_marketing_destination_path?: string | null;
+            /** Legal Path Prefixes */
+            legal_path_prefixes?: string[];
+            /** Operational Path Prefixes */
+            operational_path_prefixes?: string[];
             /** Preserve Query Keys */
             preserve_query_keys?: string[];
             /** Expected Version */
@@ -41047,7 +41544,7 @@ export interface operations {
                 worker_id?: string;
             };
             header?: {
-                "X-Telegram-Bot-Secret"?: string | null;
+                "X-Backend-Internal-Secret"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -43215,7 +43712,9 @@ export interface operations {
     apply_customer_onboarding_growth_code_api_v1_customer_onboarding_growth_code_apply_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -43232,6 +43731,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomerOnboardingApplyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_customer_onboarding_growth_code_api_v1_customer_onboarding_growth_code_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerOnboardingPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerOnboardingPreviewResponse"];
                 };
             };
             /** @description Validation Error */
@@ -43265,6 +43797,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomerOnboardingSkipResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_customer_onboarding_connection_bootstrap_api_v1_customer_onboarding_connection_bootstrap_get: {
+        parameters: {
+            query?: {
+                surface?: "web" | "miniapp" | "telegram_bot";
+                platform_hint?: "ios" | "android" | "windows" | "macos" | "linux" | "unknown";
+                telegram_id?: number | null;
+            };
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerOnboardingConnectionBootstrapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_customer_onboarding_connection_connected_api_v1_customer_onboarding_connection_mark_connected_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkOnboardingConnectionConnectedRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkOnboardingConnectionConnectedResponse"];
                 };
             };
             /** @description Validation Error */
@@ -49588,13 +50190,13 @@ export interface operations {
                     "application/json": components["schemas"]["CheckoutQuoteResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Unprocessable Content */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["CheckoutCodeSetRejectedErrorResponse"];
                 };
             };
         };
@@ -49722,7 +50324,7 @@ export interface operations {
                 limit?: number;
             };
             header?: {
-                "X-Telegram-Bot-Secret"?: string | null;
+                "X-Backend-Internal-Secret"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -54067,13 +54669,13 @@ export interface operations {
                     "application/json": components["schemas"]["CheckoutQuoteResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Unprocessable Content */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["CheckoutCodeSetRejectedErrorResponse"];
                 };
             };
         };
@@ -55473,6 +56075,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminGrowthReportingRefreshResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    internal_refresh_growth_fx_rates_api_v1_admin_growth_fx_internal_refresh_post: {
+        parameters: {
+            query?: {
+                idempotency_key?: string | null;
+            };
+            header?: {
+                "X-Backend-Internal-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalGrowthFxRefreshResponse"];
                 };
             };
             /** @description Validation Error */
@@ -59016,13 +59651,13 @@ export interface operations {
                     "application/json": components["schemas"]["CheckoutQuoteResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Unprocessable Content */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["CheckoutCodeSetRejectedErrorResponse"];
                 };
             };
         };
@@ -60779,7 +61414,75 @@ export interface operations {
             };
         };
     };
+    refresh_growth_fx_rates_api_v3_admin_growth_fx_rates_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthFxRefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxRefreshResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     approve_growth_fx_rate_api_v3_admin_growth_fx_rates__rate_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthFxProviderActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthFxRateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_growth_fx_rate_api_v3_admin_growth_fx_rates__rate_id__reject_post: {
         parameters: {
             query?: never;
             header?: never;

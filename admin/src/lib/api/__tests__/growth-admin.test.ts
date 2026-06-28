@@ -51,7 +51,9 @@ const MATCH_ANY_API_ORIGIN = {
   growthCampaigns: `${API_V1_BASE}/admin/growth/campaigns`,
   growthCampaignDetail: `${API_V1_BASE}/admin/growth/campaigns/:campaignId`,
   growthCampaignPublish: `${API_V1_BASE}/admin/growth/campaigns/:campaignId/publish`,
+  growthFxRatesRefresh: `${API_V3_BASE}/admin/growth/fx/rates/refresh`,
   growthFxRateApprove: `${API_V3_BASE}/admin/growth/fx/rates/:rateId/approve`,
+  growthFxRateReject: `${API_V3_BASE}/admin/growth/fx/rates/:rateId/reject`,
   clientCapabilities: `${API_V1_BASE}/client/capabilities`,
   customerSiteRuntimeTimeline: `${API_V1_BASE}/admin/system-config/customer-site-runtime/timeline`,
   giftCodes: `${API_V1_BASE}/admin/gift-codes`,
@@ -80,6 +82,85 @@ afterEach(() => {
 });
 
 describe('growthApi Growth v6 FX operations', () => {
+  it('refreshes and rejects FX rate snapshots through v3 lifecycle endpoints', async () => {
+    server.use(
+      http.post(MATCH_ANY_API_ORIGIN.growthFxRatesRefresh, async ({ request }) => {
+        const body = await request.json();
+        expect(body).toEqual({
+          provider_key: 'ecb',
+          change_reason: 'operator refresh',
+        });
+        return HttpResponse.json(
+          {
+            runs: [
+              {
+                id: 'run-001',
+                provider_config_id: 'provider-config-1',
+                provider_key: 'ecb',
+                run_key: 'fx-refresh:ecb:test',
+                status: 'succeeded',
+                trigger_type: 'admin',
+                requested_by_admin_id: 'admin-1',
+                started_at: '2026-06-26T12:00:00Z',
+                finished_at: '2026-06-26T12:00:01Z',
+                pairs_requested: [{ base_currency: 'EUR', quote_currency: 'USD' }],
+                pairs_succeeded: [{ base_currency: 'EUR', quote_currency: 'USD' }],
+                pairs_failed: [],
+                created_snapshot_ids: ['rate-002'],
+                provider_payload_hash: 'a'.repeat(64),
+                error_code: null,
+                error_message: null,
+              },
+            ],
+            created_snapshots: [],
+          },
+          { status: 202 },
+        );
+      }),
+      http.post(MATCH_ANY_API_ORIGIN.growthFxRateReject, async ({ params, request }) => {
+        const body = await request.json();
+        expect(params.rateId).toBe('rate-002');
+        expect(body).toEqual({ change_reason: 'bad provider payload' });
+        return HttpResponse.json({
+          id: 'rate-002',
+          provider_config_id: 'provider-config-1',
+          base_currency: 'EUR',
+          quote_currency: 'USD',
+          rate: '1.1000',
+          inverse_rate: '0.9090909091',
+          source_type: 'provider',
+          provider_key: 'ecb',
+          provider_priority: 10,
+          provider_rate_id: 'ecb-rate-002',
+          observed_at: '2026-06-26T12:00:00Z',
+          fetched_at: '2026-06-26T12:00:00Z',
+          valid_until: '2026-06-26T13:00:00Z',
+          status: 'rejected',
+          approval_state: 'rejected',
+          approved_by_admin_id: null,
+          approved_at: null,
+          rejection_reason: 'bad provider payload',
+          checksum: 'b'.repeat(64),
+          raw_provider_payload_hash: 'c'.repeat(64),
+          metadata: {},
+          created_at: '2026-06-26T12:00:00Z',
+        });
+      }),
+    );
+
+    const refresh = await growthApi.refreshGrowthFxRates({
+      provider_key: 'ecb',
+      change_reason: 'operator refresh',
+    });
+    const rejected = await growthApi.rejectGrowthFxRate('rate-002', {
+      change_reason: 'bad provider payload',
+    });
+
+    expect(refresh.status).toBe(202);
+    expect(refresh.data.runs[0]?.status).toBe('succeeded');
+    expect(rejected.data.approval_state).toBe('rejected');
+  });
+
   it('approves configured FX rates through the maker-checker endpoint', async () => {
     server.use(
       http.post(MATCH_ANY_API_ORIGIN.growthFxRateApprove, async ({ params, request }) => {
@@ -88,17 +169,25 @@ describe('growthApi Growth v6 FX operations', () => {
         expect(body).toEqual({ change_reason: 'checker approval' });
         return HttpResponse.json({
           id: 'rate-001',
+          provider_config_id: null,
           base_currency: 'EUR',
           quote_currency: 'USD',
           rate: '1.1000',
           inverse_rate: '0.9090909091',
           source_type: 'configured',
           provider_key: 'admin_configured',
+          provider_priority: 100,
           provider_rate_id: null,
           observed_at: '2026-06-26T12:00:00Z',
           fetched_at: '2026-06-26T12:00:00Z',
           valid_until: '2026-06-26T13:00:00Z',
           status: 'active',
+          approval_state: 'approved',
+          approved_by_admin_id: 'admin-checker',
+          approved_at: '2026-06-26T12:01:00Z',
+          rejection_reason: null,
+          checksum: 'd'.repeat(64),
+          raw_provider_payload_hash: null,
           metadata: {
             configured_rate_version: 'manual-eur-usd-1',
             approved_by_admin_user_id: 'admin-checker',

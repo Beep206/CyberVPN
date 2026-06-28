@@ -4,10 +4,14 @@ import type { ChangeEvent, ReactNode } from 'react';
 import { useState } from 'react';
 import {
   BadgeDollarSign,
+  CheckCircle2,
   Fingerprint,
   LockKeyhole,
+  Power,
+  PowerOff,
   RefreshCw,
   ShieldAlert,
+  XCircle,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -17,9 +21,16 @@ import { GrowthPageShell } from '@/features/growth/components/growth-page-shell'
 import { GrowthStatusChip } from '@/features/growth/components/growth-status-chip';
 import { getErrorMessage, humanizeToken } from '@/features/growth/lib/formatting';
 import { growthApi } from '@/lib/api/growth';
+import type {
+  AdminGrowthFxRateResponse,
+  AdminGrowthFxStatusResponse,
+} from '@/lib/api/growth';
+import { hasAdminPermission } from '@/shared/lib/admin-rbac';
+import { useAuthStore } from '@/stores/auth-store';
 
 const CAPABILITIES_QUERY_KEY = ['growth', 'v6-operations', 'client-capabilities'];
 const FX_STATUS_QUERY_KEY = ['growth', 'v6-operations', 'fx-status'];
+const FX_RATES_QUERY_KEY = ['growth', 'v6-operations', 'fx-rates'];
 const PRIVATE_TARGETS_QUERY_KEY = ['growth', 'v6-operations', 'private-targets'];
 const PRIVATE_GRANTS_QUERY_KEY = ['growth', 'v6-operations', 'private-grants'];
 const ONBOARDING_SETTINGS_QUERY_KEY = ['growth', 'v6-operations', 'onboarding-settings'];
@@ -44,6 +55,17 @@ function useGrowthFxStatus() {
     queryKey: FX_STATUS_QUERY_KEY,
     queryFn: async () => {
       const response = await growthApi.getGrowthFxStatus();
+      return response.data;
+    },
+    staleTime: 15_000,
+  });
+}
+
+function useGrowthFxRates() {
+  return useQuery({
+    queryKey: FX_RATES_QUERY_KEY,
+    queryFn: async () => {
+      const response = await growthApi.listGrowthFxRates({ limit: 8, offset: 0 });
       return response.data;
     },
     staleTime: 15_000,
@@ -154,8 +176,11 @@ function endpointRows(area: 'fx' | 'privateAccess' | 'onboarding' | 'risk') {
       '/api/v3/admin/growth/fx/status',
       '/api/v3/admin/growth/fx/rates',
       '/api/v3/admin/growth/fx/simulate',
+      '/api/v3/admin/growth/fx/rates/refresh',
       '/api/v3/admin/growth/fx/rates/{rate_id}/approve',
+      '/api/v3/admin/growth/fx/rates/{rate_id}/reject',
       '/api/v3/admin/growth/fx/providers/{key}/disable',
+      '/api/v3/admin/growth/fx/providers/{key}/enable',
     ];
   }
 
@@ -335,11 +360,13 @@ function ActionField({
   value,
   onChange,
   type = 'text',
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: 'text' | 'number';
+  disabled?: boolean;
 }) {
   return (
     <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -347,6 +374,7 @@ function ActionField({
       <input
         type={type}
         value={value}
+        disabled={disabled}
         onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
         className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden transition focus:border-neon-cyan/60"
       />
@@ -440,16 +468,138 @@ function SupportRows({
   );
 }
 
+function unknownRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function textValue(value: unknown, fallback = '--'): string {
+  if (typeof value === 'string' && value.trim()) {
+    return value;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  return fallback;
+}
+
+function booleanValue(value: unknown): boolean | null {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  return null;
+}
+
+function fxStatusTone(status: string | null | undefined) {
+  const normalizedStatus = status?.toLowerCase();
+  if (normalizedStatus === 'active' || normalizedStatus === 'approved') {
+    return 'success' as const;
+  }
+  if (normalizedStatus === 'pending' || normalizedStatus === 'pending_approval') {
+    return 'warning' as const;
+  }
+  if (normalizedStatus === 'rejected' || normalizedStatus === 'disabled' || normalizedStatus === 'expired') {
+    return 'danger' as const;
+  }
+  return 'neutral' as const;
+}
+
+function fxProviderRows(providers: AdminGrowthFxStatusResponse['providers'] | undefined) {
+  return (providers ?? []).map((provider, index) => {
+    const record = unknownRecord(provider);
+    const providerKey = textValue(record.provider_key ?? record.key ?? record.name, `provider-${index + 1}`);
+    const enabled = booleanValue(record.enabled);
+    const status = textValue(record.status, enabled === false ? 'disabled' : 'active');
+    const priority = textValue(record.priority);
+    const approval = booleanValue(record.requires_admin_approval);
+    const staleAfter = textValue(record.stale_after_seconds);
+
+    return {
+      id: providerKey,
+      primary: `${providerKey} / ${humanizeToken(status)}`,
+      secondary: `priority ${priority} / approval ${
+        approval == null ? 'unknown' : approval ? 'required' : 'auto'
+      } / stale ${staleAfter}s`,
+      enabled,
+      status,
+    };
+  });
+}
+
+function isPendingFxRate(rate: AdminGrowthFxRateResponse | null | undefined) {
+  const status = rate?.status.toLowerCase();
+  return status === 'pending' || status === 'pending_approval';
+}
+
+function createFxRefreshIdempotencyKey() {
+  const randomPart = globalThis.crypto?.randomUUID?.()
+    ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `admin-growth-fx-refresh-${randomPart}`;
+}
+
+function ReadOnlyNotice({ children }: { children: ReactNode }) {
+  return (
+    <div
+      role="note"
+      className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-4 text-xs font-mono leading-5 text-amber-100"
+    >
+      {children}
+    </div>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 break-words font-mono text-xs text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function MetricCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-3">
+      <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-2 font-display text-xl tracking-[0.1em] text-white">{value}</p>
+    </div>
+  );
+}
+
 export function GrowthFxConsole() {
   const t = useTranslations('Growth');
+  const queryClient = useQueryClient();
+  const role = useAuthStore((state) => state.user?.role);
+  const canManageFx = hasAdminPermission(role, 'growth.fx.manage');
+  const canApproveFx = hasAdminPermission(role, 'growth.fx.approve');
   const capabilitiesQuery = useClientCapabilities();
   const fxStatusQuery = useGrowthFxStatus();
+  const fxRatesQuery = useGrowthFxRates();
   const [sourceCurrency, setSourceCurrency] = useState('USD');
   const [targetCurrency, setTargetCurrency] = useState('RUB');
   const [amount, setAmount] = useState('10.00');
+  const [rateIdInput, setRateIdInput] = useState('');
+  const [providerKeyInput, setProviderKeyInput] = useState('');
+  const [fxReason, setFxReason] = useState('growth_fx_lifecycle_review');
+  const [refreshIdempotencyKey, setRefreshIdempotencyKey] = useState(createFxRefreshIdempotencyKey);
   const growth = capabilitiesQuery.data?.growth;
   const site = capabilitiesQuery.data?.site;
-  const adminApiAvailable = fxStatusQuery.isSuccess;
+  const rates = fxRatesQuery.data?.items ?? [];
+  const firstRate = rates[0];
+  const activeRateId = rateIdInput.trim() || firstRate?.id || '';
+  const selectedRate = rates.find((rate) => rate.id === activeRateId) ?? firstRate ?? null;
+  const providerRows = fxProviderRows(fxStatusQuery.data?.providers);
+  const firstProvider = providerRows[0];
+  const activeProviderKey = providerKeyInput.trim() || firstProvider?.id || '';
+  const adminApiAvailable = fxStatusQuery.isSuccess && fxRatesQuery.isSuccess;
   const simulationMutation = useMutation({
     mutationFn: async () => {
       const response = await growthApi.simulateGrowthFxConversion({
@@ -462,7 +612,74 @@ export function GrowthFxConsole() {
       return response.data;
     },
   });
+  const refreshRatesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.refreshGrowthFxRates({
+        ...(activeProviderKey ? { provider_key: activeProviderKey } : {}),
+        idempotency_key: refreshIdempotencyKey,
+        change_reason: fxReason,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: FX_STATUS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: FX_RATES_QUERY_KEY });
+      setRefreshIdempotencyKey(createFxRefreshIdempotencyKey());
+    },
+  });
+  const approveRateMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.approveGrowthFxRate(activeRateId, {
+        change_reason: fxReason,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: FX_STATUS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: FX_RATES_QUERY_KEY });
+    },
+  });
+  const rejectRateMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.rejectGrowthFxRate(activeRateId, {
+        change_reason: fxReason,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: FX_STATUS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: FX_RATES_QUERY_KEY });
+    },
+  });
+  const disableProviderMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.disableGrowthFxProvider(activeProviderKey, {
+        change_reason: fxReason,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: FX_STATUS_QUERY_KEY });
+    },
+  });
+  const enableProviderMutation = useMutation({
+    mutationFn: async () => {
+      const response = await growthApi.enableGrowthFxProvider(activeProviderKey, {
+        change_reason: fxReason,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: FX_STATUS_QUERY_KEY });
+    },
+  });
   const canSimulate = Boolean(sourceCurrency.trim() && targetCurrency.trim() && amount.trim());
+  const canRefreshRates = Boolean(fxReason.trim() && canManageFx);
+  const canApproveRate =
+    Boolean(activeRateId && fxReason.trim() && isPendingFxRate(selectedRate) && canApproveFx);
+  const canRejectRate =
+    Boolean(activeRateId && fxReason.trim() && isPendingFxRate(selectedRate) && canApproveFx);
+  const canToggleProvider = Boolean(activeProviderKey && fxReason.trim() && canManageFx);
 
   return (
     <GrowthPageShell
@@ -496,10 +713,10 @@ export function GrowthFxConsole() {
           tone: adminApiAvailable ? 'success' : 'warning',
         },
         {
-          label: t('fx.metrics.manualOverride'),
-          value: t('v6.common.disabled'),
-          hint: t('fx.metrics.manualOverrideHint'),
-          tone: 'warning',
+          label: t('fx.metrics.staleRates'),
+          value: String(fxStatusQuery.data?.stale_rate_count ?? 0),
+          hint: t('fx.metrics.staleRatesHint'),
+          tone: fxStatusQuery.data?.stale_rate_count ? 'warning' : 'success',
         },
       ]}
     >
@@ -509,6 +726,9 @@ export function GrowthFxConsole() {
       {fxStatusQuery.error ? (
         <DegradedNotice title={t('fx.degraded.title')} description={t('fx.degraded.description')} />
       ) : null}
+      {fxRatesQuery.error ? (
+        <DegradedNotice title={t('fx.degraded.title')} description={t('fx.degraded.ratesDescription')} />
+      ) : null}
       <div className="grid gap-6 xl:grid-cols-2">
         <EndpointCoverage
           title={t('fx.coverageTitle')}
@@ -516,6 +736,171 @@ export function GrowthFxConsole() {
           area="fx"
           wrapperAvailable
         />
+        <ActionPanel
+          title={t('fx.lifecycleTitle')}
+          description={t('fx.lifecycleDescription')}
+        >
+          {!canManageFx && !canApproveFx ? (
+            <ReadOnlyNotice>{t('fx.readOnly')}</ReadOnlyNotice>
+          ) : null}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <MetricCell
+              label={t('fx.lifecycle.activeRates')}
+              value={String(fxStatusQuery.data?.active_rate_count ?? 0)}
+            />
+            <MetricCell
+              label={t('fx.lifecycle.staleRates')}
+              value={String(fxStatusQuery.data?.stale_rate_count ?? 0)}
+            />
+            <MetricCell
+              label={t('fx.lifecycle.disabledRates')}
+              value={String(fxStatusQuery.data?.disabled_rate_count ?? 0)}
+            />
+          </div>
+          <SupportRows
+            emptyLabel={t('fx.lifecycle.emptyRates')}
+            rows={rates.map((rate) => ({
+              id: rate.id,
+              primary: `${rate.base_currency}/${rate.quote_currency} ${rate.rate}`,
+              secondary: `${rate.id} / ${humanizeToken(rate.status)} / ${rate.provider_key} / ${rate.valid_until}`,
+            }))}
+          />
+          {selectedRate ? (
+            <div className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <GrowthStatusChip
+                  label={humanizeToken(selectedRate.status)}
+                  tone={fxStatusTone(selectedRate.status)}
+                />
+                <GrowthStatusChip label={selectedRate.source_type} tone="info" />
+                <GrowthStatusChip
+                  label={selectedRate.provider_key}
+                  tone="neutral"
+                />
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <InfoLine label={t('fx.lifecycle.observedAt')} value={selectedRate.observed_at} />
+                <InfoLine label={t('fx.lifecycle.validUntil')} value={selectedRate.valid_until} />
+              </div>
+            </div>
+          ) : null}
+          <div className="grid gap-4 md:grid-cols-2">
+            <ActionField
+              label={t('fx.fields.rate')}
+              value={activeRateId}
+              onChange={setRateIdInput}
+              disabled={!canApproveFx}
+            />
+            <ActionField
+              label={t('fx.fields.reason')}
+              value={fxReason}
+              onChange={setFxReason}
+              disabled={!canManageFx && !canApproveFx}
+            />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              magnetic={false}
+              disabled={!canApproveRate || approveRateMutation.isPending}
+              onClick={() => approveRateMutation.mutate()}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
+              {approveRateMutation.isPending ? t('v6.common.running') : t('fx.actions.approveRate')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              magnetic={false}
+              disabled={!canRefreshRates || refreshRatesMutation.isPending}
+              onClick={() => refreshRatesMutation.mutate()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+              {refreshRatesMutation.isPending ? t('v6.common.running') : t('fx.actions.refreshRates')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              magnetic={false}
+              disabled={!canRejectRate || rejectRateMutation.isPending}
+              onClick={() => rejectRateMutation.mutate()}
+            >
+              <XCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+              {rejectRateMutation.isPending ? t('v6.common.running') : t('fx.actions.rejectRate')}
+            </Button>
+          </div>
+          <SupportRows
+            emptyLabel={t('fx.lifecycle.emptyProviders')}
+            rows={providerRows}
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <ActionField
+              label={t('fx.fields.provider')}
+              value={activeProviderKey}
+              onChange={setProviderKeyInput}
+              disabled={!canManageFx}
+            />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              magnetic={false}
+              disabled={!canToggleProvider || disableProviderMutation.isPending}
+              onClick={() => disableProviderMutation.mutate()}
+            >
+              <PowerOff className="mr-2 h-4 w-4" aria-hidden="true" />
+              {disableProviderMutation.isPending
+                ? t('v6.common.running')
+                : t('fx.actions.disableProvider')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              magnetic={false}
+              disabled={!canToggleProvider || enableProviderMutation.isPending}
+              onClick={() => enableProviderMutation.mutate()}
+            >
+              <Power className="mr-2 h-4 w-4" aria-hidden="true" />
+              {enableProviderMutation.isPending
+                ? t('v6.common.running')
+                : t('fx.actions.enableProvider')}
+            </Button>
+          </div>
+          <MutationStatus
+            error={
+              refreshRatesMutation.error
+              || approveRateMutation.error
+              || rejectRateMutation.error
+              || disableProviderMutation.error
+              || enableProviderMutation.error
+            }
+            success={
+              refreshRatesMutation.data
+              || approveRateMutation.data
+              || rejectRateMutation.data
+              || disableProviderMutation.data
+              || enableProviderMutation.data ? (
+                <span>
+                  {refreshRatesMutation.data
+                    ? t('fx.lifecycle.refreshResult', {
+                        count: refreshRatesMutation.data.created_snapshots.length,
+                      })
+                    : approveRateMutation.data
+                    ? t('fx.lifecycle.approveResult', {
+                        status: approveRateMutation.data.status,
+                      })
+                    : rejectRateMutation.data
+                    ? t('fx.lifecycle.rejectResult', {
+                        status: rejectRateMutation.data.status,
+                      })
+                    : t('fx.lifecycle.providerResult')}
+                </span>
+              ) : null
+            }
+          />
+        </ActionPanel>
         <ActionPanel
           title={t('fx.simulatorTitle')}
           description={t('fx.simulatorDescription')}

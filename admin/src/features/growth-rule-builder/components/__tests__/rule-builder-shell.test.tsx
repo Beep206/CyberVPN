@@ -3,20 +3,33 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAuthStore } from '@/stores/auth-store';
 import { RuleBuilderShell } from '../rule-builder-shell';
 
 const {
   mockGetGrowthRuleCatalog,
   mockCompileGrowthRule,
   mockSimulateGrowthRule,
+  mockListGrowthRulePolicies,
   mockCreateGrowthRulePolicy,
   mockSubmitGrowthRulePolicy,
+  mockApproveGrowthRulePolicy,
+  mockRejectGrowthRulePolicy,
+  mockPublishGrowthRulePolicy,
+  mockRollbackGrowthRulePolicy,
+  mockDiffGrowthRulePolicy,
 } = vi.hoisted(() => ({
   mockGetGrowthRuleCatalog: vi.fn(),
   mockCompileGrowthRule: vi.fn(),
   mockSimulateGrowthRule: vi.fn(),
+  mockListGrowthRulePolicies: vi.fn(),
   mockCreateGrowthRulePolicy: vi.fn(),
   mockSubmitGrowthRulePolicy: vi.fn(),
+  mockApproveGrowthRulePolicy: vi.fn(),
+  mockRejectGrowthRulePolicy: vi.fn(),
+  mockPublishGrowthRulePolicy: vi.fn(),
+  mockRollbackGrowthRulePolicy: vi.fn(),
+  mockDiffGrowthRulePolicy: vi.fn(),
 }));
 
 vi.mock('@/lib/api/growth', async () => {
@@ -28,8 +41,14 @@ vi.mock('@/lib/api/growth', async () => {
       getGrowthRuleCatalog: (...args: unknown[]) => mockGetGrowthRuleCatalog(...args),
       compileGrowthRule: (...args: unknown[]) => mockCompileGrowthRule(...args),
       simulateGrowthRule: (...args: unknown[]) => mockSimulateGrowthRule(...args),
+      listGrowthRulePolicies: (...args: unknown[]) => mockListGrowthRulePolicies(...args),
       createGrowthRulePolicy: (...args: unknown[]) => mockCreateGrowthRulePolicy(...args),
       submitGrowthRulePolicy: (...args: unknown[]) => mockSubmitGrowthRulePolicy(...args),
+      approveGrowthRulePolicy: (...args: unknown[]) => mockApproveGrowthRulePolicy(...args),
+      rejectGrowthRulePolicy: (...args: unknown[]) => mockRejectGrowthRulePolicy(...args),
+      publishGrowthRulePolicy: (...args: unknown[]) => mockPublishGrowthRulePolicy(...args),
+      rollbackGrowthRulePolicy: (...args: unknown[]) => mockRollbackGrowthRulePolicy(...args),
+      diffGrowthRulePolicy: (...args: unknown[]) => mockDiffGrowthRulePolicy(...args),
     },
   };
 });
@@ -59,6 +78,56 @@ const catalog = {
     challenge: { result: 'challenge', params: ['challenge_type', 'message_key'] },
   },
 };
+
+function policyVersion(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: '00000000-0000-0000-0000-000000000111',
+    policy_family: 'growth',
+    policy_key: 'checkout_eligibility',
+    subject_type: 'growth_rule',
+    subject_id: null,
+    version_number: 1,
+    payload: {},
+    approval_state: 'pending_approval',
+    version_status: 'draft',
+    effective_from: '2026-06-26T00:00:00Z',
+    effective_to: null,
+    created_by_admin_user_id: 'admin-creator',
+    approved_by_admin_user_id: null,
+    approved_at: null,
+    rejection_reason: null,
+    supersedes_policy_version_id: null,
+    rule_definition_id: 'rule-definition-1',
+    schema_version: 'growth-rule.v1',
+    catalog_version: 'growth-rule-catalog.v1',
+    normalized_ast: {
+      schema_version: 'growth-rule.v1',
+      when: {
+        type: 'condition',
+        field: 'checkout.currency',
+        operator: 'eq',
+        value: 'USD',
+      },
+      then: [{ action: 'allow', params: {} }],
+    },
+    compiled_plan: {
+      catalog_version: 'growth-rule-catalog.v1',
+      condition: {
+        type: 'condition',
+        field: 'checkout.currency',
+        operator: 'eq',
+        value: 'USD',
+      },
+      actions: [{ action: 'allow', params: {} }],
+    },
+    compiled_checksum: 'rule-checksum-001',
+    node_count: 3,
+    max_depth: 2,
+    complexity_score: 5,
+    validation_status: 'valid',
+    ...overrides,
+  };
+}
 
 function renderWithQueryClient(ui: ReactNode) {
   const queryClient = new QueryClient({
@@ -95,6 +164,20 @@ describe('RuleBuilderShell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    useAuthStore.setState({
+      user: {
+        id: 'admin-1',
+        email: 'admin@example.com',
+        login: 'admin',
+        role: 'admin',
+        is_active: true,
+        is_email_verified: true,
+        created_at: '2026-06-26T00:00:00Z',
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
     mockGetGrowthRuleCatalog.mockResolvedValue({ data: { catalog } });
     mockCompileGrowthRule.mockResolvedValue({
       data: {
@@ -135,18 +218,71 @@ describe('RuleBuilderShell', () => {
         compiled_checksum: 'rule-checksum-001',
       },
     });
-    mockCreateGrowthRulePolicy.mockResolvedValue({
+    mockListGrowthRulePolicies.mockResolvedValue({
       data: {
-        id: '00000000-0000-0000-0000-000000000111',
-        approval_state: 'draft',
-        version_number: 1,
+        items: [
+          policyVersion(),
+          policyVersion({
+            id: '00000000-0000-0000-0000-000000000222',
+            version_number: 0,
+            approval_state: 'approved',
+            version_status: 'inactive',
+            compiled_checksum: 'rule-checksum-000',
+            approved_by_admin_user_id: 'admin-approver',
+            approved_at: '2026-06-25T00:00:00Z',
+          }),
+        ],
+        total: 2,
       },
     });
+    mockCreateGrowthRulePolicy.mockResolvedValue({
+      data: policyVersion({ approval_state: 'draft' }),
+    });
     mockSubmitGrowthRulePolicy.mockResolvedValue({
+      data: policyVersion(),
+    });
+    mockApproveGrowthRulePolicy.mockResolvedValue({
+      data: policyVersion({
+        approval_state: 'approved',
+        approved_by_admin_user_id: 'admin-approver',
+        approved_at: '2026-06-26T01:00:00Z',
+      }),
+    });
+    mockRejectGrowthRulePolicy.mockResolvedValue({
+      data: policyVersion({
+        approval_state: 'rejected',
+        rejection_reason: 'growth_rule_lifecycle_review',
+      }),
+    });
+    mockPublishGrowthRulePolicy.mockResolvedValue({
+      data: policyVersion({
+        approval_state: 'approved',
+        version_status: 'active',
+      }),
+    });
+    mockRollbackGrowthRulePolicy.mockResolvedValue({
+      data: policyVersion({
+        id: '00000000-0000-0000-0000-000000000333',
+        version_number: 2,
+        approval_state: 'approved',
+        version_status: 'active',
+        supersedes_policy_version_id: '00000000-0000-0000-0000-000000000111',
+      }),
+    });
+    mockDiffGrowthRulePolicy.mockResolvedValue({
       data: {
-        id: '00000000-0000-0000-0000-000000000111',
-        approval_state: 'pending_approval',
-        version_number: 1,
+        policy_version_id: '00000000-0000-0000-0000-000000000111',
+        compare_to_policy_version_id: '00000000-0000-0000-0000-000000000222',
+        current_checksum: 'rule-checksum-001',
+        compare_checksum: 'rule-checksum-000',
+        changed: true,
+        changed_fields: ['normalized_ast.when.value', 'compiled_checksum'],
+        current: policyVersion(),
+        compare_to: policyVersion({
+          id: '00000000-0000-0000-0000-000000000222',
+          version_number: 0,
+          compiled_checksum: 'rule-checksum-000',
+        }),
       },
     });
   });
@@ -218,7 +354,7 @@ describe('RuleBuilderShell', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('rules.errors.astInvalid');
   });
 
-  it('imports a rule draft from a local JSON file without calling backend mutation paths', async () => {
+  it('imports a rule draft from a local JSON file and compiles the normalized backend diff', async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<RuleBuilderShell />);
 
@@ -242,7 +378,14 @@ describe('RuleBuilderShell', () => {
     await waitFor(() => {
       expect(getAstEditor().value).toContain('"field": "checkout.currency"');
     });
-    expect(mockCompileGrowthRule).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockCompileGrowthRule).toHaveBeenCalledWith({
+        ast: expect.objectContaining({
+          schema_version: 'growth-rule.v1',
+        }),
+      });
+    });
+    expect(screen.getAllByText('rule-checksum-001').length).toBeGreaterThan(0);
     expect(mockSimulateGrowthRule).not.toHaveBeenCalled();
   });
 
@@ -424,6 +567,86 @@ describe('RuleBuilderShell', () => {
     expect(screen.getByText('rules.publish.checklist.title')).toBeInTheDocument();
     expect(screen.getByText('rules.publish.checklist.backendWorkflow')).toBeInTheDocument();
     expect(screen.getAllByText('rules.publish.checklist.passed').length).toBeGreaterThan(0);
+  });
+
+  it('loads backend policy audit, diff, approve, publish, and rollback workflows', async () => {
+    const user = userEvent.setup();
+    renderWithQueryClient(<RuleBuilderShell />);
+
+    expect(await screen.findByText('rules.lifecycle.auditTitle')).toBeInTheDocument();
+    expect((await screen.findAllByText('admin-creator')).length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: 'rules.lifecycle.loadDiff' }));
+    expect(mockDiffGrowthRulePolicy).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000111',
+      '00000000-0000-0000-0000-000000000222',
+    );
+    expect(await screen.findByText('rules.lifecycle.diffChanged')).toBeInTheDocument();
+    expect(screen.getByText(/normalized_ast\.when\.value/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'rules.lifecycle.approve' }));
+    expect(mockApproveGrowthRulePolicy).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000111',
+      {
+        change_reason: 'growth_rule_lifecycle_review',
+        effective_from: null,
+        effective_to: null,
+      },
+    );
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'rules.lifecycle.publish' })).toBeEnabled();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'rules.lifecycle.publish' }));
+    expect(mockPublishGrowthRulePolicy).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000111',
+      {
+        change_reason: 'growth_rule_lifecycle_review',
+        effective_from: null,
+        effective_to: null,
+      },
+    );
+
+    await user.click(screen.getByRole('button', { name: 'rules.lifecycle.rollback' }));
+    expect(mockRollbackGrowthRulePolicy).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000111',
+      {
+        change_reason: 'growth_rule_lifecycle_review',
+        effective_from: null,
+      },
+    );
+  });
+
+  it('keeps policy audit and backend diff readable while disabling writes for read-only roles', async () => {
+    const user = userEvent.setup();
+    useAuthStore.setState({
+      user: {
+        id: 'viewer-1',
+        email: 'viewer@example.com',
+        login: 'viewer',
+        role: 'viewer',
+        is_active: true,
+        is_email_verified: true,
+        created_at: '2026-06-26T00:00:00Z',
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
+
+    renderWithQueryClient(<RuleBuilderShell />);
+
+    expect(await screen.findByText('rules.permission.readOnly')).toBeInTheDocument();
+    expect((await screen.findAllByText('admin-creator')).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('rules.editor.astLabel')).toBeDisabled();
+    expect(getFirstButton('rules.actions.compile')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'rules.publish.submit' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'rules.lifecycle.approve' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'rules.lifecycle.publish' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'rules.lifecycle.loadDiff' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'rules.lifecycle.loadDiff' }));
+    expect(mockDiffGrowthRulePolicy).toHaveBeenCalledTimes(1);
+    expect(mockApproveGrowthRulePolicy).not.toHaveBeenCalled();
   });
 
   it('blocks policy submission after a compiled draft is edited', async () => {

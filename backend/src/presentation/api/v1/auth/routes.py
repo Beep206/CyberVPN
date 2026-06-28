@@ -629,6 +629,7 @@ def _auth_onboarding_response(
         message_key=state.message_key,
         server_state_available=state.server_state_available,
         referral_already_attributed=state.referral_already_attributed,
+        connection_required=state.connection_required,
     )
 
 

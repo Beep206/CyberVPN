@@ -3531,19 +3531,50 @@ async def initialize_realm_test_database(engine) -> None:
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
             """
+            CREATE TABLE fx_provider_configs (
+                id TEXT PRIMARY KEY,
+                provider_key TEXT NOT NULL UNIQUE,
+                priority INTEGER NOT NULL DEFAULT 100,
+                enabled BOOLEAN NOT NULL DEFAULT 1,
+                supported_pairs TEXT NOT NULL DEFAULT '[]',
+                stale_after_seconds INTEGER NOT NULL DEFAULT 3600,
+                rate_ttl_seconds INTEGER NOT NULL DEFAULT 3600,
+                requires_admin_approval BOOLEAN NOT NULL DEFAULT 1,
+                metadata TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_fx_provider_configs_provider_key ON fx_provider_configs(provider_key)",
+            "CREATE INDEX ix_fx_provider_configs_enabled ON fx_provider_configs(enabled)",
+            "CREATE INDEX ix_fx_provider_configs_priority ON fx_provider_configs(priority)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
             CREATE TABLE fx_rate_snapshots (
                 id TEXT PRIMARY KEY,
+                provider_config_id TEXT,
                 base_currency TEXT NOT NULL,
                 quote_currency TEXT NOT NULL,
                 rate NUMERIC NOT NULL,
                 inverse_rate NUMERIC,
                 source_type TEXT NOT NULL,
                 provider_key TEXT NOT NULL,
+                provider_priority INTEGER NOT NULL DEFAULT 100,
                 provider_rate_id TEXT,
                 observed_at TEXT NOT NULL,
                 fetched_at TEXT NOT NULL,
                 valid_until TEXT NOT NULL,
                 status TEXT NOT NULL,
+                approval_state TEXT NOT NULL DEFAULT 'pending',
+                approved_by_admin_id TEXT,
+                approved_at TEXT,
+                rejection_reason TEXT,
+                checksum TEXT,
+                raw_provider_payload_hash TEXT,
                 metadata TEXT NOT NULL DEFAULT '{}',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE (base_currency, quote_currency, source_type, provider_key, observed_at)
@@ -3551,12 +3582,16 @@ async def initialize_realm_test_database(engine) -> None:
             """
         )
         for index_sql in (
+            "CREATE INDEX ix_fx_rate_snapshots_provider_config_id ON fx_rate_snapshots(provider_config_id)",
             "CREATE INDEX ix_fx_rate_snapshots_base_currency ON fx_rate_snapshots(base_currency)",
             "CREATE INDEX ix_fx_rate_snapshots_quote_currency ON fx_rate_snapshots(quote_currency)",
             "CREATE INDEX ix_fx_rate_snapshots_provider_key ON fx_rate_snapshots(provider_key)",
             "CREATE INDEX ix_fx_rate_snapshots_observed_at ON fx_rate_snapshots(observed_at)",
             "CREATE INDEX ix_fx_rate_snapshots_valid_until ON fx_rate_snapshots(valid_until)",
             "CREATE INDEX ix_fx_rate_snapshots_status ON fx_rate_snapshots(status)",
+            "CREATE INDEX ix_fx_rate_snapshots_approval_state ON fx_rate_snapshots(approval_state)",
+            "CREATE INDEX ix_fx_rate_snapshots_checksum ON fx_rate_snapshots(checksum)",
+            "CREATE INDEX ix_fx_rate_snapshots_approved_by_admin_id ON fx_rate_snapshots(approved_by_admin_id)",
         ):
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(

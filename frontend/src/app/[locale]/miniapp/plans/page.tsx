@@ -33,10 +33,12 @@ import {
 import {
   GrowthCodeBasket,
   createEmptyGrowthCodeBasketSummary,
+  type GrowthCodeBasketHandle,
   type GrowthCodeBasketPrimarySelection,
   type GrowthCodeBasketSummary,
 } from '@/features/customer-growth-code-basket/components/GrowthCodeBasket';
 import { buildGrowthCodeBasketCopy } from '@/features/customer-growth-code-basket/lib/copy';
+import { extractCheckoutCodeSetRejection } from '@/features/customer-growth-code-basket/lib/code-set-rejection';
 import {
   areCheckoutCodeDiscountsEnabled,
   areSubscriptionAddonsEnabled,
@@ -583,6 +585,7 @@ export default function MiniAppPlansPage() {
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const queryClient = useQueryClient();
   const zeroGatewayReceiptRef = useRef<HTMLDivElement>(null);
+  const growthCodeBasketRef = useRef<GrowthCodeBasketHandle>(null);
   const startParam = webApp?.initDataUnsafe?.start_param ?? null;
   const capabilitiesQuery = useClientCapabilities();
   const clientCapabilities = capabilitiesQuery.data;
@@ -828,6 +831,16 @@ export default function MiniAppPlansPage() {
     },
   });
 
+  useEffect(() => {
+    const codeSetRejection = extractCheckoutCodeSetRejection(quoteQuery.error);
+    if (!codeSetRejection) {
+      return;
+    }
+
+    growthCodeBasketRef.current?.applyServerApplications(codeSetRejection.applications);
+    hapticNotification('warning');
+  }, [hapticNotification, quoteQuery.error]);
+
   const checkoutContextFingerprint = [
     selectedPlanId,
     flow,
@@ -863,9 +876,8 @@ export default function MiniAppPlansPage() {
     }
 
     if (summary.isDegraded) {
-      setAppliedCodeInput(null);
-      setAppliedCodeType(null);
-      setAcceptedCheckoutCodes([]);
+      setAppliedCodeInput(primary?.code ?? null);
+      setAppliedCodeType(primary?.codeType ?? null);
       hapticNotification('warning');
       void queryClient.invalidateQueries({ queryKey: ['miniapp-pricing-quote'] });
       return;
@@ -1138,6 +1150,11 @@ export default function MiniAppPlansPage() {
     },
     onError: (error: unknown, payload) => {
       hapticNotification('error');
+      const codeSetRejection = extractCheckoutCodeSetRejection(error);
+      if (codeSetRejection) {
+        growthCodeBasketRef.current?.applyServerApplications(codeSetRejection.applications);
+      }
+
       void emitMiniAppRuntimeEvent({
         event: 'miniapp_checkout_failed',
         page: 'plans',
@@ -1155,7 +1172,9 @@ export default function MiniAppPlansPage() {
         errorCode: getCheckoutCommitTelemetryErrorCode(error),
         subscriptionStatus: currentEntitlements?.status ?? 'none',
       });
-      webApp?.showAlert(t('paymentError'));
+      webApp?.showAlert(
+        codeSetRejection ? t('growthCodeBasket.partialRejected') : t('paymentError'),
+      );
     },
   });
 
@@ -1694,6 +1713,7 @@ export default function MiniAppPlansPage() {
 
       {checkoutCodesEnabled ? (
         <GrowthCodeBasket
+          ref={growthCodeBasketRef}
           copy={growthCodeBasketCopy}
           context={{
             storefrontKey: OFFICIAL_WEB_STOREFRONT_KEY,
@@ -1705,6 +1725,7 @@ export default function MiniAppPlansPage() {
           }}
           contextFingerprint={checkoutContextFingerprint}
           disabled={!checkoutEnabled}
+          slotIdPrefix="miniapp"
           onSelectionChange={handleGrowthCodeBasketSelectionChange}
           variant="miniapp"
         />
@@ -1741,7 +1762,9 @@ export default function MiniAppPlansPage() {
           </div>
         ) : quoteQuery.error ? (
           <div className="rounded-xl border border-neon-pink/25 bg-neon-pink/10 px-4 py-3 text-sm font-mono text-neon-pink">
-            {(quoteQuery.error as Error).message || t('quoteError')}
+            {extractCheckoutCodeSetRejection(quoteQuery.error)
+              ? t('growthCodeBasket.partialRejected')
+              : (quoteQuery.error as Error).message || t('quoteError')}
           </div>
         ) : quoteQuery.data ? (
           <QuoteBreakdown t={t} locale={locale} quote={quoteQuery.data} />
@@ -1792,6 +1815,7 @@ export default function MiniAppPlansPage() {
             || quoteQuery.isError
             || !checkoutEnabled
             || codeBasketSummary.pendingCount > 0
+            || codeBasketSummary.isDegraded
           }
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-neon-cyan px-4 py-3 font-mono text-black transition-colors hover:bg-neon-cyan/90 disabled:opacity-50"
         >

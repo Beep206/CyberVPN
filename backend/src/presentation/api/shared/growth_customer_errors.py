@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from fastapi import status
 
+from src.application.use_cases.growth_code_sets.exceptions import CodeSetRejectedError
+
 
 @dataclass(frozen=True, slots=True)
 class GrowthCustomerError:
@@ -11,13 +13,17 @@ class GrowthCustomerError:
     code: str
     message_key: str
     retryable: bool = False
+    applications: list[dict[str, object]] | None = None
 
     def detail(self) -> dict[str, object]:
-        return {
+        detail: dict[str, object] = {
             "code": self.code,
             "message_key": self.message_key,
             "retryable": self.retryable,
         }
+        if self.applications is not None:
+            detail["applications"] = self.applications
+        return detail
 
 
 _PRIVATE_GRANT_MESSAGE_KEYS = {
@@ -56,12 +62,19 @@ _FX_STATUS_CODES = {
 
 
 def growth_customer_error_from_value_error(exc: ValueError) -> GrowthCustomerError | None:
+    if isinstance(exc, CodeSetRejectedError):
+        return GrowthCustomerError(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code=exc.code,
+            message_key="growth_codes.code_set.rejected",
+            applications=[dict(item) for item in exc.applications],
+        )
     message = str(exc)
     if message == "CODE_SET_REJECTED":
         return GrowthCustomerError(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             code="CODE_SET_REJECTED",
-            message_key="growth.codes.errors.codeSetRejected",
+            message_key="growth_codes.code_set.rejected",
         )
     if message == "codes cannot be combined with code_input, promo_code, or partner_code":
         return GrowthCustomerError(

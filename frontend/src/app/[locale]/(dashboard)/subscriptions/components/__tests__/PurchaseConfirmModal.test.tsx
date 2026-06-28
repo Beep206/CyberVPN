@@ -640,6 +640,82 @@ describe('PurchaseConfirmModal', () => {
     });
   });
 
+  it('renders CODE_SET_REJECTED checkout application statuses and blocks payment', async () => {
+    const user = userEvent.setup({ delay: null });
+
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.clientCapabilities, () =>
+        HttpResponse.json(createClientCapabilities({
+          growth: {
+            invites: true,
+            referral: false,
+            promo_codes: true,
+            gift_codes: false,
+            checkout_code_discounts: true,
+            growth_hub: false,
+          },
+        }))),
+      http.post(MATCH_ANY_API_ORIGIN.resolveCodes, async ({ request }) => {
+        const body = (await request.json()) as Record<string, string>;
+        return HttpResponse.json({
+          accepted: true,
+          code_type: 'promo',
+          action_context: 'checkout',
+          result: 'accepted',
+          issuer_type: 'admin',
+          owner_type: 'admin_campaign',
+          resolved_code_id: `${body.code}-id`,
+          promo_code_id: `${body.code}-promo`,
+          partner_code_id: null,
+          user_message_key: 'growth_codes.promo.accepted',
+        });
+      }),
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        if (body.code_input === 'SAVE1500') {
+          return HttpResponse.json({
+            detail: {
+              code: 'CODE_SET_REJECTED',
+              message_key: 'checkout.code_set_rejected',
+              applications: [
+                {
+                  position_entered: 1,
+                  canonical_order: 1,
+                  masked_code: 'SAVE...00',
+                  status: 'rejected',
+                  reject_reason: 'expired',
+                  user_message_key: 'growth_codes.promo.expired',
+                  roles: ['discount'],
+                },
+              ],
+            },
+          }, { status: 422 });
+        }
+
+        return HttpResponse.json(createQuoteSession(), { status: 201 });
+      }),
+    );
+
+    renderWithProviders(
+      <PurchaseConfirmModal
+        isOpen={true}
+        onClose={vi.fn()}
+        plan={createPlan()}
+      />,
+    );
+
+    await screen.findByText('growthCodeBasket.title');
+
+    await user.type(screen.getByLabelText('growthCodeBasket.inputLabel'), 'save1500');
+    await user.click(screen.getByRole('button', { name: 'growthCodeBasket.addCta' }));
+
+    expect(await screen.findByText('growthCodeBasket.applicationStatuses.rejected')).toBeInTheDocument();
+    expect(screen.getByText('SAVE...00')).toBeInTheDocument();
+    expect(screen.getByText('growthCodeBasket.partialRejected')).toBeInTheDocument();
+    expect(screen.getByText('checkoutQuote.codeSetRejected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'checkoutQuote.payWithCrypto' })).toBeDisabled();
+  });
+
   it('uses the private catalog grant when quoting a selected private offer', async () => {
     const user = userEvent.setup({ delay: null });
     const capturedBodies: Record<string, unknown>[] = [];

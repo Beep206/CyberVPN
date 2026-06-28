@@ -46,14 +46,14 @@ def _record_failure(*, duration_seconds: float) -> None:
 async def refresh_growth_reporting_rollups() -> dict[str, Any]:
     """Trigger backend-owned growth reporting refresh through the internal service API."""
     settings = get_settings()
-    if not settings.backend_api_url or settings.backend_internal_secret is None:
+    if not settings.backend_api_url or settings.telegram_bot_internal_secret is None:
         logger.info("growth_reporting_refresh_skipped", reason="backend_api_not_configured")
         return {"skipped": True, "reason": "backend_api_not_configured"}
 
     started = perf_counter()
     try:
         async with BackendAPIClient() as backend:
-            if not backend.enabled:
+            if not backend.telegram_bot_internal_enabled:
                 logger.info("growth_reporting_refresh_skipped", reason="backend_api_disabled")
                 return {"skipped": True, "reason": "backend_api_disabled"}
 

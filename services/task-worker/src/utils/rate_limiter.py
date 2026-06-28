@@ -81,7 +81,12 @@ class AsyncTokenBucket:
             rate_per_minute=rate * 60,
         )
 
-    async def acquire(self, tokens: int = 1, wait_timeout: float | None = None) -> bool:
+    async def acquire(
+        self,
+        tokens: int = 1,
+        wait_timeout: float | None = None,
+        **kwargs: float | None,
+    ) -> bool:
         """Acquire tokens from the bucket, waiting if necessary.
 
         Refills tokens based on elapsed time, then consumes the requested number.
@@ -90,6 +95,7 @@ class AsyncTokenBucket:
         Args:
             tokens: Number of tokens to acquire (default: 1)
             wait_timeout: Maximum seconds to wait for tokens (None = wait forever)
+            **kwargs: Supports timeout as a backward-compatible alias for wait_timeout
 
         Returns:
             True if tokens were acquired, False if timeout was reached
@@ -115,6 +121,13 @@ class AsyncTokenBucket:
             raise ValueError(f"Must acquire at least 1 token, got {tokens}")
         if tokens > self.capacity:
             raise ValueError(f"Cannot acquire {tokens} tokens, capacity is {self.capacity}")
+        timeout = kwargs.pop("timeout", None)
+        if kwargs:
+            unexpected = ", ".join(sorted(kwargs))
+            raise TypeError(f"Unexpected acquire keyword argument(s): {unexpected}")
+        if wait_timeout is not None and timeout is not None and wait_timeout != timeout:
+            raise ValueError("wait_timeout and timeout cannot both be set to different values")
+        effective_timeout = wait_timeout if wait_timeout is not None else timeout
 
         start_time = time.monotonic()
 
@@ -143,13 +156,13 @@ class AsyncTokenBucket:
             wait_time = tokens_needed / self.rate
 
             # Check if wait would exceed timeout
-            if wait_timeout is not None and wait_time > wait_timeout:
+            if effective_timeout is not None and wait_time > effective_timeout:
                 logger.warning(
                     "token_acquisition_timeout",
                     tokens_requested=tokens,
                     tokens_available=round(self.tokens, 2),
                     wait_time_needed=round(wait_time, 2),
-                    timeout=wait_timeout,
+                    timeout=effective_timeout,
                 )
                 return False
 

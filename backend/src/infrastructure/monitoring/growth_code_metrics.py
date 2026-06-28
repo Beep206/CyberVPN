@@ -222,3 +222,63 @@ cybervpn_growth_reporting_governance_followup_actions_total = Counter(
     "Growth reporting governance follow-up actions by action kind and result.",
     ("action_kind", "result"),
 )
+
+customer_onboarding_preview_total = Counter(
+    "customer_onboarding_preview_total",
+    "Customer onboarding code preview attempts by terminal status and detected code type.",
+    ("status", "detected_code_type"),
+)
+
+customer_onboarding_apply_total = Counter(
+    "customer_onboarding_apply_total",
+    "Customer onboarding code apply attempts by terminal status and code type.",
+    ("status", "code_type"),
+)
+
+customer_onboarding_skip_total = Counter(
+    "customer_onboarding_skip_total",
+    "Customer onboarding skip attempts by terminal status.",
+    ("status",),
+)
+
+customer_onboarding_connection_bootstrap_total = Counter(
+    "customer_onboarding_connection_bootstrap_total",
+    "Customer onboarding VPN connection bootstrap attempts by terminal status and surface.",
+    ("status", "surface"),
+)
+
+customer_site_policy_decisions_total = Counter(
+    "customer_site_policy_decisions_total",
+    "Customer site runtime policy decisions by mode, action, route class, and reason.",
+    ("mode", "action", "route_class", "reason"),
+)
+
+checkout_code_set_rejected_total = Counter(
+    "checkout_code_set_rejected_total",
+    "Rejected checkout code-set preflight attempts by stable reason.",
+    ("reason",),
+)
+
+growth_benefit_fulfillment_total = Counter(
+    "growth_benefit_fulfillment_total",
+    "Growth benefit fulfillment results by benefit type and terminal status.",
+    ("benefit_type", "status"),
+)
+
+growth_fx_rate_snapshot_freshness_seconds = Gauge(
+    "growth_fx_rate_snapshot_freshness_seconds",
+    "Age in seconds of the latest approved FX snapshot by provider and currency pair.",
+    ("provider_key", "source_currency", "target_currency", "approval_state"),
+)
+
+growth_fx_rate_stale_total = Counter(
+    "growth_fx_rate_stale_total",
+    "FX snapshot stale observations by provider and currency pair.",
+    ("pair", "provider"),
+)
+
+growth_fx_conversion_failures_total = Counter(
+    "growth_fx_conversion_failures_total",
+    "FX conversion failures by stable reason code.",
+    ("reason",),
+)

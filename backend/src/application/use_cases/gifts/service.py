@@ -121,7 +121,7 @@ class IssueGiftCodeUseCase:
             raise ValueError("Gift issuance cannot target both a user and a partner owner")
 
         existing = None
-        if source_payment_id is not None:
+        if source_payment_id is not None and batch_id is None:
             existing = await self._codes.find_code_by_source_payment_id(
                 source_payment_id=source_payment_id,
                 code_type="gift",

@@ -32,6 +32,7 @@ PARTNER_PLATFORM_EVENT_FAMILIES = {
     ),
     "payment": (
         "payment.completed",
+        "payment.settlement.unlinked",
         "payment.completed.partner_earning.reconciliation_required",
     ),
     "gift": (

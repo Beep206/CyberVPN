@@ -54,6 +54,8 @@ export const DISABLED_CLIENT_CAPABILITIES: ClientCapabilitiesResponse = {
     public_hosts: [],
     cabinet_hosts: [],
     cabinet_destination_path: '/dashboard',
+    cabinet_marketing_route_action: 'redirect_public',
+    public_marketing_destination_path: '/',
     allowed_path_prefixes: [],
     preserve_query_keys: [],
     registration_policy_independent: true,

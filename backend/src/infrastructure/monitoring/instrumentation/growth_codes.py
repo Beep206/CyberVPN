@@ -8,6 +8,12 @@ import structlog
 from opentelemetry import trace
 
 from src.infrastructure.monitoring.growth_code_metrics import (
+    checkout_code_set_rejected_total,
+    customer_onboarding_apply_total,
+    customer_onboarding_connection_bootstrap_total,
+    customer_onboarding_preview_total,
+    customer_onboarding_skip_total,
+    customer_site_policy_decisions_total,
     cybervpn_gift_codes_issued_total,
     cybervpn_gift_codes_redeemed_total,
     cybervpn_gift_redemption_failures_total,
@@ -45,6 +51,10 @@ from src.infrastructure.monitoring.growth_code_metrics import (
     cybervpn_referral_rewards_available_transitions_total,
     cybervpn_referral_rewards_created_total,
     cybervpn_referral_rewards_reversed_total,
+    growth_benefit_fulfillment_total,
+    growth_fx_conversion_failures_total,
+    growth_fx_rate_snapshot_freshness_seconds,
+    growth_fx_rate_stale_total,
 )
 
 logger = structlog.get_logger("cybervpn.growth.codes")
@@ -446,6 +456,61 @@ def observe_growth_reporting_refresh(
     ).observe(max(duration_seconds, 0.0))
 
 
+def observe_customer_onboarding_preview(*, status: str, detected_code_type: str | None) -> None:
+    customer_onboarding_preview_total.labels(
+        status=_sanitize_label(status, default="unknown"),
+        detected_code_type=_sanitize_label(detected_code_type, default="none"),
+    ).inc()
+
+
+def observe_customer_onboarding_apply(*, status: str, code_type: str | None) -> None:
+    customer_onboarding_apply_total.labels(
+        status=_sanitize_label(status, default="unknown"),
+        code_type=_sanitize_label(code_type, default="unknown"),
+    ).inc()
+
+
+def observe_customer_onboarding_skip(*, status: str) -> None:
+    customer_onboarding_skip_total.labels(
+        status=_sanitize_label(status, default="unknown"),
+    ).inc()
+
+
+def observe_customer_onboarding_connection_bootstrap(*, status: str, surface: str) -> None:
+    customer_onboarding_connection_bootstrap_total.labels(
+        status=_sanitize_label(status, default="unknown"),
+        surface=_sanitize_label(surface, default="unknown"),
+    ).inc()
+
+
+def observe_customer_site_policy_decision(
+    *,
+    mode: str,
+    action: str,
+    route_class: str,
+    reason: str,
+) -> None:
+    customer_site_policy_decisions_total.labels(
+        mode=_sanitize_label(mode, default="unknown"),
+        action=_sanitize_label(action, default="unknown"),
+        route_class=_sanitize_label(route_class, default="unknown"),
+        reason=_sanitize_label(reason, default="unknown"),
+    ).inc()
+
+
+def observe_checkout_code_set_rejected(*, reason: str) -> None:
+    checkout_code_set_rejected_total.labels(
+        reason=_sanitize_label(reason, default="unknown"),
+    ).inc()
+
+
+def observe_growth_benefit_fulfillment(*, benefit_type: str, status: str) -> None:
+    growth_benefit_fulfillment_total.labels(
+        benefit_type=_sanitize_label(benefit_type, default="unknown"),
+        status=_sanitize_label(status, default="unknown"),
+    ).inc()
+
+
 def update_growth_reporting_health_metrics(
     *,
     freshness_status: str,
@@ -466,6 +531,40 @@ def update_growth_reporting_health_metrics(
         cybervpn_growth_reporting_last_success_unixtime.set(float(latest_success_at))
     if rows_written is not None:
         cybervpn_growth_reporting_rows_written.set(float(max(rows_written, 0)))
+
+
+def update_growth_fx_rate_snapshot_freshness(
+    *,
+    provider_key: str,
+    source_currency: str,
+    target_currency: str,
+    approval_state: str,
+    freshness_seconds: float,
+) -> None:
+    growth_fx_rate_snapshot_freshness_seconds.labels(
+        provider_key=_sanitize_label(provider_key, default="unknown"),
+        source_currency=_sanitize_label(source_currency, default="unknown"),
+        target_currency=_sanitize_label(target_currency, default="unknown"),
+        approval_state=_sanitize_label(approval_state, default="unknown"),
+    ).set(max(float(freshness_seconds), 0.0))
+
+
+def observe_growth_fx_stale_rate(
+    *,
+    provider_key: str,
+    source_currency: str,
+    target_currency: str,
+) -> None:
+    growth_fx_rate_stale_total.labels(
+        pair=_sanitize_label(f"{source_currency}_{target_currency}", default="unknown"),
+        provider=_sanitize_label(provider_key, default="unknown"),
+    ).inc()
+
+
+def observe_growth_fx_conversion_failure(*, reason: str) -> None:
+    growth_fx_conversion_failures_total.labels(
+        reason=_sanitize_label(reason, default="unknown"),
+    ).inc()
 
 
 def observe_growth_reporting_governance_decision(

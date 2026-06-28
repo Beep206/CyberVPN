@@ -40,7 +40,7 @@ async def reconcile_stage1_payments() -> dict[str, Any]:
 
     try:
         async with BackendAPIClient() as backend:
-            if not backend.enabled:
+            if not backend.backend_internal_enabled:
                 STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL.labels(result="skipped").inc()
                 logger.info("stage1_payment_reconciliation_skipped", reason="backend_api_disabled")
                 return {"skipped": True, "reason": "backend_api_disabled"}

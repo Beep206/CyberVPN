@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAuthStore } from '@/stores/auth-store';
 import {
   GrowthFxConsole,
   GrowthOnboardingConsole,
@@ -16,6 +17,12 @@ const {
   mockGetClientCapabilities,
   mockGetPrivateCatalogGrant,
   mockGetGrowthFxStatus,
+  mockListGrowthFxRates,
+  mockApproveGrowthFxRate,
+  mockRefreshGrowthFxRates,
+  mockRejectGrowthFxRate,
+  mockDisableGrowthFxProvider,
+  mockEnableGrowthFxProvider,
   mockGetGrowthOnboardingSettings,
   mockListGrowthOnboardingStates,
   mockListPrivateCatalogTargets,
@@ -32,6 +39,12 @@ const {
   mockGetClientCapabilities: vi.fn(),
   mockGetPrivateCatalogGrant: vi.fn(),
   mockGetGrowthFxStatus: vi.fn(),
+  mockListGrowthFxRates: vi.fn(),
+  mockApproveGrowthFxRate: vi.fn(),
+  mockRefreshGrowthFxRates: vi.fn(),
+  mockRejectGrowthFxRate: vi.fn(),
+  mockDisableGrowthFxProvider: vi.fn(),
+  mockEnableGrowthFxProvider: vi.fn(),
   mockGetGrowthOnboardingSettings: vi.fn(),
   mockListGrowthOnboardingStates: vi.fn(),
   mockListPrivateCatalogTargets: vi.fn(),
@@ -55,6 +68,12 @@ vi.mock('@/lib/api/growth', async () => {
       getClientCapabilities: (...args: unknown[]) => mockGetClientCapabilities(...args),
       getPrivateCatalogGrant: (...args: unknown[]) => mockGetPrivateCatalogGrant(...args),
       getGrowthFxStatus: (...args: unknown[]) => mockGetGrowthFxStatus(...args),
+      listGrowthFxRates: (...args: unknown[]) => mockListGrowthFxRates(...args),
+      approveGrowthFxRate: (...args: unknown[]) => mockApproveGrowthFxRate(...args),
+      refreshGrowthFxRates: (...args: unknown[]) => mockRefreshGrowthFxRates(...args),
+      rejectGrowthFxRate: (...args: unknown[]) => mockRejectGrowthFxRate(...args),
+      disableGrowthFxProvider: (...args: unknown[]) => mockDisableGrowthFxProvider(...args),
+      enableGrowthFxProvider: (...args: unknown[]) => mockEnableGrowthFxProvider(...args),
       getGrowthOnboardingSettings: (...args: unknown[]) => mockGetGrowthOnboardingSettings(...args),
       listGrowthOnboardingStates: (...args: unknown[]) => mockListGrowthOnboardingStates(...args),
       listPrivateCatalogTargets: (...args: unknown[]) => mockListPrivateCatalogTargets(...args),
@@ -105,6 +124,20 @@ function getMessage(messages: Record<string, unknown>, keyPath: string) {
 describe('Growth v6 operations consoles', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAuthStore.setState({
+      user: {
+        id: 'admin-1',
+        email: 'admin@example.com',
+        login: 'admin',
+        role: 'admin',
+        is_active: true,
+        is_email_verified: true,
+        created_at: '2026-06-26T00:00:00Z',
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
     mockGetClientCapabilities.mockResolvedValue({
       data: {
         payments: {},
@@ -151,9 +184,130 @@ describe('Growth v6 operations consoles', () => {
         disabled_rate_count: 0,
         latest_observed_at: '2026-06-26T00:00:00Z',
         latest_valid_until: '2026-06-27T00:00:00Z',
-        providers: [],
+        providers: [
+          {
+            provider_key: 'ecb',
+            enabled: true,
+            priority: 10,
+            requires_admin_approval: true,
+            stale_after_seconds: 3600,
+            status: 'active',
+          },
+        ],
       },
     });
+    mockListGrowthFxRates.mockResolvedValue({
+      data: {
+        items: [
+          {
+            id: 'rate-1',
+            provider_config_id: 'provider-config-1',
+            base_currency: 'USD',
+            quote_currency: 'RUB',
+            rate: '92.5100',
+            inverse_rate: '0.0108',
+            source_type: 'provider',
+            provider_key: 'ecb',
+            provider_priority: 10,
+            provider_rate_id: 'ecb-2026-06-26',
+            observed_at: '2026-06-26T00:00:00Z',
+            fetched_at: '2026-06-26T00:01:00Z',
+            valid_until: '2026-06-27T00:00:00Z',
+            status: 'pending_approval',
+            approval_state: 'pending',
+            approved_by_admin_id: null,
+            approved_at: null,
+            rejection_reason: null,
+            checksum: 'a'.repeat(64),
+            raw_provider_payload_hash: 'b'.repeat(64),
+            metadata: {},
+            created_at: '2026-06-26T00:01:00Z',
+          },
+        ],
+        total: 1,
+        limit: 8,
+        offset: 0,
+      },
+    });
+    mockApproveGrowthFxRate.mockResolvedValue({
+      data: {
+        id: 'rate-1',
+        provider_config_id: 'provider-config-1',
+        base_currency: 'USD',
+        quote_currency: 'RUB',
+        rate: '92.5100',
+        inverse_rate: '0.0108',
+        source_type: 'provider',
+        provider_key: 'ecb',
+        provider_priority: 10,
+        provider_rate_id: 'ecb-2026-06-26',
+        observed_at: '2026-06-26T00:00:00Z',
+        fetched_at: '2026-06-26T00:01:00Z',
+        valid_until: '2026-06-27T00:00:00Z',
+        status: 'active',
+        approval_state: 'approved',
+        approved_by_admin_id: 'admin-checker',
+        approved_at: '2026-06-26T00:02:00Z',
+        rejection_reason: null,
+        checksum: 'a'.repeat(64),
+        raw_provider_payload_hash: 'b'.repeat(64),
+        metadata: {},
+        created_at: '2026-06-26T00:01:00Z',
+      },
+    });
+    mockRefreshGrowthFxRates.mockResolvedValue({
+      data: {
+        runs: [
+          {
+            id: 'run-1',
+            provider_config_id: 'provider-config-1',
+            provider_key: 'ecb',
+            run_key: 'fx-refresh:ecb:test',
+            status: 'succeeded',
+            trigger_type: 'admin',
+            requested_by_admin_id: 'admin-1',
+            started_at: '2026-06-26T00:00:00Z',
+            finished_at: '2026-06-26T00:00:01Z',
+            pairs_requested: [{ base_currency: 'USD', quote_currency: 'RUB' }],
+            pairs_succeeded: [{ base_currency: 'USD', quote_currency: 'RUB' }],
+            pairs_failed: [],
+            created_snapshot_ids: ['rate-2'],
+            provider_payload_hash: 'c'.repeat(64),
+            error_code: null,
+            error_message: null,
+          },
+        ],
+        created_snapshots: [],
+      },
+    });
+    mockRejectGrowthFxRate.mockResolvedValue({
+      data: {
+        id: 'rate-1',
+        provider_config_id: 'provider-config-1',
+        base_currency: 'USD',
+        quote_currency: 'RUB',
+        rate: '92.5100',
+        inverse_rate: '0.0108',
+        source_type: 'provider',
+        provider_key: 'ecb',
+        provider_priority: 10,
+        provider_rate_id: 'ecb-2026-06-26',
+        observed_at: '2026-06-26T00:00:00Z',
+        fetched_at: '2026-06-26T00:01:00Z',
+        valid_until: '2026-06-27T00:00:00Z',
+        status: 'rejected',
+        approval_state: 'rejected',
+        approved_by_admin_id: null,
+        approved_at: null,
+        rejection_reason: 'growth_fx_lifecycle_review',
+        checksum: 'a'.repeat(64),
+        raw_provider_payload_hash: 'b'.repeat(64),
+        metadata: {},
+        created_at: '2026-06-26T00:01:00Z',
+      },
+    });
+    mockDisableGrowthFxProvider.mockResolvedValue({ data: { providers: [] } });
+    mockEnableGrowthFxProvider.mockResolvedValue({ data: { providers: [] } });
     mockSimulateGrowthFxConversion.mockResolvedValue({
       data: {
         source_amount: '10.00',
@@ -402,6 +556,8 @@ describe('Growth v6 operations consoles', () => {
     expect(await screen.findByText('fx.title')).toBeInTheDocument();
     expect(screen.getByText('/api/v1/client/capabilities')).toBeInTheDocument();
     expect(screen.getByText('/api/v3/admin/growth/fx/status')).toBeInTheDocument();
+    expect(await screen.findByText('USD/RUB 92.5100')).toBeInTheDocument();
+    expect(screen.getByText(/ecb \/ active/i)).toBeInTheDocument();
     expect(await screen.findAllByText('v6.common.generatedWrapper')).not.toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'fx.actions.simulate' }));
     expect(mockSimulateGrowthFxConversion).toHaveBeenCalledWith({
@@ -411,10 +567,58 @@ describe('Growth v6 operations consoles', () => {
       eligible_discount_base: '10.00',
       conversion_mode: 'market',
     });
+    await user.click(screen.getByRole('button', { name: 'fx.actions.approveRate' }));
+    expect(mockApproveGrowthFxRate).toHaveBeenCalledWith('rate-1', {
+      change_reason: 'growth_fx_lifecycle_review',
+    });
+    await user.click(screen.getByRole('button', { name: 'fx.actions.refreshRates' }));
+    expect(mockRefreshGrowthFxRates).toHaveBeenCalledWith({
+      provider_key: 'ecb',
+      idempotency_key: expect.stringMatching(/^admin-growth-fx-refresh-/),
+      change_reason: 'growth_fx_lifecycle_review',
+    });
+    await user.click(screen.getByRole('button', { name: 'fx.actions.rejectRate' }));
+    expect(mockRejectGrowthFxRate).toHaveBeenCalledWith('rate-1', {
+      change_reason: 'growth_fx_lifecycle_review',
+    });
+    await user.click(screen.getByRole('button', { name: 'fx.actions.disableProvider' }));
+    expect(mockDisableGrowthFxProvider).toHaveBeenCalledWith('ecb', {
+      change_reason: 'growth_fx_lifecycle_review',
+    });
 
     await user.click(await screen.findByRole('button', { name: 'v6.common.refresh' }));
     expect(mockGetClientCapabilities).toHaveBeenCalledTimes(2);
     expect(mockGetGrowthFxStatus).toHaveBeenCalled();
+    expect(mockListGrowthFxRates).toHaveBeenCalledWith({ limit: 8, offset: 0 });
+  });
+
+  it('keeps FX lifecycle mutations read-only for roles without FX lifecycle permissions', async () => {
+    const user = userEvent.setup();
+    useAuthStore.setState({
+      user: {
+        id: 'viewer-1',
+        email: 'viewer@example.com',
+        login: 'viewer',
+        role: 'viewer',
+        is_active: true,
+        is_email_verified: true,
+        created_at: '2026-06-26T00:00:00Z',
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
+
+    renderWithQueryClient(<GrowthFxConsole />);
+
+    expect(await screen.findByText('fx.readOnly')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'fx.actions.approveRate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'fx.actions.refreshRates' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'fx.actions.rejectRate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'fx.actions.disableProvider' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'fx.actions.enableProvider' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'fx.actions.approveRate' }));
+    expect(mockApproveGrowthFxRate).not.toHaveBeenCalled();
   });
 
   it('renders private access with generated grant wrappers and executes support actions', async () => {
@@ -496,9 +700,13 @@ describe('Growth v6 operations consoles', () => {
         'nav.privateAccess',
         'nav.onboarding',
         'fx.degraded.title',
+        'fx.lifecycleTitle',
+        'fx.actions.approveRate',
         'privateAccess.degraded.title',
         'onboarding.degraded.title',
         'risk.degraded.title',
+        'rules.lifecycle.auditTitle',
+        'rules.permission.readOnly',
         'siteMode.auditTitle',
         'referrals.riskReviewsTitle',
       ]) {

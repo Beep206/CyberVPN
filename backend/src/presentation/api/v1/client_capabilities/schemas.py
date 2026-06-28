@@ -58,6 +58,11 @@ class ClientSiteCapabilities(BaseModel):
     cabinet_hosts: list[str] = Field(default_factory=list)
     cabinet_destination_path: str = "/dashboard"
     allowed_path_prefixes: list[str] = Field(default_factory=list)
+    cabinet_allowed_prefixes: list[str] = Field(default_factory=list)
+    cabinet_marketing_route_action: Literal["redirect_public", "allow", "not_found"] = "redirect_public"
+    public_marketing_destination_path: str = "/"
+    legal_path_prefixes: list[str] = Field(default_factory=list)
+    operational_path_prefixes: list[str] = Field(default_factory=list)
     preserve_query_keys: list[str] = Field(default_factory=list)
     registration_policy_independent: bool = True
 

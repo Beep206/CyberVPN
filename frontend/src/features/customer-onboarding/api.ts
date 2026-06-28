@@ -11,6 +11,26 @@ export type CustomerOnboardingSkipRequest =
   components['schemas']['CustomerOnboardingSkipRequest'];
 export type CustomerOnboardingSkipResponse =
   components['schemas']['CustomerOnboardingSkipResponse'];
+export type CustomerOnboardingPreviewRequest =
+  components['schemas']['CustomerOnboardingPreviewRequest'];
+export type CustomerOnboardingPreviewResponse =
+  components['schemas']['CustomerOnboardingPreviewResponse'];
+export type CustomerOnboardingConnectionInstructionStep =
+  components['schemas']['CustomerOnboardingConnectionInstructionStep'];
+export type CustomerOnboardingConnectionAppRecommendation =
+  components['schemas']['CustomerOnboardingConnectionAppRecommendation'];
+export type CustomerOnboardingConnectionInstruction =
+  components['schemas']['CustomerOnboardingConnectionInstruction'];
+export type CustomerOnboardingConnectionBootstrapResponse =
+  components['schemas']['CustomerOnboardingConnectionBootstrapResponse'];
+export type MarkOnboardingConnectionConnectedRequest =
+  components['schemas']['MarkOnboardingConnectionConnectedRequest'];
+export type MarkOnboardingConnectionConnectedResponse =
+  components['schemas']['MarkOnboardingConnectionConnectedResponse'];
+export type OnboardingConnectionSurface =
+  CustomerOnboardingConnectionBootstrapResponse['surface'];
+export type OnboardingConnectionPlatform =
+  Exclude<MarkOnboardingConnectionConnectedRequest['platform'], null>;
 
 function createIdempotencyKey(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
@@ -65,4 +85,25 @@ export const customerOnboardingApi = {
       },
     );
   },
+
+  previewGrowthCode: (request: CustomerOnboardingPreviewRequest) =>
+    apiClient.post<CustomerOnboardingPreviewResponse>(
+      '/customer/onboarding/growth-code/preview',
+      request,
+    ),
+
+  connectionBootstrap: (params: {
+    surface: OnboardingConnectionSurface;
+    platform_hint?: OnboardingConnectionPlatform;
+  }) =>
+    apiClient.get<CustomerOnboardingConnectionBootstrapResponse>(
+      '/customer/onboarding/connection/bootstrap',
+      { params },
+    ),
+
+  markConnected: (request: MarkOnboardingConnectionConnectedRequest) =>
+    apiClient.post<MarkOnboardingConnectionConnectedResponse>(
+      '/customer/onboarding/connection/mark-connected',
+      request,
+    ),
 };

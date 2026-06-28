@@ -287,6 +287,7 @@
       "primaryApplied": "This accepted code is the one currently priced for checkout.",
       "acceptedQueued": "Accepted for grouped checkout pricing.",
       "networkError": "Code status is temporarily unavailable. Retry without retyping.",
+      "partialRejected": "Some checkout codes were rejected during payment commit. Review the statuses and retry.",
       "status": {
         "idle": "Recheck needed",
         "checking": "Checking",
@@ -294,6 +295,24 @@
         "rejected": "Rejected",
         "warning": "Action needed",
         "networkError": "Retry needed"
+      },
+      "applicationStatuses": {
+        "accepted": "Accepted",
+        "applied": "Applied",
+        "notSelected": "Not selected",
+        "rejected": "Rejected",
+        "ambiguous": "Ambiguous",
+        "wrongContext": "Wrong flow",
+        "unknown": "Unknown"
+      },
+      "applicationMessages": {
+        "accepted": "Accepted for grouped checkout pricing.",
+        "applied": "Applied to this checkout.",
+        "notSelected": "Another compatible code was selected for pricing.",
+        "wrongContext": "This code belongs to another flow.",
+        "ambiguous": "This code matches multiple code types.",
+        "rejected": "The backend rejected this code for checkout.",
+        "unknown": "The backend returned an unknown code status."
       },
       "codeTypes": {
         "invite": "Invite code",

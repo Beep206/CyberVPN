@@ -27,9 +27,21 @@ class PaymentAttemptRepository:
     async def get_by_id(self, payment_attempt_id: UUID) -> PaymentAttemptModel | None:
         return await self._session.get(PaymentAttemptModel, payment_attempt_id)
 
+    async def get_by_id_for_update(self, payment_attempt_id: UUID) -> PaymentAttemptModel | None:
+        result = await self._session.execute(
+            select(PaymentAttemptModel).where(PaymentAttemptModel.id == payment_attempt_id).with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_payment_id(self, payment_id: UUID) -> PaymentAttemptModel | None:
         result = await self._session.execute(
             select(PaymentAttemptModel).where(PaymentAttemptModel.payment_id == payment_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_by_payment_id_for_update(self, payment_id: UUID) -> PaymentAttemptModel | None:
+        result = await self._session.execute(
+            select(PaymentAttemptModel).where(PaymentAttemptModel.payment_id == payment_id).with_for_update()
         )
         return result.scalar_one_or_none()
 

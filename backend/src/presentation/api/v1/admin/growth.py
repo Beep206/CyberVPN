@@ -11,11 +11,17 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.gifts import IssueGiftCodeUseCase, ListGiftCodesUseCase
+from src.application.use_cases.growth_code_sets.fx_refresh import (
+    FxRefreshError,
+    RefreshFxProviderRatesCommand,
+    RefreshFxProviderRatesUseCase,
+)
 from src.application.use_cases.growth_codes import ResolveGrowthCodeUseCase
 from src.application.use_cases.growth_codes.admin_signals import (
     GetAdminGrowthSignalsOverviewUseCase,
@@ -173,6 +179,17 @@ class _ReferrerAggregateRow(TypedDict):
     last_commission_at: datetime | None
 
 
+class InternalGrowthFxRefreshResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    triggered_at: datetime
+    run_count: int
+    created_snapshot_count: int
+    run_statuses: dict[str, int]
+    skipped: bool = False
+    reason: str | None = None
+
+
 def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
     configured = settings.telegram_bot_internal_secret.get_secret_value().strip()
     if not configured or not secret:
@@ -184,6 +201,25 @@ def _require_telegram_bot_secret(secret: str | None) -> None:
     if _is_valid_telegram_bot_secret(secret):
         return
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def _is_valid_backend_internal_secret(secret: str | None) -> bool:
+    configured = settings.backend_internal_secret.get_secret_value().strip()
+    if not configured or not secret:
+        return False
+    return hmac.compare_digest(secret.strip(), configured)
+
+
+def _require_backend_internal_secret(secret: str | None) -> None:
+    if _is_valid_backend_internal_secret(secret):
+        return
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def _scheduled_growth_fx_refresh_idempotency_key(triggered_at: datetime) -> str:
+    bucket_minute = (triggered_at.minute // 15) * 15
+    bucket = triggered_at.astimezone(UTC).replace(minute=bucket_minute, second=0, microsecond=0)
+    return f"scheduled:{bucket:%Y%m%d%H%M}"
 
 
 def _iso_or_none(value) -> str | None:
@@ -776,6 +812,14 @@ def _serialize_growth_reporting_refresh_result(
         families_updated=list(result.families_updated),
         coverage_notes=list(result.coverage_notes),
     )
+
+
+def _count_fx_run_statuses(runs: list[Any]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for run in runs:
+        status_value = str(getattr(run, "status", None) or "unknown").strip().lower() or "unknown"
+        counts[status_value] = counts.get(status_value, 0) + 1
+    return counts
 
 
 def _serialize_growth_reporting_export_payload(export: GrowthReportingExport) -> dict[str, Any]:
@@ -1523,6 +1567,56 @@ async def internal_refresh_growth_reporting(
         raise
     route_operations_total.labels(route="admin_growth_reporting", action="internal_refresh", status="success").inc()
     return _serialize_growth_reporting_refresh_result(result)
+
+
+@router.post("/growth-fx/internal/refresh", response_model=InternalGrowthFxRefreshResponse)
+async def internal_refresh_growth_fx_rates(
+    backend_internal_secret: str | None = Header(default=None, alias="X-Backend-Internal-Secret"),
+    idempotency_key: str | None = Query(default=None, min_length=8, max_length=160),
+    db: AsyncSession = Depends(get_db),
+) -> InternalGrowthFxRefreshResponse:
+    _require_backend_internal_secret(backend_internal_secret)
+    triggered_at = datetime.now(UTC)
+    effective_idempotency_key = idempotency_key or _scheduled_growth_fx_refresh_idempotency_key(triggered_at)
+    try:
+        result = await RefreshFxProviderRatesUseCase(db).execute(
+            RefreshFxProviderRatesCommand(
+                trigger_type="scheduled",
+                idempotency_key=effective_idempotency_key,
+                change_reason="scheduled_fx_provider_refresh",
+                requested_at=triggered_at,
+            )
+        )
+    except FxRefreshError as exc:
+        await db.rollback()
+        if exc.code == "FX_PROVIDER_CONFIG_NOT_FOUND":
+            route_operations_total.labels(
+                route="admin_growth_fx",
+                action="internal_refresh",
+                status="skipped",
+            ).inc()
+            return InternalGrowthFxRefreshResponse(
+                triggered_at=triggered_at,
+                run_count=0,
+                created_snapshot_count=0,
+                run_statuses={},
+                skipped=True,
+                reason=exc.code,
+            )
+        route_operations_total.labels(route="admin_growth_fx", action="internal_refresh", status="failure").inc()
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": exc.code, "context": exc.context},
+        ) from exc
+
+    await db.commit()
+    route_operations_total.labels(route="admin_growth_fx", action="internal_refresh", status="success").inc()
+    return InternalGrowthFxRefreshResponse(
+        triggered_at=triggered_at,
+        run_count=len(result.runs),
+        created_snapshot_count=len(result.created_snapshots),
+        run_statuses=_count_fx_run_statuses(result.runs),
+    )
 
 
 @router.post(

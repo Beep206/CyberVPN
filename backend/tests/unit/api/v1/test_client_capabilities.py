@@ -73,6 +73,11 @@ def test_client_capabilities_include_site_and_unavailable_onboarding_runtime(mon
             mode="cabinet_only",
             public_hosts=("cyber-vpn.net",),
             cabinet_hosts=("my.cyber-vpn.net",),
+            cabinet_allowed_prefixes=("/dashboard", "/settings"),
+            cabinet_marketing_route_action="not_found",
+            public_marketing_destination_path="/",
+            legal_path_prefixes=("/privacy", "/terms"),
+            operational_path_prefixes=("/status", "/.well-known"),
         ),
         onboarding_runtime=CustomerOnboardingRuntimeConfig(
             post_registration_code_prompt_enabled=True,
@@ -86,6 +91,11 @@ def test_client_capabilities_include_site_and_unavailable_onboarding_runtime(mon
     assert response.site.cabinet_only is True
     assert response.site.public_hosts == ["cyber-vpn.net"]
     assert response.site.cabinet_hosts == ["my.cyber-vpn.net"]
+    assert response.site.cabinet_allowed_prefixes == ["/dashboard", "/settings"]
+    assert response.site.cabinet_marketing_route_action == "not_found"
+    assert response.site.public_marketing_destination_path == "/"
+    assert response.site.legal_path_prefixes == ["/privacy", "/terms"]
+    assert response.site.operational_path_prefixes == ["/status", "/.well-known"]
     assert response.onboarding.post_registration_code_prompt is True
     assert response.onboarding.web_otp is True
     assert response.onboarding.telegram_miniapp is True

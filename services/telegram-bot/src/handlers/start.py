@@ -17,7 +17,9 @@ if TYPE_CHECKING:
     from aiogram.types import Message
     from aiogram_i18n import I18nContext
 
+    from src.config import BotSettings
     from src.services.api_client import CyberVPNAPIClient
+    from src.services.cache_service import CacheService
 
 logger = structlog.get_logger(__name__)
 
@@ -27,6 +29,9 @@ AUTH_LINK_PREFIX = "auth_"
 ACCOUNT_LINK_PREFIX = "link_"
 LEGACY_LOGIN_LINK_PREFIX = "login_"
 AUTH_LINK_PAYLOAD_PREFIXES = (AUTH_LINK_PREFIX, ACCOUNT_LINK_PREFIX, LEGACY_LOGIN_LINK_PREFIX)
+CONNECTION_START_PAYLOADS = {"connect", "connection", "vpn"}
+ONBOARDING_LINK_PREFIX = "onboarding_"
+CODE_LINK_PREFIX = "code_"
 
 
 def _token_fingerprint(token: str) -> str:
@@ -102,6 +107,19 @@ def _is_legacy_login_link_payload(start_payload: str | None) -> bool:
     return bool(start_payload and start_payload.startswith(LEGACY_LOGIN_LINK_PREFIX))
 
 
+def _is_connection_start_payload(start_payload: str | None) -> bool:
+    if not start_payload:
+        return False
+    return start_payload in CONNECTION_START_PAYLOADS or start_payload.startswith(ONBOARDING_LINK_PREFIX)
+
+
+def _extract_code_start_payload(start_payload: str | None) -> str | None:
+    if not start_payload or not start_payload.startswith(CODE_LINK_PREFIX):
+        return None
+    code = start_payload.removeprefix(CODE_LINK_PREFIX).strip()
+    return code or None
+
+
 async def _handle_start(
     message: Message,
     command: CommandObject,
@@ -111,6 +129,8 @@ async def _handle_start(
     user: dict[str, Any] | None = None,
     referrer_id: int | None = None,
     promo_code: str | None = None,
+    cache: CacheService | None = None,
+    settings: BotSettings | None = None,
 ) -> None:
     """Handle /start command with deep link support."""
     if message.from_user is None:
@@ -124,6 +144,7 @@ async def _handle_start(
     language_code = message.from_user.language_code or "en"
     start_payload = _get_start_payload(message, command)
     direct_offer = _parse_subscription_offer_payload(start_payload)
+    code_payload = _extract_code_start_payload(start_payload)
 
     if _is_account_link_payload(start_payload):
         token = (start_payload or "").removeprefix(ACCOUNT_LINK_PREFIX).strip()
@@ -228,14 +249,53 @@ async def _handle_start(
         if promo_code:
             try:
                 await api_client.activate_promocode(user_id, promo_code)
-                await message.answer(i18n.get("promo-activated", code=promo_code))
-                logger.info("promo_activated_on_start", user_id=user_id, promo_code=promo_code)
+                from src.handlers.connection import code_fingerprint, mask_code
+
+                await message.answer(i18n.get("promo-activated", code=mask_code(promo_code)))
+                logger.info(
+                    "promo_activated_on_start",
+                    user_id=user_id,
+                    promo_code_fingerprint=code_fingerprint(promo_code),
+                )
             except Exception as e:
-                logger.warning("promo_activation_failed", user_id=user_id, promo_code=promo_code, error=str(e))
+                from src.handlers.connection import code_fingerprint
+
+                logger.warning(
+                    "promo_activation_failed",
+                    user_id=user_id,
+                    promo_code_fingerprint=code_fingerprint(promo_code),
+                    error_type=type(e).__name__,
+                )
 
     except Exception as e:
         logger.error("user_registration_failed", user_id=user_id, error=str(e))
         await message.answer(i18n.get("error-registration-failed"))
+        return
+
+    if cache is not None and code_payload is not None:
+        from src.handlers.connection import apply_code_and_open_connection, code_fingerprint
+
+        await apply_code_and_open_connection(
+            message,
+            i18n,
+            api_client,
+            cache,
+            settings,
+            code=code_payload,
+        )
+        logger.info(
+            "start_command_completed",
+            user_id=user_id,
+            flow="connection_code",
+            code_fingerprint=code_fingerprint(code_payload),
+        )
+        return
+
+    if cache is not None and _is_connection_start_payload(start_payload):
+        from src.handlers.connection import open_connection_from_message
+
+        await open_connection_from_message(message, i18n, api_client, cache, settings)
+        logger.info("start_command_completed", user_id=user_id, flow="connection")
         return
 
     # Send welcome message with main menu
@@ -293,6 +353,8 @@ async def start_with_deep_link_handler(
     user: dict[str, Any] | None = None,
     referrer_id: int | None = None,
     promo_code: str | None = None,
+    cache: CacheService | None = None,
+    settings: BotSettings | None = None,
 ) -> None:
     await _handle_start(
         message=message,
@@ -303,6 +365,8 @@ async def start_with_deep_link_handler(
         user=user,
         referrer_id=referrer_id,
         promo_code=promo_code,
+        cache=cache,
+        settings=settings,
     )
 
 
@@ -318,6 +382,8 @@ async def start_handler(
     user: dict[str, Any] | None = None,
     referrer_id: int | None = None,
     promo_code: str | None = None,
+    cache: CacheService | None = None,
+    settings: BotSettings | None = None,
 ) -> None:
     await _handle_start(
         message=message,
@@ -328,4 +394,6 @@ async def start_handler(
         user=user,
         referrer_id=referrer_id,
         promo_code=promo_code,
+        cache=cache,
+        settings=settings,
     )

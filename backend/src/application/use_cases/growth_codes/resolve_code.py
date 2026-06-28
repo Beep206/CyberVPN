@@ -113,6 +113,8 @@ class ResolveGrowthCodeUseCase:
         existing_partner_code_present: bool = False,
         existing_promo_present: bool = False,
         surface: str | None = None,
+        record_event: bool = True,
+        ensure_registry: bool = True,
     ) -> GrowthCodeResolutionOutcome:
         started_at = perf_counter()
         try:
@@ -131,18 +133,19 @@ class ResolveGrowthCodeUseCase:
 
         if namespace_lookup.is_ambiguous:
             outcome = self._namespace_ambiguous(action_context, namespace_lookup)
-            await self._registry.record_resolution_event(
-                growth_code_id=None,
-                raw_code=normalized_code,
-                code_type=None,
-                user_id=user_id,
-                surface=surface or action_context.value,
-                action_context=action_context.value,
-                result=outcome.result.value,
-                reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
-                conflict_code=outcome.conflict_code,
-                policy_version_id=None,
-            )
+            if record_event:
+                await self._registry.record_resolution_event(
+                    growth_code_id=None,
+                    raw_code=normalized_code,
+                    code_type=None,
+                    user_id=user_id,
+                    surface=surface or action_context.value,
+                    action_context=action_context.value,
+                    result=outcome.result.value,
+                    reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
+                    conflict_code=outcome.conflict_code,
+                    policy_version_id=None,
+                )
             self._observe_resolution_duration(
                 code_type=None,
                 action_context=action_context.value,
@@ -159,25 +162,28 @@ class ResolveGrowthCodeUseCase:
             if invite is not None:
                 break
         if invite is not None:
-            registry_code = await self._registry.ensure_shadow_invite(invite)
+            if ensure_registry:
+                registry_code = await self._registry.ensure_shadow_invite(invite)
             outcome = self._resolve_invite(
                 invite=invite,
                 action_context=action_context,
                 user_id=user_id,
             )
-            outcome = self._with_growth_code_id(outcome, registry_code.id)
-            await self._registry.record_resolution_event(
-                growth_code_id=registry_code.id,
-                raw_code=normalized_code,
-                code_type=GrowthCodeType.INVITE.value,
-                user_id=user_id,
-                surface=surface or action_context.value,
-                action_context=action_context.value,
-                result=outcome.result.value,
-                reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
-                conflict_code=outcome.conflict_code,
-                policy_version_id=registry_code.policy_version_id,
-            )
+            if registry_code is not None:
+                outcome = self._with_growth_code_id(outcome, registry_code.id)
+            if record_event:
+                await self._registry.record_resolution_event(
+                    growth_code_id=registry_code.id if registry_code is not None else None,
+                    raw_code=normalized_code,
+                    code_type=GrowthCodeType.INVITE.value,
+                    user_id=user_id,
+                    surface=surface or action_context.value,
+                    action_context=action_context.value,
+                    result=outcome.result.value,
+                    reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
+                    conflict_code=outcome.conflict_code,
+                    policy_version_id=registry_code.policy_version_id if registry_code is not None else None,
+                )
             self._observe_resolution_duration(
                 code_type=GrowthCodeType.INVITE.value,
                 action_context=action_context.value,
@@ -193,7 +199,8 @@ class ResolveGrowthCodeUseCase:
             if promo is not None:
                 break
         if promo is not None:
-            registry_code = await self._registry.ensure_shadow_promo(promo)
+            if ensure_registry:
+                registry_code = await self._registry.ensure_shadow_promo(promo)
             outcome = await self._resolve_promo(
                 promo=promo,
                 action_context=action_context,
@@ -203,26 +210,28 @@ class ResolveGrowthCodeUseCase:
                 storefront_id=storefront_id,
                 existing_partner_code_present=existing_partner_code_present,
             )
-            outcome = replace(
-                outcome,
-                policy_snapshot=await self._build_policy_snapshot_with_benefits(
-                    growth_code_id=registry_code.id,
-                    base_snapshot=outcome.policy_snapshot,
-                ),
-            )
-            outcome = self._with_growth_code_id(outcome, registry_code.id)
-            await self._registry.record_resolution_event(
-                growth_code_id=registry_code.id,
-                raw_code=normalized_code,
-                code_type=GrowthCodeType.PROMO.value,
-                user_id=user_id,
-                surface=surface or action_context.value,
-                action_context=action_context.value,
-                result=outcome.result.value,
-                reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
-                conflict_code=outcome.conflict_code,
-                policy_version_id=registry_code.policy_version_id,
-            )
+            if registry_code is not None:
+                outcome = replace(
+                    outcome,
+                    policy_snapshot=await self._build_policy_snapshot_with_benefits(
+                        growth_code_id=registry_code.id,
+                        base_snapshot=outcome.policy_snapshot,
+                    ),
+                )
+                outcome = self._with_growth_code_id(outcome, registry_code.id)
+            if record_event:
+                await self._registry.record_resolution_event(
+                    growth_code_id=registry_code.id if registry_code is not None else None,
+                    raw_code=normalized_code,
+                    code_type=GrowthCodeType.PROMO.value,
+                    user_id=user_id,
+                    surface=surface or action_context.value,
+                    action_context=action_context.value,
+                    result=outcome.result.value,
+                    reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
+                    conflict_code=outcome.conflict_code,
+                    policy_version_id=registry_code.policy_version_id if registry_code is not None else None,
+                )
             self._observe_resolution_duration(
                 code_type=GrowthCodeType.PROMO.value,
                 action_context=action_context.value,
@@ -239,18 +248,19 @@ class ResolveGrowthCodeUseCase:
                 action_context=action_context,
                 user_id=user_id,
             )
-            await self._registry.record_resolution_event(
-                growth_code_id=gift_code.id,
-                raw_code=normalized_code,
-                code_type=GrowthCodeType.GIFT.value,
-                user_id=user_id,
-                surface=surface or action_context.value,
-                action_context=action_context.value,
-                result=outcome.result.value,
-                reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
-                conflict_code=outcome.conflict_code,
-                policy_version_id=gift_code.policy_version_id,
-            )
+            if record_event:
+                await self._registry.record_resolution_event(
+                    growth_code_id=gift_code.id,
+                    raw_code=normalized_code,
+                    code_type=GrowthCodeType.GIFT.value,
+                    user_id=user_id,
+                    surface=surface or action_context.value,
+                    action_context=action_context.value,
+                    result=outcome.result.value,
+                    reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
+                    conflict_code=outcome.conflict_code,
+                    policy_version_id=gift_code.policy_version_id,
+                )
             outcome = self._with_growth_code_id(outcome, gift_code.id)
             self._observe_resolution_duration(
                 code_type=GrowthCodeType.GIFT.value,
@@ -267,7 +277,8 @@ class ResolveGrowthCodeUseCase:
             if referral_owner is not None:
                 break
         if referral_owner is not None:
-            registry_code = await self._registry.ensure_shadow_referral(referral_owner)
+            if ensure_registry:
+                registry_code = await self._registry.ensure_shadow_referral(referral_owner)
             outcome = await self._resolve_referral(
                 referral_owner=referral_owner,
                 action_context=action_context,
@@ -275,26 +286,28 @@ class ResolveGrowthCodeUseCase:
                 storefront_id=storefront_id,
                 existing_partner_code_present=existing_partner_code_present,
             )
-            outcome = replace(
-                outcome,
-                policy_snapshot=await self._build_policy_snapshot_with_benefits(
-                    growth_code_id=registry_code.id,
-                    base_snapshot=outcome.policy_snapshot,
-                ),
-            )
-            outcome = self._with_growth_code_id(outcome, registry_code.id)
-            await self._registry.record_resolution_event(
-                growth_code_id=registry_code.id,
-                raw_code=normalized_code,
-                code_type=GrowthCodeType.REFERRAL.value,
-                user_id=user_id,
-                surface=surface or action_context.value,
-                action_context=action_context.value,
-                result=outcome.result.value,
-                reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
-                conflict_code=outcome.conflict_code,
-                policy_version_id=registry_code.policy_version_id,
-            )
+            if registry_code is not None:
+                outcome = replace(
+                    outcome,
+                    policy_snapshot=await self._build_policy_snapshot_with_benefits(
+                        growth_code_id=registry_code.id,
+                        base_snapshot=outcome.policy_snapshot,
+                    ),
+                )
+                outcome = self._with_growth_code_id(outcome, registry_code.id)
+            if record_event:
+                await self._registry.record_resolution_event(
+                    growth_code_id=registry_code.id if registry_code is not None else None,
+                    raw_code=normalized_code,
+                    code_type=GrowthCodeType.REFERRAL.value,
+                    user_id=user_id,
+                    surface=surface or action_context.value,
+                    action_context=action_context.value,
+                    result=outcome.result.value,
+                    reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
+                    conflict_code=outcome.conflict_code,
+                    policy_version_id=registry_code.policy_version_id if registry_code is not None else None,
+                )
             self._observe_resolution_duration(
                 code_type=GrowthCodeType.REFERRAL.value,
                 action_context=action_context.value,
@@ -318,18 +331,19 @@ class ResolveGrowthCodeUseCase:
                 sale_channel=surface,
                 storefront_id=storefront_id,
             )
-            await self._registry.record_resolution_event(
-                growth_code_id=None,
-                raw_code=normalized_code,
-                code_type=GrowthCodeType.PARTNER.value,
-                user_id=user_id,
-                surface=surface or action_context.value,
-                action_context=action_context.value,
-                result=outcome.result.value,
-                reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
-                conflict_code=outcome.conflict_code,
-                policy_version_id=None,
-            )
+            if record_event:
+                await self._registry.record_resolution_event(
+                    growth_code_id=None,
+                    raw_code=normalized_code,
+                    code_type=GrowthCodeType.PARTNER.value,
+                    user_id=user_id,
+                    surface=surface or action_context.value,
+                    action_context=action_context.value,
+                    result=outcome.result.value,
+                    reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
+                    conflict_code=outcome.conflict_code,
+                    policy_version_id=None,
+                )
             self._observe_resolution_duration(
                 code_type=GrowthCodeType.PARTNER.value,
                 action_context=action_context.value,
@@ -340,18 +354,19 @@ class ResolveGrowthCodeUseCase:
             return outcome
 
         outcome = self._not_found(action_context)
-        await self._registry.record_resolution_event(
-            growth_code_id=None,
-            raw_code=normalized_code,
-            code_type=None,
-            user_id=user_id,
-            surface=surface or action_context.value,
-            action_context=action_context.value,
-            result=outcome.result.value,
-            reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
-            conflict_code=outcome.conflict_code,
-            policy_version_id=None,
-        )
+        if record_event:
+            await self._registry.record_resolution_event(
+                growth_code_id=None,
+                raw_code=normalized_code,
+                code_type=None,
+                user_id=user_id,
+                surface=surface or action_context.value,
+                action_context=action_context.value,
+                result=outcome.result.value,
+                reject_reason=outcome.reject_reason.value if outcome.reject_reason else None,
+                conflict_code=outcome.conflict_code,
+                policy_version_id=None,
+            )
         self._observe_resolution_duration(
             code_type=None,
             action_context=action_context.value,
@@ -1022,7 +1037,7 @@ class ResolveGrowthCodeUseCase:
             code_type=None,
             action_context=action_context,
             result=GrowthCodeResolutionStatus.CONFLICTED,
-            reject_reason=GrowthCodeRejectReason.CODE_CONFLICTS_WITH_PROMO,
+            reject_reason=GrowthCodeRejectReason.CODE_NAMESPACE_AMBIGUOUS,
             conflict_code=CODE_NAMESPACE_AMBIGUOUS,
             user_message_key="growth_codes.code.namespace_ambiguous",
             policy_snapshot={

@@ -45,7 +45,7 @@ pytestmark = [pytest.mark.integration]
 
 CAPACITY_REVISION = "20260626_growth_res_capacity"
 PREVIOUS_REVISION = "20260626_growth_reversals"
-CURRENT_HEAD_REVISION = "20260626_reg_access_idem"
+CURRENT_HEAD_REVISION = "20260627_growth_v62_db"
 
 
 @dataclass(frozen=True, slots=True)

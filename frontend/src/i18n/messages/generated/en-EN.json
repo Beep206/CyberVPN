@@ -334,6 +334,142 @@
         "invite": "Invite",
         "promo": "Promo"
       },
+      "connection": {
+        "authorizationError": "Sign in again to view connection details.",
+        "available": "VPN connection details are ready.",
+        "config_unavailable": "VPN configuration is not available yet.",
+        "connected": "I connected",
+        "copyFailed": "Could not copy. Select the field and copy manually.",
+        "copyHint": "The link is shown only in this authenticated session.",
+        "copyLink": "Copy link",
+        "copyStepValue": "Copy",
+        "copySuccess": "Copied.",
+        "description": "Import the subscription link or scan the QR code in your VPN client, then confirm the connection.",
+        "deviceLimit": "{count} devices",
+        "disabled": "Connection onboarding is temporarily disabled.",
+        "expiresAt": "Expires: {date}",
+        "eyebrow": "VPN CONNECTION",
+        "goDashboard": "Go to dashboard",
+        "goMiniAppHome": "Go to Mini App",
+        "instructions": {
+          "android": {
+            "step1": {
+              "body": "Use a client that supports subscription links.",
+              "title": "Install a compatible client"
+            },
+            "step2": {
+              "body": "Copy the subscription link or scan the QR code.",
+              "title": "Import the link"
+            },
+            "step3": {
+              "body": "Save the imported CyberVPN profile.",
+              "title": "Select the profile"
+            },
+            "step4": {
+              "body": "Start the VPN connection and return here.",
+              "title": "Connect"
+            }
+          },
+          "ios": {
+            "step1": {
+              "body": "Use a client that supports subscription links.",
+              "title": "Install a compatible client"
+            },
+            "step2": {
+              "body": "Copy the subscription link or scan the QR code.",
+              "title": "Import the link"
+            },
+            "step3": {
+              "body": "Save the imported CyberVPN profile.",
+              "title": "Select the profile"
+            },
+            "step4": {
+              "body": "Start the VPN connection and return here.",
+              "title": "Connect"
+            }
+          },
+          "linux": {
+            "step1": {
+              "body": "Use a client that supports subscription links.",
+              "title": "Install a compatible client"
+            },
+            "step2": {
+              "body": "Copy the subscription link or scan the QR code.",
+              "title": "Import the link"
+            },
+            "step3": {
+              "body": "Save the imported CyberVPN profile.",
+              "title": "Select the profile"
+            },
+            "step4": {
+              "body": "Start the VPN connection and return here.",
+              "title": "Connect"
+            }
+          },
+          "macos": {
+            "step1": {
+              "body": "Use a client that supports subscription links.",
+              "title": "Install a compatible client"
+            },
+            "step2": {
+              "body": "Copy the subscription link or scan the QR code.",
+              "title": "Import the link"
+            },
+            "step3": {
+              "body": "Save the imported CyberVPN profile.",
+              "title": "Select the profile"
+            },
+            "step4": {
+              "body": "Start the VPN connection and return here.",
+              "title": "Connect"
+            }
+          },
+          "windows": {
+            "step1": {
+              "body": "Use a client that supports subscription links.",
+              "title": "Install a compatible client"
+            },
+            "step2": {
+              "body": "Copy the subscription link or scan the QR code.",
+              "title": "Import the link"
+            },
+            "step3": {
+              "body": "Save the imported CyberVPN profile.",
+              "title": "Select the profile"
+            },
+            "step4": {
+              "body": "Start the VPN connection and return here.",
+              "title": "Connect"
+            }
+          }
+        },
+        "loading": "Preparing VPN connection details...",
+        "markConnectedFailed": "Could not save connection confirmation.",
+        "networkError": "Connection details are temporarily unavailable.",
+        "no_active_entitlement": "No active VPN entitlement was found.",
+        "openLink": "Open link",
+        "openRecommendedApp": "Open",
+        "pending": "Your service identity is still being prepared. Retry shortly.",
+        "pendingTitle": "Provisioning in progress",
+        "platforms": {
+          "android": "Android",
+          "ios": "iOS",
+          "linux": "Linux",
+          "macos": "macOS",
+          "windows": "Windows"
+        },
+        "platformTabsLabel": "Choose platform",
+        "profileName": "Profile: {profile}",
+        "qrCaption": "Scan QR",
+        "recommendedApps": "Recommended apps",
+        "retry": "Retry",
+        "service_identity_pending": "VPN access is being provisioned.",
+        "subscriptionUrlLabel": "Subscription link",
+        "title": "Connect your VPN",
+        "trafficLimit": "Traffic: {limit}",
+        "unavailable": "Activate an entitlement or wait for provisioning before importing VPN access.",
+        "unavailableTitle": "Connection unavailable"
+      },
       "continue": "Continue",
       "description": "One secure field accepts promo, invite, or gift codes after your account is created. You can continue without a code and return from rewards or checkout later.",
       "eyebrow": "POST-REGISTRATION CODE",
@@ -353,6 +489,26 @@
         "skipFailed": "Could not skip this step. Try again.",
         "skipped": "Code step skipped.",
         "stateUnavailable": "The onboarding state is temporarily unavailable. Your session remains active."
+      },
+      "preview": {
+        "alreadyUsed": "This code has already been used.",
+        "ambiguous": "This code matches more than one code type. Use the right surface or contact support.",
+        "available": "This code can be applied.",
+        "blocked": "This code needs additional verification before it can be used.",
+        "expired": "This code has expired.",
+        "gift": "Gift code detected.",
+        "invite": "Invite code detected.",
+        "loading": "Checking code...",
+        "maskedCode": "Checked: {code}",
+        "networkError": "Code preview is temporarily unavailable.",
+        "notEligible": "This code is not eligible for this account.",
+        "notFound": "Code was not found.",
+        "partner": "Partner code detected.",
+        "promo": "Promo code detected.",
+        "promoCheckout": "Promo code is valid for checkout and will be staged there.",
+        "referral": "Referral code detected.",
+        "retry": "Retry preview",
+        "wrongContext": "This code belongs to another flow."
       },
       "redirecting": "Opening your cabinet...",
       "retry": "Retry",
@@ -1809,6 +1965,24 @@
         "acceptedQueued": "Accepted for grouped checkout pricing.",
         "addCta": "Add code",
         "addingCta": "Checking...",
+        "applicationMessages": {
+          "accepted": "Accepted for grouped checkout pricing.",
+          "ambiguous": "This code matches multiple code types.",
+          "applied": "Applied to this checkout.",
+          "notSelected": "Another compatible code was selected for pricing.",
+          "rejected": "The backend rejected this code for checkout.",
+          "unknown": "The backend returned an unknown code status.",
+          "wrongContext": "This code belongs to another flow."
+        },
+        "applicationStatuses": {
+          "accepted": "Accepted",
+          "ambiguous": "Ambiguous",
+          "applied": "Applied",
+          "notSelected": "Not selected",
+          "rejected": "Rejected",
+          "unknown": "Unknown",
+          "wrongContext": "Wrong flow"
+        },
         "codeTypes": {
           "gift": "Gift code",
           "invite": "Invite code",
@@ -1851,6 +2025,7 @@
         "maxReached": "Remove a code before adding more than {count}.",
         "missingPlan": "Select a plan before checking codes.",
         "networkError": "Code status is temporarily unavailable. Retry without retyping.",
+        "partialRejected": "Some checkout codes were rejected during payment commit. Review the statuses and retry.",
         "pendingCheckout": "Code status is still checking. Checkout stays locked until it finishes.",
         "placeholder": "SAVE20",
         "primaryApplied": "This accepted code is the one currently priced for checkout.",
@@ -4067,6 +4242,24 @@
       "acceptedQueued": "Accepted for grouped checkout pricing.",
       "addCta": "Add code",
       "addingCta": "Checking...",
+      "applicationMessages": {
+        "accepted": "Accepted for grouped checkout pricing.",
+        "ambiguous": "This code matches multiple code types.",
+        "applied": "Applied to this checkout.",
+        "notSelected": "Another compatible code was selected for pricing.",
+        "rejected": "The backend rejected this code for checkout.",
+        "unknown": "The backend returned an unknown code status.",
+        "wrongContext": "This code belongs to another flow."
+      },
+      "applicationStatuses": {
+        "accepted": "Accepted",
+        "ambiguous": "Ambiguous",
+        "applied": "Applied",
+        "notSelected": "Not selected",
+        "rejected": "Rejected",
+        "unknown": "Unknown",
+        "wrongContext": "Wrong flow"
+      },
       "codeTypes": {
         "gift": "Gift code",
         "invite": "Invite code",
@@ -4109,6 +4302,7 @@
       "maxReached": "Remove a code before adding more than {count}.",
       "missingPlan": "Select a plan before checking codes.",
       "networkError": "Code status is temporarily unavailable. Retry without retyping.",
+      "partialRejected": "Some checkout codes were rejected during payment commit. Review the statuses and retry.",
       "pendingCheckout": "Code status is still checking. Checkout stays locked until it finishes.",
       "placeholder": "SAVE20",
       "primaryApplied": "This accepted code is the one currently priced for checkout.",

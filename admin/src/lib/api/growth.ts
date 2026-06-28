@@ -102,6 +102,10 @@ type AdminGrowthFxRateResponse =
   operations['create_configured_growth_fx_rate_api_v3_admin_growth_fx_configured_rates_post']['responses'][201]['content']['application/json'];
 type AdminGrowthFxXtrTableRequest =
   operations['create_growth_fx_xtr_table_api_v3_admin_growth_fx_xtr_tables_post']['requestBody']['content']['application/json'];
+type AdminGrowthFxRefreshRequest =
+  operations['refresh_growth_fx_rates_api_v3_admin_growth_fx_rates_refresh_post']['requestBody']['content']['application/json'];
+type AdminGrowthFxRefreshResponse =
+  operations['refresh_growth_fx_rates_api_v3_admin_growth_fx_rates_refresh_post']['responses'][202]['content']['application/json'];
 type AdminGrowthFxSimulateRequest =
   operations['simulate_growth_fx_conversion_api_v3_admin_growth_fx_simulate_post']['requestBody']['content']['application/json'];
 type AdminGrowthFxSimulationResponse =
@@ -1045,8 +1049,14 @@ export const growthApi = {
   createGrowthFxXtrTable: (data: AdminGrowthFxXtrTableRequest) =>
     apiV3Client.post<AdminGrowthFxRateResponse>('/admin/growth/fx/xtr-tables', data),
 
+  refreshGrowthFxRates: (data: AdminGrowthFxRefreshRequest) =>
+    apiV3Client.post<AdminGrowthFxRefreshResponse>('/admin/growth/fx/rates/refresh', data),
+
   approveGrowthFxRate: (rateId: string, data: AdminGrowthFxProviderActionRequest) =>
     apiV3Client.post<AdminGrowthFxRateResponse>(`/admin/growth/fx/rates/${rateId}/approve`, data),
+
+  rejectGrowthFxRate: (rateId: string, data: AdminGrowthFxProviderActionRequest) =>
+    apiV3Client.post<AdminGrowthFxRateResponse>(`/admin/growth/fx/rates/${rateId}/reject`, data),
 
   simulateGrowthFxConversion: (data: AdminGrowthFxSimulateRequest) =>
     apiV3Client.post<AdminGrowthFxSimulationResponse>('/admin/growth/fx/simulate', data),
@@ -1168,6 +1178,8 @@ export type {
   AdminGrowthCodeSetInspectResponse,
   AdminGrowthFxConfiguredRateRequest,
   AdminGrowthFxProviderActionRequest,
+  AdminGrowthFxRefreshRequest,
+  AdminGrowthFxRefreshResponse,
   AdminGrowthFxRateListParams,
   AdminGrowthFxRateListResponse,
   AdminGrowthFxRateResponse,

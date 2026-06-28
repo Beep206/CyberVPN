@@ -80,6 +80,7 @@
             'TELEGRAM_BOT_TOKEN',
             'TELEGRAM_BOT_USERNAME',
             'TELEGRAM_BOT_INTERNAL_SECRET',
+            'BACKEND_INTERNAL_SECRET',
             'PAYMENT_SETTLEMENT_WORKER_SECRET',
             'ENVIRONMENT',
             'CORS_ORIGINS'
@@ -89,6 +90,38 @@
       Set control_plane_stack_backend_image and the required backend env keys
       before deploying the control plane backend.
   when: control_plane_stack_enable_backend
+  no_log: true
+
+- name: Control plane | Assert backend internal secrets use distinct audiences
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET | length >= 16
+      - control_plane_stack_backend_env.TELEGRAM_BOT_INTERNAL_SECRET | length >= 16
+      - control_plane_stack_backend_env.PAYMENT_SETTLEMENT_WORKER_SECRET | length >= 16
+      - control_plane_stack_worker_env.TELEGRAM_BOT_INTERNAL_SECRET | length >= 16
+      - control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET != control_plane_stack_backend_env.TELEGRAM_BOT_INTERNAL_SECRET
+      - control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET != control_plane_stack_backend_env.PAYMENT_SETTLEMENT_WORKER_SECRET
+      - control_plane_stack_backend_env.TELEGRAM_BOT_INTERNAL_SECRET != control_plane_stack_backend_env.PAYMENT_SETTLEMENT_WORKER_SECRET
+      - control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET == control_plane_stack_worker_env.BACKEND_INTERNAL_SECRET
+      - control_plane_stack_backend_env.TELEGRAM_BOT_INTERNAL_SECRET == control_plane_stack_worker_env.TELEGRAM_BOT_INTERNAL_SECRET
+    fail_msg: >-
+      BACKEND_INTERNAL_SECRET must be configured for backend, worker, and scheduler
+      from a dedicated secret distinct from Telegram Bot and settlement worker secrets.
+  when: control_plane_stack_enable_backend and (control_plane_stack_enable_worker or control_plane_stack_enable_scheduler)
+  no_log: true
+
+- name: Control plane | Assert scheduler internal secrets match backend audiences
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_effective_scheduler_env.BACKEND_INTERNAL_SECRET | length >= 16
+      - control_plane_stack_effective_scheduler_env.TELEGRAM_BOT_INTERNAL_SECRET | length >= 16
+      - control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET == control_plane_stack_effective_scheduler_env.BACKEND_INTERNAL_SECRET
+      - control_plane_stack_backend_env.TELEGRAM_BOT_INTERNAL_SECRET == control_plane_stack_effective_scheduler_env.TELEGRAM_BOT_INTERNAL_SECRET
+      - control_plane_stack_effective_scheduler_env.BACKEND_INTERNAL_SECRET != control_plane_stack_effective_scheduler_env.TELEGRAM_BOT_INTERNAL_SECRET
+    fail_msg: >-
+      Scheduler BACKEND_INTERNAL_SECRET and TELEGRAM_BOT_INTERNAL_SECRET must
+      match backend audiences and stay distinct when scheduler env is overridden.
+  when: control_plane_stack_enable_backend and control_plane_stack_enable_scheduler
   no_log: true
 
 - name: Control plane | Assert worker config is complete
@@ -104,6 +137,7 @@
             'REMNAWAVE_API_TOKEN',
             'BACKEND_API_URL',
             'BACKEND_INTERNAL_SECRET',
+            'TELEGRAM_BOT_INTERNAL_SECRET',
             'PAYMENT_SETTLEMENT_WORKER_SECRET',
             'TELEGRAM_BOT_TOKEN',
             'CRYPTOBOT_TOKEN',

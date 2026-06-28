@@ -11,7 +11,6 @@ This module provides comprehensive test fixtures for:
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock
@@ -39,6 +38,7 @@ from src.config import (
     YooKassaSettings,
 )
 from src.middlewares.i18n import FluentTranslator
+from src.models.connection import ConnectionBootstrapResponse, MarkConnectedResponse
 from src.models.subscription import (
     PlanAvailability,
     PlanDuration,
@@ -50,6 +50,7 @@ from src.models.user import UserDTO, UserStatus
 from src.services.api_client import CyberVPNAPIClient
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
     from pathlib import Path
 
 # ── Pytest configuration ─────────────────────────────────────────────────────
@@ -101,8 +102,7 @@ def mock_dispatcher(mock_bot: Bot) -> Dispatcher:
         Dispatcher configured with MemoryStorage for FSM state testing.
     """
     storage = MemoryStorage()
-    dispatcher = Dispatcher(storage=storage)
-    return dispatcher
+    return Dispatcher(storage=storage)
 
 
 @pytest.fixture
@@ -239,6 +239,21 @@ class MockCyberVPNAPIClient:
 
         # Promocode operations
         self.activate_promocode = AsyncMock(return_value={})
+        self.apply_telegram_onboarding_code = AsyncMock(return_value={"status": "accepted"})
+        self.get_customer_connection_bootstrap = AsyncMock(
+            return_value=ConnectionBootstrapResponse(
+                status="available",
+                available=True,
+                subscription_url="vless://test-private-config",
+                qr_payload="vless://test-private-config",
+                config_profile_name="Test profile",
+                flow_key="flow-test",
+                version=1,
+                connection_session_id="33333333-4444-4555-8666-777777777777",
+                telegram_payload={"bot_connection_session_id": "33333333-4444-4555-8666-777777777777"},
+            )
+        )
+        self.mark_customer_connection_connected = AsyncMock(return_value=MarkConnectedResponse(status="accepted"))
 
         # Admin operations (real API)
         self.get_statistics = AsyncMock(return_value={})

@@ -47,6 +47,7 @@ from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
     CheckoutCodeRefResponse,
     CheckoutCodeResolutionResponse,
+    CheckoutCodeSetRejectedErrorResponse,
     CheckoutCodeSetResponse,
     CheckoutCommitResponse,
     CheckoutDiscountResponse,
@@ -85,6 +86,19 @@ def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
 
 def _require_telegram_bot_secret(secret: str | None) -> None:
     if _is_valid_telegram_bot_secret(secret):
+        return
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def _is_valid_backend_internal_secret(secret: str | None) -> bool:
+    configured = settings.backend_internal_secret.get_secret_value().strip()
+    if not configured or not secret:
+        return False
+    return hmac.compare_digest(secret.strip(), configured)
+
+
+def _require_backend_internal_secret(secret: str | None) -> None:
+    if _is_valid_backend_internal_secret(secret):
         return
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
 
@@ -327,7 +341,11 @@ async def get_payment_history(
     return PaymentHistoryResponse(payments=payments)
 
 
-@router.post("/checkout/quote", response_model=CheckoutQuoteResponse)
+@router.post(
+    "/checkout/quote",
+    response_model=CheckoutQuoteResponse,
+    responses={422: {"model": CheckoutCodeSetRejectedErrorResponse}},
+)
 async def quote_checkout(
     body: CheckoutQuoteRequest,
     db: AsyncSession = Depends(get_db),
@@ -438,7 +456,7 @@ async def checkout_alias(
 async def run_stage1_payment_reconciliation(
     limit: int = Query(DEFAULT_RECONCILIATION_LIMIT, ge=1, le=MAX_RECONCILIATION_LIMIT),
     db: AsyncSession = Depends(get_db),
-    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    backend_internal_secret: str | None = Header(default=None, alias="X-Backend-Internal-Secret"),
 ) -> dict:
     """Run the internal S1 payment reconciliation scan.
 
@@ -447,7 +465,7 @@ async def run_stage1_payment_reconciliation(
     keys.
     """
 
-    _require_telegram_bot_secret(telegram_bot_secret)
+    _require_backend_internal_secret(backend_internal_secret)
     report = await Stage1PaymentReconciliationUseCase(db).execute(limit=limit)
     payload = report.to_api_dict()
     assert_stage1_payment_reconciliation_output_is_redacted(payload)

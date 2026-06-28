@@ -37,7 +37,11 @@ from src.infrastructure.database.models.growth_code_set_model import (
     CheckoutCodeSetModel,
     GrowthCodeReservationGroupModel,
 )
-from src.infrastructure.database.models.growth_risk_fx_model import FxDiscountConversionModel, FxRateSnapshotModel
+from src.infrastructure.database.models.growth_risk_fx_model import (
+    FxDiscountConversionModel,
+    FxProviderConfigModel,
+    FxRateSnapshotModel,
+)
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.invoice_profile_model import InvoiceProfileModel
 from src.infrastructure.database.models.legal_document_model import LegalDocumentModel
@@ -2633,6 +2637,35 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                     metadata_={"pricebook_key": seeded["pricebook_key"]},
                 )
                 fx_rate_id = fx_rate.id
+                provider_fx_config = FxProviderConfigModel(
+                    id=uuid.uuid4(),
+                    provider_key=f"quote-provider-{uuid.uuid4().hex[:8]}",
+                    priority=1,
+                    enabled=True,
+                    supported_pairs=[{"source_currency": "EUR", "target_currency": "USD"}],
+                    stale_after_seconds=60,
+                    rate_ttl_seconds=3600,
+                    requires_admin_approval=False,
+                    metadata_={},
+                )
+                provider_config_id = provider_fx_config.id
+                provider_fx_rate = FxRateSnapshotModel(
+                    id=uuid.uuid4(),
+                    provider_config_id=provider_fx_config.id,
+                    base_currency="EUR",
+                    quote_currency="USD",
+                    rate=Decimal("1.1"),
+                    inverse_rate=Decimal("0.9090909091"),
+                    source_type="provider",
+                    provider_key=provider_fx_config.provider_key,
+                    provider_rate_id="provider-eur-usd-20260625",
+                    observed_at=now,
+                    fetched_at=now,
+                    valid_until=now + timedelta(minutes=30),
+                    status="active",
+                    approval_state="approved",
+                    metadata_={"provider_enabled": True},
+                )
                 fx_promo_code = GrowthCodeModel(
                     id=uuid.uuid4(),
                     code_hash=hash_growth_code("PROMOEURO5"),
@@ -2645,6 +2678,20 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                 fx_policy_snapshot = {
                     "policy_version_id": str(fx_policy_version.id),
                     "fixed_discount_currency": "EUR",
+                    "fx_rate_snapshots": [
+                        {
+                            "rate_id": str(fx_rate.id),
+                            "provider": "pricebook-primary",
+                            "provider_priority": 1,
+                            "source_currency": "EUR",
+                            "target_currency": "USD",
+                            "rate": "1.10",
+                            "fetched_at": now.isoformat(),
+                            "expires_at": (now + timedelta(minutes=30)).isoformat(),
+                            "source_type": "pricebook",
+                            "configured_rate_version": "pb-eur-usd-20260625",
+                        }
+                    ],
                     "fx": {
                         "fixed_discount_currency": "EUR",
                         "rate_snapshots": [
@@ -2670,6 +2717,40 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                     discount_value=5,
                     currency_code="EUR",
                     policy_snapshot=fx_policy_snapshot,
+                )
+                provider_promo_code = GrowthCodeModel(
+                    id=uuid.uuid4(),
+                    code_hash=hash_growth_code("PROMOPROVIDER5"),
+                    code_prefix=build_growth_code_prefix("PROMOPROVIDER5"),
+                    code_type="promo",
+                    status="active",
+                    issuer_type="admin",
+                    starts_at=now,
+                )
+                provider_promo_policy = PromoCodePolicyModel(
+                    id=uuid.uuid4(),
+                    growth_code_id=provider_promo_code.id,
+                    discount_type="fixed",
+                    discount_value=5,
+                    currency_code="EUR",
+                    policy_snapshot={
+                        "policy_version_id": str(fx_policy_version.id),
+                        "fixed_discount_currency": "EUR",
+                        "fx_rate_snapshots": [
+                            {
+                                "rate_id": str(provider_fx_rate.id),
+                                "provider": provider_fx_config.provider_key,
+                                "provider_priority": 1,
+                                "source_currency": "EUR",
+                                "target_currency": "USD",
+                                "rate": "1.10",
+                                "fetched_at": now.isoformat(),
+                                "expires_at": (now + timedelta(minutes=30)).isoformat(),
+                                "source_type": "provider",
+                                "provider_enabled": True,
+                            }
+                        ],
+                    },
                 )
                 missing_fx_promo_code = GrowthCodeModel(
                     id=uuid.uuid4(),
@@ -2699,8 +2780,12 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                         ambiguous_invite,
                         fx_policy_version,
                         fx_rate,
+                        provider_fx_config,
+                        provider_fx_rate,
                         fx_promo_code,
                         fx_promo_policy,
+                        provider_promo_code,
+                        provider_promo_policy,
                         missing_fx_promo_code,
                         missing_fx_promo_policy,
                         PromoCodeModel(
@@ -2727,6 +2812,13 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                         PromoCodeModel(
                             id=uuid.uuid4(),
                             code="PROMOEURO5",
+                            discount_type="fixed",
+                            discount_value=5,
+                            is_active=True,
+                        ),
+                        PromoCodeModel(
+                            id=uuid.uuid4(),
+                            code="PROMOPROVIDER5",
                             discount_type="fixed",
                             discount_value=5,
                             is_active=True,
@@ -2869,6 +2961,61 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
             assert fx_discount["fx_conversion_id"]
             assert "PROMOEURO5" not in fx_quote_response.text
 
+            provider_quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [{"code": "PROMOPROVIDER5", "client_slot_id": "provider-fx"}],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert provider_quote_response.status_code == 201, provider_quote_response.text
+            provider_quote = provider_quote_response.json()["quote"]
+            provider_application = provider_quote["code_set"]["applications"][0]
+            provider_discount = provider_application["discount"]
+            assert provider_discount["source_currency"] == "EUR"
+            assert provider_discount["applied_amount"] == "5.50"
+            assert provider_discount["fx_conversion"]["conversion_mode"] == "provider"
+            assert provider_discount["fx_conversion"]["rate_snapshot"]["provider"].startswith("quote-provider-")
+
+            with sessionmaker() as db:
+                provider_config = db.get(FxProviderConfigModel, provider_config_id)
+                assert provider_config is not None
+                provider_config.enabled = False
+                db.add(provider_config)
+                db.commit()
+
+            disabled_provider_quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "codes": [{"code": "PROMOPROVIDER5", "client_slot_id": "provider-fx-disabled"}],
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert disabled_provider_quote_response.status_code == 409, disabled_provider_quote_response.text
+            assert disabled_provider_quote_response.headers["Cache-Control"] == "no-store"
+            assert disabled_provider_quote_response.json()["detail"] == {
+                "code": "FX_RATE_UNAVAILABLE",
+                "message_key": "growth.fx.errors.rateUnavailable",
+                "retryable": False,
+            }
+            assert "PROMOPROVIDER5" not in disabled_provider_quote_response.text
+
             missing_fx_response = await async_client.post(
                 "/api/v1/quotes/",
                 headers=headers,
@@ -2911,12 +3058,13 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                     "addons": [],
                 },
             )
-            assert duplicate_quote_response.status_code == 400, duplicate_quote_response.text
-            assert duplicate_quote_response.json()["detail"] == {
-                "code": "CODE_SET_REJECTED",
-                "message_key": "growth.codes.errors.codeSetRejected",
-                "retryable": False,
-            }
+            assert duplicate_quote_response.status_code == 422, duplicate_quote_response.text
+            duplicate_detail = duplicate_quote_response.json()["detail"]
+            assert duplicate_detail["code"] == "CODE_SET_REJECTED"
+            assert duplicate_detail["message_key"] == "growth_codes.code_set.rejected"
+            assert duplicate_detail["retryable"] is False
+            assert [item["status"] for item in duplicate_detail["applications"]] == ["accepted", "rejected"]
+            assert duplicate_detail["applications"][1]["reject_reason"] == "duplicate_code"
             assert "PROMOGROUP10" not in duplicate_quote_response.text
 
             ambiguous_quote_response = await async_client.post(
@@ -2934,13 +3082,15 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                     "addons": [],
                 },
             )
-            assert ambiguous_quote_response.status_code == 400, ambiguous_quote_response.text
+            assert ambiguous_quote_response.status_code == 422, ambiguous_quote_response.text
             assert ambiguous_quote_response.headers["Cache-Control"] == "no-store"
-            assert ambiguous_quote_response.json()["detail"] == {
-                "code": "CODE_SET_REJECTED",
-                "message_key": "growth.codes.errors.codeSetRejected",
-                "retryable": False,
-            }
+            ambiguous_detail = ambiguous_quote_response.json()["detail"]
+            assert ambiguous_detail["code"] == "CODE_SET_REJECTED"
+            assert ambiguous_detail["message_key"] == "growth_codes.code_set.rejected"
+            assert ambiguous_detail["retryable"] is False
+            assert ambiguous_detail["applications"][0]["status"] == "conflicted"
+            assert ambiguous_detail["applications"][0]["reject_reason"] == "code_namespace_ambiguous"
+            assert ambiguous_detail["applications"][0]["conflict_code"] == "CODE_NAMESPACE_AMBIGUOUS"
             assert "AMBIGBASKET" not in ambiguous_quote_response.text
 
             invite_quote_response = await async_client.post(
@@ -2958,13 +3108,14 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                     "addons": [],
                 },
             )
-            assert invite_quote_response.status_code == 400, invite_quote_response.text
+            assert invite_quote_response.status_code == 422, invite_quote_response.text
             assert invite_quote_response.headers["Cache-Control"] == "no-store"
-            assert invite_quote_response.json()["detail"] == {
-                "code": "CODE_SET_REJECTED",
-                "message_key": "growth.codes.errors.codeSetRejected",
-                "retryable": False,
-            }
+            invite_detail = invite_quote_response.json()["detail"]
+            assert invite_detail["code"] == "CODE_SET_REJECTED"
+            assert invite_detail["message_key"] == "growth_codes.code_set.rejected"
+            assert invite_detail["retryable"] is False
+            assert invite_detail["applications"][0]["status"] == "rejected"
+            assert invite_detail["applications"][0]["wrong_context_target"] == "redeem"
             assert invite.code not in invite_quote_response.text
 
             gift_quote_response = await async_client.post(
@@ -2982,13 +3133,14 @@ async def test_quote_session_reserves_multi_code_group_and_binds_all_to_checkout
                     "addons": [],
                 },
             )
-            assert gift_quote_response.status_code == 400, gift_quote_response.text
+            assert gift_quote_response.status_code == 422, gift_quote_response.text
             assert gift_quote_response.headers["Cache-Control"] == "no-store"
-            assert gift_quote_response.json()["detail"] == {
-                "code": "CODE_SET_REJECTED",
-                "message_key": "growth.codes.errors.codeSetRejected",
-                "retryable": False,
-            }
+            gift_detail = gift_quote_response.json()["detail"]
+            assert gift_detail["code"] == "CODE_SET_REJECTED"
+            assert gift_detail["message_key"] == "growth_codes.code_set.rejected"
+            assert gift_detail["retryable"] is False
+            assert gift_detail["applications"][0]["status"] == "rejected"
+            assert gift_detail["applications"][0]["wrong_context_target"] == "redeem"
             assert gift.raw_code not in gift_quote_response.text
 
             preview_response = await async_client.post(

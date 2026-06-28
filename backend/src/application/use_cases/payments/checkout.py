@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import cast
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
@@ -17,7 +18,9 @@ from src.application.services.stage1_plan_policy import (
     assert_stage1_paid_plan_purchasable,
 )
 from src.application.services.wallet_service import WalletService
+from src.application.use_cases.growth_code_sets.exceptions import CodeSetRejectedError
 from src.application.use_cases.growth_code_sets.fx import (
+    FxConversionError,
     FxRateSnapshot,
     conversion_mode_from_payload,
     convert_fixed_discount,
@@ -48,6 +51,7 @@ from src.domain.enums import (
     GrowthCodeType,
 )
 from src.infrastructure.database.models.customer_commercial_binding_model import CustomerCommercialBindingModel
+from src.infrastructure.database.models.growth_risk_fx_model import FxProviderConfigModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from src.infrastructure.database.models.plan_addon_model import PlanAddonModel
@@ -63,6 +67,7 @@ from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRe
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.database.repositories.wallet_repo import WalletRepository
+from src.infrastructure.monitoring.instrumentation.growth_codes import observe_growth_fx_conversion_failure
 
 logger = logging.getLogger(__name__)
 
@@ -596,7 +601,7 @@ class CheckoutUseCase:
 
         rejected = [item for item in applications if item.get("status") != "accepted"]
         if rejected:
-            raise ValueError("CODE_SET_REJECTED")
+            raise CodeSetRejectedError(applications=applications)
 
         discount_amount, selected = _select_basket_discounts(
             candidates=discount_candidates,
@@ -664,6 +669,7 @@ class CheckoutUseCase:
                 promo_policy.policy_snapshot if promo_policy is not None else None,
             )
             policy_version_id = _policy_version_id_from_snapshot(policy_snapshot) or policy_version_id
+            rate_snapshots = await self._enabled_rate_snapshots(rate_snapshots_from_policy_snapshot(policy_snapshot))
             return _BasketDiscountCandidate(
                 code=normalized_code,
                 code_hash=hash_growth_code(normalized_code),
@@ -675,7 +681,7 @@ class CheckoutUseCase:
                     policy_snapshot=policy_snapshot,
                     quote_currency=None,
                 ),
-                rate_snapshots=rate_snapshots_from_policy_snapshot(policy_snapshot),
+                rate_snapshots=rate_snapshots,
                 policy_version_id=policy_version_id,
             )
         if resolution.code_type == GrowthCodeType.REFERRAL and resolution.growth_code_id is not None:
@@ -696,6 +702,7 @@ class CheckoutUseCase:
                 kind = "fixed"
             policy_snapshot = _merge_policy_snapshots(resolution.policy_snapshot, referral_policy.policy_snapshot)
             policy_version_id = _policy_version_id_from_snapshot(policy_snapshot) or policy_version_id
+            rate_snapshots = await self._enabled_rate_snapshots(rate_snapshots_from_policy_snapshot(policy_snapshot))
             return _BasketDiscountCandidate(
                 code=normalized_code,
                 code_hash=hash_growth_code(normalized_code),
@@ -707,10 +714,24 @@ class CheckoutUseCase:
                     policy_snapshot=policy_snapshot,
                     quote_currency=None,
                 ),
-                rate_snapshots=rate_snapshots_from_policy_snapshot(policy_snapshot),
+                rate_snapshots=rate_snapshots,
                 policy_version_id=policy_version_id,
             )
         raise ValueError("Growth code is not valid")
+
+    async def _enabled_rate_snapshots(self, rates: list[FxRateSnapshot]) -> list[FxRateSnapshot]:
+        provider_keys = sorted({rate.provider for rate in rates if rate.source_type == "provider"})
+        if not provider_keys:
+            return rates
+
+        rows = await self._session.execute(
+            select(FxProviderConfigModel.provider_key).where(
+                FxProviderConfigModel.provider_key.in_(provider_keys),
+                FxProviderConfigModel.enabled.is_(True),
+            )
+        )
+        enabled_provider_keys = set(rows.scalars().all())
+        return [rate for rate in rates if rate.source_type != "provider" or rate.provider in enabled_provider_keys]
 
     async def _ensure_commission_contract_snapshot(
         self,
@@ -1292,13 +1313,17 @@ def _select_basket_discounts(
     for fixed in sorted(fixed_candidates, key=lambda item: (-item.source_amount, item.code_hash)):
         if remaining <= 0:
             break
-        conversion = convert_fixed_discount(
-            source_amount=fixed.source_amount,
-            source_currency=fixed.source_currency or currency,
-            quote_currency=currency,
-            discountable_amount=remaining,
-            rate_snapshots=fixed.rate_snapshots,
-        )
+        try:
+            conversion = convert_fixed_discount(
+                source_amount=fixed.source_amount,
+                source_currency=fixed.source_currency or currency,
+                quote_currency=currency,
+                discountable_amount=remaining,
+                rate_snapshots=fixed.rate_snapshots,
+            )
+        except FxConversionError as exc:
+            observe_growth_fx_conversion_failure(reason=exc.code)
+            raise
         applied = conversion.applied_amount
         conversion_payload = conversion.to_payload()
         selected.append(

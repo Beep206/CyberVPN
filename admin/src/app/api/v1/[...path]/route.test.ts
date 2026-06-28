@@ -81,6 +81,80 @@ describe('admin API proxy route', () => {
     await expect(response.json()).resolves.toEqual({ role: 'operator' });
   });
 
+  it('does not forward browser-supplied internal service secret headers', async () => {
+    vi.stubEnv('API_INTERNAL_ORIGIN', 'http://backend.local');
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ role: 'operator' }), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ) as typeof fetch;
+
+    const request = new NextRequest('http://127.0.0.1:13001/api/v1/auth/session', {
+      headers: {
+        'x-backend-internal-secret': 'browser-backend-secret',
+        'x-payment-settlement-worker-secret': 'browser-worker-secret',
+        'x-telegram-bot-secret': 'browser-telegram-secret',
+        'x-request-id': 'req-1',
+      },
+    });
+
+    const response = await GET(request, createContext(['auth', 'session']));
+    const init = getFetchInit();
+    const headers = init.headers as Headers;
+
+    expect(headers.get('x-backend-internal-secret')).toBeNull();
+    expect(headers.get('x-payment-settlement-worker-secret')).toBeNull();
+    expect(headers.get('x-telegram-bot-secret')).toBeNull();
+    expect(headers.get('x-request-id')).toBe('req-1');
+    expect(response.status).toBe(200);
+  });
+
+  it('does not forward browser-supplied source IP or proxy identity headers', async () => {
+    vi.stubEnv('API_INTERNAL_ORIGIN', 'http://backend.local');
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ role: 'operator' }), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ) as typeof fetch;
+
+    const request = new NextRequest('http://127.0.0.1:13001/api/v1/admin/growth/status', {
+      headers: {
+        'cf-connecting-ip': '198.51.100.50',
+        'fastly-client-ip': '198.51.100.51',
+        forwarded: 'for=198.51.100.52;proto=https',
+        'true-client-ip': '198.51.100.53',
+        'x-client-ip': '198.51.100.54',
+        'x-cluster-client-ip': '198.51.100.55',
+        'x-forwarded-for': '198.51.100.56',
+        'x-real-ip': '198.51.100.57',
+        'x-request-id': 'req-source-ip',
+      },
+    });
+
+    const response = await GET(request, createContext(['admin', 'growth', 'status']));
+    const init = getFetchInit();
+    const headers = init.headers as Headers;
+
+    expect(headers.get('cf-connecting-ip')).toBeNull();
+    expect(headers.get('fastly-client-ip')).toBeNull();
+    expect(headers.get('forwarded')).toBeNull();
+    expect(headers.get('true-client-ip')).toBeNull();
+    expect(headers.get('x-client-ip')).toBeNull();
+    expect(headers.get('x-cluster-client-ip')).toBeNull();
+    expect(headers.get('x-forwarded-for')).toBeNull();
+    expect(headers.get('x-real-ip')).toBeNull();
+    expect(headers.get('x-forwarded-host')).toBe('admin.cyber-vpn.net');
+    expect(headers.get('x-forwarded-proto')).toBe('https');
+    expect(headers.get('x-request-id')).toBe('req-source-ip');
+    expect(response.status).toBe(200);
+  });
+
   it('proxies v3 browser API calls through the same admin host boundary', async () => {
     vi.stubEnv('API_INTERNAL_ORIGIN', 'http://backend.local');
     global.fetch = vi.fn().mockResolvedValue(

@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     remnawave_api_token: SecretStr
     backend_api_url: str | None = None
     backend_internal_secret: SecretStr | None = None
+    telegram_bot_internal_secret: SecretStr | None = None
     payment_settlement_worker_secret: SecretStr | None = None
     helix_enabled: bool = False
     helix_adapter_url: str = "http://localhost:8090"
@@ -258,6 +259,9 @@ class Settings(BaseSettings):
         has_backend_secret = self.backend_internal_secret is not None and bool(
             self.backend_internal_secret.get_secret_value().strip()
         )
+        has_telegram_bot_internal_secret = self.telegram_bot_internal_secret is not None and bool(
+            self.telegram_bot_internal_secret.get_secret_value().strip()
+        )
         has_payment_settlement_worker_secret = self.payment_settlement_worker_secret is not None and bool(
             self.payment_settlement_worker_secret.get_secret_value().strip()
         )
@@ -344,6 +348,27 @@ class Settings(BaseSettings):
         if has_backend_url != has_backend_secret:
             msg = "BACKEND_API_URL and BACKEND_INTERNAL_SECRET must be configured together"
             raise ValueError(msg)
+        if self.environment.lower() == "production" and has_backend_url:
+            self._reject_placeholder_provider_secret(
+                field_name="BACKEND_INTERNAL_SECRET",
+                secret=self.backend_internal_secret.get_secret_value().strip()
+                if self.backend_internal_secret is not None
+                else "",
+            )
+            if not has_telegram_bot_internal_secret:
+                msg = "TELEGRAM_BOT_INTERNAL_SECRET is required when BACKEND_API_URL is configured in production"
+                raise ValueError(msg)
+            self._reject_placeholder_provider_secret(
+                field_name="TELEGRAM_BOT_INTERNAL_SECRET",
+                secret=self.telegram_bot_internal_secret.get_secret_value().strip()
+                if self.telegram_bot_internal_secret is not None
+                else "",
+            )
+            backend_secret = self.backend_internal_secret.get_secret_value().strip()
+            telegram_secret = self.telegram_bot_internal_secret.get_secret_value().strip()
+            if backend_secret and telegram_secret and backend_secret == telegram_secret:
+                msg = "TELEGRAM_BOT_INTERNAL_SECRET must differ from BACKEND_INTERNAL_SECRET"
+                raise ValueError(msg)
         if self.payment_completed_partner_earnings_enabled and self.environment.lower() == "production":
             if not has_backend_url:
                 msg = "BACKEND_API_URL is required when payment completed partner earnings worker is enabled"
@@ -360,6 +385,19 @@ class Settings(BaseSettings):
                 if self.payment_settlement_worker_secret is not None
                 else "",
             )
+            backend_secret = self.backend_internal_secret.get_secret_value().strip()
+            worker_secret = self.payment_settlement_worker_secret.get_secret_value().strip()
+            if backend_secret and worker_secret and backend_secret == worker_secret:
+                msg = "PAYMENT_SETTLEMENT_WORKER_SECRET must differ from BACKEND_INTERNAL_SECRET"
+                raise ValueError(msg)
+            telegram_secret = (
+                self.telegram_bot_internal_secret.get_secret_value().strip()
+                if self.telegram_bot_internal_secret is not None
+                else ""
+            )
+            if telegram_secret and worker_secret and telegram_secret == worker_secret:
+                msg = "PAYMENT_SETTLEMENT_WORKER_SECRET must differ from TELEGRAM_BOT_INTERNAL_SECRET"
+                raise ValueError(msg)
         if self.metrics_basic_auth_user is None and self.metrics_basic_auth_password is not None:
             msg = "METRICS_BASIC_AUTH_USER is required when password is set"
             raise ValueError(msg)

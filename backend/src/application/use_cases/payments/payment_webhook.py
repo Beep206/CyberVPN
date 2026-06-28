@@ -7,6 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService
 from src.application.services.wallet_service import WalletService
+from src.application.use_cases.payment_attempts.settle_completed_attempt import (
+    SettleCompletedPaymentAttemptUseCase,
+    SettlementResult,
+)
 from src.application.use_cases.payments.payment_completed_earnings import (
     append_payment_completed_partner_earning_publication,
 )
@@ -94,8 +98,6 @@ class ProcessPaymentWebhookUseCase:
 
     async def _handle_invoice_paid(self, external_id: str) -> dict:
         """Process a paid invoice: mark completed, run post-payment logic."""
-        from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
-
         payment_repo = PaymentRepository(self._session)
         payment = await payment_repo.get_by_external_id_for_update(external_id)
 
@@ -108,14 +110,25 @@ class ProcessPaymentWebhookUseCase:
 
         payment_attempt = await self._attempts.get_by_payment_id(payment.id)
         if payment.status == "completed":
-            await append_payment_completed_partner_earning_publication(
-                self._outbox,
-                payment=payment,
-                payment_attempt=payment_attempt,
+            settlement = await SettleCompletedPaymentAttemptUseCase(self._session).execute(
+                payment_id=payment.id,
+                external_reference=external_id,
+                provider=payment.provider,
                 source="payment_webhook_already_completed",
             )
+            if settlement.legacy_post_payment_required:
+                await append_payment_completed_partner_earning_publication(
+                    self._outbox,
+                    payment=payment,
+                    payment_attempt=payment_attempt,
+                    source="payment_webhook_already_completed",
+                )
             await self._session.commit()
-            return {"status": "already_processed", "invoice_id": external_id}
+            return {
+                "status": "already_processed",
+                "invoice_id": external_id,
+                "settlement": _settlement_result_payload(settlement),
+            }
 
         if payment_attempt is not None and payment_attempt.status in {
             PaymentAttemptStatus.FAILED.value,
@@ -132,24 +145,24 @@ class ProcessPaymentWebhookUseCase:
         payment.status = "completed"
         await payment_repo.update(payment)
 
-        if payment_attempt is not None:
-            payment_attempt.status = PaymentAttemptStatus.SUCCEEDED.value
-            payment_attempt.terminal_at = datetime.now(UTC)
-            if payment_attempt.order_id:
-                order = await self._orders.get_by_id(payment_attempt.order_id)
-                if order is not None:
-                    order.settlement_status = "paid"
-
-        # Run operational post-payment processing without cash payouts; referral and
-        # partner earnings are created from the durable payment.completed outbox event.
-        post_payment = PostPaymentProcessingUseCase(self._session)
-        post_results = await post_payment.execute(payment.id, process_cash_rewards=False)
-        await append_payment_completed_partner_earning_publication(
-            self._outbox,
-            payment=payment,
-            payment_attempt=payment_attempt,
+        settlement = await SettleCompletedPaymentAttemptUseCase(self._session).execute(
+            payment_id=payment.id,
+            external_reference=external_id,
+            provider=payment.provider,
             source="payment_webhook",
         )
+        if settlement.legacy_post_payment_required:
+            post_results = await self._run_legacy_post_payment_completion(
+                payment=payment,
+                payment_attempt=payment_attempt,
+                source="payment_webhook",
+            )
+        else:
+            post_results = {
+                "cash_rewards_deferred": True,
+                "partner_earning": None,
+                "settlement": _settlement_result_payload(settlement),
+            }
 
         await self._session.commit()
 
@@ -162,6 +175,26 @@ class ProcessPaymentWebhookUseCase:
             },
         )
         return {"status": "processed", "invoice_id": external_id, "post_payment": post_results}
+
+    async def _run_legacy_post_payment_completion(
+        self,
+        *,
+        payment,
+        payment_attempt,
+        source: str,
+    ) -> dict:
+        """Preserve legacy direct-payment side effects for non-order payments."""
+        from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
+
+        post_payment = PostPaymentProcessingUseCase(self._session)
+        post_results = await post_payment.execute(payment.id, process_cash_rewards=False)
+        await append_payment_completed_partner_earning_publication(
+            self._outbox,
+            payment=payment,
+            payment_attempt=payment_attempt,
+            source=source,
+        )
+        return post_results
 
     async def _handle_invoice_failed(self, external_id: str, update_type: str) -> dict:
         """Release any frozen wallet amount for abandoned invoices."""
@@ -229,6 +262,17 @@ def _map_attempt_failure_status(update_type: str) -> str:
     if update_type == "invoice_cancelled":
         return PaymentAttemptStatus.CANCELLED.value
     return PaymentAttemptStatus.FAILED.value
+
+
+def _settlement_result_payload(result: SettlementResult) -> dict:
+    return {
+        "status": result.status,
+        "payment_id": str(result.payment_id),
+        "payment_attempt_id": str(result.payment_attempt_id) if result.payment_attempt_id else None,
+        "order_id": str(result.order_id) if result.order_id else None,
+        "reason": result.reason,
+        "benefit_fulfillment_count": len(result.benefit_results),
+    }
 
 
 def _provider_reference_fingerprint(value: str | None) -> str | None:

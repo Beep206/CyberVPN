@@ -260,6 +260,7 @@
       "primaryApplied": "Этот принятый код сейчас учитывается в цене checkout.",
       "acceptedQueued": "Принят для группового расчёта checkout.",
       "networkError": "Статус кода временно недоступен. Повторите без повторного ввода.",
+      "partialRejected": "Часть checkout-кодов была отклонена при подтверждении платежа. Проверьте статусы и повторите.",
       "status": {
         "idle": "Нужна проверка",
         "checking": "Проверяется",
@@ -267,6 +268,24 @@
         "rejected": "Отклонён",
         "warning": "Требуется действие",
         "networkError": "Повторите"
+      },
+      "applicationStatuses": {
+        "accepted": "Принят",
+        "applied": "Применён",
+        "notSelected": "Не выбран",
+        "rejected": "Отклонён",
+        "ambiguous": "Неоднозначный",
+        "wrongContext": "Не тот сценарий",
+        "unknown": "Неизвестно"
+      },
+      "applicationMessages": {
+        "accepted": "Принят для группового расчёта checkout.",
+        "applied": "Применён к этому checkout.",
+        "notSelected": "Для цены выбран другой совместимый код.",
+        "wrongContext": "Этот код относится к другому сценарию.",
+        "ambiguous": "Этот код совпадает с несколькими типами.",
+        "rejected": "Backend отклонил этот код для checkout.",
+        "unknown": "Backend вернул неизвестный статус кода."
       },
       "codeTypes": {
         "invite": "Инвайт-код",

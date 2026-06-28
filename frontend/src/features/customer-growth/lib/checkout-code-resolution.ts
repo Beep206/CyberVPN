@@ -20,6 +20,7 @@ export type GrowthCodeResolutionMessageKey =
   | 'inviteSelfRedemption'
   | 'notEligibleForSku'
   | 'notEligibleForSurface'
+  | 'namespaceAmbiguous'
   | 'blockedByRisk'
   | 'requiresAuth'
   | 'generic';
@@ -35,6 +36,14 @@ export function getGrowthCodeResolutionMessageKey(
     'code_type' | 'reject_reason' | 'conflict_code' | 'wrong_context_target' | 'result'
   >,
 ): GrowthCodeResolutionMessageKey {
+  if (
+    resolution.reject_reason === 'code_namespace_ambiguous'
+    || resolution.conflict_code === 'CODE_NAMESPACE_AMBIGUOUS'
+    || resolution.conflict_code === 'code_namespace_ambiguous'
+  ) {
+    return 'namespaceAmbiguous';
+  }
+
   if (resolution.result === 'conflicted') {
     if (resolution.conflict_code === 'partner_code_present') {
       return resolution.code_type === 'referral'

@@ -1,6 +1,7 @@
 """Tests for reports task modules."""
 
 import json
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -118,7 +119,7 @@ async def test_generate_weekly_report_no_data():
     with (
         patch("src.tasks.reports.weekly_report.get_redis_client") as mock_redis_fn,
         patch("src.tasks.reports.weekly_report.TelegramClient") as mock_tg_cls,
-        patch("src.tasks.reports.weekly_report.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.reports.weekly_report.publish_event", new_callable=AsyncMock),
     ):
         mock_redis = AsyncMock()
         mock_redis.get.return_value = None
@@ -146,7 +147,8 @@ async def test_check_anomalies_server_offline():
         mock_redis.scan.side_effect = [
             (0, [b"cybervpn:health:node1:current"]),
         ]
-        health_data = json.dumps({"is_online": False, "name": "Server 1"})
+        offline_since = int(datetime.now(UTC).timestamp()) - 600
+        health_data = json.dumps({"is_online": False, "name": "Server 1", "offline_since": offline_since})
         mock_redis.get.return_value = health_data
         mock_redis_fn.return_value = mock_redis
 

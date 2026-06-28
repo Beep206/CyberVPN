@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from decimal import Decimal
 from uuid import UUID
 
@@ -204,11 +205,16 @@ def _benefit_result_payload(result: FulfillmentResult) -> dict:
         "benefit_id": str(result.benefit_id),
         "benefit_type": result.benefit_type,
         "growth_code_id": str(result.growth_code_id),
-        "idempotency_key": result.idempotency_key,
+        "idempotency_key_hash": _idempotency_key_hash(result.idempotency_key),
+        "idempotency_key_present": bool(result.idempotency_key),
         "status": result.status,
         "duplicate": result.duplicate,
         "result_payload": dict(result.result_payload),
     }
+
+
+def _idempotency_key_hash(value: str) -> str:
+    return f"sha256:{hashlib.sha256(value.encode('utf-8')).hexdigest()}"
 
 
 def _decimal(value) -> Decimal:

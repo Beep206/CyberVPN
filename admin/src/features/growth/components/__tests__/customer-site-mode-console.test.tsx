@@ -60,6 +60,11 @@ describe('CustomerSiteModeConsole', () => {
           cabinet_hosts: ['my.cyber-vpn.net'],
           cabinet_destination_path: '/dashboard',
           allowed_path_prefixes: ['/login', '/register'],
+          cabinet_allowed_prefixes: ['/dashboard', '/subscriptions'],
+          cabinet_marketing_route_action: 'redirect_public',
+          public_marketing_destination_path: '/pricing',
+          legal_path_prefixes: ['/privacy-policy', '/terms'],
+          operational_path_prefixes: ['/status', '/.well-known'],
           preserve_query_keys: ['ref', 'code', 'utm_campaign'],
           registration_policy_independent: true,
         },
@@ -76,6 +81,11 @@ describe('CustomerSiteModeConsole', () => {
           cabinet_hosts: ['my.cyber-vpn.net'],
           cabinet_destination_path: '/dashboard',
           allowed_path_prefixes: ['/login', '/register'],
+          cabinet_allowed_prefixes: ['/dashboard', '/subscriptions'],
+          cabinet_marketing_route_action: 'redirect_public',
+          public_marketing_destination_path: '/pricing',
+          legal_path_prefixes: ['/privacy-policy', '/terms'],
+          operational_path_prefixes: ['/status', '/.well-known'],
           preserve_query_keys: ['ref', 'code', 'utm_campaign'],
           registration_policy_independent: true,
         },
@@ -92,6 +102,11 @@ describe('CustomerSiteModeConsole', () => {
           cabinet_hosts: ['my.cyber-vpn.net'],
           cabinet_destination_path: '/dashboard',
           allowed_path_prefixes: ['/login', '/register'],
+          cabinet_allowed_prefixes: ['/dashboard', '/subscriptions'],
+          cabinet_marketing_route_action: 'redirect_public',
+          public_marketing_destination_path: '/pricing',
+          legal_path_prefixes: ['/privacy-policy', '/terms'],
+          operational_path_prefixes: ['/status', '/.well-known'],
           preserve_query_keys: ['ref', 'code', 'utm_campaign'],
           registration_policy_independent: true,
         },
@@ -120,6 +135,9 @@ describe('CustomerSiteModeConsole', () => {
 
     expect((await screen.findAllByText('siteMode.modes.cabinet_only')).length).toBeGreaterThan(0);
     expect(screen.getByText('https://my.cyber-vpn.net/en/dashboard?ref=partner-001&code=PR-PRO100&utm_campaign=beta')).toBeInTheDocument();
+    expect(screen.getAllByText('/dashboard, /subscriptions').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('siteMode.cabinetMarketingActions.redirect_public').length).toBeGreaterThan(0);
+    expect(screen.getByText('/privacy-policy, /terms')).toBeInTheDocument();
     expect(mockGetCustomerSiteRuntime).toHaveBeenCalledTimes(1);
     expect(mockGetCustomerSiteRuntimeTimeline).toHaveBeenCalledWith({ limit: 8 });
     expect(await screen.findByText('Rollback To Full Site')).toBeInTheDocument();
@@ -138,6 +156,11 @@ describe('CustomerSiteModeConsole', () => {
       cabinet_hosts: ['my.cyber-vpn.net'],
       cabinet_destination_path: '/dashboard',
       allowed_path_prefixes: ['/login', '/register'],
+      cabinet_allowed_prefixes: ['/dashboard', '/subscriptions'],
+      cabinet_marketing_route_action: 'redirect_public',
+      public_marketing_destination_path: '/pricing',
+      legal_path_prefixes: ['/privacy-policy', '/terms'],
+      operational_path_prefixes: ['/status', '/.well-known'],
       preserve_query_keys: ['ref', 'code', 'utm_campaign'],
       expected_version: 6,
       change_reason: 'Private beta freeze',

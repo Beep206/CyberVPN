@@ -102,8 +102,11 @@ def classify_route_boundary(route: APIRoute) -> str:
         "_require_telegram_bot_secret" in source
         or "_require_frontend_observability_secret" in source
         or "_require_payment_settlement_worker_secret" in source
+        or "_require_backend_internal_secret" in source
     ):
         return "header-secret-protected"
+    if "_resolve_customer_onboarding_actor" in source:
+        return "principal-protected"
     if route.path.startswith("/api/v1/webhooks") and ("signature" in source or "webhook_secret" in source):
         return "webhook-signature-protected"
     if route.path in PUBLIC_EXACT_PATHS or any(route.path.startswith(prefix) for prefix in PUBLIC_PREFIXES):

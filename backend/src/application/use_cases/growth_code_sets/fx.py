@@ -41,6 +41,7 @@ class FxRateSnapshot:
     managed_xtr: bool = False
     source_type: str = "provider"
     configured_rate_version: str | None = None
+    provider_enabled: bool = True
 
     def to_payload(self) -> dict[str, Any]:
         return {
@@ -56,6 +57,7 @@ class FxRateSnapshot:
             "managed_xtr": self.managed_xtr,
             "source_type": self.source_type,
             "configured_rate_version": self.configured_rate_version,
+            "provider_enabled": self.provider_enabled,
         }
 
 
@@ -184,6 +186,7 @@ def rate_snapshots_from_policy_snapshot(snapshot: dict[str, Any] | None) -> list
                     if payload.get("configured_rate_version") not in (None, "")
                     else None
                 ),
+                provider_enabled=bool(payload.get("provider_enabled", True)),
             )
         )
     return rates
@@ -216,6 +219,7 @@ def _select_rate(
         and _normalize_currency(rate.target_currency) == target_currency
         and _normalize_utc(rate.fetched_at) <= now
         and _normalize_utc(rate.expires_at) >= now
+        and (rate.source_type != "provider" or rate.provider_enabled)
     ]
     if not candidates:
         raise FxConversionError("FX_RATE_UNAVAILABLE")

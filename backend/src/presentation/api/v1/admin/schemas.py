@@ -213,6 +213,11 @@ class AdminCustomerSiteRuntimeResponse(BaseModel):
     cabinet_hosts: list[str] = Field(default_factory=list)
     cabinet_destination_path: str = "/dashboard"
     allowed_path_prefixes: list[str] = Field(default_factory=list)
+    cabinet_allowed_prefixes: list[str] = Field(default_factory=list)
+    cabinet_marketing_route_action: Literal["redirect_public", "allow", "not_found"] = "redirect_public"
+    public_marketing_destination_path: str = "/"
+    legal_path_prefixes: list[str] = Field(default_factory=list)
+    operational_path_prefixes: list[str] = Field(default_factory=list)
     preserve_query_keys: list[str] = Field(default_factory=list)
     cabinet_only: bool = False
     registration_policy_independent: bool = True
@@ -233,6 +238,11 @@ class UpdateAdminCustomerSiteRuntimeConfigRequest(BaseModel):
     cabinet_hosts: list[str] = Field(default_factory=list, max_length=50)
     cabinet_destination_path: str = Field(default="/dashboard", min_length=1, max_length=160)
     allowed_path_prefixes: list[str] = Field(default_factory=list, max_length=50)
+    cabinet_allowed_prefixes: list[str] = Field(default_factory=list, max_length=100)
+    cabinet_marketing_route_action: Literal["redirect_public", "allow", "not_found"] | None = None
+    public_marketing_destination_path: str | None = Field(None, min_length=1, max_length=160)
+    legal_path_prefixes: list[str] = Field(default_factory=list, max_length=50)
+    operational_path_prefixes: list[str] = Field(default_factory=list, max_length=50)
     preserve_query_keys: list[str] = Field(default_factory=list, max_length=50)
     expected_version: int = Field(ge=1)
     change_reason: str = Field(min_length=3, max_length=200)

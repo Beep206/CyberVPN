@@ -294,6 +294,11 @@ def test_update_admin_customer_site_runtime_config_persists_versioned_policy_and
             "cabinet_hosts": ["my.cyber-vpn.net"],
             "cabinet_destination_path": "/dashboard",
             "allowed_path_prefixes": ["/login", "/register"],
+            "cabinet_allowed_prefixes": ["/dashboard", "/subscriptions"],
+            "cabinet_marketing_route_action": "allow",
+            "public_marketing_destination_path": "/landing",
+            "legal_path_prefixes": ["/privacy"],
+            "operational_path_prefixes": ["/status"],
             "preserve_query_keys": ["ref", "utm_campaign"],
         },
     }
@@ -342,6 +347,11 @@ def test_update_admin_customer_site_runtime_config_persists_versioned_policy_and
                 cabinet_hosts=["MY.CYBER-VPN.NET"],
                 cabinet_destination_path="/dashboard/",
                 allowed_path_prefixes=["/login", "/register", "/status"],
+                cabinet_allowed_prefixes=["/dashboard", "/subscriptions", "/support/"],
+                cabinet_marketing_route_action="redirect_public",
+                public_marketing_destination_path="/pricing/",
+                legal_path_prefixes=["/privacy-policy", "/terms/"],
+                operational_path_prefixes=["/status", "/.well-known/"],
                 preserve_query_keys=["ref", "utm_campaign", "code"],
                 expected_version=7,
                 change_reason="enable private beta routing",
@@ -358,9 +368,21 @@ def test_update_admin_customer_site_runtime_config_persists_versioned_policy_and
     assert response.site.public_hosts == ["cyber-vpn.net", "www.cyber-vpn.net"]
     assert response.site.cabinet_hosts == ["my.cyber-vpn.net"]
     assert response.site.cabinet_destination_path == "/dashboard"
+    assert response.site.allowed_path_prefixes == ["/login", "/register", "/status"]
+    assert response.site.cabinet_allowed_prefixes == ["/dashboard", "/subscriptions", "/support"]
+    assert response.site.cabinet_marketing_route_action == "redirect_public"
+    assert response.site.public_marketing_destination_path == "/pricing"
+    assert response.site.legal_path_prefixes == ["/privacy-policy", "/terms"]
+    assert response.site.operational_path_prefixes == ["/status", "/.well-known"]
+    assert response.site.preserve_query_keys == ["ref", "utm_campaign", "code"]
     assert response.last_change_reason == "enable private beta routing"
     assert state["value"]["version"] == 8
     assert state["value"]["mode"] == "cabinet_only"
+    assert state["value"]["cabinet_allowed_prefixes"] == ["/dashboard", "/subscriptions", "/support"]
+    assert state["value"]["cabinet_marketing_route_action"] == "redirect_public"
+    assert state["value"]["public_marketing_destination_path"] == "/pricing"
+    assert state["value"]["legal_path_prefixes"] == ["/privacy-policy", "/terms"]
+    assert state["value"]["operational_path_prefixes"] == ["/status", "/.well-known"]
     assert len(fake_db.added) == 1
     audit_entry = fake_db.added[0]
     assert audit_entry.action == "system_config.customer_site_runtime.updated"
@@ -369,6 +391,15 @@ def test_update_admin_customer_site_runtime_config_persists_versioned_policy_and
     assert audit_entry.old_value["version"] == 7
     assert audit_entry.new_value["site"]["mode"] == "cabinet_only"
     assert audit_entry.new_value["site"]["version"] == 8
+    assert audit_entry.new_value["site"]["cabinet_allowed_prefixes"] == [
+        "/dashboard",
+        "/subscriptions",
+        "/support",
+    ]
+    assert audit_entry.new_value["site"]["cabinet_marketing_route_action"] == "redirect_public"
+    assert audit_entry.new_value["site"]["public_marketing_destination_path"] == "/pricing"
+    assert audit_entry.new_value["site"]["legal_path_prefixes"] == ["/privacy-policy", "/terms"]
+    assert audit_entry.new_value["site"]["operational_path_prefixes"] == ["/status", "/.well-known"]
     assert audit_entry.new_value["change_reason"] == "enable private beta routing"
     assert fake_db.flushed == 1
 
@@ -422,6 +453,94 @@ def test_update_admin_customer_site_runtime_config_rejects_stale_version(monkeyp
         assert exc.detail["current_version"] == 9
     else:
         raise AssertionError("Expected HTTPException")
+
+
+def test_update_admin_customer_site_runtime_config_preserves_v62_fields_for_legacy_payload(monkeypatch) -> None:
+    updated_by = uuid4()
+    state = {
+        "model": SimpleNamespace(
+            key=system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
+            description="Existing customer site rollout",
+            updated_at=datetime(2026, 4, 22, 10, 45, tzinfo=UTC),
+            updated_by=uuid4(),
+        ),
+        "value": {
+            "mode": "cabinet_only",
+            "version": 3,
+            "public_hosts": ["cyber-vpn.net"],
+            "cabinet_hosts": ["my.cyber-vpn.net"],
+            "cabinet_destination_path": "/dashboard",
+            "allowed_path_prefixes": ["/login"],
+            "cabinet_allowed_prefixes": ["/dashboard", "/subscriptions"],
+            "cabinet_marketing_route_action": "not_found",
+            "public_marketing_destination_path": "/pricing",
+            "legal_path_prefixes": ["/privacy-policy", "/terms"],
+            "operational_path_prefixes": ["/status", "/.well-known"],
+            "preserve_query_keys": ["ref"],
+        },
+    }
+
+    class FakeSystemConfigRepository:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def get_by_key(self, key: str):
+            assert key == system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY
+            return state["model"]
+
+        async def get_value(self, key: str, default=None):
+            assert key == system_config_routes.CUSTOMER_SITE_RUNTIME_CONFIG_KEY
+            return state["value"] if state["value"] is not None else default
+
+        async def set(self, key: str, value, updated_by=None, description=None):
+            state["value"] = value
+            state["model"] = SimpleNamespace(
+                key=key,
+                description=description,
+                updated_at=datetime(2026, 4, 22, 12, 0, tzinfo=UTC),
+                updated_by=updated_by,
+            )
+            return state["model"]
+
+    monkeypatch.setattr(system_config_routes, "SystemConfigRepository", FakeSystemConfigRepository)
+
+    class FakeDbSession:
+        def add(self, value: object) -> None:
+            self.added = value
+
+        async def flush(self) -> None:
+            self.flushed = True
+
+    response = asyncio.run(
+        system_config_routes.update_admin_customer_site_runtime_config(
+            payload=system_config_routes.UpdateAdminCustomerSiteRuntimeConfigRequest(
+                mode="maintenance",
+                public_hosts=["cyber-vpn.net"],
+                cabinet_hosts=["my.cyber-vpn.net"],
+                cabinet_destination_path="/dashboard",
+                allowed_path_prefixes=["/login"],
+                preserve_query_keys=["ref"],
+                expected_version=3,
+                change_reason="legacy admin client payload",
+            ),
+            request=_build_request(),
+            db=FakeDbSession(),
+            current_user=SimpleNamespace(id=updated_by),
+        )
+    )
+
+    assert response.site.mode == "maintenance"
+    assert response.site.version == 4
+    assert response.site.cabinet_allowed_prefixes == ["/dashboard", "/subscriptions"]
+    assert response.site.cabinet_marketing_route_action == "not_found"
+    assert response.site.public_marketing_destination_path == "/pricing"
+    assert response.site.legal_path_prefixes == ["/privacy-policy", "/terms"]
+    assert response.site.operational_path_prefixes == ["/status", "/.well-known"]
+    assert state["value"]["cabinet_allowed_prefixes"] == ["/dashboard", "/subscriptions"]
+    assert state["value"]["cabinet_marketing_route_action"] == "not_found"
+    assert state["value"]["public_marketing_destination_path"] == "/pricing"
+    assert state["value"]["legal_path_prefixes"] == ["/privacy-policy", "/terms"]
+    assert state["value"]["operational_path_prefixes"] == ["/status", "/.well-known"]
 
 
 def test_execute_admin_customer_site_runtime_action_rolls_back_to_full_site(monkeypatch) -> None:

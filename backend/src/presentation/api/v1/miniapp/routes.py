@@ -81,7 +81,11 @@ from src.presentation.api.v1.payments.routes import (
 from src.presentation.api.v1.payments.routes import (
     _serialize_quote as _serialize_base_checkout_quote,
 )
-from src.presentation.api.v1.payments.schemas import CheckoutQuoteRequest, InvoiceResponse
+from src.presentation.api.v1.payments.schemas import (
+    CheckoutCodeSetRejectedErrorResponse,
+    CheckoutQuoteRequest,
+    InvoiceResponse,
+)
 from src.presentation.api.v1.payments.telegram_stars import create_telegram_stars_checkout
 from src.presentation.api.v1.plans.schemas import (
     DedicatedIpSchema,
@@ -974,7 +978,11 @@ async def activate_miniapp_trial(
         observe_miniapp_runtime_duration(endpoint="trial_activate", duration_seconds=perf_counter() - started)
 
 
-@router.post("/checkout/quote", response_model=MiniAppCheckoutQuoteResponse)
+@router.post(
+    "/checkout/quote",
+    response_model=MiniAppCheckoutQuoteResponse,
+    responses={422: {"model": CheckoutCodeSetRejectedErrorResponse}},
+)
 async def quote_miniapp_checkout(
     body: MiniAppCheckoutRequest,
     db: AsyncSession = Depends(get_db),

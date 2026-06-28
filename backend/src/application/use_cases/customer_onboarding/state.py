@@ -8,7 +8,7 @@ import json
 import re
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal, Protocol
 from uuid import UUID
 
@@ -17,6 +17,24 @@ from src.application.use_cases.growth_codes.namespace import mask_customer_input
 from src.config.settings import settings
 
 OnboardingStatus = Literal["disabled", "unavailable", "pending", "completed", "skipped"]
+OnboardingPreviewDetectedCodeType = Literal["promo", "invite", "gift", "referral", "partner"]
+OnboardingPreviewStatus = Literal[
+    "preview_available",
+    "not_found",
+    "ambiguous",
+    "wrong_context",
+    "not_eligible",
+    "expired",
+    "already_used",
+    "blocked",
+]
+OnboardingPreviewNextAction = Literal[
+    "apply_now",
+    "stage_for_checkout",
+    "redeem_entitlement",
+    "resolve_ambiguity",
+    "none",
+]
 
 _REGISTRATION_ACCESS_TOKEN_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
@@ -103,6 +121,29 @@ class CustomerOnboardingCodeApplier(Protocol):
     ) -> CustomerOnboardingAppliedCode: ...
 
 
+@dataclass(frozen=True, slots=True)
+class CustomerOnboardingPreviewResult:
+    accepted: bool
+    detected_code_type: OnboardingPreviewDetectedCodeType | None
+    status: OnboardingPreviewStatus
+    message_key: str
+    masked_code: str
+    matched_code_types: tuple[str, ...] = ()
+    next_action: OnboardingPreviewNextAction = "none"
+    safe_details: dict[str, object] | None = None
+
+
+class CustomerOnboardingCodePreviewer(Protocol):
+    async def preview_code(
+        self,
+        *,
+        code: str,
+        user_id: UUID,
+        normalized_code_hash: str,
+        masked_code: str,
+    ) -> CustomerOnboardingPreviewResult: ...
+
+
 class CustomerOnboardingFlowTokenService:
     """Signs short-lived onboarding flow tokens without persisting raw token values."""
 
@@ -187,6 +228,7 @@ class CustomerOnboardingCurrentState:
     message_key: str = "onboarding.not_required"
     server_state_available: bool = False
     referral_already_attributed: bool = False
+    connection_required: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,6 +238,8 @@ class CustomerOnboardingApplyResult:
     masked_code: str | None = None
     next_destination: str = "/dashboard"
     commit_required: bool = True
+    code_type: Literal["promo", "invite", "gift"] | None = None
+    connection_required: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -244,6 +288,7 @@ class GetCurrentCustomerOnboardingUseCase:
                 message_key=state.message_key,
                 server_state_available=state.server_state_available,
                 referral_already_attributed=state.referral_already_attributed,
+                connection_required=state.connection_required,
             )
         return state or self._unavailable()
 
@@ -288,6 +333,7 @@ class ApplyCustomerOnboardingGrowthCodeUseCase:
         code: str,
         flow_token: str | None,
         idempotency_key: str | None,
+        require_flow_token: bool = True,
         code_applier: CustomerOnboardingCodeApplier | None = None,
     ) -> CustomerOnboardingApplyResult:
         if _looks_like_registration_access_token(code):
@@ -307,13 +353,14 @@ class ApplyCustomerOnboardingGrowthCodeUseCase:
                 code="CUSTOMER_ONBOARDING_STATE_UNAVAILABLE",
                 message_key="onboarding.state_unavailable",
             )
-        _require_valid_flow_token(
-            flow_tokens=self._flow_tokens,
-            flow_token=flow_token,
-            user_id=user_id,
-            flow_key=self._runtime.flow_key,
-            version=self._runtime.version,
-        )
+        if require_flow_token:
+            _require_valid_flow_token(
+                flow_tokens=self._flow_tokens,
+                flow_token=flow_token,
+                user_id=user_id,
+                flow_key=self._runtime.flow_key,
+                version=self._runtime.version,
+            )
         if self._state_repo is None:
             raise CustomerOnboardingUnavailableError(
                 code="CUSTOMER_ONBOARDING_STATE_UNAVAILABLE",
@@ -330,6 +377,92 @@ class ApplyCustomerOnboardingGrowthCodeUseCase:
             masked_code=mask_customer_input_code(normalized.normalized_code),
             idempotency_key=_normalize_idempotency_key(idempotency_key),
             code_applier=code_applier,
+        )
+
+
+class PreviewCustomerOnboardingGrowthCodeUseCase:
+    def __init__(
+        self,
+        *,
+        runtime_config: CustomerOnboardingRuntimeConfig,
+        flow_tokens: CustomerOnboardingFlowTokenCodec | None = None,
+    ) -> None:
+        self._runtime = runtime_config
+        self._flow_tokens = flow_tokens
+
+    async def execute(
+        self,
+        *,
+        user_id: UUID,
+        code: str,
+        flow_token: str | None,
+        code_previewer: CustomerOnboardingCodePreviewer | None = None,
+    ) -> CustomerOnboardingPreviewResult:
+        if _looks_like_registration_access_token(code):
+            raise CustomerOnboardingUnavailableError(
+                code="REGISTRATION_ACCESS_TOKEN_NOT_ACCEPTED",
+                message_key="onboarding.code.registration_access_token_not_accepted",
+                status_code=422,
+            )
+        masked_code = _safe_mask_customer_input_code(code)
+        if not self._runtime.post_registration_code_prompt_enabled:
+            return CustomerOnboardingPreviewResult(
+                accepted=False,
+                detected_code_type=None,
+                status="blocked",
+                message_key="onboarding.disabled",
+                masked_code=masked_code,
+            )
+        if not self._runtime.available:
+            raise CustomerOnboardingUnavailableError(
+                code="CUSTOMER_ONBOARDING_STATE_UNAVAILABLE",
+                message_key="onboarding.state_unavailable",
+            )
+        _require_valid_flow_token(
+            flow_tokens=self._flow_tokens,
+            flow_token=flow_token,
+            user_id=user_id,
+            flow_key=self._runtime.flow_key,
+            version=self._runtime.version,
+        )
+        if code_previewer is None:
+            raise CustomerOnboardingUnavailableError(
+                code="CUSTOMER_ONBOARDING_STATE_UNAVAILABLE",
+                message_key="onboarding.state_unavailable",
+            )
+        normalized = normalize_customer_input_code(code)
+        result = await code_previewer.preview_code(
+            code=normalized.normalized_code,
+            user_id=user_id,
+            normalized_code_hash=normalized.code_hash,
+            masked_code=mask_customer_input_code(normalized.normalized_code),
+        )
+        return self._enforce_allowed_code_types(result)
+
+    def _enforce_allowed_code_types(
+        self,
+        result: CustomerOnboardingPreviewResult,
+    ) -> CustomerOnboardingPreviewResult:
+        code_type = result.detected_code_type
+        if code_type is None:
+            return result
+        allowed = code_type in self._runtime.allowed_code_types
+        if code_type == "referral":
+            allowed = self._runtime.allow_referral_input
+        elif code_type == "partner":
+            allowed = self._runtime.allow_partner_input
+        if allowed:
+            return result
+        return replace(
+            result,
+            accepted=False,
+            status="wrong_context",
+            message_key="growth_codes.code.wrong_context",
+            next_action="none",
+            safe_details={
+                **dict(result.safe_details or {}),
+                "allowed_code_types": list(self._runtime.allowed_code_types),
+            },
         )
 
 
@@ -393,6 +526,13 @@ def _normalize_idempotency_key(value: str | None) -> str | None:
     if not normalized:
         return None
     return normalized[:120]
+
+
+def _safe_mask_customer_input_code(code: str) -> str:
+    try:
+        return mask_customer_input_code(code)
+    except ValueError:
+        return "****"
 
 
 def _require_valid_flow_token(

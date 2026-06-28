@@ -48,7 +48,7 @@ def _record_cleanup_result(
 async def cleanup_growth_reporting_artifacts() -> dict[str, Any]:
     """Trigger backend-owned cleanup of retained growth reporting artifacts."""
     settings = get_settings()
-    if not settings.backend_api_url or settings.backend_internal_secret is None:
+    if not settings.backend_api_url or settings.telegram_bot_internal_secret is None:
         logger.info("growth_reporting_cleanup_skipped", reason="backend_api_not_configured")
         _record_cleanup_result(
             result="skipped",
@@ -61,7 +61,7 @@ async def cleanup_growth_reporting_artifacts() -> dict[str, Any]:
 
     started = perf_counter()
     async with BackendAPIClient() as backend:
-        if not backend.enabled:
+        if not backend.telegram_bot_internal_enabled:
             logger.info("growth_reporting_cleanup_skipped", reason="backend_api_disabled")
             _record_cleanup_result(
                 result="skipped",

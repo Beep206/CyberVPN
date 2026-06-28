@@ -92,20 +92,6 @@ const PUBLIC_ROUTE_SEGMENTS = new Set([
   'trust',
 ]);
 
-const CABINET_ONLY_LEGAL_ROUTE_SEGMENTS = new Set([
-  'acceptable-use',
-  'cookie-policy',
-  'privacy',
-  'privacy-policy',
-  'refund-policy',
-  'terms',
-]);
-
-const CABINET_ONLY_OPERATIONAL_ROUTE_SEGMENTS = new Set([
-  'status',
-  'telegram-widget',
-]);
-
 const AUTH_REDIRECT_PRESERVE_QUERY_KEYS = new Set([
   ...REFERRAL_REDIRECT_CAMPAIGN_KEYS,
   'ref',
@@ -126,6 +112,11 @@ type CustomerSiteRuntimeSnapshot = {
   cabinetHosts: readonly string[];
   cabinetDestinationPath: string;
   allowedPathPrefixes: readonly string[];
+  cabinetAllowedPrefixes: readonly string[];
+  cabinetMarketingRouteAction: 'redirect_public' | 'allow' | 'not_found';
+  publicMarketingDestinationPath: string;
+  legalPathPrefixes: readonly string[];
+  operationalPathPrefixes: readonly string[];
   preserveQueryKeys: readonly string[];
 };
 
@@ -153,6 +144,45 @@ const DEFAULT_CUSTOMER_SITE_RUNTIME: CustomerSiteRuntimeSnapshot = {
     '/r/',
     '/p/',
     '/.well-known/',
+  ],
+  cabinetAllowedPrefixes: [
+    '/dashboard',
+    '/subscriptions',
+    '/payment-history',
+    '/referral',
+    '/wallet',
+    '/settings',
+    '/support',
+    '/servers',
+    '/monitoring',
+    '/analytics',
+    '/users',
+    '/partner',
+    '/login',
+    '/register',
+    '/verify',
+    '/verify-email',
+    '/forgot-password',
+    '/reset-password',
+    '/magic-link',
+    '/oauth',
+    '/telegram-link',
+    '/onboarding',
+  ],
+  cabinetMarketingRouteAction: 'redirect_public',
+  publicMarketingDestinationPath: '/',
+  legalPathPrefixes: [
+    '/acceptable-use',
+    '/cookie-policy',
+    '/privacy',
+    '/privacy-policy',
+    '/refund-policy',
+    '/terms',
+  ],
+  operationalPathPrefixes: [
+    '/status',
+    '/telegram-widget',
+    '/.well-known',
   ],
   preserveQueryKeys: [
     'ref',
@@ -309,6 +339,20 @@ function normalizeStringList(value: unknown, fallback: readonly string[]): reado
   return normalized.length > 0 ? normalized : fallback;
 }
 
+function normalizeSafePathList(value: unknown, fallback: readonly string[]): readonly string[] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  const normalized = value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item.startsWith('/') && !item.startsWith('//'))
+    .slice(0, 100);
+
+  return normalized.length > 0 ? normalized : fallback;
+}
+
 function normalizeSafePath(value: unknown, fallback: string): string {
   if (typeof value !== 'string') {
     return fallback;
@@ -323,6 +367,14 @@ function normalizePositiveVersion(value: unknown): number {
     ? Number(value)
     : Number.NaN;
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function normalizeCabinetMarketingRouteAction(
+  value: unknown,
+): CustomerSiteRuntimeSnapshot['cabinetMarketingRouteAction'] {
+  return value === 'allow' || value === 'not_found' || value === 'redirect_public'
+    ? value
+    : 'redirect_public';
 }
 
 function normalizeCustomerSiteRuntimeSnapshot(payload: unknown): CustomerSiteRuntimeSnapshot {
@@ -350,9 +402,28 @@ function normalizeCustomerSiteRuntimeSnapshot(payload: unknown): CustomerSiteRun
       siteRecord.cabinet_destination_path,
       fallback.cabinetDestinationPath,
     ),
-    allowedPathPrefixes: normalizeStringList(
+    allowedPathPrefixes: normalizeSafePathList(
       siteRecord.allowed_path_prefixes,
       fallback.allowedPathPrefixes,
+    ),
+    cabinetAllowedPrefixes: normalizeSafePathList(
+      siteRecord.cabinet_allowed_prefixes,
+      fallback.cabinetAllowedPrefixes,
+    ),
+    cabinetMarketingRouteAction: normalizeCabinetMarketingRouteAction(
+      siteRecord.cabinet_marketing_route_action,
+    ),
+    publicMarketingDestinationPath: normalizeSafePath(
+      siteRecord.public_marketing_destination_path,
+      fallback.publicMarketingDestinationPath,
+    ),
+    legalPathPrefixes: normalizeSafePathList(
+      siteRecord.legal_path_prefixes,
+      fallback.legalPathPrefixes,
+    ),
+    operationalPathPrefixes: normalizeSafePathList(
+      siteRecord.operational_path_prefixes,
+      fallback.operationalPathPrefixes,
     ),
     preserveQueryKeys: normalizeStringList(siteRecord.preserve_query_keys, fallback.preserveQueryKeys),
   };
@@ -470,10 +541,13 @@ function isAllowedByRuntimePrefix(pathname: string, prefixes: readonly string[])
   });
 }
 
-function isCabinetOnlyLegalOrOperationalRoute(routeSegment: string): boolean {
+function isCabinetOnlyLegalOrOperationalRoute(
+  unlocalizedPathname: string,
+  snapshot: CustomerSiteRuntimeSnapshot,
+): boolean {
   return (
-    CABINET_ONLY_LEGAL_ROUTE_SEGMENTS.has(routeSegment)
-    || CABINET_ONLY_OPERATIONAL_ROUTE_SEGMENTS.has(routeSegment)
+    isAllowedByRuntimePrefix(unlocalizedPathname, snapshot.legalPathPrefixes)
+    || isAllowedByRuntimePrefix(unlocalizedPathname, snapshot.operationalPathPrefixes)
   );
 }
 
@@ -481,16 +555,16 @@ function buildMaintenanceRedirect(
   request: NextRequest,
   snapshot: CustomerSiteRuntimeSnapshot,
   hostname: string,
-  routeSegment: string,
 ): NextResponse | null {
   if (snapshot.mode !== 'maintenance') {
     return null;
   }
 
+  const unlocalizedPathname = getUnlocalizedPathname(request.nextUrl.pathname);
   const inScopeHost =
     matchesConfiguredHost(hostname, snapshot.publicHosts)
     || matchesConfiguredHost(hostname, snapshot.cabinetHosts);
-  if (!inScopeHost || isCabinetOnlyLegalOrOperationalRoute(routeSegment)) {
+  if (!inScopeHost || isCabinetOnlyLegalOrOperationalRoute(unlocalizedPathname, snapshot)) {
     return null;
   }
 
@@ -522,15 +596,37 @@ function buildCabinetOnlyRedirect(
   if (!isPublicHost && !isCabinetHost) {
     return null;
   }
-  if (isCabinetHost) {
-    return null;
-  }
-
-  if (isCabinetOnlyLegalOrOperationalRoute(routeSegment)) {
-    return null;
-  }
 
   const unlocalizedPathname = getUnlocalizedPathname(request.nextUrl.pathname);
+  if (isCabinetOnlyLegalOrOperationalRoute(unlocalizedPathname, snapshot)) {
+    return null;
+  }
+
+  if (isCabinetHost) {
+    if (isAllowedByRuntimePrefix(unlocalizedPathname, snapshot.cabinetAllowedPrefixes)) {
+      return null;
+    }
+
+    if (snapshot.cabinetMarketingRouteAction === 'allow') {
+      return null;
+    }
+
+    if (snapshot.cabinetMarketingRouteAction === 'not_found') {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    const locale = getRequestLocale(request.nextUrl.pathname);
+    const publicHost = firstConfiguredHost(snapshot.publicHosts, PUBLIC_PRIMARY_HOST);
+    return NextResponse.redirect(
+      buildWhitelistedRedirectUrl(
+        request,
+        `https://${publicHost}`,
+        localizedRuntimePath(locale, snapshot.publicMarketingDestinationPath),
+        getRuntimePreserveQueryKeys(snapshot),
+      ),
+    );
+  }
+
   if (isAllowedByRuntimePrefix(unlocalizedPathname, snapshot.allowedPathPrefixes)) {
     if (isPublicHost && AUTH_ROUTE_SEGMENTS.has(routeSegment)) {
       const cabinetHost = firstConfiguredHost(snapshot.cabinetHosts, CABINET_PRIMARY_HOST);
@@ -611,7 +707,6 @@ export async function proxy(request: NextRequest) {
     request,
     siteRuntime,
     hostname,
-    routeSegment,
   );
   if (maintenanceRedirect) {
     return maintenanceRedirect;
@@ -640,7 +735,9 @@ export async function proxy(request: NextRequest) {
     }
 
     if (
-      PUBLIC_ROUTE_SEGMENTS.has(routeSegment)
+      siteRuntime.mode !== 'cabinet_only'
+      && siteRuntime.mode !== 'maintenance'
+      && PUBLIC_ROUTE_SEGMENTS.has(routeSegment)
       && !AUTH_ROUTE_SEGMENTS.has(routeSegment)
       && !CABINET_ROUTE_SEGMENTS.has(routeSegment)
     ) {

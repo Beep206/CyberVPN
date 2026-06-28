@@ -1,6 +1,7 @@
 """Payment API schemas."""
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -233,6 +234,17 @@ class CheckoutCodeSetResponse(BaseModel):
     hash: str
     acceptance_mode: str
     applications: list[CheckoutCodeSetApplicationResponse] = Field(default_factory=list)
+
+
+class CheckoutCodeSetRejectedDetailResponse(BaseModel):
+    code: Literal["CODE_SET_REJECTED"]
+    message_key: str
+    retryable: bool = False
+    applications: list[CheckoutCodeSetApplicationResponse] = Field(default_factory=list)
+
+
+class CheckoutCodeSetRejectedErrorResponse(BaseModel):
+    detail: CheckoutCodeSetRejectedDetailResponse
 
 
 class CheckoutGrowthEffectsResponse(BaseModel):

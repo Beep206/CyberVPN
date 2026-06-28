@@ -65,7 +65,7 @@ def _record_provisioning_failure(*, duration_seconds: float) -> None:
 async def process_partner_bot_provisioning_jobs() -> dict[str, Any]:
     """Process queued partner-bot provisioning jobs with honest fallback outcomes."""
     settings = get_settings()
-    if not settings.backend_api_url or settings.backend_internal_secret is None:
+    if not settings.backend_api_url or settings.telegram_bot_internal_secret is None:
         logger.info("partner_bot_provisioning_skipped", reason="backend_api_not_configured")
         return {"skipped": True, "reason": "backend_api_not_configured"}
 
@@ -77,7 +77,7 @@ async def process_partner_bot_provisioning_jobs() -> dict[str, Any]:
 
     try:
         async with BackendAPIClient() as backend:
-            if not backend.enabled:
+            if not backend.telegram_bot_internal_enabled:
                 logger.info("partner_bot_provisioning_skipped", reason="backend_api_disabled")
                 return {"skipped": True, "reason": "backend_api_disabled"}
 

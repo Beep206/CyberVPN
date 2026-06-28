@@ -30,6 +30,11 @@ type SiteRuntimeOverrides = {
   cabinet_hosts?: string[];
   cabinet_destination_path?: string;
   allowed_path_prefixes?: string[];
+  cabinet_allowed_prefixes?: string[];
+  cabinet_marketing_route_action?: 'redirect_public' | 'allow' | 'not_found';
+  public_marketing_destination_path?: string;
+  legal_path_prefixes?: string[];
+  operational_path_prefixes?: string[];
   preserve_query_keys?: string[];
 };
 
@@ -87,6 +92,19 @@ function mockCustomerSiteRuntime(overrides: SiteRuntimeOverrides = {}) {
         '/r/',
         '/p/',
       ],
+      cabinet_allowed_prefixes: [
+        '/dashboard',
+        '/subscriptions',
+        '/support',
+        '/settings',
+        '/onboarding',
+        '/login',
+        '/register',
+      ],
+      cabinet_marketing_route_action: 'redirect_public',
+      public_marketing_destination_path: '/',
+      legal_path_prefixes: ['/privacy', '/privacy-policy', '/terms', '/refund-policy'],
+      operational_path_prefixes: ['/status', '/telegram-widget', '/.well-known'],
       preserve_query_keys: ['ref', 'referral', 'utm_source', 'utm_campaign'],
       ...overrides,
     },
@@ -384,6 +402,53 @@ describe('proxy routing', () => {
     const res = await proxy(req);
 
     expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('allows cabinet routes from backend cabinet prefix snapshot in cabinet-only runtime', async () => {
+    mockCustomerSiteRuntime({
+      cabinet_allowed_prefixes: ['/dashboard', '/subscriptions', '/onboarding'],
+    });
+    const req = createRequest('/ru-RU/onboarding/code', undefined, 'https://my.cyber-vpn.net');
+    const res = await proxy(req);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('redirects cabinet marketing routes to configured public destination in cabinet-only runtime', async () => {
+    mockCustomerSiteRuntime({
+      public_marketing_destination_path: '/',
+      preserve_query_keys: ['ref', 'utm_source'],
+    });
+    const req = createRequest(
+      '/ru-RU/pricing?utm_source=launch&ref=FRIEND42&redirect=https%3A%2F%2Fevil.example%2Fcb',
+      undefined,
+      'https://my.cyber-vpn.net',
+    );
+    const res = await proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe(
+      'https://cyber-vpn.net/ru-RU?utm_source=launch&ref=FRIEND42',
+    );
+  });
+
+  it('allows cabinet marketing routes when backend snapshot explicitly allows them', async () => {
+    mockCustomerSiteRuntime({ cabinet_marketing_route_action: 'allow' });
+    const req = createRequest('/ru-RU/pricing', undefined, 'https://my.cyber-vpn.net');
+    const res = await proxy(req);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('returns not found for cabinet marketing routes when backend snapshot requires it', async () => {
+    mockCustomerSiteRuntime({ cabinet_marketing_route_action: 'not_found' });
+    const req = createRequest('/ru-RU/pricing', undefined, 'https://my.cyber-vpn.net');
+    const res = await proxy(req);
+
+    expect(res.status).toBe(404);
     expect(res.headers.get('location')).toBeNull();
   });
 

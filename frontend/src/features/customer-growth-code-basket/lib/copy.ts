@@ -2,6 +2,7 @@ import type {
   GrowthCodeResolutionMessageKey,
   UnsupportedCheckoutCodeMessageKey,
 } from '@/features/customer-growth/lib/checkout-code-resolution';
+import type { CheckoutCodeApplicationStatus } from './code-set-rejection';
 
 type TranslateValues = Record<string, string | number | Date>;
 type Translate = (key: string, values?: TranslateValues) => string;
@@ -23,11 +24,17 @@ export type GrowthCodeBasketCopy = {
   removeCta: string;
   retryCta: string;
   degraded: string;
+  partialRejected: string;
   pendingCheckout: string;
   primaryApplied: string;
   acceptedQueued: string;
   networkError: string;
   status: Record<'idle' | 'checking' | 'accepted' | 'rejected' | 'warning' | 'network_error', string>;
+  applicationStatuses: Record<CheckoutCodeApplicationStatus, string>;
+  applicationMessages: Record<
+    'accepted' | 'applied' | 'notSelected' | 'wrongContext' | 'ambiguous' | 'rejected' | 'unknown',
+    string
+  >;
   codeTypes: Record<'invite' | 'referral' | 'promo' | 'gift' | 'partner' | 'unknown', string>;
   resolutionErrors: Record<GrowthCodeResolutionMessageKey, string>;
   unsupportedErrors: Record<UnsupportedCheckoutCodeMessageKey, string>;
@@ -51,6 +58,7 @@ export function buildGrowthCodeBasketCopy(t: Translate): GrowthCodeBasketCopy {
     removeCta: t('growthCodeBasket.removeCta'),
     retryCta: t('growthCodeBasket.retryCta'),
     degraded: t('growthCodeBasket.degraded'),
+    partialRejected: t('growthCodeBasket.partialRejected'),
     pendingCheckout: t('growthCodeBasket.pendingCheckout'),
     primaryApplied: t('growthCodeBasket.primaryApplied'),
     acceptedQueued: t('growthCodeBasket.acceptedQueued'),
@@ -62,6 +70,24 @@ export function buildGrowthCodeBasketCopy(t: Translate): GrowthCodeBasketCopy {
       rejected: t('growthCodeBasket.status.rejected'),
       warning: t('growthCodeBasket.status.warning'),
       network_error: t('growthCodeBasket.status.networkError'),
+    },
+    applicationStatuses: {
+      accepted: t('growthCodeBasket.applicationStatuses.accepted'),
+      applied: t('growthCodeBasket.applicationStatuses.applied'),
+      not_selected: t('growthCodeBasket.applicationStatuses.notSelected'),
+      rejected: t('growthCodeBasket.applicationStatuses.rejected'),
+      ambiguous: t('growthCodeBasket.applicationStatuses.ambiguous'),
+      wrong_context: t('growthCodeBasket.applicationStatuses.wrongContext'),
+      unknown: t('growthCodeBasket.applicationStatuses.unknown'),
+    },
+    applicationMessages: {
+      accepted: t('growthCodeBasket.applicationMessages.accepted'),
+      applied: t('growthCodeBasket.applicationMessages.applied'),
+      notSelected: t('growthCodeBasket.applicationMessages.notSelected'),
+      wrongContext: t('growthCodeBasket.applicationMessages.wrongContext'),
+      ambiguous: t('growthCodeBasket.applicationMessages.ambiguous'),
+      rejected: t('growthCodeBasket.applicationMessages.rejected'),
+      unknown: t('growthCodeBasket.applicationMessages.unknown'),
     },
     codeTypes: {
       invite: t('growthCodeBasket.codeTypes.invite'),
@@ -90,6 +116,7 @@ export function buildGrowthCodeBasketCopy(t: Translate): GrowthCodeBasketCopy {
       inviteSelfRedemption: t('growthCodeBasket.errors.inviteSelfRedemption'),
       notEligibleForSku: t('growthCodeBasket.errors.notEligibleForSku'),
       notEligibleForSurface: t('growthCodeBasket.errors.notEligibleForSurface'),
+      namespaceAmbiguous: t('growthCodeBasket.errors.namespaceAmbiguous'),
       blockedByRisk: t('growthCodeBasket.errors.blockedByRisk'),
       requiresAuth: t('growthCodeBasket.errors.requiresAuth'),
       generic: t('growthCodeBasket.errors.generic'),

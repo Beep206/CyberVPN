@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import re
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -8,7 +11,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.auth.permissions import Permission
@@ -19,30 +22,62 @@ from src.application.use_cases.growth_code_sets.fx import (
     convert_fixed_discount,
     minor_units_for_currency,
 )
+from src.application.use_cases.growth_code_sets.fx_refresh import (
+    FxRefreshError,
+    RefreshFxProviderRatesCommand,
+    RefreshFxProviderRatesUseCase,
+)
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
-from src.infrastructure.database.models.growth_risk_fx_model import FxRateSnapshotModel
+from src.infrastructure.database.models.growth_risk_fx_model import (
+    FxProviderConfigModel,
+    FxProviderRefreshRunModel,
+    FxRateSnapshotModel,
+)
+from src.infrastructure.monitoring.instrumentation.growth_codes import (
+    observe_growth_fx_conversion_failure,
+    observe_growth_fx_stale_rate,
+    update_growth_fx_rate_snapshot_freshness,
+)
 from src.presentation.api.v1.admin.audit import write_required_admin_audit_entry
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_permission
 
 router = APIRouter(prefix="/admin/growth/fx", tags=["admin-growth-fx-v3"])
 
+_REDACTED_REASON_VALUE = "[REDACTED]"
+_CHANGE_REASON_SECRET_PATTERNS = (
+    re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{10,}"),
+    re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
+    re.compile(r"(?i)\b(?:vless|trojan|ss)://\S+"),
+    re.compile(r"(?i)\b(?:secret|token|password|api[_-]?key|provider[_-]?secret)\s*[:=]\s*\S+"),
+    re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+    re.compile(r"\b[A-Z0-9]{6,}(?:-[A-Z0-9]{3,})+\b"),
+)
+
 
 class AdminGrowthFxRateResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    provider_config_id: UUID | None = None
     base_currency: str
     quote_currency: str
     rate: str
     inverse_rate: str | None
     source_type: str
     provider_key: str
+    provider_priority: int = 100
     provider_rate_id: str | None
     observed_at: datetime
     fetched_at: datetime
     valid_until: datetime
     status: str
+    approval_state: str = "approved"
+    approved_by_admin_id: UUID | None = None
+    approved_at: datetime | None = None
+    rejection_reason: str | None = None
+    checksum: str | None = None
+    raw_provider_payload_hash: str | None = None
     metadata: dict[str, Any]
     created_at: datetime
 
@@ -106,6 +141,60 @@ class AdminGrowthFxProviderActionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     change_reason: str = Field(..., min_length=3, max_length=2000)
+
+
+class AdminGrowthFxRefreshRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider_key: str | None = Field(default=None, min_length=1, max_length=80)
+    base_currency: str | None = Field(default=None, min_length=3, max_length=12)
+    quote_currency: str | None = Field(default=None, min_length=3, max_length=12)
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=160)
+    change_reason: str = Field(..., min_length=3, max_length=2000)
+
+    @field_validator("base_currency", "quote_currency")
+    @classmethod
+    def _optional_currency(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip().upper()
+        if not stripped:
+            raise ValueError("currency must not be blank")
+        return stripped
+
+    @field_validator("provider_key", "idempotency_key")
+    @classmethod
+    def _optional_stripped(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("value must not be blank")
+        return stripped
+
+
+class AdminGrowthFxRefreshRunResponse(BaseModel):
+    id: UUID
+    provider_config_id: UUID | None
+    provider_key: str
+    run_key: str
+    status: str
+    trigger_type: str
+    requested_by_admin_id: UUID | None
+    started_at: datetime
+    finished_at: datetime | None
+    pairs_requested: list[dict[str, Any]]
+    pairs_succeeded: list[dict[str, Any]]
+    pairs_failed: list[dict[str, Any]]
+    created_snapshot_ids: list[str]
+    provider_payload_hash: str | None
+    error_code: str | None
+    error_message: str | None
+
+
+class AdminGrowthFxRefreshResponse(BaseModel):
+    runs: list[AdminGrowthFxRefreshRunResponse]
+    created_snapshots: list[AdminGrowthFxRateResponse]
 
 
 class AdminGrowthFxSimulateRequest(BaseModel):
@@ -181,6 +270,41 @@ async def get_growth_fx_status(
         .group_by(FxRateSnapshotModel.provider_key, FxRateSnapshotModel.source_type, FxRateSnapshotModel.status)
         .order_by(FxRateSnapshotModel.provider_key.asc(), FxRateSnapshotModel.source_type.asc())
     )
+    freshness_rows = await db.execute(
+        select(
+            FxRateSnapshotModel.provider_key,
+            FxRateSnapshotModel.base_currency,
+            FxRateSnapshotModel.quote_currency,
+            FxRateSnapshotModel.approval_state,
+            func.max(FxRateSnapshotModel.fetched_at),
+            func.max(FxRateSnapshotModel.valid_until),
+        )
+        .where(FxRateSnapshotModel.approval_state == "approved")
+        .group_by(
+            FxRateSnapshotModel.provider_key,
+            FxRateSnapshotModel.base_currency,
+            FxRateSnapshotModel.quote_currency,
+            FxRateSnapshotModel.approval_state,
+        )
+    )
+    for row in freshness_rows.all():
+        fetched_at = row[4]
+        valid_until = row[5]
+        if fetched_at is None:
+            continue
+        update_growth_fx_rate_snapshot_freshness(
+            provider_key=row[0],
+            source_currency=row[1],
+            target_currency=row[2],
+            approval_state=row[3],
+            freshness_seconds=(now - fetched_at).total_seconds(),
+        )
+        if valid_until is not None and valid_until < now:
+            observe_growth_fx_stale_rate(
+                provider_key=row[0],
+                source_currency=row[1],
+                target_currency=row[2],
+            )
     return AdminGrowthFxStatusResponse(
         generated_at=now,
         active_rate_count=active_rate_count,
@@ -242,6 +366,7 @@ async def create_configured_growth_fx_rate(
     db: AsyncSession = Depends(get_db),
 ) -> AdminGrowthFxRateResponse:
     rate = _parse_positive_decimal(payload.rate, "FX_RATE_INVALID")
+    change_reason = _safe_change_reason(payload.change_reason)
     now = datetime.now(UTC)
     model = FxRateSnapshotModel(
         base_currency=payload.base_currency,
@@ -255,12 +380,14 @@ async def create_configured_growth_fx_rate(
         fetched_at=now,
         valid_until=now + timedelta(seconds=payload.valid_for_seconds),
         status="pending_approval",
+        approval_state="pending",
         metadata_={
             "configured_rate_version": payload.configured_rate_version,
             "created_by_admin_user_id": str(current_user.id),
-            "change_reason": payload.change_reason,
+            "change_reason": change_reason,
         },
     )
+    model.checksum = _snapshot_checksum(model)
     db.add(model)
     await db.flush()
     await write_required_admin_audit_entry(
@@ -276,7 +403,7 @@ async def create_configured_growth_fx_rate(
             "source_type": model.source_type,
             "provider_key": model.provider_key,
             "configured_rate_version": payload.configured_rate_version,
-            "change_reason": payload.change_reason,
+            "change_reason": change_reason,
         },
     )
     return _rate_response(model)
@@ -290,6 +417,7 @@ async def create_growth_fx_xtr_table(
     db: AsyncSession = Depends(get_db),
 ) -> AdminGrowthFxRateResponse:
     rate = _parse_positive_decimal(payload.xtr_per_unit, "FX_XTR_TABLE_INVALID")
+    change_reason = _safe_change_reason(payload.change_reason)
     now = datetime.now(UTC)
     model = FxRateSnapshotModel(
         base_currency=payload.fiat_currency,
@@ -303,13 +431,15 @@ async def create_growth_fx_xtr_table(
         fetched_at=now,
         valid_until=now + timedelta(seconds=payload.valid_for_seconds),
         status="pending_approval",
+        approval_state="pending",
         metadata_={
             "managed_xtr": True,
             "configured_rate_version": payload.table_version,
             "created_by_admin_user_id": str(current_user.id),
-            "change_reason": payload.change_reason,
+            "change_reason": change_reason,
         },
     )
+    model.checksum = _snapshot_checksum(model)
     db.add(model)
     await db.flush()
     await write_required_admin_audit_entry(
@@ -325,7 +455,7 @@ async def create_growth_fx_xtr_table(
             "source_type": model.source_type,
             "provider_key": model.provider_key,
             "table_version": payload.table_version,
-            "change_reason": payload.change_reason,
+            "change_reason": change_reason,
         },
     )
     return _rate_response(model)
@@ -337,10 +467,16 @@ async def simulate_growth_fx_conversion(
     _current_user: AdminUserModel = Depends(require_permission(Permission.GROWTH_FX_VIEW)),
     db: AsyncSession = Depends(get_db),
 ) -> AdminGrowthFxSimulationResponse:
-    rate_statement = select(FxRateSnapshotModel).where(
-        FxRateSnapshotModel.base_currency == payload.source_currency,
-        FxRateSnapshotModel.quote_currency == payload.target_currency,
-        FxRateSnapshotModel.status == "active",
+    rate_statement = (
+        select(FxRateSnapshotModel)
+        .outerjoin(FxProviderConfigModel, FxRateSnapshotModel.provider_config_id == FxProviderConfigModel.id)
+        .where(
+            FxRateSnapshotModel.base_currency == payload.source_currency,
+            FxRateSnapshotModel.quote_currency == payload.target_currency,
+            FxRateSnapshotModel.status == "active",
+            FxRateSnapshotModel.approval_state == "approved",
+            or_(FxRateSnapshotModel.source_type != "provider", FxProviderConfigModel.enabled.is_(True)),
+        )
     )
     if payload.provider_key is not None:
         rate_statement = rate_statement.where(FxRateSnapshotModel.provider_key == payload.provider_key)
@@ -362,6 +498,7 @@ async def simulate_growth_fx_conversion(
             rate_snapshots=rates,
         )
     except FxConversionError as exc:
+        observe_growth_fx_conversion_failure(reason=exc.code)
         raise _admin_growth_error(
             status.HTTP_409_CONFLICT,
             exc.code,
@@ -395,6 +532,59 @@ async def simulate_growth_fx_conversion(
     )
 
 
+@router.post("/rates/refresh", response_model=AdminGrowthFxRefreshResponse, status_code=status.HTTP_202_ACCEPTED)
+async def refresh_growth_fx_rates(
+    payload: AdminGrowthFxRefreshRequest,
+    request: Request,
+    current_user: AdminUserModel = Depends(require_permission(Permission.GROWTH_FX_MANAGE)),
+    db: AsyncSession = Depends(get_db),
+) -> AdminGrowthFxRefreshResponse:
+    change_reason = _safe_change_reason(payload.change_reason)
+    try:
+        result = await RefreshFxProviderRatesUseCase(db).execute(
+            RefreshFxProviderRatesCommand(
+                provider_key=payload.provider_key,
+                base_currency=payload.base_currency,
+                quote_currency=payload.quote_currency,
+                idempotency_key=payload.idempotency_key,
+                trigger_type="admin",
+                requested_by_admin_id=current_user.id,
+                change_reason=change_reason,
+            )
+        )
+    except FxRefreshError as exc:
+        raise _admin_growth_error(
+            status.HTTP_404_NOT_FOUND if exc.code == "FX_PROVIDER_CONFIG_NOT_FOUND" else status.HTTP_409_CONFLICT,
+            exc.code,
+            f"admin.growth.fx.errors.{exc.code.lower()}",
+            exc.context,
+        ) from exc
+
+    for run in result.runs:
+        await write_required_admin_audit_entry(
+            db=db,
+            action="growth_fx.rate.refresh_requested",
+            resource_type="fx_provider_refresh_run",
+            resource_id=run.id,
+            actor=current_user,
+            request=request,
+            details={
+                "provider_key": run.provider_key,
+                "status": run.status,
+                "trigger_type": run.trigger_type,
+                "pairs_requested": run.pairs_requested,
+                "pairs_succeeded": run.pairs_succeeded,
+                "pairs_failed": run.pairs_failed,
+                "created_snapshot_count": len(run.created_snapshot_ids),
+                "change_reason": change_reason,
+            },
+        )
+    return AdminGrowthFxRefreshResponse(
+        runs=[_refresh_run_response(run) for run in result.runs],
+        created_snapshots=[_rate_response(snapshot) for snapshot in result.created_snapshots],
+    )
+
+
 @router.post("/rates/{rate_id}/approve", response_model=AdminGrowthFxRateResponse)
 async def approve_growth_fx_rate(
     rate_id: UUID,
@@ -403,7 +593,7 @@ async def approve_growth_fx_rate(
     current_user: AdminUserModel = Depends(require_permission(Permission.GROWTH_FX_APPROVE)),
     db: AsyncSession = Depends(get_db),
 ) -> AdminGrowthFxRateResponse:
-    model = await db.get(FxRateSnapshotModel, rate_id)
+    model, provider_config = await _locked_rate_for_approval(db, rate_id)
     if model is None:
         raise _admin_growth_error(
             status.HTTP_404_NOT_FOUND,
@@ -412,13 +602,6 @@ async def approve_growth_fx_rate(
             {"rate_id": str(rate_id)},
         )
     metadata = dict(model.metadata_ or {})
-    if model.source_type not in {"configured", "managed_xtr"}:
-        raise _admin_growth_error(
-            status.HTTP_409_CONFLICT,
-            "FX_RATE_APPROVAL_UNSUPPORTED",
-            "admin.growth.fx.errors.approvalUnsupported",
-            {"rate_id": str(rate_id), "source_type": model.source_type},
-        )
     if metadata.get("created_by_admin_user_id") == str(current_user.id):
         raise _admin_growth_error(
             status.HTTP_409_CONFLICT,
@@ -433,14 +616,20 @@ async def approve_growth_fx_rate(
             "admin.growth.fx.errors.approvalStateConflict",
             {"rate_id": str(rate_id), "status": model.status},
         )
+    await _ensure_provider_enabled_for_approval(db, model, provider_config)
 
+    change_reason = _safe_change_reason(payload.change_reason)
     old_status = model.status
     model.status = "active"
+    model.approval_state = "approved"
+    model.approved_by_admin_id = current_user.id
+    model.approved_at = datetime.now(UTC)
+    model.rejection_reason = None
     metadata.update(
         {
             "approved_by_admin_user_id": str(current_user.id),
-            "approved_at": datetime.now(UTC).isoformat(),
-            "approval_reason": payload.change_reason,
+            "approved_at": model.approved_at.isoformat(),
+            "approval_reason": change_reason,
         }
     )
     model.metadata_ = metadata
@@ -458,7 +647,65 @@ async def approve_growth_fx_rate(
             "quote_currency": model.quote_currency,
             "source_type": model.source_type,
             "provider_key": model.provider_key,
-            "change_reason": payload.change_reason,
+            "change_reason": change_reason,
+        },
+    )
+    return _rate_response(model)
+
+
+@router.post("/rates/{rate_id}/reject", response_model=AdminGrowthFxRateResponse)
+async def reject_growth_fx_rate(
+    rate_id: UUID,
+    payload: AdminGrowthFxProviderActionRequest,
+    request: Request,
+    current_user: AdminUserModel = Depends(require_permission(Permission.GROWTH_FX_APPROVE)),
+    db: AsyncSession = Depends(get_db),
+) -> AdminGrowthFxRateResponse:
+    model = await db.get(FxRateSnapshotModel, rate_id)
+    if model is None:
+        raise _admin_growth_error(
+            status.HTTP_404_NOT_FOUND,
+            "FX_RATE_NOT_FOUND",
+            "admin.growth.fx.errors.rateNotFound",
+            {"rate_id": str(rate_id)},
+        )
+    if model.approval_state != "pending" and model.status != "pending_approval":
+        raise _admin_growth_error(
+            status.HTTP_409_CONFLICT,
+            "FX_RATE_APPROVAL_STATE_CONFLICT",
+            "admin.growth.fx.errors.approvalStateConflict",
+            {"rate_id": str(rate_id), "status": model.status, "approval_state": model.approval_state},
+        )
+
+    change_reason = _safe_change_reason(payload.change_reason)
+    old_status = model.status
+    model.status = "rejected"
+    model.approval_state = "rejected"
+    model.rejection_reason = change_reason[:500]
+    metadata = dict(model.metadata_ or {})
+    metadata.update(
+        {
+            "rejected_by_admin_user_id": str(current_user.id),
+            "rejected_at": datetime.now(UTC).isoformat(),
+            "rejection_reason": change_reason,
+        }
+    )
+    model.metadata_ = metadata
+    await db.flush()
+    await write_required_admin_audit_entry(
+        db=db,
+        action="growth_fx.rate.rejected",
+        resource_type="fx_rate_snapshot",
+        resource_id=model.id,
+        actor=current_user,
+        request=request,
+        old_value={"status": old_status},
+        details={
+            "base_currency": model.base_currency,
+            "quote_currency": model.quote_currency,
+            "source_type": model.source_type,
+            "provider_key": model.provider_key,
+            "change_reason": change_reason,
         },
     )
     return _rate_response(model)
@@ -472,6 +719,7 @@ async def disable_growth_fx_provider(
     current_user: AdminUserModel = Depends(require_permission(Permission.GROWTH_FX_MANAGE)),
     db: AsyncSession = Depends(get_db),
 ) -> AdminGrowthFxStatusResponse:
+    change_reason = _safe_change_reason(payload.change_reason)
     updated_count = await _set_provider_status(db, provider_key=provider_key, next_status="disabled")
     await write_required_admin_audit_entry(
         db=db,
@@ -483,7 +731,7 @@ async def disable_growth_fx_provider(
         details={
             "provider_key": provider_key,
             "updated_rate_count": updated_count,
-            "change_reason": payload.change_reason,
+            "change_reason": change_reason,
         },
     )
     return await get_growth_fx_status(current_user, db)
@@ -497,6 +745,7 @@ async def enable_growth_fx_provider(
     current_user: AdminUserModel = Depends(require_permission(Permission.GROWTH_FX_MANAGE)),
     db: AsyncSession = Depends(get_db),
 ) -> AdminGrowthFxStatusResponse:
+    change_reason = _safe_change_reason(payload.change_reason)
     updated_count = await _set_provider_status(db, provider_key=provider_key, next_status="active")
     await write_required_admin_audit_entry(
         db=db,
@@ -508,43 +757,132 @@ async def enable_growth_fx_provider(
         details={
             "provider_key": provider_key,
             "updated_rate_count": updated_count,
-            "change_reason": payload.change_reason,
+            "change_reason": change_reason,
         },
     )
     return await get_growth_fx_status(current_user, db)
 
 
 async def _set_provider_status(db: AsyncSession, *, provider_key: str, next_status: str) -> int:
-    result = await db.execute(select(FxRateSnapshotModel).where(FxRateSnapshotModel.provider_key == provider_key))
+    now = datetime.now(UTC)
+    config_result = await db.execute(
+        select(FxProviderConfigModel).where(FxProviderConfigModel.provider_key == provider_key).with_for_update()
+    )
+    for config in config_result.scalars().all():
+        config.enabled = next_status == "active"
+        config.updated_at = now
+
+    result = await db.execute(
+        select(FxRateSnapshotModel).where(FxRateSnapshotModel.provider_key == provider_key).with_for_update()
+    )
     models = result.scalars().all()
     updated_count = 0
     for model in models:
-        if next_status == "active" and model.status == "pending_approval":
+        if next_status == "disabled":
+            if model.status != "active":
+                continue
+            model.status = "disabled"
+            updated_count += 1
             continue
-        if model.status == next_status:
+        if model.status != "disabled":
             continue
-        model.status = next_status
+        if model.approval_state != "approved" or model.valid_until < now:
+            continue
+        model.status = "active"
         updated_count += 1
     await db.flush()
     return updated_count
 
 
+async def _locked_rate_for_approval(
+    db: AsyncSession,
+    rate_id: UUID,
+) -> tuple[FxRateSnapshotModel | None, FxProviderConfigModel | None]:
+    initial_model = await db.get(FxRateSnapshotModel, rate_id)
+    if initial_model is None:
+        return None, None
+
+    provider_config: FxProviderConfigModel | None = None
+    if initial_model.provider_config_id is not None:
+        provider_config = (
+            await db.execute(
+                select(FxProviderConfigModel)
+                .where(FxProviderConfigModel.id == initial_model.provider_config_id)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+
+    locked_model = (
+        await db.execute(select(FxRateSnapshotModel).where(FxRateSnapshotModel.id == rate_id).with_for_update())
+    ).scalar_one_or_none()
+    return locked_model, provider_config
+
+
+async def _ensure_provider_enabled_for_approval(
+    db: AsyncSession,
+    model: FxRateSnapshotModel,
+    provider_config: FxProviderConfigModel | None = None,
+) -> None:
+    if model.source_type != "provider" and model.provider_config_id is None:
+        return
+    config = provider_config
+    if config is None and model.provider_config_id is not None:
+        config = await db.get(FxProviderConfigModel, model.provider_config_id)
+    if config is not None and config.enabled:
+        return
+    raise _admin_growth_error(
+        status.HTTP_409_CONFLICT,
+        "FX_PROVIDER_DISABLED",
+        "admin.growth.fx.errors.providerDisabled",
+        {"provider_key": model.provider_key, "rate_id": str(model.id)},
+    )
+
+
 def _rate_response(model: FxRateSnapshotModel) -> AdminGrowthFxRateResponse:
     return AdminGrowthFxRateResponse(
         id=model.id,
+        provider_config_id=model.provider_config_id,
         base_currency=model.base_currency,
         quote_currency=model.quote_currency,
         rate=format(model.rate, "f"),
         inverse_rate=format(model.inverse_rate, "f") if model.inverse_rate is not None else None,
         source_type=model.source_type,
         provider_key=model.provider_key,
+        provider_priority=model.provider_priority,
         provider_rate_id=model.provider_rate_id,
         observed_at=model.observed_at,
         fetched_at=model.fetched_at,
         valid_until=model.valid_until,
         status=model.status,
-        metadata=dict(model.metadata_ or {}),
+        approval_state=model.approval_state,
+        approved_by_admin_id=model.approved_by_admin_id,
+        approved_at=model.approved_at,
+        rejection_reason=model.rejection_reason,
+        checksum=model.checksum,
+        raw_provider_payload_hash=model.raw_provider_payload_hash,
+        metadata=_safe_metadata(model.metadata_ or {}),
         created_at=model.created_at,
+    )
+
+
+def _refresh_run_response(model: FxProviderRefreshRunModel) -> AdminGrowthFxRefreshRunResponse:
+    return AdminGrowthFxRefreshRunResponse(
+        id=model.id,
+        provider_config_id=model.provider_config_id,
+        provider_key=model.provider_key,
+        run_key=model.run_key,
+        status=model.status,
+        trigger_type=model.trigger_type,
+        requested_by_admin_id=model.requested_by_admin_id,
+        started_at=model.started_at,
+        finished_at=model.finished_at,
+        pairs_requested=list(model.pairs_requested or []),
+        pairs_succeeded=list(model.pairs_succeeded or []),
+        pairs_failed=list(model.pairs_failed or []),
+        created_snapshot_ids=list(model.created_snapshot_ids or []),
+        provider_payload_hash=model.provider_payload_hash,
+        error_code=model.error_code,
+        error_message=model.error_message,
     )
 
 
@@ -553,7 +891,7 @@ def _rate_snapshot(model: FxRateSnapshotModel) -> FxRateSnapshot:
     return FxRateSnapshot(
         rate_id=model.id,
         provider=model.provider_key,
-        provider_priority=int(metadata.get("provider_priority") or 100),
+        provider_priority=model.provider_priority,
         source_currency=model.base_currency,
         target_currency=model.quote_currency,
         rate=Decimal(model.rate),
@@ -567,7 +905,31 @@ def _rate_snapshot(model: FxRateSnapshotModel) -> FxRateSnapshot:
             if metadata.get("configured_rate_version") not in (None, "")
             else None
         ),
+        provider_enabled=bool(metadata.get("provider_enabled", True)),
     )
+
+
+def _safe_change_reason(value: str | None) -> str | None:
+    if value is None:
+        return None
+    sanitized = value.strip()
+    for pattern in _CHANGE_REASON_SECRET_PATTERNS:
+        sanitized = pattern.sub(_REDACTED_REASON_VALUE, sanitized)
+    return sanitized[:2000]
+
+
+def _safe_metadata(metadata: Mapping[str, Any]) -> dict[str, Any]:
+    return {str(key): _safe_metadata_value(str(key), value) for key, value in metadata.items()}
+
+
+def _safe_metadata_value(key: str, value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return _safe_metadata(value)
+    if isinstance(value, list | tuple | set):
+        return [_safe_metadata_value(key, item) for item in value]
+    if isinstance(value, str):
+        return _safe_change_reason(value)
+    return value
 
 
 async def _count_for(statement: Select[tuple[Any]], db: AsyncSession) -> int:
@@ -593,6 +955,38 @@ def _parse_positive_decimal(value: str, code: str) -> Decimal:
             {"value": value},
         )
     return parsed
+
+
+def _snapshot_checksum(model: FxRateSnapshotModel) -> str:
+    payload = {
+        "base_currency": model.base_currency,
+        "quote_currency": model.quote_currency,
+        "rate": model.rate,
+        "inverse_rate": model.inverse_rate,
+        "source_type": model.source_type,
+        "provider_key": model.provider_key,
+        "provider_rate_id": model.provider_rate_id,
+        "observed_at": model.observed_at,
+        "fetched_at": model.fetched_at,
+        "valid_until": model.valid_until,
+        "status": model.status,
+    }
+    encoded = json.dumps(
+        {str(key): _json_safe(value) for key, value in sorted(payload.items())},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, UUID):
+        return str(value)
+    return value
 
 
 def _admin_growth_error(

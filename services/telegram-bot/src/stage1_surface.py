@@ -24,6 +24,9 @@ STAGE1_PUBLIC_COMMANDS: tuple[tuple[str, str], ...] = (
     ("start", "Start CyberVPN and open onboarding"),
     ("menu", "Open the main menu"),
     ("connect", "Get VPN access and config"),
+    ("code", "Apply an invite, gift, or promo code"),
+    ("instructions", "Show VPN setup instructions"),
+    ("help", "Show connection help"),
     ("plans", "View subscription plans"),
     ("trial", "Start a trial if available"),
     ("invites", "View your invite codes"),
@@ -34,10 +37,7 @@ STAGE1_PUBLIC_COMMANDS: tuple[tuple[str, str], ...] = (
 
 def build_stage1_public_commands() -> list[BotCommand]:
     """Build the default S1 command list exposed in Telegram clients."""
-    return [
-        BotCommand(command=command, description=description)
-        for command, description in STAGE1_PUBLIC_COMMANDS
-    ]
+    return [BotCommand(command=command, description=description) for command, description in STAGE1_PUBLIC_COMMANDS]
 
 
 def build_stage1_menu_button(settings: BotSettings) -> MenuButtonCommands | MenuButtonDefault | MenuButtonWebApp:

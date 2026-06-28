@@ -1,28 +1,44 @@
 from __future__ import annotations
 
+import hmac
 import logging
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
+from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.customer_onboarding import (
     ApplyCustomerOnboardingGrowthCodeUseCase,
+    ConnectionPlatform,
+    ConnectionSurface,
+    CustomerConnectionBootstrapResult,
     CustomerOnboardingAppliedCode,
     CustomerOnboardingApplyResult,
     CustomerOnboardingCodeApplier,
+    CustomerOnboardingCodePreviewer,
+    CustomerOnboardingConnectionBootstrapUseCase,
     CustomerOnboardingCurrentState,
     CustomerOnboardingFlowTokenService,
+    CustomerOnboardingMarkConnectedUseCase,
+    CustomerOnboardingPreviewResult,
     CustomerOnboardingSkipResult,
     CustomerOnboardingUnavailableError,
     GetCurrentCustomerOnboardingUseCase,
+    PreviewCustomerOnboardingGrowthCodeUseCase,
     SkipCustomerOnboardingUseCase,
 )
 from src.application.use_cases.gifts import RedeemGiftCodeUseCase
 from src.application.use_cases.growth_codes import GrowthCodeResolutionOutcome, ResolveGrowthCodeUseCase
 from src.application.use_cases.invites.redeem_invite import RedeemInviteUseCase
+from src.application.use_cases.service_access import GetCurrentEntitlementStateUseCase
+from src.application.use_cases.subscriptions import GenerateConfigUseCase
+from src.config.settings import settings
+from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.enums import (
     GrowthCodeActionContext,
     GrowthCodeRejectReason,
@@ -35,20 +51,42 @@ from src.domain.exceptions import (
     InviteCodeExpiredError,
     InviteCodeNotFoundError,
 )
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.infrastructure.database.repositories.customer_onboarding_repo import (
+    CustomerConnectionSessionSqlAlchemyRepository,
     CustomerOnboardingStateSqlAlchemyRepository,
 )
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
-from src.presentation.dependencies.auth import get_current_mobile_user_id
-from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
+from src.infrastructure.monitoring.instrumentation.growth_codes import (
+    observe_customer_onboarding_apply,
+    observe_customer_onboarding_connection_bootstrap,
+    observe_customer_onboarding_preview,
+    observe_customer_onboarding_skip,
+)
+from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
+from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.presentation.dependencies.auth import get_current_mobile_user_id, get_optional_current_mobile_user_id
+from src.presentation.dependencies.auth_realms import get_request_customer_realm
 from src.presentation.dependencies.database import get_db
+from src.presentation.dependencies.services import get_remnawave_client
 
 from .schemas import (
     CustomerOnboardingApplyRequest,
     CustomerOnboardingApplyResponse,
+    CustomerOnboardingConnectionAppRecommendation,
+    CustomerOnboardingConnectionBootstrapResponse,
+    CustomerOnboardingConnectionInstruction,
+    CustomerOnboardingConnectionInstructionStep,
     CustomerOnboardingCurrentResponse,
+    CustomerOnboardingPreviewRequest,
+    CustomerOnboardingPreviewResponse,
     CustomerOnboardingSkipRequest,
     CustomerOnboardingSkipResponse,
+    MarkOnboardingConnectionConnectedRequest,
+    MarkOnboardingConnectionConnectedResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,6 +94,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/customer/onboarding", tags=["customer-onboarding"])
 
 _CUSTOMER_ONBOARDING_SURFACE = "customer_onboarding"
+
+
+@dataclass(frozen=True, slots=True)
+class _ConnectionConfigSnapshot:
+    subscription_url: str | None
+    config_profile_name: str | None
+    service_identity_ready: bool
 
 
 @router.get("/current", response_model=CustomerOnboardingCurrentResponse)
@@ -75,10 +120,19 @@ async def get_current_customer_onboarding(
 @router.post("/growth-code/apply", response_model=CustomerOnboardingApplyResponse)
 async def apply_customer_onboarding_growth_code(
     payload: CustomerOnboardingApplyRequest,
-    user_id: UUID = Depends(get_current_mobile_user_id),
+    user_id: UUID | None = Depends(get_optional_current_mobile_user_id),
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
     db: AsyncSession = Depends(get_db),
 ) -> CustomerOnboardingApplyResponse:
+    resolved_user_id, resolved_realm = await _resolve_customer_onboarding_actor(
+        db=db,
+        authenticated_user_id=user_id,
+        source_surface=payload.source_surface,
+        telegram_id=payload.telegram_id,
+        telegram_bot_secret=telegram_bot_secret,
+        current_realm=current_realm,
+    )
     runtime_config = await ConfigService(SystemConfigRepository(db)).get_customer_onboarding_runtime_config()
     try:
         result = await ApplyCustomerOnboardingGrowthCodeUseCase(
@@ -86,18 +140,47 @@ async def apply_customer_onboarding_growth_code(
             state_repo=CustomerOnboardingStateSqlAlchemyRepository(db),
             flow_tokens=CustomerOnboardingFlowTokenService(),
         ).execute(
-            user_id=user_id,
+            user_id=resolved_user_id,
             code=payload.code,
             flow_token=payload.flow_token,
             idempotency_key=payload.idempotency_key,
-            code_applier=CustomerOnboardingGrowthCodeApplier(db, current_realm=current_realm),
+            require_flow_token=payload.source_surface != "telegram_bot",
+            code_applier=CustomerOnboardingGrowthCodeApplier(db, current_realm=resolved_realm),
         )
     except CustomerOnboardingUnavailableError as exc:
         await db.rollback()
+        observe_customer_onboarding_apply(status=exc.code, code_type=None)
         raise _onboarding_http_error(exc) from exc
     if result.commit_required:
         await db.commit()
+    observe_customer_onboarding_apply(status=result.status, code_type=result.code_type)
     return _apply_response(result)
+
+
+@router.post("/growth-code/preview", response_model=CustomerOnboardingPreviewResponse)
+async def preview_customer_onboarding_growth_code(
+    payload: CustomerOnboardingPreviewRequest,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> CustomerOnboardingPreviewResponse:
+    runtime_config = await ConfigService(SystemConfigRepository(db)).get_customer_onboarding_runtime_config()
+    try:
+        result = await PreviewCustomerOnboardingGrowthCodeUseCase(
+            runtime_config=runtime_config,
+            flow_tokens=CustomerOnboardingFlowTokenService(),
+        ).execute(
+            user_id=user_id,
+            code=payload.code,
+            flow_token=payload.flow_token,
+            code_previewer=CustomerOnboardingGrowthCodePreviewer(db),
+        )
+    except CustomerOnboardingUnavailableError as exc:
+        await db.rollback()
+        observe_customer_onboarding_preview(status=exc.code, detected_code_type=None)
+        raise _onboarding_http_error(exc) from exc
+    await db.rollback()
+    observe_customer_onboarding_preview(status=result.status, detected_code_type=result.detected_code_type)
+    return _preview_response(result)
 
 
 @router.post("/growth-code/skip", response_model=CustomerOnboardingSkipResponse)
@@ -118,10 +201,99 @@ async def skip_customer_onboarding_growth_code(
             idempotency_key=payload.idempotency_key,
         )
     except CustomerOnboardingUnavailableError as exc:
+        observe_customer_onboarding_skip(status=exc.code)
         raise _onboarding_http_error(exc) from exc
     if result.commit_required:
         await db.commit()
+    observe_customer_onboarding_skip(status=result.status)
     return _skip_response(result)
+
+
+@router.get("/connection/bootstrap", response_model=CustomerOnboardingConnectionBootstrapResponse)
+async def get_customer_onboarding_connection_bootstrap(
+    response: Response,
+    surface: ConnectionSurface = Query("web"),
+    platform_hint: ConnectionPlatform = Query("unknown"),
+    telegram_id: int | None = Query(None, gt=0),
+    user_id: UUID | None = Depends(get_optional_current_mobile_user_id),
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
+    db: AsyncSession = Depends(get_db),
+    remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
+) -> CustomerOnboardingConnectionBootstrapResponse:
+    response.headers["Cache-Control"] = "no-store, private"
+    resolved_user_id, resolved_realm = await _resolve_customer_onboarding_actor(
+        db=db,
+        authenticated_user_id=user_id,
+        source_surface=surface,
+        telegram_id=telegram_id,
+        telegram_bot_secret=telegram_bot_secret,
+        current_realm=current_realm,
+    )
+    mobile_user = await _get_mobile_user_or_404(db, resolved_user_id)
+    runtime_config = await ConfigService(SystemConfigRepository(db)).get_customer_onboarding_runtime_config()
+    entitlement_snapshot = await GetCurrentEntitlementStateUseCase(db).execute(
+        customer_account_id=resolved_user_id,
+        auth_realm_id=resolved_realm.auth_realm.id,
+    )
+    config_snapshot = await _resolve_connection_config(
+        mobile_user=mobile_user,
+        remnawave_client=remnawave_client,
+    )
+    result = await CustomerOnboardingConnectionBootstrapUseCase(
+        runtime_config=runtime_config,
+        session_repo=CustomerConnectionSessionSqlAlchemyRepository(db),
+    ).execute(
+        user_id=resolved_user_id,
+        surface=surface,
+        platform_hint=platform_hint,
+        subscription_url=config_snapshot.subscription_url,
+        entitlement_status=_snapshot_str(entitlement_snapshot, "status"),
+        service_identity_ready=config_snapshot.service_identity_ready,
+        config_profile_name=config_snapshot.config_profile_name,
+        device_limit=_nested_snapshot_int(entitlement_snapshot, "effective", "device_limit"),
+        traffic_limit_bytes=_nested_snapshot_int(entitlement_snapshot, "effective", "traffic_limit_bytes"),
+        entitlement_expires_at=_snapshot_datetime(entitlement_snapshot, "expires_at"),
+    )
+    await db.commit()
+    observe_customer_onboarding_connection_bootstrap(status=result.status, surface=result.surface)
+    return _connection_bootstrap_response(result)
+
+
+@router.post("/connection/mark-connected", response_model=MarkOnboardingConnectionConnectedResponse)
+async def mark_customer_onboarding_connection_connected(
+    payload: MarkOnboardingConnectionConnectedRequest,
+    user_id: UUID | None = Depends(get_optional_current_mobile_user_id),
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
+    db: AsyncSession = Depends(get_db),
+) -> MarkOnboardingConnectionConnectedResponse:
+    resolved_user_id, _resolved_realm = await _resolve_customer_onboarding_actor(
+        db=db,
+        authenticated_user_id=user_id,
+        source_surface=payload.source_surface,
+        telegram_id=payload.telegram_id,
+        telegram_bot_secret=telegram_bot_secret,
+        current_realm=current_realm,
+    )
+    result = await CustomerOnboardingMarkConnectedUseCase(
+        session_repo=CustomerConnectionSessionSqlAlchemyRepository(db),
+    ).execute(
+        user_id=resolved_user_id,
+        surface=payload.source_surface,
+        platform=payload.platform or "unknown",
+        flow_key=payload.flow_key,
+        version=payload.version,
+        connection_session_id=_parse_connection_session_id(payload.connection_session_id),
+    )
+    await db.commit()
+    return MarkOnboardingConnectionConnectedResponse(
+        status=result.status,
+        next_destination=result.next_destination,
+        connected_at=result.connected_at.isoformat() if result.connected_at is not None else None,
+        flow_key=result.flow_key,
+        version=result.version,
+    )
 
 
 def _current_response(state: CustomerOnboardingCurrentState) -> CustomerOnboardingCurrentResponse:
@@ -135,6 +307,7 @@ def _current_response(state: CustomerOnboardingCurrentState) -> CustomerOnboardi
         message_key=state.message_key,
         server_state_available=state.server_state_available,
         referral_already_attributed=state.referral_already_attributed,
+        connection_required=state.connection_required,
     )
 
 
@@ -144,6 +317,20 @@ def _apply_response(result: CustomerOnboardingApplyResult) -> CustomerOnboarding
         message_key=result.message_key,
         masked_code=result.masked_code,
         next_destination=result.next_destination,
+        connection_required=result.connection_required,
+    )
+
+
+def _preview_response(result: CustomerOnboardingPreviewResult) -> CustomerOnboardingPreviewResponse:
+    return CustomerOnboardingPreviewResponse(
+        accepted=result.accepted,
+        detected_code_type=result.detected_code_type,
+        status=result.status,
+        message_key=result.message_key,
+        masked_code=result.masked_code,
+        matched_code_types=list(result.matched_code_types),
+        next_action=result.next_action,
+        safe_details=dict(result.safe_details or {}),
     )
 
 
@@ -153,6 +340,247 @@ def _skip_response(result: CustomerOnboardingSkipResult) -> CustomerOnboardingSk
         message_key=result.message_key,
         next_destination=result.next_destination,
     )
+
+
+def _connection_bootstrap_response(
+    result: CustomerConnectionBootstrapResult,
+) -> CustomerOnboardingConnectionBootstrapResponse:
+    return CustomerOnboardingConnectionBootstrapResponse(
+        available=result.available,
+        status=result.status,
+        message_key=result.message_key,
+        subscription_url=result.subscription_url,
+        qr_payload=result.qr_payload,
+        config_profile_name=result.config_profile_name,
+        expires_at=result.expires_at.isoformat() if result.expires_at is not None else None,
+        device_limit=result.device_limit,
+        traffic_limit_bytes=result.traffic_limit_bytes,
+        instructions=[
+            CustomerOnboardingConnectionInstruction(
+                platform=item.platform,
+                title_key=item.title_key,
+                steps=[
+                    CustomerOnboardingConnectionInstructionStep(
+                        order=step.order,
+                        title_key=step.title_key,
+                        body_key=step.body_key,
+                        action_url=step.action_url,
+                        copy_value=step.copy_value,
+                    )
+                    for step in item.steps
+                ],
+                recommended_apps=[
+                    CustomerOnboardingConnectionAppRecommendation(**app) for app in item.recommended_apps
+                ],
+            )
+            for item in result.instructions
+        ],
+        surface=result.surface,
+        preferred_layout=result.preferred_layout,
+        supported_actions=list(result.supported_actions),
+        connection_session_id=result.connection_session_id,
+        telegram_payload=result.telegram_payload,
+        flow_key=result.flow_key,
+        version=result.version,
+    )
+
+
+def _parse_connection_session_id(value: str) -> UUID:
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "INVALID_CONNECTION_SESSION_ID",
+                "message_key": "onboarding.connection.invalid_session",
+            },
+        ) from exc
+
+
+async def _resolve_customer_onboarding_actor(
+    *,
+    db: AsyncSession,
+    authenticated_user_id: UUID | None,
+    source_surface: ConnectionSurface,
+    telegram_id: int | None,
+    telegram_bot_secret: str | None,
+    current_realm: RealmResolution,
+) -> tuple[UUID, RealmResolution]:
+    if source_surface == "telegram_bot":
+        _require_telegram_bot_secret(telegram_bot_secret)
+        if telegram_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "code": "TELEGRAM_ID_REQUIRED",
+                    "message": "telegram_id is required for telegram_bot onboarding requests.",
+                },
+            )
+        mobile_user = await MobileUserRepository(db).get_by_telegram_id(telegram_id)
+        if mobile_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "code": "CUSTOMER_NOT_FOUND",
+                    "message": "Telegram user is not linked to a customer account.",
+                },
+            )
+        if not mobile_user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "USER_INACTIVE", "message": "User account is inactive"},
+            )
+        return mobile_user.id, await _resolve_customer_realm_for_mobile_user(db, mobile_user)
+
+    if authenticated_user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Invalid token"},
+        )
+    return authenticated_user_id, current_realm
+
+
+async def _get_mobile_user_or_404(db: AsyncSession, user_id: UUID) -> MobileUserModel:
+    mobile_user = await MobileUserRepository(db).get_by_id(user_id)
+    if mobile_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "CUSTOMER_NOT_FOUND", "message": "Customer account was not found."},
+        )
+    if not mobile_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "USER_INACTIVE", "message": "User account is inactive"},
+        )
+    return mobile_user
+
+
+def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
+    configured = settings.telegram_bot_internal_secret.get_secret_value().strip()
+    if not configured or not secret:
+        return False
+    return hmac.compare_digest(secret.strip(), configured)
+
+
+def _require_telegram_bot_secret(secret: str | None) -> None:
+    if _is_valid_telegram_bot_secret(secret):
+        return
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+async def _resolve_customer_realm_for_mobile_user(
+    db: AsyncSession,
+    mobile_user: MobileUserModel,
+) -> RealmResolution:
+    repo = AuthRealmRepository(db)
+    default_realm_id = stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"]))
+    auth_realm_id = getattr(mobile_user, "auth_realm_id", None)
+    realm = await repo.get_realm_by_id(auth_realm_id or default_realm_id)
+    if realm is None:
+        realm = await repo.get_or_create_default_realm("customer")
+    return RealmResolution(auth_realm=realm, source="telegram_bot")
+
+
+async def _resolve_connection_config(
+    *,
+    mobile_user: MobileUserModel,
+    remnawave_client: RemnawaveClient,
+) -> _ConnectionConfigSnapshot:
+    if mobile_user.remnawave_uuid:
+        try:
+            result = await GenerateConfigUseCase(remnawave_client).execute(mobile_user.remnawave_uuid)
+        except HTTPException as exc:
+            if exc.status_code not in {status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_ENTITY}:
+                raise
+        else:
+            return _connection_snapshot_from_result(
+                result,
+                fallback_subscription_url=mobile_user.subscription_url,
+                config_profile_name="remnawave_subscription",
+                service_identity_ready=True,
+            )
+
+    if mobile_user.telegram_id is not None:
+        remnawave_user = await RemnawaveUserGateway(client=remnawave_client).get_by_telegram_id(mobile_user.telegram_id)
+        if remnawave_user is not None:
+            try:
+                result = await GenerateConfigUseCase(remnawave_client).execute(remnawave_user.uuid)
+            except HTTPException as exc:
+                if exc.status_code not in {status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_ENTITY}:
+                    raise
+            else:
+                return _connection_snapshot_from_result(
+                    result,
+                    fallback_subscription_url=mobile_user.subscription_url,
+                    config_profile_name="telegram_subscription",
+                    service_identity_ready=True,
+                )
+
+    if mobile_user.subscription_url:
+        subscription_url = normalize_public_subscription_url(mobile_user.subscription_url) or str(
+            mobile_user.subscription_url
+        )
+        return _ConnectionConfigSnapshot(
+            subscription_url=subscription_url,
+            config_profile_name="legacy_subscription_url",
+            service_identity_ready=True,
+        )
+
+    return _ConnectionConfigSnapshot(
+        subscription_url=None,
+        config_profile_name=None,
+        service_identity_ready=bool(mobile_user.remnawave_uuid),
+    )
+
+
+def _connection_snapshot_from_result(
+    result: dict[str, object],
+    *,
+    fallback_subscription_url: str | None,
+    config_profile_name: str,
+    service_identity_ready: bool,
+) -> _ConnectionConfigSnapshot:
+    subscription_url = _snapshot_str(result, "subscription_url")
+    normalized = normalize_public_subscription_url(subscription_url) if subscription_url else None
+    fallback = normalize_public_subscription_url(fallback_subscription_url) if fallback_subscription_url else None
+    config = normalized or _snapshot_str(result, "config_string") or fallback
+    return _ConnectionConfigSnapshot(
+        subscription_url=config,
+        config_profile_name=config_profile_name,
+        service_identity_ready=service_identity_ready,
+    )
+
+
+def _snapshot_str(snapshot: dict[str, object], key: str) -> str | None:
+    value = snapshot.get(key)
+    return value if isinstance(value, str) and value else None
+
+
+def _nested_snapshot_int(snapshot: dict[str, object], section: str, key: str) -> int | None:
+    nested = snapshot.get(section)
+    if not isinstance(nested, dict):
+        return None
+    value = nested.get(key)
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def _snapshot_datetime(snapshot: dict[str, object], key: str) -> datetime | None:
+    value = snapshot.get(key)
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str) and value:
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    return None
 
 
 def _onboarding_http_error(exc: CustomerOnboardingUnavailableError) -> HTTPException:
@@ -271,6 +699,30 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
         raise _onboarding_code_rejected(outcome)
 
 
+class CustomerOnboardingGrowthCodePreviewer(CustomerOnboardingCodePreviewer):
+    def __init__(self, session: AsyncSession) -> None:
+        self._resolver = ResolveGrowthCodeUseCase(session)
+
+    async def preview_code(
+        self,
+        *,
+        code: str,
+        user_id: UUID,
+        normalized_code_hash: str,
+        masked_code: str,
+    ) -> CustomerOnboardingPreviewResult:
+        del normalized_code_hash
+        outcome = await self._resolver.execute(
+            code=code,
+            action_context=GrowthCodeActionContext.REDEEM,
+            user_id=user_id,
+            surface=_CUSTOMER_ONBOARDING_SURFACE,
+            record_event=False,
+            ensure_registry=False,
+        )
+        return _preview_from_resolution(outcome=outcome, masked_code=masked_code)
+
+
 def _is_checkout_staged_promo(outcome: GrowthCodeResolutionOutcome) -> bool:
     return (
         outcome.code_type == GrowthCodeType.PROMO
@@ -278,6 +730,123 @@ def _is_checkout_staged_promo(outcome: GrowthCodeResolutionOutcome) -> bool:
         and outcome.reject_reason == GrowthCodeRejectReason.CODE_WRONG_CONTEXT
         and outcome.wrong_context_target == GrowthCodeWrongContextTarget.CHECKOUT
     )
+
+
+def _preview_from_resolution(
+    *,
+    outcome: GrowthCodeResolutionOutcome,
+    masked_code: str,
+) -> CustomerOnboardingPreviewResult:
+    checkout_stage = _is_checkout_staged_code(outcome)
+    status = _preview_status(outcome)
+    matched_code_types = _matched_code_types(outcome)
+    return CustomerOnboardingPreviewResult(
+        accepted=outcome.accepted or checkout_stage,
+        detected_code_type=_detected_code_type(outcome),
+        status=status,
+        message_key=outcome.user_message_key,
+        masked_code=masked_code,
+        matched_code_types=matched_code_types,
+        next_action=_preview_next_action(outcome=outcome, status=status, checkout_stage=checkout_stage),
+        safe_details=_preview_safe_details(outcome),
+    )
+
+
+def _is_checkout_staged_code(outcome: GrowthCodeResolutionOutcome) -> bool:
+    return (
+        outcome.reject_reason == GrowthCodeRejectReason.CODE_WRONG_CONTEXT
+        and outcome.wrong_context_target == GrowthCodeWrongContextTarget.CHECKOUT
+        and outcome.code_type in {GrowthCodeType.PROMO, GrowthCodeType.REFERRAL, GrowthCodeType.PARTNER}
+    )
+
+
+def _preview_status(
+    outcome: GrowthCodeResolutionOutcome,
+) -> Literal[
+    "preview_available",
+    "not_found",
+    "ambiguous",
+    "wrong_context",
+    "not_eligible",
+    "expired",
+    "already_used",
+    "blocked",
+]:
+    if outcome.result == GrowthCodeResolutionStatus.CONFLICTED and (
+        outcome.reject_reason == GrowthCodeRejectReason.CODE_NAMESPACE_AMBIGUOUS
+        or outcome.conflict_code == "CODE_NAMESPACE_AMBIGUOUS"
+    ):
+        return "ambiguous"
+    if outcome.accepted:
+        return "preview_available"
+    if outcome.reject_reason == GrowthCodeRejectReason.CODE_NOT_FOUND:
+        return "not_found"
+    if outcome.reject_reason == GrowthCodeRejectReason.CODE_WRONG_CONTEXT:
+        return "wrong_context"
+    if outcome.reject_reason == GrowthCodeRejectReason.CODE_EXPIRED:
+        return "expired"
+    if outcome.reject_reason in {
+        GrowthCodeRejectReason.CODE_ALREADY_REDEEMED,
+        GrowthCodeRejectReason.GIFT_ALREADY_REDEEMED,
+    }:
+        return "already_used"
+    if outcome.reject_reason == GrowthCodeRejectReason.CODE_BLOCKED_BY_RISK:
+        return "blocked"
+    return "not_eligible"
+
+
+def _preview_next_action(
+    *,
+    outcome: GrowthCodeResolutionOutcome,
+    status: str,
+    checkout_stage: bool,
+) -> Literal[
+    "apply_now",
+    "stage_for_checkout",
+    "redeem_entitlement",
+    "resolve_ambiguity",
+    "none",
+]:
+    if status == "ambiguous":
+        return "resolve_ambiguity"
+    if checkout_stage:
+        return "stage_for_checkout"
+    if outcome.accepted and outcome.code_type in {GrowthCodeType.INVITE, GrowthCodeType.GIFT}:
+        return "redeem_entitlement"
+    if outcome.accepted:
+        return "apply_now"
+    return "none"
+
+
+def _detected_code_type(outcome: GrowthCodeResolutionOutcome):
+    if outcome.code_type is None:
+        return None
+    value = outcome.code_type.value
+    if value in {"promo", "invite", "gift", "referral", "partner"}:
+        return cast(Literal["promo", "invite", "gift", "referral", "partner"], value)
+    return None
+
+
+def _matched_code_types(outcome: GrowthCodeResolutionOutcome) -> tuple[str, ...]:
+    policy_snapshot = outcome.policy_snapshot if isinstance(outcome.policy_snapshot, dict) else {}
+    raw_matched = policy_snapshot.get("matched_code_types")
+    if isinstance(raw_matched, list):
+        return tuple(
+            str(item) for item in raw_matched if str(item) in {"promo", "invite", "gift", "referral", "partner"}
+        )
+    detected = _detected_code_type(outcome)
+    return (detected,) if detected is not None else ()
+
+
+def _preview_safe_details(outcome: GrowthCodeResolutionOutcome) -> dict[str, object]:
+    details: dict[str, object] = {}
+    if outcome.reject_reason is not None:
+        details["reject_reason"] = outcome.reject_reason.value
+    if outcome.conflict_code is not None:
+        details["conflict_code"] = outcome.conflict_code
+    if outcome.wrong_context_target is not None:
+        details["wrong_context_target"] = outcome.wrong_context_target.value
+    return details
 
 
 def _onboarding_code_rejected(outcome: GrowthCodeResolutionOutcome) -> CustomerOnboardingUnavailableError:
@@ -296,6 +865,7 @@ def _onboarding_code_rejected(outcome: GrowthCodeResolutionOutcome) -> CustomerO
         GrowthCodeRejectReason.CODE_CONFLICTS_WITH_PARTNER_BINDING,
         GrowthCodeRejectReason.CODE_CONFLICTS_WITH_PARTNER_CODE,
         GrowthCodeRejectReason.CODE_CONFLICTS_WITH_PROMO,
+        GrowthCodeRejectReason.CODE_NAMESPACE_AMBIGUOUS,
     }:
         status_code = 409
         error_code = "CUSTOMER_ONBOARDING_CODE_CONFLICT"

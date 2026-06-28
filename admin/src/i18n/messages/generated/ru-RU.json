@@ -2500,12 +2500,18 @@
     },
     "fx": {
       "actions": {
+        "approveRate": "Одобрить snapshot",
+        "disableProvider": "Отключить provider",
+        "enableProvider": "Включить provider",
+        "refreshRates": "Обновить курсы",
+        "rejectRate": "Отклонить snapshot",
         "simulate": "Симулировать conversion"
       },
       "coverageDescription": "Консоль вызывает generated capabilities и generated v3 FX admin endpoints.",
       "coverageTitle": "Backend Coverage",
       "degraded": {
         "description": "FX status не удалось загрузить из generated admin endpoint. Operator actions остаются read-only, пока backend не ответит.",
+        "ratesDescription": "FX snapshots не удалось загрузить из generated admin endpoint. Approval controls остаются отключёнными.",
         "title": "Admin FX API ограничен"
       },
       "description": "FX readiness console для fixed-discount conversion, свежести курсов, provider status и audited override coverage.",
@@ -2515,9 +2521,28 @@
       "eyebrow": "Рост / FX",
       "fields": {
         "amount": "Amount",
+        "provider": "Provider key",
+        "rate": "Rate snapshot",
+        "reason": "Audit reason",
         "sourceCurrency": "Source currency",
         "targetCurrency": "Target currency"
       },
+      "lifecycle": {
+        "activeRates": "Active",
+        "approveResult": "Approval snapshot вернул {status}.",
+        "contractGap": "Generated OpenAPI сейчас содержит approve/provider enable-disable, но не refresh или reject. Эти действия остаются отключёнными до backend contract sync.",
+        "disabledRates": "Disabled",
+        "emptyProviders": "Provider status rows не возвращены.",
+        "emptyRates": "FX snapshots не возвращены.",
+        "observedAt": "Observed at",
+        "providerResult": "Provider action вернулся из backend.",
+        "refreshResult": "Refresh создал {count} snapshot(s).",
+        "rejectResult": "Reject snapshot вернул {status}.",
+        "staleRates": "Stale",
+        "validUntil": "Valid until"
+      },
+      "lifecycleDescription": "Проверка immutable snapshots, stale-rate статуса, provider state и audited approval actions через generated admin endpoints.",
+      "lifecycleTitle": "Snapshot Lifecycle",
       "metaTitle": "Growth FX - Ozoxy Admin",
       "metrics": {
         "adminApi": "Admin API",
@@ -2527,8 +2552,11 @@
         "manualOverride": "Manual Override",
         "manualOverrideHint": "Manual FX edits остаются отключёнными без audited backend workflow.",
         "siteMode": "Site Mode",
-        "siteModeHint": "Runtime capability context, полученный тем же generated wrapper."
+        "siteModeHint": "Runtime capability context, полученный тем же generated wrapper.",
+        "staleRates": "Stale Rates",
+        "staleRatesHint": "Authoritative stale snapshot count из admin FX status endpoint."
       },
+      "readOnly": "Ваша роль может просматривать FX lifecycle state, но approval и provider mutations требуют growth approval permission и backend audit reason.",
       "simulationResult": "Округлено {rounded}, применено {applied} {currency}",
       "simulatorDescription": "Simulation вызывает backend FX engine и возвращает rounded/applied amounts без изменения checkout state.",
       "simulatorDisabled": "Synthetic FX result не отображается. Операторы ждут authoritative backend simulator.",
@@ -3312,6 +3340,9 @@
         "compileRequired": "Скомпилируйте текущий AST перед запросом approval.",
         "contextInvalid": "JSON контекста симуляции невалиден: {detail}",
         "importFailed": "Импорт rule JSON не удался: {detail}",
+        "policyActionFailed": "Policy lifecycle action не выполнен.",
+        "policyDiffFailed": "Diff policy version не удалось загрузить.",
+        "policyListFailed": "Историю policy versions не удалось загрузить.",
         "policySubmitFailed": "Не удалось отправить policy version на approval.",
         "publishChecklistIncomplete": "Заполните approval checklist перед отправкой.",
         "simulateFailed": "Симуляция правила не удалась.",
@@ -3330,6 +3361,11 @@
         "nodeDuplicated": "Node продублирован.",
         "nodeMoved": "Node перемещён.",
         "nodeRemoved": "Node удалён.",
+        "policyApproved": "Policy version одобрена backend.",
+        "policyDiffLoaded": "Diff policy version загружен из backend.",
+        "policyPublished": "Policy version опубликована backend.",
+        "policyRejected": "Policy version отклонена backend.",
+        "policyRolledBack": "Policy rollback создан backend.",
         "policySubmitted": "Policy version отправлена на approval.",
         "redo": "Draft повторён.",
         "reset": "Draft сброшен.",
@@ -3348,6 +3384,37 @@
         "title": "Inspector",
         "updateSelected": "Обновить выбранное",
         "value": "Value"
+      },
+      "lifecycle": {
+        "approve": "Approve",
+        "auditFields": {
+          "approvedAt": "Approved at",
+          "approvedBy": "Approved by",
+          "checksum": "Checksum",
+          "compareChecksum": "Compare checksum",
+          "createdBy": "Created by",
+          "currentChecksum": "Current checksum",
+          "effectiveFrom": "Effective from",
+          "id": "Version ID"
+        },
+        "auditTitle": "Read-only audit view",
+        "backendDiffTitle": "Backend version diff",
+        "comparePolicyId": "Compare policy version ID",
+        "description": "Просмотр persisted policy versions, backend diffs и audited lifecycle actions с reason codes.",
+        "diffChanged": "Changed",
+        "diffUnchanged": "No change",
+        "emptyDiff": "Загрузите backend diff, чтобы увидеть changed fields и checksums.",
+        "emptyPolicies": "Persisted policy versions не возвращены.",
+        "loadDiff": "Загрузить diff",
+        "loadingDiff": "Загружаем diff...",
+        "loadingPolicies": "Загружаем policy history...",
+        "policyId": "Policy version ID",
+        "publish": "Publish",
+        "reasonCode": "Lifecycle reason code",
+        "reject": "Reject",
+        "rollback": "Rollback",
+        "running": "Выполняем...",
+        "title": "Policy Lifecycle"
       },
       "metaTitle": "Growth-правила - Ozoxy Admin",
       "metrics": {
@@ -3373,6 +3440,13 @@
         "search": "Поиск по каталогу",
         "searchPlaceholder": "Field, operator или action",
         "title": "Catalog Palette"
+      },
+      "permission": {
+        "approveDenied": "Ваша роль не может approve или reject growth rule policies.",
+        "auditReadOnly": "Policy history, audit fields и diff доступны для чтения; write actions для этой роли отключены.",
+        "publishDenied": "Ваша роль не может submit, publish или rollback growth rule policies.",
+        "readOnly": "У вашей роли read-only доступ к rule-builder. Draft editing, import, compile, simulation и publish controls отключены.",
+        "validateDenied": "Ваша роль не может запускать backend compile или simulation для growth rules."
       },
       "publish": {
         "approval": "Compiled checksum, normalized AST и impact notes проверены для этого draft.",
@@ -3438,6 +3512,11 @@
         "false": "Связана",
         "true": "Независима"
       },
+      "cabinetMarketingActions": {
+        "allow": "Разрешить в cabinet",
+        "not_found": "Вернуть 404",
+        "redirect_public": "Редирект на public site"
+      },
       "confirmationHint": "Введите {update}, чтобы обновить runtime policy, или {rollback}, чтобы выполнить rollback to full-site.",
       "description": "Версионированное управление маршрутизацией customer site для full-site, cabinet-only и maintenance режимов.",
       "empty": "Runtime config не содержит данных режима сайта.",
@@ -3454,12 +3533,17 @@
       },
       "fields": {
         "allowedPrefixes": "Разрешённые prefix paths",
+        "cabinetAllowedPrefixes": "Cabinet prefix paths",
         "cabinetHosts": "Cabinet hosts",
+        "cabinetMarketingAction": "Маркетинговые маршруты cabinet",
         "confirmation": "Typed confirmation",
         "destination": "Путь назначения cabinet",
+        "legalPrefixes": "Legal prefix paths",
         "mode": "Runtime режим",
+        "operationalPrefixes": "Operational prefix paths",
         "preserveKeys": "Сохраняемые query keys",
         "publicHosts": "Public hosts",
+        "publicMarketingDestination": "Public marketing destination",
         "reason": "Причина изменения",
         "registrationPolicy": "Registration policy",
         "url": "Preview URL"
@@ -3494,9 +3578,14 @@
       "previewTitle": "Route Preview",
       "reasons": {
         "allowed_route": "Allowed route",
+        "cabinet_marketing_not_found": "Cabinet marketing 404",
         "cabinet_only_redirect": "Cabinet-only redirect",
+        "cabinet_route": "Cabinet route",
         "full_site_passthrough": "Full-site pass-through",
-        "invalid_url": "Invalid URL"
+        "invalid_url": "Invalid URL",
+        "legal_route": "Legal route",
+        "marketing_route": "Marketing route",
+        "operational_route": "Operational route"
       },
       "rollbackAction": "Вернуть full-site",
       "rollbackUnavailable": "Вернуть full-site",

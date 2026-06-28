@@ -650,7 +650,7 @@ async def publish_public_network_dpi_score() -> dict[str, Any]:
     stays active but remains honestly gated rather than fabricating a score.
     """
     settings = get_settings()
-    if not settings.backend_api_url or settings.backend_internal_secret is None:
+    if not settings.backend_api_url or settings.telegram_bot_internal_secret is None:
         logger.info("public_network_dpi_publish_skipped", reason="backend_api_not_configured")
         return {"skipped": True, "reason": "backend_api_not_configured"}
 
@@ -662,7 +662,7 @@ async def publish_public_network_dpi_score() -> dict[str, Any]:
     started = time.perf_counter()
 
     async with BackendAPIClient() as backend:
-        if not backend.enabled:
+        if not backend.telegram_bot_internal_enabled:
             logger.info("public_network_dpi_publish_skipped", reason="backend_api_disabled")
             return {"skipped": True, "reason": "backend_api_disabled"}
 

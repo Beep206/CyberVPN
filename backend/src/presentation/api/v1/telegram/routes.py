@@ -31,6 +31,7 @@ from src.application.use_cases.customer_subscriptions import (
     ListCustomerSubscriptionsUseCase,
 )
 from src.application.use_cases.orders import ListOrdersUseCase
+from src.application.use_cases.payment_attempts.settle_completed_attempt import SettleCompletedPaymentAttemptUseCase
 from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutResult, CheckoutUseCase
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
 from src.application.use_cases.payments.payment_completed_earnings import (
@@ -55,7 +56,6 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.infrastructure.database.repositories.customer_staff_note_repo import CustomerStaffNoteRepository
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
-from src.infrastructure.database.repositories.payment_attempt_repo import PaymentAttemptRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
@@ -82,6 +82,7 @@ from src.presentation.api.v1.entitlements.schemas import CurrentEntitlementState
 from src.presentation.api.v1.orders.routes import _serialize_order
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
+    CheckoutCodeSetRejectedErrorResponse,
     CheckoutCommitResponse,
     CheckoutQuoteResponse,
     EntitlementsSnapshotResponse,
@@ -1175,7 +1176,11 @@ async def create_bot_user_support_escalation(
     )
 
 
-@router.post("/bot/user/{telegram_id}/checkout/quote", response_model=TelegramBotCheckoutQuoteResponse)
+@router.post(
+    "/bot/user/{telegram_id}/checkout/quote",
+    response_model=TelegramBotCheckoutQuoteResponse,
+    responses={422: {"model": CheckoutCodeSetRejectedErrorResponse}},
+)
 async def quote_bot_user_checkout(
     telegram_id: int,
     body: TelegramBotCheckoutRequest,
@@ -1393,13 +1398,18 @@ async def confirm_telegram_stars_payment(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Payment was already confirmed with another charge",
             )
-        payment_attempt = await PaymentAttemptRepository(db).get_by_payment_id(payment.id)
-        await append_payment_completed_partner_earning_publication(
-            EventOutboxService(db),
-            payment=payment,
-            payment_attempt=payment_attempt,
+        settlement = await SettleCompletedPaymentAttemptUseCase(db).execute(
+            payment_id=payment.id,
+            provider=payment.provider,
             source="telegram_stars_already_completed",
         )
+        if settlement.legacy_post_payment_required:
+            await append_payment_completed_partner_earning_publication(
+                EventOutboxService(db),
+                payment=payment,
+                payment_attempt=None,
+                source="telegram_stars_already_completed",
+            )
         await db.commit()
 
         route_operations_total.labels(route="telegram_payments", action="stars_confirm", status="completed").inc()
@@ -1426,16 +1436,17 @@ async def confirm_telegram_stars_payment(
     }
     await PaymentRepository(db).update(payment)
 
-    from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
-
-    await PostPaymentProcessingUseCase(db).execute(payment.id, process_cash_rewards=False)
-    payment_attempt = await PaymentAttemptRepository(db).get_by_payment_id(payment.id)
-    await append_payment_completed_partner_earning_publication(
-        EventOutboxService(db),
-        payment=payment,
-        payment_attempt=payment_attempt,
+    settlement = await SettleCompletedPaymentAttemptUseCase(db).execute(
+        payment_id=payment.id,
+        provider=payment.provider,
         source="telegram_stars_confirm",
     )
+    if settlement.legacy_post_payment_required:
+        await _run_legacy_telegram_stars_completion(
+            db=db,
+            payment=payment,
+            source="telegram_stars_confirm",
+        )
     await db.commit()
 
     route_operations_total.labels(route="telegram_payments", action="stars_confirm", status="completed").inc()
@@ -1449,6 +1460,23 @@ async def confirm_telegram_stars_payment(
         already_processed=False,
         created_at=payment.created_at,
         updated_at=payment.updated_at,
+    )
+
+
+async def _run_legacy_telegram_stars_completion(
+    *,
+    db: AsyncSession,
+    payment: PaymentModel,
+    source: str,
+) -> None:
+    from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
+
+    await PostPaymentProcessingUseCase(db).execute(payment.id, process_cash_rewards=False)
+    await append_payment_completed_partner_earning_publication(
+        EventOutboxService(db),
+        payment=payment,
+        payment_attempt=None,
+        source=source,
     )
 
 

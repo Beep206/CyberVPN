@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from pydantic import SecretStr
 
 from src.application.use_cases.payments.stage1_reconciliation import (
     REPORT_VERSION,
@@ -18,6 +19,7 @@ from src.application.use_cases.payments.stage1_reconciliation import (
     reconcile_stage1_payment_without_attempt,
 )
 from src.presentation.api.v1.payments import routes as payment_routes
+from src.presentation.api.v1.subscriptions import routes as subscription_routes
 
 NOW = datetime(2026, 5, 5, 12, 0, tzinfo=UTC)
 
@@ -176,11 +178,15 @@ async def test_stage1_reconciliation_internal_route_returns_safe_report(monkeypa
     async def fake_db():
         yield object()
 
+    execute_calls = 0
+
     class FakeUseCase:
         def __init__(self, _db: object) -> None:
             pass
 
         async def execute(self, *, limit: int = 250) -> Any:
+            nonlocal execute_calls
+            execute_calls += 1
             item = reconcile_stage1_payment_attempt_snapshot(
                 attempt=_attempt(status="processing", updated_at=NOW - timedelta(minutes=20)),
                 order=_order(),
@@ -195,18 +201,93 @@ async def test_stage1_reconciliation_internal_route_returns_safe_report(monkeypa
             )
 
     app.dependency_overrides[payment_routes.get_db] = fake_db
-    monkeypatch.setattr(payment_routes, "_require_telegram_bot_secret", lambda _secret: None)
+    monkeypatch.setattr(payment_routes.settings, "backend_internal_secret", SecretStr("backend-internal-secret"))
+    monkeypatch.setattr(payment_routes.settings, "telegram_bot_internal_secret", SecretStr("telegram-bot-secret"))
     monkeypatch.setattr(payment_routes, "Stage1PaymentReconciliationUseCase", FakeUseCase)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://backend") as client:
+        missing_secret = await client.post(
+            "/api/v1/payments/internal/reconciliation/run",
+            params={"limit": 10},
+        )
+        wrong_audience = await client.post(
+            "/api/v1/payments/internal/reconciliation/run",
+            params={"limit": 10},
+            headers={"X-Telegram-Bot-Secret": "telegram-bot-secret"},
+        )
         response = await client.post(
             "/api/v1/payments/internal/reconciliation/run",
             params={"limit": 10},
-            headers={"X-Telegram-Bot-Secret": "test-secret"},
+            headers={"X-Backend-Internal-Secret": "backend-internal-secret"},
         )
 
+    assert missing_secret.status_code == 401
+    assert wrong_audience.status_code == 401
     assert response.status_code == 200
     body = response.json()
     assert body["summary"]["total_items"] == 1
     assert body["items"][0]["safe_reference"].startswith("s1:payment-reconciliation:")
     assert "raw-provider" not in str(body)
+    assert execute_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_stage1_provisioning_retry_internal_route_requires_backend_internal_secret(monkeypatch) -> None:
+    app = FastAPI()
+    app.include_router(subscription_routes.router, prefix="/api/v1")
+
+    async def fake_db():
+        yield object()
+
+    async def fake_remnawave_client():
+        yield object()
+
+    metrics_calls = 0
+
+    class FakeRepository:
+        def __init__(self, _db: object) -> None:
+            pass
+
+        async def metrics_snapshot(self, *, now: datetime) -> dict[str, object]:
+            nonlocal metrics_calls
+            metrics_calls += 1
+            return {
+                "counts_by_state": {
+                    "queued": 0,
+                    "retrying": 0,
+                    "dead_letter": 0,
+                    "succeeded": 0,
+                },
+                "max_job_age_seconds": 0,
+            }
+
+    app.dependency_overrides[subscription_routes.get_db] = fake_db
+    app.dependency_overrides[subscription_routes.get_remnawave_client] = fake_remnawave_client
+    monkeypatch.setattr(subscription_routes.settings, "backend_internal_secret", SecretStr("backend-internal-secret"))
+    monkeypatch.setattr(subscription_routes.settings, "telegram_bot_internal_secret", SecretStr("telegram-bot-secret"))
+    monkeypatch.setattr(subscription_routes.settings, "stage1_provisioning_retry_claiming_enabled", False)
+    monkeypatch.setattr(subscription_routes, "Stage1ProvisioningRetryJobRepository", FakeRepository)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://backend") as client:
+        missing_secret = await client.post(
+            "/api/v1/subscriptions/internal/provisioning-retries/run",
+            params={"limit": 5, "worker_id": "unit"},
+        )
+        wrong_audience = await client.post(
+            "/api/v1/subscriptions/internal/provisioning-retries/run",
+            params={"limit": 5, "worker_id": "unit"},
+            headers={"X-Telegram-Bot-Secret": "telegram-bot-secret"},
+        )
+        response = await client.post(
+            "/api/v1/subscriptions/internal/provisioning-retries/run",
+            params={"limit": 5, "worker_id": "unit"},
+            headers={"X-Backend-Internal-Secret": "backend-internal-secret"},
+        )
+
+    assert missing_secret.status_code == 401
+    assert wrong_audience.status_code == 401
+    assert response.status_code == 200
+    body = response.json()
+    assert body["skipped"] is True
+    assert body["skipped_reason"] == "claiming_disabled"
+    assert metrics_calls == 1

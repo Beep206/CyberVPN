@@ -2514,12 +2514,18 @@
     },
     "fx": {
       "actions": {
+        "approveRate": "Approve snapshot",
+        "disableProvider": "Disable provider",
+        "enableProvider": "Enable provider",
+        "refreshRates": "Refresh rates",
+        "rejectRate": "Reject snapshot",
         "simulate": "Simulate conversion"
       },
       "coverageDescription": "The console calls generated capabilities and generated v3 FX admin endpoints.",
       "coverageTitle": "Backend Coverage",
       "degraded": {
         "description": "FX status could not be loaded from the generated admin endpoint. Operator actions stay read-only until the backend responds.",
+        "ratesDescription": "FX rate snapshots could not be loaded from the generated admin endpoint. Approval controls stay disabled.",
         "title": "Admin FX API degraded"
       },
       "description": "FX readiness console for fixed-discount conversion, rate freshness, provider status and audited override coverage.",
@@ -2529,9 +2535,28 @@
       "eyebrow": "Growth / FX",
       "fields": {
         "amount": "Amount",
+        "provider": "Provider key",
+        "rate": "Rate snapshot",
+        "reason": "Audit reason",
         "sourceCurrency": "Source currency",
         "targetCurrency": "Target currency"
       },
+      "lifecycle": {
+        "activeRates": "Active",
+        "approveResult": "Snapshot approval returned {status}.",
+        "contractGap": "Generated OpenAPI currently exposes approve/provider enable-disable but not refresh or reject. Those actions stay disabled here until backend contract sync provides them.",
+        "disabledRates": "Disabled",
+        "emptyProviders": "No provider status rows returned.",
+        "emptyRates": "No FX snapshots returned.",
+        "observedAt": "Observed at",
+        "providerResult": "Provider action returned from backend.",
+        "refreshResult": "Refresh created {count} snapshot(s).",
+        "rejectResult": "Snapshot rejection returned {status}.",
+        "staleRates": "Stale",
+        "validUntil": "Valid until"
+      },
+      "lifecycleDescription": "Review immutable snapshots, stale-rate posture, provider state, and audited approval actions from generated admin endpoints.",
+      "lifecycleTitle": "Snapshot Lifecycle",
       "metaTitle": "Growth FX - Ozoxy Admin",
       "metrics": {
         "adminApi": "Admin API",
@@ -2541,8 +2566,11 @@
         "manualOverride": "Manual Override",
         "manualOverrideHint": "Manual FX edits stay disabled without audited backend workflow.",
         "siteMode": "Site Mode",
-        "siteModeHint": "Runtime capability context fetched with the same generated wrapper."
+        "siteModeHint": "Runtime capability context fetched with the same generated wrapper.",
+        "staleRates": "Stale Rates",
+        "staleRatesHint": "Authoritative stale snapshot count from the admin FX status endpoint."
       },
+      "readOnly": "Your role can inspect FX lifecycle state, but approval and provider mutations require a growth approval permission and backend audit reason.",
       "simulationResult": "Rounded {rounded}, applied {applied} {currency}",
       "simulatorDescription": "Simulation calls the backend FX engine and returns rounded/applied amounts without mutating checkout state.",
       "simulatorDisabled": "No synthetic FX result is rendered. Operators must wait for the authoritative backend simulator.",
@@ -3326,6 +3354,9 @@
         "compileRequired": "Compile the current AST before requesting approval.",
         "contextInvalid": "Simulation context JSON is invalid: {detail}",
         "importFailed": "Rule JSON import failed: {detail}",
+        "policyActionFailed": "Policy lifecycle action failed.",
+        "policyDiffFailed": "Policy version diff could not be loaded.",
+        "policyListFailed": "Policy version history could not be loaded.",
         "policySubmitFailed": "Policy-version approval request failed.",
         "publishChecklistIncomplete": "Complete the approval checklist before submitting.",
         "simulateFailed": "Rule simulation failed.",
@@ -3344,6 +3375,11 @@
         "nodeDuplicated": "Node duplicated.",
         "nodeMoved": "Node moved.",
         "nodeRemoved": "Node removed.",
+        "policyApproved": "Policy version approved by backend.",
+        "policyDiffLoaded": "Policy version diff loaded from backend.",
+        "policyPublished": "Policy version published by backend.",
+        "policyRejected": "Policy version rejected by backend.",
+        "policyRolledBack": "Policy rollback created by backend.",
         "policySubmitted": "Policy version submitted for approval.",
         "redo": "Draft redone.",
         "reset": "Draft reset.",
@@ -3362,6 +3398,37 @@
         "title": "Inspector",
         "updateSelected": "Update selected",
         "value": "Value"
+      },
+      "lifecycle": {
+        "approve": "Approve",
+        "auditFields": {
+          "approvedAt": "Approved at",
+          "approvedBy": "Approved by",
+          "checksum": "Checksum",
+          "compareChecksum": "Compare checksum",
+          "createdBy": "Created by",
+          "currentChecksum": "Current checksum",
+          "effectiveFrom": "Effective from",
+          "id": "Version ID"
+        },
+        "auditTitle": "Read-only audit view",
+        "backendDiffTitle": "Backend version diff",
+        "comparePolicyId": "Compare policy version ID",
+        "description": "Inspect persisted policy versions, load backend diffs, and send audited lifecycle actions with reason codes.",
+        "diffChanged": "Changed",
+        "diffUnchanged": "No change",
+        "emptyDiff": "Load a backend diff to inspect changed fields and checksums.",
+        "emptyPolicies": "No persisted policy versions returned.",
+        "loadDiff": "Load diff",
+        "loadingDiff": "Loading diff...",
+        "loadingPolicies": "Loading policy history...",
+        "policyId": "Policy version ID",
+        "publish": "Publish",
+        "reasonCode": "Lifecycle reason code",
+        "reject": "Reject",
+        "rollback": "Rollback",
+        "running": "Running...",
+        "title": "Policy Lifecycle"
       },
       "metaTitle": "Growth Rules - Ozoxy Admin",
       "metrics": {
@@ -3387,6 +3454,13 @@
         "search": "Search catalog",
         "searchPlaceholder": "Field, operator, or action",
         "title": "Catalog Palette"
+      },
+      "permission": {
+        "approveDenied": "Your role cannot approve or reject growth rule policies.",
+        "auditReadOnly": "Policy history, audit fields, and diff are readable here; write actions remain disabled for this role.",
+        "publishDenied": "Your role cannot submit, publish, or roll back growth rule policies.",
+        "readOnly": "Your role has read-only access to this rule-builder view. Draft editing, import, compile, simulation, and publish controls are disabled.",
+        "validateDenied": "Your role cannot run backend compile or simulation for growth rules."
       },
       "publish": {
         "approval": "The compiled checksum, normalized AST, and impact notes have been reviewed for this draft.",
@@ -3452,6 +3526,11 @@
         "false": "Coupled",
         "true": "Independent"
       },
+      "cabinetMarketingActions": {
+        "allow": "Allow in cabinet",
+        "not_found": "Return 404",
+        "redirect_public": "Redirect to public site"
+      },
       "confirmationHint": "Type {update} to update this runtime policy, or {rollback} to rollback to full-site.",
       "description": "Versioned customer site routing controls for full-site, cabinet-only, and maintenance modes.",
       "empty": "The capability response did not include site mode data.",
@@ -3468,12 +3547,17 @@
       },
       "fields": {
         "allowedPrefixes": "Allowed path prefixes",
+        "cabinetAllowedPrefixes": "Cabinet path prefixes",
         "cabinetHosts": "Cabinet hosts",
+        "cabinetMarketingAction": "Cabinet marketing routes",
         "confirmation": "Typed confirmation",
         "destination": "Cabinet destination path",
+        "legalPrefixes": "Legal path prefixes",
         "mode": "Runtime mode",
+        "operationalPrefixes": "Operational path prefixes",
         "preserveKeys": "Preserved query keys",
         "publicHosts": "Public hosts",
+        "publicMarketingDestination": "Public marketing destination",
         "reason": "Change reason",
         "registrationPolicy": "Registration policy",
         "url": "Preview URL"
@@ -3508,9 +3592,14 @@
       "previewTitle": "Route Preview",
       "reasons": {
         "allowed_route": "Allowed route",
+        "cabinet_marketing_not_found": "Cabinet marketing 404",
         "cabinet_only_redirect": "Cabinet-only redirect",
+        "cabinet_route": "Cabinet route",
         "full_site_passthrough": "Full-site pass-through",
-        "invalid_url": "Invalid URL"
+        "invalid_url": "Invalid URL",
+        "legal_route": "Legal route",
+        "marketing_route": "Marketing route",
+        "operational_route": "Operational route"
       },
       "rollbackAction": "Rollback to full-site",
       "rollbackUnavailable": "Rollback to full-site",

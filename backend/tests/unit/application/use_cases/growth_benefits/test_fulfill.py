@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
+from prometheus_client import REGISTRY, generate_latest
 
 from src.application.use_cases.growth_benefits.fulfill import (
     BenefitFulfillmentRecord,
@@ -41,6 +42,9 @@ class FakeGrowthBenefitFulfillmentRepository:
         self.create_invite_batch_calls = 0
         self.create_invite_code_calls = 0
         self.wallet_credits: list[dict] = []
+        self.bonus_days_applications: list[dict] = []
+        self.gift_issuances: list[dict] = []
+        self.addon_grants: list[dict] = []
         self.duplicate_next_fulfillment_create = False
         self.duplicate_next_invite_batch_create = False
 
@@ -212,6 +216,106 @@ class FakeGrowthBenefitFulfillmentRepository:
         self.wallet_credits.append(credit)
         return credit
 
+    async def apply_bonus_days_benefit(
+        self,
+        *,
+        user_id: UUID,
+        order_id: UUID,
+        payment_id: UUID,
+        fulfillment_id: UUID,
+        benefit_id: UUID,
+        growth_code_id: UUID,
+        days: int,
+        grant_mode: str,
+        entitlement_profile_key: str | None,
+        reversal_mode: str,
+        occurred_at: datetime,
+    ) -> dict:
+        payload = {
+            "side_effect_mode": "reward_allocation",
+            "growth_reward_allocation_id": str(uuid4()),
+            "user_id": str(user_id),
+            "order_id": str(order_id),
+            "payment_id": str(payment_id),
+            "fulfillment_id": str(fulfillment_id),
+            "benefit_id": str(benefit_id),
+            "growth_code_id": str(growth_code_id),
+            "days": days,
+            "grant_mode": grant_mode,
+            "entitlement_profile_key": entitlement_profile_key,
+            "reversal_mode": reversal_mode,
+            "occurred_at": occurred_at.isoformat(),
+            "duplicate": False,
+        }
+        self.bonus_days_applications.append(payload)
+        return payload
+
+    async def issue_gift_benefit(
+        self,
+        *,
+        user_id: UUID,
+        order_id: UUID,
+        payment_id: UUID,
+        fulfillment_id: UUID,
+        benefit_id: UUID,
+        growth_code_id: UUID,
+        config,
+        occurred_at: datetime,
+    ) -> dict:
+        payload = {
+            "gift_batch_id": str(uuid4()),
+            "issued_count": config.count,
+            "requested_count": config.count,
+            "user_id": str(user_id),
+            "order_id": str(order_id),
+            "payment_id": str(payment_id),
+            "fulfillment_id": str(fulfillment_id),
+            "benefit_id": str(benefit_id),
+            "growth_code_id": str(growth_code_id),
+            "issued_at": occurred_at.isoformat(),
+            "gift_code_refs": [
+                {
+                    "id": str(uuid4()),
+                    "code_hash": f"{index:064x}",
+                    "code_prefix": f"GF{index}",
+                    "status": "active",
+                }
+                for index in range(config.count)
+            ],
+            "duplicate": False,
+        }
+        self.gift_issuances.append(payload)
+        return payload
+
+    async def grant_addon_benefit(
+        self,
+        *,
+        user_id: UUID,
+        order_id: UUID,
+        payment_id: UUID,
+        fulfillment_id: UUID,
+        benefit_id: UUID,
+        growth_code_id: UUID,
+        config,
+        occurred_at: datetime,
+    ) -> dict:
+        payload = {
+            "side_effect_mode": "subscription_addon_grant",
+            "subscription_addon_id": str(uuid4()),
+            "user_id": str(user_id),
+            "order_id": str(order_id),
+            "payment_id": str(payment_id),
+            "fulfillment_id": str(fulfillment_id),
+            "benefit_id": str(benefit_id),
+            "growth_code_id": str(growth_code_id),
+            "addon_code": config.addon_code,
+            "quantity": config.quantity,
+            "occurred_at": occurred_at.isoformat(),
+            "duplicate": False,
+        }
+        self.addon_grants.append(payload)
+        return payload
+
 
 def _issue_invites_config(*, allow_zero: bool, count: int = 10) -> dict:
     return {
@@ -349,6 +453,10 @@ async def test_issue_invites_records_completed_fulfillment_batch_and_codes_once(
         },
         default=str,
     )
+    metric_payload = generate_latest(REGISTRY).decode()
+    assert "growth_benefit_fulfillment_total" in metric_payload
+    assert 'benefit_type="issue_invites"' in metric_payload
+    assert 'status="completed"' in metric_payload
 
 
 @pytest.mark.asyncio
@@ -412,7 +520,7 @@ async def test_wallet_credit_records_completed_fulfillment_and_wallet_side_effec
 
 
 @pytest.mark.parametrize(
-    ("benefit_type", "config", "expected_key"),
+    ("benefit_type", "config", "expected_key", "expected_mode"),
     [
         (
             "bonus_days",
@@ -425,6 +533,7 @@ async def test_wallet_credit_records_completed_fulfillment_and_wallet_side_effec
                 "reversal_mode": "revoke_unapplied",
             },
             "days",
+            "reward_allocation",
         ),
         (
             "issue_gift",
@@ -443,6 +552,7 @@ async def test_wallet_credit_records_completed_fulfillment_and_wallet_side_effec
                 "reversal_mode": "revoke_unredeemed",
             },
             "count",
+            "gift_code_issuance",
         ),
         (
             "grant_addon",
@@ -457,14 +567,16 @@ async def test_wallet_credit_records_completed_fulfillment_and_wallet_side_effec
                 "reversal_mode": "revoke_addon",
             },
             "addon_code",
+            "subscription_addon_grant",
         ),
     ],
 )
 @pytest.mark.asyncio
-async def test_non_invite_non_wallet_benefits_record_queued_fulfillment_without_silent_skip(
+async def test_non_invite_non_wallet_benefits_record_completed_persistent_side_effects(
     benefit_type: str,
     config: dict,
     expected_key: str,
+    expected_mode: str,
 ) -> None:
     repo = FakeGrowthBenefitFulfillmentRepository()
     snapshot = _snapshot(benefits=[_benefit(benefit_type=benefit_type, config=config)])
@@ -473,13 +585,17 @@ async def test_non_invite_non_wallet_benefits_record_queued_fulfillment_without_
 
     assert len(results) == 1
     assert results[0].benefit_type == benefit_type
-    assert results[0].status == "queued"
+    assert results[0].status == "completed"
     assert results[0].result_payload["benefit_type"] == benefit_type
-    assert results[0].result_payload["side_effect_mode"] == "queued_domain_worker"
-    assert results[0].result_payload["config"][expected_key] == config[expected_key]
+    assert results[0].result_payload["side_effect_mode"] == expected_mode
+    payload_key = "requested_count" if benefit_type == "issue_gift" else expected_key
+    assert results[0].result_payload[benefit_type][payload_key] == config[expected_key]
     assert repo.create_fulfillment_calls == 1
     assert repo.create_invite_batch_calls == 0
     assert repo.create_invite_code_calls == 0
+    assert len(repo.bonus_days_applications) == (1 if benefit_type == "bonus_days" else 0)
+    assert len(repo.gift_issuances) == (1 if benefit_type == "issue_gift" else 0)
+    assert len(repo.addon_grants) == (1 if benefit_type == "grant_addon" else 0)
 
 
 @pytest.mark.asyncio

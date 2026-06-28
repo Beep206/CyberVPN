@@ -10,6 +10,7 @@ from src.infrastructure.database.repositories.system_config_repo import SystemCo
 
 MiniAppRuntimeMode = Literal["live", "canary", "maintenance", "rollback"]
 CustomerSiteMode = Literal["full_site", "cabinet_only", "maintenance"]
+CustomerSiteCabinetMarketingRouteAction = Literal["redirect_public", "allow", "not_found"]
 OnboardingCodeType = Literal["promo", "invite", "gift"]
 PASSKEY_ADMIN_POLICY_CONFIG_KEY = "passkeys.admin_policy"
 CUSTOMER_SITE_RUNTIME_CONFIG_KEY = "customer_site.runtime"
@@ -39,6 +40,32 @@ def _normalize_string_tuple(value: object, *, default: tuple[str, ...] = (), max
     return tuple(normalized)
 
 
+def _normalize_path(value: object, *, default: str) -> str:
+    candidate = str(value or "").strip()
+    if not _is_safe_path(candidate):
+        return default
+    return candidate
+
+
+def _normalize_path_tuple(value: object, *, default: tuple[str, ...] = (), max_items: int = 100) -> tuple[str, ...]:
+    if not isinstance(value, list | tuple | set):
+        return default
+
+    normalized: list[str] = []
+    for item in value:
+        candidate = str(item).strip()
+        if not _is_safe_path(candidate) or candidate in normalized:
+            continue
+        normalized.append(candidate)
+        if len(normalized) >= max_items:
+            break
+    return tuple(normalized)
+
+
+def _is_safe_path(value: str) -> bool:
+    return bool(value) and value.startswith("/") and not value.startswith("//")
+
+
 def _normalize_positive_int(value: object, *, default: int = 1, maximum: int = 1000) -> int:
     try:
         candidate = int(str(value).strip())
@@ -55,6 +82,16 @@ def _normalize_miniapp_runtime_mode(value: object) -> MiniAppRuntimeMode:
         if normalized in {"live", "canary", "maintenance", "rollback"}:
             return normalized  # type: ignore[return-value]
     return "live"
+
+
+def _normalize_customer_site_cabinet_marketing_action(
+    value: object,
+) -> CustomerSiteCabinetMarketingRouteAction:
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"redirect_public", "allow", "not_found"}:
+            return normalized  # type: ignore[return-value]
+    return "redirect_public"
 
 
 def _normalize_telegram_user_id_list(value: object) -> tuple[int, ...]:
@@ -127,12 +164,54 @@ class CustomerSiteRuntimeConfig:
     allowed_path_prefixes: tuple[str, ...] = (
         "/login",
         "/register",
+        "/verify",
         "/verify-email",
+        "/forgot-password",
         "/reset-password",
+        "/magic-link",
         "/oauth",
         "/legal",
         "/r/",
         "/p/",
+    )
+    cabinet_allowed_prefixes: tuple[str, ...] = (
+        "/dashboard",
+        "/subscriptions",
+        "/payment-history",
+        "/referral",
+        "/wallet",
+        "/settings",
+        "/support",
+        "/servers",
+        "/monitoring",
+        "/analytics",
+        "/users",
+        "/partner",
+        "/login",
+        "/register",
+        "/verify",
+        "/verify-email",
+        "/forgot-password",
+        "/reset-password",
+        "/magic-link",
+        "/oauth",
+        "/telegram-link",
+        "/onboarding",
+    )
+    cabinet_marketing_route_action: CustomerSiteCabinetMarketingRouteAction = "redirect_public"
+    public_marketing_destination_path: str = "/"
+    legal_path_prefixes: tuple[str, ...] = (
+        "/acceptable-use",
+        "/cookie-policy",
+        "/privacy",
+        "/privacy-policy",
+        "/refund-policy",
+        "/terms",
+    )
+    operational_path_prefixes: tuple[str, ...] = (
+        "/status",
+        "/telegram-widget",
+        "/.well-known",
     )
     preserve_query_keys: tuple[str, ...] = (
         "ref",
@@ -328,13 +407,21 @@ class ConfigService:
                 "allowed_path_prefixes": [
                     "/login",
                     "/register",
+                    "/verify",
                     "/verify-email",
+                    "/forgot-password",
                     "/reset-password",
+                    "/magic-link",
                     "/oauth",
                     "/legal",
                     "/r/",
                     "/p/",
                 ],
+                "cabinet_allowed_prefixes": list(CustomerSiteRuntimeConfig.cabinet_allowed_prefixes),
+                "cabinet_marketing_route_action": "redirect_public",
+                "public_marketing_destination_path": "/",
+                "legal_path_prefixes": list(CustomerSiteRuntimeConfig.legal_path_prefixes),
+                "operational_path_prefixes": list(CustomerSiteRuntimeConfig.operational_path_prefixes),
                 "preserve_query_keys": [
                     "ref",
                     "referral",
@@ -348,8 +435,6 @@ class ConfigService:
         )
         if not isinstance(val, dict):
             val = {}
-        raw_path = str(val.get("cabinet_destination_path") or "/dashboard").strip()
-        cabinet_destination_path = raw_path if raw_path.startswith("/") else "/dashboard"
         return CustomerSiteRuntimeConfig(
             mode=_normalize_customer_site_mode(val.get("mode", val.get("customer_site_mode")), fallback=fallback_mode),
             version=_normalize_positive_int(val.get("version")),
@@ -358,10 +443,36 @@ class ConfigService:
                 default=("cyber-vpn.net", "www.cyber-vpn.net"),
             ),
             cabinet_hosts=_normalize_string_tuple(val.get("cabinet_hosts"), default=("my.cyber-vpn.net",)),
-            cabinet_destination_path=cabinet_destination_path,
-            allowed_path_prefixes=_normalize_string_tuple(
+            cabinet_destination_path=_normalize_path(
+                val.get("cabinet_destination_path"),
+                default=CustomerSiteRuntimeConfig.cabinet_destination_path,
+            ),
+            allowed_path_prefixes=_normalize_path_tuple(
                 val.get("allowed_path_prefixes"),
                 default=CustomerSiteRuntimeConfig.allowed_path_prefixes,
+                max_items=100,
+            ),
+            cabinet_allowed_prefixes=_normalize_path_tuple(
+                val.get("cabinet_allowed_prefixes"),
+                default=CustomerSiteRuntimeConfig.cabinet_allowed_prefixes,
+                max_items=100,
+            ),
+            cabinet_marketing_route_action=_normalize_customer_site_cabinet_marketing_action(
+                val.get("cabinet_marketing_route_action")
+            ),
+            public_marketing_destination_path=_normalize_path(
+                val.get("public_marketing_destination_path"),
+                default=CustomerSiteRuntimeConfig.public_marketing_destination_path,
+            ),
+            legal_path_prefixes=_normalize_path_tuple(
+                val.get("legal_path_prefixes"),
+                default=CustomerSiteRuntimeConfig.legal_path_prefixes,
+                max_items=100,
+            ),
+            operational_path_prefixes=_normalize_path_tuple(
+                val.get("operational_path_prefixes"),
+                default=CustomerSiteRuntimeConfig.operational_path_prefixes,
+                max_items=100,
             ),
             preserve_query_keys=_normalize_string_tuple(
                 val.get("preserve_query_keys"),

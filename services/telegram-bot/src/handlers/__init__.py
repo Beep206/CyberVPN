@@ -57,6 +57,7 @@ def register_routers(dp: Dispatcher) -> None:
     """
     from src.handlers.account import router as account_router
     from src.handlers.config import router as config_router
+    from src.handlers.connection import router as connection_router
     from src.handlers.growth import router as growth_router
     from src.handlers.menu import router as menu_router
     from src.handlers.navigation import router as navigation_router
@@ -76,6 +77,7 @@ def register_routers(dp: Dispatcher) -> None:
         admin_router,
         # User-facing handlers
         start_router,
+        connection_router,
         menu_router,
         growth_router,
         navigation_router,

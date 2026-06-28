@@ -1,5 +1,6 @@
 """Tests for cleanup task modules."""
 
+import os
 import time
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,9 +14,10 @@ async def test_cleanup_old_records_deletes_both():
     # Import the function first
     from src.tasks.cleanup.cleanup_old_records import cleanup_old_records
 
-    with patch("src.tasks.cleanup.cleanup_old_records.get_session_factory") as mock_factory, \
-         patch("src.tasks.cleanup.cleanup_old_records.get_settings") as mock_settings:
-
+    with (
+        patch("src.tasks.cleanup.cleanup_old_records.get_session_factory") as mock_factory,
+        patch("src.tasks.cleanup.cleanup_old_records.get_settings") as mock_settings,
+    ):
         mock_settings.return_value.cleanup_audit_retention_days = 90
         mock_settings.return_value.cleanup_webhook_retention_days = 30
 
@@ -57,9 +59,10 @@ async def test_cleanup_audit_logs_retention():
     """Test audit log cleanup respects retention period."""
     from src.tasks.cleanup.audit_logs import cleanup_audit_logs
 
-    with patch("src.tasks.cleanup.audit_logs.get_session_factory") as mock_factory, \
-         patch("src.tasks.cleanup.audit_logs.get_settings") as mock_settings:
-
+    with (
+        patch("src.tasks.cleanup.audit_logs.get_session_factory") as mock_factory,
+        patch("src.tasks.cleanup.audit_logs.get_settings") as mock_settings,
+    ):
         mock_settings.return_value.cleanup_audit_retention_days = 90
 
         mock_session = AsyncMock()
@@ -78,9 +81,10 @@ async def test_cleanup_webhook_logs_batch():
     """Test webhook log cleanup in batches."""
     from src.tasks.cleanup.webhook_logs import cleanup_webhook_logs
 
-    with patch("src.tasks.cleanup.webhook_logs.get_session_factory") as mock_factory, \
-         patch("src.tasks.cleanup.webhook_logs.get_settings") as mock_settings:
-
+    with (
+        patch("src.tasks.cleanup.webhook_logs.get_session_factory") as mock_factory,
+        patch("src.tasks.cleanup.webhook_logs.get_settings") as mock_settings,
+    ):
         mock_settings.return_value.cleanup_webhook_retention_days = 30
 
         mock_session = AsyncMock()
@@ -114,22 +118,26 @@ async def test_cleanup_cache_patterns():
     """Test cache cleanup processes multiple patterns."""
     from src.tasks.cleanup.cache import cleanup_cache
 
-    with patch("src.tasks.cleanup.cache.get_redis_client") as mock_redis_fn, \
-         patch("src.tasks.cleanup.cache._scan_and_delete_by_date") as mock_scan_date, \
-         patch("src.tasks.cleanup.cache._scan_and_delete_pattern") as mock_scan_pattern, \
-         patch("src.tasks.cleanup.cache._scan_and_delete_by_timestamp") as mock_scan_ts:
-
+    with (
+        patch("src.tasks.cleanup.cache.get_redis_client") as mock_redis_fn,
+        patch("src.tasks.cleanup.cache._scan_and_delete_by_date") as mock_scan_date,
+        patch("src.tasks.cleanup.cache._scan_and_delete_pattern") as mock_scan_pattern,
+        patch("src.tasks.cleanup.cache._cleanup_health_history") as mock_cleanup_health,
+        patch("src.tasks.cleanup.cache._scan_and_delete_by_timestamp") as mock_scan_ts,
+    ):
         mock_redis = AsyncMock()
         mock_redis_fn.return_value = mock_redis
 
         mock_scan_date.return_value = 10
         mock_scan_pattern.return_value = 5
+        mock_cleanup_health.return_value = 5
         mock_scan_ts.side_effect = [3, 7]
 
         result = await cleanup_cache()
 
-        assert result["total_deleted"] == 25
+        assert result["total_deleted"] == 30
         assert result["stats_deleted"] == 10
+        assert result["cache_deleted"] == 5
         assert result["health_deleted"] == 5
         assert result["bandwidth_raw_deleted"] == 3
         assert result["bandwidth_hourly_deleted"] == 7
@@ -156,45 +164,41 @@ async def test_cleanup_cache_scan_and_delete_by_date():
 
 
 @pytest.mark.asyncio
-async def test_cleanup_export_files_removes_old():
+async def test_cleanup_export_files_removes_old(tmp_path, monkeypatch):
     """Test export file cleanup removes old files."""
-    from src.tasks.cleanup.export_files import cleanup_export_files
+    from src.tasks.cleanup import export_files
 
-    with patch("src.tasks.cleanup.export_files.os.path.exists") as mock_exists, \
-         patch("src.tasks.cleanup.export_files.os.listdir") as mock_listdir, \
-         patch("src.tasks.cleanup.export_files.os.path.isfile") as mock_isfile, \
-         patch("src.tasks.cleanup.export_files.os.path.getmtime") as mock_getmtime, \
-         patch("src.tasks.cleanup.export_files.os.path.getsize") as mock_getsize, \
-         patch("src.tasks.cleanup.export_files.os.remove") as mock_remove:
+    export_dir = tmp_path / "exports"
+    export_dir.mkdir()
+    old_file = export_dir / "old_file.csv"
+    new_file = export_dir / "new_file.csv"
+    old_file.write_text("old")
+    new_file.write_text("new")
+    old_time = time.time() - 100000
+    new_time = time.time() - 1000
+    monkeypatch.setattr(export_files, "EXPORT_DIR", export_dir)
+    monkeypatch.setattr(export_files, "MAX_FILE_AGE_SECONDS", 86400)
+    os.utime(old_file, (old_time, old_time))
+    os.utime(new_file, (new_time, new_time))
 
-        mock_exists.return_value = True
-        mock_listdir.return_value = ["old_file.csv", "new_file.csv"]
-        mock_isfile.return_value = True
+    result = await export_files.cleanup_export_files()
 
-        old_time = time.time() - 100000  # Older than 24h
-        new_time = time.time() - 1000    # Recent
-        mock_getmtime.side_effect = [old_time, new_time]
-        mock_getsize.return_value = 1024
-
-        result = await cleanup_export_files()
-
-        assert result["deleted"] == 1
-        assert result["errors"] == 0
-        assert result["size_freed_bytes"] == 1024
-        mock_remove.assert_called_once()
+    assert result["deleted"] == 1
+    assert result["errors"] == 0
+    assert result["size_freed_bytes"] == 3
+    assert not old_file.exists()
+    assert new_file.exists()
 
 
 @pytest.mark.asyncio
-async def test_cleanup_export_files_no_directory():
+async def test_cleanup_export_files_no_directory(tmp_path, monkeypatch):
     """Test export cleanup creates directory if missing."""
-    from src.tasks.cleanup.export_files import cleanup_export_files
+    from src.tasks.cleanup import export_files
 
-    with patch("src.tasks.cleanup.export_files.os.path.exists") as mock_exists, \
-         patch("src.tasks.cleanup.export_files.os.makedirs") as mock_makedirs:
+    export_dir = tmp_path / "missing-exports"
+    monkeypatch.setattr(export_files, "EXPORT_DIR", export_dir)
 
-        mock_exists.return_value = False
+    result = await export_files.cleanup_export_files()
 
-        result = await cleanup_export_files()
-
-        assert result["deleted"] == 0
-        mock_makedirs.assert_called_once()
+    assert result["deleted"] == 0
+    assert export_dir.exists()

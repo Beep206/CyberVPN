@@ -12,8 +12,10 @@ import {
   CUSTOMER_ONBOARDING_CURRENT_QUERY_KEY,
   customerOnboardingApi,
   type CustomerOnboardingApplyResponse,
+  type CustomerOnboardingPreviewResponse,
   type CustomerOnboardingSkipResponse,
 } from './api';
+import { ConnectionBootstrapPanel } from './ConnectionBootstrapPanel';
 import { normalizeOnboardingDestination } from './routing';
 
 type OnboardingSurface = 'web' | 'miniapp';
@@ -24,6 +26,13 @@ type OnboardingMutationResult =
 
 function normalizeCodeInput(value: string): string {
   return value.trim().toUpperCase();
+}
+
+function createIdempotencyKey(prefix: string): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}:${crypto.randomUUID()}`;
+  }
+  return `${prefix}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
 }
 
 function getResultMessageKey(messageKey: string): string {
@@ -57,6 +66,70 @@ function getResultMessageKey(messageKey: string): string {
   return 'messages.completed';
 }
 
+function shouldShowConnectionPanel(result: CustomerOnboardingApplyResponse): boolean {
+  return result.status === 'completed' && result.connection_required === true;
+}
+
+function getPreviewMessageKey(preview: CustomerOnboardingPreviewResponse): string {
+  if (preview.status === 'ambiguous') {
+    return 'preview.ambiguous';
+  }
+  if (preview.status === 'not_found') {
+    return 'preview.notFound';
+  }
+  if (preview.status === 'wrong_context') {
+    return preview.next_action === 'stage_for_checkout'
+      ? 'preview.promoCheckout'
+      : 'preview.wrongContext';
+  }
+  if (preview.status === 'not_eligible') {
+    return 'preview.notEligible';
+  }
+  if (preview.status === 'expired') {
+    return 'preview.expired';
+  }
+  if (preview.status === 'already_used') {
+    return 'preview.alreadyUsed';
+  }
+  if (preview.status === 'blocked') {
+    return 'preview.blocked';
+  }
+  if (preview.detected_code_type === 'promo') {
+    return preview.next_action === 'stage_for_checkout'
+      ? 'preview.promoCheckout'
+      : 'preview.promo';
+  }
+  if (preview.detected_code_type === 'invite') {
+    return 'preview.invite';
+  }
+  if (preview.detected_code_type === 'gift') {
+    return 'preview.gift';
+  }
+  if (preview.detected_code_type === 'referral') {
+    return 'preview.referral';
+  }
+  if (preview.detected_code_type === 'partner') {
+    return 'preview.partner';
+  }
+  return 'preview.available';
+}
+
+function getPreviewClassName(preview: CustomerOnboardingPreviewResponse): string {
+  if (preview.status === 'ambiguous' || preview.status === 'blocked') {
+    return 'rounded-lg border border-red-500/35 bg-red-500/10 p-3 text-sm text-red-100';
+  }
+  if (
+    preview.status === 'wrong_context'
+    || preview.status === 'not_eligible'
+    || preview.status === 'expired'
+    || preview.status === 'already_used'
+    || preview.status === 'not_found'
+  ) {
+    return 'rounded-lg border border-amber-400/35 bg-amber-400/10 p-3 text-sm text-amber-100';
+  }
+  return 'rounded-lg border border-neon-cyan/35 bg-neon-cyan/10 p-3 text-sm text-neon-cyan';
+}
+
 export function PostRegistrationGrowthCodePrompt({
   surface = 'web',
 }: {
@@ -66,8 +139,12 @@ export function PostRegistrationGrowthCodePrompt({
   const router = useRouter();
   const queryClient = useQueryClient();
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const applyAttemptRef = useRef<{ code: string; key: string } | null>(null);
+  const skipIdempotencyKeyRef = useRef<string | null>(null);
   const [code, setCode] = useState('');
+  const [debouncedPreviewCode, setDebouncedPreviewCode] = useState('');
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+  const [connectionRequested, setConnectionRequested] = useState(false);
 
   const fallbackDestination = surface === 'miniapp' ? '/miniapp/home' : '/dashboard';
 
@@ -82,7 +159,29 @@ export function PostRegistrationGrowthCodePrompt({
   });
 
   const current = currentQuery.data;
-  const canSubmit = Boolean(current?.flow_token) && normalizeCodeInput(code).length > 0;
+  const previewQuery = useQuery({
+    queryKey: [
+      'customer-onboarding',
+      'growth-code-preview',
+      current?.flow_token ?? null,
+      debouncedPreviewCode,
+    ],
+    queryFn: async () => {
+      const { data } = await customerOnboardingApi.previewGrowthCode({
+        code: debouncedPreviewCode,
+        flow_token: current?.flow_token ?? null,
+      });
+      return data;
+    },
+    enabled: Boolean(current?.flow_token && debouncedPreviewCode),
+    retry: false,
+    staleTime: 0,
+  });
+  const previewBlocksApply = previewQuery.data?.status === 'ambiguous';
+  const canSubmit =
+    Boolean(current?.flow_token)
+    && normalizeCodeInput(code).length > 0
+    && !previewBlocksApply;
   const allowedCodeTypes = useMemo(() => {
     const allowed = current?.allowed_code_types ?? [];
     if (allowed.length === 0) {
@@ -118,21 +217,48 @@ export function PostRegistrationGrowthCodePrompt({
     router.replace(destination);
   };
 
+  const getApplyIdempotencyKey = (normalizedCode: string): string => {
+    if (applyAttemptRef.current?.code === normalizedCode) {
+      return applyAttemptRef.current.key;
+    }
+
+    const key = createIdempotencyKey('onboarding-apply');
+    applyAttemptRef.current = { code: normalizedCode, key };
+    return key;
+  };
+
+  const getSkipIdempotencyKey = (): string => {
+    if (!skipIdempotencyKeyRef.current) {
+      skipIdempotencyKeyRef.current = createIdempotencyKey('onboarding-skip');
+    }
+
+    return skipIdempotencyKeyRef.current;
+  };
+
   const applyMutation = useMutation({
     mutationFn: async () => {
+      const normalizedCode = normalizeCodeInput(code);
       const { data } = await customerOnboardingApi.applyGrowthCode({
-        code: normalizeCodeInput(code),
+        code: normalizedCode,
         flow_token: current?.flow_token ?? null,
+        idempotency_key: getApplyIdempotencyKey(normalizedCode),
+        source_surface: surface,
       });
       return data;
     },
     onSuccess: async (result) => {
+      const showConnection = shouldShowConnectionPanel(result);
       setFeedback({
         kind: 'success',
         message: t(getResultMessageKey(result.message_key), {
           code: result.masked_code ?? t('maskedCodeFallback'),
         }),
       });
+      if (showConnection) {
+        setConnectionRequested(true);
+        await invalidateOnboardingSideEffects();
+        return;
+      }
       await completeFlow(result);
     },
     onError: (error) => {
@@ -148,6 +274,7 @@ export function PostRegistrationGrowthCodePrompt({
     mutationFn: async () => {
       const { data } = await customerOnboardingApi.skipGrowthCode({
         flow_token: current?.flow_token ?? null,
+        idempotency_key: getSkipIdempotencyKey(),
       });
       return data;
     },
@@ -166,14 +293,34 @@ export function PostRegistrationGrowthCodePrompt({
     },
   });
 
+  const shouldRenderConnectionPanel = connectionRequested || current?.connection_required === true;
+
   useEffect(() => {
     if (!currentQuery.isSuccess || !current) {
       return;
     }
-    if (!current.required || current.status === 'completed' || current.status === 'skipped') {
+    if (
+      !shouldRenderConnectionPanel
+      && (!current.required || current.status === 'completed' || current.status === 'skipped')
+    ) {
       router.replace(fallbackDestination);
     }
-  }, [current, currentQuery.isSuccess, fallbackDestination, router]);
+  }, [shouldRenderConnectionPanel, current, currentQuery.isSuccess, fallbackDestination, router]);
+
+  useEffect(() => {
+    const normalizedCode = normalizeCodeInput(code);
+    if (applyAttemptRef.current && applyAttemptRef.current.code !== normalizedCode) {
+      applyAttemptRef.current = null;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedPreviewCode(normalizedCode);
+    }, normalizedCode ? 400 : 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [code]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -224,7 +371,9 @@ export function PostRegistrationGrowthCodePrompt({
           </div>
         </div>
 
-        {currentQuery.isLoading ? (
+        {shouldRenderConnectionPanel ? (
+          <ConnectionBootstrapPanel surface={surface} />
+        ) : currentQuery.isLoading ? (
           <div className="mt-6 flex items-center gap-3 rounded-lg border border-grid-line/40 p-4 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin text-neon-cyan" aria-hidden="true" />
             {t('loading')}
@@ -270,6 +419,49 @@ export function PostRegistrationGrowthCodePrompt({
               autoComplete="one-time-code"
               aria-invalid={feedback?.kind === 'error'}
             />
+
+            {normalizeCodeInput(code).length > 0 && current.flow_token ? (
+              previewQuery.isLoading || debouncedPreviewCode !== normalizeCodeInput(code) ? (
+                <div className="rounded-lg border border-neon-cyan/35 bg-neon-cyan/10 p-3 text-sm text-neon-cyan" role="status">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    {t('preview.loading')}
+                  </div>
+                </div>
+              ) : previewQuery.isError ? (
+                <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 p-3 text-sm text-amber-100" role="alert">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <span>{t('preview.networkError')}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void previewQuery.refetch()}
+                      className="min-h-10"
+                      magnetic={false}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+                      {t('preview.retry')}
+                    </Button>
+                  </div>
+                </div>
+              ) : previewQuery.data ? (
+                <div className={getPreviewClassName(previewQuery.data)} role={previewBlocksApply ? 'alert' : 'status'}>
+                  <div className="flex items-start gap-2">
+                    {previewQuery.data.accepted ? (
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    ) : null}
+                    <div className="min-w-0">
+                      <p>{t(getPreviewMessageKey(previewQuery.data))}</p>
+                      {previewQuery.data.masked_code ? (
+                        <p className="mt-1 font-mono text-xs opacity-75">
+                          {t('preview.maskedCode', { code: previewQuery.data.masked_code })}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : null
+            ) : null}
 
             {feedback ? (
               <div

@@ -77,6 +77,7 @@ SCHEDULE_GROWTH_REPORTING_REFRESH: Final[str] = "20 * * * *"  # Hourly at :20 UT
 SCHEDULE_GROWTH_REPORTING_DELIVERY: Final[str] = "*/15 * * * *"  # Every 15 minutes
 SCHEDULE_GROWTH_REPORTING_GOVERNANCE_FOLLOWUP: Final[str] = "*/30 * * * *"  # Every 30 minutes
 SCHEDULE_GROWTH_REPORTING_CLEANUP: Final[str] = "40 2 * * *"  # Daily at 02:40 UTC
+SCHEDULE_GROWTH_FX_REFRESH: Final[str] = "*/15 * * * *"  # Every 15 minutes
 SCHEDULE_TRAFFIC_RESET: Final[str] = "0 0 1 * *"  # 1st of month at 00:00 UTC
 SCHEDULE_QUEUE_DEPTH: Final[str] = "*/1 * * * *"  # Every 1 minute
 SCHEDULE_HELIX_ROLLOUTS: Final[str] = "*/3 * * * *"  # Every 3 minutes
@@ -274,6 +275,7 @@ __all__ = [  # noqa: RUF022
     "SCHEDULE_GROWTH_REPORTING_DELIVERY",
     "SCHEDULE_GROWTH_REPORTING_GOVERNANCE_FOLLOWUP",
     "SCHEDULE_GROWTH_REPORTING_CLEANUP",
+    "SCHEDULE_GROWTH_FX_REFRESH",
     "SCHEDULE_TRAFFIC_RESET",
     "SCHEDULE_QUEUE_DEPTH",
     "SCHEDULE_HELIX_ROLLOUTS",

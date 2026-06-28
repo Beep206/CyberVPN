@@ -13,6 +13,7 @@ from src.application.use_cases.growth_codes.namespace import (
 from src.application.use_cases.growth_codes.resolve_code import ResolveGrowthCodeUseCase
 from src.domain.enums import (
     GrowthCodeActionContext,
+    GrowthCodeRejectReason,
     GrowthCodeResolutionStatus,
     GrowthCodeType,
 )
@@ -102,6 +103,7 @@ async def test_resolver_fails_closed_on_namespace_collision_before_legacy_lookup
 
     assert outcome.accepted is False
     assert outcome.result == GrowthCodeResolutionStatus.CONFLICTED
+    assert outcome.reject_reason == GrowthCodeRejectReason.CODE_NAMESPACE_AMBIGUOUS
     assert outcome.conflict_code == "CODE_NAMESPACE_AMBIGUOUS"
     assert outcome.user_message_key == "growth_codes.code.namespace_ambiguous"
     assert registry.events[0]["conflict_code"] == "CODE_NAMESPACE_AMBIGUOUS"

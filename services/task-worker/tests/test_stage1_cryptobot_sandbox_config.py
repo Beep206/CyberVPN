@@ -15,6 +15,7 @@ def _settings(**overrides: object) -> Settings:
         "cryptobot_token": SecretStr("cryptobot-token-for-s1-pay-002"),
         "backend_api_url": "https://api.cyber-vpn.net/api/v1",
         "backend_internal_secret": SecretStr("InternalBackendCredentialForChecksOnly"),
+        "telegram_bot_internal_secret": SecretStr("TelegramBotInternalCredentialForChecksOnly"),
         "payment_settlement_worker_secret": SecretStr("SettlementWorkerCredentialForChecksOnly"),
         "email_dev_mode": False,
         "resend_api_key": None,
@@ -58,6 +59,59 @@ def test_task_worker_production_accepts_non_placeholder_provider_shaped_token() 
     assert settings.cryptobot_token.get_secret_value() == "ValidProviderTokenValueForChecksOnly"
 
 
+def test_task_worker_production_rejects_short_backend_internal_secret() -> None:
+    with pytest.raises(ValidationError, match="BACKEND_INTERNAL_SECRET"):
+        _settings(
+            environment="production",
+            backend_internal_secret=SecretStr("short-secret"),
+            cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+            magic_link_base_url="https://cyber-vpn.net",
+            smtp_auth_username="noreply@cyber-vpn.net",
+            smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+            email_verified_sender_domains=["cyber-vpn.net"],
+        )
+
+
+def test_task_worker_production_rejects_placeholder_backend_internal_secret() -> None:
+    with pytest.raises(ValidationError, match="BACKEND_INTERNAL_SECRET"):
+        _settings(
+            environment="production",
+            backend_internal_secret=SecretStr("local-backend-internal-placeholder-secret"),
+            cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+            magic_link_base_url="https://cyber-vpn.net",
+            smtp_auth_username="noreply@cyber-vpn.net",
+            smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+            email_verified_sender_domains=["cyber-vpn.net"],
+        )
+
+
+def test_task_worker_production_rejects_missing_telegram_bot_internal_secret() -> None:
+    with pytest.raises(ValidationError, match="TELEGRAM_BOT_INTERNAL_SECRET"):
+        _settings(
+            environment="production",
+            telegram_bot_internal_secret=None,
+            cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+            magic_link_base_url="https://cyber-vpn.net",
+            smtp_auth_username="noreply@cyber-vpn.net",
+            smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+            email_verified_sender_domains=["cyber-vpn.net"],
+        )
+
+
+def test_task_worker_production_rejects_backend_secret_reuse_for_telegram_bot() -> None:
+    with pytest.raises(ValidationError, match="TELEGRAM_BOT_INTERNAL_SECRET must differ"):
+        _settings(
+            environment="production",
+            backend_internal_secret=SecretStr("SharedInternalCredentialForChecksOnly"),
+            telegram_bot_internal_secret=SecretStr("SharedInternalCredentialForChecksOnly"),
+            cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+            magic_link_base_url="https://cyber-vpn.net",
+            smtp_auth_username="noreply@cyber-vpn.net",
+            smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+            email_verified_sender_domains=["cyber-vpn.net"],
+        )
+
+
 def test_task_worker_production_rejects_enabled_payment_earnings_without_backend_url() -> None:
     with pytest.raises(ValidationError, match="BACKEND_API_URL"):
         _settings(
@@ -78,6 +132,36 @@ def test_task_worker_production_rejects_enabled_payment_earnings_without_worker_
         _settings(
             environment="production",
             payment_settlement_worker_secret=None,
+            cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+            email_dev_mode=False,
+            magic_link_base_url="https://cyber-vpn.net",
+            smtp_auth_username="noreply@cyber-vpn.net",
+            smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+            email_verified_sender_domains=["cyber-vpn.net"],
+        )
+
+
+def test_task_worker_production_rejects_backend_secret_reuse_for_payment_earnings_worker() -> None:
+    with pytest.raises(ValidationError, match="PAYMENT_SETTLEMENT_WORKER_SECRET must differ"):
+        _settings(
+            environment="production",
+            backend_internal_secret=SecretStr("SharedInternalCredentialForChecksOnly"),
+            payment_settlement_worker_secret=SecretStr("SharedInternalCredentialForChecksOnly"),
+            cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+            email_dev_mode=False,
+            magic_link_base_url="https://cyber-vpn.net",
+            smtp_auth_username="noreply@cyber-vpn.net",
+            smtp_auth_password=SecretStr("ValidSmtpMailboxPasswordForChecksOnly"),
+            email_verified_sender_domains=["cyber-vpn.net"],
+        )
+
+
+def test_task_worker_production_rejects_telegram_secret_reuse_for_payment_earnings_worker() -> None:
+    with pytest.raises(ValidationError, match="PAYMENT_SETTLEMENT_WORKER_SECRET must differ"):
+        _settings(
+            environment="production",
+            telegram_bot_internal_secret=SecretStr("SharedTelegramSettlementCredential"),
+            payment_settlement_worker_secret=SecretStr("SharedTelegramSettlementCredential"),
             cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"),
             email_dev_mode=False,
             magic_link_base_url="https://cyber-vpn.net",

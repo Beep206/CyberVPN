@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -166,22 +166,130 @@ class FxRateSnapshotModel(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    provider_config_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("fx_provider_configs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     base_currency: Mapped[str] = mapped_column(String(12), nullable=False, index=True)
     quote_currency: Mapped[str] = mapped_column(String(12), nullable=False, index=True)
     rate: Mapped[Decimal] = mapped_column(Numeric(30, 14), nullable=False)
     inverse_rate: Mapped[Decimal | None] = mapped_column(Numeric(30, 14), nullable=True)
     source_type: Mapped[str] = mapped_column(String(30), nullable=False)
-    provider_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    provider_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    provider_priority: Mapped[int] = mapped_column(Integer, nullable=False, default=100, server_default="100")
     provider_rate_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     valid_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    approval_state: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="pending")
+    approved_by_admin_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("admin_users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rejection_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    checksum: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    raw_provider_payload_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(UTC),
+    )
+
+
+class FxProviderConfigModel(Base):
+    """Durable FX provider refresh configuration for managed rate snapshots."""
+
+    __tablename__ = "fx_provider_configs"
+    __table_args__ = (
+        CheckConstraint("priority >= 0", name="ck_fx_provider_configs_priority_non_negative"),
+        CheckConstraint("stale_after_seconds > 0", name="ck_fx_provider_configs_stale_after_positive"),
+        CheckConstraint("rate_ttl_seconds > 0", name="ck_fx_provider_configs_rate_ttl_positive"),
+        UniqueConstraint("provider_key", name="uq_fx_provider_configs_provider_key"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    provider_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=100, server_default="100")
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true", index=True)
+    supported_pairs: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    stale_after_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600, server_default="3600")
+    rate_ttl_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600, server_default="3600")
+    requires_admin_approval: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+    )
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
+class FxProviderRefreshRunModel(Base):
+    """Idempotent FX provider refresh execution record."""
+
+    __tablename__ = "fx_provider_refresh_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','running','succeeded','failed','partial','cancelled')",
+            name="ck_fx_provider_refresh_runs_status",
+        ),
+        CheckConstraint(
+            "trigger_type IN ('scheduled','admin','manual','system_retry')",
+            name="ck_fx_provider_refresh_runs_trigger_type",
+        ),
+        UniqueConstraint("run_key", name="uq_fx_provider_refresh_runs_run_key"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    provider_config_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("fx_provider_configs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    provider_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    run_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    trigger_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    requested_by_admin_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("admin_users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    pairs_requested: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    pairs_succeeded: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    pairs_failed: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    created_snapshot_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    provider_payload_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
 

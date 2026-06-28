@@ -15,6 +15,7 @@ const pendingOnboarding = {
   message_key: 'onboarding.required',
   server_state_available: true,
   referral_already_attributed: false,
+  connection_required: false,
 };
 
 describe('customer onboarding routing', () => {

@@ -141,6 +141,7 @@ class CustomerOnboardingAuthSummaryResponse(BaseModel):
     message_key: str
     server_state_available: bool
     referral_already_attributed: bool = False
+    connection_required: bool = False
 
 
 class VerifyOtpResponse(BaseModel):
