@@ -43,7 +43,7 @@ from src.application.use_cases.auth.refresh_token import RefreshTokenReplayError
 from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
 from src.application.use_cases.auth.reset_password import ResetPasswordUseCase
 from src.application.use_cases.auth.telegram_bot_link import TelegramBotLinkUseCase
-from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCase
+from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppAuthError, TelegramMiniAppUseCase
 from src.application.use_cases.auth.telegram_web_auth import TelegramWebAuthUseCase
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.application.use_cases.auth_realms import RealmResolution
@@ -2512,6 +2512,30 @@ async def telegram_miniapp_auth(
             detail="Telegram authentication temporarily unavailable",
             headers={"Retry-After": "30"},
         ) from e
+    except TelegramMiniAppAuthError as e:
+        track_auth_attempt(method="telegram", success=False)
+        track_auth_error(e.code.lower())
+        track_auth_flow_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type=e.code.lower(),
+        )
+        observe_auth_request_duration("telegram", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": e.code, "message": e.message},
+        ) from e
     except ValueError as e:
         track_auth_attempt(method="telegram", success=False)
         track_auth_error("invalid_credentials")
@@ -2534,7 +2558,7 @@ async def telegram_miniapp_auth(
         observe_auth_request_duration("telegram", started_at)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
+            detail={"code": "TELEGRAM_INIT_DATA_INVALID_OR_EXPIRED", "message": str(e)},
         )
 
     track_auth_attempt(method="telegram", success=True)

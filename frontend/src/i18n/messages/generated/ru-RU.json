@@ -641,13 +641,16 @@
       },
       "loginButton": "Открыть Telegram",
       "manualFallback": "Если Telegram открылся как обычный чат, отправьте эту команду вручную:",
-      "miniAppAuthFailedMessage": "Не удалось завершить вход через Telegram. Повторите попытку из Telegram или войдите в браузере.",
+      "miniAppAuthFailedMessage": "Не удалось подтвердить сессию Telegram Mini App. Повторите попытку из Telegram или откройте бота.",
       "miniAppAuthFailedTitle": "Не удалось войти через Telegram",
       "miniAppAutoAuth": "Вход через Telegram...",
       "miniAppBrowserLogin": "Войти в браузере",
+      "miniAppClose": "Закрыть",
+      "miniAppOpenBot": "Открыть бот",
       "miniAppRequiredMessage": "Для этого экрана нужен контекст Telegram Mini App. Откройте его из бота CyberVPN или повторите проверку, если Telegram ещё загружается.",
       "miniAppRequiredTitle": "Откройте CyberVPN в Telegram",
       "miniAppRetryTelegram": "Повторить проверку Telegram",
+      "miniAppTwoFactorUnsupported": "Проверка 2FA пока недоступна внутри Telegram Mini App. Откройте бота или обратитесь в поддержку.",
       "startingNewLink": "Запускаем Telegram..."
     }
   },

@@ -945,6 +945,32 @@ describe('apiClient 401 interceptor', () => {
     expect(restoreEvents).toBe(1);
     window.removeEventListener(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, handleRestoreRequired);
   });
+
+  it('test_401_on_growth_code_endpoint_dispatches_miniapp_restore_without_browser_redirect', async () => {
+    window.location.href = 'http://localhost:3000/ru-RU/miniapp/onboarding';
+    let restoreEvents = 0;
+    const handleRestoreRequired = () => {
+      restoreEvents += 1;
+    };
+    window.addEventListener(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, handleRestoreRequired);
+
+    server.use(
+      http.post(`${API_BASE}/customer/onboarding/growth-code/preview`, () => {
+        return HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 });
+      }),
+      http.post(`${API_BASE}/auth/refresh`, () => {
+        return HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 });
+      }),
+    );
+
+    await expect(apiClient.post('/customer/onboarding/growth-code/preview', {})).rejects.toThrow(
+      'Request failed with status code 401',
+    );
+
+    expect(window.location.href).toBe('http://localhost:3000/ru-RU/miniapp/onboarding');
+    expect(restoreEvents).toBe(1);
+    window.removeEventListener(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, handleRestoreRequired);
+  });
 });
 
 // ===========================================================================

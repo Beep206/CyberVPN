@@ -644,13 +644,16 @@
       },
       "loginButton": "Open Telegram",
       "manualFallback": "If Telegram opens as a regular chat, send this command manually:",
-      "miniAppAuthFailedMessage": "We could not complete Telegram sign-in. Retry from Telegram or sign in in your browser.",
+      "miniAppAuthFailedMessage": "We could not confirm the Telegram Mini App session. Retry from Telegram or open the bot.",
       "miniAppAuthFailedTitle": "Telegram sign-in failed",
       "miniAppAutoAuth": "Signing you in via Telegram...",
       "miniAppBrowserLogin": "Use browser sign-in",
+      "miniAppClose": "Close",
+      "miniAppOpenBot": "Open bot",
       "miniAppRequiredMessage": "This screen needs Telegram Mini App context. Open it from the CyberVPN bot, or retry if Telegram is still loading.",
       "miniAppRequiredTitle": "Open CyberVPN in Telegram",
       "miniAppRetryTelegram": "Retry Telegram check",
+      "miniAppTwoFactorUnsupported": "Two-factor verification is not available inside Telegram Mini App yet. Open the bot or contact support.",
       "startingNewLink": "Starting Telegram..."
     }
   },

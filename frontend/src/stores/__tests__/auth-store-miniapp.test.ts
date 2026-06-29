@@ -385,6 +385,27 @@ describe('Auth Store - telegramMiniAppAuth', () => {
     expect(state.isLoading).toBe(false);
   });
 
+  it('test_telegramMiniAppAuth_does_not_retry_replayed_initData', async () => {
+    mockTelegramMiniApp.mockRejectedValueOnce({
+      response: {
+        status: 401,
+        data: {
+          detail: {
+            code: 'TELEGRAM_INIT_DATA_REPLAYED',
+            message: 'Invalid or expired Telegram initData',
+          },
+        },
+      },
+    });
+
+    await expect(
+      useAuthStore.getState().telegramMiniAppAuth()
+    ).rejects.toBeDefined();
+
+    expect(mockTelegramMiniApp).toHaveBeenCalledTimes(1);
+    expect(useAuthStore.getState().error).toBe('Invalid or expired Telegram initData');
+  });
+
   it('test_telegramMiniAppAuth_uses_error_message_when_no_detail', async () => {
     // Arrange - both attempts fail with generic error (no response.data.detail)
     mockTelegramMiniApp

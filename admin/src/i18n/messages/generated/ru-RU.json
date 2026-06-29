@@ -2620,6 +2620,8 @@
         "extend": "Продлить",
         "loading": "Загружаем...",
         "lookupTree": "Найти дерево",
+        "next": "Далее",
+        "previous": "Назад",
         "publish": "Опубликовать",
         "refresh": "Обновить",
         "resend": "Отправить заново",
@@ -2659,6 +2661,7 @@
       },
       "eyebrow": "Рост / Invite-коды",
       "feedback": {
+        "allowedSurfacesRequired": "Выберите хотя бы одну разрешённую поверхность перед созданием кампании.",
         "batchActionCompleted": "Действие с invite batch применено, inventory обновлён.",
         "batchActionFailed": "Действие с invite batch не удалось. Проверьте права, reason и статус batch.",
         "batchCreated": "Invite campaign batch создан, inventory обновлён.",
@@ -2677,6 +2680,7 @@
         "allowedGeos": "Разрешённые страны",
         "allowedMarkets": "Разрешённые рынки",
         "allowedSegments": "Разрешённые сегменты",
+        "allowedSurfaces": "Разрешённые поверхности",
         "allStatuses": "Все статусы",
         "anyPlan": "Любой план",
         "anyUsage": "Любое использование",
@@ -2710,6 +2714,7 @@
         "grantPlanCode": "Grant Plan Code",
         "grantPlanCodeFallback": "Использовать fallback plan code",
         "idempotencyKey": "Idempotency Key",
+        "limit": "Строк на странице",
         "maxDailyIssued": "Дневной лимит выдачи",
         "maxGenerationDepth": "Max Generation Depth",
         "maxPerBatch": "Лимит на batch",
@@ -2742,7 +2747,9 @@
         "filtersTitle": "Фильтры Инвентаря",
         "live": "Live inventory",
         "loading": "Загружаем invite inventory...",
-        "title": "Invite-Инвентарь"
+        "page": "{first}-{last} из {total} - страница {page} / {totalPages}",
+        "title": "Invite-Инвентарь",
+        "total": "Всего {count}"
       },
       "metaTitle": "Invite-коды - Ozoxy Admin",
       "metrics": {
@@ -2785,6 +2792,11 @@
         "maxDepth": "Максимальная глубина",
         "surfaces": "Allowed Surfaces",
         "title": "Campaign Settings"
+      },
+      "surfaces": {
+        "miniapp": "Mini App",
+        "telegram_bot": "Telegram bot",
+        "web": "Web"
       },
       "table": {
         "actions": "Действия",

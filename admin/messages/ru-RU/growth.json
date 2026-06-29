@@ -166,7 +166,9 @@
       "extend": "Продлить",
       "loading": "Загружаем...",
       "lookupTree": "Найти дерево",
+      "next": "Далее",
       "publish": "Опубликовать",
+      "previous": "Назад",
       "refresh": "Обновить",
       "resend": "Отправить заново",
       "reverse": "Откатить",
@@ -218,6 +220,7 @@
       "campaignCreateFailed": "Создать invite campaign не удалось. Проверьте уникальность key, plan targeting и backend validation.",
       "campaignPublished": "Invite campaign version опубликована.",
       "campaignPublishFailed": "Publish invite campaign не удался. Проверьте campaign version и permissions.",
+      "allowedSurfacesRequired": "Выберите хотя бы одну разрешённую поверхность перед созданием кампании.",
       "exported": "{count} invite-кодов экспортировано для выбранного batch.",
       "exportFailed": "Export invite batch не удался. Проверьте batch access и backend audit policy.",
       "redemptionReversed": "Погашение invite откатилось, зависимый доступ отозван.",
@@ -226,6 +229,7 @@
     },
     "fields": {
       "allStatuses": "Все статусы",
+      "allowedSurfaces": "Разрешённые поверхности",
       "anyPlan": "Любой план",
       "anyUsage": "Любое использование",
       "batch": "Batch",
@@ -271,6 +275,7 @@
       "planId": "План",
       "planCode": "Plan Code",
       "prefix": "Code Prefix",
+      "limit": "Строк на странице",
       "publishNow": "Опубликовать после создания",
       "rawExportEnabled": "Raw export включён",
       "reason": "Reason",
@@ -293,6 +298,8 @@
       "filtersTitle": "Фильтры Инвентаря",
       "live": "Live inventory",
       "loading": "Загружаем invite inventory...",
+      "page": "{first}-{last} из {total} - страница {page} / {totalPages}",
+      "total": "Всего {count}",
       "title": "Invite-Инвентарь"
     },
     "metaTitle": "Invite-коды - Ozoxy Admin",
@@ -351,6 +358,11 @@
       "status": "Статус",
       "surface": "Surface",
       "used": "Использован"
+    },
+    "surfaces": {
+      "miniapp": "Mini App",
+      "telegram_bot": "Telegram bot",
+      "web": "Web"
     },
     "tabs": {
       "batches": "Batches",

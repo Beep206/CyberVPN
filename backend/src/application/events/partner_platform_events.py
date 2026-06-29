@@ -14,6 +14,7 @@ PARTNER_PLATFORM_EVENT_FAMILIES = {
     ),
     "invite": (
         "invite.generated_from_order",
+        "invite.legacy_manual_created",
         "invite.redeemed",
         "invite.owner_reward_created",
         "invite.batch.issued",

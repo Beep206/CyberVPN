@@ -92,6 +92,7 @@ from .schemas import (
     AdminInviteCampaignVersionCreateRequest,
     AdminInviteCampaignVersionResponse,
     AdminInviteCampaignVersionValidationResponse,
+    AdminInviteCodeInventoryResponse,
     AdminInviteCodeSummaryResponse,
     AdminInviteRedemptionListResponse,
     AdminInviteRedemptionResponse,
@@ -322,10 +323,27 @@ invite_tree_admin_router = APIRouter(prefix="/admin/invite-trees", tags=["admin"
 )
 async def admin_create_invites(
     body: AdminCreateInviteRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: AdminUserModel = Depends(require_permission(Permission.MANAGE_INVITES)),
 ) -> list[InviteCodeResponse]:
     """Create one or more invite codes (admin only)."""
+    legacy_plan_code: str | None = None
+    if body.plan_id is not None:
+        plan = await db.get(SubscriptionPlanModel, body.plan_id)
+        legacy_plan_code = plan.plan_code if plan is not None else None
+        if legacy_plan_code == "premium_smart_ru" and not body.legacy_acknowledgement:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "code": "PREMIUM_SMART_REQUIRES_FLEXIBLE_CAMPAIGN",
+                    "message": (
+                        "premium_smart_ru invites must be issued through flexible invite campaigns "
+                        "or explicitly acknowledged as legacy manual creation."
+                    ),
+                },
+            )
+
     invite_repo = InviteCodeRepository(db)
     config_repo = SystemConfigRepository(db)
     config_service = ConfigService(config_repo)
@@ -341,7 +359,43 @@ async def admin_create_invites(
         count=body.count,
         plan_id=body.plan_id,
     )
+    await write_required_admin_audit_entry(
+        db=db,
+        action="invite.legacy_manual_created",
+        resource_type="invite_code",
+        resource_id=created[0].id if created else None,
+        actor=current_user,
+        request=request,
+        details={
+            "owner_user_id": str(body.user_id),
+            "count": len(created),
+            "free_days": body.free_days,
+            "plan_id": str(body.plan_id) if body.plan_id else None,
+            "plan_code": legacy_plan_code,
+            "legacy_acknowledgement": body.legacy_acknowledgement,
+            "risk_marker": "legacy_manual_invite",
+            "raw_code_present": False,
+        },
+    )
     outbox = EventOutboxService(db)
+    await outbox.append_event(
+        event_name="invite.legacy_manual_created",
+        aggregate_type="invite_code",
+        aggregate_id=str(created[0].id) if created else str(body.user_id),
+        partition_key=str(body.user_id),
+        event_payload={
+            "owner_user_id": str(body.user_id),
+            "issued_count": len(created),
+            "free_days": body.free_days,
+            "plan_id": str(body.plan_id) if body.plan_id else None,
+            "plan_code": legacy_plan_code,
+            "legacy_acknowledgement": body.legacy_acknowledgement,
+            "risk_marker": "legacy_manual_invite",
+            "raw_code_present": False,
+        },
+        actor_context=OutboxActorContext(principal_type="admin", principal_id=str(current_user.id)),
+        source_context={"source_use_case": "admin_create_invites_route"},
+    )
     for invite in created:
         await outbox.append_event(
             event_name="growth_code.issued",
@@ -386,7 +440,7 @@ async def admin_create_invites(
 
 @admin_router.get(
     "",
-    response_model=list[AdminInviteCodeSummaryResponse],
+    response_model=AdminInviteCodeInventoryResponse,
     summary="Admin: list invite code inventory",
 )
 async def admin_list_invite_codes(
@@ -413,7 +467,7 @@ async def admin_list_invite_codes(
     limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _current_user: AdminUserModel = Depends(require_permission(Permission.GROWTH_CODE_SETS_INSPECT)),
-) -> list[AdminInviteCodeSummaryResponse]:
+) -> AdminInviteCodeInventoryResponse:
     filters = []
     if campaign_id is not None:
         filters.append(InviteCodeModel.campaign_id == campaign_id)
@@ -466,6 +520,7 @@ async def admin_list_invite_codes(
     if prefix:
         filters.append(InviteCodeModel.code_prefix == prefix.upper())
 
+    total_result = await db.execute(select(func.count()).select_from(InviteCodeModel).where(*filters))
     result = await db.execute(
         select(InviteCodeModel)
         .where(*filters)
@@ -473,7 +528,33 @@ async def admin_list_invite_codes(
         .offset(offset)
         .limit(limit)
     )
-    return [_serialize_admin_invite_code(invite) for invite in result.scalars().all()]
+    invites = list(result.scalars().all())
+    campaign_key_map = await _load_campaign_key_map(
+        db,
+        {invite.campaign_id for invite in invites if invite.campaign_id is not None},
+    )
+    plan_code_map = await _load_plan_code_map(
+        db,
+        {
+            plan_id
+            for invite in invites
+            for plan_id in (invite.plan_id, invite.grant_plan_id, invite.child_grant_plan_id)
+            if plan_id is not None
+        },
+    )
+    return AdminInviteCodeInventoryResponse(
+        items=[
+            _serialize_admin_invite_code(
+                invite,
+                campaign_key_map=campaign_key_map,
+                plan_code_map=plan_code_map,
+            )
+            for invite in invites
+        ],
+        total=int(total_result.scalar_one()),
+        offset=offset,
+        limit=limit,
+    )
 
 
 @invite_campaign_admin_router.get(
@@ -1364,11 +1445,55 @@ async def _list_invite_codes_for_batch(db: AsyncSession, batch_id: UUID) -> list
     return list(result.scalars().all())
 
 
-def _serialize_admin_invite_code(invite: InviteCodeModel) -> AdminInviteCodeSummaryResponse:
+async def _load_campaign_key_map(db: AsyncSession, campaign_ids: set[UUID]) -> dict[UUID, str]:
+    if not campaign_ids:
+        return {}
+    result = await db.execute(
+        select(InviteCampaignModel.id, InviteCampaignModel.campaign_key).where(InviteCampaignModel.id.in_(campaign_ids))
+    )
+    return {campaign_id: campaign_key for campaign_id, campaign_key in result.all()}
+
+
+async def _load_plan_code_map(db: AsyncSession, plan_ids: set[UUID]) -> dict[UUID, str | None]:
+    if not plan_ids:
+        return {}
+    result = await db.execute(
+        select(SubscriptionPlanModel.id, SubscriptionPlanModel.plan_code).where(SubscriptionPlanModel.id.in_(plan_ids))
+    )
+    return {plan_id: plan_code for plan_id, plan_code in result.all()}
+
+
+def _safe_child_policy_preview(policy: dict[str, object] | None) -> dict[str, object] | None:
+    if not policy:
+        return None
+    safe_keys = {
+        "enabled",
+        "count",
+        "friend_days",
+        "grant_plan_id",
+        "grant_plan_code",
+        "grant_duration_days",
+        "expiry_days",
+        "max_generation_depth",
+        "issue_timing",
+    }
+    return {key: policy[key] for key in safe_keys if key in policy}
+
+
+def _serialize_admin_invite_code(
+    invite: InviteCodeModel,
+    *,
+    campaign_key_map: dict[UUID, str] | None = None,
+    plan_code_map: dict[UUID, str | None] | None = None,
+) -> AdminInviteCodeSummaryResponse:
+    campaign_key_map = campaign_key_map or {}
+    plan_code_map = plan_code_map or {}
     return AdminInviteCodeSummaryResponse(
         id=invite.id,
         code_prefix=invite.code_prefix,
         code_hash=invite.code_hash,
+        owner_user_id=invite.owner_user_id,
+        batch_id=invite.batch_id,
         status=invite.status,
         is_used=invite.is_used,
         used_by_user_id=invite.used_by_user_id,
@@ -1377,15 +1502,25 @@ def _serialize_admin_invite_code(invite: InviteCodeModel) -> AdminInviteCodeSumm
         expires_at=invite.expires_at,
         created_at=invite.created_at,
         campaign_id=invite.campaign_id,
+        campaign_key=campaign_key_map.get(invite.campaign_id) if invite.campaign_id is not None else None,
         campaign_version_id=invite.campaign_version_id,
         root_invite_code_id=invite.root_invite_code_id,
         parent_invite_code_id=invite.parent_invite_code_id,
+        source_redemption_id=invite.source_redemption_id,
         generation_depth=invite.generation_depth,
         grant_mode=invite.grant_mode,
         grant_plan_id=invite.grant_plan_id,
+        grant_plan_code=(
+            (plan_code_map.get(invite.grant_plan_id) if invite.grant_plan_id is not None else None)
+            or (plan_code_map.get(invite.plan_id) if invite.plan_id is not None else None)
+        ),
         grant_duration_days=invite.grant_duration_days,
         child_grant_plan_id=invite.child_grant_plan_id,
+        child_grant_plan_code=plan_code_map.get(invite.child_grant_plan_id)
+        if invite.child_grant_plan_id is not None
+        else None,
         child_grant_duration_days=invite.child_grant_duration_days,
+        child_policy_preview=_safe_child_policy_preview(dict(invite.child_policy or {})),
     )
 
 

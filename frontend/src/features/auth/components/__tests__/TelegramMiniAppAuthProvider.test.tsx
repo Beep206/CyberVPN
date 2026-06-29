@@ -15,17 +15,20 @@ const {
   mockUsePathname,
   mockStagePendingTwoFactorSession,
   mockTelegramMiniAppAuth,
+  mockFetchUser,
 } = vi.hoisted(() => ({
   mockPush: vi.fn(),
   mockReplace: vi.fn(),
   mockUsePathname: vi.fn(),
   mockStagePendingTwoFactorSession: vi.fn(),
   mockTelegramMiniAppAuth: vi.fn(),
+  mockFetchUser: vi.fn(),
 }));
 
 let currentLocale = 'ru-RU';
 let currentAuthState = {
   telegramMiniAppAuth: mockTelegramMiniAppAuth,
+  fetchUser: mockFetchUser,
   isAuthenticated: false,
   isMiniApp: true,
 };
@@ -40,9 +43,12 @@ vi.mock('next-intl', () => ({
   useTranslations: () => ((key: string) => key),
 }));
 
-vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: () => currentAuthState,
-}));
+vi.mock('@/stores/auth-store', () => {
+  const useAuthStore = Object.assign(() => currentAuthState, {
+    getState: () => currentAuthState,
+  });
+  return { useAuthStore };
+});
 
 vi.mock('@/features/auth/lib/pending-twofa-client', () => ({
   stagePendingTwoFactorSession: (...args: unknown[]) => mockStagePendingTwoFactorSession(...args),
@@ -52,6 +58,9 @@ vi.mock('lucide-react', () => ({
   Loader2: (props: Record<string, unknown>) => <div data-testid="loader" {...props} />,
   AlertCircle: (props: Record<string, unknown>) => <div data-testid="alert" {...props} />,
   Shield: (props: Record<string, unknown>) => <div data-testid="shield" {...props} />,
+  RotateCcw: (props: Record<string, unknown>) => <div data-testid="retry" {...props} />,
+  Send: (props: Record<string, unknown>) => <div data-testid="send" {...props} />,
+  X: (props: Record<string, unknown>) => <div data-testid="close" {...props} />,
 }));
 
 vi.mock('motion/react', () => ({
@@ -80,8 +89,10 @@ describe('TelegramMiniAppAuthProvider', () => {
     vi.clearAllMocks();
     cleanupTelegramWebAppMock();
     currentLocale = 'ru-RU';
+    mockFetchUser.mockResolvedValue(undefined);
     currentAuthState = {
       telegramMiniAppAuth: mockTelegramMiniAppAuth,
+      fetchUser: mockFetchUser,
       isAuthenticated: false,
       isMiniApp: true,
     };
@@ -134,7 +145,7 @@ describe('TelegramMiniAppAuthProvider', () => {
     });
   });
 
-  it('stages two-factor flow with a mini app return path', async () => {
+  it('keeps two-factor-required responses inside the mini app recovery state', async () => {
     mockUsePathname.mockReturnValue('/miniapp/rewards/referral');
     mockTelegramMiniAppAuth.mockResolvedValue({
       requires_2fa: true,
@@ -144,21 +155,17 @@ describe('TelegramMiniAppAuthProvider', () => {
 
     renderProvider(<div>Mini App Child</div>);
 
-    await waitFor(() => {
-      expect(mockStagePendingTwoFactorSession).toHaveBeenCalledWith({
-        token: 'pending_2fa_token',
-        locale: 'ru-RU',
-        returnTo: '/ru-RU/miniapp/rewards/referral',
-        isNewUser: true,
-      });
-    });
+    await screen.findByText('miniAppTwoFactorUnsupported');
 
-    expect(mockPush).toHaveBeenCalledWith('/login?2fa=true&redirect=%2Fru-RU%2Fminiapp%2Frewards%2Freferral');
+    expect(mockStagePendingTwoFactorSession).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('/login'));
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it('renders children when mini app auto-auth is not active', () => {
     currentAuthState = {
       telegramMiniAppAuth: mockTelegramMiniAppAuth,
+      fetchUser: mockFetchUser,
       isAuthenticated: false,
       isMiniApp: false,
     };
@@ -173,6 +180,7 @@ describe('TelegramMiniAppAuthProvider', () => {
   it('gates mini app routes instead of rendering the standard guest flow while initData is missing', () => {
     currentAuthState = {
       telegramMiniAppAuth: mockTelegramMiniAppAuth,
+      fetchUser: mockFetchUser,
       isAuthenticated: false,
       isMiniApp: false,
     };
@@ -188,6 +196,7 @@ describe('TelegramMiniAppAuthProvider', () => {
   it('detects Telegram WebApp initData when the auth store was created too early', async () => {
     currentAuthState = {
       telegramMiniAppAuth: mockTelegramMiniAppAuth,
+      fetchUser: mockFetchUser,
       isAuthenticated: false,
       isMiniApp: false,
     };
@@ -222,14 +231,37 @@ describe('TelegramMiniAppAuthProvider', () => {
     renderProvider(<div>Mini App Child</div>);
 
     await waitFor(() => {
-      expect(screen.getByText('miniAppAutoAuth')).toBeInTheDocument();
+      expect(screen.getByText('Invalid token')).toBeInTheDocument();
     });
+    expect(screen.getByText('miniAppRetryTelegram')).toBeInTheDocument();
+    expect(screen.getByText('miniAppOpenBot')).toBeInTheDocument();
     expect(screen.queryByText('Mini App Child')).not.toBeInTheDocument();
+  });
+
+  it('restores an existing Mini App session before spending Telegram initData', async () => {
+    setupTelegramWebAppMock({
+      initData: 'query_id=session-first&user=owner&hash=signature',
+    });
+    mockFetchUser.mockImplementation(async () => {
+      currentAuthState = {
+        ...currentAuthState,
+        isAuthenticated: true,
+      };
+    });
+
+    renderProvider(<div>Mini App Child</div>);
+
+    await waitFor(() => {
+      expect(mockFetchUser).toHaveBeenCalled();
+    });
+    expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it('restores Telegram Mini App auth after a protected mini app request loses its cookie session', async () => {
     currentAuthState = {
       telegramMiniAppAuth: mockTelegramMiniAppAuth,
+      fetchUser: mockFetchUser,
       isAuthenticated: true,
       isMiniApp: true,
     };
@@ -247,8 +279,8 @@ describe('TelegramMiniAppAuthProvider', () => {
     window.dispatchEvent(new CustomEvent(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT));
 
     await waitFor(() => {
-      expect(mockTelegramMiniAppAuth).toHaveBeenCalled();
-      expect(mockReplace).toHaveBeenCalledWith('/miniapp/vpn');
+      expect(mockFetchUser).toHaveBeenCalled();
     });
+    expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
   });
 });

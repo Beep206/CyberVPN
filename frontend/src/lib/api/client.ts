@@ -106,6 +106,16 @@ export class RateLimitError extends Error {
 }
 
 const NON_REFRESHABLE_UNAUTHORIZED_CODES = new Set(['USER_NOT_FOUND']);
+const MINIAPP_AUTH_RESTORE_ENDPOINT_MARKERS = [
+  '/auth/telegram/miniapp',
+  '/customer/onboarding/growth-code/preview',
+  '/customer/onboarding/growth-code/apply',
+  '/customer/onboarding/growth-code/skip',
+  '/customer/onboarding/code/preview',
+  '/customer/onboarding/code/apply',
+  '/customer/onboarding/code/skip',
+  '/customer/onboarding/connection/bootstrap',
+] as const;
 
 function collectApiErrorTokens(value: unknown): string[] {
   if (typeof value === 'string') {
@@ -133,6 +143,16 @@ function normalizeApiErrorToken(value: string): string {
 function isNonRefreshableUnauthorized(error: AxiosError): boolean {
   const tokens = collectApiErrorTokens(error.response?.data).map(normalizeApiErrorToken);
   return tokens.some((token) => NON_REFRESHABLE_UNAUTHORIZED_CODES.has(token));
+}
+
+function isMiniAppRestoreCandidate(requestUrl: string): boolean {
+  if (requestUrl.includes('/miniapp/')) {
+    return true;
+  }
+  if (MINIAPP_AUTH_RESTORE_ENDPOINT_MARKERS.some((marker) => requestUrl.includes(marker))) {
+    return true;
+  }
+  return typeof window !== 'undefined' && isMiniAppRoute(window.location.pathname);
 }
 
 // Parse Retry-After header (can be seconds or HTTP date)
@@ -268,7 +288,7 @@ apiClient.interceptors.response.use(
           requestUrl.includes('/auth/session') ||
           requestUrl.includes('/auth/magic-link/verify') ||
           requestUrl.includes('/auth/magic-link/verify-otp');
-        const isMiniAppRequest = requestUrl.includes('/miniapp/');
+        const isMiniAppRequest = isMiniAppRestoreCandidate(requestUrl);
 
         if (isMiniAppRequest) {
           dispatchMiniAppAuthRestoreRequired(requestUrl);

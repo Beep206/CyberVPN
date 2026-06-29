@@ -8,6 +8,7 @@ import pytest
 
 from src.application.services.telegram_init_data_replay import TelegramInitDataReplayedError
 from src.application.use_cases.auth.telegram_miniapp import (
+    TelegramMiniAppAuthError,
     TelegramMiniAppResult,
     TelegramMiniAppUseCase,
 )
@@ -114,15 +115,17 @@ class TestTelegramMiniAppUseCase:
         )
 
     @pytest.mark.unit
-    async def test_replayed_init_data_raises_invalid_init_data(
+    async def test_replayed_init_data_raises_typed_invalid_init_data(
         self, use_case, mock_user_repo, mock_replay_guard, make_user
     ):
         mock_user_repo.get_by_telegram_id.return_value = make_user()
         mock_replay_guard.accept.side_effect = TelegramInitDataReplayedError("replay")
 
-        with pytest.raises(ValueError, match="Invalid or expired"):
+        with pytest.raises(TelegramMiniAppAuthError) as exc_info:
             await use_case.execute("valid_init_data")
 
+        assert exc_info.value.code == "TELEGRAM_INIT_DATA_REPLAYED"
+        assert exc_info.value.message == "Invalid or expired Telegram initData"
         mock_user_repo.get_by_telegram_id.assert_not_called()
 
     @pytest.mark.unit

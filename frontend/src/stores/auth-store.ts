@@ -38,6 +38,25 @@ function getLocalePrefix(): string {
   return match ? `/${match[1]}` : '/en-EN';
 }
 
+function getApiErrorDetailCode(error: unknown): string | null {
+  const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  if (typeof detail === 'object' && detail !== null) {
+    const code = (detail as { code?: unknown }).code;
+    return typeof code === 'string' && code.trim() ? code.trim() : null;
+  }
+  return null;
+}
+
+function shouldRetryTelegramMiniAppAuth(error: unknown): boolean {
+  const status = (error as { response?: { status?: unknown } })?.response?.status;
+  if (status === 401) {
+    return false;
+  }
+
+  const code = getApiErrorDetailCode(error);
+  return code !== 'TELEGRAM_INIT_DATA_REPLAYED' && code !== 'TELEGRAM_INIT_DATA_INVALID_OR_EXPIRED';
+}
+
 interface AuthState {
   user: User | null;
   isLoading: boolean;
@@ -380,10 +399,12 @@ export const useAuthStore = create<AuthState>()(
             return data;
           } catch (error: unknown) {
             lastError = error;
-            if (attempt === 0) {
+            if (attempt === 0 && shouldRetryTelegramMiniAppAuth(error)) {
               // Wait briefly before retry
               await new Promise((r) => setTimeout(r, 500));
+              continue;
             }
+            break;
           }
         }
 

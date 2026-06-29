@@ -62,6 +62,22 @@ class TelegramMiniAppResult:
         self.tfa_token = tfa_token
 
 
+class TelegramMiniAppAuthError(ValueError):
+    """Public Mini App auth failure with stable machine-readable code."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+def _invalid_or_expired_error() -> TelegramMiniAppAuthError:
+    return TelegramMiniAppAuthError(
+        code="TELEGRAM_INIT_DATA_INVALID_OR_EXPIRED",
+        message="Invalid or expired Telegram initData",
+    )
+
+
 class TelegramMiniAppUseCase:
     """Authenticates users via Telegram Mini App initData."""
 
@@ -100,25 +116,25 @@ class TelegramMiniAppUseCase:
             TelegramMiniAppResult with JWT tokens and user
 
         Raises:
-            ValueError: If initData is invalid or expired
+            TelegramMiniAppAuthError: If initData is invalid, expired, or replayed
         """
         # Step 1: Validate HMAC signature and auth_date freshness
         user_info = self._telegram.validate_init_data(init_data)
         if not user_info:
-            raise ValueError("Invalid or expired Telegram initData")
+            raise _invalid_or_expired_error()
 
         telegram_id = user_info["id"]
         if not telegram_id:
-            raise ValueError("Telegram user ID missing from initData")
+            raise _invalid_or_expired_error()
 
         replay_canonical_init_data = user_info.get("replay_canonical_init_data")
         if not isinstance(replay_canonical_init_data, str) or not replay_canonical_init_data:
-            raise ValueError("Invalid or expired Telegram initData")
+            raise _invalid_or_expired_error()
 
         try:
             auth_date = int(str(user_info["auth_date"]))
         except (KeyError, TypeError, ValueError) as exc:
-            raise ValueError("Invalid or expired Telegram initData") from exc
+            raise _invalid_or_expired_error() from exc
 
         try:
             await self._replay_guard.accept(
@@ -128,7 +144,10 @@ class TelegramMiniAppUseCase:
                 max_age_seconds=int(self._telegram.max_auth_age_seconds),
             )
         except TelegramInitDataReplayedError as exc:
-            raise ValueError("Invalid or expired Telegram initData") from exc
+            raise TelegramMiniAppAuthError(
+                code="TELEGRAM_INIT_DATA_REPLAYED",
+                message="Invalid or expired Telegram initData",
+            ) from exc
 
         username = user_info.get("username")
         first_name = user_info.get("first_name")

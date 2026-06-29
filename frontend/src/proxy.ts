@@ -6,6 +6,11 @@ import {
   buildExternalRequestRedirectUrl,
 } from '@/shared/lib/redirect-url';
 import { SITE_URL } from '@/shared/lib/seo-route-policy';
+import {
+  CABINET_ALLOWED_PREFIXES,
+  getLocalizedRouteSegment,
+  isCabinetRouteSegment,
+} from '@/shared/lib/cabinet-routes';
 
 const intlMiddleware = createMiddleware({
   locales,
@@ -38,24 +43,6 @@ const REFERRAL_REDIRECT_CAMPAIGN_KEYS = new Set([
   'fbclid',
   'click_id',
   'sub_id',
-]);
-
-const CABINET_ROUTE_SEGMENTS = new Set([
-  'analytics',
-  'dashboard',
-  'delete-account',
-  'messages',
-  'monitoring',
-  'partner',
-  'payment-history',
-  'referral',
-  'rewards',
-  'servers',
-  'settings',
-  'subscriptions',
-  'support',
-  'users',
-  'wallet',
 ]);
 
 const AUTH_ROUTE_SEGMENTS = new Set([
@@ -148,20 +135,7 @@ const DEFAULT_CUSTOMER_SITE_RUNTIME: CustomerSiteRuntimeSnapshot = {
     '/.well-known/',
   ],
   cabinetAllowedPrefixes: [
-    '/dashboard',
-    '/subscriptions',
-    '/payment-history',
-    '/referral',
-    '/rewards',
-    '/wallet',
-    '/settings',
-    '/support',
-    '/messages',
-    '/servers',
-    '/monitoring',
-    '/analytics',
-    '/users',
-    '/partner',
+    ...CABINET_ALLOWED_PREFIXES,
     '/login',
     '/register',
     '/verify',
@@ -171,7 +145,6 @@ const DEFAULT_CUSTOMER_SITE_RUNTIME: CustomerSiteRuntimeSnapshot = {
     '/magic-link',
     '/oauth',
     '/telegram-link',
-    '/onboarding',
   ],
   cabinetMarketingRouteAction: 'redirect_public',
   publicMarketingDestinationPath: '/',
@@ -228,11 +201,7 @@ function normalizedHostname(request: NextRequest): string {
 }
 
 function getRouteSegment(pathname: string): string {
-  const segments = pathname.split('/').filter(Boolean);
-  const firstSegment = segments[0];
-  const hasLocale = locales.includes(firstSegment as (typeof locales)[number]);
-
-  return hasLocale ? segments[1] ?? '' : firstSegment ?? '';
+  return getLocalizedRouteSegment(pathname);
 }
 
 function getRequestLocaleFromPathname(pathname: string): string | null {
@@ -293,12 +262,20 @@ function resolvePreferredLocale(request: NextRequest): string {
 }
 
 function isNextInternalNavigationRequest(request: NextRequest): boolean {
+  const accept = request.headers.get('accept')?.toLowerCase() ?? '';
+  const purpose = request.headers.get('purpose')?.toLowerCase() ?? '';
+  const secFetchMode = request.headers.get('sec-fetch-mode')?.toLowerCase() ?? '';
+  const secFetchDest = request.headers.get('sec-fetch-dest')?.toLowerCase() ?? '';
+
   return (
     request.nextUrl.searchParams.has('_rsc')
     || request.headers.get('rsc') === '1'
     || request.headers.has('next-router-state-tree')
     || request.headers.has('next-router-prefetch')
-    || request.headers.get('accept')?.toLowerCase().includes('text/x-component') === true
+    || request.headers.has('x-nextjs-data')
+    || accept.includes('text/x-component')
+    || purpose === 'prefetch'
+    || (secFetchMode === 'cors' && secFetchDest === 'empty')
   );
 }
 
@@ -656,7 +633,7 @@ function buildMaintenanceRedirect(
   );
   target.searchParams.set('mode', 'maintenance');
   target.searchParams.set('source', 'site_mode');
-  return NextResponse.redirect(target);
+  return redirectOrInternalNotFound(request, target);
 }
 
 function buildCabinetOnlyRedirect(
@@ -760,7 +737,7 @@ export async function proxy(request: NextRequest) {
   const hostname = normalizedHostname(request);
 
   if (hostname === ADMIN_REDIRECT_ONLY_HOST) {
-    return NextResponse.redirect(buildCanonicalRedirectUrl(request, ADMIN_ORIGIN));
+    return redirectOrInternalNotFound(request, buildCanonicalRedirectUrl(request, ADMIN_ORIGIN));
   }
 
   const routeSegment = getRouteSegment(request.nextUrl.pathname);
@@ -770,7 +747,8 @@ export async function proxy(request: NextRequest) {
       partnerAttribution.isLocalized
       || (hostname !== PUBLIC_PRIMARY_HOST && hostname !== PUBLIC_WWW_HOST)
     ) {
-      return NextResponse.redirect(
+      return redirectOrInternalNotFound(
+        request,
         buildPartnerAttributionCanonicalUrl(request, partnerAttribution.token),
       );
     }
@@ -779,12 +757,12 @@ export async function proxy(request: NextRequest) {
 
   const shortReferralCode = getShortReferralCode(request.nextUrl.pathname);
   if (shortReferralCode) {
-    return NextResponse.redirect(buildReferralRegisterRedirectUrl(request, shortReferralCode));
+    return redirectOrInternalNotFound(request, buildReferralRegisterRedirectUrl(request, shortReferralCode));
   }
 
   const legacyReferralCode = getLegacyReferralCode(request, routeSegment);
   if (legacyReferralCode) {
-    return NextResponse.redirect(buildReferralRegisterRedirectUrl(request, legacyReferralCode));
+    return redirectOrInternalNotFound(request, buildReferralRegisterRedirectUrl(request, legacyReferralCode));
   }
 
   const siteRuntime = await fetchCustomerSiteRuntimeSnapshot();
@@ -799,12 +777,9 @@ export async function proxy(request: NextRequest) {
 
   if (
     (hostname === PUBLIC_PRIMARY_HOST || hostname === PUBLIC_WWW_HOST)
-    && CABINET_ROUTE_SEGMENTS.has(routeSegment)
+    && isCabinetRouteSegment(routeSegment)
   ) {
-    if (isNextInternalNavigationRequest(request)) {
-      return new NextResponse(null, { status: 404 });
-    }
-    return NextResponse.redirect(buildCanonicalRedirectUrl(request, CABINET_ORIGIN));
+    return redirectOrInternalNotFound(request, buildCanonicalRedirectUrl(request, CABINET_ORIGIN));
   }
 
   const cabinetOnlyRedirect = buildCabinetOnlyRedirect(request, siteRuntime, hostname, routeSegment);
@@ -814,7 +789,8 @@ export async function proxy(request: NextRequest) {
 
   if (hostname === CABINET_PRIMARY_HOST) {
     if (!routeSegment) {
-      return NextResponse.redirect(
+      return redirectOrInternalNotFound(
+        request,
         buildExternalRequestRedirectUrl(request, CABINET_ORIGIN, {
           pathname: `/${resolvePreferredLocale(request)}/dashboard`,
           allowedHosts: CABINET_REDIRECT_ALLOWED_HOSTS,
@@ -827,9 +803,9 @@ export async function proxy(request: NextRequest) {
       && siteRuntime.mode !== 'maintenance'
       && PUBLIC_ROUTE_SEGMENTS.has(routeSegment)
       && !AUTH_ROUTE_SEGMENTS.has(routeSegment)
-      && !CABINET_ROUTE_SEGMENTS.has(routeSegment)
+      && !isCabinetRouteSegment(routeSegment)
     ) {
-      return NextResponse.redirect(buildCanonicalRedirectUrl(request, PUBLIC_ORIGIN));
+      return redirectOrInternalNotFound(request, buildCanonicalRedirectUrl(request, PUBLIC_ORIGIN));
     }
   }
 

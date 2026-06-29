@@ -1,24 +1,11 @@
 import { defaultLocale, locales } from '@/i18n/config';
+import { getLocalizedRouteSegment, isCabinetRouteSegment } from '@/shared/lib/cabinet-routes';
 
 const AUTH_REDIRECT_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?(?:login|register|magic-link|forgot-password|reset-password|verify|oauth\/callback|telegram-link)(?:\/|$)/;
 const LOCALE_PREFIX_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2})(\/.*|$)/;
 const SUPPORTED_LOCALES = new Set<string>(locales);
 const PUBLIC_AUTH_HOSTS = new Set(['cyber-vpn.net', 'www.cyber-vpn.net']);
 const CABINET_PRIMARY_HOST = 'my.cyber-vpn.net';
-const CABINET_ROUTE_SEGMENTS = new Set([
-  'analytics',
-  'dashboard',
-  'monitoring',
-  'partner',
-  'payment-history',
-  'referral',
-  'servers',
-  'settings',
-  'subscriptions',
-  'users',
-  'wallet',
-]);
-
 export type PostLoginLocation = Pick<Location, 'hostname' | 'port'>;
 
 export function normalizeAuthLocale(locale: string | null | undefined): string {
@@ -62,14 +49,6 @@ export function localizePathname(pathname: string, locale: string): string {
   return `${localizedPathname}${parsed.search}${parsed.hash}`;
 }
 
-function getRouteSegment(pathname: string): string {
-  const segments = pathname.split('/').filter(Boolean);
-  const firstSegment = segments[0];
-  const hasLocale = locales.includes(firstSegment as (typeof locales)[number]);
-
-  return hasLocale ? segments[1] ?? '' : firstSegment ?? '';
-}
-
 export function getSafeRedirectPath(rawRedirect: string | null, locale: string): string {
   const fallback = getDefaultPostLoginPath(locale);
 
@@ -110,7 +89,7 @@ export function getCanonicalPostLoginHref(
   }
 
   const parsed = new URL(pathname, 'https://cyber-vpn.net');
-  if (!CABINET_ROUTE_SEGMENTS.has(getRouteSegment(parsed.pathname))) {
+  if (!isCabinetRouteSegment(getLocalizedRouteSegment(parsed.pathname))) {
     return null;
   }
 

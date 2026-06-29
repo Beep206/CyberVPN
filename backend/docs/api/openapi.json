@@ -23525,11 +23525,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AdminInviteCodeSummaryResponse"
-                  },
-                  "title": "Response Admin List Invite Codes Api V1 Admin Invite Codes Get"
+                  "$ref": "#/components/schemas/AdminInviteCodeInventoryResponse"
                 }
               }
             }
@@ -49408,6 +49404,12 @@
             ],
             "title": "Plan Id",
             "description": "Optional plan to associate with the codes"
+          },
+          "legacy_acknowledgement": {
+            "type": "boolean",
+            "title": "Legacy Acknowledgement",
+            "description": "Required when using the legacy manual invite endpoint for premium_smart_ru.",
+            "default": false
           }
         },
         "type": "object",
@@ -60952,6 +60954,38 @@
         ],
         "title": "AdminInviteCampaignVersionValidationResponse"
       },
+      "AdminInviteCodeInventoryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminInviteCodeSummaryResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "AdminInviteCodeInventoryResponse",
+        "description": "Paginated admin invite-code inventory response."
+      },
       "AdminInviteCodeSummaryResponse": {
         "properties": {
           "id": {
@@ -60980,6 +61014,30 @@
               }
             ],
             "title": "Code Hash"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "batch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Id"
           },
           "status": {
             "type": "string",
@@ -61054,6 +61112,17 @@
             ],
             "title": "Campaign Id"
           },
+          "campaign_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Key"
+          },
           "campaign_version_id": {
             "anyOf": [
               {
@@ -61090,6 +61159,18 @@
             ],
             "title": "Parent Invite Code Id"
           },
+          "source_redemption_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Redemption Id"
+          },
           "generation_depth": {
             "type": "integer",
             "title": "Generation Depth",
@@ -61118,6 +61199,17 @@
             ],
             "title": "Grant Plan Id"
           },
+          "grant_plan_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Plan Code"
+          },
           "grant_duration_days": {
             "anyOf": [
               {
@@ -61141,6 +61233,17 @@
             ],
             "title": "Child Grant Plan Id"
           },
+          "child_grant_plan_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Plan Code"
+          },
           "child_grant_duration_days": {
             "anyOf": [
               {
@@ -61151,6 +61254,18 @@
               }
             ],
             "title": "Child Grant Duration Days"
+          },
+          "child_policy_preview": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Policy Preview"
           }
         },
         "type": "object",

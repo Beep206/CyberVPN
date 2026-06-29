@@ -17,6 +17,10 @@ type AdminDeactivatePromoResponse =
   operations['admin_deactivate_promo_api_v1_admin_promo_codes__promo_id__delete']['responses'][200]['content']['application/json'];
 type AdminCreateInviteCodesRequest =
   operations['admin_create_invites_api_v1_admin_invite_codes_post']['requestBody']['content']['application/json'];
+type AdminCreateInviteCodesPayload =
+  Omit<AdminCreateInviteCodesRequest, 'legacy_acknowledgement'> & {
+    legacy_acknowledgement?: boolean;
+  };
 type AdminCreateInviteCodesResponse =
   operations['admin_create_invites_api_v1_admin_invite_codes_post']['responses'][201]['content']['application/json'];
 type AdminListInviteBatchesParams =
@@ -192,6 +196,8 @@ export interface AdminInviteCodeSummaryResponse {
   id: string;
   code_prefix?: string | null;
   code_hash?: string | null;
+  owner_user_id?: string | null;
+  batch_id?: string | null;
   status: string;
   is_used: boolean;
   used_by_user_id?: string | null;
@@ -200,15 +206,27 @@ export interface AdminInviteCodeSummaryResponse {
   expires_at?: string | null;
   created_at: string;
   campaign_id?: string | null;
+  campaign_key?: string | null;
   campaign_version_id?: string | null;
   root_invite_code_id?: string | null;
   parent_invite_code_id?: string | null;
+  source_redemption_id?: string | null;
   generation_depth?: number;
   grant_mode?: string | null;
   grant_plan_id?: string | null;
+  grant_plan_code?: string | null;
   grant_duration_days?: number | null;
   child_grant_plan_id?: string | null;
+  child_grant_plan_code?: string | null;
   child_grant_duration_days?: number | null;
+  child_policy_preview?: Record<string, unknown> | null;
+}
+
+export interface AdminInviteCodeInventoryResponse {
+  items: AdminInviteCodeSummaryResponse[];
+  total: number;
+  offset: number;
+  limit: number;
 }
 
 export interface AdminListInviteCodesParams {
@@ -1136,11 +1154,11 @@ export const growthApi = {
   deactivatePromo: (promoId: string) =>
     apiClient.delete<AdminDeactivatePromoResponse>(`/admin/promo-codes/${promoId}`),
 
-  createInviteCodes: (data: AdminCreateInviteCodesRequest) =>
+  createInviteCodes: (data: AdminCreateInviteCodesPayload) =>
     apiClient.post<AdminCreateInviteCodesResponse>('/admin/invite-codes', data),
 
   listInviteCodes: (params?: AdminListInviteCodesParams) =>
-    apiClient.get<AdminInviteCodeSummaryResponse[]>('/admin/invite-codes', { params }),
+    apiClient.get<AdminInviteCodeInventoryResponse>('/admin/invite-codes', { params }),
 
   listInviteBatches: (params?: AdminListInviteBatchesParams) =>
     apiClient.get<AdminInviteBatchListResponse>('/admin/invite-batches', { params }),

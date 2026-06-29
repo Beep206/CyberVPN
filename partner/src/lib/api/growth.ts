@@ -17,6 +17,10 @@ type AdminDeactivatePromoResponse =
   operations['admin_deactivate_promo_api_v1_admin_promo_codes__promo_id__delete']['responses'][200]['content']['application/json'];
 type AdminCreateInviteCodesRequest =
   operations['admin_create_invites_api_v1_admin_invite_codes_post']['requestBody']['content']['application/json'];
+type AdminCreateInviteCodesPayload =
+  Omit<AdminCreateInviteCodesRequest, 'legacy_acknowledgement'> & {
+    legacy_acknowledgement?: boolean;
+  };
 type AdminCreateInviteCodesResponse =
   operations['admin_create_invites_api_v1_admin_invite_codes_post']['responses'][201]['content']['application/json'];
 type AdminPromotePartnerRequest =
@@ -91,7 +95,7 @@ export const growthApi = {
   deactivatePromo: (promoId: string) =>
     apiClient.delete<AdminDeactivatePromoResponse>(`/admin/promo-codes/${promoId}`),
 
-  createInviteCodes: (data: AdminCreateInviteCodesRequest) =>
+  createInviteCodes: (data: AdminCreateInviteCodesPayload) =>
     apiClient.post<AdminCreateInviteCodesResponse>('/admin/invite-codes', data),
 
   promotePartner: (data: AdminPromotePartnerRequest) =>

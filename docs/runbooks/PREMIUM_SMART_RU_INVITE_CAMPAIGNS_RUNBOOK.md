@@ -91,10 +91,22 @@ This runbook covers the v7 flexible invite campaign flow for `premium_smart_ru`.
 Run after deploy:
 
 ```bash
-curl -I 'https://my.cyber-vpn.net/en-EN/rewards/invites?_rsc=smoke'
+HOST=https://my.cyber-vpn.net LOCALE=en-EN bash scripts/smoke/customer_site_rsc_routes.sh
 ```
 
-The response must not include `Location: https://cyber-vpn.net/...`.
+The smoke sends Next.js RSC-style headers to cabinet routes and must not return
+any `30x` response. A response with `Location: https://cyber-vpn.net/...` is a
+release blocker because browsers reject the redirected RSC preflight as CORS.
+
+Focused manual probe for one route:
+
+```bash
+curl -fsSI \
+  -H 'RSC: 1' \
+  -H 'Accept: text/x-component' \
+  -H 'Next-Router-State-Tree: []' \
+  'https://my.cyber-vpn.net/en-EN/rewards/invites?_rsc=smoke'
+```
 
 Also check:
 
@@ -106,9 +118,53 @@ Also check:
 - `https://my.cyber-vpn.net/en-EN/messages`
 - `https://my.cyber-vpn.net/en-EN/onboarding/code`
 
+## Mini App Session-First Auth
+
+1. Open a protected Mini App route from Telegram with an existing valid
+   customer session.
+2. Confirm the frontend calls `/api/v1/auth/session` before spending
+   Telegram `initData`.
+3. If `/api/v1/auth/session` restores the customer, the route must continue
+   without a browser-login fallback and without submitting initData again.
+4. If initData is missing or expired, the UI must show Telegram-only recovery
+   actions: retry, open bot, or close Mini App.
+5. If backend returns `TELEGRAM_INIT_DATA_REPLAYED`, the frontend should retry
+   session restore. If restore still fails, keep the user in the Mini App
+   recovery state rather than redirecting to browser login.
+
+## Admin Inventory and Surfaces
+
+1. Open Admin -> Growth -> Invite Codes -> Campaigns.
+2. Confirm at least one allowed surface is selected before submit. Submitting
+   with all surfaces cleared must be blocked client-side.
+3. Campaign cards and settings must show the allowed surfaces snapshot.
+4. Open Inventory and confirm the admin API response is the paginated envelope:
+   `{items,total,offset,limit}`.
+5. Confirm inventory rows expose only safe fields: prefixes, hashes,
+   campaign/batch/owner/plan metadata, child policy preview, usage state, and
+   expiry. Raw invite codes must not appear in inventory.
+6. Change rows per page and page navigation. The visible range and backend
+   `offset`/`limit` must move together.
+
+## Legacy Manual Premium Smart Guard
+
+Manual `/admin/invites` creation for `premium_smart_ru` must be treated as a
+legacy escape hatch only:
+
+1. A request with `plan_id` for `premium_smart_ru` and no
+   `legacy_acknowledgement=true` must return `422` with code
+   `PREMIUM_SMART_REQUIRES_FLEXIBLE_CAMPAIGN`.
+2. A request with `legacy_acknowledgement=true` may proceed only through the
+   existing admin-authenticated route.
+3. Successful legacy creation must emit `invite.legacy_manual_created` audit
+   and outbox records without raw invite codes in payloads or logs.
+
 ## Rollback
 
 1. Pause the campaign.
 2. Revoke unredeemed root or child batches if distribution must stop immediately.
 3. Keep redemption ledger and invite tree rows; do not hard-delete production records.
-4. Roll back application deployment only after confirming migration downgrade safety in the release runbook.
+4. Roll back application deployment only after confirming migration downgrade
+   safety in the release runbook.
+5. After rollback, rerun the Cabinet/RSC smoke before reopening Mini App or
+   invite onboarding traffic.

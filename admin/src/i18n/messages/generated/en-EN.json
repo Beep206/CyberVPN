@@ -2634,6 +2634,8 @@
         "extend": "Extend",
         "loading": "Loading...",
         "lookupTree": "Lookup tree",
+        "next": "Next",
+        "previous": "Previous",
         "publish": "Publish",
         "refresh": "Refresh",
         "resend": "Resend",
@@ -2673,6 +2675,7 @@
       },
       "eyebrow": "Growth / Invite Codes",
       "feedback": {
+        "allowedSurfacesRequired": "Select at least one allowed surface before creating the campaign.",
         "batchActionCompleted": "Invite batch action was applied and inventory was refreshed.",
         "batchActionFailed": "Invite batch action failed. Check permissions, reason, and batch status.",
         "batchCreated": "Invite campaign batch was created and inventory was refreshed.",
@@ -2691,6 +2694,7 @@
         "allowedGeos": "Allowed countries",
         "allowedMarkets": "Allowed markets",
         "allowedSegments": "Allowed segments",
+        "allowedSurfaces": "Allowed surfaces",
         "allStatuses": "All statuses",
         "anyPlan": "Any plan",
         "anyUsage": "Any usage",
@@ -2724,6 +2728,7 @@
         "grantPlanCode": "Grant Plan Code",
         "grantPlanCodeFallback": "Use plan code fallback",
         "idempotencyKey": "Idempotency Key",
+        "limit": "Rows per page",
         "maxDailyIssued": "Max daily issued",
         "maxGenerationDepth": "Max Generation Depth",
         "maxPerBatch": "Max per batch",
@@ -2756,7 +2761,9 @@
         "filtersTitle": "Inventory Filters",
         "live": "Live inventory",
         "loading": "Loading invite inventory...",
-        "title": "Invite Inventory"
+        "page": "{first}-{last} of {total} - page {page} / {totalPages}",
+        "title": "Invite Inventory",
+        "total": "{count} total"
       },
       "metaTitle": "Invite Codes - Ozoxy Admin",
       "metrics": {
@@ -2799,6 +2806,11 @@
         "maxDepth": "Max Depth",
         "surfaces": "Allowed Surfaces",
         "title": "Campaign Settings"
+      },
+      "surfaces": {
+        "miniapp": "Mini App",
+        "telegram_bot": "Telegram bot",
+        "web": "Web"
       },
       "table": {
         "actions": "Actions",

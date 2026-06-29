@@ -57,6 +57,7 @@ remote_sudo="${STAGE1_REMOTE_SUDO:-sudo}"
 release_tag="${STAGE1_RELEASE_TAG:-stage1-ci-${CI_PIPELINE_IID:-0}-${CI_COMMIT_SHORT_SHA:-local}}"
 evidence_dir="${STAGE1_DEPLOY_EVIDENCE_DIR:-docs/evidence/releases/ci-stage1}"
 public_smoke_urls="${STAGE1_PUBLIC_SMOKE_URLS:-https://cyber-vpn.net/ru-RU/miniapp/home https://admin.cyber-vpn.net/ru-RU/login https://partner.cyber-vpn.net/ru-RU/login https://api.cyber-vpn.net/healthz}"
+customer_rsc_smoke_host="${STAGE1_CUSTOMER_RSC_SMOKE_HOST:-https://my.cyber-vpn.net}"
 
 case "$release_tag" in
   *[!A-Za-z0-9_.-]*)
@@ -473,6 +474,22 @@ done
 
 {
   echo '```'
+} >>"$evidence_file"
+
+if [[ ",$services_csv," == *",frontend,"* ]]; then
+  {
+    echo
+    echo "## Customer RSC Smoke"
+    echo
+    echo '```text'
+  } >>"$evidence_file"
+  HOST="$customer_rsc_smoke_host" bash scripts/smoke/customer_site_rsc_routes.sh | tee -a "$evidence_file"
+  {
+    echo '```'
+  } >>"$evidence_file"
+fi
+
+{
   echo
   echo "Completed at: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`"
 } >>"$evidence_file"

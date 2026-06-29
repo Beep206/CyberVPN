@@ -10,6 +10,7 @@ import { growthApi } from '@/lib/api/growth';
 import type {
   AdminInviteBatchResponse,
   AdminInviteCampaignResponse,
+  AdminInviteCodeInventoryResponse,
   AdminInviteCodeSummaryResponse,
 } from '@/lib/api/growth';
 import { plansApi } from '@/lib/api/plans';
@@ -67,6 +68,7 @@ const initialCampaignForm = {
   name: '',
   description: '',
   ownerMode: 'selected_user',
+  allowedSurfaces: SURFACE_OPTIONS,
   allowedGeos: '',
   allowedMarkets: '',
   allowedSegments: '',
@@ -171,6 +173,8 @@ export function InviteCodesConsole() {
   const [batchForm, setBatchForm] = useState(initialBatchForm);
   const [batchActionForm, setBatchActionForm] = useState(initialBatchActionForm);
   const [inventoryFilters, setInventoryFilters] = useState(initialInventoryFilters);
+  const [inventoryPage, setInventoryPage] = useState(0);
+  const [inventoryLimit, setInventoryLimit] = useState(50);
   const [redemptionStatusFilter, setRedemptionStatusFilter] = useState('');
   const [treeRootInput, setTreeRootInput] = useState('');
   const [treeRootId, setTreeRootId] = useState('');
@@ -200,7 +204,7 @@ export function InviteCodesConsole() {
   });
 
   const inviteCodesQuery = useQuery({
-    queryKey: ['growth', 'invite-codes', inventoryFilters],
+    queryKey: ['growth', 'invite-codes', inventoryFilters, inventoryPage, inventoryLimit],
     queryFn: async () => {
       const response = await growthApi.listInviteCodes({
         campaign_id: inventoryFilters.campaignId.trim() || undefined,
@@ -221,8 +225,8 @@ export function InviteCodesConsole() {
         expires_from: toIsoDateTime(inventoryFilters.expiresFrom) ?? undefined,
         expires_to: toIsoDateTime(inventoryFilters.expiresTo) ?? undefined,
         prefix: inventoryFilters.prefix.trim() || undefined,
-        offset: 0,
-        limit: 100,
+        offset: inventoryPage * inventoryLimit,
+        limit: inventoryLimit,
       });
       return response.data;
     },
@@ -247,7 +251,9 @@ export function InviteCodesConsole() {
   const selectedBatch =
     batchesQuery.data?.items.find((batch) => batch.id === selectedBatchId) ?? batchesQuery.data?.items[0] ?? null;
   const plans = plansQuery.data ?? [];
-  const inviteCodes = inviteCodesQuery.data ?? [];
+  const inviteInventory = inviteCodesQuery.data ?? emptyInviteInventory(inventoryPage, inventoryLimit);
+  const inviteCodes = inviteInventory.items;
+  const inviteInventoryTotal = inviteInventory.total;
   const batches = batchesQuery.data?.items ?? [];
 
   const analyticsQuery = useQuery({
@@ -306,7 +312,7 @@ export function InviteCodesConsole() {
         owner_mode: campaignForm.ownerMode,
         starts_at: toIsoDateTime(campaignForm.startsAt) ?? null,
         expires_at: toIsoDateTime(campaignForm.expiresAt) ?? null,
-        allowed_surfaces: SURFACE_OPTIONS,
+        allowed_surfaces: campaignForm.allowedSurfaces,
         allowed_geos: csvList(campaignForm.allowedGeos),
         allowed_markets: csvList(campaignForm.allowedMarkets),
         allowed_segments: csvList(campaignForm.allowedSegments),
@@ -466,6 +472,10 @@ export function InviteCodesConsole() {
 
   function handleCreateCampaign(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (campaignForm.allowedSurfaces.length === 0) {
+      setFeedback(t('inviteCodes.feedback.allowedSurfacesRequired'));
+      return;
+    }
     createCampaignMutation.mutate();
   }
 
@@ -483,6 +493,7 @@ export function InviteCodesConsole() {
     setSelectedCampaignId(campaign.id);
     setBatchForm((current) => ({ ...current, campaignId: campaign.id }));
     setInventoryFilters((current) => ({ ...current, campaignId: campaign.id }));
+    setInventoryPage(0);
   }
 
   const activeCampaigns = campaigns.filter((campaign) => campaign.status === 'active').length;
@@ -525,7 +536,7 @@ export function InviteCodesConsole() {
         },
         {
           label: t('inviteCodes.metrics.inventory'),
-          value: formatCompactNumber(inviteCodes.length, locale),
+          value: formatCompactNumber(inviteInventoryTotal, locale),
           hint: t('inviteCodes.metrics.inventoryHint'),
           tone: 'neutral',
         },
@@ -618,8 +629,19 @@ export function InviteCodesConsole() {
       {activeTab === 'inventory' ? (
         <InventoryTab
           inviteCodes={inviteCodes}
+          total={inviteInventoryTotal}
+          page={inventoryPage}
+          limit={inventoryLimit}
           inventoryFilters={inventoryFilters}
-          setInventoryFilters={setInventoryFilters}
+          setInventoryFilters={(updater) => {
+            setInventoryPage(0);
+            setInventoryFilters(updater);
+          }}
+          setPage={setInventoryPage}
+          setLimit={(value) => {
+            setInventoryPage(0);
+            setInventoryLimit(value);
+          }}
           plans={plans}
           isLoading={inviteCodesQuery.isLoading}
           isFetching={inviteCodesQuery.isFetching}
@@ -700,6 +722,48 @@ export function InviteCodesConsole() {
         />
       ) : null}
     </GrowthPageShell>
+  );
+}
+
+function emptyInviteInventory(page: number, limit: number): AdminInviteCodeInventoryResponse {
+  return {
+    items: [],
+    total: 0,
+    offset: page * limit,
+    limit,
+  };
+}
+
+function surfaceLabel(surface: string, t: ReturnType<typeof useTranslations>) {
+  try {
+    return t(`inviteCodes.surfaces.${surface}`);
+  } catch {
+    return humanizeToken(surface);
+  }
+}
+
+function SurfaceBadges({
+  surfaces,
+  t,
+}: {
+  surfaces: string[];
+  t: ReturnType<typeof useTranslations>;
+}) {
+  if (surfaces.length === 0) {
+    return <span className="text-xs font-mono text-muted-foreground">{t('common.missing')}</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {surfaces.map((surface) => (
+        <span
+          key={surface}
+          className="rounded-full border border-grid-line/20 bg-terminal-bg/60 px-2 py-1 text-[0.65rem] font-mono uppercase tracking-[0.16em] text-muted-foreground"
+        >
+          {surfaceLabel(surface, t)}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -854,6 +918,28 @@ function CampaignsTab({
             options={['system', 'selected_user', 'uploaded_user_list']}
             optionLabel={(value) => t(`inviteCodes.ownerModes.${value}`)}
           />
+          <div className="rounded-xl border border-grid-line/20 bg-terminal-bg/45 p-3">
+            <p className="text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+              {t('inviteCodes.fields.allowedSurfaces')}
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              {SURFACE_OPTIONS.map((surface) => (
+                <CheckboxRow
+                  key={surface}
+                  label={surfaceLabel(surface, t)}
+                  checked={campaignForm.allowedSurfaces.includes(surface)}
+                  onChange={(checked) =>
+                    setCampaignForm((current) => ({
+                      ...current,
+                      allowedSurfaces: checked
+                        ? Array.from(new Set([...current.allowedSurfaces, surface]))
+                        : current.allowedSurfaces.filter((item) => item !== surface),
+                    }))
+                  }
+                />
+              ))}
+            </div>
+          </div>
           <SelectField
             label={t('inviteCodes.fields.grantPlan')}
             value={campaignForm.grantPlanId}
@@ -1086,11 +1172,14 @@ function CampaignsTab({
                       ) : null}
                     </div>
                   </div>
-                  <div className="mt-3 grid gap-2 text-xs font-mono text-muted-foreground md:grid-cols-2">
-                    <span>{formatDateTime(campaign.updated_at, locale)}</span>
-                    <span>{campaign.published_at ? formatDateTime(campaign.published_at, locale) : t('common.missing')}</span>
-                  </div>
-                </button>
+	                  <div className="mt-3 grid gap-2 text-xs font-mono text-muted-foreground md:grid-cols-2">
+	                    <span>{formatDateTime(campaign.updated_at, locale)}</span>
+	                    <span>{campaign.published_at ? formatDateTime(campaign.published_at, locale) : t('common.missing')}</span>
+	                  </div>
+	                  <div className="mt-3">
+	                    <SurfaceBadges surfaces={campaign.allowed_surfaces} t={t} />
+	                  </div>
+	                </button>
                 {campaign.current_version_id ? (
                   <div className="mt-3">
                     <Button
@@ -1246,8 +1335,13 @@ function CreateBatchTab({
 
 function InventoryTab({
   inviteCodes,
+  total,
+  page,
+  limit,
   inventoryFilters,
   setInventoryFilters,
+  setPage,
+  setLimit,
   plans,
   isLoading,
   isFetching,
@@ -1255,14 +1349,24 @@ function InventoryTab({
   t,
 }: {
   inviteCodes: AdminInviteCodeSummaryResponse[];
+  total: number;
+  page: number;
+  limit: number;
   inventoryFilters: typeof initialInventoryFilters;
   setInventoryFilters: Dispatch<SetStateAction<typeof initialInventoryFilters>>;
+  setPage: (page: number) => void;
+  setLimit: (limit: number) => void;
   plans: Awaited<ReturnType<typeof plansApi.listAdmin>>['data'];
   isLoading: boolean;
   isFetching: boolean;
   locale: string;
   t: ReturnType<typeof useTranslations>;
 }) {
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const currentPage = Math.min(page, totalPages - 1);
+  const firstVisible = total === 0 ? 0 : currentPage * limit + 1;
+  const lastVisible = Math.min(total, currentPage * limit + inviteCodes.length);
+
   return (
     <div className="grid gap-6 xl:grid-cols-12">
       <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-4">
@@ -1394,8 +1498,8 @@ function InventoryTab({
       </article>
 
       <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-8">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+	        <div className="flex flex-wrap items-center justify-between gap-3">
+	          <div>
             <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
               {t('inviteCodes.inventory.title')}
             </h2>
@@ -1403,15 +1507,58 @@ function InventoryTab({
               {t('inviteCodes.inventory.description')}
             </p>
           </div>
-          <GrowthStatusChip
-            label={isFetching ? t('inviteCodes.actions.syncing') : t('inviteCodes.inventory.live')}
-            tone={isFetching ? 'warning' : 'success'}
-          />
-        </div>
-        <div className="mt-5 overflow-hidden rounded-2xl border border-grid-line/20">
-          <InviteCodesTable inviteCodes={inviteCodes} isLoading={isLoading} locale={locale} t={t} />
-        </div>
-      </article>
+	          <div className="flex flex-wrap items-center gap-2">
+	            <GrowthStatusChip
+	              label={isFetching ? t('inviteCodes.actions.syncing') : t('inviteCodes.inventory.live')}
+	              tone={isFetching ? 'warning' : 'success'}
+	            />
+	            <span className="rounded-full border border-grid-line/20 bg-terminal-bg/60 px-3 py-1 text-xs font-mono text-muted-foreground">
+	              {t('inviteCodes.inventory.total', { count: formatCompactNumber(total, locale) })}
+	            </span>
+	          </div>
+	        </div>
+	        <div className="mt-5 overflow-hidden rounded-2xl border border-grid-line/20">
+	          <InviteCodesTable inviteCodes={inviteCodes} isLoading={isLoading} locale={locale} t={t} />
+	        </div>
+	        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-grid-line/20 bg-terminal-bg/45 p-3">
+	          <span className="text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+	            {t('inviteCodes.inventory.page', {
+	              page: currentPage + 1,
+	              totalPages,
+	              first: firstVisible,
+	              last: lastVisible,
+	              total,
+	            })}
+	          </span>
+	          <div className="flex flex-wrap items-end gap-2">
+	            <SelectField
+	              label={t('inviteCodes.fields.limit')}
+	              value={String(limit)}
+	              onChange={(value) => setLimit(Number.parseInt(value, 10))}
+	              options={['25', '50', '100']}
+	              compact
+	            />
+	            <Button
+	              type="button"
+	              variant="ghost"
+	              magnetic={false}
+	              disabled={currentPage === 0}
+	              onClick={() => setPage(Math.max(0, currentPage - 1))}
+	            >
+	              {t('inviteCodes.actions.previous')}
+	            </Button>
+	            <Button
+	              type="button"
+	              variant="ghost"
+	              magnetic={false}
+	              disabled={currentPage + 1 >= totalPages}
+	              onClick={() => setPage(Math.min(totalPages - 1, currentPage + 1))}
+	            >
+	              {t('inviteCodes.actions.next')}
+	            </Button>
+	          </div>
+	        </div>
+	      </article>
     </div>
   );
 }

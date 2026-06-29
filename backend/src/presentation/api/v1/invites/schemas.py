@@ -51,6 +51,10 @@ class AdminCreateInviteRequest(BaseModel):
     free_days: int = Field(..., gt=0, description="Number of free subscription days the code grants")
     count: int = Field(1, ge=1, le=100, description="Number of codes to generate")
     plan_id: UUID | None = Field(None, description="Optional plan to associate with the codes")
+    legacy_acknowledgement: bool = Field(
+        False,
+        description="Required when using the legacy manual invite endpoint for premium_smart_ru.",
+    )
 
 
 class CustomerInviteBatchResponse(BaseModel):
@@ -113,6 +117,8 @@ class AdminInviteCodeSummaryResponse(BaseModel):
     id: UUID
     code_prefix: str | None = None
     code_hash: str | None = None
+    owner_user_id: UUID | None = None
+    batch_id: UUID | None = None
     status: str
     is_used: bool
     used_by_user_id: UUID | None = None
@@ -121,15 +127,29 @@ class AdminInviteCodeSummaryResponse(BaseModel):
     expires_at: datetime | None = None
     created_at: datetime
     campaign_id: UUID | None = None
+    campaign_key: str | None = None
     campaign_version_id: UUID | None = None
     root_invite_code_id: UUID | None = None
     parent_invite_code_id: UUID | None = None
+    source_redemption_id: UUID | None = None
     generation_depth: int = 0
     grant_mode: str | None = None
     grant_plan_id: UUID | None = None
+    grant_plan_code: str | None = None
     grant_duration_days: int | None = None
     child_grant_plan_id: UUID | None = None
+    child_grant_plan_code: str | None = None
     child_grant_duration_days: int | None = None
+    child_policy_preview: dict[str, Any] | None = None
+
+
+class AdminInviteCodeInventoryResponse(BaseModel):
+    """Paginated admin invite-code inventory response."""
+
+    items: list[AdminInviteCodeSummaryResponse]
+    total: int
+    offset: int
+    limit: int
 
 
 class AdminInviteBatchResponse(BaseModel):

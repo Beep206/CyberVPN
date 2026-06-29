@@ -14296,6 +14296,12 @@ export interface components {
              * @description Optional plan to associate with the codes
              */
             plan_id?: string | null;
+            /**
+             * Legacy Acknowledgement
+             * @description Required when using the legacy manual invite endpoint for premium_smart_ru.
+             * @default false
+             */
+            legacy_acknowledgement: boolean;
         };
         /** AdminCustomerCredentialRegenerationRequest */
         AdminCustomerCredentialRegenerationRequest: {
@@ -18191,6 +18197,20 @@ export interface components {
             warnings: string[];
         };
         /**
+         * AdminInviteCodeInventoryResponse
+         * @description Paginated admin invite-code inventory response.
+         */
+        AdminInviteCodeInventoryResponse: {
+            /** Items */
+            items: components["schemas"]["AdminInviteCodeSummaryResponse"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /**
          * AdminInviteCodeSummaryResponse
          * @description Admin-safe invite code summary for batch views.
          */
@@ -18204,6 +18224,10 @@ export interface components {
             code_prefix?: string | null;
             /** Code Hash */
             code_hash?: string | null;
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Batch Id */
+            batch_id?: string | null;
             /** Status */
             status: string;
             /** Is Used */
@@ -18223,12 +18247,16 @@ export interface components {
             created_at: string;
             /** Campaign Id */
             campaign_id?: string | null;
+            /** Campaign Key */
+            campaign_key?: string | null;
             /** Campaign Version Id */
             campaign_version_id?: string | null;
             /** Root Invite Code Id */
             root_invite_code_id?: string | null;
             /** Parent Invite Code Id */
             parent_invite_code_id?: string | null;
+            /** Source Redemption Id */
+            source_redemption_id?: string | null;
             /**
              * Generation Depth
              * @default 0
@@ -18238,12 +18266,20 @@ export interface components {
             grant_mode?: string | null;
             /** Grant Plan Id */
             grant_plan_id?: string | null;
+            /** Grant Plan Code */
+            grant_plan_code?: string | null;
             /** Grant Duration Days */
             grant_duration_days?: number | null;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
+            /** Child Grant Plan Code */
+            child_grant_plan_code?: string | null;
             /** Child Grant Duration Days */
             child_grant_duration_days?: number | null;
+            /** Child Policy Preview */
+            child_policy_preview?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** AdminInviteRedemptionListResponse */
         AdminInviteRedemptionListResponse: {
@@ -51724,7 +51760,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminInviteCodeSummaryResponse"][];
+                    "application/json": components["schemas"]["AdminInviteCodeInventoryResponse"];
                 };
             };
             /** @description Validation Error */

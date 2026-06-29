@@ -464,7 +464,9 @@
       "extend": "Extend",
       "loading": "Loading...",
       "lookupTree": "Lookup tree",
+      "next": "Next",
       "publish": "Publish",
+      "previous": "Previous",
       "refresh": "Refresh",
       "resend": "Resend",
       "reverse": "Reverse",
@@ -510,6 +512,7 @@
       "campaignCreateFailed": "Invite campaign creation failed. Check key uniqueness, plan targeting, and backend validation.",
       "campaignPublished": "Invite campaign version was published.",
       "campaignPublishFailed": "Invite campaign publish failed. Check campaign version and permissions.",
+      "allowedSurfacesRequired": "Select at least one allowed surface before creating the campaign.",
       "exported": "{count} invite codes were exported for the selected batch.",
       "exportFailed": "Invite batch export failed. Check batch access and backend audit policy.",
       "redemptionReversed": "Invite redemption was reversed and dependent access was revoked.",
@@ -549,6 +552,8 @@
       "filtersTitle": "Inventory Filters",
       "live": "Live inventory",
       "loading": "Loading invite inventory...",
+      "page": "{first}-{last} of {total} - page {page} / {totalPages}",
+      "total": "{count} total",
       "title": "Invite Inventory"
     },
     "batches": {
@@ -596,6 +601,7 @@
     },
     "fields": {
       "allStatuses": "All statuses",
+      "allowedSurfaces": "Allowed surfaces",
       "anyPlan": "Any plan",
       "anyUsage": "Any usage",
       "batch": "Batch",
@@ -641,6 +647,7 @@
       "planId": "Plan",
       "planCode": "Plan Code",
       "prefix": "Code Prefix",
+      "limit": "Rows per page",
       "publishNow": "Publish after creation",
       "rawExportEnabled": "Raw export enabled",
       "reason": "Reason",
@@ -675,6 +682,11 @@
       "status": "Status",
       "surface": "Surface",
       "used": "Used"
+    },
+    "surfaces": {
+      "miniapp": "Mini App",
+      "telegram_bot": "Telegram bot",
+      "web": "Web"
     }
   },
   "giftCodes": {
