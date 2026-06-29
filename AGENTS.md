@@ -42,6 +42,31 @@ create local migrations, or execute validation. Production deployment,
 production data mutation, credential rotation, destructive infrastructure
 actions, and direct pushes to `main` require explicit task scope.
 
+## Production and VPN node map
+
+The canonical production application server is:
+
+| Role | Hostname | IPv4 | IPv6 prefix | Notes |
+| --- | --- | --- | --- | --- |
+| Production app | `prod-app-1` | `45.87.41.146` | `2a0d:2787:1b:12f5::/64` | Use `MainKey2_private_fixed.pem` and the repository deployment scripts unless the task explicitly states otherwise. |
+
+Do not treat `95.82.233.131`, `cybervpn-h`, or any home/lab host as the
+production application target unless the current task explicitly names it.
+
+The VPN node inventory for Remnawave/CyberVPN operations is:
+
+| Node | Region | IPv4 | OS | Size |
+| --- | --- | --- | --- | --- |
+| `gigantic-violet` | MSKs-3, Moscow | `178.159.94.225` | Ubuntu 24.04 | 4 cores, 8 GB RAM, 120 GB NVMe |
+| `watery-azure` | SPBs-3, Saint Petersburg | `193.233.91.99` | Ubuntu 24.04 | 4 cores, 8 GB RAM, 120 GB NVMe |
+| `combative-sapphi` | DEs-3, Germany | `138.124.115.206` | Ubuntu 24.04 | 4 cores, 8 GB RAM, 120 GB NVMe |
+| `netherlands-vpn-node` | Netherlands | `138.16.140.44` | Ubuntu 24.04 | VPN node host |
+
+Keep credentials, passwords, tokens, private keys, OTP seeds, and provider
+secrets out of `AGENTS.md` and other tracked documentation. Use the approved
+local secret store under `.private/` or the current task's explicitly supplied
+access channel.
+
 ## Source-of-truth order
 
 1. The complete current task, including approved amendments and linked

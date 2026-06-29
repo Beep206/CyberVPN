@@ -58,6 +58,12 @@ release_tag="${STAGE1_RELEASE_TAG:-stage1-ci-${CI_PIPELINE_IID:-0}-${CI_COMMIT_S
 evidence_dir="${STAGE1_DEPLOY_EVIDENCE_DIR:-docs/evidence/releases/ci-stage1}"
 public_smoke_urls="${STAGE1_PUBLIC_SMOKE_URLS:-https://cyber-vpn.net/ru-RU/miniapp https://cyber-vpn.net/ru-RU/miniapp/home https://cyber-vpn.net/runtime/fingerprint https://api.cyber-vpn.net/api/v1/runtime/fingerprint https://admin.cyber-vpn.net/ru-RU/login https://partner.cyber-vpn.net/ru-RU/login https://api.cyber-vpn.net/healthz}"
 customer_rsc_smoke_host="${STAGE1_CUSTOMER_RSC_SMOKE_HOST:-https://my.cyber-vpn.net}"
+source_sync_mode="${STAGE1_SOURCE_SYNC_MODE:-rsync}"
+
+case "$source_sync_mode" in
+  rsync|git-archive|runtime-archive) ;;
+  *) fail "STAGE1_SOURCE_SYNC_MODE must be rsync, git-archive, or runtime-archive" ;;
+esac
 
 case "$release_tag" in
   *[!A-Za-z0-9_.-]*)
@@ -168,51 +174,64 @@ remote_src="$release_root/src-$release_tag"
 log "creating remote source directory $remote_src"
 ssh_cmd "$remote_sudo install -d -o '$user' -g '$user' '$remote_src'"
 
-log "syncing source without secrets/heavy build artifacts"
-rsync -az --delete \
-  --exclude='.git/' \
-  --exclude='.codex/' \
-  --exclude='.private/' \
-  --exclude='.env' \
-  --exclude='.env.*' \
-  --exclude='*.pem' \
-  --exclude='*.key' \
-  --exclude='node_modules/' \
-  --exclude='**/node_modules/' \
-  --exclude='.venv/' \
-  --exclude='**/.venv/' \
-  --exclude='.next/' \
-  --exclude='**/.next/' \
-  --exclude='.next-*' \
-  --exclude='**/.next-*' \
-  --exclude='.dart_tool/' \
-  --exclude='**/.dart_tool/' \
-  --exclude='.gradle/' \
-  --exclude='**/.gradle/' \
-  --exclude='build/' \
-  --exclude='**/build/' \
-  --exclude='dist/' \
-  --exclude='**/dist/' \
-  --exclude='.cache/' \
-  --exclude='**/.cache/' \
-  --exclude='.pytest_cache/' \
-  --exclude='.ruff_cache/' \
-  --exclude='.tmp/' \
-  --exclude='htmlcov/' \
-  --exclude='docs/' \
-  --exclude='apps/' \
-  --exclude='packages/' \
-  --exclude='cybervpn_mobile/' \
-  --exclude='SDK/' \
-  --exclude='services/helix-adapter/' \
-  --exclude='services/helix-node/' \
-  --exclude='services/node-fleet-controller/' \
-  --exclude='infra/terraform/' \
-  --exclude='infra/backups/' \
-  --exclude='.coverage' \
-  --exclude='.coverage.*' \
-  -e "${ssh_base[*]}" \
-  ./ "$user@$host:$remote_src/"
+if [[ "$source_sync_mode" == "git-archive" ]]; then
+  log "syncing tracked source with git archive"
+  ssh_cmd "$remote_sudo rm -rf '$remote_src' && $remote_sudo install -d -o '$user' -g '$user' '$remote_src'"
+  git archive --format=tar HEAD | "${ssh_base[@]}" "$user@$host" "tar -xf - -C '$remote_src'"
+elif [[ "$source_sync_mode" == "runtime-archive" ]]; then
+  log "syncing tracked runtime source archive"
+  ssh_cmd "$remote_sudo rm -rf '$remote_src' && $remote_sudo install -d -o '$user' -g '$user' '$remote_src'"
+  git ls-files |
+    awk '/^(backend|frontend|services\/telegram-bot|infra\/deploy\/stage1)\// || /^(package.json|package-lock.json|tsconfig.base.json|AGENTS.md)$/ {print}' |
+    tar -cf - -T - |
+    "${ssh_base[@]}" "$user@$host" "tar -xf - -C '$remote_src'"
+else
+  log "syncing source without secrets/heavy build artifacts"
+  rsync -az --delete \
+    --exclude='.git/' \
+    --exclude='.codex/' \
+    --exclude='.private/' \
+    --exclude='.env' \
+    --exclude='.env.*' \
+    --exclude='*.pem' \
+    --exclude='*.key' \
+    --exclude='node_modules/' \
+    --exclude='**/node_modules/' \
+    --exclude='.venv/' \
+    --exclude='**/.venv/' \
+    --exclude='.next/' \
+    --exclude='**/.next/' \
+    --exclude='.next-*' \
+    --exclude='**/.next-*' \
+    --exclude='.dart_tool/' \
+    --exclude='**/.dart_tool/' \
+    --exclude='.gradle/' \
+    --exclude='**/.gradle/' \
+    --exclude='build/' \
+    --exclude='**/build/' \
+    --exclude='dist/' \
+    --exclude='**/dist/' \
+    --exclude='.cache/' \
+    --exclude='**/.cache/' \
+    --exclude='.pytest_cache/' \
+    --exclude='.ruff_cache/' \
+    --exclude='.tmp/' \
+    --exclude='htmlcov/' \
+    --exclude='docs/' \
+    --exclude='apps/' \
+    --exclude='packages/' \
+    --exclude='cybervpn_mobile/' \
+    --exclude='SDK/' \
+    --exclude='services/helix-adapter/' \
+    --exclude='services/helix-node/' \
+    --exclude='services/node-fleet-controller/' \
+    --exclude='infra/terraform/' \
+    --exclude='infra/backups/' \
+    --exclude='.coverage' \
+    --exclude='.coverage.*' \
+    -e "${ssh_base[*]}" \
+    ./ "$user@$host:$remote_src/"
+fi
 
 {
   echo "# Stage 1 GitLab Deploy"
@@ -289,7 +308,7 @@ ensure_backend_device_cookie_pepper() {
 
   secrets_dir="$(remote_env_value "$COMPOSE_DIR/.env" CYBERVPN_SECRETS_DIR || true)"
   if [ -z "$secrets_dir" ]; then
-    secrets_dir="/srv/cybervpn-h/secrets"
+    secrets_dir="/srv/cybervpn/secrets"
   fi
   app_env="${secrets_dir%/}/app.env"
 

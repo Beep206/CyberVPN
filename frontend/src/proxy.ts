@@ -765,6 +765,13 @@ export async function proxy(request: NextRequest) {
     return redirectOrInternalNotFound(request, buildCanonicalRedirectUrl(request, ADMIN_ORIGIN));
   }
 
+  if (isAllowedByRuntimePrefix(
+    getUnlocalizedPathname(request.nextUrl.pathname),
+    MANDATORY_OPERATIONAL_PATH_PREFIXES,
+  )) {
+    return NextResponse.next();
+  }
+
   const routeSegment = getRouteSegment(request.nextUrl.pathname);
   const partnerAttribution = getPartnerAttributionToken(request.nextUrl.pathname);
   if (partnerAttribution) {
