@@ -38,6 +38,19 @@ status=0
 
 printf 'RSC route smoke host=%s locales=%s\n' "$base_host" "${locales[*]}"
 
+is_public_site_location() {
+  local location="$1"
+  case "$location" in
+    "https://cyber-vpn.net" | "https://cyber-vpn.net/"* | "https://cyber-vpn.net?"* | \
+      "https://www.cyber-vpn.net" | "https://www.cyber-vpn.net/"* | "https://www.cyber-vpn.net?"*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 check_response() {
   local label="$1"
   local url="$2"
@@ -56,7 +69,7 @@ check_response() {
     return
   fi
 
-  if [[ "$location" == https://cyber-vpn.net/* || "$location" == https://www.cyber-vpn.net/* ]]; then
+  if is_public_site_location "$location"; then
     printf 'FAIL %s %s http=%s cross-origin-location=%s\n' "$label" "$url" "$http_code" "$location"
     status=1
     return
