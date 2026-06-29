@@ -60,7 +60,7 @@ cyber-vpn.net {
 	@partner_routes path_regexp partner_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?partner(?:/.*)?$
 	redir @partner_routes https://partner.cyber-vpn.net{uri} temporary
 
-	@cabinet_routes path_regexp cabinet_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:analytics|dashboard|monitoring|payment-history|referral|servers|settings|subscriptions|users|wallet)(?:/.*)?$
+	@cabinet_routes path_regexp cabinet_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:analytics|dashboard|delete-account|messages|monitoring|onboarding|partner|payment-history|referral|rewards|servers|settings|subscriptions|support|users|wallet)(?:/.*)?$
 	redir @cabinet_routes https://my.cyber-vpn.net{uri} temporary
 
 	reverse_proxy http://127.0.0.1:13000 {
@@ -80,6 +80,16 @@ my.cyber-vpn.net {
 
 	@miniapp_routes path_regexp miniapp_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?miniapp(?:/.*)?$
 	handle @miniapp_routes {
+		reverse_proxy http://127.0.0.1:13000 {
+			header_up Host {host}
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Port 443
+		}
+	}
+
+	@cabinet_routes path_regexp cabinet_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:analytics|dashboard|delete-account|messages|monitoring|onboarding|partner|payment-history|referral|rewards|servers|settings|subscriptions|support|users|wallet)(?:/.*)?$
+	handle @cabinet_routes {
 		reverse_proxy http://127.0.0.1:13000 {
 			header_up Host {host}
 			header_up X-Forwarded-Host {host}

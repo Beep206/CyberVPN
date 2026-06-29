@@ -38,6 +38,40 @@ status=0
 
 printf 'RSC route smoke host=%s locales=%s\n' "$base_host" "${locales[*]}"
 
+check_response() {
+  local label="$1"
+  local url="$2"
+  local http_code="$3"
+  local location="$4"
+
+  if [[ "$http_code" == "000" ]]; then
+    printf 'FAIL %s %s curl-failed\n' "$label" "$url"
+    status=1
+    return
+  fi
+
+  if [[ "$http_code" == 30* ]]; then
+    printf 'FAIL %s %s http=%s location=%s\n' "$label" "$url" "$http_code" "${location:-<empty>}"
+    status=1
+    return
+  fi
+
+  if [[ "$location" == https://cyber-vpn.net/* || "$location" == https://www.cyber-vpn.net/* ]]; then
+    printf 'FAIL %s %s http=%s cross-origin-location=%s\n' "$label" "$url" "$http_code" "$location"
+    status=1
+    return
+  fi
+
+  printf 'PASS %s %s http=%s\n' "$label" "$url" "$http_code"
+}
+
+read_location_header() {
+  local headers_file="$1"
+  tr -d '\r' <"$headers_file" \
+    | awk 'tolower($0) ~ /^location:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' \
+    | tail -n 1
+}
+
 for locale in "${locales[@]}"; do
   for segment in "${route_segments[@]}"; do
     route="/${locale}${segment}"
@@ -54,32 +88,26 @@ for locale in "${locales[@]}"; do
     )"; then
       http_code="000"
     fi
-    location="$(
-      tr -d '\r' <"$headers_file" \
-        | awk 'tolower($0) ~ /^location:/ {sub(/^[^:]+:[[:space:]]*/, ""); print}' \
-        | tail -n 1
-    )"
+    location="$(read_location_header "$headers_file")"
     rm -f "$headers_file"
 
-    if [[ "$http_code" == "000" ]]; then
-      printf 'FAIL %s curl-failed\n' "$url"
-      status=1
-      continue
-    fi
+    check_response "RSC" "$url" "$http_code" "$location"
 
-    if [[ "$http_code" == 30* ]]; then
-      printf 'FAIL %s http=%s location=%s\n' "$url" "$http_code" "${location:-<empty>}"
-      status=1
-      continue
+    headers_file="$(mktemp)"
+    if ! http_code="$(
+      curl -sS -o /dev/null -D "$headers_file" -w '%{http_code}' \
+        -X OPTIONS \
+        -H 'Origin: https://my.cyber-vpn.net' \
+        -H 'Access-Control-Request-Method: GET' \
+        -H 'Access-Control-Request-Headers: rsc,next-router-state-tree' \
+        "$url"
+    )"; then
+      http_code="000"
     fi
+    location="$(read_location_header "$headers_file")"
+    rm -f "$headers_file"
 
-    if [[ "$location" == https://cyber-vpn.net/* || "$location" == https://www.cyber-vpn.net/* ]]; then
-      printf 'FAIL %s http=%s cross-origin-location=%s\n' "$url" "$http_code" "$location"
-      status=1
-      continue
-    fi
-
-    printf 'PASS %s http=%s\n' "$url" "$http_code"
+    check_response "OPTIONS" "$url" "$http_code" "$location"
   done
 done
 

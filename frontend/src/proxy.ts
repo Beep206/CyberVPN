@@ -29,7 +29,7 @@ const CABINET_ORIGIN = `https://${CABINET_PRIMARY_HOST}`;
 const CUSTOMER_SITE_RUNTIME_TTL_MS = 15_000;
 const CUSTOMER_SITE_RUNTIME_TIMEOUT_MS = 500;
 const MANDATORY_PUBLIC_ALLOWED_PREFIXES = ['/miniapp'] as const;
-const MANDATORY_CABINET_ALLOWED_PREFIXES = ['/miniapp'] as const;
+const MANDATORY_CABINET_ALLOWED_PREFIXES = CABINET_ALLOWED_PREFIXES;
 const MANDATORY_OPERATIONAL_PATH_PREFIXES = ['/runtime'] as const;
 const CABINET_REDIRECT_ALLOWED_HOSTS = new Set([
   CABINET_PRIMARY_HOST,
@@ -272,6 +272,15 @@ function isNextInternalNavigationRequest(request: NextRequest): boolean {
   const purpose = request.headers.get('purpose')?.toLowerCase() ?? '';
   const secFetchMode = request.headers.get('sec-fetch-mode')?.toLowerCase() ?? '';
   const secFetchDest = request.headers.get('sec-fetch-dest')?.toLowerCase() ?? '';
+  const accessControlRequestHeaders =
+    request.headers.get('access-control-request-headers')?.toLowerCase() ?? '';
+  const isRscPreflight =
+    request.method === 'OPTIONS'
+    && (
+      accessControlRequestHeaders.includes('rsc')
+      || accessControlRequestHeaders.includes('next-router-state-tree')
+      || accessControlRequestHeaders.includes('next-router-prefetch')
+    );
 
   return (
     request.nextUrl.searchParams.has('_rsc')
@@ -281,6 +290,7 @@ function isNextInternalNavigationRequest(request: NextRequest): boolean {
     || request.headers.has('x-nextjs-data')
     || accept.includes('text/x-component')
     || purpose === 'prefetch'
+    || isRscPreflight
     || (secFetchMode === 'cors' && secFetchDest === 'empty')
   );
 }
@@ -424,6 +434,21 @@ function withMandatoryPathPrefixes(
   return Array.from(new Set(normalized));
 }
 
+function mergeSafePathLists(
+  fallback: readonly string[],
+  payload: unknown,
+  mandatoryPrefixes: readonly string[],
+): readonly string[] {
+  const payloadList = normalizeSafePathList(payload, []);
+  return withMandatoryPathPrefixes(
+    [
+      ...fallback,
+      ...payloadList,
+    ],
+    mandatoryPrefixes,
+  );
+}
+
 function normalizeSafePath(value: unknown, fallback: string): string {
   if (typeof value !== 'string') {
     return fallback;
@@ -473,18 +498,14 @@ function normalizeCustomerSiteRuntimeSnapshot(payload: unknown): CustomerSiteRun
       siteRecord.cabinet_destination_path,
       fallback.cabinetDestinationPath,
     ),
-    allowedPathPrefixes: withMandatoryPathPrefixes(
-      normalizeSafePathList(
-        siteRecord.allowed_path_prefixes,
-        fallback.allowedPathPrefixes,
-      ),
+    allowedPathPrefixes: mergeSafePathLists(
+      fallback.allowedPathPrefixes,
+      siteRecord.allowed_path_prefixes,
       MANDATORY_PUBLIC_ALLOWED_PREFIXES,
     ),
-    cabinetAllowedPrefixes: withMandatoryPathPrefixes(
-      normalizeSafePathList(
-        siteRecord.cabinet_allowed_prefixes,
-        fallback.cabinetAllowedPrefixes,
-      ),
+    cabinetAllowedPrefixes: mergeSafePathLists(
+      fallback.cabinetAllowedPrefixes,
+      siteRecord.cabinet_allowed_prefixes,
       MANDATORY_CABINET_ALLOWED_PREFIXES,
     ),
     cabinetMarketingRouteAction: normalizeCabinetMarketingRouteAction(
@@ -498,11 +519,9 @@ function normalizeCustomerSiteRuntimeSnapshot(payload: unknown): CustomerSiteRun
       siteRecord.legal_path_prefixes,
       fallback.legalPathPrefixes,
     ),
-    operationalPathPrefixes: withMandatoryPathPrefixes(
-      normalizeSafePathList(
-        siteRecord.operational_path_prefixes,
-        fallback.operationalPathPrefixes,
-      ),
+    operationalPathPrefixes: mergeSafePathLists(
+      fallback.operationalPathPrefixes,
+      siteRecord.operational_path_prefixes,
       MANDATORY_OPERATIONAL_PATH_PREFIXES,
     ),
     preserveQueryKeys: normalizeStringList(siteRecord.preserve_query_keys, fallback.preserveQueryKeys),
@@ -685,6 +704,14 @@ function buildCabinetOnlyRedirect(
   if (isCabinetHost) {
     if (isAllowedByRuntimePrefix(unlocalizedPathname, snapshot.cabinetAllowedPrefixes)) {
       return null;
+    }
+
+    if (isCabinetRouteSegment(routeSegment)) {
+      return null;
+    }
+
+    if (isNextInternalNavigationRequest(request)) {
+      return new NextResponse(null, { status: 404 });
     }
 
     if (snapshot.cabinetMarketingRouteAction === 'allow') {

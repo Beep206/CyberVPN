@@ -442,6 +442,34 @@ describe('proxy routing', () => {
     }
   });
 
+  it('keeps mandatory cabinet routes when capabilities only include miniapp', async () => {
+    mockCustomerSiteRuntime({
+      cabinet_allowed_prefixes: ['/miniapp'],
+    });
+
+    for (const path of ['/en-EN/rewards/invites?_rsc=probe', '/en-EN/messages?_rsc=probe']) {
+      const req = createProxiedRequest(path, 'my.cyber-vpn.net');
+      const res = await proxy(req);
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get('location')).toBeNull();
+    }
+  });
+
+  it('allows normal browser navigation to mandatory cabinet routes with stale capabilities', async () => {
+    mockCustomerSiteRuntime({
+      cabinet_allowed_prefixes: ['/miniapp'],
+    });
+
+    for (const path of ['/en-EN/rewards/invites', '/en-EN/messages']) {
+      const req = createRequest(path, undefined, 'https://my.cyber-vpn.net');
+      const res = await proxy(req);
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get('location')).toBeNull();
+    }
+  });
+
   it('redirects cabinet marketing routes to configured public destination in cabinet-only runtime', async () => {
     mockCustomerSiteRuntime({
       public_marketing_destination_path: '/',
@@ -458,6 +486,80 @@ describe('proxy routing', () => {
     expect(res.headers.get('location')).toBe(
       'https://cyber-vpn.net/ru-RU?utm_source=launch&ref=FRIEND42',
     );
+  });
+
+  it('redirects unknown cabinet-host marketing routes to public for normal navigation', async () => {
+    mockCustomerSiteRuntime({
+      public_marketing_destination_path: '/',
+      preserve_query_keys: ['ref', 'utm_source'],
+    });
+    const req = createRequest(
+      '/en-EN/features?utm_source=launch&ref=FRIEND42&redirect=https%3A%2F%2Fevil.example%2Fcb',
+      undefined,
+      'https://my.cyber-vpn.net',
+    );
+    const res = await proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe(
+      'https://cyber-vpn.net/en-EN?utm_source=launch&ref=FRIEND42',
+    );
+  });
+
+  it('returns not found without Location for unknown cabinet-host RSC requests', async () => {
+    mockCustomerSiteRuntime({
+      public_marketing_destination_path: '/',
+      preserve_query_keys: ['ref', 'utm_source'],
+    });
+    const req = createProxiedRequest('/en-EN/features?_rsc=probe', 'my.cyber-vpn.net');
+    const res = await proxy(req);
+
+    expect(res.status).toBe(404);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('does not redirect cabinet RSC preflight requests with stale capabilities', async () => {
+    mockCustomerSiteRuntime({
+      cabinet_allowed_prefixes: ['/miniapp'],
+    });
+
+    const req = new NextRequest(new URL('/en-EN/rewards/invites', 'http://cybervpn-frontend:3000'), {
+      method: 'OPTIONS',
+      headers: {
+        host: 'cybervpn-frontend:3000',
+        'x-forwarded-host': 'my.cyber-vpn.net',
+        'x-forwarded-proto': 'https',
+        origin: 'https://my.cyber-vpn.net',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'rsc,next-router-state-tree',
+      },
+    });
+    const res = await proxy(req);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('returns not found without Location for unknown cabinet-host RSC preflight', async () => {
+    mockCustomerSiteRuntime({
+      public_marketing_destination_path: '/',
+    });
+
+    const req = new NextRequest(new URL('/en-EN/features', 'http://cybervpn-frontend:3000'), {
+      method: 'OPTIONS',
+      headers: {
+        host: 'cybervpn-frontend:3000',
+        'x-forwarded-host': 'my.cyber-vpn.net',
+        'x-forwarded-proto': 'https',
+        origin: 'https://my.cyber-vpn.net',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'rsc,next-router-state-tree',
+      },
+    });
+    const res = await proxy(req);
+
+    expect(res.status).toBe(404);
+    expect(res.headers.get('location')).toBeNull();
   });
 
   it('allows cabinet marketing routes when backend snapshot explicitly allows them', async () => {
