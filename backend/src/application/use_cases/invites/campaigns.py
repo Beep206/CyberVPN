@@ -37,6 +37,11 @@ from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.infrastructure.monitoring.instrumentation.growth_codes import observe_lifetime_invite_campaign_created
 
+INVITE_USAGE_SINGLE = "single_use"
+INVITE_USAGE_MULTI = "multi_use"
+INVITE_USAGE_CAMPAIGN_DEFAULT = "campaign_default"
+MULTI_USE_PRACTICAL_HARD_CAP = 1_000_000
+
 
 @dataclass(frozen=True)
 class CreateInviteCampaignCommand:
@@ -59,6 +64,9 @@ class CreateInviteCampaignCommand:
     root_invite_expiry_mode: str
     root_invite_expiry_days: int | None
     root_invite_expires_at: datetime | None
+    root_usage_mode: str
+    root_max_redemptions: int | None
+    root_per_user_redemption_cap: int
     child_grant_plan_id: UUID | None
     child_grant_plan_code: str | None
     child_grant_duration_mode: str
@@ -69,6 +77,9 @@ class CreateInviteCampaignCommand:
     child_invite_expiry_mode: str
     child_invite_expiry_days: int | None
     child_invite_expires_at: datetime | None
+    child_usage_mode: str
+    child_max_redemptions: int | None
+    child_per_user_redemption_cap: int
     max_generation_depth: int
     require_no_active_access: bool
     block_self_redemption: bool
@@ -76,6 +87,8 @@ class CreateInviteCampaignCommand:
     export_policy: dict[str, Any]
     notification_policy: dict[str, Any]
     caps: dict[str, Any]
+    multi_use_policy: dict[str, Any]
+    multi_use_acknowledgement: bool
     lifetime_campaign_acknowledgement: bool
     publish: bool
     reason: str | None
@@ -92,6 +105,9 @@ class CreateInviteCampaignBatchCommand:
     expiry_mode: str
     expires_at: datetime | None
     expiry_days: int | None
+    usage_mode: str
+    max_redemptions_per_code: int | None
+    per_user_redemption_cap: int | None
     reason: str
 
 
@@ -105,11 +121,17 @@ class CreateInviteCampaignVersionCommand:
     root_invite_expiry_mode: str
     root_invite_expiry_days: int | None
     root_invite_expires_at: datetime | None
+    root_usage_mode: str
+    root_max_redemptions: int | None
+    root_per_user_redemption_cap: int
     child_invite_count: int
     child_invite_free_days: int
     child_invite_expiry_mode: str
     child_invite_expiry_days: int | None
     child_invite_expires_at: datetime | None
+    child_usage_mode: str
+    child_max_redemptions: int | None
+    child_per_user_redemption_cap: int
     child_grant_plan_id: UUID | None
     child_grant_plan_code: str | None
     child_grant_duration_mode: str
@@ -123,6 +145,8 @@ class CreateInviteCampaignVersionCommand:
     export_policy: dict[str, Any]
     notification_policy: dict[str, Any]
     caps: dict[str, Any]
+    multi_use_policy: dict[str, Any]
+    multi_use_acknowledgement: bool
     lifetime_campaign_acknowledgement: bool
     reason: str | None
 
@@ -161,6 +185,29 @@ class CreateInviteCampaignUseCase:
         child_grant_duration_mode = normalize_invite_duration_mode(command.child_grant_duration_mode)
         root_invite_expiry_mode = normalize_invite_expiry_mode(command.root_invite_expiry_mode)
         child_invite_expiry_mode = normalize_invite_expiry_mode(command.child_invite_expiry_mode)
+        root_usage_mode = _normalize_invite_usage_mode(command.root_usage_mode)
+        child_usage_mode = _normalize_invite_usage_mode(command.child_usage_mode)
+        root_max_redemptions = _normalize_invite_max_redemptions(
+            usage_mode=root_usage_mode,
+            max_redemptions=command.root_max_redemptions,
+            acknowledgement=command.multi_use_acknowledgement,
+        )
+        child_max_redemptions = _normalize_invite_max_redemptions(
+            usage_mode=child_usage_mode,
+            max_redemptions=command.child_max_redemptions,
+            acknowledgement=command.multi_use_acknowledgement,
+        )
+        root_per_user_redemption_cap = _normalize_per_user_cap(command.root_per_user_redemption_cap)
+        child_per_user_redemption_cap = _normalize_per_user_cap(command.child_per_user_redemption_cap)
+        multi_use_policy = dict(command.multi_use_policy or {})
+        if root_usage_mode == INVITE_USAGE_MULTI or child_usage_mode == INVITE_USAGE_MULTI:
+            multi_use_policy = _validate_multi_use_campaign_policy(
+                risk_policy=command.risk_policy,
+                caps=command.caps,
+                max_generation_depth=command.max_generation_depth,
+                acknowledgement=command.multi_use_acknowledgement,
+                policy=multi_use_policy,
+            )
         _validate_lifetime_campaign_policy(
             grant_duration_mode=grant_duration_mode,
             child_grant_duration_mode=child_grant_duration_mode,
@@ -271,11 +318,17 @@ class CreateInviteCampaignUseCase:
             root_invite_expiry_mode=root_invite_expiry_mode,
             root_invite_expiry_days=root_invite_expiry_days,
             root_invite_expires_at=command.root_invite_expires_at if root_invite_expiry_mode == "absolute" else None,
+            root_usage_mode=root_usage_mode,
+            root_max_redemptions=root_max_redemptions,
+            root_per_user_redemption_cap=root_per_user_redemption_cap,
             child_invite_count=int(command.child_invite_count),
             child_invite_free_days=child_display_days,
             child_invite_expiry_days=child_invite_expiry_days,
             child_invite_expiry_mode=child_invite_expiry_mode,
             child_invite_expires_at=command.child_invite_expires_at if child_invite_expiry_mode == "absolute" else None,
+            child_usage_mode=child_usage_mode,
+            child_max_redemptions=child_max_redemptions,
+            child_per_user_redemption_cap=child_per_user_redemption_cap,
             child_grant_plan_id=child_plan.id if command.child_invite_count > 0 else None,
             child_grant_duration_mode=child_grant_duration_mode,
             child_grant_duration_days=child_duration_days if command.child_invite_count > 0 else None,
@@ -286,15 +339,20 @@ class CreateInviteCampaignUseCase:
             require_no_active_access=command.require_no_active_access,
             allowed_surfaces=allowed_surfaces,
             risk_policy=risk_policy,
+            multi_use_policy=multi_use_policy,
             redemption_policy={
                 "allowed_surfaces": allowed_surfaces,
                 "require_no_active_access": command.require_no_active_access,
                 "block_self_redemption": command.block_self_redemption,
-                "per_user_redeem_cap": _positive_int(command.risk_policy.get("per_user_redeem_cap"), default=1),
+                "per_user_redeem_cap": root_per_user_redemption_cap,
             },
             child_policy={
                 "count": int(command.child_invite_count),
                 "friend_days": child_display_days,
+                "usage_mode": child_usage_mode,
+                "max_redemptions": child_max_redemptions,
+                "per_user_redemption_cap": child_per_user_redemption_cap,
+                "multi_use_policy": multi_use_policy,
                 "grant_plan_id": str(child_plan.id) if command.child_invite_count > 0 else None,
                 "grant_plan_code": child_plan.plan_code if command.child_invite_count > 0 else None,
                 "grant_duration_mode": child_grant_duration_mode,
@@ -314,7 +372,11 @@ class CreateInviteCampaignUseCase:
                 "raw_codes_one_time": True,
                 "root_invite_expiry_mode": root_invite_expiry_mode,
                 "root_invite_expiry_days": command.root_invite_expiry_days,
+                "root_usage_mode": root_usage_mode,
+                "root_max_redemptions": root_max_redemptions,
+                "root_per_user_redemption_cap": root_per_user_redemption_cap,
                 "lifetime_campaign_acknowledgement": command.lifetime_campaign_acknowledgement,
+                "multi_use_acknowledgement": command.multi_use_acknowledgement,
             },
             export_policy=dict(command.export_policy),
             notification_policy=dict(command.notification_policy),
@@ -328,8 +390,14 @@ class CreateInviteCampaignUseCase:
                     "root_invite_expiry_mode": root_invite_expiry_mode,
                     "root_invite_expiry_days": command.root_invite_expiry_days,
                     "root_invite_expires_at": command.root_invite_expires_at,
+                    "root_usage_mode": root_usage_mode,
+                    "root_max_redemptions": root_max_redemptions,
+                    "root_per_user_redemption_cap": root_per_user_redemption_cap,
                     "child_invite_count": command.child_invite_count,
                     "child_invite_free_days": child_display_days,
+                    "child_usage_mode": child_usage_mode,
+                    "child_max_redemptions": child_max_redemptions,
+                    "child_per_user_redemption_cap": child_per_user_redemption_cap,
                     "child_grant_plan_id": str(child_plan.id) if command.child_invite_count > 0 else None,
                     "child_grant_duration_mode": child_grant_duration_mode,
                     "child_grant_duration_days": child_duration_days if command.child_invite_count > 0 else None,
@@ -341,6 +409,7 @@ class CreateInviteCampaignUseCase:
                     "allowed_surfaces": allowed_surfaces,
                     "allowed_geos": allowed_geos,
                     "risk_policy": risk_policy,
+                    "multi_use_policy": multi_use_policy,
                     "export_policy": command.export_policy,
                 }
             ),
@@ -441,6 +510,29 @@ class CreateInviteCampaignVersionUseCase:
         root_invite_expiry_mode = normalize_invite_expiry_mode(command.root_invite_expiry_mode)
         child_invite_expiry_mode = normalize_invite_expiry_mode(command.child_invite_expiry_mode)
         merged_caps = {**dict(campaign.caps or {}), **dict(command.caps or {})}
+        root_usage_mode = _normalize_invite_usage_mode(command.root_usage_mode)
+        child_usage_mode = _normalize_invite_usage_mode(command.child_usage_mode)
+        root_max_redemptions = _normalize_invite_max_redemptions(
+            usage_mode=root_usage_mode,
+            max_redemptions=command.root_max_redemptions,
+            acknowledgement=command.multi_use_acknowledgement,
+        )
+        child_max_redemptions = _normalize_invite_max_redemptions(
+            usage_mode=child_usage_mode,
+            max_redemptions=command.child_max_redemptions,
+            acknowledgement=command.multi_use_acknowledgement,
+        )
+        root_per_user_redemption_cap = _normalize_per_user_cap(command.root_per_user_redemption_cap)
+        child_per_user_redemption_cap = _normalize_per_user_cap(command.child_per_user_redemption_cap)
+        multi_use_policy = dict(command.multi_use_policy or {})
+        if root_usage_mode == INVITE_USAGE_MULTI or child_usage_mode == INVITE_USAGE_MULTI:
+            multi_use_policy = _validate_multi_use_campaign_policy(
+                risk_policy=command.risk_policy,
+                caps=merged_caps,
+                max_generation_depth=command.max_generation_depth,
+                acknowledgement=command.multi_use_acknowledgement,
+                policy=multi_use_policy,
+            )
         _validate_lifetime_campaign_policy(
             grant_duration_mode=grant_duration_mode,
             child_grant_duration_mode=child_grant_duration_mode,
@@ -497,7 +589,7 @@ class CreateInviteCampaignVersionUseCase:
             "allowed_surfaces": allowed_surfaces,
             "require_no_active_access": command.require_no_active_access,
             "block_self_redemption": command.block_self_redemption,
-            "per_user_redeem_cap": _positive_int(command.risk_policy.get("per_user_redeem_cap"), default=1),
+            "per_user_redeem_cap": root_per_user_redemption_cap,
         }
         child_policy_grant_duration_days = (
             int(child_duration_days) if child_plan is not None and child_duration_days else None
@@ -512,6 +604,10 @@ class CreateInviteCampaignVersionUseCase:
             "enabled": command.child_invite_count > 0,
             "count": int(command.child_invite_count),
             "friend_days": child_display_days,
+            "usage_mode": child_usage_mode,
+            "max_redemptions": child_max_redemptions,
+            "per_user_redemption_cap": child_per_user_redemption_cap,
+            "multi_use_policy": multi_use_policy,
             "grant_plan_id": str(child_plan.id) if child_plan is not None else None,
             "grant_plan_code": child_plan.plan_code if child_plan is not None else None,
             "grant_duration_mode": child_grant_duration_mode,
@@ -536,7 +632,13 @@ class CreateInviteCampaignVersionUseCase:
             "root_invite_expiry_mode": root_invite_expiry_mode,
             "root_invite_expiry_days": command.root_invite_expiry_days,
             "root_invite_expires_at": command.root_invite_expires_at,
+            "root_usage_mode": root_usage_mode,
+            "root_max_redemptions": root_max_redemptions,
+            "root_per_user_redemption_cap": root_per_user_redemption_cap,
             "child_invite_count": command.child_invite_count,
+            "child_usage_mode": child_usage_mode,
+            "child_max_redemptions": child_max_redemptions,
+            "child_per_user_redemption_cap": child_per_user_redemption_cap,
             "child_grant_plan_id": str(child_plan.id) if child_plan is not None else None,
             "child_grant_duration_mode": child_grant_duration_mode,
             "child_grant_duration_days": int(child_duration_days) if child_plan is not None else None,
@@ -547,6 +649,7 @@ class CreateInviteCampaignVersionUseCase:
             "max_generation_depth": command.max_generation_depth,
             "allowed_surfaces": allowed_surfaces,
             "risk_policy": command.risk_policy,
+            "multi_use_policy": multi_use_policy,
             "export_policy": command.export_policy,
             "caps": merged_caps,
         }
@@ -573,11 +676,17 @@ class CreateInviteCampaignVersionUseCase:
             root_invite_expiry_mode=root_invite_expiry_mode,
             root_invite_expiry_days=root_invite_expiry_days,
             root_invite_expires_at=command.root_invite_expires_at if root_invite_expiry_mode == "absolute" else None,
+            root_usage_mode=root_usage_mode,
+            root_max_redemptions=root_max_redemptions,
+            root_per_user_redemption_cap=root_per_user_redemption_cap,
             child_invite_count=int(command.child_invite_count),
             child_invite_free_days=child_display_days,
             child_invite_expiry_days=child_invite_expiry_days,
             child_invite_expiry_mode=child_invite_expiry_mode,
             child_invite_expires_at=command.child_invite_expires_at if child_invite_expiry_mode == "absolute" else None,
+            child_usage_mode=child_usage_mode,
+            child_max_redemptions=child_max_redemptions,
+            child_per_user_redemption_cap=child_per_user_redemption_cap,
             child_grant_plan_id=child_plan.id if child_plan is not None else None,
             child_grant_duration_mode=child_grant_duration_mode,
             child_grant_duration_days=child_policy_grant_duration_days,
@@ -588,6 +697,7 @@ class CreateInviteCampaignVersionUseCase:
             require_no_active_access=command.require_no_active_access,
             allowed_surfaces=allowed_surfaces,
             risk_policy=dict(command.risk_policy),
+            multi_use_policy=multi_use_policy,
             redemption_policy=redemption_policy,
             child_policy=child_policy,
             issue_policy={
@@ -595,7 +705,11 @@ class CreateInviteCampaignVersionUseCase:
                 "raw_codes_one_time": True,
                 "root_invite_expiry_mode": root_invite_expiry_mode,
                 "root_invite_expiry_days": command.root_invite_expiry_days,
+                "root_usage_mode": root_usage_mode,
+                "root_max_redemptions": root_max_redemptions,
+                "root_per_user_redemption_cap": root_per_user_redemption_cap,
                 "lifetime_campaign_acknowledgement": command.lifetime_campaign_acknowledgement,
+                "multi_use_acknowledgement": command.multi_use_acknowledgement,
             },
             export_policy=dict(command.export_policy),
             notification_policy=dict(command.notification_policy),
@@ -650,6 +764,27 @@ class ValidateInviteCampaignVersionUseCase:
             )
         except ValueError as exc:
             errors.append(str(exc))
+        if version.root_usage_mode == INVITE_USAGE_MULTI or version.child_usage_mode == INVITE_USAGE_MULTI:
+            try:
+                _validate_multi_use_campaign_policy(
+                    risk_policy=dict(version.risk_policy or {}),
+                    caps=dict(campaign.caps or {}),
+                    max_generation_depth=int(version.max_generation_depth or 0),
+                    acknowledgement=bool((version.issue_policy or {}).get("multi_use_acknowledgement")),
+                    policy=dict(version.multi_use_policy or {}),
+                )
+                _normalize_invite_max_redemptions(
+                    usage_mode=version.root_usage_mode,
+                    max_redemptions=version.root_max_redemptions,
+                    acknowledgement=bool((version.issue_policy or {}).get("multi_use_acknowledgement")),
+                )
+                _normalize_invite_max_redemptions(
+                    usage_mode=version.child_usage_mode,
+                    max_redemptions=version.child_max_redemptions,
+                    acknowledgement=bool((version.issue_policy or {}).get("multi_use_acknowledgement")),
+                )
+            except ValueError as exc:
+                errors.append(str(exc))
 
         plan_codes = {
             str((version.grant_snapshot or {}).get("plan_code") or ""),
@@ -806,6 +941,35 @@ class CreateInviteCampaignBatchUseCase:
             expires_at=resolved_expires_at,
             now=datetime.now(UTC),
         )
+        usage_mode = (
+            version.root_usage_mode
+            if command.usage_mode == INVITE_USAGE_CAMPAIGN_DEFAULT
+            else _normalize_invite_usage_mode(command.usage_mode)
+        )
+        max_redemptions_per_code = (
+            command.max_redemptions_per_code
+            if command.max_redemptions_per_code is not None
+            else version.root_max_redemptions
+        )
+        max_redemptions_per_code = _normalize_invite_max_redemptions(
+            usage_mode=usage_mode,
+            max_redemptions=max_redemptions_per_code,
+            acknowledgement=bool((version.issue_policy or {}).get("multi_use_acknowledgement")),
+        )
+        per_user_redemption_cap = _normalize_per_user_cap(
+            command.per_user_redemption_cap
+            if command.per_user_redemption_cap is not None
+            else version.root_per_user_redemption_cap
+        )
+        multi_use_policy = dict(version.multi_use_policy or {})
+        if usage_mode == INVITE_USAGE_MULTI:
+            multi_use_policy = _validate_multi_use_campaign_policy(
+                risk_policy=dict(version.risk_policy or {}),
+                caps=dict(campaign.caps or {}),
+                max_generation_depth=int(version.max_generation_depth or 0),
+                acknowledgement=bool((version.issue_policy or {}).get("multi_use_acknowledgement")),
+                policy=multi_use_policy,
+            )
         grant_snapshot = dict(version.grant_snapshot or {})
         display_days = display_days_for_duration(version.grant_duration_mode, version.grant_duration_days)
         batch = InviteBatchModel(
@@ -822,6 +986,10 @@ class CreateInviteCampaignBatchUseCase:
             expiry_mode=expiry.expiry_mode,
             expiry_days=expiry.expiry_days,
             expires_at=expiry.expires_at,
+            usage_mode=usage_mode,
+            max_redemptions_per_code=max_redemptions_per_code,
+            per_user_redemption_cap=per_user_redemption_cap,
+            multi_use_policy=multi_use_policy,
             entitlement_mode=version.grant_mode,
             entitlement_profile_key=f"{campaign.campaign_key}_v{version.version}",
             plan_id=version.grant_plan_id,
@@ -866,6 +1034,10 @@ class CreateInviteCampaignBatchUseCase:
                     campaign_version_id=version.id,
                     generation_depth=0,
                     status="issued",
+                    usage_mode=usage_mode,
+                    max_redemptions=max_redemptions_per_code,
+                    per_user_redemption_cap=per_user_redemption_cap,
+                    multi_use_policy=multi_use_policy,
                     code_hash=hash_growth_code(raw_code),
                     code_prefix=build_growth_code_prefix(raw_code),
                     entitlement_mode=version.grant_mode,
@@ -1109,6 +1281,76 @@ def _optional_positive_int(value: object) -> int | None:
     except (TypeError, ValueError):
         return None
     return parsed if parsed > 0 else None
+
+
+def _normalize_invite_usage_mode(value: object) -> str:
+    normalized = str(value or INVITE_USAGE_SINGLE).strip().lower()
+    if normalized == INVITE_USAGE_CAMPAIGN_DEFAULT:
+        return INVITE_USAGE_CAMPAIGN_DEFAULT
+    return INVITE_USAGE_MULTI if normalized == INVITE_USAGE_MULTI else INVITE_USAGE_SINGLE
+
+
+def _normalize_invite_max_redemptions(
+    *,
+    usage_mode: str,
+    max_redemptions: int | None,
+    acknowledgement: bool,
+) -> int | None:
+    if usage_mode == INVITE_USAGE_SINGLE:
+        return 1
+    parsed = _optional_positive_int(max_redemptions)
+    if parsed is None:
+        if not acknowledgement:
+            raise ValueError("multi_use_acknowledgement is required when max_redemptions is omitted")
+        return MULTI_USE_PRACTICAL_HARD_CAP
+    if parsed <= 1:
+        raise ValueError("multi_use invite codes require max_redemptions greater than 1")
+    return parsed
+
+
+def _normalize_per_user_cap(value: object) -> int:
+    parsed = _positive_int(value, default=1)
+    if parsed != 1:
+        raise ValueError("per_user_redemption_cap greater than 1 is not enabled for invite codes")
+    return 1
+
+
+def _validate_multi_use_campaign_policy(
+    *,
+    risk_policy: dict[str, Any],
+    caps: dict[str, Any],
+    max_generation_depth: int,
+    acknowledgement: bool,
+    policy: dict[str, Any],
+) -> dict[str, Any]:
+    if not acknowledgement:
+        raise ValueError("multi_use_acknowledgement is required for multi_use invite campaigns")
+    if max_generation_depth > 5:
+        raise ValueError("multi_use invite campaigns require max_generation_depth <= 5")
+    if _optional_positive_int(caps.get("global_issue_cap") or caps.get("max_total_issued")) is None:
+        raise ValueError("multi_use invite campaigns require global_issue_cap or max_total_issued")
+
+    max_per_device = _optional_positive_int(risk_policy.get("max_redemptions_per_device"))
+    max_per_ip_window = _optional_positive_int(risk_policy.get("max_redemptions_per_ip_window"))
+    velocity_window_hours = _optional_positive_int(risk_policy.get("velocity_window_hours"))
+    if max_per_device is None or max_per_device > 1:
+        raise ValueError("multi_use invite campaigns require max_redemptions_per_device <= 1")
+    if max_per_ip_window is None or max_per_ip_window > 3:
+        raise ValueError("multi_use invite campaigns require max_redemptions_per_ip_window <= 3")
+    if velocity_window_hours is None or velocity_window_hours > 24:
+        raise ValueError("multi_use invite campaigns require velocity_window_hours <= 24")
+    if risk_policy.get("deny_disposable_email") is not True:
+        raise ValueError("multi_use invite campaigns require deny_disposable_email=true")
+    if risk_policy.get("deny_known_abuse_subject") is not True:
+        raise ValueError("multi_use invite campaigns require deny_known_abuse_subject=true")
+
+    result = dict(policy or {})
+    result.setdefault("high_risk_context", True)
+    result.setdefault("per_user_redemption_cap", 1)
+    result.setdefault("device_cap", max_per_device)
+    result.setdefault("ip_window_cap", max_per_ip_window)
+    result.setdefault("velocity_window_hours", velocity_window_hours)
+    return result
 
 
 def _validate_lifetime_campaign_policy(

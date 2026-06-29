@@ -17576,6 +17576,23 @@ export interface components {
             expiry_days?: number | null;
             /** Expires At */
             expires_at?: string | null;
+            /**
+             * Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            usage_mode: "single_use" | "multi_use";
+            /** Max Redemptions Per Code */
+            max_redemptions_per_code?: number | null;
+            /**
+             * Per User Redemption Cap
+             * @default 1
+             */
+            per_user_redemption_cap: number;
+            /** Multi Use Policy */
+            multi_use_policy?: {
+                [key: string]: unknown;
+            } | null;
             /** Entitlement Mode */
             entitlement_mode: string;
             /** Entitlement Profile Key */
@@ -17756,6 +17773,23 @@ export interface components {
             expiry_days?: number | null;
             /** Expires At */
             expires_at?: string | null;
+            /**
+             * Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            usage_mode: "single_use" | "multi_use";
+            /** Max Redemptions Per Code */
+            max_redemptions_per_code?: number | null;
+            /**
+             * Per User Redemption Cap
+             * @default 1
+             */
+            per_user_redemption_cap: number;
+            /** Multi Use Policy */
+            multi_use_policy?: {
+                [key: string]: unknown;
+            } | null;
             /** Entitlement Mode */
             entitlement_mode: string;
             /** Entitlement Profile Key */
@@ -17857,6 +17891,16 @@ export interface components {
             expires_at?: string | null;
             /** Expiry Days */
             expiry_days?: number | null;
+            /**
+             * Usage Mode
+             * @default campaign_default
+             * @enum {string}
+             */
+            usage_mode: "campaign_default" | "single_use" | "multi_use";
+            /** Max Redemptions Per Code */
+            max_redemptions_per_code?: number | null;
+            /** Per User Redemption Cap */
+            per_user_redemption_cap?: number | null;
             /** Reason */
             reason: string;
         };
@@ -17931,6 +17975,22 @@ export interface components {
             /** Root Invite Expires At */
             root_invite_expires_at?: string | null;
             /**
+             * Root Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            root_usage_mode: "single_use" | "multi_use";
+            /**
+             * Root Max Redemptions
+             * @default 1
+             */
+            root_max_redemptions: number | null;
+            /**
+             * Root Per User Redemption Cap
+             * @default 1
+             */
+            root_per_user_redemption_cap: number;
+            /**
              * Child Invite Count
              * @default 10
              */
@@ -17953,6 +18013,22 @@ export interface components {
             child_invite_expiry_days: number | null;
             /** Child Invite Expires At */
             child_invite_expires_at?: string | null;
+            /**
+             * Child Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            child_usage_mode: "single_use" | "multi_use";
+            /**
+             * Child Max Redemptions
+             * @default 1
+             */
+            child_max_redemptions: number | null;
+            /**
+             * Child Per User Redemption Cap
+             * @default 1
+             */
+            child_per_user_redemption_cap: number;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
             /**
@@ -18004,6 +18080,15 @@ export interface components {
             caps?: {
                 [key: string]: unknown;
             };
+            /** Multi Use Policy */
+            multi_use_policy?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Multi Use Acknowledgement
+             * @default false
+             */
+            multi_use_acknowledgement: boolean;
             /**
              * Lifetime Campaign Acknowledgement
              * @default false
@@ -18134,6 +18219,22 @@ export interface components {
             /** Root Invite Expires At */
             root_invite_expires_at?: string | null;
             /**
+             * Root Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            root_usage_mode: "single_use" | "multi_use";
+            /**
+             * Root Max Redemptions
+             * @default 1
+             */
+            root_max_redemptions: number | null;
+            /**
+             * Root Per User Redemption Cap
+             * @default 1
+             */
+            root_per_user_redemption_cap: number;
+            /**
              * Child Invite Count
              * @default 10
              */
@@ -18156,6 +18257,22 @@ export interface components {
             child_invite_expiry_days: number | null;
             /** Child Invite Expires At */
             child_invite_expires_at?: string | null;
+            /**
+             * Child Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            child_usage_mode: "single_use" | "multi_use";
+            /**
+             * Child Max Redemptions
+             * @default 1
+             */
+            child_max_redemptions: number | null;
+            /**
+             * Child Per User Redemption Cap
+             * @default 1
+             */
+            child_per_user_redemption_cap: number;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
             /**
@@ -18209,6 +18326,15 @@ export interface components {
             caps?: {
                 [key: string]: unknown;
             };
+            /** Multi Use Policy */
+            multi_use_policy?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Multi Use Acknowledgement
+             * @default false
+             */
+            multi_use_acknowledgement: boolean;
             /**
              * Lifetime Campaign Acknowledgement
              * @default false
@@ -18272,6 +18398,36 @@ export interface components {
             child_invite_expiry_mode: string;
             /** Child Invite Expires At */
             child_invite_expires_at?: string | null;
+            /**
+             * Root Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            root_usage_mode: "single_use" | "multi_use";
+            /** Root Max Redemptions */
+            root_max_redemptions?: number | null;
+            /**
+             * Root Per User Redemption Cap
+             * @default 1
+             */
+            root_per_user_redemption_cap: number;
+            /**
+             * Child Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            child_usage_mode: "single_use" | "multi_use";
+            /** Child Max Redemptions */
+            child_max_redemptions?: number | null;
+            /**
+             * Child Per User Redemption Cap
+             * @default 1
+             */
+            child_per_user_redemption_cap: number;
+            /** Multi Use Policy */
+            multi_use_policy: {
+                [key: string]: unknown;
+            };
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
             /**
@@ -18393,6 +18549,16 @@ export interface components {
             status: string;
             /** Is Used */
             is_used: boolean;
+            /**
+             * Is Redeemable
+             * @default false
+             */
+            is_redeemable: boolean;
+            /**
+             * Status Sort Order
+             * @default 5
+             */
+            status_sort_order: number;
             /** Used By User Id */
             used_by_user_id?: string | null;
             /** Used At */
@@ -18406,6 +18572,46 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            usage_mode: "single_use" | "multi_use";
+            /** Max Redemptions */
+            max_redemptions?: number | null;
+            /**
+             * Redeemed Count
+             * @default 0
+             */
+            redeemed_count: number;
+            /**
+             * Active Redemptions Count
+             * @default 0
+             */
+            active_redemptions_count: number;
+            /**
+             * Reversed Redemptions Count
+             * @default 0
+             */
+            reversed_redemptions_count: number;
+            /** Remaining Redemptions */
+            remaining_redemptions?: number | null;
+            /** First Redeemed At */
+            first_redeemed_at?: string | null;
+            /** Last Redeemed At */
+            last_redeemed_at?: string | null;
+            /** Exhausted At */
+            exhausted_at?: string | null;
+            /**
+             * Per User Redemption Cap
+             * @default 1
+             */
+            per_user_redemption_cap: number;
+            /** Multi Use Policy */
+            multi_use_policy?: {
+                [key: string]: unknown;
+            } | null;
             /** Campaign Id */
             campaign_id?: string | null;
             /** Campaign Key */
@@ -18509,6 +18715,22 @@ export interface components {
             granted_plan_code?: string | null;
             /** Granted Duration Days */
             granted_duration_days?: number | null;
+            /**
+             * Usage Mode Snapshot
+             * @default single_use
+             * @enum {string}
+             */
+            usage_mode_snapshot: "single_use" | "multi_use";
+            /** Redemption Sequence */
+            redemption_sequence?: number | null;
+            /** Code Redemptions Count After */
+            code_redemptions_count_after?: number | null;
+            /** Device Key Hash */
+            device_key_hash?: string | null;
+            /** Client Ip Hash */
+            client_ip_hash?: string | null;
+            /** User Agent Hash */
+            user_agent_hash?: string | null;
             /** Child Batch Id */
             child_batch_id?: string | null;
             /**
@@ -23261,6 +23483,23 @@ export interface components {
             expiry_days: number | null;
             /** Expires At */
             expires_at: string | null;
+            /**
+             * Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            usage_mode: "single_use" | "multi_use";
+            /** Max Redemptions Per Code */
+            max_redemptions_per_code?: number | null;
+            /**
+             * Per User Redemption Cap
+             * @default 1
+             */
+            per_user_redemption_cap: number;
+            /** Multi Use Policy */
+            multi_use_policy?: {
+                [key: string]: unknown;
+            } | null;
             /** Status */
             status: string;
             /** Campaign Id */
@@ -25661,6 +25900,10 @@ export interface components {
             free_days: number;
             /** Is Used */
             is_used: boolean;
+            /** Used At */
+            used_at?: string | null;
+            /** Revoked At */
+            revoked_at?: string | null;
             /** Expires At */
             expires_at: string | null;
             /**
@@ -25668,6 +25911,52 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            usage_mode: "single_use" | "multi_use";
+            /** Max Redemptions */
+            max_redemptions?: number | null;
+            /**
+             * Redeemed Count
+             * @default 0
+             */
+            redeemed_count: number;
+            /**
+             * Active Redemptions Count
+             * @default 0
+             */
+            active_redemptions_count: number;
+            /**
+             * Reversed Redemptions Count
+             * @default 0
+             */
+            reversed_redemptions_count: number;
+            /** Remaining Redemptions */
+            remaining_redemptions?: number | null;
+            /** First Redeemed At */
+            first_redeemed_at?: string | null;
+            /** Last Redeemed At */
+            last_redeemed_at?: string | null;
+            /** Exhausted At */
+            exhausted_at?: string | null;
+            /**
+             * Per User Redemption Cap
+             * @default 1
+             */
+            per_user_redemption_cap: number;
+            /**
+             * Is Redeemable
+             * @default true
+             */
+            is_redeemable: boolean;
+            /**
+             * Status Sort Order
+             * @default 5
+             */
+            status_sort_order: number;
             /** Entitlement Grant Id */
             entitlement_grant_id?: string | null;
             /** Entitlement Snapshot */
@@ -35428,6 +35717,42 @@ export interface components {
             free_days: number;
             /** Is Used */
             is_used: boolean;
+            /** Status */
+            status?: string | null;
+            /**
+             * Usage Mode
+             * @default single_use
+             * @enum {string}
+             */
+            usage_mode: "single_use" | "multi_use";
+            /** Max Redemptions */
+            max_redemptions?: number | null;
+            /**
+             * Redeemed Count
+             * @default 0
+             */
+            redeemed_count: number;
+            /**
+             * Active Redemptions Count
+             * @default 0
+             */
+            active_redemptions_count: number;
+            /** Remaining Redemptions */
+            remaining_redemptions?: number | null;
+            /**
+             * Is Redeemable
+             * @default false
+             */
+            is_redeemable: boolean;
+            /**
+             * Status Sort Order
+             * @default 5
+             */
+            status_sort_order: number;
+            /** Used At */
+            used_at?: string | null;
+            /** Revoked At */
+            revoked_at?: string | null;
             /** Expires At */
             expires_at?: string | null;
             /**
@@ -52023,6 +52348,7 @@ export interface operations {
                 root_invite_code_id?: string | null;
                 parent_invite_code_id?: string | null;
                 status?: string | null;
+                usage_mode?: string | null;
                 used?: boolean | null;
                 plan_id?: string | null;
                 plan_code?: string | null;
@@ -52642,6 +52968,12 @@ export interface operations {
         parameters: {
             query?: {
                 status?: string | null;
+                invite_code_id?: string | null;
+                usage_mode?: string | null;
+                root_invite_code_id?: string | null;
+                redeemer_user_id?: string | null;
+                created_from?: string | null;
+                created_to?: string | null;
                 offset?: number;
                 limit?: number;
             };

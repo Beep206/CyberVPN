@@ -142,6 +142,15 @@ class InviteBatchModel(Base):
             "child_invite_expiry_mode IN ('relative','absolute','none')",
             name="ck_invite_batches_child_expiry_mode",
         ),
+        CheckConstraint("usage_mode IN ('single_use','multi_use')", name="ck_invite_batches_usage_mode"),
+        CheckConstraint(
+            "max_redemptions_per_code IS NULL OR max_redemptions_per_code > 0",
+            name="ck_invite_batches_max_redemptions_positive",
+        ),
+        CheckConstraint(
+            "per_user_redemption_cap >= 1",
+            name="ck_invite_batches_per_user_cap_positive",
+        ),
         CheckConstraint(
             "(grant_device_limit_override IS NULL OR grant_device_limit_override > 0) "
             "AND (child_grant_device_limit_override IS NULL OR child_grant_device_limit_override > 0)",
@@ -226,6 +235,16 @@ class InviteBatchModel(Base):
     expiry_mode: Mapped[str] = mapped_column(String(20), nullable=False)
     expiry_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    usage_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="single_use",
+        server_default="single_use",
+        index=True,
+    )
+    max_redemptions_per_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    per_user_redemption_cap: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    multi_use_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     entitlement_mode: Mapped[str] = mapped_column(String(30), nullable=False)
     entitlement_profile_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
     plan_id: Mapped[uuid.UUID | None] = mapped_column(

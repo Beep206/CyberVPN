@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService, OutboxActorContext
@@ -41,7 +41,9 @@ from src.application.use_cases.trial.stage1_trial_provisioning import (
 from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.domain.exceptions import (
+    InviteCodeAlreadyRedeemedByUserError,
     InviteCodeAlreadyUsedError,
+    InviteCodeExhaustedError,
     InviteCodeExpiredError,
     InviteCodeNotFoundError,
 )
@@ -198,6 +200,20 @@ async def redeem_invite(
     except InviteCodeAlreadyUsedError:
         track_invite_operation(operation="redeem", success=False)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Invite code already used") from None
+    except InviteCodeAlreadyRedeemedByUserError:
+        await db.commit()
+        track_invite_operation(operation="redeem", success=False)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "INVITE_CODE_ALREADY_REDEEMED_BY_USER",
+                "message_key": "growth_codes.invite.already_redeemed_by_user",
+            },
+        ) from None
+    except InviteCodeExhaustedError:
+        await db.commit()
+        track_invite_operation(operation="redeem", success=False)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Invite code exhausted") from None
     except InviteCodeExpiredError:
         await db.commit()
         track_invite_operation(operation="redeem", success=False)
@@ -271,11 +287,12 @@ async def redeem_invite(
         invite_redemption_id=str(result.invite_redemption.id) if result.invite_redemption else None,
         child_invite_count=len(result.child_invites),
     )
-    return InviteCodeResponse.model_validate(result.invite).model_copy(
+    return _serialize_invite_code_response(
+        result.invite,
         update={
             "entitlement_grant_id": result.entitlement_grant_id,
             "entitlement_snapshot": result.entitlement_snapshot,
-        }
+        },
     )
 
 
@@ -286,6 +303,135 @@ def _invite_result_is_plan_backed(result) -> bool:
         return True
     invite = getattr(result, "invite", None)
     return bool(invite is not None and getattr(invite, "grant_mode", None) in {"plan_snapshot", "custom_snapshot"})
+
+
+def _serialize_invite_code_response(
+    invite: InviteCodeModel,
+    *,
+    update: dict[str, object] | None = None,
+) -> InviteCodeResponse:
+    runtime_state: dict[str, object] = {
+        "usage_mode": invite.usage_mode,
+        "max_redemptions": invite.max_redemptions,
+        "redeemed_count": int(invite.redeemed_count or 0),
+        "active_redemptions_count": int(invite.active_redemptions_count or 0),
+        "reversed_redemptions_count": int(invite.reversed_redemptions_count or 0),
+        "remaining_redemptions": _invite_remaining_redemptions(invite),
+        "first_redeemed_at": invite.first_redeemed_at,
+        "last_redeemed_at": invite.last_redeemed_at,
+        "exhausted_at": invite.exhausted_at,
+        "per_user_redemption_cap": int(invite.per_user_redemption_cap or 1),
+        "is_redeemable": _invite_is_redeemable(invite),
+        "status_sort_order": _invite_status_sort_order(invite),
+    }
+    if update:
+        runtime_state.update(update)
+    return InviteCodeResponse.model_validate(invite).model_copy(update=runtime_state)
+
+
+def _sort_invites_for_clients(invites: list[InviteCodeModel]) -> list[InviteCodeModel]:
+    def sort_key(invite: InviteCodeModel) -> tuple[int, float, float, float, str]:
+        order = _invite_status_sort_order(invite)
+        if order == 0:
+            active_expires_at = _timestamp_or_inf(invite.expires_at)
+            return (order, active_expires_at, 0.0, -_timestamp_or_zero(invite.created_at), str(invite.id))
+        if order == 2:
+            return (
+                order,
+                0.0,
+                -_timestamp_or_zero(invite.used_at),
+                -_timestamp_or_zero(invite.created_at),
+                str(invite.id),
+            )
+        if order in {3, 4}:
+            terminal = (
+                invite.revoked_at or invite.exhausted_at or invite.used_at or invite.expires_at or invite.created_at
+            )
+            return (order, 0.0, -_timestamp_or_zero(terminal), -_timestamp_or_zero(invite.created_at), str(invite.id))
+        return (order, 0.0, 0.0, -_timestamp_or_zero(invite.created_at), str(invite.id))
+
+    return sorted(invites, key=sort_key)
+
+
+def _invite_remaining_redemptions(invite: InviteCodeModel) -> int | None:
+    if invite.usage_mode != "multi_use":
+        return 0 if invite.is_used else 1
+    if invite.max_redemptions is None:
+        return None
+    remaining = int(invite.max_redemptions) - int(invite.active_redemptions_count or 0)
+    return max(remaining, 0)
+
+
+def _invite_is_redeemable(invite: InviteCodeModel) -> bool:
+    now = datetime.now(UTC)
+    expires_at = _coerce_utc(invite.expires_at)
+    if invite.revoked_at is not None or invite.status in {"revoked", "blocked"}:
+        return False
+    if expires_at is not None and expires_at <= now:
+        return False
+    if invite.status == "expired":
+        return False
+    if invite.usage_mode != "multi_use":
+        return not invite.is_used
+    if invite.status == "exhausted" or invite.exhausted_at is not None:
+        return False
+    remaining = _invite_remaining_redemptions(invite)
+    return remaining is None or remaining > 0
+
+
+def _invite_status_sort_order(invite: InviteCodeModel) -> int:
+    if _invite_is_redeemable(invite):
+        return 0
+    expires_at = _coerce_utc(invite.expires_at)
+    if invite.revoked_at is not None or invite.status in {"revoked", "blocked"}:
+        return 4
+    if invite.status in {"redeemed", "used", "exhausted"} or invite.is_used:
+        if expires_at is not None and expires_at <= datetime.now(UTC) and invite.status == "expired":
+            return 3
+        return 2
+    if invite.status == "expired" or (expires_at is not None and expires_at <= datetime.now(UTC)):
+        return 3
+    return 5
+
+
+def _invite_status_sort_order_expression(now: datetime):
+    revoked = (InviteCodeModel.revoked_at.is_not(None)) | (InviteCodeModel.status.in_(("revoked", "blocked")))
+    expired_status = InviteCodeModel.status == "expired"
+    expired_by_date = (InviteCodeModel.expires_at.is_not(None)) & (InviteCodeModel.expires_at <= now)
+    expired = expired_status | expired_by_date
+    multi_use_redeemable = (
+        (InviteCodeModel.usage_mode == "multi_use")
+        & ~revoked
+        & ~expired
+        & (InviteCodeModel.status != "exhausted")
+        & InviteCodeModel.exhausted_at.is_(None)
+        & (
+            InviteCodeModel.max_redemptions.is_(None)
+            | (InviteCodeModel.active_redemptions_count < InviteCodeModel.max_redemptions)
+        )
+    )
+    single_use_redeemable = (
+        (InviteCodeModel.usage_mode != "multi_use") & ~revoked & ~expired & InviteCodeModel.is_used.is_(False)
+    )
+    return case(
+        (multi_use_redeemable, 0),
+        (single_use_redeemable, 0),
+        (revoked, 4),
+        (expired_status, 3),
+        ((InviteCodeModel.status.in_(("redeemed", "used", "exhausted"))) | (InviteCodeModel.is_used.is_(True)), 2),
+        (expired_by_date, 3),
+        else_=5,
+    )
+
+
+def _timestamp_or_zero(value: datetime | None) -> float:
+    coerced = _coerce_utc(value)
+    return coerced.timestamp() if coerced is not None else 0.0
+
+
+def _timestamp_or_inf(value: datetime | None) -> float:
+    coerced = _coerce_utc(value)
+    return coerced.timestamp() if coerced is not None else float("inf")
 
 
 def _invite_redemption_runtime_context(request: Request) -> InviteRedemptionRuntimeContext:
@@ -331,7 +477,7 @@ async def list_my_invites(
         )
     if group_by is not None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unsupported invite grouping")
-    return [InviteCodeResponse.model_validate(inv) for inv in invites]
+    return [_serialize_invite_code_response(inv) for inv in _sort_invites_for_clients(invites)]
 
 
 admin_router = APIRouter(prefix="/admin/invite-codes", tags=["invites"])
@@ -461,7 +607,7 @@ async def admin_create_invites(
     )
 
     track_invite_operation(operation="create", success=True)
-    return [InviteCodeResponse.model_validate(inv) for inv in created]
+    return [_serialize_invite_code_response(inv) for inv in created]
 
 
 @admin_router.get(
@@ -478,6 +624,7 @@ async def admin_list_invite_codes(
     root_invite_code_id: UUID | None = Query(None),
     parent_invite_code_id: UUID | None = Query(None),
     status_filter: str | None = Query(None, alias="status"),
+    usage_mode: str | None = Query(None),
     used: bool | None = Query(None),
     plan_id: UUID | None = Query(None),
     plan_code: str | None = Query(None, min_length=1, max_length=80),
@@ -515,6 +662,8 @@ async def admin_list_invite_codes(
         filters.append(InviteCodeModel.parent_invite_code_id == parent_invite_code_id)
     if status_filter:
         filters.append(InviteCodeModel.status == status_filter)
+    if usage_mode:
+        filters.append(InviteCodeModel.usage_mode == usage_mode)
     if used is not None:
         filters.append(InviteCodeModel.is_used.is_(used))
     if plan_id is not None:
@@ -547,14 +696,21 @@ async def admin_list_invite_codes(
         filters.append(InviteCodeModel.code_prefix == prefix.upper())
 
     total_result = await db.execute(select(func.count()).select_from(InviteCodeModel).where(*filters))
+    status_sort_order = _invite_status_sort_order_expression(datetime.now(UTC))
     result = await db.execute(
         select(InviteCodeModel)
         .where(*filters)
-        .order_by(InviteCodeModel.created_at.desc(), InviteCodeModel.id.desc())
+        .order_by(
+            status_sort_order.asc(),
+            InviteCodeModel.expires_at.asc().nulls_last(),
+            InviteCodeModel.used_at.desc().nulls_last(),
+            InviteCodeModel.created_at.desc(),
+            InviteCodeModel.id.asc(),
+        )
         .offset(offset)
         .limit(limit)
     )
-    invites = list(result.scalars().all())
+    invites = _sort_invites_for_clients(list(result.scalars().all()))
     campaign_key_map = await _load_campaign_key_map(
         db,
         {invite.campaign_id for invite in invites if invite.campaign_id is not None},
@@ -644,6 +800,9 @@ async def admin_create_invite_campaign(
                 root_invite_expiry_mode=body.root_invite_expiry_mode,
                 root_invite_expiry_days=body.root_invite_expiry_days,
                 root_invite_expires_at=body.root_invite_expires_at,
+                root_usage_mode=body.root_usage_mode,
+                root_max_redemptions=body.root_max_redemptions,
+                root_per_user_redemption_cap=body.root_per_user_redemption_cap,
                 child_grant_plan_id=body.child_grant_plan_id,
                 child_grant_plan_code=body.child_grant_plan_code,
                 child_grant_duration_mode=body.child_grant_duration_mode,
@@ -654,6 +813,9 @@ async def admin_create_invite_campaign(
                 child_invite_expiry_mode=body.child_invite_expiry_mode,
                 child_invite_expiry_days=body.child_invite_expiry_days,
                 child_invite_expires_at=body.child_invite_expires_at,
+                child_usage_mode=body.child_usage_mode,
+                child_max_redemptions=body.child_max_redemptions,
+                child_per_user_redemption_cap=body.child_per_user_redemption_cap,
                 max_generation_depth=body.max_generation_depth,
                 require_no_active_access=body.require_no_active_access,
                 block_self_redemption=body.block_self_redemption,
@@ -661,6 +823,8 @@ async def admin_create_invite_campaign(
                 export_policy=body.export_policy,
                 notification_policy=body.notification_policy,
                 caps=body.caps,
+                multi_use_policy=body.multi_use_policy,
+                multi_use_acknowledgement=body.multi_use_acknowledgement,
                 lifetime_campaign_acknowledgement=body.lifetime_campaign_acknowledgement,
                 publish=body.publish,
                 reason=body.reason,
@@ -710,11 +874,17 @@ async def admin_create_invite_campaign_version(
                 root_invite_expiry_mode=body.root_invite_expiry_mode,
                 root_invite_expiry_days=body.root_invite_expiry_days,
                 root_invite_expires_at=body.root_invite_expires_at,
+                root_usage_mode=body.root_usage_mode,
+                root_max_redemptions=body.root_max_redemptions,
+                root_per_user_redemption_cap=body.root_per_user_redemption_cap,
                 child_invite_count=body.child_invite_count,
                 child_invite_free_days=body.child_invite_free_days,
                 child_invite_expiry_mode=body.child_invite_expiry_mode,
                 child_invite_expiry_days=body.child_invite_expiry_days,
                 child_invite_expires_at=body.child_invite_expires_at,
+                child_usage_mode=body.child_usage_mode,
+                child_max_redemptions=body.child_max_redemptions,
+                child_per_user_redemption_cap=body.child_per_user_redemption_cap,
                 child_grant_plan_id=body.child_grant_plan_id,
                 child_grant_plan_code=body.child_grant_plan_code,
                 child_grant_duration_mode=body.child_grant_duration_mode,
@@ -728,6 +898,8 @@ async def admin_create_invite_campaign_version(
                 export_policy=body.export_policy,
                 notification_policy=body.notification_policy,
                 caps=body.caps,
+                multi_use_policy=body.multi_use_policy,
+                multi_use_acknowledgement=body.multi_use_acknowledgement,
                 lifetime_campaign_acknowledgement=body.lifetime_campaign_acknowledgement,
                 reason=body.reason,
             ),
@@ -869,6 +1041,9 @@ async def admin_create_invite_campaign_batch(
                 expiry_mode=body.expiry_mode,
                 expires_at=body.expires_at,
                 expiry_days=body.expiry_days,
+                usage_mode=body.usage_mode,
+                max_redemptions_per_code=body.max_redemptions_per_code,
+                per_user_redemption_cap=body.per_user_redemption_cap,
                 reason=body.reason,
             ),
             admin_user_id=current_user.id,
@@ -890,6 +1065,12 @@ async def admin_create_invite_campaign_batch(
 async def admin_list_invite_campaign_redemptions(
     campaign_id: UUID,
     status_filter: str | None = Query(None, alias="status"),
+    invite_code_id: UUID | None = Query(None),
+    usage_mode: str | None = Query(None),
+    root_invite_code_id: UUID | None = Query(None),
+    redeemer_user_id: UUID | None = Query(None),
+    created_from: datetime | None = Query(None),
+    created_to: datetime | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -898,6 +1079,18 @@ async def admin_list_invite_campaign_redemptions(
     filters = [InviteRedemptionModel.campaign_id == campaign_id]
     if status_filter:
         filters.append(InviteRedemptionModel.status == status_filter)
+    if invite_code_id is not None:
+        filters.append(InviteRedemptionModel.invite_code_id == invite_code_id)
+    if usage_mode:
+        filters.append(InviteRedemptionModel.usage_mode_snapshot == usage_mode)
+    if root_invite_code_id is not None:
+        filters.append(InviteRedemptionModel.root_invite_code_id == root_invite_code_id)
+    if redeemer_user_id is not None:
+        filters.append(InviteRedemptionModel.invitee_user_id == redeemer_user_id)
+    if created_from is not None:
+        filters.append(InviteRedemptionModel.created_at >= created_from)
+    if created_to is not None:
+        filters.append(InviteRedemptionModel.created_at <= created_to)
     total_result = await db.execute(select(func.count()).select_from(InviteRedemptionModel).where(*filters))
     rows = await db.execute(
         select(InviteRedemptionModel)
@@ -907,7 +1100,7 @@ async def admin_list_invite_campaign_redemptions(
         .limit(limit)
     )
     return AdminInviteRedemptionListResponse(
-        items=[AdminInviteRedemptionResponse.model_validate(item) for item in rows.scalars().all()],
+        items=[_serialize_admin_invite_redemption(item) for item in rows.scalars().all()],
         total=int(total_result.scalar_one()),
         offset=offset,
         limit=limit,
@@ -1039,6 +1232,7 @@ async def admin_reverse_invite_redemption(
         redemption.status = "reversed"
         redemption.reversed_at = now
         redemption.blocked_reason = body.reason
+        await _apply_redemption_reversal_to_invite(db=db, redemption=redemption, reversed_at=now)
         if redemption.entitlement_grant_id is not None:
             grant = await db.get(EntitlementGrantModel, redemption.entitlement_grant_id)
             if grant is not None and grant.grant_status not in {"revoked", "expired"}:
@@ -1112,16 +1306,29 @@ async def admin_reverse_invite_redemption(
             source_context={"source_use_case": "admin_reverse_invite_redemption_route"},
         )
         grant_snapshot = redemption.grant_snapshot or {}
-        is_lifetime_reversal = (
-            grant_snapshot.get("duration_mode") == "lifetime" or bool(grant_snapshot.get("lifetime"))
-        )
+        is_lifetime_reversal = grant_snapshot.get("duration_mode") == "lifetime" or bool(grant_snapshot.get("lifetime"))
         if is_lifetime_reversal:
             observe_lifetime_invite_reversal(
                 plan_code=_grant_plan_code(grant_snapshot),
                 cascade_mode=body.cascade_mode,
                 result="success",
             )
-    return AdminInviteRedemptionResponse.model_validate(redemption)
+    return _serialize_admin_invite_redemption(redemption)
+
+
+def _serialize_admin_invite_redemption(redemption: InviteRedemptionModel) -> AdminInviteRedemptionResponse:
+    payload = AdminInviteRedemptionResponse.model_validate(redemption)
+    risk_decision = dict(payload.risk_decision or {})
+    for key in ("device_key_hash", "client_ip_hash", "user_agent_hash"):
+        risk_decision.pop(key, None)
+    return payload.model_copy(
+        update={
+            "device_key_hash": None,
+            "client_ip_hash": None,
+            "user_agent_hash": None,
+            "risk_decision": risk_decision,
+        }
+    )
 
 
 async def _reverse_invite_descendants(
@@ -1147,8 +1354,7 @@ async def _reverse_invite_descendants(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                "Descendant reversal exceeds synchronous limit; "
-                "use a bounded operational runbook for this invite tree"
+                "Descendant reversal exceeds synchronous limit; use a bounded operational runbook for this invite tree"
             ),
         )
 
@@ -1170,6 +1376,11 @@ async def _reverse_invite_descendants(
         descendant_redemption.status = "reversed"
         descendant_redemption.reversed_at = descendant_redemption.reversed_at or reversed_at
         descendant_redemption.blocked_reason = reason
+        await _apply_redemption_reversal_to_invite(
+            db=db,
+            redemption=descendant_redemption,
+            reversed_at=reversed_at,
+        )
         if descendant_redemption.entitlement_grant_id is not None:
             grant = await db.get(EntitlementGrantModel, descendant_redemption.entitlement_grant_id)
             if grant is not None and grant.grant_status not in {"revoked", "expired"}:
@@ -1213,6 +1424,32 @@ async def _reverse_invite_descendants(
             closure.status = "reversed"
         if hasattr(closure, "reversed_at"):
             closure.reversed_at = closure.reversed_at or reversed_at
+
+
+async def _apply_redemption_reversal_to_invite(
+    *,
+    db: AsyncSession,
+    redemption: InviteRedemptionModel,
+    reversed_at: datetime,
+) -> None:
+    invite = await db.get(InviteCodeModel, redemption.invite_code_id)
+    if invite is None or invite.usage_mode != "multi_use":
+        return
+    invite.active_redemptions_count = max(int(invite.active_redemptions_count or 0) - 1, 0)
+    invite.reversed_redemptions_count = int(invite.reversed_redemptions_count or 0) + 1
+    if invite.revoked_at is not None or invite.status == "revoked":
+        return
+    if invite.status == "expired":
+        return
+    remaining = _invite_remaining_redemptions(invite)
+    if remaining is None or remaining > 0:
+        invite.is_used = False
+        invite.status = "active"
+        invite.exhausted_at = None
+    else:
+        invite.is_used = True
+        invite.status = "exhausted"
+        invite.exhausted_at = invite.exhausted_at or reversed_at
 
 
 async def _revoke_unused_invites_for_batch(
@@ -1593,8 +1830,8 @@ async def _serialize_customer_invite_batches(
 
     invites_by_batch: dict[UUID, list[InviteCodeResponse]] = {batch_id: [] for batch_id in batches}
     unbatched: list[InviteCodeResponse] = []
-    for invite in invites:
-        serialized = InviteCodeResponse.model_validate(invite)
+    for invite in _sort_invites_for_clients(invites):
+        serialized = _serialize_invite_code_response(invite)
         if invite.batch_id is not None and invite.batch_id in invites_by_batch:
             invites_by_batch[invite.batch_id].append(serialized)
         else:
@@ -1663,6 +1900,9 @@ def _safe_child_policy_preview(policy: dict[str, object] | None) -> dict[str, ob
         "enabled",
         "count",
         "friend_days",
+        "usage_mode",
+        "max_redemptions",
+        "per_user_redemption_cap",
         "grant_plan_id",
         "grant_plan_code",
         "grant_duration_mode",
@@ -1693,11 +1933,24 @@ def _serialize_admin_invite_code(
         batch_id=invite.batch_id,
         status=invite.status,
         is_used=invite.is_used,
+        is_redeemable=_invite_is_redeemable(invite),
+        status_sort_order=_invite_status_sort_order(invite),
         used_by_user_id=invite.used_by_user_id,
         used_at=invite.used_at,
         revoked_at=invite.revoked_at,
         expires_at=invite.expires_at,
         created_at=invite.created_at,
+        usage_mode=invite.usage_mode,
+        max_redemptions=invite.max_redemptions,
+        redeemed_count=int(invite.redeemed_count or 0),
+        active_redemptions_count=int(invite.active_redemptions_count or 0),
+        reversed_redemptions_count=int(invite.reversed_redemptions_count or 0),
+        remaining_redemptions=_invite_remaining_redemptions(invite),
+        first_redeemed_at=invite.first_redeemed_at,
+        last_redeemed_at=invite.last_redeemed_at,
+        exhausted_at=invite.exhausted_at,
+        per_user_redemption_cap=int(invite.per_user_redemption_cap or 1),
+        multi_use_policy=dict(invite.multi_use_policy or {}),
         campaign_id=invite.campaign_id,
         campaign_key=campaign_key_map.get(invite.campaign_id) if invite.campaign_id is not None else None,
         campaign_version_id=invite.campaign_version_id,
@@ -1770,7 +2023,12 @@ async def _build_invite_tree_response(db: AsyncSession, root_invite_code_id: UUI
         .order_by(InviteTreeEdgeModel.generation_depth.asc(), InviteTreeEdgeModel.created_at.asc())
     )
     edges = list(edge_result.scalars().all())
-    used_count = sum(1 for invite in invites if invite.is_used)
+    used_count = sum(
+        1
+        for invite in invites
+        if invite.is_used or int(invite.active_redemptions_count or 0) > 0 or int(invite.redeemed_count or 0) > 0
+    )
+    available_count = sum(1 for invite in invites if _invite_is_redeemable(invite))
     return AdminInviteTreeResponse(
         root_invite_code_id=root_invite_code_id,
         nodes=[
@@ -1820,7 +2078,7 @@ async def _build_invite_tree_response(db: AsyncSession, root_invite_code_id: UUI
             **await _build_invite_tree_stats(db, root_invite_code_id),
             "total_invites": len(invites),
             "used_invites": used_count,
-            "available_invites": len(invites) - used_count,
+            "available_invites": available_count,
         },
     )
 
@@ -1833,10 +2091,10 @@ async def _build_invite_tree_stats(db: AsyncSession, root_invite_code_id: UUID) 
     )
     total_redeemed = await db.execute(
         select(func.count())
-        .select_from(InviteCodeModel)
+        .select_from(InviteRedemptionModel)
         .where(
-            InviteCodeModel.root_invite_code_id == root_invite_code_id,
-            InviteCodeModel.is_used.is_(True),
+            InviteRedemptionModel.root_invite_code_id == root_invite_code_id,
+            InviteRedemptionModel.status == "redeemed",
         )
     )
     child_issued = await db.execute(

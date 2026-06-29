@@ -10,6 +10,7 @@ Async httpx-based client for CyberVPN Backend API with:
 from __future__ import annotations
 
 import time
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
@@ -28,6 +29,97 @@ logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
     from src.config import AuthBackendSettings, BackendSettings
+
+
+ACTIVE_INVITE_STATUSES = {"active", "issued", "redeemable"}
+USED_INVITE_STATUSES = {"redeemed", "used", "exhausted"}
+EXPIRED_INVITE_STATUSES = {"expired"}
+REVOKED_INVITE_STATUSES = {"revoked", "blocked"}
+
+
+def _parse_invite_timestamp(value: Any) -> float | None:
+    if not isinstance(value, str) or not value:
+        return None
+
+    normalized = value.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.timestamp()
+
+
+def _normalize_invite_status(value: Any) -> str:
+    return value.strip().lower().replace("-", "_") if isinstance(value, str) else ""
+
+
+def _fallback_invite_status_sort_order(invite: dict[str, Any], now: float) -> int:
+    status = _normalize_invite_status(invite.get("status"))
+
+    if status in REVOKED_INVITE_STATUSES:
+        return 4
+    if status in USED_INVITE_STATUSES or invite.get("is_used") is True:
+        return 2
+    if status in EXPIRED_INVITE_STATUSES:
+        return 3
+
+    expires_at = _parse_invite_timestamp(invite.get("expires_at"))
+    if expires_at is not None and expires_at <= now:
+        return 3
+
+    if (
+        invite.get("is_redeemable") is True
+        or status in ACTIVE_INVITE_STATUSES
+        or (not status and invite.get("is_used") is not True)
+    ):
+        return 0
+
+    return 5
+
+
+def _invite_status_sort_order(invite: dict[str, Any], now: float) -> int:
+    status_sort_order = invite.get("status_sort_order")
+    if isinstance(status_sort_order, int) and not isinstance(status_sort_order, bool):
+        return status_sort_order
+    return _fallback_invite_status_sort_order(invite, now)
+
+
+def _invite_primary_sort_timestamp(invite: dict[str, Any], status_sort_order: int) -> float:
+    if status_sort_order in {0, 1}:
+        return _parse_invite_timestamp(invite.get("expires_at")) or float("inf")
+    if status_sort_order == 2:
+        return -(_parse_invite_timestamp(invite.get("used_at")) or float("-inf"))
+    if status_sort_order in {3, 4}:
+        terminal_timestamp = (
+            _parse_invite_timestamp(invite.get("revoked_at"))
+            or _parse_invite_timestamp(invite.get("blocked_at"))
+            or _parse_invite_timestamp(invite.get("updated_at"))
+            or _parse_invite_timestamp(invite.get("expires_at"))
+            or float("-inf")
+        )
+        return -terminal_timestamp
+    return float("inf")
+
+
+def _sort_invite_codes(invites: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    now = time.time()
+
+    def sort_key(indexed_invite: tuple[int, dict[str, Any]]) -> tuple[float, float, float, str, int]:
+        index, invite = indexed_invite
+        status_sort_order = _invite_status_sort_order(invite, now)
+        created_at = _parse_invite_timestamp(invite.get("created_at")) or float("-inf")
+        invite_id = invite.get("id")
+        return (
+            float(status_sort_order),
+            _invite_primary_sort_timestamp(invite, status_sort_order),
+            -created_at,
+            invite_id if isinstance(invite_id, str) else "",
+            index,
+        )
+
+    return [invite for _, invite in sorted(enumerate(invites), key=sort_key)]
 
 
 # ── Exceptions ───────────────────────────────────────────────────────────
@@ -938,7 +1030,7 @@ class CyberVPNAPIClient:
     async def get_invite_codes(self, telegram_id: int) -> list[dict[str, Any]]:
         """Get invite codes issued to a Telegram user."""
         invites = await self._request_auth_backend_list("GET", f"/telegram/bot/user/{telegram_id}/invite-codes")
-        return [invite for invite in invites if isinstance(invite, dict)]
+        return _sort_invite_codes([invite for invite in invites if isinstance(invite, dict)])
 
     async def withdraw_referral_points(
         self,

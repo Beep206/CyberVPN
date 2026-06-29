@@ -424,7 +424,41 @@ class ResolveGrowthCodeUseCase:
                 resolved_code_id=invite.id,
             )
 
-        if invite.is_used:
+        if getattr(invite, "revoked_at", None) is not None or getattr(invite, "status", None) == "revoked":
+            return GrowthCodeResolutionOutcome(
+                accepted=False,
+                code_type=GrowthCodeType.INVITE,
+                action_context=action_context,
+                result=GrowthCodeResolutionStatus.REJECTED,
+                reject_reason=GrowthCodeRejectReason.CODE_NOT_ACTIVE,
+                user_message_key="growth_codes.invite.revoked",
+                issuer_type=self._invite_issuer_type(invite.source),
+                owner_type="customer",
+                resolved_code_id=invite.id,
+            )
+
+        usage_mode = str(getattr(invite, "usage_mode", "single_use") or "single_use")
+        max_redemptions = getattr(invite, "max_redemptions", None)
+        active_redemptions_count = int(getattr(invite, "active_redemptions_count", 0) or 0)
+        is_multi_use_exhausted = usage_mode == "multi_use" and (
+            getattr(invite, "status", None) == "exhausted"
+            or getattr(invite, "exhausted_at", None) is not None
+            or (isinstance(max_redemptions, int) and active_redemptions_count >= max_redemptions)
+        )
+        if is_multi_use_exhausted:
+            return GrowthCodeResolutionOutcome(
+                accepted=False,
+                code_type=GrowthCodeType.INVITE,
+                action_context=action_context,
+                result=GrowthCodeResolutionStatus.REJECTED,
+                reject_reason=GrowthCodeRejectReason.CODE_EXHAUSTED,
+                user_message_key="growth_codes.invite.exhausted",
+                issuer_type=self._invite_issuer_type(invite.source),
+                owner_type="customer",
+                resolved_code_id=invite.id,
+            )
+
+        if usage_mode != "multi_use" and invite.is_used:
             return GrowthCodeResolutionOutcome(
                 accepted=False,
                 code_type=GrowthCodeType.INVITE,

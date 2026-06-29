@@ -1787,6 +1787,64 @@ async def get_bot_user_referral_stats(
     )
 
 
+def _serialize_telegram_bot_invite_code(invite) -> TelegramBotInviteCodeResponse:
+    return TelegramBotInviteCodeResponse.model_validate(invite).model_copy(
+        update={
+            "usage_mode": invite.usage_mode,
+            "max_redemptions": invite.max_redemptions,
+            "redeemed_count": int(invite.redeemed_count or 0),
+            "active_redemptions_count": int(invite.active_redemptions_count or 0),
+            "remaining_redemptions": _telegram_invite_remaining_redemptions(invite),
+            "is_redeemable": _telegram_invite_is_redeemable(invite),
+            "status_sort_order": _telegram_invite_status_sort_order(invite),
+        }
+    )
+
+
+def _telegram_invite_remaining_redemptions(invite) -> int | None:
+    if invite.usage_mode != "multi_use":
+        return 0 if invite.is_used else 1
+    if invite.max_redemptions is None:
+        return None
+    return max(int(invite.max_redemptions) - int(invite.active_redemptions_count or 0), 0)
+
+
+def _telegram_invite_is_redeemable(invite) -> bool:
+    now = datetime.now(UTC)
+    expires_at = _telegram_coerce_utc(invite.expires_at)
+    if invite.revoked_at is not None or invite.status in {"revoked", "blocked"}:
+        return False
+    if expires_at is not None and expires_at <= now:
+        return False
+    if invite.usage_mode != "multi_use":
+        return not invite.is_used
+    if invite.status == "exhausted" or invite.exhausted_at is not None:
+        return False
+    remaining = _telegram_invite_remaining_redemptions(invite)
+    return remaining is None or remaining > 0
+
+
+def _telegram_invite_status_sort_order(invite) -> int:
+    if _telegram_invite_is_redeemable(invite):
+        return 0
+    expires_at = _telegram_coerce_utc(invite.expires_at)
+    if invite.revoked_at is not None or invite.status in {"revoked", "blocked"}:
+        return 4
+    if invite.status in {"redeemed", "used", "exhausted"} or invite.is_used:
+        return 2
+    if invite.status == "expired" or (expires_at is not None and expires_at <= datetime.now(UTC)):
+        return 3
+    return 5
+
+
+def _telegram_coerce_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 @router.get("/bot/user/{telegram_id}/invite-codes", response_model=list[TelegramBotInviteCodeResponse])
 async def get_bot_user_invite_codes(
     telegram_id: int,
@@ -1806,7 +1864,7 @@ async def get_bot_user_invite_codes(
     )
 
     route_operations_total.labels(route="telegram_bot", action="invite_codes", status="success").inc()
-    return [TelegramBotInviteCodeResponse.model_validate(invite) for invite in invites]
+    return [_serialize_telegram_bot_invite_code(invite) for invite in invites]
 
 
 @router.get("/bot/user/{telegram_id}/config", response_model=ConfigResponse)

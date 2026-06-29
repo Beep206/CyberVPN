@@ -53,7 +53,9 @@ from src.domain.enums import (
     GrowthCodeWrongContextTarget,
 )
 from src.domain.exceptions import (
+    InviteCodeAlreadyRedeemedByUserError,
     InviteCodeAlreadyUsedError,
+    InviteCodeExhaustedError,
     InviteCodeExpiredError,
     InviteCodeNotFoundError,
 )
@@ -823,6 +825,18 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
                 raise CustomerOnboardingUnavailableError(
                     code="CUSTOMER_ONBOARDING_CODE_ALREADY_REDEEMED",
                     message_key="growth_codes.invite.already_redeemed",
+                    status_code=409,
+                ) from exc
+            except InviteCodeAlreadyRedeemedByUserError as exc:
+                raise CustomerOnboardingUnavailableError(
+                    code="CUSTOMER_ONBOARDING_CODE_ALREADY_REDEEMED_BY_USER",
+                    message_key="growth_codes.invite.already_redeemed_by_user",
+                    status_code=409,
+                ) from exc
+            except InviteCodeExhaustedError as exc:
+                raise CustomerOnboardingUnavailableError(
+                    code="CUSTOMER_ONBOARDING_CODE_EXHAUSTED",
+                    message_key="growth_codes.invite.exhausted",
                     status_code=409,
                 ) from exc
             except InviteCodeExpiredError as exc:

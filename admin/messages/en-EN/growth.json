@@ -492,7 +492,8 @@
       "settings": "Settings"
     },
     "units": {
-      "daysShort": "{count}d"
+      "daysShort": "{count}d",
+      "unlimited": "Unlimited"
     },
     "metrics": {
       "activeCampaigns": "Active Campaigns",
@@ -613,6 +614,7 @@
       "anyUsage": "Any usage",
       "batch": "Batch",
       "batchId": "Batch ID",
+      "batchUsageMode": "Batch Usage Mode",
       "campaign": "Campaign",
       "campaignId": "Campaign ID",
       "campaignKey": "Campaign Key",
@@ -627,6 +629,9 @@
       "childInviteExpiryDays": "Child Invite Expiry Days",
       "childInviteExpiryMode": "Child Invite Expiry Mode",
       "childInviteFreeDays": "Child Invite Free Days",
+      "childMaxRedemptions": "Child Max Redemptions",
+      "childPerUserRedemptionCap": "Child Per-user Redemption Cap",
+      "childUsageMode": "Child Usage Mode",
       "count": "Count",
       "description": "Description",
       "expiresAt": "Expires At",
@@ -662,10 +667,13 @@
       "maxGenerationDepth": "Max Generation Depth",
       "maxPerBatch": "Max per batch",
       "maxPerOwner": "Max per owner",
+      "maxRedemptionsPerCode": "Max Redemptions Per Code",
       "name": "Name",
+      "multiUseAcknowledgement": "Acknowledge multi-use root invite risk controls",
       "ownerMode": "Owner Mode",
       "ownerUserId": "Owner User ID",
       "ownerUserIds": "Owner User IDs",
+      "perUserRedemptionCap": "Per-user Redemption Cap",
       "perUserRedeemCap": "Per-user redeem cap",
       "planId": "Plan",
       "planCode": "Plan Code",
@@ -680,8 +688,12 @@
       "rootInviteCodeId": "Root Invite Code ID",
       "rootInviteExpiryDays": "Root Invite Expiry Days",
       "rootInviteExpiryMode": "Root Invite Expiry Mode",
+      "rootMaxRedemptions": "Root Max Redemptions",
+      "rootPerUserRedemptionCap": "Root Per-user Redemption Cap",
+      "rootUsageMode": "Root Usage Mode",
       "startsAt": "Starts At",
       "status": "Status",
+      "usageMode": "Usage Mode",
       "used": "Usage",
       "usedByUserId": "Used By User ID",
       "createdFrom": "Created From",
@@ -705,11 +717,16 @@
       "issued": "Issued",
       "owner": "Owner",
       "parent": "Parent",
+      "perUserCap": "Per-user Cap",
       "plan": "Plan",
       "redeemed": "Redeemed",
       "redemption": "Redemption",
+      "redemptions": "Redemptions",
+      "remaining": "Remaining",
+      "maxRedemptions": "Max Redemptions",
       "status": "Status",
       "surface": "Surface",
+      "usage": "Usage Mode",
       "used": "Used"
     },
     "surfaces": {
@@ -726,6 +743,11 @@
       "campaign_default": "Campaign default",
       "none": "No expiry",
       "relative": "Relative"
+    },
+    "usageModes": {
+      "campaign_default": "Campaign default",
+      "multi_use": "Multi-use",
+      "single_use": "Single-use"
     },
     "cascadeModes": {
       "all_descendants": "All descendants",

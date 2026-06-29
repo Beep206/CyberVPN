@@ -2717,6 +2717,7 @@
         "anyUsage": "Any usage",
         "batch": "Batch",
         "batchId": "Batch ID",
+        "batchUsageMode": "Batch Usage Mode",
         "blockSelfRedemption": "Block self-redemption",
         "campaign": "Campaign",
         "campaignId": "Campaign ID",
@@ -2732,6 +2733,9 @@
         "childInviteExpiryDays": "Child Invite Expiry Days",
         "childInviteExpiryMode": "Child Invite Expiry Mode",
         "childInviteFreeDays": "Child Invite Free Days",
+        "childMaxRedemptions": "Child Max Redemptions",
+        "childPerUserRedemptionCap": "Child Per-user Redemption Cap",
+        "childUsageMode": "Child Usage Mode",
         "confirmDescendantReversal": "Confirm descendant reversal",
         "count": "Count",
         "createdFrom": "Created From",
@@ -2762,13 +2766,16 @@
         "maxGenerationDepth": "Max Generation Depth",
         "maxPerBatch": "Max per batch",
         "maxPerOwner": "Max per owner",
+        "maxRedemptionsPerCode": "Max Redemptions Per Code",
         "maxRedemptionsPerDevice": "Max redemptions per device",
         "maxRedemptionsPerIpWindow": "Max redemptions per IP window",
+        "multiUseAcknowledgement": "Acknowledge multi-use root invite risk controls",
         "name": "Name",
         "ownerMode": "Owner Mode",
         "ownerUserId": "Owner User ID",
         "ownerUserIds": "Owner User IDs",
         "perUserRedeemCap": "Per-user redeem cap",
+        "perUserRedemptionCap": "Per-user Redemption Cap",
         "planCode": "Plan Code",
         "planId": "Plan",
         "prefix": "Code Prefix",
@@ -2782,8 +2789,12 @@
         "rootInviteExpiresAt": "Root Invite Expires At",
         "rootInviteExpiryDays": "Root Invite Expiry Days",
         "rootInviteExpiryMode": "Root Invite Expiry Mode",
+        "rootMaxRedemptions": "Root Max Redemptions",
+        "rootPerUserRedemptionCap": "Root Per-user Redemption Cap",
+        "rootUsageMode": "Root Usage Mode",
         "startsAt": "Starts At",
         "status": "Status",
+        "usageMode": "Usage Mode",
         "used": "Usage",
         "usedByUserId": "Used By User ID",
         "usedFrom": "Used From",
@@ -2867,13 +2878,18 @@
         "exported": "Exported",
         "invitee": "Invitee",
         "issued": "Issued",
+        "maxRedemptions": "Max Redemptions",
         "owner": "Owner",
         "parent": "Parent",
+        "perUserCap": "Per-user Cap",
         "plan": "Plan",
         "redeemed": "Redeemed",
         "redemption": "Redemption",
+        "redemptions": "Redemptions",
+        "remaining": "Remaining",
         "status": "Status",
         "surface": "Surface",
+        "usage": "Usage Mode",
         "used": "Used"
       },
       "tabs": {
@@ -2904,7 +2920,13 @@
         "title": "Invite Tree"
       },
       "units": {
-        "daysShort": "{count}d"
+        "daysShort": "{count}d",
+        "unlimited": "Unlimited"
+      },
+      "usageModes": {
+        "campaign_default": "Campaign default",
+        "multi_use": "Multi-use",
+        "single_use": "Single-use"
       }
     },
     "layout": {

@@ -206,6 +206,83 @@ class TestTelegramChannelParityReads:
 
         await client.close()
 
+    async def test_get_invite_codes_sorts_with_backend_order_and_fallback(self, mock_settings: BotSettings) -> None:
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+        invites = [
+            {
+                "id": "used-old",
+                "code": "USEDOLD",
+                "free_days": 7,
+                "is_used": True,
+                "status": "redeemed",
+                "used_at": "2026-06-20T00:00:00Z",
+                "created_at": "2026-06-03T00:00:00Z",
+            },
+            {
+                "id": "backend-first",
+                "code": "BACKEND",
+                "free_days": 7,
+                "is_used": False,
+                "status": "revoked",
+                "status_sort_order": -1,
+                "created_at": "2026-06-01T00:00:00Z",
+            },
+            {
+                "id": "active-lifetime",
+                "code": "LIFETIME",
+                "free_days": 7,
+                "is_used": False,
+                "status": "issued",
+                "expires_at": None,
+                "created_at": "2026-06-04T00:00:00Z",
+            },
+            {
+                "id": "used-new",
+                "code": "USEDNEW",
+                "free_days": 7,
+                "is_used": True,
+                "status": "used",
+                "used_at": "2026-06-25T00:00:00Z",
+                "created_at": "2026-06-02T00:00:00Z",
+            },
+            {
+                "id": "exhausted",
+                "code": "EXHAUSTED",
+                "free_days": 7,
+                "is_used": False,
+                "status": "exhausted",
+                "used_at": "2026-06-23T00:00:00Z",
+                "created_at": "2026-06-06T00:00:00Z",
+            },
+            {
+                "id": "active-expiring",
+                "code": "EXPIRING",
+                "free_days": 7,
+                "is_used": False,
+                "status": "active",
+                "expires_at": "2099-07-01T00:00:00Z",
+                "created_at": "2026-06-05T00:00:00Z",
+            },
+        ]
+
+        with respx.mock:
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123456/invite-codes").mock(
+                return_value=httpx.Response(200, json=invites)
+            )
+
+            result = await client.get_invite_codes(123456)
+
+            assert [invite["id"] for invite in result] == [
+                "backend-first",
+                "active-expiring",
+                "active-lifetime",
+                "used-new",
+                "exhausted",
+                "used-old",
+            ]
+
+        await client.close()
+
     async def test_get_client_capabilities_success(self, mock_settings: BotSettings) -> None:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
         capabilities = {

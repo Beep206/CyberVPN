@@ -29,6 +29,24 @@ function getTelegramBotUrl() {
     return `https://t.me/${username}`;
 }
 
+function fingerprintTelegramInitData(initData: string): string {
+    let hash = 2166136261;
+    for (let index = 0; index < initData.length; index += 1) {
+        hash ^= initData.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+    }
+    return `${initData.length}:${(hash >>> 0).toString(16)}`;
+}
+
+function getMiniAppAuthErrorCode(error: unknown): string | null {
+    const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+    if (typeof detail !== 'object' || detail === null) {
+        return null;
+    }
+    const code = (detail as { code?: unknown }).code;
+    return typeof code === 'string' && code.trim() ? code.trim() : null;
+}
+
 function getMiniAppAuthErrorMessage(error: unknown, fallback: string) {
     const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
     if (typeof detail === 'string' && detail.trim()) {
@@ -69,6 +87,8 @@ export function TelegramMiniAppAuthProvider({
     const [authError, setAuthError] = useState<string | null>(null);
     const hasAttempted = useRef(false);
     const restoreInFlight = useRef(false);
+    const authInFlight = useRef<Promise<void> | null>(null);
+    const spentInitDataFingerprints = useRef<Set<string>>(new Set());
     const effectiveIsMiniApp = isMiniApp || runtimeIsMiniApp;
     const isMiniAppRoutePath = isMiniAppRoute(pathname);
     const shouldGateMiniApp = effectiveIsMiniApp || isMiniAppRoutePath;
@@ -128,32 +148,62 @@ export function TelegramMiniAppAuthProvider({
     }, [fetchUser, invalidateMiniAppQueries]);
 
     const authenticateMiniApp = useCallback(async () => {
-        const miniAppReturnPath = getMiniAppReturnPath(pathname);
-        setAuthError(null);
-        if (await restoreMiniAppSession()) {
+        if (authInFlight.current) {
+            await authInFlight.current;
             return;
         }
-        if (typeof window === 'undefined' || !window.Telegram?.WebApp?.initData) {
-            setAuthError(t('miniAppRequiredMessage'));
-            return;
-        }
-        try {
-            const result = await telegramMiniAppAuth();
-            if (result.requires_2fa) {
-                setAuthError(t('miniAppTwoFactorUnsupported'));
-                return;
-            }
-            invalidateMiniAppQueries();
-            const postAuthDestination = getPostAuthDestination({
-                onboarding: result.onboarding,
-                surface: 'miniapp',
-            });
-            router.replace(postAuthDestination === '/miniapp/home' ? miniAppReturnPath : postAuthDestination);
-        } catch (error) {
+
+        const authAttempt = (async () => {
+            const miniAppReturnPath = getMiniAppReturnPath(pathname);
+            setAuthError(null);
             if (await restoreMiniAppSession()) {
                 return;
             }
-            setAuthError(getMiniAppAuthErrorMessage(error, t('miniAppAuthFailedMessage')));
+            if (typeof window === 'undefined' || !window.Telegram?.WebApp?.initData) {
+                setAuthError(t('miniAppRequiredMessage'));
+                return;
+            }
+
+            const initDataFingerprint = fingerprintTelegramInitData(window.Telegram.WebApp.initData);
+            if (spentInitDataFingerprints.current.has(initDataFingerprint)) {
+                if (await restoreMiniAppSession()) {
+                    return;
+                }
+                setAuthError(t('miniAppAuthFailedMessage'));
+                return;
+            }
+
+            try {
+                const result = await telegramMiniAppAuth();
+                spentInitDataFingerprints.current.add(initDataFingerprint);
+                if (result.requires_2fa) {
+                    setAuthError(t('miniAppTwoFactorUnsupported'));
+                    return;
+                }
+                invalidateMiniAppQueries();
+                const postAuthDestination = getPostAuthDestination({
+                    onboarding: result.onboarding,
+                    surface: 'miniapp',
+                });
+                router.replace(postAuthDestination === '/miniapp/home' ? miniAppReturnPath : postAuthDestination);
+            } catch (error) {
+                if (getMiniAppAuthErrorCode(error) === 'TELEGRAM_INIT_DATA_REPLAYED') {
+                    spentInitDataFingerprints.current.add(initDataFingerprint);
+                }
+                if (await restoreMiniAppSession()) {
+                    return;
+                }
+                setAuthError(getMiniAppAuthErrorMessage(error, t('miniAppAuthFailedMessage')));
+            }
+        })();
+
+        authInFlight.current = authAttempt;
+        try {
+            await authAttempt;
+        } finally {
+            if (authInFlight.current === authAttempt) {
+                authInFlight.current = null;
+            }
         }
     }, [invalidateMiniAppQueries, pathname, restoreMiniAppSession, router, telegramMiniAppAuth, t]);
 

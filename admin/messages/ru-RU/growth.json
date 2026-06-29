@@ -236,6 +236,7 @@
       "anyUsage": "Любое использование",
       "batch": "Batch",
       "batchId": "Batch ID",
+      "batchUsageMode": "Режим использования batch",
       "campaign": "Кампания",
       "campaignId": "Campaign ID",
       "campaignKey": "Campaign Key",
@@ -250,6 +251,9 @@
       "childInviteExpiryDays": "Дней жизни дочернего инвайта",
       "childInviteExpiryMode": "Режим срока дочернего инвайта",
       "childInviteFreeDays": "Дней дочернего инвайта",
+      "childMaxRedemptions": "Лимит погашений дочернего кода",
+      "childPerUserRedemptionCap": "Лимит дочернего кода на пользователя",
+      "childUsageMode": "Режим дочернего кода",
       "count": "Количество",
       "description": "Описание",
       "expiresAt": "Истекает",
@@ -285,10 +289,13 @@
       "maxGenerationDepth": "Максимальная глубина",
       "maxPerBatch": "Лимит на batch",
       "maxPerOwner": "Лимит на owner",
+      "maxRedemptionsPerCode": "Лимит погашений на код",
       "name": "Название",
+      "multiUseAcknowledgement": "Подтвердить risk controls для многоразовых root-инвайтов",
       "ownerMode": "Режим владельца",
       "ownerUserId": "ID владельца",
       "ownerUserIds": "ID владельцев",
+      "perUserRedemptionCap": "Лимит погашений на пользователя",
       "perUserRedeemCap": "Лимит погашений на пользователя",
       "planId": "План",
       "planCode": "Код плана",
@@ -303,8 +310,12 @@
       "rootInviteCodeId": "ID root-инвайта",
       "rootInviteExpiryDays": "Дней жизни root-инвайта",
       "rootInviteExpiryMode": "Режим срока root-инвайта",
+      "rootMaxRedemptions": "Лимит погашений root-кода",
+      "rootPerUserRedemptionCap": "Лимит root-кода на пользователя",
+      "rootUsageMode": "Режим root-кода",
       "startsAt": "Начало",
       "status": "Статус",
+      "usageMode": "Режим использования",
       "used": "Использование",
       "usedByUserId": "Использован пользователем",
       "createdFrom": "Создан с",
@@ -381,11 +392,16 @@
       "issued": "Выдано",
       "owner": "Владелец",
       "parent": "Родитель",
+      "perUserCap": "Лимит на пользователя",
       "plan": "План",
       "redeemed": "Погашено",
       "redemption": "Погашение",
+      "redemptions": "Погашения",
+      "remaining": "Осталось",
+      "maxRedemptions": "Лимит погашений",
       "status": "Статус",
       "surface": "Поверхность",
+      "usage": "Режим",
       "used": "Использован"
     },
     "surfaces": {
@@ -402,6 +418,11 @@
       "campaign_default": "По кампании",
       "none": "Без срока",
       "relative": "Относительный срок"
+    },
+    "usageModes": {
+      "campaign_default": "По кампании",
+      "multi_use": "Многоразовый",
+      "single_use": "Одноразовый"
     },
     "cascadeModes": {
       "all_descendants": "Все потомки",
@@ -436,7 +457,8 @@
       "title": "Invite Tree"
     },
     "units": {
-      "daysShort": "{count}д"
+      "daysShort": "{count}д",
+      "unlimited": "Без лимита"
     }
   },
   "layout": {

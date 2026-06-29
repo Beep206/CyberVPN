@@ -23330,6 +23330,22 @@
             }
           },
           {
+            "name": "usage_mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Usage Mode"
+            }
+          },
+          {
             "name": "used",
             "in": "query",
             "required": false,
@@ -24586,6 +24602,107 @@
                 }
               ],
               "title": "Status"
+            }
+          },
+          {
+            "name": "invite_code_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Invite Code Id"
+            }
+          },
+          {
+            "name": "usage_mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Usage Mode"
+            }
+          },
+          {
+            "name": "root_invite_code_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Root Invite Code Id"
+            }
+          },
+          {
+            "name": "redeemer_user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Redeemer User Id"
+            }
+          },
+          {
+            "name": "created_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created From"
+            }
+          },
+          {
+            "name": "created_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Created To"
             }
           },
           {
@@ -59174,6 +59291,43 @@
             ],
             "title": "Expires At"
           },
+          "usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Usage Mode",
+            "default": "single_use"
+          },
+          "max_redemptions_per_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Redemptions Per Code"
+          },
+          "per_user_redemption_cap": {
+            "type": "integer",
+            "title": "Per User Redemption Cap",
+            "default": 1
+          },
+          "multi_use_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Multi Use Policy"
+          },
           "entitlement_mode": {
             "type": "string",
             "title": "Entitlement Mode"
@@ -59792,6 +59946,43 @@
             ],
             "title": "Expires At"
           },
+          "usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Usage Mode",
+            "default": "single_use"
+          },
+          "max_redemptions_per_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Redemptions Per Code"
+          },
+          "per_user_redemption_cap": {
+            "type": "integer",
+            "title": "Per User Redemption Cap",
+            "default": 1
+          },
+          "multi_use_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Multi Use Policy"
+          },
           "entitlement_mode": {
             "type": "string",
             "title": "Entitlement Mode"
@@ -60175,6 +60366,42 @@
             ],
             "title": "Expiry Days"
           },
+          "usage_mode": {
+            "type": "string",
+            "enum": [
+              "campaign_default",
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Usage Mode",
+            "default": "campaign_default"
+          },
+          "max_redemptions_per_code": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Redemptions Per Code"
+          },
+          "per_user_redemption_cap": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per User Redemption Cap"
+          },
           "reason": {
             "type": "string",
             "maxLength": 240,
@@ -60409,6 +60636,36 @@
             ],
             "title": "Root Invite Expires At"
           },
+          "root_usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Root Usage Mode",
+            "default": "single_use"
+          },
+          "root_max_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Max Redemptions",
+            "default": 1
+          },
+          "root_per_user_redemption_cap": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Root Per User Redemption Cap",
+            "default": 1
+          },
           "child_invite_count": {
             "type": "integer",
             "maximum": 100.0,
@@ -60458,6 +60715,36 @@
               }
             ],
             "title": "Child Invite Expires At"
+          },
+          "child_usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Child Usage Mode",
+            "default": "single_use"
+          },
+          "child_max_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Max Redemptions",
+            "default": 1
+          },
+          "child_per_user_redemption_cap": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Child Per User Redemption Cap",
+            "default": 1
           },
           "child_grant_plan_id": {
             "anyOf": [
@@ -60556,6 +60843,16 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Caps"
+          },
+          "multi_use_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Multi Use Policy"
+          },
+          "multi_use_acknowledgement": {
+            "type": "boolean",
+            "title": "Multi Use Acknowledgement",
+            "default": false
           },
           "lifetime_campaign_acknowledgement": {
             "type": "boolean",
@@ -60913,6 +61210,36 @@
             ],
             "title": "Root Invite Expires At"
           },
+          "root_usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Root Usage Mode",
+            "default": "single_use"
+          },
+          "root_max_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Max Redemptions",
+            "default": 1
+          },
+          "root_per_user_redemption_cap": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Root Per User Redemption Cap",
+            "default": 1
+          },
           "child_invite_count": {
             "type": "integer",
             "maximum": 100.0,
@@ -60962,6 +61289,36 @@
               }
             ],
             "title": "Child Invite Expires At"
+          },
+          "child_usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Child Usage Mode",
+            "default": "single_use"
+          },
+          "child_max_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Max Redemptions",
+            "default": 1
+          },
+          "child_per_user_redemption_cap": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Child Per User Redemption Cap",
+            "default": 1
           },
           "child_grant_plan_id": {
             "anyOf": [
@@ -61067,6 +61424,16 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Caps"
+          },
+          "multi_use_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Multi Use Policy"
+          },
+          "multi_use_acknowledgement": {
+            "type": "boolean",
+            "title": "Multi Use Acknowledgement",
+            "default": false
           },
           "lifetime_campaign_acknowledgement": {
             "type": "boolean",
@@ -61221,6 +61588,61 @@
             ],
             "title": "Child Invite Expires At"
           },
+          "root_usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Root Usage Mode",
+            "default": "single_use"
+          },
+          "root_max_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Max Redemptions"
+          },
+          "root_per_user_redemption_cap": {
+            "type": "integer",
+            "title": "Root Per User Redemption Cap",
+            "default": 1
+          },
+          "child_usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Child Usage Mode",
+            "default": "single_use"
+          },
+          "child_max_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Max Redemptions"
+          },
+          "child_per_user_redemption_cap": {
+            "type": "integer",
+            "title": "Child Per User Redemption Cap",
+            "default": 1
+          },
+          "multi_use_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Multi Use Policy"
+          },
           "child_grant_plan_id": {
             "anyOf": [
               {
@@ -61368,6 +61790,7 @@
           "grant_snapshot",
           "child_invite_count",
           "child_invite_free_days",
+          "multi_use_policy",
           "child_grant_snapshot",
           "max_generation_depth",
           "block_self_redemption",
@@ -61519,6 +61942,16 @@
             "type": "boolean",
             "title": "Is Used"
           },
+          "is_redeemable": {
+            "type": "boolean",
+            "title": "Is Redeemable",
+            "default": false
+          },
+          "status_sort_order": {
+            "type": "integer",
+            "title": "Status Sort Order",
+            "default": 5
+          },
           "used_by_user_id": {
             "anyOf": [
               {
@@ -61571,6 +62004,105 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Usage Mode",
+            "default": "single_use"
+          },
+          "max_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Redemptions"
+          },
+          "redeemed_count": {
+            "type": "integer",
+            "title": "Redeemed Count",
+            "default": 0
+          },
+          "active_redemptions_count": {
+            "type": "integer",
+            "title": "Active Redemptions Count",
+            "default": 0
+          },
+          "reversed_redemptions_count": {
+            "type": "integer",
+            "title": "Reversed Redemptions Count",
+            "default": 0
+          },
+          "remaining_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Redemptions"
+          },
+          "first_redeemed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Redeemed At"
+          },
+          "last_redeemed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Redeemed At"
+          },
+          "exhausted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exhausted At"
+          },
+          "per_user_redemption_cap": {
+            "type": "integer",
+            "title": "Per User Redemption Cap",
+            "default": 1
+          },
+          "multi_use_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Multi Use Policy"
           },
           "campaign_id": {
             "anyOf": [
@@ -61982,6 +62514,70 @@
               }
             ],
             "title": "Granted Duration Days"
+          },
+          "usage_mode_snapshot": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Usage Mode Snapshot",
+            "default": "single_use"
+          },
+          "redemption_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redemption Sequence"
+          },
+          "code_redemptions_count_after": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Redemptions Count After"
+          },
+          "device_key_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Key Hash"
+          },
+          "client_ip_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Ip Hash"
+          },
+          "user_agent_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agent Hash"
           },
           "child_batch_id": {
             "anyOf": [
@@ -74603,6 +75199,43 @@
             ],
             "title": "Expires At"
           },
+          "usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Usage Mode",
+            "default": "single_use"
+          },
+          "max_redemptions_per_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Redemptions Per Code"
+          },
+          "per_user_redemption_cap": {
+            "type": "integer",
+            "title": "Per User Redemption Cap",
+            "default": 1
+          },
+          "multi_use_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Multi Use Policy"
+          },
           "status": {
             "type": "string",
             "title": "Status"
@@ -80658,6 +81291,30 @@
             "type": "boolean",
             "title": "Is Used"
           },
+          "used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
           "expires_at": {
             "anyOf": [
               {
@@ -80674,6 +81331,103 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Usage Mode",
+            "default": "single_use"
+          },
+          "max_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Redemptions"
+          },
+          "redeemed_count": {
+            "type": "integer",
+            "title": "Redeemed Count",
+            "default": 0
+          },
+          "active_redemptions_count": {
+            "type": "integer",
+            "title": "Active Redemptions Count",
+            "default": 0
+          },
+          "reversed_redemptions_count": {
+            "type": "integer",
+            "title": "Reversed Redemptions Count",
+            "default": 0
+          },
+          "remaining_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Redemptions"
+          },
+          "first_redeemed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Redeemed At"
+          },
+          "last_redeemed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Redeemed At"
+          },
+          "exhausted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exhausted At"
+          },
+          "per_user_redemption_cap": {
+            "type": "integer",
+            "title": "Per User Redemption Cap",
+            "default": 1
+          },
+          "is_redeemable": {
+            "type": "boolean",
+            "title": "Is Redeemable",
+            "default": true
+          },
+          "status_sort_order": {
+            "type": "integer",
+            "title": "Status Sort Order",
+            "default": 5
           },
           "entitlement_grant_id": {
             "anyOf": [
@@ -104620,6 +105374,92 @@
           "is_used": {
             "type": "boolean",
             "title": "Is Used"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "usage_mode": {
+            "type": "string",
+            "enum": [
+              "single_use",
+              "multi_use"
+            ],
+            "title": "Usage Mode",
+            "default": "single_use"
+          },
+          "max_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Redemptions"
+          },
+          "redeemed_count": {
+            "type": "integer",
+            "title": "Redeemed Count",
+            "default": 0
+          },
+          "active_redemptions_count": {
+            "type": "integer",
+            "title": "Active Redemptions Count",
+            "default": 0
+          },
+          "remaining_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Redemptions"
+          },
+          "is_redeemable": {
+            "type": "boolean",
+            "title": "Is Redeemable",
+            "default": false
+          },
+          "status_sort_order": {
+            "type": "integer",
+            "title": "Status Sort Order",
+            "default": 5
+          },
+          "used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
           },
           "expires_at": {
             "anyOf": [

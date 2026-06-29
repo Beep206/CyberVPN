@@ -25,6 +25,7 @@ import {
   getGrowthCodeResolutionMessageKey,
   type GrowthCodeResolutionMessageKey,
 } from '@/features/customer-growth/lib/checkout-code-resolution';
+import { sortInviteCodes } from '@/features/customer-growth/lib/sort-invite-codes';
 import {
   areGiftCodesEnabled,
   areInviteCodesEnabled,
@@ -39,11 +40,11 @@ type InviteCodeItem = Extract<InviteInventoryResponse, unknown[]>[number];
 
 function normalizeInviteInventory(response: InviteInventoryResponse): InviteCodeItem[] {
   if (Array.isArray(response)) {
-    return response;
+    return sortInviteCodes(response);
   }
 
   const batched = response.batches.flatMap((group) => group.invites);
-  return [...batched, ...(response.unbatched ?? [])];
+  return sortInviteCodes([...batched, ...(response.unbatched ?? [])]);
 }
 
 function pollingInterval(intervalMs: number) {

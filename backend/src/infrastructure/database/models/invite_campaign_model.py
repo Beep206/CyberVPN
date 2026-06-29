@@ -126,6 +126,23 @@ class InviteCampaignVersionModel(Base):
             name="ck_invite_campaign_versions_child_expiry_mode",
         ),
         CheckConstraint(
+            "root_usage_mode IN ('single_use','multi_use')",
+            name="ck_invite_campaign_versions_root_usage_mode",
+        ),
+        CheckConstraint(
+            "child_usage_mode IN ('single_use','multi_use')",
+            name="ck_invite_campaign_versions_child_usage_mode",
+        ),
+        CheckConstraint(
+            "(root_max_redemptions IS NULL OR root_max_redemptions > 0) "
+            "AND (child_max_redemptions IS NULL OR child_max_redemptions > 0)",
+            name="ck_invite_campaign_versions_max_redemptions_positive",
+        ),
+        CheckConstraint(
+            "root_per_user_redemption_cap >= 1 AND child_per_user_redemption_cap >= 1",
+            name="ck_invite_campaign_versions_per_user_caps_positive",
+        ),
+        CheckConstraint(
             "(grant_device_limit_override IS NULL OR grant_device_limit_override > 0) "
             "AND (child_grant_device_limit_override IS NULL OR child_grant_device_limit_override > 0)",
             name="ck_invite_campaign_versions_device_override_positive",
@@ -169,6 +186,19 @@ class InviteCampaignVersionModel(Base):
     )
     root_invite_expiry_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     root_invite_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    root_usage_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="single_use",
+        server_default="single_use",
+    )
+    root_max_redemptions: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    root_per_user_redemption_cap: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        server_default="1",
+    )
     child_invite_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     child_invite_free_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     child_invite_expiry_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
@@ -179,6 +209,19 @@ class InviteCampaignVersionModel(Base):
         server_default="relative",
     )
     child_invite_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    child_usage_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="single_use",
+        server_default="single_use",
+    )
+    child_max_redemptions: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    child_per_user_redemption_cap: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        server_default="1",
+    )
     child_grant_plan_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("subscription_plans.id", ondelete="SET NULL"),
         nullable=True,
@@ -201,6 +244,7 @@ class InviteCampaignVersionModel(Base):
     redemption_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     child_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     issue_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    multi_use_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     export_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     notification_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     checksum: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
@@ -246,10 +290,22 @@ class InviteRedemptionModel(Base):
             "status IN ('redeemed','blocked','reversed')",
             name="ck_invite_redemptions_status",
         ),
+        CheckConstraint(
+            "usage_mode_snapshot IN ('single_use','multi_use')",
+            name="ck_invite_redemptions_usage_mode_snapshot",
+        ),
         UniqueConstraint("idempotency_key", name="uq_invite_redemptions_idempotency_key"),
         Index(
             "uq_invite_redemptions_redeemed_invite_code_id",
             "invite_code_id",
+            unique=True,
+            postgresql_where=text("status = 'redeemed' AND usage_mode_snapshot = 'single_use'"),
+            sqlite_where=text("status = 'redeemed' AND usage_mode_snapshot = 'single_use'"),
+        ),
+        Index(
+            "uq_invite_redemptions_code_user_active",
+            "invite_code_id",
+            "invitee_user_id",
             unique=True,
             postgresql_where=text("status = 'redeemed'"),
             sqlite_where=text("status = 'redeemed'"),
@@ -313,6 +369,17 @@ class InviteRedemptionModel(Base):
     )
     child_issued_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     idempotency_key: Mapped[str] = mapped_column(String(220), nullable=False, index=True)
+    usage_mode_snapshot: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="single_use",
+        server_default="single_use",
+    )
+    redemption_sequence: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    code_redemptions_count_after: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    device_key_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    client_ip_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    user_agent_hash: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="redeemed", server_default="redeemed")
     blocked_reason: Mapped[str | None] = mapped_column(String(160), nullable=True)
     risk_decision: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)

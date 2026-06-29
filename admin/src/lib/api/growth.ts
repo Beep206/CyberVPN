@@ -200,11 +200,24 @@ export interface AdminInviteCodeSummaryResponse {
   batch_id?: string | null;
   status: string;
   is_used: boolean;
+  is_redeemable?: boolean;
+  status_sort_order?: number;
   used_by_user_id?: string | null;
   used_at?: string | null;
   revoked_at?: string | null;
   expires_at?: string | null;
   created_at: string;
+  usage_mode?: 'single_use' | 'multi_use';
+  max_redemptions?: number | null;
+  redeemed_count?: number;
+  active_redemptions_count?: number;
+  reversed_redemptions_count?: number;
+  remaining_redemptions?: number | null;
+  first_redeemed_at?: string | null;
+  last_redeemed_at?: string | null;
+  exhausted_at?: string | null;
+  per_user_redemption_cap?: number;
+  multi_use_policy?: Record<string, unknown> | null;
   campaign_id?: string | null;
   campaign_key?: string | null;
   campaign_version_id?: string | null;
@@ -245,6 +258,7 @@ export interface AdminListInviteCodesParams {
   root_invite_code_id?: string;
   parent_invite_code_id?: string;
   status?: string;
+  usage_mode?: string;
   used?: boolean;
   plan_id?: string;
   plan_code?: string;
@@ -280,11 +294,17 @@ export interface AdminInviteCampaignCreateRequest {
   root_invite_expiry_mode?: 'relative' | 'absolute' | 'none';
   root_invite_expiry_days?: number | null;
   root_invite_expires_at?: string | null;
+  root_usage_mode?: 'single_use' | 'multi_use';
+  root_max_redemptions?: number | null;
+  root_per_user_redemption_cap?: number;
   child_invite_count?: number;
   child_invite_free_days?: number;
   child_invite_expiry_mode?: 'relative' | 'absolute' | 'none';
   child_invite_expiry_days?: number | null;
   child_invite_expires_at?: string | null;
+  child_usage_mode?: 'single_use' | 'multi_use';
+  child_max_redemptions?: number | null;
+  child_per_user_redemption_cap?: number;
   child_grant_plan_id?: string | null;
   child_grant_plan_code?: string | null;
   child_grant_duration_mode?: 'fixed_days' | 'lifetime';
@@ -297,6 +317,8 @@ export interface AdminInviteCampaignCreateRequest {
   export_policy?: Record<string, unknown>;
   notification_policy?: Record<string, unknown>;
   caps?: Record<string, unknown>;
+  multi_use_policy?: Record<string, unknown>;
+  multi_use_acknowledgement?: boolean;
   lifetime_campaign_acknowledgement?: boolean;
   publish?: boolean;
   reason?: string | null;
@@ -315,12 +337,18 @@ export interface AdminInviteCampaignVersionResponse {
   root_invite_expiry_mode?: string;
   root_invite_expiry_days?: number | null;
   root_invite_expires_at?: string | null;
+  root_usage_mode?: 'single_use' | 'multi_use';
+  root_max_redemptions?: number | null;
+  root_per_user_redemption_cap?: number;
   grant_snapshot: Record<string, unknown>;
   child_invite_count: number;
   child_invite_free_days: number;
   child_invite_expiry_days?: number | null;
   child_invite_expiry_mode?: string;
   child_invite_expires_at?: string | null;
+  child_usage_mode?: 'single_use' | 'multi_use';
+  child_max_redemptions?: number | null;
+  child_per_user_redemption_cap?: number;
   child_grant_plan_id?: string | null;
   child_grant_duration_mode?: string;
   child_grant_duration_days?: number | null;
@@ -331,6 +359,7 @@ export interface AdminInviteCampaignVersionResponse {
   require_no_active_access: boolean;
   allowed_surfaces: string[];
   risk_policy: Record<string, unknown>;
+  multi_use_policy: Record<string, unknown>;
   redemption_policy: Record<string, unknown>;
   child_policy: Record<string, unknown>;
   issue_policy: Record<string, unknown>;
@@ -390,11 +419,17 @@ export interface AdminInviteCampaignVersionCreateRequest {
   root_invite_expiry_mode?: 'relative' | 'absolute' | 'none';
   root_invite_expiry_days?: number | null;
   root_invite_expires_at?: string | null;
+  root_usage_mode?: 'single_use' | 'multi_use';
+  root_max_redemptions?: number | null;
+  root_per_user_redemption_cap?: number;
   child_invite_count?: number;
   child_invite_free_days?: number;
   child_invite_expiry_mode?: 'relative' | 'absolute' | 'none';
   child_invite_expiry_days?: number | null;
   child_invite_expires_at?: string | null;
+  child_usage_mode?: 'single_use' | 'multi_use';
+  child_max_redemptions?: number | null;
+  child_per_user_redemption_cap?: number;
   child_grant_plan_id?: string | null;
   child_grant_plan_code?: string | null;
   child_grant_duration_mode?: 'fixed_days' | 'lifetime';
@@ -407,6 +442,9 @@ export interface AdminInviteCampaignVersionCreateRequest {
   risk_policy?: Record<string, unknown>;
   export_policy?: Record<string, unknown>;
   notification_policy?: Record<string, unknown>;
+  caps?: Record<string, unknown>;
+  multi_use_policy?: Record<string, unknown>;
+  multi_use_acknowledgement?: boolean;
   lifetime_campaign_acknowledgement?: boolean;
   reason?: string | null;
 }
@@ -428,6 +466,9 @@ export interface AdminInviteCampaignBatchCreateRequest {
   expiry_mode?: 'campaign_default' | 'relative' | 'absolute' | 'none';
   expires_at?: string | null;
   expiry_days?: number | null;
+  usage_mode?: 'campaign_default' | 'single_use' | 'multi_use';
+  max_redemptions_per_code?: number | null;
+  per_user_redemption_cap?: number | null;
   reason: string;
 }
 
@@ -454,6 +495,10 @@ export interface AdminInviteBatchResponse {
   expiry_mode: string;
   expiry_days?: number | null;
   expires_at?: string | null;
+  usage_mode?: 'single_use' | 'multi_use';
+  max_redemptions_per_code?: number | null;
+  per_user_redemption_cap?: number;
+  multi_use_policy?: Record<string, unknown> | null;
   entitlement_mode: string;
   entitlement_profile_key?: string | null;
   plan_id?: string | null;
@@ -510,6 +555,12 @@ export interface AdminInviteRedemptionResponse {
   granted_plan_id?: string | null;
   granted_plan_code?: string | null;
   granted_duration_days?: number | null;
+  usage_mode_snapshot?: 'single_use' | 'multi_use';
+  redemption_sequence?: number | null;
+  code_redemptions_count_after?: number | null;
+  device_key_hash?: string | null;
+  client_ip_hash?: string | null;
+  user_agent_hash?: string | null;
   child_batch_id?: string | null;
   child_issued_count?: number;
   status: string;

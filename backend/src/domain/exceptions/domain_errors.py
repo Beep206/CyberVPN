@@ -101,6 +101,16 @@ class InviteCodeAlreadyUsedError(DomainError):
         super().__init__(msg, {"code": code})
 
 
+class InviteCodeAlreadyRedeemedByUserError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("Invite code already redeemed by this user")
+
+
+class InviteCodeExhaustedError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("Invite code exhausted")
+
+
 class InviteCodeExpiredError(DomainError):
     def __init__(self, code: str | None = None) -> None:
         msg = f"Invite code expired: {code}" if code else "Invite code expired"

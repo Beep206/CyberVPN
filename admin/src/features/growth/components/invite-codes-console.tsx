@@ -65,6 +65,8 @@ const SURFACE_OPTIONS = ['web', 'miniapp', 'telegram_bot'];
 const DURATION_MODE_OPTIONS = ['fixed_days', 'lifetime'];
 const EXPIRY_MODE_OPTIONS = ['relative', 'absolute', 'none'];
 const BATCH_EXPIRY_MODE_OPTIONS = ['campaign_default', 'relative', 'absolute', 'none'];
+const USAGE_MODE_OPTIONS = ['single_use', 'multi_use'];
+const BATCH_USAGE_MODE_OPTIONS = ['campaign_default', 'single_use', 'multi_use'];
 
 const initialCampaignForm = {
   campaignKey: '',
@@ -97,6 +99,9 @@ const initialCampaignForm = {
   rootInviteExpiryMode: 'relative',
   rootInviteExpiryDays: '30',
   rootInviteExpiresAt: '',
+  rootUsageMode: 'single_use',
+  rootMaxRedemptions: '1',
+  rootPerUserRedemptionCap: '1',
   childGrantPlanId: '',
   childGrantPlanCode: '',
   childGrantDurationMode: 'fixed_days',
@@ -107,10 +112,14 @@ const initialCampaignForm = {
   childInviteExpiryMode: 'relative',
   childInviteExpiryDays: '30',
   childInviteExpiresAt: '',
+  childUsageMode: 'single_use',
+  childMaxRedemptions: '1',
+  childPerUserRedemptionCap: '1',
   maxGenerationDepth: '5',
   startsAt: '',
   expiresAt: '',
   highRiskContext: false,
+  multiUseAcknowledgement: false,
   lifetimeCampaignAcknowledgement: false,
   publish: false,
   reason: '',
@@ -124,6 +133,9 @@ const initialBatchForm = {
   expiryMode: 'campaign_default',
   expiryDays: '30',
   expiresAt: '',
+  usageMode: 'campaign_default',
+  maxRedemptionsPerCode: '',
+  perUserRedemptionCap: '1',
   idempotencyKey: '',
   reason: '',
 };
@@ -140,6 +152,9 @@ function premiumSmartRuLifetimePreset(displayName: string) {
     grantDeviceLimitOverride: '5',
     rootInviteExpiryMode: 'none',
     rootInviteExpiryDays: '',
+    rootUsageMode: 'multi_use',
+    rootMaxRedemptions: '100000',
+    rootPerUserRedemptionCap: '1',
     childGrantPlanCode: 'premium_smart_ru',
     childGrantDurationMode: 'lifetime',
     childGrantDurationDays: '',
@@ -148,6 +163,9 @@ function premiumSmartRuLifetimePreset(displayName: string) {
     childInviteFreeDays: '0',
     childInviteExpiryMode: 'none',
     childInviteExpiryDays: '',
+    childUsageMode: 'single_use',
+    childMaxRedemptions: '1',
+    childPerUserRedemptionCap: '1',
     maxGenerationDepth: '5',
     perUserRedeemCap: '1',
     globalIssueCap: '100000',
@@ -162,6 +180,7 @@ function premiumSmartRuLifetimePreset(displayName: string) {
     requireNoActiveAccess: true,
     blockSelfRedemption: true,
     highRiskContext: true,
+    multiUseAcknowledgement: true,
     lifetimeCampaignAcknowledgement: true,
     publish: false,
   };
@@ -174,6 +193,7 @@ const initialInventoryFilters = {
   ownerUserId: '',
   usedByUserId: '',
   rootInviteCodeId: '',
+  usageMode: '',
   status: '',
   used: '',
   planId: '',
@@ -227,6 +247,10 @@ function formatDurationPolicy(
 
 function formatExpiryPolicy(mode: string | null | undefined, t: ReturnType<typeof useTranslations>) {
   return mode ? t(`inviteCodes.expiryModes.${mode}`) : t('common.missing');
+}
+
+function formatRedemptionLimit(value: number | null | undefined, t: ReturnType<typeof useTranslations>) {
+  return typeof value === 'number' ? String(value) : t('inviteCodes.units.unlimited');
 }
 
 function selectedCampaignOrFirst(
@@ -288,6 +312,7 @@ export function InviteCodesConsole() {
         owner_user_id: inventoryFilters.ownerUserId.trim() || undefined,
         used_by_user_id: inventoryFilters.usedByUserId.trim() || undefined,
         root_invite_code_id: inventoryFilters.rootInviteCodeId.trim() || undefined,
+        usage_mode: inventoryFilters.usageMode.trim() || undefined,
         status: inventoryFilters.status || undefined,
         used: inventoryFilters.used ? inventoryFilters.used === 'true' : undefined,
         plan_id: inventoryFilters.planId || undefined,
@@ -409,6 +434,9 @@ export function InviteCodesConsole() {
           campaignForm.rootInviteExpiryMode === 'absolute'
             ? toIsoDateTime(campaignForm.rootInviteExpiresAt) ?? null
             : null,
+        root_usage_mode: campaignForm.rootUsageMode as 'single_use' | 'multi_use',
+        root_max_redemptions: optionalNumber(campaignForm.rootMaxRedemptions) ?? null,
+        root_per_user_redemption_cap: optionalNumber(campaignForm.rootPerUserRedemptionCap) ?? 1,
         child_grant_plan_id: campaignForm.childGrantPlanId || null,
         ...(campaignForm.childGrantPlanId
           ? { child_grant_plan_code: null }
@@ -430,6 +458,9 @@ export function InviteCodesConsole() {
           campaignForm.childInviteExpiryMode === 'absolute'
             ? toIsoDateTime(campaignForm.childInviteExpiresAt) ?? null
             : null,
+        child_usage_mode: campaignForm.childUsageMode as 'single_use' | 'multi_use',
+        child_max_redemptions: optionalNumber(campaignForm.childMaxRedemptions) ?? null,
+        child_per_user_redemption_cap: optionalNumber(campaignForm.childPerUserRedemptionCap) ?? 1,
         max_generation_depth: optionalNumber(campaignForm.maxGenerationDepth),
         require_no_active_access: campaignForm.requireNoActiveAccess,
         block_self_redemption: campaignForm.blockSelfRedemption,
@@ -451,6 +482,13 @@ export function InviteCodesConsole() {
           max_per_owner: optionalNumber(campaignForm.maxPerOwner),
           max_daily_issued: optionalNumber(campaignForm.maxDailyIssued),
         },
+        multi_use_policy: {
+          high_risk_context: campaignForm.highRiskContext,
+          cap_mode: campaignForm.rootUsageMode === 'multi_use' ? 'limited' : 'single_use',
+          root_max_redemptions: optionalNumber(campaignForm.rootMaxRedemptions) ?? null,
+          child_max_redemptions: optionalNumber(campaignForm.childMaxRedemptions) ?? null,
+        },
+        multi_use_acknowledgement: campaignForm.multiUseAcknowledgement,
         lifetime_campaign_acknowledgement: campaignForm.lifetimeCampaignAcknowledgement,
         publish: campaignForm.publish,
         reason: campaignForm.reason.trim() || null,
@@ -497,6 +535,9 @@ export function InviteCodesConsole() {
         expiry_mode: batchForm.expiryMode as 'campaign_default' | 'relative' | 'absolute' | 'none',
         expiry_days: batchForm.expiryMode === 'relative' ? optionalNumber(batchForm.expiryDays) : null,
         expires_at: batchForm.expiryMode === 'absolute' ? toIsoDateTime(batchForm.expiresAt) ?? null : null,
+        usage_mode: batchForm.usageMode as 'campaign_default' | 'single_use' | 'multi_use',
+        max_redemptions_per_code: optionalNumber(batchForm.maxRedemptionsPerCode) ?? null,
+        per_user_redemption_cap: optionalNumber(batchForm.perUserRedemptionCap) ?? 1,
         idempotency_key: batchForm.idempotencyKey.trim() || null,
         reason: batchForm.reason.trim(),
       }),
@@ -1138,6 +1179,26 @@ function CampaignsTab({
               onChange={(value) => setCampaignForm((current) => ({ ...current, rootInviteExpiresAt: value }))}
             />
             <SelectField
+              label={t('inviteCodes.fields.rootUsageMode')}
+              value={campaignForm.rootUsageMode}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, rootUsageMode: value }))}
+              options={USAGE_MODE_OPTIONS}
+              optionLabel={(value) => t(`inviteCodes.usageModes.${value}`)}
+            />
+            <TextField
+              label={t('inviteCodes.fields.rootMaxRedemptions')}
+              type="number"
+              value={campaignForm.rootMaxRedemptions}
+              disabled={campaignForm.rootUsageMode === 'single_use'}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, rootMaxRedemptions: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.rootPerUserRedemptionCap')}
+              type="number"
+              value={campaignForm.rootPerUserRedemptionCap}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, rootPerUserRedemptionCap: value }))}
+            />
+            <SelectField
               label={t('inviteCodes.fields.childGrantDurationMode')}
               value={campaignForm.childGrantDurationMode}
               onChange={(value) => setCampaignForm((current) => ({ ...current, childGrantDurationMode: value }))}
@@ -1191,6 +1252,26 @@ function CampaignsTab({
               value={campaignForm.childInviteExpiresAt}
               disabled={campaignForm.childInviteExpiryMode !== 'absolute'}
               onChange={(value) => setCampaignForm((current) => ({ ...current, childInviteExpiresAt: value }))}
+            />
+            <SelectField
+              label={t('inviteCodes.fields.childUsageMode')}
+              value={campaignForm.childUsageMode}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, childUsageMode: value }))}
+              options={USAGE_MODE_OPTIONS}
+              optionLabel={(value) => t(`inviteCodes.usageModes.${value}`)}
+            />
+            <TextField
+              label={t('inviteCodes.fields.childMaxRedemptions')}
+              type="number"
+              value={campaignForm.childMaxRedemptions}
+              disabled={campaignForm.childUsageMode === 'single_use'}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, childMaxRedemptions: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.childPerUserRedemptionCap')}
+              type="number"
+              value={campaignForm.childPerUserRedemptionCap}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, childPerUserRedemptionCap: value }))}
             />
             <TextField
               label={t('inviteCodes.fields.maxGenerationDepth')}
@@ -1327,6 +1408,11 @@ function CampaignsTab({
               label={t('inviteCodes.fields.denyKnownAbuseSubject')}
               checked={campaignForm.denyKnownAbuseSubject}
               onChange={(checked) => setCampaignForm((current) => ({ ...current, denyKnownAbuseSubject: checked }))}
+            />
+            <CheckboxRow
+              label={t('inviteCodes.fields.multiUseAcknowledgement')}
+              checked={campaignForm.multiUseAcknowledgement}
+              onChange={(checked) => setCampaignForm((current) => ({ ...current, multiUseAcknowledgement: checked }))}
             />
             <CheckboxRow
               label={t('inviteCodes.fields.lifetimeCampaignAcknowledgement')}
@@ -1498,6 +1584,26 @@ function CreateBatchTab({
               onChange={(value) => setBatchForm((current) => ({ ...current, count: value }))}
               required
             />
+            <SelectField
+              label={t('inviteCodes.fields.batchUsageMode')}
+              value={batchForm.usageMode}
+              onChange={(value) => setBatchForm((current) => ({ ...current, usageMode: value }))}
+              options={BATCH_USAGE_MODE_OPTIONS}
+              optionLabel={(value) => t(`inviteCodes.usageModes.${value}`)}
+            />
+            <TextField
+              label={t('inviteCodes.fields.maxRedemptionsPerCode')}
+              type="number"
+              value={batchForm.maxRedemptionsPerCode}
+              disabled={batchForm.usageMode === 'single_use'}
+              onChange={(value) => setBatchForm((current) => ({ ...current, maxRedemptionsPerCode: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.perUserRedemptionCap')}
+              type="number"
+              value={batchForm.perUserRedemptionCap}
+              onChange={(value) => setBatchForm((current) => ({ ...current, perUserRedemptionCap: value }))}
+            />
             <TextField
               label={t('inviteCodes.fields.expiryDays')}
               type="number"
@@ -1649,6 +1755,13 @@ function InventoryTab({
             optionLabel={(value) => (value ? humanizeToken(value) : t('inviteCodes.fields.allStatuses'))}
           />
           <SelectField
+            label={t('inviteCodes.fields.usageMode')}
+            value={inventoryFilters.usageMode}
+            onChange={(value) => setInventoryFilters((current) => ({ ...current, usageMode: value }))}
+            options={['', ...USAGE_MODE_OPTIONS]}
+            optionLabel={(value) => (value ? t(`inviteCodes.usageModes.${value}`) : t('inviteCodes.fields.anyUsage'))}
+          />
+          <SelectField
             label={t('inviteCodes.fields.used')}
             value={inventoryFilters.used}
             onChange={(value) => setInventoryFilters((current) => ({ ...current, used: value }))}
@@ -1737,8 +1850,8 @@ function InventoryTab({
       </article>
 
       <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-8">
-	        <div className="flex flex-wrap items-center justify-between gap-3">
-	          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
             <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
               {t('inviteCodes.inventory.title')}
             </h2>
@@ -1746,58 +1859,58 @@ function InventoryTab({
               {t('inviteCodes.inventory.description')}
             </p>
           </div>
-	          <div className="flex flex-wrap items-center gap-2">
-	            <GrowthStatusChip
-	              label={isFetching ? t('inviteCodes.actions.syncing') : t('inviteCodes.inventory.live')}
-	              tone={isFetching ? 'warning' : 'success'}
-	            />
-	            <span className="rounded-full border border-grid-line/20 bg-terminal-bg/60 px-3 py-1 text-xs font-mono text-muted-foreground">
-	              {t('inviteCodes.inventory.total', { count: formatCompactNumber(total, locale) })}
-	            </span>
-	          </div>
-	        </div>
-	        <div className="mt-5 overflow-hidden rounded-2xl border border-grid-line/20">
-	          <InviteCodesTable inviteCodes={inviteCodes} isLoading={isLoading} locale={locale} t={t} />
-	        </div>
-	        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-grid-line/20 bg-terminal-bg/45 p-3">
-	          <span className="text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
-	            {t('inviteCodes.inventory.page', {
-	              page: currentPage + 1,
-	              totalPages,
-	              first: firstVisible,
-	              last: lastVisible,
-	              total,
-	            })}
-	          </span>
-	          <div className="flex flex-wrap items-end gap-2">
-	            <SelectField
-	              label={t('inviteCodes.fields.limit')}
-	              value={String(limit)}
-	              onChange={(value) => setLimit(Number.parseInt(value, 10))}
-	              options={['25', '50', '100']}
-	              compact
-	            />
-	            <Button
-	              type="button"
-	              variant="ghost"
-	              magnetic={false}
-	              disabled={currentPage === 0}
-	              onClick={() => setPage(Math.max(0, currentPage - 1))}
-	            >
-	              {t('inviteCodes.actions.previous')}
-	            </Button>
-	            <Button
-	              type="button"
-	              variant="ghost"
-	              magnetic={false}
-	              disabled={currentPage + 1 >= totalPages}
-	              onClick={() => setPage(Math.min(totalPages - 1, currentPage + 1))}
-	            >
-	              {t('inviteCodes.actions.next')}
-	            </Button>
-	          </div>
-	        </div>
-	      </article>
+          <div className="flex flex-wrap items-center gap-2">
+            <GrowthStatusChip
+              label={isFetching ? t('inviteCodes.actions.syncing') : t('inviteCodes.inventory.live')}
+              tone={isFetching ? 'warning' : 'success'}
+            />
+            <span className="rounded-full border border-grid-line/20 bg-terminal-bg/60 px-3 py-1 text-xs font-mono text-muted-foreground">
+              {t('inviteCodes.inventory.total', { count: formatCompactNumber(total, locale) })}
+            </span>
+          </div>
+        </div>
+        <div className="mt-5 overflow-hidden rounded-2xl border border-grid-line/20">
+          <InviteCodesTable inviteCodes={inviteCodes} isLoading={isLoading} locale={locale} t={t} />
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-grid-line/20 bg-terminal-bg/45 p-3">
+          <span className="text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+            {t('inviteCodes.inventory.page', {
+              page: currentPage + 1,
+              totalPages,
+              first: firstVisible,
+              last: lastVisible,
+              total,
+            })}
+          </span>
+          <div className="flex flex-wrap items-end gap-2">
+            <SelectField
+              label={t('inviteCodes.fields.limit')}
+              value={String(limit)}
+              onChange={(value) => setLimit(Number.parseInt(value, 10))}
+              options={['25', '50', '100']}
+              compact
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              magnetic={false}
+              disabled={currentPage === 0}
+              onClick={() => setPage(Math.max(0, currentPage - 1))}
+            >
+              {t('inviteCodes.actions.previous')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              magnetic={false}
+              disabled={currentPage + 1 >= totalPages}
+              onClick={() => setPage(Math.min(totalPages - 1, currentPage + 1))}
+            >
+              {t('inviteCodes.actions.next')}
+            </Button>
+          </div>
+        </div>
+      </article>
     </div>
   );
 }
@@ -1853,6 +1966,8 @@ function BatchesTab({
               <TableHead>{t('inviteCodes.table.batch')}</TableHead>
               <TableHead>{t('inviteCodes.table.owner')}</TableHead>
               <TableHead>{t('inviteCodes.table.issued')}</TableHead>
+              <TableHead>{t('inviteCodes.table.usage')}</TableHead>
+              <TableHead>{t('inviteCodes.table.maxRedemptions')}</TableHead>
               <TableHead>{t('inviteCodes.table.status')}</TableHead>
               <TableHead>{t('inviteCodes.table.expires')}</TableHead>
               <TableHead>{t('inviteCodes.table.created')}</TableHead>
@@ -1862,13 +1977,13 @@ function BatchesTab({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={9}>
                   <GrowthEmptyState label={t('inviteCodes.batches.loading')} />
                 </TableCell>
               </TableRow>
             ) : batches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={9}>
                   <GrowthEmptyState label={t('inviteCodes.batches.empty')} />
                 </TableCell>
               </TableRow>
@@ -1891,6 +2006,18 @@ function BatchesTab({
                     {shortId(batch.owner_user_id)}
                   </TableCell>
                   <TableCell>{formatCompactNumber(batch.issued_count, locale)}</TableCell>
+                  <TableCell>
+                    <GrowthStatusChip
+                      label={t(`inviteCodes.usageModes.${batch.usage_mode ?? 'single_use'}`)}
+                      tone={batch.usage_mode === 'multi_use' ? 'warning' : 'neutral'}
+                    />
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {formatRedemptionLimit(batch.max_redemptions_per_code, t)}
+                    <p>
+                      {t('inviteCodes.table.perUserCap')}: {batch.per_user_redemption_cap ?? 1}
+                    </p>
+                  </TableCell>
                   <TableCell>
                     <GrowthStatusChip label={humanizeToken(batch.status)} tone={statusTone(batch.status)} />
                   </TableCell>
@@ -2314,6 +2441,18 @@ function ExportsAuditTab({
           <div className="mt-5 grid gap-3">
             <InfoLine label={t('inviteCodes.table.batch')} value={shortId(selectedBatch.id, 12)} />
             <InfoLine label={t('inviteCodes.table.status')} value={humanizeToken(selectedBatch.status)} />
+            <InfoLine
+              label={t('inviteCodes.table.usage')}
+              value={t(`inviteCodes.usageModes.${selectedBatch.usage_mode ?? 'single_use'}`)}
+            />
+            <InfoLine
+              label={t('inviteCodes.table.maxRedemptions')}
+              value={formatRedemptionLimit(selectedBatch.max_redemptions_per_code, t)}
+            />
+            <InfoLine
+              label={t('inviteCodes.table.perUserCap')}
+              value={String(selectedBatch.per_user_redemption_cap ?? 1)}
+            />
             <InfoLine label={t('inviteCodes.table.created')} value={formatDateTime(selectedBatch.created_at, locale)} />
           </div>
         ) : null}
@@ -2394,6 +2533,18 @@ function SettingsTab({
             label={t('inviteCodes.fields.rootInviteExpiryMode')}
             value={formatExpiryPolicy(version.root_invite_expiry_mode, t)}
           />
+          <InfoLine
+            label={t('inviteCodes.fields.rootUsageMode')}
+            value={t(`inviteCodes.usageModes.${version.root_usage_mode ?? 'single_use'}`)}
+          />
+          <InfoLine
+            label={t('inviteCodes.fields.rootMaxRedemptions')}
+            value={formatRedemptionLimit(version.root_max_redemptions, t)}
+          />
+          <InfoLine
+            label={t('inviteCodes.fields.rootPerUserRedemptionCap')}
+            value={String(version.root_per_user_redemption_cap ?? 1)}
+          />
           <InfoLine label={t('inviteCodes.fields.childInviteCount')} value={String(version.child_invite_count)} />
           <InfoLine
             label={t('inviteCodes.fields.childGrantDurationMode')}
@@ -2406,6 +2557,18 @@ function SettingsTab({
           <InfoLine
             label={t('inviteCodes.fields.childInviteExpiryMode')}
             value={formatExpiryPolicy(version.child_invite_expiry_mode, t)}
+          />
+          <InfoLine
+            label={t('inviteCodes.fields.childUsageMode')}
+            value={t(`inviteCodes.usageModes.${version.child_usage_mode ?? 'single_use'}`)}
+          />
+          <InfoLine
+            label={t('inviteCodes.fields.childMaxRedemptions')}
+            value={formatRedemptionLimit(version.child_max_redemptions, t)}
+          />
+          <InfoLine
+            label={t('inviteCodes.fields.childPerUserRedemptionCap')}
+            value={String(version.child_per_user_redemption_cap ?? 1)}
           />
           <InfoLine label={t('inviteCodes.fields.maxGenerationDepth')} value={String(version.max_generation_depth)} />
           <InfoLine label={t('inviteCodes.settings.issued')} value={String(analytics?.issued_total ?? analytics?.issued_count ?? '--')} />
@@ -2448,6 +2611,9 @@ function InviteCodesTable({
           <TableHead>{t('inviteCodes.table.code')}</TableHead>
           <TableHead>{t('inviteCodes.table.status')}</TableHead>
           <TableHead>{t('inviteCodes.table.used')}</TableHead>
+          <TableHead>{t('inviteCodes.table.usage')}</TableHead>
+          <TableHead>{t('inviteCodes.table.redemptions')}</TableHead>
+          <TableHead>{t('inviteCodes.table.remaining')}</TableHead>
           <TableHead>{t('inviteCodes.table.plan')}</TableHead>
           <TableHead>{t('inviteCodes.table.duration')}</TableHead>
           <TableHead>{t('inviteCodes.table.devices')}</TableHead>
@@ -2460,13 +2626,13 @@ function InviteCodesTable({
       <TableBody>
         {isLoading ? (
           <TableRow>
-            <TableCell colSpan={10}>
+            <TableCell colSpan={13}>
               <GrowthEmptyState label={t('inviteCodes.inventory.loading')} />
             </TableCell>
           </TableRow>
         ) : inviteCodes.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={10}>
+            <TableCell colSpan={13}>
               <GrowthEmptyState label={t('inviteCodes.inventory.empty')} />
             </TableCell>
           </TableRow>
@@ -2491,6 +2657,26 @@ function InviteCodesTable({
                   label={invite.is_used ? t('common.used') : t('common.unused')}
                   tone={invite.is_used ? 'warning' : 'success'}
                 />
+              </TableCell>
+              <TableCell>
+                <GrowthStatusChip
+                  label={t(`inviteCodes.usageModes.${invite.usage_mode ?? 'single_use'}`)}
+                  tone={invite.usage_mode === 'multi_use' ? 'warning' : 'neutral'}
+                />
+              </TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                <div className="space-y-1">
+                  <p>
+                    {(invite.active_redemptions_count ?? invite.redeemed_count ?? 0)}/
+                    {formatRedemptionLimit(invite.max_redemptions, t)}
+                  </p>
+                  <p>
+                    {t('inviteCodes.table.perUserCap')}: {invite.per_user_redemption_cap ?? 1}
+                  </p>
+                </div>
+              </TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                {formatRedemptionLimit(invite.remaining_redemptions, t)}
               </TableCell>
               <TableCell className="font-mono text-xs text-muted-foreground">
                 {invite.grant_plan_code ?? t('common.missing')}

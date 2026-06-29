@@ -34,7 +34,9 @@ from src.application.use_cases.service_access.entitlements import (
 )
 from src.application.use_cases.service_access.service_identities import CreateServiceIdentityUseCase
 from src.domain.exceptions import (
+    InviteCodeAlreadyRedeemedByUserError,
     InviteCodeAlreadyUsedError,
+    InviteCodeExhaustedError,
     InviteCodeExpiredError,
     InviteCodeNotFoundError,
 )
@@ -66,6 +68,9 @@ from src.infrastructure.monitoring.instrumentation.growth_codes import (
 from src.presentation.dependencies.auth_realms import RealmResolution
 
 logger = logging.getLogger(__name__)
+
+INVITE_USAGE_SINGLE = "single_use"
+INVITE_USAGE_MULTI = "multi_use"
 
 
 @dataclass(frozen=True)
@@ -117,6 +122,7 @@ class RedeemInviteUseCase:
 
         Raises:
             InviteCodeNotFoundError: code does not exist or is unavailable.
+            InviteCodeAlreadyRedeemedByUserError: code has already been redeemed by the same user.
             InviteCodeAlreadyUsedError: code has already been redeemed.
             InviteCodeExpiredError: code has passed its expiry date.
         """
@@ -134,34 +140,12 @@ class RedeemInviteUseCase:
             )
             raise InviteCodeNotFoundError(code)
 
-        if not invite.is_used:
-            await _pg_advisory_xact_lock(
-                self._session,
-                f"invite-redeem:{invite.campaign_id or invite.id}:redeemer:{user_id}",
-            )
-            try:
-                await self._validate_invite_status(invite)
-                await self._validate_campaign_policy(
-                    invite=invite,
-                    user_id=user_id,
-                    auth_realm_id=UUID(current_realm.realm_id),
-                    source_surface=source_surface,
-                    runtime_context=runtime_context,
-                )
-            except ValueError as exc:
-                await self._record_blocked_redemption(
-                    invite=invite,
-                    redeemer_user_id=user_id,
-                    source_surface=source_surface,
-                    reason=str(exc),
-                )
-                observe_growth_code_redemption_duration(
-                    code_type="invite",
-                    surface=CUSTOMER_REDEEM_SURFACE,
-                    result="failure",
-                    duration_seconds=perf_counter() - started_at,
-                )
-                raise
+        await _pg_advisory_xact_lock(self._session, f"invite-redeem-code:{invite.id}")
+        await _pg_advisory_xact_lock(
+            self._session,
+            f"invite-redeem:{invite.campaign_id or invite.id}:redeemer:{user_id}",
+        )
+        usage_mode = _invite_usage_mode(invite)
 
         if invite.owner_user_id == user_id and _policy_bool(
             invite.redemption_policy,
@@ -186,22 +170,37 @@ class RedeemInviteUseCase:
             )
             raise ValueError("Invite code cannot be redeemed by the owner")
 
-        if invite.is_used:
+        existing_redemption = await self._get_invite_redemption_by_redeemer(invite_id=invite.id, user_id=user_id)
+        if existing_redemption is not None:
+            await self._record_blocked_redemption(
+                invite=invite,
+                redeemer_user_id=user_id,
+                source_surface=source_surface,
+                reason="Invite code already redeemed by this user",
+            )
+            observe_growth_code_redemption_duration(
+                code_type="invite",
+                surface=CUSTOMER_REDEEM_SURFACE,
+                result="failure",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise InviteCodeAlreadyRedeemedByUserError()
+
+        if usage_mode == INVITE_USAGE_SINGLE and invite.is_used:
             if invite.used_by_user_id == user_id:
-                result = await self._build_idempotent_result(
+                await self._record_blocked_redemption(
                     invite=invite,
-                    user_id=user_id,
-                    current_realm=current_realm,
+                    redeemer_user_id=user_id,
                     source_surface=source_surface,
-                    runtime_context=runtime_context,
+                    reason="Invite code already redeemed by this user",
                 )
                 observe_growth_code_redemption_duration(
                     code_type="invite",
                     surface=CUSTOMER_REDEEM_SURFACE,
-                    result="success",
+                    result="failure",
                     duration_seconds=perf_counter() - started_at,
                 )
-                return result
+                raise InviteCodeAlreadyRedeemedByUserError()
             logger.warning(
                 "invite_redeem_already_used",
                 extra={**code_ref, "user_id": str(user_id)},
@@ -213,6 +212,60 @@ class RedeemInviteUseCase:
                 duration_seconds=perf_counter() - started_at,
             )
             raise InviteCodeAlreadyUsedError(code)
+
+        if _invite_is_exhausted(invite):
+            await self._record_blocked_redemption(
+                invite=invite,
+                redeemer_user_id=user_id,
+                source_surface=source_surface,
+                reason="Invite code exhausted",
+            )
+            observe_growth_code_redemption_duration(
+                code_type="invite",
+                surface=CUSTOMER_REDEEM_SURFACE,
+                result="failure",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise InviteCodeExhaustedError()
+
+        try:
+            await self._validate_invite_status(invite)
+            await self._validate_campaign_policy(
+                invite=invite,
+                user_id=user_id,
+                auth_realm_id=UUID(current_realm.realm_id),
+                source_surface=source_surface,
+                runtime_context=runtime_context,
+            )
+            self._ensure_invite_capacity_available(invite)
+        except InviteCodeExhaustedError:
+            await self._record_blocked_redemption(
+                invite=invite,
+                redeemer_user_id=user_id,
+                source_surface=source_surface,
+                reason="Invite code exhausted",
+            )
+            observe_growth_code_redemption_duration(
+                code_type="invite",
+                surface=CUSTOMER_REDEEM_SURFACE,
+                result="failure",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise
+        except ValueError as exc:
+            await self._record_blocked_redemption(
+                invite=invite,
+                redeemer_user_id=user_id,
+                source_surface=source_surface,
+                reason=str(exc),
+            )
+            observe_growth_code_redemption_duration(
+                code_type="invite",
+                surface=CUSTOMER_REDEEM_SURFACE,
+                result="failure",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise
 
         expires_at = _coerce_utc(invite.expires_at)
         if expires_at is not None and expires_at < datetime.now(UTC):
@@ -306,16 +359,18 @@ class RedeemInviteUseCase:
             entitlement_grant_id=grant.entitlement_grant.id,
             activated_by_admin_user_id=None,
         )
-        used_invite = await self._invite_repo.mark_used(invite.id, user_id)
-        if used_invite is None:
-            raise InviteCodeAlreadyUsedError(code)
+        redeemed_at = datetime.now(UTC)
+        redeemed_invite = await self._finalize_invite_redemption_state(
+            invite=invite,
+            redeemer_user_id=user_id,
+            redeemed_at=redeemed_at,
+        )
         redemption = await self._ensure_redemption(
             shadow_code_id=shadow_code.id,
             redeemer_user_id=user_id,
             entitlement_grant_id=activated.id,
             policy_version_id=shadow_code.policy_version_id,
         )
-        redeemed_invite = used_invite if used_invite is not None else invite
         invite_redemption = await self._ensure_invite_redemption(
             invite=redeemed_invite,
             redeemer_user_id=user_id,
@@ -323,6 +378,7 @@ class RedeemInviteUseCase:
             source_surface=source_surface,
             grant_snapshot=dict(activated.grant_snapshot or grant_snapshot),
             runtime_context=runtime_context,
+            redeemed_at=redeemed_at,
         )
         child_batch, child_invites = await self._ensure_child_invites_after_redemption(
             invite=redeemed_invite,
@@ -335,7 +391,7 @@ class RedeemInviteUseCase:
             invite_redemption.child_issued_count = len(child_invites)
         await self._ensure_tree_state(invite=redeemed_invite, invite_redemption=invite_redemption)
         shadow_code.status = "redeemed"
-        shadow_code.uses_count = 1
+        shadow_code.uses_count = max(int(shadow_code.uses_count or 0), int(redeemed_invite.redeemed_count or 1))
         await self._session.flush()
         await self._outbox.append_event(
             event_name="growth_code.redeemed",
@@ -472,6 +528,7 @@ class RedeemInviteUseCase:
             source_surface=source_surface,
             grant_snapshot=dict(activated.grant_snapshot or grant_snapshot),
             runtime_context=runtime_context,
+            redeemed_at=_coerce_utc(invite.used_at) or datetime.now(UTC),
         )
         child_batch, child_invites = await self._ensure_child_invites_after_redemption(
             invite=invite,
@@ -484,7 +541,7 @@ class RedeemInviteUseCase:
             invite_redemption.child_issued_count = len(child_invites)
         await self._ensure_tree_state(invite=invite, invite_redemption=invite_redemption)
         shadow_code.status = "redeemed"
-        shadow_code.uses_count = 1
+        shadow_code.uses_count = max(int(shadow_code.uses_count or 0), int(invite.redeemed_count or 1))
         await self._session.flush()
         return RedeemedInviteResult(
             invite=invite,
@@ -542,27 +599,29 @@ class RedeemInviteUseCase:
         if allowed_surfaces and source_surface not in allowed_surfaces:
             raise ValueError("Invite code cannot be redeemed from this surface")
 
-        per_user_redeem_cap = _positive_int(invite.redemption_policy.get("per_user_redeem_cap"), default=1)
-        if invite.campaign_id is not None:
-            existing = await self._session.execute(
-                select(func.count())
-                .select_from(InviteRedemptionModel)
-                .where(
-                    InviteRedemptionModel.invitee_user_id == user_id,
-                    InviteRedemptionModel.campaign_id == invite.campaign_id,
-                    InviteRedemptionModel.status == "redeemed",
-                )
+        per_user_redeem_cap = _positive_int(
+            invite.per_user_redemption_cap,
+            default=_positive_int(invite.redemption_policy.get("per_user_redeem_cap"), default=1),
+        )
+        existing = await self._session.execute(
+            select(func.count())
+            .select_from(InviteRedemptionModel)
+            .where(
+                InviteRedemptionModel.invitee_user_id == user_id,
+                InviteRedemptionModel.invite_code_id == invite.id,
+                InviteRedemptionModel.status == "redeemed",
             )
-            if int(existing.scalar_one()) >= per_user_redeem_cap:
-                raise ValueError("Invite campaign redemption cap exceeded")
-        await self._validate_lifetime_redemption_controls(
+        )
+        if int(existing.scalar_one()) >= per_user_redeem_cap:
+            raise InviteCodeAlreadyRedeemedByUserError()
+        await self._validate_invite_abuse_controls(
             invite=invite,
             user_id=user_id,
             auth_realm_id=auth_realm_id,
             runtime_context=runtime_context,
         )
 
-    async def _validate_lifetime_redemption_controls(
+    async def _validate_invite_abuse_controls(
         self,
         *,
         invite: InviteCodeModel,
@@ -573,34 +632,36 @@ class RedeemInviteUseCase:
         if invite.campaign_id is None:
             return
         risk_policy = dict(invite.risk_policy or {})
+        usage_mode = _invite_usage_mode(invite)
         root_lifetime = is_lifetime_duration(invite.grant_duration_mode) or bool(
             (invite.grant_snapshot or {}).get("lifetime")
         )
         child_lifetime = is_lifetime_duration(invite.child_grant_duration_mode)
         no_expiry = invite.expires_at is None or invite.child_invite_expiry_mode == "none"
-        if not (root_lifetime or child_lifetime or no_expiry):
+        lifetime_like = root_lifetime or child_lifetime or no_expiry
+        if not lifetime_like and usage_mode != INVITE_USAGE_MULTI:
             return
 
-        if not _policy_bool(invite.redemption_policy, "require_no_active_access", default=True):
+        if lifetime_like and not _policy_bool(invite.redemption_policy, "require_no_active_access", default=True):
             raise ValueError("Lifetime invite campaigns require no-active-access redemption policy")
-        if not _policy_bool(invite.redemption_policy, "block_self_redemption", default=True):
+        if lifetime_like and not _policy_bool(invite.redemption_policy, "block_self_redemption", default=True):
             raise ValueError("Lifetime invite campaigns require self-redemption blocking")
-        if _positive_int(invite.redemption_policy.get("per_user_redeem_cap"), default=0) != 1:
+        if lifetime_like and _positive_int(invite.redemption_policy.get("per_user_redeem_cap"), default=0) != 1:
             raise ValueError("Lifetime invite campaigns require per-user redemption cap of 1")
 
         max_redemptions_per_device = _optional_positive_int(risk_policy.get("max_redemptions_per_device"))
         max_redemptions_per_ip_window = _optional_positive_int(risk_policy.get("max_redemptions_per_ip_window"))
         velocity_window_hours = _optional_positive_int(risk_policy.get("velocity_window_hours"))
         if max_redemptions_per_device is None or max_redemptions_per_device > 1:
-            raise ValueError("Lifetime invite campaigns require device redemption cap")
+            raise ValueError("Invite campaigns require device redemption cap")
         if max_redemptions_per_ip_window is None or max_redemptions_per_ip_window > 3:
-            raise ValueError("Lifetime invite campaigns require IP window redemption cap")
+            raise ValueError("Invite campaigns require IP window redemption cap")
         if velocity_window_hours is None or velocity_window_hours > 24:
-            raise ValueError("Lifetime invite campaigns require velocity window <= 24 hours")
+            raise ValueError("Invite campaigns require velocity window <= 24 hours")
         if risk_policy.get("deny_disposable_email") is not True:
-            raise ValueError("Lifetime invite campaigns require disposable email deny policy")
+            raise ValueError("Invite campaigns require disposable email deny policy")
         if risk_policy.get("deny_known_abuse_subject") is not True:
-            raise ValueError("Lifetime invite campaigns require known-abuse subject deny policy")
+            raise ValueError("Invite campaigns require known-abuse subject deny policy")
 
         user = await self._session.get(MobileUserModel, user_id)
         if user is not None and _is_disposable_email_domain(user.email):
@@ -615,28 +676,26 @@ class RedeemInviteUseCase:
         )
         subject = risk_subject.scalars().first()
         if subject is not None and (
-            subject.status in {"blocked", "denied", "suspended"}
-            or subject.risk_level in {"high", "critical"}
+            subject.status in {"blocked", "denied", "suspended"} or subject.risk_level in {"high", "critical"}
         ):
             raise ValueError("Invite code cannot be redeemed by known-abuse subjects")
 
         if runtime_context is None or not runtime_context.device_key_hash:
-            raise ValueError("Lifetime invite redemption requires device context")
+            raise ValueError("Invite redemption requires device context")
         device_redeemed = await self._session.execute(
             select(func.count())
             .select_from(InviteRedemptionModel)
             .where(
                 InviteRedemptionModel.campaign_id == invite.campaign_id,
                 InviteRedemptionModel.status == "redeemed",
-                InviteRedemptionModel.risk_decision["device_key_hash"].as_string()
-                == runtime_context.device_key_hash,
+                InviteRedemptionModel.risk_decision["device_key_hash"].as_string() == runtime_context.device_key_hash,
             )
         )
         if int(device_redeemed.scalar_one()) >= max_redemptions_per_device:
             raise ValueError("Invite campaign device redemption cap exceeded")
 
         if not runtime_context.client_ip_hash:
-            raise ValueError("Lifetime invite redemption requires client IP context")
+            raise ValueError("Invite redemption requires client IP context")
         window_start = datetime.now(UTC) - timedelta(hours=velocity_window_hours)
         ip_redeemed = await self._session.execute(
             select(func.count())
@@ -645,12 +704,85 @@ class RedeemInviteUseCase:
                 InviteRedemptionModel.campaign_id == invite.campaign_id,
                 InviteRedemptionModel.status == "redeemed",
                 InviteRedemptionModel.created_at >= window_start,
-                InviteRedemptionModel.risk_decision["client_ip_hash"].as_string()
-                == runtime_context.client_ip_hash,
+                InviteRedemptionModel.risk_decision["client_ip_hash"].as_string() == runtime_context.client_ip_hash,
             )
         )
         if int(ip_redeemed.scalar_one()) >= max_redemptions_per_ip_window:
             raise ValueError("Invite campaign IP window redemption cap exceeded")
+
+    async def _get_invite_redemption_by_redeemer(
+        self,
+        *,
+        invite_id: UUID,
+        user_id: UUID,
+    ) -> InviteRedemptionModel | None:
+        result = await self._session.execute(
+            select(InviteRedemptionModel)
+            .where(
+                InviteRedemptionModel.invite_code_id == invite_id,
+                InviteRedemptionModel.invitee_user_id == user_id,
+                InviteRedemptionModel.status.in_(("redeemed", "reversed")),
+            )
+            .order_by(InviteRedemptionModel.created_at.desc())
+        )
+        return result.scalars().first()
+
+    def _ensure_invite_capacity_available(self, invite: InviteCodeModel) -> None:
+        if _invite_usage_mode(invite) == INVITE_USAGE_SINGLE:
+            return
+        max_redemptions = _optional_positive_int(invite.max_redemptions)
+        if max_redemptions is not None and int(invite.active_redemptions_count or 0) >= max_redemptions:
+            raise InviteCodeExhaustedError()
+
+    async def _finalize_invite_redemption_state(
+        self,
+        *,
+        invite: InviteCodeModel,
+        redeemer_user_id: UUID,
+        redeemed_at: datetime,
+    ) -> InviteCodeModel:
+        usage_mode = _invite_usage_mode(invite)
+        if usage_mode == INVITE_USAGE_SINGLE:
+            invite.is_used = True
+            invite.used_by_user_id = redeemer_user_id
+            invite.used_at = redeemed_at
+            invite.status = "redeemed"
+            invite.max_redemptions = invite.max_redemptions or 1
+            invite.redeemed_count = max(int(invite.redeemed_count or 0), 1)
+            invite.active_redemptions_count = max(int(invite.active_redemptions_count or 0), 1)
+            invite.first_redeemed_at = invite.first_redeemed_at or redeemed_at
+            invite.last_redeemed_at = redeemed_at
+            invite.exhausted_at = invite.exhausted_at or redeemed_at
+            invite.per_user_redemption_cap = max(int(invite.per_user_redemption_cap or 1), 1)
+            await self._session.flush()
+            return invite
+
+        max_redemptions = _optional_positive_int(invite.max_redemptions)
+        active_count = int(invite.active_redemptions_count or 0)
+        if max_redemptions is not None and active_count >= max_redemptions:
+            invite.is_used = True
+            invite.status = "exhausted"
+            invite.exhausted_at = invite.exhausted_at or redeemed_at
+            await self._session.flush()
+            raise InviteCodeExhaustedError()
+
+        invite.used_by_user_id = redeemer_user_id
+        invite.used_at = redeemed_at
+        invite.redeemed_count = int(invite.redeemed_count or 0) + 1
+        invite.active_redemptions_count = active_count + 1
+        invite.first_redeemed_at = invite.first_redeemed_at or redeemed_at
+        invite.last_redeemed_at = redeemed_at
+        invite.per_user_redemption_cap = max(int(invite.per_user_redemption_cap or 1), 1)
+        if max_redemptions is not None and invite.active_redemptions_count >= max_redemptions:
+            invite.is_used = True
+            invite.status = "exhausted"
+            invite.exhausted_at = invite.exhausted_at or redeemed_at
+        else:
+            invite.is_used = False
+            invite.status = "active"
+            invite.exhausted_at = None
+        await self._session.flush()
+        return invite
 
     async def _build_grant_snapshot(
         self,
@@ -664,9 +796,11 @@ class RedeemInviteUseCase:
             duration_mode,
             invite.grant_duration_days if invite.grant_duration_days is not None else invite.free_days,
         )
-        access_expires_at = None if duration_mode == INVITE_DURATION_LIFETIME else (
-            granted_at or datetime.now(UTC)
-        ) + timedelta(days=duration_days)
+        access_expires_at = (
+            None
+            if duration_mode == INVITE_DURATION_LIFETIME
+            else (granted_at or datetime.now(UTC)) + timedelta(days=duration_days)
+        )
         existing_snapshot = dict(invite.grant_snapshot or {})
         if not existing_snapshot:
             existing_snapshot = dict(invite.entitlement_snapshot or {})
@@ -734,6 +868,7 @@ class RedeemInviteUseCase:
         source_surface: str,
         grant_snapshot: dict,
         runtime_context: InviteRedemptionRuntimeContext | None,
+        redeemed_at: datetime,
     ) -> InviteRedemptionModel:
         idempotency_key = f"invite:{invite.id}:redeemer:{redeemer_user_id}"
         existing = await self._session.execute(
@@ -750,10 +885,16 @@ class RedeemInviteUseCase:
                     **dict(item.risk_decision or {}),
                     **_runtime_context_payload(runtime_context),
                 }
+                item.device_key_hash = item.device_key_hash or runtime_context.device_key_hash
+                item.client_ip_hash = item.client_ip_hash or runtime_context.client_ip_hash
+            item.usage_mode_snapshot = item.usage_mode_snapshot or _invite_usage_mode(invite)
+            item.redemption_sequence = item.redemption_sequence or int(invite.redeemed_count or 1)
+            item.code_redemptions_count_after = item.code_redemptions_count_after or int(invite.redeemed_count or 1)
             await self._session.flush()
             return item
 
         root_invite_code_id = invite.root_invite_code_id or invite.id
+        redemptions_after = int(invite.redeemed_count or 1)
         model = InviteRedemptionModel(
             invite_code_id=invite.id,
             campaign_id=invite.campaign_id,
@@ -773,6 +914,12 @@ class RedeemInviteUseCase:
                 grant_snapshot.get("period_days"),
                 default=_positive_int(invite.grant_duration_days, default=invite.free_days),
             ),
+            usage_mode_snapshot=_invite_usage_mode(invite),
+            redemption_sequence=redemptions_after,
+            code_redemptions_count_after=redemptions_after,
+            device_key_hash=runtime_context.device_key_hash if runtime_context is not None else None,
+            client_ip_hash=runtime_context.client_ip_hash if runtime_context is not None else None,
+            user_agent_hash=None,
             idempotency_key=idempotency_key,
             status="redeemed",
             grant_snapshot=dict(grant_snapshot),
@@ -781,7 +928,7 @@ class RedeemInviteUseCase:
                 "source": "redeem_invite_use_case",
                 **_runtime_context_payload(runtime_context),
             },
-            redeemed_at=datetime.now(UTC),
+            redeemed_at=redeemed_at,
         )
         self._session.add(model)
         await self._session.flush()
@@ -857,6 +1004,16 @@ class RedeemInviteUseCase:
             expires_at=_parse_datetime(policy.get("expires_at")),
             now=datetime.now(UTC),
         )
+        child_usage_mode = _normalize_invite_usage_mode(policy.get("usage_mode") or policy.get("child_usage_mode"))
+        child_max_redemptions = _optional_positive_int(
+            policy.get("max_redemptions") or policy.get("child_max_redemptions")
+        )
+        if child_usage_mode == INVITE_USAGE_SINGLE:
+            child_max_redemptions = 1
+        child_per_user_cap = _positive_int(
+            policy.get("per_user_redemption_cap") or policy.get("child_per_user_redemption_cap"),
+            default=1,
+        )
         root_invite_code_id = invite.root_invite_code_id or invite.id
         (
             grant_snapshot,
@@ -887,6 +1044,10 @@ class RedeemInviteUseCase:
             expiry_mode=expiry.expiry_mode,
             expiry_days=expiry.expiry_days,
             expires_at=expiry.expires_at,
+            usage_mode=child_usage_mode,
+            max_redemptions_per_code=child_max_redemptions,
+            per_user_redemption_cap=child_per_user_cap,
+            multi_use_policy=dict(policy.get("multi_use_policy") or invite.multi_use_policy or {}),
             entitlement_mode=invite.grant_mode or invite.entitlement_mode or "legacy_invite_access",
             entitlement_profile_key=invite.entitlement_profile_key,
             plan_id=child_plan_id or invite.grant_plan_id or invite.plan_id,
@@ -931,6 +1092,10 @@ class RedeemInviteUseCase:
                     source_growth_code_id=invite.source_growth_code_id,
                     source_benefit_id=invite.source_benefit_id,
                     status="issued",
+                    usage_mode=child_usage_mode,
+                    max_redemptions=child_max_redemptions,
+                    per_user_redemption_cap=child_per_user_cap,
+                    multi_use_policy=dict(policy.get("multi_use_policy") or invite.multi_use_policy or {}),
                     code_hash=hash_growth_code(raw_code),
                     code_prefix=build_growth_code_prefix(raw_code),
                     entitlement_mode=invite.entitlement_mode,
@@ -1029,6 +1194,10 @@ class RedeemInviteUseCase:
                 policy.setdefault("grant_device_limit_override", version.child_grant_device_limit_override)
                 policy.setdefault("expiry_mode", version.child_invite_expiry_mode)
                 policy.setdefault("expiry_days", int(version.child_invite_expiry_days or 0))
+                policy.setdefault("usage_mode", version.child_usage_mode)
+                policy.setdefault("max_redemptions", version.child_max_redemptions)
+                policy.setdefault("per_user_redemption_cap", version.child_per_user_redemption_cap)
+                policy.setdefault("multi_use_policy", dict(version.multi_use_policy or {}))
                 if version.child_invite_expires_at is not None:
                     policy.setdefault("expires_at", version.child_invite_expires_at.isoformat())
                 policy.setdefault("max_generation_depth", int(version.max_generation_depth or 0))
@@ -1164,8 +1333,6 @@ class RedeemInviteUseCase:
         source_surface: str,
         reason: str,
     ) -> None:
-        if invite.is_used:
-            return
         reason_hash = hashlib.sha256(reason.encode("utf-8")).hexdigest()[:24]
         idempotency_key = f"invite-blocked:{invite.id}:redeemer:{redeemer_user_id}:{reason_hash}"
         existing = await self._session.execute(
@@ -1186,6 +1353,9 @@ class RedeemInviteUseCase:
                 generation_depth=int(invite.generation_depth or 0),
                 source_surface=source_surface,
                 idempotency_key=idempotency_key,
+                usage_mode_snapshot=_invite_usage_mode(invite),
+                redemption_sequence=None,
+                code_redemptions_count_after=int(invite.redeemed_count or 0),
                 status="blocked",
                 blocked_reason=reason[:160],
                 grant_snapshot=dict(invite.grant_snapshot or invite.entitlement_snapshot or {}),
@@ -1296,6 +1466,27 @@ def _optional_positive_int(value: object) -> int | None:
     except (TypeError, ValueError):
         return None
     return parsed if parsed > 0 else None
+
+
+def _normalize_invite_usage_mode(value: object) -> str:
+    normalized = str(value or INVITE_USAGE_SINGLE).strip().lower()
+    return INVITE_USAGE_MULTI if normalized == INVITE_USAGE_MULTI else INVITE_USAGE_SINGLE
+
+
+def _invite_usage_mode(invite: InviteCodeModel) -> str:
+    return _normalize_invite_usage_mode(getattr(invite, "usage_mode", INVITE_USAGE_SINGLE))
+
+
+def _invite_is_exhausted(invite: InviteCodeModel) -> bool:
+    if invite.revoked_at is not None or invite.status in {"revoked", "expired"}:
+        return False
+    if invite.status == "exhausted" or invite.exhausted_at is not None:
+        return True
+    usage_mode = _invite_usage_mode(invite)
+    if usage_mode == INVITE_USAGE_SINGLE:
+        return bool(invite.is_used and invite.used_by_user_id is not None)
+    max_redemptions = _optional_positive_int(getattr(invite, "max_redemptions", None))
+    return max_redemptions is not None and int(getattr(invite, "active_redemptions_count", 0) or 0) >= max_redemptions
 
 
 def _runtime_context_payload(runtime_context: InviteRedemptionRuntimeContext | None) -> dict[str, str]:

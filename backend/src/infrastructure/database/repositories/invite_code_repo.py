@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
@@ -25,10 +25,48 @@ class InviteCodeRepository:
         return result.scalar_one_or_none()
 
     async def get_by_owner(self, owner_user_id: UUID, offset: int = 0, limit: int = 50) -> list[InviteCodeModel]:
+        now = datetime.now(UTC)
+        revoked = (InviteCodeModel.revoked_at.is_not(None)) | (InviteCodeModel.status.in_(("revoked", "blocked")))
+        expired_status = InviteCodeModel.status == "expired"
+        expired_by_date = (InviteCodeModel.expires_at.is_not(None)) & (InviteCodeModel.expires_at <= now)
+        expired = expired_status | expired_by_date
+        multi_use_redeemable = (
+            InviteCodeModel.usage_mode == "multi_use",
+            ~revoked
+            & ~expired
+            & (InviteCodeModel.status != "exhausted")
+            & InviteCodeModel.exhausted_at.is_(None)
+            & (
+                InviteCodeModel.max_redemptions.is_(None)
+                | (InviteCodeModel.active_redemptions_count < InviteCodeModel.max_redemptions)
+            ),
+        )
+        single_use_redeemable = (
+            InviteCodeModel.usage_mode != "multi_use",
+            ~revoked & ~expired & InviteCodeModel.is_used.is_(False),
+        )
+        status_sort_order = case(
+            (multi_use_redeemable[0] & multi_use_redeemable[1], 0),
+            (single_use_redeemable[0] & single_use_redeemable[1], 0),
+            (revoked, 4),
+            (expired_status, 3),
+            (
+                (InviteCodeModel.status.in_(("redeemed", "used", "exhausted"))) | (InviteCodeModel.is_used.is_(True)),
+                2,
+            ),
+            (expired_by_date, 3),
+            else_=5,
+        )
         result = await self._session.execute(
             select(InviteCodeModel)
             .where(InviteCodeModel.owner_user_id == owner_user_id)
-            .order_by(InviteCodeModel.created_at.desc())
+            .order_by(
+                status_sort_order.asc(),
+                InviteCodeModel.expires_at.asc().nulls_last(),
+                InviteCodeModel.used_at.desc().nulls_last(),
+                InviteCodeModel.created_at.desc(),
+                InviteCodeModel.id.asc(),
+            )
             .offset(offset)
             .limit(limit)
         )

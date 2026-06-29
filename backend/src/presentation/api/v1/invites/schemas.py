@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 InviteAccessDurationMode = Literal["fixed_days", "lifetime"]
 InviteCodeExpiryMode = Literal["relative", "absolute", "none"]
 AdminInviteBatchExpiryMode = Literal["campaign_default", "relative", "absolute", "none"]
+InviteCodeUsageMode = Literal["single_use", "multi_use"]
+AdminInviteBatchUsageMode = Literal["campaign_default", "single_use", "multi_use"]
 
 
 class RedeemInviteRequest(BaseModel):
@@ -26,8 +28,22 @@ class InviteCodeResponse(BaseModel):
     code: str
     free_days: int
     is_used: bool
+    used_at: datetime | None = None
+    revoked_at: datetime | None = None
     expires_at: datetime | None
     created_at: datetime
+    usage_mode: InviteCodeUsageMode = "single_use"
+    max_redemptions: int | None = None
+    redeemed_count: int = 0
+    active_redemptions_count: int = 0
+    reversed_redemptions_count: int = 0
+    remaining_redemptions: int | None = None
+    first_redeemed_at: datetime | None = None
+    last_redeemed_at: datetime | None = None
+    exhausted_at: datetime | None = None
+    per_user_redemption_cap: int = 1
+    is_redeemable: bool = True
+    status_sort_order: int = 5
     entitlement_grant_id: UUID | None = None
     entitlement_snapshot: dict[str, Any] | None = None
     batch_id: UUID | None = None
@@ -79,6 +95,10 @@ class CustomerInviteBatchResponse(BaseModel):
     expiry_mode: str
     expiry_days: int | None
     expires_at: datetime | None
+    usage_mode: InviteCodeUsageMode = "single_use"
+    max_redemptions_per_code: int | None = None
+    per_user_redemption_cap: int = 1
+    multi_use_policy: dict[str, Any] | None = None
     status: str
     campaign_id: UUID | None = None
     invite_campaign_id: UUID | None = None
@@ -135,11 +155,24 @@ class AdminInviteCodeSummaryResponse(BaseModel):
     batch_id: UUID | None = None
     status: str
     is_used: bool
+    is_redeemable: bool = False
+    status_sort_order: int = 5
     used_by_user_id: UUID | None = None
     used_at: datetime | None = None
     revoked_at: datetime | None = None
     expires_at: datetime | None = None
     created_at: datetime
+    usage_mode: InviteCodeUsageMode = "single_use"
+    max_redemptions: int | None = None
+    redeemed_count: int = 0
+    active_redemptions_count: int = 0
+    reversed_redemptions_count: int = 0
+    remaining_redemptions: int | None = None
+    first_redeemed_at: datetime | None = None
+    last_redeemed_at: datetime | None = None
+    exhausted_at: datetime | None = None
+    per_user_redemption_cap: int = 1
+    multi_use_policy: dict[str, Any] | None = None
     campaign_id: UUID | None = None
     campaign_key: str | None = None
     campaign_version_id: UUID | None = None
@@ -200,6 +233,10 @@ class AdminInviteBatchResponse(BaseModel):
     expiry_mode: str
     expiry_days: int | None = None
     expires_at: datetime | None = None
+    usage_mode: InviteCodeUsageMode = "single_use"
+    max_redemptions_per_code: int | None = None
+    per_user_redemption_cap: int = 1
+    multi_use_policy: dict[str, Any] | None = None
     entitlement_mode: str
     entitlement_profile_key: str | None = None
     plan_id: UUID | None = None
@@ -304,11 +341,17 @@ class AdminInviteCampaignCreateRequest(BaseModel):
     root_invite_expiry_mode: InviteCodeExpiryMode = "relative"
     root_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
     root_invite_expires_at: datetime | None = None
+    root_usage_mode: InviteCodeUsageMode = "single_use"
+    root_max_redemptions: int | None = Field(1, ge=1, le=1_000_000)
+    root_per_user_redemption_cap: int = Field(1, ge=1, le=1)
     child_invite_count: int = Field(10, ge=0, le=100)
     child_invite_free_days: int = Field(365, ge=0, le=3_660)
     child_invite_expiry_mode: InviteCodeExpiryMode = "relative"
     child_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
     child_invite_expires_at: datetime | None = None
+    child_usage_mode: InviteCodeUsageMode = "single_use"
+    child_max_redemptions: int | None = Field(1, ge=1, le=1_000_000)
+    child_per_user_redemption_cap: int = Field(1, ge=1, le=1)
     child_grant_plan_id: UUID | None = None
     child_grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
     child_grant_duration_mode: InviteAccessDurationMode = "fixed_days"
@@ -321,6 +364,8 @@ class AdminInviteCampaignCreateRequest(BaseModel):
     export_policy: dict[str, Any] = Field(default_factory=lambda: {"raw_export_enabled": True})
     notification_policy: dict[str, Any] = Field(default_factory=dict)
     caps: dict[str, Any] = Field(default_factory=dict)
+    multi_use_policy: dict[str, Any] = Field(default_factory=dict)
+    multi_use_acknowledgement: bool = False
     lifetime_campaign_acknowledgement: bool = False
     publish: bool = False
     reason: str | None = Field(None, max_length=240)
@@ -336,6 +381,8 @@ class AdminInviteCampaignCreateRequest(BaseModel):
             "child_invite_expiry_days",
             "child_invite_expires_at",
         )
+        _normalize_multi_use_fields(self, "root")
+        _normalize_multi_use_fields(self, "child")
         return self
 
 
@@ -360,6 +407,13 @@ class AdminInviteCampaignVersionResponse(BaseModel):
     child_invite_expiry_days: int | None = None
     child_invite_expiry_mode: str = "relative"
     child_invite_expires_at: datetime | None = None
+    root_usage_mode: InviteCodeUsageMode = "single_use"
+    root_max_redemptions: int | None = None
+    root_per_user_redemption_cap: int = 1
+    child_usage_mode: InviteCodeUsageMode = "single_use"
+    child_max_redemptions: int | None = None
+    child_per_user_redemption_cap: int = 1
+    multi_use_policy: dict[str, Any]
     child_grant_plan_id: UUID | None = None
     child_grant_duration_mode: str = "fixed_days"
     child_grant_duration_days: int | None = None
@@ -431,11 +485,17 @@ class AdminInviteCampaignVersionCreateRequest(BaseModel):
     root_invite_expiry_mode: InviteCodeExpiryMode = "relative"
     root_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
     root_invite_expires_at: datetime | None = None
+    root_usage_mode: InviteCodeUsageMode = "single_use"
+    root_max_redemptions: int | None = Field(1, ge=1, le=1_000_000)
+    root_per_user_redemption_cap: int = Field(1, ge=1, le=1)
     child_invite_count: int = Field(10, ge=0, le=100)
     child_invite_free_days: int = Field(365, ge=0, le=3_660)
     child_invite_expiry_mode: InviteCodeExpiryMode = "relative"
     child_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
     child_invite_expires_at: datetime | None = None
+    child_usage_mode: InviteCodeUsageMode = "single_use"
+    child_max_redemptions: int | None = Field(1, ge=1, le=1_000_000)
+    child_per_user_redemption_cap: int = Field(1, ge=1, le=1)
     child_grant_plan_id: UUID | None = None
     child_grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
     child_grant_duration_mode: InviteAccessDurationMode = "fixed_days"
@@ -449,6 +509,8 @@ class AdminInviteCampaignVersionCreateRequest(BaseModel):
     export_policy: dict[str, Any] = Field(default_factory=lambda: {"raw_export_enabled": True})
     notification_policy: dict[str, Any] = Field(default_factory=dict)
     caps: dict[str, Any] = Field(default_factory=dict)
+    multi_use_policy: dict[str, Any] = Field(default_factory=dict)
+    multi_use_acknowledgement: bool = False
     lifetime_campaign_acknowledgement: bool = False
     reason: str | None = Field(None, max_length=240)
 
@@ -463,6 +525,8 @@ class AdminInviteCampaignVersionCreateRequest(BaseModel):
             "child_invite_expiry_days",
             "child_invite_expires_at",
         )
+        _normalize_multi_use_fields(self, "root")
+        _normalize_multi_use_fields(self, "child")
         return self
 
 
@@ -483,6 +547,9 @@ class AdminInviteCampaignBatchCreateRequest(BaseModel):
     expiry_mode: AdminInviteBatchExpiryMode = "campaign_default"
     expires_at: datetime | None = None
     expiry_days: int | None = Field(None, ge=1, le=3_660)
+    usage_mode: AdminInviteBatchUsageMode = "campaign_default"
+    max_redemptions_per_code: int | None = Field(None, ge=1, le=1_000_000)
+    per_user_redemption_cap: int | None = Field(None, ge=1, le=1)
     reason: str = Field(..., min_length=3, max_length=240)
 
     @model_validator(mode="after")
@@ -498,6 +565,10 @@ class AdminInviteCampaignBatchCreateRequest(BaseModel):
         elif self.expiry_mode in {"none", "campaign_default"}:
             self.expiry_days = None
             self.expires_at = None
+        if self.usage_mode == "single_use":
+            self.max_redemptions_per_code = 1
+        if self.per_user_redemption_cap not in {None, 1}:
+            raise ValueError("per_user_redemption_cap greater than 1 is not enabled for invite codes")
         return self
 
 
@@ -524,6 +595,12 @@ class AdminInviteRedemptionResponse(BaseModel):
     granted_plan_id: UUID | None = None
     granted_plan_code: str | None = None
     granted_duration_days: int | None = None
+    usage_mode_snapshot: InviteCodeUsageMode = "single_use"
+    redemption_sequence: int | None = None
+    code_redemptions_count_after: int | None = None
+    device_key_hash: str | None = None
+    client_ip_hash: str | None = None
+    user_agent_hash: str | None = None
     child_batch_id: UUID | None = None
     child_issued_count: int = 0
     status: str
@@ -637,6 +714,58 @@ def _normalize_expiry_fields(model: BaseModel, mode_field: str, days_field: str,
     if getattr(model, days_field) is None:
         raise ValueError(f"{days_field} is required for relative invite expiry")
     setattr(model, expires_field, None)
+
+
+def _normalize_multi_use_fields(model: BaseModel, prefix: Literal["root", "child"]) -> None:
+    mode_field = f"{prefix}_usage_mode"
+    max_field = f"{prefix}_max_redemptions"
+    cap_field = f"{prefix}_per_user_redemption_cap"
+    mode = getattr(model, mode_field)
+    per_user_cap = getattr(model, cap_field)
+    if per_user_cap != 1:
+        raise ValueError(f"{cap_field} greater than 1 is not enabled for invite codes")
+    if mode == "single_use":
+        setattr(model, max_field, 1)
+        return
+
+    max_redemptions = getattr(model, max_field)
+    if not getattr(model, "multi_use_acknowledgement", False):
+        raise ValueError("multi_use_acknowledgement is required for multi_use invite codes")
+    if max_redemptions is None:
+        setattr(model, max_field, 1_000_000)
+        max_redemptions = 1_000_000
+        policy = dict(getattr(model, "multi_use_policy", {}) or {})
+        policy.setdefault("cap_mode", "practically_unlimited")
+        policy.setdefault("technical_hard_cap", max_redemptions)
+        policy_field = "multi_use_policy"
+        setattr(model, policy_field, policy)
+    if int(max_redemptions) <= 1:
+        raise ValueError(f"{max_field} must be greater than 1 for multi_use invite codes")
+
+    risk_policy = dict(getattr(model, "risk_policy", {}) or {})
+    max_per_device = _positive_int_or_none(risk_policy.get("max_redemptions_per_device"))
+    max_per_ip_window = _positive_int_or_none(risk_policy.get("max_redemptions_per_ip_window"))
+    velocity_window_hours = _positive_int_or_none(risk_policy.get("velocity_window_hours"))
+    if max_per_device is None or max_per_device > 1:
+        raise ValueError("multi_use invite codes require max_redemptions_per_device <= 1")
+    if max_per_ip_window is None or max_per_ip_window > 3:
+        raise ValueError("multi_use invite codes require max_redemptions_per_ip_window <= 3")
+    if velocity_window_hours is None or velocity_window_hours > 24:
+        raise ValueError("multi_use invite codes require velocity_window_hours <= 24")
+    if risk_policy.get("deny_disposable_email") is not True:
+        raise ValueError("multi_use invite codes require deny_disposable_email=true")
+    if risk_policy.get("deny_known_abuse_subject") is not True:
+        raise ValueError("multi_use invite codes require deny_known_abuse_subject=true")
+
+
+def _positive_int_or_none(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
 
 
 class AdminInviteTreeRootListResponse(BaseModel):

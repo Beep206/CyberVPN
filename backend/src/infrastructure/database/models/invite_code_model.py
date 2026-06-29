@@ -28,6 +28,22 @@ class InviteCodeModel(Base):
             name="ck_invite_codes_child_expiry_mode",
         ),
         CheckConstraint(
+            "usage_mode IN ('single_use','multi_use')",
+            name="ck_invite_codes_usage_mode",
+        ),
+        CheckConstraint(
+            "max_redemptions IS NULL OR max_redemptions > 0",
+            name="ck_invite_codes_max_redemptions_positive",
+        ),
+        CheckConstraint(
+            "redeemed_count >= 0 AND active_redemptions_count >= 0 AND reversed_redemptions_count >= 0",
+            name="ck_invite_codes_redemption_counts_non_negative",
+        ),
+        CheckConstraint(
+            "per_user_redemption_cap >= 1",
+            name="ck_invite_codes_per_user_cap_positive",
+        ),
+        CheckConstraint(
             "(grant_device_limit_override IS NULL OR grant_device_limit_override > 0) "
             "AND (child_grant_device_limit_override IS NULL OR child_grant_device_limit_override > 0)",
             name="ck_invite_codes_device_override_positive",
@@ -123,6 +139,65 @@ class InviteCodeModel(Base):
         default="issued",
         server_default="issued",
         index=True,
+    )
+
+    usage_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="single_use",
+        server_default="single_use",
+        index=True,
+    )
+
+    max_redemptions: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    redeemed_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+    active_redemptions_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+    reversed_redemptions_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+    first_redeemed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    last_redeemed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    exhausted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    per_user_redemption_cap: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        server_default="1",
+    )
+
+    multi_use_policy: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
     )
 
     code_hash: Mapped[str | None] = mapped_column(

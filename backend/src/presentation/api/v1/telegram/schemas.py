@@ -221,6 +221,16 @@ class TelegramBotInviteCodeResponse(BaseModel):
     code: str
     free_days: int
     is_used: bool
+    status: str | None = None
+    usage_mode: Literal["single_use", "multi_use"] = "single_use"
+    max_redemptions: int | None = None
+    redeemed_count: int = 0
+    active_redemptions_count: int = 0
+    remaining_redemptions: int | None = None
+    is_redeemable: bool = False
+    status_sort_order: int = 5
+    used_at: datetime | None = None
+    revoked_at: datetime | None = None
     expires_at: datetime | None = None
     created_at: datetime
 
