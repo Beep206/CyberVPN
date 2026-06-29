@@ -291,6 +291,9 @@ class BotSettings(BaseSettings):
     environment: Literal["development", "staging", "production"] = "production"
     sentry_dsn: str = ""
     sentry_release: str = ""
+    runtime_origin_marker: str = "stage1-prod-a"
+    runtime_container_image: str = ""
+    runtime_git_sha: str = ""
     observability_internal_secret: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices(

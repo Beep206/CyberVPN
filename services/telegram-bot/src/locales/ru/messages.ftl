@@ -142,6 +142,7 @@ trial-eligible = ✅ Вы можете активировать пробный �
 
 trial-not-eligible-used = ℹ️ Пробный период уже использован.
 trial-not-eligible-active = ℹ️ У вас уже есть активная подписка.
+trial-not-eligible-pending-onboarding = 🎟️ Сначала введите инвайт или подарочный код в Mini App, затем активируйте пробный период.
 trial-not-eligible-unavailable = ⚠️ Пробный период сейчас недоступен.
 trial-not-eligible-unknown = ⚠️ Сейчас нельзя активировать пробный период. Попробуйте позже.
 
@@ -343,6 +344,18 @@ promocode-cancelled = ✅ Ввод промокода отменён.
 code-enter-prompt = 🎟 Введите код. Сервис определит тип кода и доступное действие.
 code-activated = ✅ Код <b>{ $code }</b> активирован! Результат: <b>{ $discount }</b>
 code-not-found = ❌ Код не найден.
+telegram-registration-pending-onboarding = 🎟 <b>Активируйте CyberVPN</b>
+
+    Откройте Mini App и введите invite, gift или promo code. Также можно отправить /code и код прямо в этом чате.
+
+telegram-registration-requires-invite = 🎟 <b>Нужен код</b>
+
+    Доступ CyberVPN активируется по invite, gift или promo code. Откройте Mini App, чтобы продолжить, или отправьте /code и код здесь.
+
+telegram-registration-disabled = 🔒 <b>Регистрация временно недоступна</b>
+
+    Если у вас уже есть код или аккаунт, обратитесь в поддержку.
+
 bot-onboarding-code-apply-unavailable = ❌ Сейчас этот код нельзя применить из Telegram. Откройте CyberVPN и попробуйте ещё раз или обратитесь в поддержку.
 code-expired = ❌ Срок действия кода истёк.
 code-already-used = ℹ️ Этот код уже использован.

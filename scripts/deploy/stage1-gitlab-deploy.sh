@@ -56,7 +56,7 @@ image_registry="${STAGE1_IMAGE_REGISTRY:-local}"
 remote_sudo="${STAGE1_REMOTE_SUDO:-sudo}"
 release_tag="${STAGE1_RELEASE_TAG:-stage1-ci-${CI_PIPELINE_IID:-0}-${CI_COMMIT_SHORT_SHA:-local}}"
 evidence_dir="${STAGE1_DEPLOY_EVIDENCE_DIR:-docs/evidence/releases/ci-stage1}"
-public_smoke_urls="${STAGE1_PUBLIC_SMOKE_URLS:-https://cyber-vpn.net/ru-RU/miniapp/home https://admin.cyber-vpn.net/ru-RU/login https://partner.cyber-vpn.net/ru-RU/login https://api.cyber-vpn.net/healthz}"
+public_smoke_urls="${STAGE1_PUBLIC_SMOKE_URLS:-https://cyber-vpn.net/ru-RU/miniapp https://cyber-vpn.net/ru-RU/miniapp/home https://cyber-vpn.net/runtime/fingerprint https://api.cyber-vpn.net/api/v1/runtime/fingerprint https://admin.cyber-vpn.net/ru-RU/login https://partner.cyber-vpn.net/ru-RU/login https://api.cyber-vpn.net/healthz}"
 customer_rsc_smoke_host="${STAGE1_CUSTOMER_RSC_SMOKE_HOST:-https://my.cyber-vpn.net}"
 
 case "$release_tag" in
@@ -272,6 +272,18 @@ remote_env_value() {
   $REMOTE_SUDO awk -F= -v key="$key" '$1 == key {print substr($0, index($0, "=") + 1)}' "$file" | tail -1
 }
 
+ensure_remote_env_value() {
+  file="$1"
+  key="$2"
+  value="$3"
+
+  if $REMOTE_SUDO grep -q "^${key}=" "$file"; then
+    $REMOTE_SUDO sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+  else
+    printf '\n%s=%s\n' "$key" "$value" | $REMOTE_SUDO tee -a "$file" >/dev/null
+  fi
+}
+
 ensure_backend_device_cookie_pepper() {
   is_requested backend || return 0
 
@@ -416,6 +428,11 @@ fi
 
 cd "$COMPOSE_DIR"
 $REMOTE_SUDO sed -i "s/^CYBERVPN_IMAGE_TAG=.*/CYBERVPN_IMAGE_TAG=${RELEASE_TAG}/" .env
+ensure_remote_env_value .env REGISTRATION_ENABLED true
+ensure_remote_env_value .env TELEGRAM_BOT_REGISTRATION_MODE allow_pending_onboarding
+ensure_remote_env_value .env TELEGRAM_BOT_ALLOW_REGISTRATION_WHEN_PUBLIC_CLOSED true
+ensure_remote_env_value .env TELEGRAM_MINIAPP_URL https://cyber-vpn.net/ru-RU/miniapp
+ensure_remote_env_value .env TELEGRAM_MINIAPP_ONBOARDING_URL https://cyber-vpn.net/ru-RU/miniapp/onboarding/code
 
 compose_services=()
 is_requested backend && compose_services+=(cybervpn-backend)
@@ -443,6 +460,10 @@ $REMOTE_SUDO docker compose ps "${compose_services[@]}"
 if is_requested backend; then
   retry_curl backend-health curl -fsS http://127.0.0.1:18080/health
   printf '\n'
+  retry_curl backend-fingerprint curl -fsS http://127.0.0.1:18080/api/v1/runtime/fingerprint
+  printf '\n'
+  retry_curl backend-capabilities curl -fsS http://127.0.0.1:18080/api/v1/client/capabilities
+  printf '\n'
 fi
 if is_requested frontend; then
   retry_curl frontend-miniapp curl -fsSI http://127.0.0.1:13000/ru-RU/miniapp/home | sed -n '1,8p'
@@ -454,8 +475,34 @@ if is_requested partner; then
   retry_curl partner-login curl -fsSI http://127.0.0.1:13002/ru-RU/login | sed -n '1,8p'
 fi
 if is_requested telegram-bot; then
-  retry_curl telegram-bot-health curl -fsS http://127.0.0.1:18088/health || true
+  retry_curl telegram-bot-health curl -fsS http://127.0.0.1:18088/health
   printf '\n'
+  retry_curl telegram-bot-fingerprint curl -fsS http://127.0.0.1:18088/runtime/fingerprint
+  printf '\n'
+  $REMOTE_SUDO docker compose exec -T cybervpn-telegram-bot python - <<'PY'
+import json
+import os
+import sys
+import urllib.parse
+import urllib.request
+
+token = (os.environ.get("BOT_TOKEN") or "").strip()
+if not token:
+    print("BOT_TOKEN is not configured in telegram bot container", file=sys.stderr)
+    sys.exit(1)
+with urllib.request.urlopen(f"https://api.telegram.org/bot{token}/getWebhookInfo", timeout=15) as response:
+    payload = json.loads(response.read().decode("utf-8"))
+result = payload.get("result") or {}
+safe = {
+    "ok": bool(payload.get("ok")),
+    "pending_update_count": result.get("pending_update_count"),
+    "last_error_message": result.get("last_error_message"),
+    "url_host": urllib.parse.urlparse(str(result.get("url") or "")).netloc,
+}
+print(json.dumps(safe, ensure_ascii=False, sort_keys=True))
+if safe["last_error_message"] and "401" in str(safe["last_error_message"]):
+    sys.exit(1)
+PY
 fi
 
 log "deployment complete"

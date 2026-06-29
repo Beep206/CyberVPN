@@ -9,7 +9,15 @@ from aiogram.filters import CommandObject, CommandStart
 
 from src.handlers.subscription import present_explicit_plan_offer
 from src.keyboards.menu import main_menu_keyboard
+from src.keyboards.miniapp import miniapp_onboarding_keyboard
 from src.services.api_client import APIError
+from src.services.telegram_registration import (
+    is_expected_registration_error,
+    message_key_for_registration_error,
+    miniapp_url_from_registration_error,
+    miniapp_url_from_registration_response,
+    requires_onboarding,
+)
 from src.utils.deep_links import decode_deep_link
 
 if TYPE_CHECKING:
@@ -118,6 +126,20 @@ def _extract_code_start_payload(start_payload: str | None) -> str | None:
         return None
     code = start_payload.removeprefix(CODE_LINK_PREFIX).strip()
     return code or None
+
+
+async def _answer_pending_onboarding(
+    message: Message,
+    i18n: I18nContext,
+    settings: BotSettings | None,
+    *,
+    message_key: str = "telegram-registration-pending-onboarding",
+    miniapp_url: str | None = None,
+) -> None:
+    await message.answer(
+        i18n.get(message_key),
+        reply_markup=miniapp_onboarding_keyboard(i18n.get, settings, url=miniapp_url),
+    )
 
 
 async def _handle_start(
@@ -234,6 +256,7 @@ async def _handle_start(
                 first_name=first_name or None,
                 language=language_code,
                 referrer_id=referrer_id,
+                onboarding_code=code_payload,
             )
             logger.info("user_registered", user_id=user_id, user=user)
         else:
@@ -267,9 +290,43 @@ async def _handle_start(
                     error_type=type(e).__name__,
                 )
 
+    except APIError as exc:
+        if is_expected_registration_error(exc):
+            logger.warning(
+                "user_registration_pending_onboarding",
+                user_id=user_id,
+                status_code=exc.status_code,
+                message_key=message_key_for_registration_error(exc),
+            )
+            await _answer_pending_onboarding(
+                message,
+                i18n,
+                settings,
+                message_key=message_key_for_registration_error(exc),
+                miniapp_url=miniapp_url_from_registration_error(exc),
+            )
+            return
+        logger.error(
+            "user_registration_api_failed",
+            user_id=user_id,
+            status_code=exc.status_code,
+            detail=exc.detail,
+        )
+        await message.answer(i18n.get("error-registration-failed"))
+        return
     except Exception as e:
         logger.error("user_registration_failed", user_id=user_id, error=str(e))
         await message.answer(i18n.get("error-registration-failed"))
+        return
+
+    if requires_onboarding(user) and code_payload is None:
+        await _answer_pending_onboarding(
+            message,
+            i18n,
+            settings,
+            miniapp_url=miniapp_url_from_registration_response(user),
+        )
+        logger.info("start_command_completed", user_id=user_id, flow="pending_onboarding")
         return
 
     if cache is not None and code_payload is not None:

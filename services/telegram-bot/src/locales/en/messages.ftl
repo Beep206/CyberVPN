@@ -140,6 +140,7 @@ trial-eligible = ✅ You can activate a free trial.
 
 trial-not-eligible-used = ℹ️ Your free trial has already been used.
 trial-not-eligible-active = ℹ️ You already have an active subscription.
+trial-not-eligible-pending-onboarding = 🎟️ Enter your invite or gift code in the Mini App before activating a trial.
 trial-not-eligible-unavailable = ⚠️ Free trial is currently unavailable.
 trial-not-eligible-unknown = ⚠️ Trial can't be activated right now. Please try later.
 
@@ -336,6 +337,18 @@ promocode-cancelled = ✅ Promo code entry cancelled.
 code-enter-prompt = 🎟 Enter a code. The backend will determine the code type and available action.
 code-activated = ✅ Code <b>{ $code }</b> activated! Result: <b>{ $discount }</b>
 code-not-found = ❌ Code not found.
+telegram-registration-pending-onboarding = 🎟 <b>Activate CyberVPN</b>
+
+    Open the Mini App and enter your invite, gift, or promo code. You can also send /code followed by the code in this chat.
+
+telegram-registration-requires-invite = 🎟 <b>Code required</b>
+
+    CyberVPN access is activated by invite, gift, or promo code. Open the Mini App to continue, or send /code followed by the code here.
+
+telegram-registration-disabled = 🔒 <b>Registration is temporarily unavailable</b>
+
+    Contact support if you already have a code or account.
+
 bot-onboarding-code-apply-unavailable = ❌ This code cannot be applied from Telegram right now. Open CyberVPN and try again, or contact support.
 code-expired = ❌ This code has expired.
 code-already-used = ℹ️ This code has already been used.

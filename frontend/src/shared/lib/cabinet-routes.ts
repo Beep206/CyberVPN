@@ -20,6 +20,7 @@ export const CABINET_ROUTE_SEGMENTS = [
 ] as const;
 
 export const CABINET_ALLOWED_PREFIXES = [
+  '/miniapp',
   '/dashboard',
   '/subscriptions',
   '/payment-history',

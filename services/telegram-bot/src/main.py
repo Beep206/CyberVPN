@@ -12,7 +12,9 @@ import base64
 import hmac
 import ipaddress
 import logging
+import os
 import re
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -159,6 +161,33 @@ def is_observability_authorized(
     if not configured or not provided:
         return False
     return hmac.compare_digest(configured, provided)
+
+
+def _first_non_empty(*values: str | None) -> str | None:
+    for value in values:
+        normalized = (value or "").strip()
+        if normalized:
+            return normalized
+    return None
+
+
+def _runtime_fingerprint(settings: BotSettings) -> dict[str, str | None]:
+    return {
+        "service": SERVICE_NAME,
+        "release": _first_non_empty(
+            settings.sentry_release,
+            os.getenv("SENTRY_RELEASE"),
+            os.getenv("CYBERVPN_IMAGE_TAG"),
+        ),
+        "git_sha": _first_non_empty(settings.runtime_git_sha, os.getenv("GIT_SHA"), os.getenv("CI_COMMIT_SHA")),
+        "container_image": _first_non_empty(
+            settings.runtime_container_image,
+            os.getenv("CYBERVPN_CONTAINER_IMAGE"),
+            os.getenv("CYBERVPN_IMAGE_TAG"),
+        ),
+        "origin_marker": settings.runtime_origin_marker,
+        "generated_at": datetime.now(UTC).isoformat(),
+    }
 
 
 def setup_sentry(settings: BotSettings) -> bool:
@@ -460,8 +489,43 @@ def create_webhook_app(bot: Bot, dp: Dispatcher, settings: BotSettings):
             }
         )
 
+    async def runtime_fingerprint_handler(_request: web.Request) -> web.Response:
+        return web.json_response(
+            _runtime_fingerprint(settings),
+            headers={"Cache-Control": "no-store, max-age=0"},
+        )
+
+    async def webhook_diagnostics_handler(request: web.Request) -> web.Response:
+        provided_secret = request.headers.get("x-observability-secret")
+        if not is_observability_authorized(
+            settings.observability_internal_secret,
+            provided_secret,
+        ):
+            raise web.HTTPForbidden(text="Forbidden")
+
+        miniapp = str(settings.miniapp_url) if settings.miniapp_url is not None else ""
+        webhook_url = build_webhook_url(settings.webhook.url, settings.webhook.path)
+        return web.json_response(
+            {
+                **_runtime_fingerprint(settings),
+                "mode": settings.bot_mode,
+                "environment": settings.environment,
+                "webhook_path": settings.webhook.path,
+                "webhook_host": urlparse(webhook_url).netloc,
+                "webhook_secret_token_configured": bool(
+                    settings.webhook.secret_token and settings.webhook.secret_token.get_secret_value().strip()
+                ),
+                "bot_username": settings.bot_username,
+                "miniapp_url_host": urlparse(miniapp).netloc if miniapp else None,
+                "miniapp_url_path": urlparse(miniapp).path if miniapp else None,
+            },
+            headers={"Cache-Control": "no-store, max-age=0"},
+        )
+
     app.router.add_get("/health", health_handler)
     app.router.add_get("/observability/sentry-contract", sentry_contract_handler)
+    app.router.add_get("/runtime/fingerprint", runtime_fingerprint_handler)
+    app.router.add_get(f"{settings.webhook.path}/diagnostics", webhook_diagnostics_handler)
 
     if settings.prometheus.enabled:
         app.router.add_get(settings.prometheus.path, _build_metrics_handler(settings))

@@ -68,3 +68,32 @@ def miniapp_open_keyboard(
     builder.button(text=i18n("btn-back"), callback_data="nav:menu", style="primary")
     builder.adjust(1)
     return builder.as_markup()
+
+
+def miniapp_onboarding_keyboard(
+    i18n: Callable[..., str],
+    settings: BotSettings | None,
+    *,
+    url: str | None = None,
+) -> InlineKeyboardMarkup:
+    """Build onboarding actions for users who must enter an invite/gift/promo code."""
+    builder = InlineKeyboardBuilder()
+    resolved_url = url or build_miniapp_url(settings, "onboarding/code")
+    if resolved_url is None:
+        builder.button(
+            text=i18n("btn-miniapp-open"),
+            callback_data="miniapp:unavailable",
+            style="primary",
+        )
+    else:
+        builder.row(
+            InlineKeyboardButton(
+                text=i18n("btn-miniapp-open"),
+                web_app=WebAppInfo(url=resolved_url),
+                style="primary",
+            )
+        )
+    builder.button(text=i18n("btn-enter-code"), callback_data="growth:code", style="primary")
+    builder.button(text=i18n("btn-support"), callback_data="menu:support", style="secondary")
+    builder.adjust(1)
+    return builder.as_markup()

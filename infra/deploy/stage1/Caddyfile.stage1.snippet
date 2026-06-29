@@ -32,8 +32,12 @@
 	@api path /api/v1/* /.well-known/security.txt
 	reverse_proxy @api cybervpn-backend:8000
 
-	@telegram_webhook path /webhook/telegram
-	reverse_proxy @telegram_webhook cybervpn-telegram-bot:8080
+	@telegram_webhook path /webhook/telegram /webhook/telegram/diagnostics
+	handle @telegram_webhook {
+		reverse_proxy cybervpn-telegram-bot:8080 {
+			header_up X-Telegram-Bot-Api-Secret-Token {http.request.header.X-Telegram-Bot-Api-Secret-Token}
+		}
+	}
 
 	@healthz path /healthz
 	respond @healthz "ok" 200
@@ -42,6 +46,16 @@
 cyber-vpn.net {
 	import stage1_security_headers
 	import stage1_api_routes
+
+	@miniapp_routes path_regexp miniapp_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?miniapp(?:/.*)?$
+	handle @miniapp_routes {
+		reverse_proxy cybervpn-frontend:3000 {
+			header_up Host {host}
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Port 443
+		}
+	}
 
 	@partner_routes path_regexp partner_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?partner(?:/.*)?$
 	redir @partner_routes https://partner.cyber-vpn.net{uri} temporary
@@ -61,6 +75,16 @@ cyber-vpn.net {
 my.cyber-vpn.net {
 	import stage1_security_headers
 	import stage1_api_routes
+
+	@miniapp_routes path_regexp miniapp_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?miniapp(?:/.*)?$
+	handle @miniapp_routes {
+		reverse_proxy cybervpn-frontend:3000 {
+			header_up Host {host}
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Port 443
+		}
+	}
 
 	@public_routes path_regexp public_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:acceptable-use|audits|compare|contact|cookie-policy|delete-account|devices|docs|download|features|guides|help|network|pricing|privacy|privacy-policy|refund-policy|security|status|telegram-widget|terms|trust)(?:/.*)?$
 	redir @public_routes https://cyber-vpn.net{uri} temporary

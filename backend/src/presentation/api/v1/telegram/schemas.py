@@ -129,6 +129,7 @@ class TelegramBotUserCreateRequest(BaseModel):
     first_name: str | None = Field(default=None, max_length=255)
     language_code: str = Field(default="en", max_length=16)
     referrer_id: int | None = Field(default=None, gt=0)
+    onboarding_code: str | None = Field(default=None, max_length=128)
 
 
 class TelegramBotUserUpdateRequest(BaseModel):
@@ -155,6 +156,10 @@ class TelegramBotUserResponse(BaseModel):
     points: int = 0
     subscription: dict | None = None
     subscriptions: list[dict] = Field(default_factory=list)
+    requires_onboarding: bool = False
+    onboarding_entrypoint: Literal["miniapp", "bot", "none"] = "none"
+    miniapp_url: str | None = None
+    registration_error: dict | None = None
     created_at: datetime
     updated_at: datetime
 

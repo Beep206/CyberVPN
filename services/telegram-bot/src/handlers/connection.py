@@ -18,9 +18,15 @@ from src.keyboards.connection import (
     connection_keyboard,
     connection_private_chat_keyboard,
 )
+from src.keyboards.miniapp import miniapp_onboarding_keyboard
 from src.services.api_client import APIError
 from src.services.connection_session import ConnectionSessionStore
 from src.services.qr_service import generate_subscription_qr
+from src.services.telegram_registration import (
+    is_expected_registration_error,
+    message_key_for_registration_error,
+    miniapp_url_from_registration_error,
+)
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
@@ -399,6 +405,43 @@ async def apply_code_and_open_connection(
     normalized_code = code.strip()
     if not normalized_code:
         await message.answer(_i18n_get(i18n, "code-enter-prompt"))
+        return
+
+    try:
+        await api_client.register_user(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username or None,
+            first_name=message.from_user.first_name or None,
+            language=message.from_user.language_code or "en",
+            onboarding_code=normalized_code,
+        )
+    except APIError as exc:
+        if is_expected_registration_error(exc):
+            logger.warning(
+                "telegram_onboarding_user_bootstrap_blocked",
+                telegram_user_fingerprint=telegram_user_fingerprint(message.from_user.id),
+                code_fingerprint=code_fingerprint(normalized_code),
+                status_code=exc.status_code,
+                message_key=message_key_for_registration_error(exc),
+            )
+            CONNECTION_FLOW_TOTAL.labels(status="blocked", action="bootstrap_user").inc()
+            await message.answer(
+                _i18n_get(i18n, message_key_for_registration_error(exc)),
+                reply_markup=miniapp_onboarding_keyboard(
+                    i18n.get,
+                    settings,
+                    url=miniapp_url_from_registration_error(exc),
+                ),
+            )
+            return
+        logger.warning(
+            "telegram_onboarding_user_bootstrap_failed",
+            telegram_user_fingerprint=telegram_user_fingerprint(message.from_user.id),
+            code_fingerprint=code_fingerprint(normalized_code),
+            **_safe_error_context(exc),
+        )
+        CONNECTION_FLOW_TOTAL.labels(status="error", action="bootstrap_user").inc()
+        await message.answer(_i18n_get(i18n, "bot-onboarding-code-apply-unavailable"))
         return
 
     try:

@@ -2025,6 +2025,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runtime/fingerprint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Runtime Fingerprint
+         * @description Return a non-secret deploy fingerprint for external/origin parity checks.
+         */
+        get: operations["get_runtime_fingerprint_api_v1_runtime_fingerprint_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/": {
         parameters: {
             query?: never;
@@ -34122,6 +34142,26 @@ export interface components {
              */
             issued_at: string;
         };
+        /** RuntimeFingerprintResponse */
+        RuntimeFingerprintResponse: {
+            /** Service */
+            service: string;
+            /** Release */
+            release?: string | null;
+            /** Git Sha */
+            git_sha?: string | null;
+            /** Container Image */
+            container_image?: string | null;
+            /** Origin Marker */
+            origin_marker: string;
+            /** Customer Site Mode */
+            customer_site_mode: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
         /** ScheduleAdminPricebookRequest */
         ScheduleAdminPricebookRequest: {
             /**
@@ -35632,6 +35672,8 @@ export interface components {
             language_code: string;
             /** Referrer Id */
             referrer_id?: number | null;
+            /** Onboarding Code */
+            onboarding_code?: string | null;
         };
         /**
          * TelegramBotUserResponse
@@ -35686,6 +35728,23 @@ export interface components {
             subscriptions?: {
                 [key: string]: unknown;
             }[];
+            /**
+             * Requires Onboarding
+             * @default false
+             */
+            requires_onboarding: boolean;
+            /**
+             * Onboarding Entrypoint
+             * @default none
+             * @enum {string}
+             */
+            onboarding_entrypoint: "miniapp" | "bot" | "none";
+            /** Miniapp Url */
+            miniapp_url?: string | null;
+            /** Registration Error */
+            registration_error?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Created At
              * Format: date-time
@@ -42081,6 +42140,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientCapabilityResponse"];
+                };
+            };
+        };
+    };
+    get_runtime_fingerprint_api_v1_runtime_fingerprint_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeFingerprintResponse"];
                 };
             };
         };

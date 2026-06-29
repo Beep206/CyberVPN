@@ -19,6 +19,8 @@ router = Router(name="trial")
 
 def _trial_reason_key(reason: str | None) -> str:
     normalized = (reason or "").lower()
+    if normalized in {"pending_onboarding", "pending-onboarding", "requires_onboarding"}:
+        return "trial-not-eligible-pending-onboarding"
     if normalized in {"already_used", "already-used", "used"}:
         return "trial-not-eligible-used"
     if normalized in {"active_subscription", "active", "has_subscription"}:

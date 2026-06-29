@@ -250,6 +250,16 @@ class Settings(BaseSettings):
     invite_token_expiry_hours: int = 24  # Invite tokens expire after 24 hours
     telegram_miniapp_bootstrap_usernames: str = ""  # Comma-separated one-time owner bootstrap allowlist
     telegram_bot_bootstrap_usernames: str = ""  # Comma-separated Telegram Bot closed-beta bootstrap allowlist
+    telegram_bot_registration_mode: Literal[
+        "disabled",
+        "allow_existing_only",
+        "allow_with_invite_code",
+        "allow_pending_onboarding",
+        "allow_all_bot_users",
+    ] = "allow_pending_onboarding"
+    telegram_bot_allow_registration_when_public_closed: bool = True
+    telegram_miniapp_url: str = "https://cyber-vpn.net/ru-RU/miniapp"
+    telegram_miniapp_onboarding_url: str = "https://cyber-vpn.net/ru-RU/miniapp/onboarding/code"
 
     # Security Settings (MED-1, MED-4, MED-5, MED-7)
     debug: bool = False  # Debug mode - should be False in production
@@ -366,6 +376,9 @@ class Settings(BaseSettings):
     # Sentry (Observability)
     sentry_dsn: str = ""  # Sentry DSN for error tracking (optional, empty = disabled)
     sentry_release: str = ""  # Canonical Sentry release name (optional, empty = auto/disabled)
+    runtime_origin_marker: str = "stage1-prod-a"
+    runtime_container_image: str = ""
+    runtime_git_sha: str = ""
 
     # OpenTelemetry (Distributed Tracing)
     otel_exporter_endpoint: str = "http://otel-collector:4317"  # OTLP gRPC endpoint

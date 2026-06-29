@@ -28,6 +28,9 @@ const PUBLIC_ORIGIN = SITE_URL;
 const CABINET_ORIGIN = `https://${CABINET_PRIMARY_HOST}`;
 const CUSTOMER_SITE_RUNTIME_TTL_MS = 15_000;
 const CUSTOMER_SITE_RUNTIME_TIMEOUT_MS = 500;
+const MANDATORY_PUBLIC_ALLOWED_PREFIXES = ['/miniapp'] as const;
+const MANDATORY_CABINET_ALLOWED_PREFIXES = ['/miniapp'] as const;
+const MANDATORY_OPERATIONAL_PATH_PREFIXES = ['/runtime'] as const;
 const CABINET_REDIRECT_ALLOWED_HOSTS = new Set([
   CABINET_PRIMARY_HOST,
   'localhost',
@@ -121,6 +124,7 @@ const DEFAULT_CUSTOMER_SITE_RUNTIME: CustomerSiteRuntimeSnapshot = {
   cabinetHosts: [CABINET_PRIMARY_HOST],
   cabinetDestinationPath: '/dashboard',
   allowedPathPrefixes: [
+    ...MANDATORY_PUBLIC_ALLOWED_PREFIXES,
     '/login',
     '/register',
     '/verify',
@@ -135,6 +139,7 @@ const DEFAULT_CUSTOMER_SITE_RUNTIME: CustomerSiteRuntimeSnapshot = {
     '/.well-known/',
   ],
   cabinetAllowedPrefixes: [
+    ...MANDATORY_CABINET_ALLOWED_PREFIXES,
     ...CABINET_ALLOWED_PREFIXES,
     '/login',
     '/register',
@@ -157,6 +162,7 @@ const DEFAULT_CUSTOMER_SITE_RUNTIME: CustomerSiteRuntimeSnapshot = {
     '/terms',
   ],
   operationalPathPrefixes: [
+    ...MANDATORY_OPERATIONAL_PATH_PREFIXES,
     '/status',
     '/telegram-widget',
     '/.well-known',
@@ -408,6 +414,16 @@ function normalizeSafePathList(value: unknown, fallback: readonly string[]): rea
   return normalized.length > 0 ? normalized : fallback;
 }
 
+function withMandatoryPathPrefixes(
+  prefixes: readonly string[],
+  mandatoryPrefixes: readonly string[],
+): readonly string[] {
+  const normalized = [...mandatoryPrefixes, ...prefixes]
+    .map((item) => normalizeSafePath(item, '/'))
+    .filter((item) => item !== '/');
+  return Array.from(new Set(normalized));
+}
+
 function normalizeSafePath(value: unknown, fallback: string): string {
   if (typeof value !== 'string') {
     return fallback;
@@ -457,13 +473,19 @@ function normalizeCustomerSiteRuntimeSnapshot(payload: unknown): CustomerSiteRun
       siteRecord.cabinet_destination_path,
       fallback.cabinetDestinationPath,
     ),
-    allowedPathPrefixes: normalizeSafePathList(
-      siteRecord.allowed_path_prefixes,
-      fallback.allowedPathPrefixes,
+    allowedPathPrefixes: withMandatoryPathPrefixes(
+      normalizeSafePathList(
+        siteRecord.allowed_path_prefixes,
+        fallback.allowedPathPrefixes,
+      ),
+      MANDATORY_PUBLIC_ALLOWED_PREFIXES,
     ),
-    cabinetAllowedPrefixes: normalizeSafePathList(
-      siteRecord.cabinet_allowed_prefixes,
-      fallback.cabinetAllowedPrefixes,
+    cabinetAllowedPrefixes: withMandatoryPathPrefixes(
+      normalizeSafePathList(
+        siteRecord.cabinet_allowed_prefixes,
+        fallback.cabinetAllowedPrefixes,
+      ),
+      MANDATORY_CABINET_ALLOWED_PREFIXES,
     ),
     cabinetMarketingRouteAction: normalizeCabinetMarketingRouteAction(
       siteRecord.cabinet_marketing_route_action,
@@ -476,9 +498,12 @@ function normalizeCustomerSiteRuntimeSnapshot(payload: unknown): CustomerSiteRun
       siteRecord.legal_path_prefixes,
       fallback.legalPathPrefixes,
     ),
-    operationalPathPrefixes: normalizeSafePathList(
-      siteRecord.operational_path_prefixes,
-      fallback.operationalPathPrefixes,
+    operationalPathPrefixes: withMandatoryPathPrefixes(
+      normalizeSafePathList(
+        siteRecord.operational_path_prefixes,
+        fallback.operationalPathPrefixes,
+      ),
+      MANDATORY_OPERATIONAL_PATH_PREFIXES,
     ),
     preserveQueryKeys: normalizeStringList(siteRecord.preserve_query_keys, fallback.preserveQueryKeys),
   };

@@ -120,8 +120,16 @@ services:
       UVICORN_ACCESS_LOG: "false"
       TRUST_PROXY_HEADERS: "true"
       TRUSTED_PROXY_IPS: 172.16.0.0/12,10.0.0.0/8,192.168.0.0/16
+      REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-true}
       BACKEND_INTERNAL_SECRET: ${BACKEND_INTERNAL_SECRET:-replace-before-live-backend-internal}
       TELEGRAM_BOT_INTERNAL_SECRET: ${TELEGRAM_BOT_INTERNAL_SECRET:-replace-before-live-telegram-internal}
+      TELEGRAM_BOT_REGISTRATION_MODE: ${TELEGRAM_BOT_REGISTRATION_MODE:-allow_pending_onboarding}
+      TELEGRAM_BOT_ALLOW_REGISTRATION_WHEN_PUBLIC_CLOSED: ${TELEGRAM_BOT_ALLOW_REGISTRATION_WHEN_PUBLIC_CLOSED:-true}
+      TELEGRAM_MINIAPP_URL: ${TELEGRAM_MINIAPP_URL:-https://cyber-vpn.net/ru-RU/miniapp}
+      TELEGRAM_MINIAPP_ONBOARDING_URL: ${TELEGRAM_MINIAPP_ONBOARDING_URL:-https://cyber-vpn.net/ru-RU/miniapp/onboarding/code}
+      RUNTIME_ORIGIN_MARKER: ${RUNTIME_ORIGIN_MARKER:-stage1-prod-a}
+      RUNTIME_CONTAINER_IMAGE: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-backend:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+      RUNTIME_GIT_SHA: ${GIT_SHA:-}
       PAYMENT_SETTLEMENT_WORKER_SECRET: ${PAYMENT_SETTLEMENT_WORKER_SECRET:-replace-before-live-settlement-worker}
       STAGE1_ADDONS_ENABLED: ${STAGE1_ADDONS_ENABLED:-true}
       REFERRAL_ENABLED: ${REFERRAL_ENABLED:-true}
@@ -473,6 +481,12 @@ services:
       WEBHOOK_PORT: "8080"
       BACKEND_API_URL: http://cybervpn-backend:8000/api/v1
       AUTH_BACKEND_API_URL: http://cybervpn-backend:8000/api/v1
+      AUTH_BACKEND_INTERNAL_SECRET: ${TELEGRAM_BOT_INTERNAL_SECRET:-replace-before-live-telegram-internal}
+      TELEGRAM_MINIAPP_URL: ${TELEGRAM_MINIAPP_URL:-https://cyber-vpn.net/ru-RU/miniapp}
+      TELEGRAM_BOT_MENU_BUTTON: ${TELEGRAM_BOT_MENU_BUTTON:-miniapp}
+      RUNTIME_ORIGIN_MARKER: ${RUNTIME_ORIGIN_MARKER:-stage1-prod-a}
+      RUNTIME_CONTAINER_IMAGE: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-telegram-bot:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+      RUNTIME_GIT_SHA: ${GIT_SHA:-}
       REDIS_URL: ${CYBERVPN_BOT_REDIS_URL:-redis://cybervpn-valkey:6379}
       REDIS_DB: "1"
       CRYPTOBOT_ENABLED: ${CRYPTOBOT_ENABLED:-false}
@@ -539,6 +553,9 @@ services:
       NEXT_PUBLIC_PARTNER_PILOT_ENABLED: ${NEXT_PUBLIC_PARTNER_PILOT_ENABLED:-true}
       API_URL: http://cybervpn-backend:8000
       API_INTERNAL_ORIGIN: http://cybervpn-backend:8000
+      RUNTIME_ORIGIN_MARKER: ${RUNTIME_ORIGIN_MARKER:-stage1-prod-a}
+      CYBERVPN_CONTAINER_IMAGE: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-frontend:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+      GIT_SHA: ${GIT_SHA:-}
     networks:
       cybervpn-backend: {}
       cybervpn-egress: {}

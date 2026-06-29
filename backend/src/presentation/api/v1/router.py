@@ -42,10 +42,12 @@ from src.presentation.api.v1.helix.routes import router as helix_router
 from src.presentation.api.v1.hosts.routes import router as hosts_router
 from src.presentation.api.v1.inbounds.routes import router as inbounds_router
 from src.presentation.api.v1.invites.routes import admin_router as invite_admin_router
-from src.presentation.api.v1.invites.routes import invite_campaign_admin_router
-from src.presentation.api.v1.invites.routes import invite_batch_admin_router
-from src.presentation.api.v1.invites.routes import invite_redemption_admin_router
-from src.presentation.api.v1.invites.routes import invite_tree_admin_router
+from src.presentation.api.v1.invites.routes import (
+    invite_batch_admin_router,
+    invite_campaign_admin_router,
+    invite_redemption_admin_router,
+    invite_tree_admin_router,
+)
 from src.presentation.api.v1.invites.routes import router as invite_codes_router
 from src.presentation.api.v1.invoice_profiles.routes import router as invoice_profiles_router
 from src.presentation.api.v1.keygen.routes import router as keygen_router
@@ -90,6 +92,7 @@ from src.presentation.api.v1.refunds.routes import router as refunds_router
 from src.presentation.api.v1.renewal_orders.routes import router as renewal_orders_router
 from src.presentation.api.v1.reporting.routes import router as reporting_router
 from src.presentation.api.v1.reserves.routes import router as reserves_router
+from src.presentation.api.v1.runtime.routes import router as runtime_router
 from src.presentation.api.v1.security.routes import router as security_router
 from src.presentation.api.v1.servers.routes import router as servers_router
 from src.presentation.api.v1.service_identities.routes import router as service_identities_router
@@ -194,6 +197,7 @@ api_router.include_router(policies_router)
 api_router.include_router(legal_documents_router)
 api_router.include_router(policy_acceptance_router)
 api_router.include_router(client_capabilities_router)
+api_router.include_router(runtime_router)
 
 # Core resources
 api_router.include_router(users_router)

@@ -5615,6 +5615,28 @@
         }
       }
     },
+    "/api/v1/runtime/fingerprint": {
+      "get": {
+        "tags": [
+          "runtime"
+        ],
+        "summary": "Get Runtime Fingerprint",
+        "description": "Return a non-secret deploy fingerprint for external/origin parity checks.",
+        "operationId": "get_runtime_fingerprint_api_v1_runtime_fingerprint_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeFingerprintResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/": {
       "get": {
         "tags": [
@@ -101349,6 +101371,68 @@
         ],
         "title": "RotatePartnerWorkspaceIntegrationCredentialResponse"
       },
+      "RuntimeFingerprintResponse": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "git_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Git Sha"
+          },
+          "container_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Container Image"
+          },
+          "origin_marker": {
+            "type": "string",
+            "title": "Origin Marker"
+          },
+          "customer_site_mode": {
+            "type": "string",
+            "title": "Customer Site Mode"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service",
+          "origin_marker",
+          "customer_site_mode",
+          "generated_at"
+        ],
+        "title": "RuntimeFingerprintResponse"
+      },
       "ScheduleAdminPricebookRequest": {
         "properties": {
           "scheduled_for": {
@@ -105073,6 +105157,18 @@
               }
             ],
             "title": "Referrer Id"
+          },
+          "onboarding_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onboarding Code"
           }
         },
         "type": "object",
@@ -105174,6 +105270,44 @@
             },
             "type": "array",
             "title": "Subscriptions"
+          },
+          "requires_onboarding": {
+            "type": "boolean",
+            "title": "Requires Onboarding",
+            "default": false
+          },
+          "onboarding_entrypoint": {
+            "type": "string",
+            "enum": [
+              "miniapp",
+              "bot",
+              "none"
+            ],
+            "title": "Onboarding Entrypoint",
+            "default": "none"
+          },
+          "miniapp_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Miniapp Url"
+          },
+          "registration_error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registration Error"
           },
           "created_at": {
             "type": "string",

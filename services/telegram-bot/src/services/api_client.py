@@ -40,7 +40,7 @@ class APIError(Exception):
         self,
         message: str,
         status_code: int = 0,
-        detail: str | None = None,
+        detail: Any | None = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
@@ -394,7 +394,7 @@ class CyberVPNAPIClient:
         raise APIError(f"API error: {status}", status_code=status, detail=detail)
 
     @staticmethod
-    def _extract_detail(response: httpx.Response) -> str | None:
+    def _extract_detail(response: httpx.Response) -> Any | None:
         """Extract error detail from response body."""
         try:
             data = response.json()
@@ -422,6 +422,7 @@ class CyberVPNAPIClient:
         first_name: str | None = None,
         language: str = "ru",
         referrer_id: int | None = None,
+        onboarding_code: str | None = None,
     ) -> dict[str, Any]:
         """Register or update a Telegram user.
 
@@ -442,6 +443,8 @@ class CyberVPNAPIClient:
         }
         if referrer_id is not None:
             payload["referrer_id"] = referrer_id
+        if onboarding_code is not None:
+            payload["onboarding_code"] = onboarding_code
         return await self._request_auth_backend_dict("POST", "/telegram/bot/user", json=payload)
 
     async def update_user_language(

@@ -15,7 +15,9 @@ OnboardingCodeType = Literal["promo", "invite", "gift"]
 PASSKEY_ADMIN_POLICY_CONFIG_KEY = "passkeys.admin_policy"
 CUSTOMER_SITE_RUNTIME_CONFIG_KEY = "customer_site.runtime"
 CUSTOMER_ONBOARDING_RUNTIME_CONFIG_KEY = "customer_onboarding.runtime"
+MANDATORY_PUBLIC_ALLOWED_PREFIXES: tuple[str, ...] = ("/miniapp",)
 MANDATORY_CABINET_ALLOWED_PREFIXES: tuple[str, ...] = (
+    "/miniapp",
     "/dashboard",
     "/subscriptions",
     "/payment-history",
@@ -33,6 +35,7 @@ MANDATORY_CABINET_ALLOWED_PREFIXES: tuple[str, ...] = (
     "/servers",
     "/onboarding",
 )
+MANDATORY_OPERATIONAL_PATH_PREFIXES: tuple[str, ...] = ("/runtime",)
 
 
 def _normalize_customer_site_mode(value: object, *, fallback: CustomerSiteMode = "full_site") -> CustomerSiteMode:
@@ -191,6 +194,7 @@ class CustomerSiteRuntimeConfig:
     cabinet_hosts: tuple[str, ...] = ("my.cyber-vpn.net",)
     cabinet_destination_path: str = "/dashboard"
     allowed_path_prefixes: tuple[str, ...] = (
+        *MANDATORY_PUBLIC_ALLOWED_PREFIXES,
         "/login",
         "/register",
         "/verify",
@@ -230,6 +234,7 @@ class CustomerSiteRuntimeConfig:
         "/terms",
     )
     operational_path_prefixes: tuple[str, ...] = (
+        *MANDATORY_OPERATIONAL_PATH_PREFIXES,
         "/status",
         "/telegram-widget",
         "/.well-known",
@@ -436,6 +441,7 @@ class ConfigService:
                 "cabinet_hosts": ["my.cyber-vpn.net"],
                 "cabinet_destination_path": "/dashboard",
                 "allowed_path_prefixes": [
+                    "/miniapp",
                     "/login",
                     "/register",
                     "/verify",
@@ -478,9 +484,13 @@ class ConfigService:
                 val.get("cabinet_destination_path"),
                 default=CustomerSiteRuntimeConfig.cabinet_destination_path,
             ),
-            allowed_path_prefixes=_normalize_path_tuple(
-                val.get("allowed_path_prefixes"),
-                default=CustomerSiteRuntimeConfig.allowed_path_prefixes,
+            allowed_path_prefixes=_union_path_tuples(
+                MANDATORY_PUBLIC_ALLOWED_PREFIXES,
+                _normalize_path_tuple(
+                    val.get("allowed_path_prefixes"),
+                    default=CustomerSiteRuntimeConfig.allowed_path_prefixes,
+                    max_items=100,
+                ),
                 max_items=100,
             ),
             cabinet_allowed_prefixes=_union_path_tuples(
@@ -504,9 +514,13 @@ class ConfigService:
                 default=CustomerSiteRuntimeConfig.legal_path_prefixes,
                 max_items=100,
             ),
-            operational_path_prefixes=_normalize_path_tuple(
-                val.get("operational_path_prefixes"),
-                default=CustomerSiteRuntimeConfig.operational_path_prefixes,
+            operational_path_prefixes=_union_path_tuples(
+                MANDATORY_OPERATIONAL_PATH_PREFIXES,
+                _normalize_path_tuple(
+                    val.get("operational_path_prefixes"),
+                    default=CustomerSiteRuntimeConfig.operational_path_prefixes,
+                    max_items=100,
+                ),
                 max_items=100,
             ),
             preserve_query_keys=_normalize_string_tuple(

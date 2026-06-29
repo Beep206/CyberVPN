@@ -1,5 +1,6 @@
 """Telegram bot integration routes."""
 
+import hashlib
 import hmac
 import logging
 import re
@@ -16,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService
 from src.application.services.auth_service import AuthService
-from src.application.services.public_registration_policy import ensure_public_registration_enabled
+from src.application.services.config_service import ConfigService
 from src.application.services.public_uid_allocator import allocate_public_uid
 from src.application.services.stage1_plan_policy import (
     filter_stage1_public_addons,
@@ -53,12 +54,16 @@ from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
+from src.infrastructure.database.repositories.customer_onboarding_repo import (
+    CustomerOnboardingStateSqlAlchemyRepository,
+)
 from src.infrastructure.database.repositories.customer_staff_note_repo import CustomerStaffNoteRepository
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
+from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
@@ -136,6 +141,8 @@ from src.presentation.dependencies.services import get_auth_service, get_crypto_
 
 router = APIRouter(prefix="/telegram", tags=["telegram"])
 logger = logging.getLogger(__name__)
+TELEGRAM_BOT_REGISTRATION_DISABLED_CODE = "TELEGRAM_BOT_REGISTRATION_DISABLED"
+TELEGRAM_BOT_REGISTRATION_REQUIRES_INVITE_CODE = "TELEGRAM_BOT_REGISTRATION_REQUIRES_INVITE"
 _SUPPORT_CONFIG_URL_PATTERN = re.compile(r"\b(?:vless|vmess|trojan|ss|wireguard)://[^\s<>]+", re.IGNORECASE)
 _SUPPORT_HTTP_URL_PATTERN = re.compile(r"\bhttps?://[^\s<>]+", re.IGNORECASE)
 _SUPPORT_TELEGRAM_TOKEN_PATTERN = re.compile(r"\b\d{6,12}:[A-Za-z0-9_-]{20,}\b")
@@ -181,6 +188,62 @@ def _is_telegram_bot_bootstrap_username_allowed(username: str | None) -> bool:
     if not allowlist:
         return False
     return _normalize_telegram_username(username) in allowlist
+
+
+def _telegram_bot_registration_error_detail(*, code: str, message_key: str) -> dict[str, Any]:
+    return {
+        "code": code,
+        "message_key": message_key,
+        "allowed_actions": ["open_miniapp", "enter_code", "contact_support"],
+        "miniapp_url": settings.telegram_miniapp_onboarding_url,
+    }
+
+
+def _raise_telegram_bot_registration_blocked(*, code: str, message_key: str) -> None:
+    route_operations_total.labels(route="telegram_bot", action="create_user", status="blocked").inc()
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=_telegram_bot_registration_error_detail(code=code, message_key=message_key),
+    )
+
+
+def _telegram_bot_requires_pending_onboarding(request: TelegramBotUserCreateRequest) -> bool:
+    """Resolve bot registration mode for a new user.
+
+    Web registration may be open while Telegram still requires MiniApp onboarding,
+    so Telegram bot mode is the source of truth for this channel.
+    """
+    if _is_telegram_bot_bootstrap_username_allowed(request.username):
+        return False
+
+    if not settings.registration_enabled and not settings.telegram_bot_allow_registration_when_public_closed:
+        _raise_telegram_bot_registration_blocked(
+            code=TELEGRAM_BOT_REGISTRATION_DISABLED_CODE,
+            message_key="telegram.registration.disabled",
+        )
+
+    match settings.telegram_bot_registration_mode:
+        case "allow_pending_onboarding":
+            return True
+        case "allow_with_invite_code":
+            if request.onboarding_code:
+                return True
+            _raise_telegram_bot_registration_blocked(
+                code=TELEGRAM_BOT_REGISTRATION_REQUIRES_INVITE_CODE,
+                message_key="telegram.registration.requiresInvite",
+            )
+        case "allow_all_bot_users":
+            return False
+        case "disabled" | "allow_existing_only":
+            _raise_telegram_bot_registration_blocked(
+                code=TELEGRAM_BOT_REGISTRATION_DISABLED_CODE,
+                message_key="telegram.registration.disabled",
+            )
+
+    _raise_telegram_bot_registration_blocked(
+        code=TELEGRAM_BOT_REGISTRATION_DISABLED_CODE,
+        message_key="telegram.registration.disabled",
+    )
 
 
 def _build_telegram_stars_invoice_payload(*, payment_id: UUID, telegram_id: int) -> str:
@@ -331,6 +394,10 @@ def _placeholder_mobile_email(telegram_id: int) -> str:
     return f"tg{telegram_id}@telegram.local"
 
 
+def _telegram_id_fingerprint(telegram_id: int) -> str:
+    return hashlib.sha256(f"telegram:{telegram_id}".encode()).hexdigest()[:16]
+
+
 def _placeholder_mobile_username(*, telegram_id: int, username: str | None, first_name: str | None) -> str:
     if username:
         return username
@@ -393,6 +460,38 @@ async def _ensure_mobile_user(
     if changed:
         mobile_user = await mobile_repo.update(mobile_user)
     return mobile_user
+
+
+async def _ensure_telegram_bot_pending_onboarding(
+    db: AsyncSession,
+    *,
+    mobile_user: MobileUserModel,
+) -> None:
+    runtime_config = await ConfigService(SystemConfigRepository(db)).get_customer_onboarding_runtime_config()
+    await CustomerOnboardingStateSqlAlchemyRepository(db).ensure_pending(
+        user_id=mobile_user.id,
+        runtime_config=runtime_config,
+        source_channel="telegram_bot",
+        auth_channel="telegram_bot",
+    )
+    logger.info(
+        "telegram_bot_pending_onboarding_created",
+        extra={"flow_key": runtime_config.flow_key, "version": runtime_config.version},
+    )
+
+
+async def _has_pending_telegram_bot_onboarding(
+    db: AsyncSession,
+    *,
+    mobile_user: MobileUserModel,
+) -> bool:
+    runtime_config = await ConfigService(SystemConfigRepository(db)).get_customer_onboarding_runtime_config()
+    current = await CustomerOnboardingStateSqlAlchemyRepository(db).get_current(
+        user_id=mobile_user.id,
+        flow_key=runtime_config.flow_key,
+        version=runtime_config.version,
+    )
+    return bool(current and current.status == "pending")
 
 
 async def _get_mobile_user_or_404(db: AsyncSession, telegram_id: int) -> MobileUserModel:
@@ -479,8 +578,12 @@ async def _build_mobile_trial_status(
     entitlements = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
     now = datetime.now(UTC)
     is_trial_active = bool(mobile_user.trial_expires_at and mobile_user.trial_expires_at > now)
+    has_pending_onboarding = await _has_pending_telegram_bot_onboarding(db, mobile_user=mobile_user)
 
-    if entitlements["status"] == "active":
+    if has_pending_onboarding:
+        eligible = False
+        reason = "pending_onboarding"
+    elif entitlements["status"] == "active":
         eligible = False
         reason = "active_subscription"
     elif mobile_user.trial_activated_at is not None:
@@ -554,6 +657,9 @@ def _build_bot_user_response(
     *,
     remnawave_user: Any | None = None,
     entitlements_snapshot: dict | None = None,
+    requires_onboarding: bool = False,
+    miniapp_url: str | None = None,
+    registration_error: dict[str, Any] | None = None,
 ) -> TelegramBotUserResponse:
     prefs = user.notification_prefs or {}
     stored_username = prefs.get("telegram_username") if isinstance(prefs, dict) else None
@@ -569,7 +675,11 @@ def _build_bot_user_response(
         )
     )
     status_value = getattr(getattr(remnawave_user, "status", None), "value", None) or effective_status
-    status = status_value if has_subscription or effective_status in {"active", "trial"} else "none"
+    status = (
+        "pending_onboarding"
+        if requires_onboarding
+        else (status_value if has_subscription or effective_status in {"active", "trial"} else "none")
+    )
     subscription = _build_bot_subscription(remnawave_user)
     if subscription is None and entitlements_snapshot and status in {"active", "trial"}:
         subscription = _build_bot_subscription_from_entitlements(entitlements_snapshot)
@@ -589,6 +699,10 @@ def _build_bot_user_response(
         points=0,
         subscription=subscription.model_dump() if subscription is not None else None,
         subscriptions=subscriptions,
+        requires_onboarding=requires_onboarding,
+        onboarding_entrypoint="miniapp" if requires_onboarding else "none",
+        miniapp_url=miniapp_url if requires_onboarding else None,
+        registration_error=registration_error,
         created_at=user.created_at,
         updated_at=user.updated_at,
     )
@@ -836,12 +950,17 @@ async def get_bot_user(
     entitlements_snapshot = (
         await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id) if mobile_user is not None else None
     )
+    requires_onboarding = (
+        await _has_pending_telegram_bot_onboarding(db, mobile_user=mobile_user) if mobile_user is not None else False
+    )
 
     route_operations_total.labels(route="telegram_bot", action="get_user", status="success").inc()
     return _build_bot_user_response(
         user,
         remnawave_user=remnawave_user,
         entitlements_snapshot=entitlements_snapshot,
+        requires_onboarding=requires_onboarding,
+        miniapp_url=settings.telegram_miniapp_onboarding_url,
     )
 
 
@@ -882,24 +1001,18 @@ async def create_or_bootstrap_bot_user(
             auth_service=auth_service,
         )
         entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
+        requires_onboarding = await _has_pending_telegram_bot_onboarding(db, mobile_user=mobile_user)
         route_operations_total.labels(route="telegram_bot", action="upsert_user", status="success").inc()
-        return _build_bot_user_response(existing, entitlements_snapshot=entitlements_snapshot)
+        return _build_bot_user_response(
+            existing,
+            entitlements_snapshot=entitlements_snapshot,
+            requires_onboarding=requires_onboarding,
+            miniapp_url=settings.telegram_miniapp_onboarding_url,
+        )
 
     bootstrap_allowed = _is_telegram_bot_bootstrap_username_allowed(request.username)
-    if not bootstrap_allowed:
-        try:
-            ensure_public_registration_enabled(
-                channel="telegram_bot",
-                registration_enabled=settings.registration_enabled,
-            )
-        except ValueError as exc:
-            route_operations_total.labels(route="telegram_bot", action="create_user", status="blocked").inc()
-            detail = exc.public_detail() if hasattr(exc, "public_detail") else {"message": str(exc)}
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=detail,
-            ) from exc
-    elif not settings.registration_enabled:
+    requires_onboarding = _telegram_bot_requires_pending_onboarding(request)
+    if bootstrap_allowed and not settings.registration_enabled:
         logger.warning(
             "telegram_bot_bootstrap_allowlist_used_while_registration_paused",
             extra={
@@ -950,22 +1063,42 @@ async def create_or_bootstrap_bot_user(
         auth_service=auth_service,
     )
 
-    try:
-        await remnawave_adapter.create_user(
-            username=user.login,
-            email="",
-            telegram_id=request.telegram_id,
-        )
-    except Exception as exc:
-        # Best-effort provisioning: Telegram bot should remain operational even if upstream provisioning fails.
-        logger.warning(
-            "telegram_bot_user_provisioning_failed",
-            extra={"telegram_id": request.telegram_id, "error": str(exc)},
-        )
+    if requires_onboarding:
+        await _ensure_telegram_bot_pending_onboarding(db, mobile_user=mobile_user)
+        entitlements_snapshot = None
+    else:
+        try:
+            await remnawave_adapter.create_user(
+                username=user.login,
+                email="",
+                telegram_id=request.telegram_id,
+            )
+        except Exception as exc:
+            # Best-effort provisioning: Telegram bot should remain operational even if upstream provisioning fails.
+            logger.warning(
+                "telegram_bot_user_provisioning_failed",
+                extra={
+                    "telegram_id_fingerprint": _telegram_id_fingerprint(request.telegram_id),
+                    "error_type": type(exc).__name__,
+                },
+            )
+        entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
 
-    entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
     route_operations_total.labels(route="telegram_bot", action="create_user", status="success").inc()
-    return _build_bot_user_response(user, entitlements_snapshot=entitlements_snapshot)
+    return _build_bot_user_response(
+        user,
+        entitlements_snapshot=entitlements_snapshot,
+        requires_onboarding=requires_onboarding,
+        miniapp_url=settings.telegram_miniapp_onboarding_url,
+        registration_error=(
+            _telegram_bot_registration_error_detail(
+                code=TELEGRAM_BOT_REGISTRATION_REQUIRES_INVITE_CODE,
+                message_key="telegram.registration.requiresInvite",
+            )
+            if requires_onboarding
+            else None
+        ),
+    )
 
 
 @router.patch("/bot/user/{telegram_id}", response_model=TelegramBotUserResponse)

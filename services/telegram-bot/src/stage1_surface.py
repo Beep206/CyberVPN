@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 import structlog
 from aiogram.types import (
@@ -61,10 +62,14 @@ async def apply_stage1_telegram_surface(bot: Bot, settings: BotSettings) -> None
     commands = build_stage1_public_commands()
     await bot.set_my_commands(commands=commands)
     await bot.set_chat_menu_button(menu_button=build_stage1_menu_button(settings))
+    miniapp_url = str(settings.miniapp_url) if settings.miniapp_url is not None else ""
+    parsed_miniapp_url = urlparse(miniapp_url)
 
     logger.info(
         "stage1_telegram_surface_configured",
         environment=settings.environment,
         bot_menu_button=settings.bot_menu_button,
         command_count=len(commands),
+        miniapp_url_host=parsed_miniapp_url.netloc or None,
+        miniapp_url_path=parsed_miniapp_url.path or None,
     )
