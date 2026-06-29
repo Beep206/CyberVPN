@@ -708,6 +708,24 @@ def _build_bot_user_response(
     )
 
 
+async def _refresh_bot_user_for_response(db: AsyncSession, user: AdminUserModel) -> AdminUserModel:
+    await db.refresh(
+        user,
+        attribute_names=[
+            "id",
+            "telegram_id",
+            "login",
+            "display_name",
+            "language",
+            "role",
+            "notification_prefs",
+            "created_at",
+            "updated_at",
+        ],
+    )
+    return user
+
+
 def _build_bot_subscription(remnawave_user: Any | None) -> TelegramBotSubscriptionResponse | None:
     has_subscription = bool(
         remnawave_user
@@ -990,7 +1008,7 @@ async def create_or_bootstrap_bot_user(
             referrer = await user_repo.get_by_telegram_id(request.referrer_id)
             if referrer:
                 existing.referred_by_id = referrer.id
-        await user_repo.update(existing)
+        existing = await user_repo.update(existing)
         mobile_user = await _ensure_mobile_user(
             db,
             telegram_id=request.telegram_id,
@@ -1002,6 +1020,7 @@ async def create_or_bootstrap_bot_user(
         )
         entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
         requires_onboarding = await _has_pending_telegram_bot_onboarding(db, mobile_user=mobile_user)
+        existing = await _refresh_bot_user_for_response(db, existing)
         route_operations_total.labels(route="telegram_bot", action="upsert_user", status="success").inc()
         return _build_bot_user_response(
             existing,
@@ -1085,6 +1104,7 @@ async def create_or_bootstrap_bot_user(
         entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
 
     route_operations_total.labels(route="telegram_bot", action="create_user", status="success").inc()
+    user = await _refresh_bot_user_for_response(db, user)
     return _build_bot_user_response(
         user,
         entitlements_snapshot=entitlements_snapshot,
@@ -1131,7 +1151,7 @@ async def update_bot_user(
     if request.language_code:
         user.language = request.language_code
 
-    await user_repo.update(user)
+    user = await user_repo.update(user)
     mobile_user = await _ensure_mobile_user(
         db,
         telegram_id=telegram_id,
@@ -1144,6 +1164,7 @@ async def update_bot_user(
     gateway = RemnawaveUserGateway(client=remnawave_client)
     remnawave_user = await gateway.get_by_telegram_id(telegram_id)
     entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
+    user = await _refresh_bot_user_for_response(db, user)
 
     route_operations_total.labels(route="telegram_bot", action="update_user", status="success").inc()
     return _build_bot_user_response(

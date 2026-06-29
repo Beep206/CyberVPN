@@ -22,7 +22,7 @@ from src.application.use_cases.mobile_auth.register import MobileRegisterUseCase
 from src.application.use_cases.mobile_auth.telegram_auth import MobileTelegramAuthUseCase
 from src.application.use_cases.mobile_auth.telegram_oidc_auth import MobileTelegramOIDCAuthUseCase
 from src.presentation.api.v1.telegram import routes as telegram_routes
-from src.presentation.api.v1.telegram.schemas import TelegramBotUserCreateRequest
+from src.presentation.api.v1.telegram.schemas import TelegramBotUserCreateRequest, TelegramBotUserUpdateRequest
 
 
 def _device() -> DeviceInfoDTO:
@@ -86,6 +86,26 @@ def _mobile_user() -> MagicMock:
     user.created_at = datetime.now(UTC)
     user.last_login_at = None
     return user
+
+
+class _RefreshRequiredBotUser:
+    def __init__(self) -> None:
+        self.id = uuid4()
+        self.telegram_id = 42424242
+        self.login = "tg42424242"
+        self.display_name = "Old"
+        self.language = "en"
+        self.role = "viewer"
+        self.notification_prefs: dict[str, str | None] = {}
+        self.created_at = datetime.now(UTC)
+        self._updated_at = datetime.now(UTC)
+        self.refreshed_for_response = False
+
+    @property
+    def updated_at(self):
+        if not self.refreshed_for_response:
+            raise RuntimeError("implicit ORM refresh attempted while building bot response")
+        return self._updated_at
 
 
 def test_default_public_registration_state_is_paused(monkeypatch):
@@ -313,6 +333,73 @@ async def test_telegram_bot_bootstrap_allowlist_can_create_beta_user_when_paused
     assert response.first_name == "Sasha"
     assert response.language_code == "ru"
     remnawave_adapter.create_user.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_telegram_bot_update_refreshes_user_before_response(monkeypatch):
+    user = _RefreshRequiredBotUser()
+
+    class FakeAdminUserRepository:
+        def __init__(self, db):
+            self.db = db
+
+        async def get_by_telegram_id(self, telegram_id):
+            assert telegram_id == user.telegram_id
+            return user
+
+        async def update(self, model):
+            return model
+
+    class FakeRemnawaveUserGateway:
+        def __init__(self, client):
+            self.client = client
+
+        async def get_by_telegram_id(self, telegram_id):
+            assert telegram_id == user.telegram_id
+            return None
+
+    class FakeEntitlementsUseCase:
+        def __init__(self, db):
+            self.db = db
+
+        async def execute(self, user_id):
+            return {}
+
+    async def fake_ensure_mobile_user(*args, **kwargs):
+        return SimpleNamespace(id=uuid4())
+
+    async def refresh(instance, *, attribute_names=None):
+        assert "updated_at" in (attribute_names or [])
+        instance.refreshed_for_response = True
+
+    db = AsyncMock()
+    db.refresh.side_effect = refresh
+
+    monkeypatch.setattr(telegram_routes, "AdminUserRepository", FakeAdminUserRepository)
+    monkeypatch.setattr(telegram_routes, "RemnawaveUserGateway", FakeRemnawaveUserGateway)
+    monkeypatch.setattr(telegram_routes, "_ensure_mobile_user", fake_ensure_mobile_user)
+    monkeypatch.setattr(telegram_routes, "GetCurrentEntitlementsUseCase", FakeEntitlementsUseCase)
+    monkeypatch.setattr(telegram_routes, "_require_telegram_bot_secret", lambda secret: None)
+
+    response = await telegram_routes.update_bot_user(
+        user.telegram_id,
+        TelegramBotUserUpdateRequest(
+            username="Sasha_Beep",
+            first_name="Sasha",
+            language_code="ru",
+        ),
+        telegram_bot_secret="test",
+        db=db,
+        remnawave_client=AsyncMock(),
+        auth_service=_auth_service(),
+    )
+
+    db.refresh.assert_awaited_once()
+    assert response.telegram_id == user.telegram_id
+    assert response.username == "Sasha_Beep"
+    assert response.first_name == "Sasha"
+    assert response.language_code == "ru"
+    assert response.updated_at == user._updated_at
 
 
 @pytest.mark.asyncio
