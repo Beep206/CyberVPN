@@ -62,6 +62,9 @@ const STATUS_FILTERS = ['', 'draft', 'active', 'paused', 'archived'];
 const INVENTORY_STATUSES = ['', 'issued', 'active', 'redeemed', 'revoked', 'expired'];
 const REDEMPTION_STATUSES = ['', 'redeemed', 'blocked', 'reversed'];
 const SURFACE_OPTIONS = ['web', 'miniapp', 'telegram_bot'];
+const DURATION_MODE_OPTIONS = ['fixed_days', 'lifetime'];
+const EXPIRY_MODE_OPTIONS = ['relative', 'absolute', 'none'];
+const BATCH_EXPIRY_MODE_OPTIONS = ['campaign_default', 'relative', 'absolute', 'none'];
 
 const initialCampaignForm = {
   campaignKey: '',
@@ -81,18 +84,34 @@ const initialCampaignForm = {
   maxPerBatch: '1000',
   maxPerOwner: '',
   maxDailyIssued: '',
+  maxRedemptionsPerDevice: '1',
+  maxRedemptionsPerIpWindow: '3',
+  velocityWindowHours: '24',
+  denyDisposableEmail: true,
+  denyKnownAbuseSubject: true,
   grantPlanId: '',
   grantPlanCode: '',
+  grantDurationMode: 'fixed_days',
   grantDurationDays: '365',
+  grantDeviceLimitOverride: '',
+  rootInviteExpiryMode: 'relative',
+  rootInviteExpiryDays: '30',
+  rootInviteExpiresAt: '',
   childGrantPlanId: '',
   childGrantPlanCode: '',
+  childGrantDurationMode: 'fixed_days',
   childGrantDurationDays: '365',
+  childGrantDeviceLimitOverride: '',
   childInviteCount: '10',
   childInviteFreeDays: '365',
+  childInviteExpiryMode: 'relative',
   childInviteExpiryDays: '30',
+  childInviteExpiresAt: '',
   maxGenerationDepth: '5',
   startsAt: '',
   expiresAt: '',
+  highRiskContext: false,
+  lifetimeCampaignAcknowledgement: false,
   publish: false,
   reason: '',
 };
@@ -102,11 +121,51 @@ const initialBatchForm = {
   ownerUserId: '',
   ownerUserIds: '',
   count: '10',
+  expiryMode: 'campaign_default',
   expiryDays: '30',
   expiresAt: '',
   idempotencyKey: '',
   reason: '',
 };
+
+function premiumSmartRuLifetimePreset(displayName: string) {
+  return {
+    ...initialCampaignForm,
+    campaignKey: 'premium_smart_ru_lifetime_viral',
+    name: displayName,
+    ownerMode: 'selected_user',
+    grantPlanCode: 'premium_smart_ru',
+    grantDurationMode: 'lifetime',
+    grantDurationDays: '',
+    grantDeviceLimitOverride: '5',
+    rootInviteExpiryMode: 'none',
+    rootInviteExpiryDays: '',
+    childGrantPlanCode: 'premium_smart_ru',
+    childGrantDurationMode: 'lifetime',
+    childGrantDurationDays: '',
+    childGrantDeviceLimitOverride: '5',
+    childInviteCount: '12',
+    childInviteFreeDays: '0',
+    childInviteExpiryMode: 'none',
+    childInviteExpiryDays: '',
+    maxGenerationDepth: '5',
+    perUserRedeemCap: '1',
+    globalIssueCap: '100000',
+    maxPerBatch: '1000',
+    maxPerOwner: '12',
+    maxDailyIssued: '10000',
+    maxRedemptionsPerDevice: '1',
+    maxRedemptionsPerIpWindow: '3',
+    velocityWindowHours: '24',
+    denyDisposableEmail: true,
+    denyKnownAbuseSubject: true,
+    requireNoActiveAccess: true,
+    blockSelfRedemption: true,
+    highRiskContext: true,
+    lifetimeCampaignAcknowledgement: true,
+    publish: false,
+  };
+}
 
 const initialInventoryFilters = {
   campaignId: '',
@@ -132,6 +191,8 @@ const initialInventoryFilters = {
 const initialBatchActionForm = {
   reason: '',
   extendExpiryDays: '30',
+  reversalCascadeMode: 'unused_child_invites',
+  confirmDescendantReversal: false,
 };
 
 function statusTone(status: string | null | undefined) {
@@ -152,6 +213,20 @@ function csvList(value: string) {
     .split(/[\n,]+/)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function formatDurationPolicy(
+  mode: string | null | undefined,
+  days: number | null | undefined,
+  t: ReturnType<typeof useTranslations>,
+) {
+  return mode === 'lifetime'
+    ? t('inviteCodes.durationModes.lifetime')
+    : t('inviteCodes.units.daysShort', { count: days ?? 0 });
+}
+
+function formatExpiryPolicy(mode: string | null | undefined, t: ReturnType<typeof useTranslations>) {
+  return mode ? t(`inviteCodes.expiryModes.${mode}`) : t('common.missing');
 }
 
 function selectedCampaignOrFirst(
@@ -323,22 +398,49 @@ export function InviteCodesConsole() {
           : campaignForm.grantPlanCode.trim()
             ? { grant_plan_code: campaignForm.grantPlanCode.trim() }
             : {}),
-        grant_duration_days: optionalNumber(campaignForm.grantDurationDays),
+        grant_duration_mode: campaignForm.grantDurationMode as 'fixed_days' | 'lifetime',
+        grant_duration_days:
+          campaignForm.grantDurationMode === 'lifetime' ? null : optionalNumber(campaignForm.grantDurationDays),
+        grant_device_limit_override: optionalNumber(campaignForm.grantDeviceLimitOverride) ?? null,
+        root_invite_expiry_mode: campaignForm.rootInviteExpiryMode as 'relative' | 'absolute' | 'none',
+        root_invite_expiry_days:
+          campaignForm.rootInviteExpiryMode === 'relative' ? optionalNumber(campaignForm.rootInviteExpiryDays) : null,
+        root_invite_expires_at:
+          campaignForm.rootInviteExpiryMode === 'absolute'
+            ? toIsoDateTime(campaignForm.rootInviteExpiresAt) ?? null
+            : null,
         child_grant_plan_id: campaignForm.childGrantPlanId || null,
         ...(campaignForm.childGrantPlanId
           ? { child_grant_plan_code: null }
           : campaignForm.childGrantPlanCode.trim()
             ? { child_grant_plan_code: campaignForm.childGrantPlanCode.trim() }
             : {}),
-        child_grant_duration_days: optionalNumber(campaignForm.childGrantDurationDays),
+        child_grant_duration_mode: campaignForm.childGrantDurationMode as 'fixed_days' | 'lifetime',
+        child_grant_duration_days:
+          campaignForm.childGrantDurationMode === 'lifetime'
+            ? null
+            : optionalNumber(campaignForm.childGrantDurationDays),
+        child_grant_device_limit_override: optionalNumber(campaignForm.childGrantDeviceLimitOverride) ?? null,
         child_invite_count: optionalNumber(campaignForm.childInviteCount),
         child_invite_free_days: optionalNumber(campaignForm.childInviteFreeDays),
-        child_invite_expiry_days: optionalNumber(campaignForm.childInviteExpiryDays),
+        child_invite_expiry_mode: campaignForm.childInviteExpiryMode as 'relative' | 'absolute' | 'none',
+        child_invite_expiry_days:
+          campaignForm.childInviteExpiryMode === 'relative' ? optionalNumber(campaignForm.childInviteExpiryDays) : null,
+        child_invite_expires_at:
+          campaignForm.childInviteExpiryMode === 'absolute'
+            ? toIsoDateTime(campaignForm.childInviteExpiresAt) ?? null
+            : null,
         max_generation_depth: optionalNumber(campaignForm.maxGenerationDepth),
         require_no_active_access: campaignForm.requireNoActiveAccess,
         block_self_redemption: campaignForm.blockSelfRedemption,
         risk_policy: {
           per_user_redeem_cap: optionalNumber(campaignForm.perUserRedeemCap) ?? 1,
+          high_risk_context: campaignForm.highRiskContext,
+          max_redemptions_per_device: optionalNumber(campaignForm.maxRedemptionsPerDevice) ?? 1,
+          max_redemptions_per_ip_window: optionalNumber(campaignForm.maxRedemptionsPerIpWindow) ?? 3,
+          velocity_window_hours: optionalNumber(campaignForm.velocityWindowHours) ?? 24,
+          deny_disposable_email: campaignForm.denyDisposableEmail,
+          deny_known_abuse_subject: campaignForm.denyKnownAbuseSubject,
         },
         export_policy: {
           raw_export_enabled: campaignForm.rawExportEnabled,
@@ -349,6 +451,7 @@ export function InviteCodesConsole() {
           max_per_owner: optionalNumber(campaignForm.maxPerOwner),
           max_daily_issued: optionalNumber(campaignForm.maxDailyIssued),
         },
+        lifetime_campaign_acknowledgement: campaignForm.lifetimeCampaignAcknowledgement,
         publish: campaignForm.publish,
         reason: campaignForm.reason.trim() || null,
       }),
@@ -391,8 +494,9 @@ export function InviteCodesConsole() {
         owner_user_id: batchForm.ownerUserId.trim() || null,
         owner_user_ids: csvList(batchForm.ownerUserIds),
         count: optionalNumber(batchForm.count) ?? 1,
-        expiry_days: batchForm.expiresAt ? null : optionalNumber(batchForm.expiryDays),
-        expires_at: toIsoDateTime(batchForm.expiresAt) ?? null,
+        expiry_mode: batchForm.expiryMode as 'campaign_default' | 'relative' | 'absolute' | 'none',
+        expiry_days: batchForm.expiryMode === 'relative' ? optionalNumber(batchForm.expiryDays) : null,
+        expires_at: batchForm.expiryMode === 'absolute' ? toIsoDateTime(batchForm.expiresAt) ?? null : null,
         idempotency_key: batchForm.idempotencyKey.trim() || null,
         reason: batchForm.reason.trim(),
       }),
@@ -456,6 +560,11 @@ export function InviteCodesConsole() {
     mutationFn: (redemptionId: string) =>
       growthApi.reverseInviteRedemption(redemptionId, {
         reason: batchActionForm.reason.trim() || 'invite_redemption_reverse',
+        cascade_mode: batchActionForm.reversalCascadeMode as 'none' | 'unused_child_invites' | 'all_descendants',
+        confirm_descendant_reversal:
+          batchActionForm.reversalCascadeMode === 'all_descendants'
+            ? batchActionForm.confirmDescendantReversal
+            : false,
       }),
     onSuccess: async () => {
       await Promise.all([
@@ -671,6 +780,8 @@ export function InviteCodesConsole() {
           selectedCampaign={selectedCampaign}
           redemptionStatusFilter={redemptionStatusFilter}
           setRedemptionStatusFilter={setRedemptionStatusFilter}
+          batchActionForm={batchActionForm}
+          setBatchActionForm={setBatchActionForm}
           redemptions={redemptionsQuery.data?.items ?? []}
           total={redemptionsQuery.data?.total ?? 0}
           isLoading={redemptionsQuery.isLoading}
@@ -893,6 +1004,16 @@ function CampaignsTab({
         <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
           {t('inviteCodes.campaigns.createDescription')}
         </p>
+        <Button
+          type="button"
+          className="mt-4 w-full"
+          variant="outline"
+          magnetic={false}
+          onClick={() => setCampaignForm(premiumSmartRuLifetimePreset(t('inviteCodes.presets.premiumSmartRuLifetimeName')))}
+        >
+          <TicketPlus className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('inviteCodes.actions.applyLifetimePreset')}
+        </Button>
         <div className="mt-5 grid gap-4">
           <TextField
             label={t('inviteCodes.fields.campaignKey')}
@@ -975,17 +1096,68 @@ function CampaignsTab({
             onChange={(value) => setCampaignForm((current) => ({ ...current, childGrantPlanCode: value }))}
           />
           <div className="grid gap-4 md:grid-cols-2">
+            <SelectField
+              label={t('inviteCodes.fields.grantDurationMode')}
+              value={campaignForm.grantDurationMode}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, grantDurationMode: value }))}
+              options={DURATION_MODE_OPTIONS}
+              optionLabel={(value) => t(`inviteCodes.durationModes.${value}`)}
+            />
             <TextField
               label={t('inviteCodes.fields.grantDurationDays')}
               type="number"
               value={campaignForm.grantDurationDays}
+              disabled={campaignForm.grantDurationMode === 'lifetime'}
               onChange={(value) => setCampaignForm((current) => ({ ...current, grantDurationDays: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.grantDeviceLimitOverride')}
+              type="number"
+              value={campaignForm.grantDeviceLimitOverride}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, grantDeviceLimitOverride: value }))}
+            />
+            <SelectField
+              label={t('inviteCodes.fields.rootInviteExpiryMode')}
+              value={campaignForm.rootInviteExpiryMode}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, rootInviteExpiryMode: value }))}
+              options={EXPIRY_MODE_OPTIONS}
+              optionLabel={(value) => t(`inviteCodes.expiryModes.${value}`)}
+            />
+            <TextField
+              label={t('inviteCodes.fields.rootInviteExpiryDays')}
+              type="number"
+              value={campaignForm.rootInviteExpiryDays}
+              disabled={campaignForm.rootInviteExpiryMode !== 'relative'}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, rootInviteExpiryDays: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.rootInviteExpiresAt')}
+              type="datetime-local"
+              value={campaignForm.rootInviteExpiresAt}
+              disabled={campaignForm.rootInviteExpiryMode !== 'absolute'}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, rootInviteExpiresAt: value }))}
+            />
+            <SelectField
+              label={t('inviteCodes.fields.childGrantDurationMode')}
+              value={campaignForm.childGrantDurationMode}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, childGrantDurationMode: value }))}
+              options={DURATION_MODE_OPTIONS}
+              optionLabel={(value) => t(`inviteCodes.durationModes.${value}`)}
             />
             <TextField
               label={t('inviteCodes.fields.childGrantDurationDays')}
               type="number"
               value={campaignForm.childGrantDurationDays}
+              disabled={campaignForm.childGrantDurationMode === 'lifetime'}
               onChange={(value) => setCampaignForm((current) => ({ ...current, childGrantDurationDays: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.childGrantDeviceLimitOverride')}
+              type="number"
+              value={campaignForm.childGrantDeviceLimitOverride}
+              onChange={(value) =>
+                setCampaignForm((current) => ({ ...current, childGrantDeviceLimitOverride: value }))
+              }
             />
             <TextField
               label={t('inviteCodes.fields.childInviteCount')}
@@ -999,11 +1171,26 @@ function CampaignsTab({
               value={campaignForm.childInviteFreeDays}
               onChange={(value) => setCampaignForm((current) => ({ ...current, childInviteFreeDays: value }))}
             />
+            <SelectField
+              label={t('inviteCodes.fields.childInviteExpiryMode')}
+              value={campaignForm.childInviteExpiryMode}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, childInviteExpiryMode: value }))}
+              options={EXPIRY_MODE_OPTIONS}
+              optionLabel={(value) => t(`inviteCodes.expiryModes.${value}`)}
+            />
             <TextField
               label={t('inviteCodes.fields.childInviteExpiryDays')}
               type="number"
               value={campaignForm.childInviteExpiryDays}
+              disabled={campaignForm.childInviteExpiryMode !== 'relative'}
               onChange={(value) => setCampaignForm((current) => ({ ...current, childInviteExpiryDays: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.childInviteExpiresAt')}
+              type="datetime-local"
+              value={campaignForm.childInviteExpiresAt}
+              disabled={campaignForm.childInviteExpiryMode !== 'absolute'}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, childInviteExpiresAt: value }))}
             />
             <TextField
               label={t('inviteCodes.fields.maxGenerationDepth')}
@@ -1040,6 +1227,24 @@ function CampaignsTab({
               type="number"
               value={campaignForm.maxDailyIssued}
               onChange={(value) => setCampaignForm((current) => ({ ...current, maxDailyIssued: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.maxRedemptionsPerDevice')}
+              type="number"
+              value={campaignForm.maxRedemptionsPerDevice}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, maxRedemptionsPerDevice: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.maxRedemptionsPerIpWindow')}
+              type="number"
+              value={campaignForm.maxRedemptionsPerIpWindow}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, maxRedemptionsPerIpWindow: value }))}
+            />
+            <TextField
+              label={t('inviteCodes.fields.velocityWindowHours')}
+              type="number"
+              value={campaignForm.velocityWindowHours}
+              onChange={(value) => setCampaignForm((current) => ({ ...current, velocityWindowHours: value }))}
             />
             <TextField
               label={t('inviteCodes.fields.riskPolicyKey')}
@@ -1108,7 +1313,34 @@ function CampaignsTab({
               checked={campaignForm.blockSelfRedemption}
               onChange={(checked) => setCampaignForm((current) => ({ ...current, blockSelfRedemption: checked }))}
             />
+            <CheckboxRow
+              label={t('inviteCodes.fields.highRiskContext')}
+              checked={campaignForm.highRiskContext}
+              onChange={(checked) => setCampaignForm((current) => ({ ...current, highRiskContext: checked }))}
+            />
+            <CheckboxRow
+              label={t('inviteCodes.fields.denyDisposableEmail')}
+              checked={campaignForm.denyDisposableEmail}
+              onChange={(checked) => setCampaignForm((current) => ({ ...current, denyDisposableEmail: checked }))}
+            />
+            <CheckboxRow
+              label={t('inviteCodes.fields.denyKnownAbuseSubject')}
+              checked={campaignForm.denyKnownAbuseSubject}
+              onChange={(checked) => setCampaignForm((current) => ({ ...current, denyKnownAbuseSubject: checked }))}
+            />
+            <CheckboxRow
+              label={t('inviteCodes.fields.lifetimeCampaignAcknowledgement')}
+              checked={campaignForm.lifetimeCampaignAcknowledgement}
+              onChange={(checked) =>
+                setCampaignForm((current) => ({ ...current, lifetimeCampaignAcknowledgement: checked }))
+              }
+            />
           </div>
+          {campaignForm.grantDurationMode === 'lifetime' || campaignForm.childGrantDurationMode === 'lifetime' ? (
+            <p className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs font-mono leading-5 text-amber-100">
+              {t('inviteCodes.campaigns.lifetimeWarning')}
+            </p>
+          ) : null}
         </div>
         <Button type="submit" className="mt-5 w-full" magnetic={false} disabled={isCreating}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -1252,6 +1484,13 @@ function CreateBatchTab({
             onChange={(value) => setBatchForm((current) => ({ ...current, ownerUserIds: value }))}
           />
           <div className="grid gap-4 md:grid-cols-2">
+            <SelectField
+              label={t('inviteCodes.fields.expiryMode')}
+              value={batchForm.expiryMode}
+              onChange={(value) => setBatchForm((current) => ({ ...current, expiryMode: value }))}
+              options={BATCH_EXPIRY_MODE_OPTIONS}
+              optionLabel={(value) => t(`inviteCodes.expiryModes.${value}`)}
+            />
             <TextField
               label={t('inviteCodes.fields.count')}
               type="number"
@@ -1706,6 +1945,8 @@ function RedemptionsTab({
   selectedCampaign,
   redemptionStatusFilter,
   setRedemptionStatusFilter,
+  batchActionForm,
+  setBatchActionForm,
   redemptions,
   total,
   isLoading,
@@ -1719,6 +1960,8 @@ function RedemptionsTab({
   selectedCampaign: AdminInviteCampaignResponse | null;
   redemptionStatusFilter: string;
   setRedemptionStatusFilter: (value: string) => void;
+  batchActionForm: typeof initialBatchActionForm;
+  setBatchActionForm: Dispatch<SetStateAction<typeof initialBatchActionForm>>;
   redemptions: Awaited<ReturnType<typeof growthApi.listInviteCampaignRedemptions>>['data']['items'];
   total: number;
   isLoading: boolean;
@@ -1742,7 +1985,7 @@ function RedemptionsTab({
             })}
           </p>
         </div>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <SelectField
             label={t('inviteCodes.fields.campaign')}
             value={selectedCampaign?.id ?? ''}
@@ -1761,6 +2004,28 @@ function RedemptionsTab({
             options={REDEMPTION_STATUSES}
             optionLabel={(value) => (value ? humanizeToken(value) : t('inviteCodes.fields.allStatuses'))}
             compact
+          />
+          <SelectField
+            label={t('inviteCodes.fields.reversalCascadeMode')}
+            value={batchActionForm.reversalCascadeMode}
+            onChange={(value) =>
+              setBatchActionForm((current) => ({
+                ...current,
+                reversalCascadeMode: value,
+                confirmDescendantReversal:
+                  value === 'all_descendants' ? current.confirmDescendantReversal : false,
+              }))
+            }
+            options={['none', 'unused_child_invites', 'all_descendants']}
+            optionLabel={(value) => t(`inviteCodes.cascadeModes.${value}`)}
+            compact
+          />
+          <CheckboxRow
+            label={t('inviteCodes.fields.confirmDescendantReversal')}
+            checked={batchActionForm.confirmDescendantReversal}
+            onChange={(checked) =>
+              setBatchActionForm((current) => ({ ...current, confirmDescendantReversal: checked }))
+            }
           />
         </div>
       </div>
@@ -1942,6 +2207,9 @@ function InviteTreeTab({
                       <TableHead>{t('inviteCodes.table.code')}</TableHead>
                       <TableHead>{t('inviteCodes.table.parent')}</TableHead>
                       <TableHead>{t('inviteCodes.table.depth')}</TableHead>
+                      <TableHead>{t('inviteCodes.table.duration')}</TableHead>
+                      <TableHead>{t('inviteCodes.table.devices')}</TableHead>
+                      <TableHead>{t('inviteCodes.table.childPolicy')}</TableHead>
                       <TableHead>{t('inviteCodes.table.status')}</TableHead>
                       <TableHead>{t('inviteCodes.table.used')}</TableHead>
                     </TableRow>
@@ -1956,6 +2224,27 @@ function InviteTreeTab({
                           {shortId(node.parent_invite_code_id, 12)}
                         </TableCell>
                         <TableCell>{node.generation_depth}</TableCell>
+                        <TableCell>
+                          <GrowthStatusChip
+                            label={
+                              node.grant_lifetime
+                                ? t('inviteCodes.durationModes.lifetime')
+                                : humanizeToken(node.grant_duration_mode ?? 'fixed_days')
+                            }
+                            tone={node.grant_lifetime ? 'success' : 'neutral'}
+                          />
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {node.grant_device_limit_override ?? t('common.missing')}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          <div className="space-y-1">
+                            <p>
+                              {node.child_invite_count} / {node.child_count}
+                            </p>
+                            <p>{formatExpiryPolicy(node.child_invite_expiry_mode, t)}</p>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <GrowthStatusChip label={humanizeToken(node.status)} tone={statusTone(node.status)} />
                         </TableCell>
@@ -2093,17 +2382,45 @@ function SettingsTab({
           <InfoLine label={t('inviteCodes.fields.campaign')} value={selectedCampaign.campaign_key} />
           <InfoLine label={t('inviteCodes.fields.ownerMode')} value={humanizeToken(selectedCampaign.owner_mode)} />
           <InfoLine label={t('inviteCodes.fields.grantMode')} value={humanizeToken(version.grant_mode)} />
-          <InfoLine label={t('inviteCodes.fields.grantDurationDays')} value={String(version.grant_duration_days ?? '--')} />
+          <InfoLine
+            label={t('inviteCodes.fields.grantDurationMode')}
+            value={formatDurationPolicy(version.grant_duration_mode, version.grant_duration_days, t)}
+          />
+          <InfoLine
+            label={t('inviteCodes.fields.grantDeviceLimitOverride')}
+            value={String(version.grant_device_limit_override ?? '--')}
+          />
+          <InfoLine
+            label={t('inviteCodes.fields.rootInviteExpiryMode')}
+            value={formatExpiryPolicy(version.root_invite_expiry_mode, t)}
+          />
           <InfoLine label={t('inviteCodes.fields.childInviteCount')} value={String(version.child_invite_count)} />
-          <InfoLine label={t('inviteCodes.fields.childGrantDurationDays')} value={String(version.child_grant_duration_days ?? '--')} />
-          <InfoLine label={t('inviteCodes.fields.childInviteFreeDays')} value={String(version.child_invite_free_days)} />
-          <InfoLine label={t('inviteCodes.fields.childInviteExpiryDays')} value={String(version.child_invite_expiry_days)} />
+          <InfoLine
+            label={t('inviteCodes.fields.childGrantDurationMode')}
+            value={formatDurationPolicy(version.child_grant_duration_mode, version.child_grant_duration_days, t)}
+          />
+          <InfoLine
+            label={t('inviteCodes.fields.childGrantDeviceLimitOverride')}
+            value={String(version.child_grant_device_limit_override ?? '--')}
+          />
+          <InfoLine
+            label={t('inviteCodes.fields.childInviteExpiryMode')}
+            value={formatExpiryPolicy(version.child_invite_expiry_mode, t)}
+          />
           <InfoLine label={t('inviteCodes.fields.maxGenerationDepth')} value={String(version.max_generation_depth)} />
           <InfoLine label={t('inviteCodes.settings.issued')} value={String(analytics?.issued_total ?? analytics?.issued_count ?? '--')} />
           <InfoLine label={t('inviteCodes.settings.blocked')} value={String(analytics?.blocked_count ?? '--')} />
           <InfoLine
             label={t('inviteCodes.settings.childIssued')}
             value={String(analytics?.child_invites_issued_total ?? '--')}
+          />
+          <InfoLine
+            label={t('inviteCodes.settings.lifetimeGrants')}
+            value={String(analytics?.lifetime_grants ?? '--')}
+          />
+          <InfoLine
+            label={t('inviteCodes.settings.premiumSmartRuGrants')}
+            value={String(analytics?.premium_smart_ru_grants ?? '--')}
           />
           <InfoLine label={t('inviteCodes.settings.maxDepth')} value={String(analytics?.max_depth_reached ?? '--')} />
           <InfoLine label={t('inviteCodes.settings.surfaces')} value={version.allowed_surfaces.join(', ')} />
@@ -2131,6 +2448,10 @@ function InviteCodesTable({
           <TableHead>{t('inviteCodes.table.code')}</TableHead>
           <TableHead>{t('inviteCodes.table.status')}</TableHead>
           <TableHead>{t('inviteCodes.table.used')}</TableHead>
+          <TableHead>{t('inviteCodes.table.plan')}</TableHead>
+          <TableHead>{t('inviteCodes.table.duration')}</TableHead>
+          <TableHead>{t('inviteCodes.table.devices')}</TableHead>
+          <TableHead>{t('inviteCodes.table.childPolicy')}</TableHead>
           <TableHead>{t('inviteCodes.table.depth')}</TableHead>
           <TableHead>{t('inviteCodes.table.expires')}</TableHead>
           <TableHead>{t('inviteCodes.table.created')}</TableHead>
@@ -2139,13 +2460,13 @@ function InviteCodesTable({
       <TableBody>
         {isLoading ? (
           <TableRow>
-            <TableCell colSpan={6}>
+            <TableCell colSpan={10}>
               <GrowthEmptyState label={t('inviteCodes.inventory.loading')} />
             </TableCell>
           </TableRow>
         ) : inviteCodes.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6}>
+            <TableCell colSpan={10}>
               <GrowthEmptyState label={t('inviteCodes.inventory.empty')} />
             </TableCell>
           </TableRow>
@@ -2171,8 +2492,43 @@ function InviteCodesTable({
                   tone={invite.is_used ? 'warning' : 'success'}
                 />
               </TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                {invite.grant_plan_code ?? t('common.missing')}
+              </TableCell>
+              <TableCell>
+                <GrowthStatusChip
+                  label={
+                    invite.grant_duration_mode === 'lifetime'
+                      ? t('inviteCodes.durationModes.lifetime')
+                      : t('inviteCodes.units.daysShort', { count: invite.grant_duration_days ?? 0 })
+                  }
+                  tone={invite.grant_duration_mode === 'lifetime' ? 'success' : 'neutral'}
+                />
+              </TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                {invite.grant_device_limit_override ?? t('common.missing')}
+              </TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                <div className="space-y-1">
+                  <p>
+                    {t('inviteCodes.table.childInvites')}: {invite.child_invite_count ?? 0}
+                  </p>
+                  <p>
+                    {formatDurationPolicy(invite.child_grant_duration_mode, invite.child_grant_duration_days, t)} ·{' '}
+                    {invite.child_grant_device_limit_override ?? t('common.missing')}
+                  </p>
+                  <p>{formatExpiryPolicy(invite.child_invite_expiry_mode, t)}</p>
+                </div>
+              </TableCell>
               <TableCell>{invite.generation_depth ?? 0}</TableCell>
-              <TableCell>{formatDateTime(invite.expires_at, locale)}</TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {formatExpiryPolicy(invite.root_invite_expiry_mode, t)}
+                  </p>
+                  <p>{formatDateTime(invite.expires_at, locale)}</p>
+                </div>
+              </TableCell>
               <TableCell>{formatDateTime(invite.created_at, locale)}</TableCell>
             </TableRow>
           ))
@@ -2188,12 +2544,14 @@ function TextField({
   onChange,
   type = 'text',
   required = false,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
   required?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <label className="block text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
@@ -2203,7 +2561,8 @@ function TextField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
-        className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25"
+        disabled={disabled}
+        className="mt-2 w-full rounded-lg border border-grid-line/25 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground outline-hidden focus:border-neon-cyan/60 focus:ring-2 focus:ring-neon-cyan/25 disabled:cursor-not-allowed disabled:opacity-50"
       />
     </label>
   );

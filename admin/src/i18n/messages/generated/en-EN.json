@@ -2626,6 +2626,7 @@
     },
     "inviteCodes": {
       "actions": {
+        "applyLifetimePreset": "Apply Premium Smart RU lifetime preset",
         "createBatch": "Create batch",
         "createCampaign": "Create campaign",
         "creating": "Creating...",
@@ -2655,8 +2656,14 @@
         "empty": "No invite campaigns matched the current filter.",
         "inventoryDescription": "Bounded list of flexible invite campaigns from the live admin API.",
         "inventoryTitle": "Campaign Inventory",
+        "lifetimeWarning": "Lifetime campaigns create non-expiring access. Keep global issue caps, high-risk context, no-active-access, and self-redemption protection enabled before publishing.",
         "loading": "Loading invite campaigns...",
         "versionBadge": "v{version}"
+      },
+      "cascadeModes": {
+        "all_descendants": "All descendants",
+        "none": "No cascade",
+        "unused_child_invites": "Unused child invites"
       },
       "createBatch": {
         "description": "Create root invite codes for a selected campaign. Backend owns idempotency, policy resolution, and raw-code issuance.",
@@ -2666,6 +2673,16 @@
         "title": "Create Campaign Batch"
       },
       "description": "Multi-tab admin console for invite campaigns, root batches, filtered inventory, redemptions, invite trees, raw-code exports, audit posture, and policy settings.",
+      "durationModes": {
+        "fixed_days": "Fixed days",
+        "lifetime": "Lifetime"
+      },
+      "expiryModes": {
+        "absolute": "Absolute",
+        "campaign_default": "Campaign default",
+        "none": "No expiry",
+        "relative": "Relative"
+      },
       "exports": {
         "auditDescription": "Explicit exports surface raw invite codes only after the backend audit path accepts the batch export request.",
         "auditTitle": "Export Readback",
@@ -2704,35 +2721,49 @@
         "campaign": "Campaign",
         "campaignId": "Campaign ID",
         "campaignKey": "Campaign Key",
+        "childGrantDeviceLimitOverride": "Child Device Limit Override",
         "childGrantDurationDays": "Child Grant Duration Days",
+        "childGrantDurationMode": "Child Grant Duration Mode",
         "childGrantPlan": "Child Grant Plan",
         "childGrantPlanCode": "Child Grant Plan Code",
         "childGrantPlanCodeFallback": "Use child plan code fallback",
         "childInviteCount": "Child Invite Count",
+        "childInviteExpiresAt": "Child Invite Expires At",
         "childInviteExpiryDays": "Child Invite Expiry Days",
+        "childInviteExpiryMode": "Child Invite Expiry Mode",
         "childInviteFreeDays": "Child Invite Free Days",
+        "confirmDescendantReversal": "Confirm descendant reversal",
         "count": "Count",
         "createdFrom": "Created From",
         "createdTo": "Created To",
+        "denyDisposableEmail": "Deny disposable email accounts",
+        "denyKnownAbuseSubject": "Deny known-abuse subjects",
         "description": "Description",
         "expiresAt": "Expires At",
         "expiresFrom": "Expires From",
         "expiresTo": "Expires To",
         "expiryDays": "Expiry Days",
+        "expiryMode": "Expiry Mode",
         "extendExpiryDays": "Extend Days",
         "generationDepth": "Generation Depth",
         "globalIssueCap": "Global issue cap",
+        "grantDeviceLimitOverride": "Device Limit Override",
         "grantDurationDays": "Grant Duration Days",
+        "grantDurationMode": "Grant Duration Mode",
         "grantMode": "Grant Mode",
         "grantPlan": "Grant Plan",
         "grantPlanCode": "Grant Plan Code",
         "grantPlanCodeFallback": "Use plan code fallback",
+        "highRiskContext": "High-risk campaign context",
         "idempotencyKey": "Idempotency Key",
+        "lifetimeCampaignAcknowledgement": "Acknowledge lifetime no-expiry campaign",
         "limit": "Rows per page",
         "maxDailyIssued": "Max daily issued",
         "maxGenerationDepth": "Max Generation Depth",
         "maxPerBatch": "Max per batch",
         "maxPerOwner": "Max per owner",
+        "maxRedemptionsPerDevice": "Max redemptions per device",
+        "maxRedemptionsPerIpWindow": "Max redemptions per IP window",
         "name": "Name",
         "ownerMode": "Owner Mode",
         "ownerUserId": "Owner User ID",
@@ -2745,14 +2776,19 @@
         "rawExportEnabled": "Raw export enabled",
         "reason": "Reason",
         "requireNoActiveAccess": "Require no active access",
+        "reversalCascadeMode": "Reversal Cascade Mode",
         "riskPolicyKey": "Risk policy key",
         "rootInviteCodeId": "Root Invite Code ID",
+        "rootInviteExpiresAt": "Root Invite Expires At",
+        "rootInviteExpiryDays": "Root Invite Expiry Days",
+        "rootInviteExpiryMode": "Root Invite Expiry Mode",
         "startsAt": "Starts At",
         "status": "Status",
         "used": "Usage",
         "usedByUserId": "Used By User ID",
         "usedFrom": "Used From",
-        "usedTo": "Used To"
+        "usedTo": "Used To",
+        "velocityWindowHours": "Velocity window hours"
       },
       "inventory": {
         "description": "Filtered invite-code inventory from the v7 admin endpoint. Results stay bounded and omit raw invite codes.",
@@ -2791,6 +2827,9 @@
         "system": "System pool",
         "uploaded_user_list": "Uploaded user list"
       },
+      "presets": {
+        "premiumSmartRuLifetimeName": "Premium Smart RU Lifetime Viral"
+      },
       "redemptions": {
         "description": "Campaign {campaign} has {count} redemption records in the current backend window.",
         "empty": "No redemptions matched the selected campaign and status.",
@@ -2803,7 +2842,9 @@
         "description": "Read-only snapshot of the selected campaign version policy and analytics. Policy mutations remain backend-owned.",
         "empty": "Select a campaign with a current version to inspect policy settings.",
         "issued": "Issued Codes",
+        "lifetimeGrants": "Lifetime Grants",
         "maxDepth": "Max Depth",
+        "premiumSmartRuGrants": "Premium Smart RU Grants",
         "surfaces": "Allowed Surfaces",
         "title": "Campaign Settings"
       },
@@ -2816,9 +2857,12 @@
         "actions": "Actions",
         "batch": "Batch",
         "childInvites": "Child Invites",
+        "childPolicy": "Child Policy",
         "code": "Code",
         "created": "Created",
         "depth": "Depth",
+        "devices": "Devices",
+        "duration": "Duration",
         "expires": "Expires",
         "exported": "Exported",
         "invitee": "Invitee",

@@ -109,6 +109,27 @@ class InviteCampaignVersionModel(Base):
         CheckConstraint("version >= 1", name="ck_invite_campaign_versions_version_positive"),
         CheckConstraint("child_invite_count >= 0", name="ck_invite_campaign_versions_child_count_non_negative"),
         CheckConstraint("max_generation_depth >= 0", name="ck_invite_campaign_versions_max_depth_non_negative"),
+        CheckConstraint(
+            "grant_duration_mode IN ('fixed_days','lifetime')",
+            name="ck_invite_campaign_versions_grant_duration_mode",
+        ),
+        CheckConstraint(
+            "child_grant_duration_mode IN ('fixed_days','lifetime')",
+            name="ck_invite_campaign_versions_child_grant_duration_mode",
+        ),
+        CheckConstraint(
+            "root_invite_expiry_mode IN ('relative','absolute','none')",
+            name="ck_invite_campaign_versions_root_expiry_mode",
+        ),
+        CheckConstraint(
+            "child_invite_expiry_mode IN ('relative','absolute','none')",
+            name="ck_invite_campaign_versions_child_expiry_mode",
+        ),
+        CheckConstraint(
+            "(grant_device_limit_override IS NULL OR grant_device_limit_override > 0) "
+            "AND (child_grant_device_limit_override IS NULL OR child_grant_device_limit_override > 0)",
+            name="ck_invite_campaign_versions_device_override_positive",
+        ),
         UniqueConstraint("campaign_id", "version", name="uq_invite_campaign_versions_campaign_version"),
     )
 
@@ -131,17 +152,46 @@ class InviteCampaignVersionModel(Base):
         nullable=True,
         index=True,
     )
+    grant_duration_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="fixed_days",
+        server_default="fixed_days",
+    )
     grant_duration_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    grant_device_limit_override: Mapped[int | None] = mapped_column(Integer, nullable=True)
     grant_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    root_invite_expiry_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="relative",
+        server_default="relative",
+    )
+    root_invite_expiry_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    root_invite_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     child_invite_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     child_invite_free_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     child_invite_expiry_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    child_invite_expiry_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="relative",
+        server_default="relative",
+    )
+    child_invite_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     child_grant_plan_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("subscription_plans.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
+    child_grant_duration_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="fixed_days",
+        server_default="fixed_days",
+    )
     child_grant_duration_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    child_grant_device_limit_override: Mapped[int | None] = mapped_column(Integer, nullable=True)
     child_grant_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     max_generation_depth: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     block_self_redemption: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
@@ -392,6 +442,8 @@ class InviteTreeClosureModel(Base):
         index=True,
     )
     depth: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", server_default="active")
+    reversed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

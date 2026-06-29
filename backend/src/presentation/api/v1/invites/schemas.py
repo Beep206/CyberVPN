@@ -1,10 +1,14 @@
 """Pydantic schemas for invite code endpoints."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+InviteAccessDurationMode = Literal["fixed_days", "lifetime"]
+InviteCodeExpiryMode = Literal["relative", "absolute", "none"]
+AdminInviteBatchExpiryMode = Literal["campaign_default", "relative", "absolute", "none"]
 
 
 class RedeemInviteRequest(BaseModel):
@@ -38,9 +42,14 @@ class InviteCodeResponse(BaseModel):
     code_prefix: str | None = None
     grant_mode: str | None = None
     grant_plan_id: UUID | None = None
+    grant_duration_mode: str | None = None
     grant_duration_days: int | None = None
+    grant_device_limit_override: int | None = None
     child_grant_plan_id: UUID | None = None
+    child_grant_duration_mode: str | None = None
     child_grant_duration_days: int | None = None
+    child_grant_device_limit_override: int | None = None
+    child_invite_expiry_mode: str | None = None
     child_policy: dict[str, Any] | None = None
 
 
@@ -87,9 +96,14 @@ class CustomerInviteBatchResponse(BaseModel):
     created_at: datetime
     grant_mode: str | None = None
     grant_plan_id: UUID | None = None
+    grant_duration_mode: str | None = None
     grant_duration_days: int | None = None
+    grant_device_limit_override: int | None = None
     child_grant_plan_id: UUID | None = None
+    child_grant_duration_mode: str | None = None
     child_grant_duration_days: int | None = None
+    child_grant_device_limit_override: int | None = None
+    child_invite_expiry_mode: str | None = None
     child_policy: dict[str, Any] | None = None
 
 
@@ -136,10 +150,17 @@ class AdminInviteCodeSummaryResponse(BaseModel):
     grant_mode: str | None = None
     grant_plan_id: UUID | None = None
     grant_plan_code: str | None = None
+    grant_duration_mode: str | None = None
     grant_duration_days: int | None = None
+    grant_device_limit_override: int | None = None
+    root_invite_expiry_mode: str | None = None
     child_grant_plan_id: UUID | None = None
     child_grant_plan_code: str | None = None
+    child_grant_duration_mode: str | None = None
     child_grant_duration_days: int | None = None
+    child_grant_device_limit_override: int | None = None
+    child_invite_count: int = 0
+    child_invite_expiry_mode: str | None = None
     child_policy_preview: dict[str, Any] | None = None
 
 
@@ -185,10 +206,15 @@ class AdminInviteBatchResponse(BaseModel):
     entitlement_snapshot: dict[str, Any]
     grant_mode: str | None = None
     grant_plan_id: UUID | None = None
+    grant_duration_mode: str | None = None
     grant_duration_days: int | None = None
+    grant_device_limit_override: int | None = None
     grant_snapshot: dict[str, Any] | None = None
     child_grant_plan_id: UUID | None = None
+    child_grant_duration_mode: str | None = None
     child_grant_duration_days: int | None = None
+    child_grant_device_limit_override: int | None = None
+    child_invite_expiry_mode: str | None = None
     child_policy: dict[str, Any] | None = None
     risk_policy: dict[str, Any] | None = None
     redemption_policy: dict[str, Any] | None = None
@@ -272,13 +298,22 @@ class AdminInviteCampaignCreateRequest(BaseModel):
     risk_policy_key: str | None = Field(None, max_length=120)
     grant_plan_id: UUID | None = None
     grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
-    grant_duration_days: int = Field(365, ge=1, le=3_660)
+    grant_duration_mode: InviteAccessDurationMode = "fixed_days"
+    grant_duration_days: int | None = Field(365, ge=1, le=3_660)
+    grant_device_limit_override: int | None = Field(None, ge=1, le=200)
+    root_invite_expiry_mode: InviteCodeExpiryMode = "relative"
+    root_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
+    root_invite_expires_at: datetime | None = None
     child_invite_count: int = Field(10, ge=0, le=100)
-    child_invite_free_days: int = Field(365, ge=1, le=3_660)
-    child_invite_expiry_days: int = Field(30, ge=1, le=3_660)
+    child_invite_free_days: int = Field(365, ge=0, le=3_660)
+    child_invite_expiry_mode: InviteCodeExpiryMode = "relative"
+    child_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
+    child_invite_expires_at: datetime | None = None
     child_grant_plan_id: UUID | None = None
     child_grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
+    child_grant_duration_mode: InviteAccessDurationMode = "fixed_days"
     child_grant_duration_days: int | None = Field(365, ge=1, le=3_660)
+    child_grant_device_limit_override: int | None = Field(None, ge=1, le=200)
     max_generation_depth: int = Field(5, ge=0, le=12)
     require_no_active_access: bool = True
     block_self_redemption: bool = True
@@ -286,8 +321,22 @@ class AdminInviteCampaignCreateRequest(BaseModel):
     export_policy: dict[str, Any] = Field(default_factory=lambda: {"raw_export_enabled": True})
     notification_policy: dict[str, Any] = Field(default_factory=dict)
     caps: dict[str, Any] = Field(default_factory=dict)
+    lifetime_campaign_acknowledgement: bool = False
     publish: bool = False
     reason: str | None = Field(None, max_length=240)
+
+    @model_validator(mode="after")
+    def _validate_lifetime_and_expiry_fields(self) -> "AdminInviteCampaignCreateRequest":
+        _normalize_duration_fields(self, "grant_duration_mode", "grant_duration_days")
+        _normalize_duration_fields(self, "child_grant_duration_mode", "child_grant_duration_days")
+        _normalize_expiry_fields(self, "root_invite_expiry_mode", "root_invite_expiry_days", "root_invite_expires_at")
+        _normalize_expiry_fields(
+            self,
+            "child_invite_expiry_mode",
+            "child_invite_expiry_days",
+            "child_invite_expires_at",
+        )
+        return self
 
 
 class AdminInviteCampaignVersionResponse(BaseModel):
@@ -299,13 +348,22 @@ class AdminInviteCampaignVersionResponse(BaseModel):
     status: str
     grant_mode: str
     grant_plan_id: UUID | None = None
+    grant_duration_mode: str = "fixed_days"
     grant_duration_days: int | None = None
+    grant_device_limit_override: int | None = None
+    root_invite_expiry_mode: str = "relative"
+    root_invite_expiry_days: int | None = None
+    root_invite_expires_at: datetime | None = None
     grant_snapshot: dict[str, Any]
     child_invite_count: int
     child_invite_free_days: int
-    child_invite_expiry_days: int
+    child_invite_expiry_days: int | None = None
+    child_invite_expiry_mode: str = "relative"
+    child_invite_expires_at: datetime | None = None
     child_grant_plan_id: UUID | None = None
+    child_grant_duration_mode: str = "fixed_days"
     child_grant_duration_days: int | None = None
+    child_grant_device_limit_override: int | None = None
     child_grant_snapshot: dict[str, Any]
     max_generation_depth: int
     block_self_redemption: bool
@@ -367,13 +425,22 @@ class AdminInviteCampaignActionRequest(BaseModel):
 class AdminInviteCampaignVersionCreateRequest(BaseModel):
     grant_plan_id: UUID | None = None
     grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
-    grant_duration_days: int = Field(365, ge=1, le=3_660)
+    grant_duration_mode: InviteAccessDurationMode = "fixed_days"
+    grant_duration_days: int | None = Field(365, ge=1, le=3_660)
+    grant_device_limit_override: int | None = Field(None, ge=1, le=200)
+    root_invite_expiry_mode: InviteCodeExpiryMode = "relative"
+    root_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
+    root_invite_expires_at: datetime | None = None
     child_invite_count: int = Field(10, ge=0, le=100)
-    child_invite_free_days: int = Field(365, ge=1, le=3_660)
-    child_invite_expiry_days: int = Field(30, ge=1, le=3_660)
+    child_invite_free_days: int = Field(365, ge=0, le=3_660)
+    child_invite_expiry_mode: InviteCodeExpiryMode = "relative"
+    child_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
+    child_invite_expires_at: datetime | None = None
     child_grant_plan_id: UUID | None = None
     child_grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
+    child_grant_duration_mode: InviteAccessDurationMode = "fixed_days"
     child_grant_duration_days: int | None = Field(365, ge=1, le=3_660)
+    child_grant_device_limit_override: int | None = Field(None, ge=1, le=200)
     max_generation_depth: int = Field(5, ge=0, le=12)
     require_no_active_access: bool = True
     block_self_redemption: bool = True
@@ -381,7 +448,22 @@ class AdminInviteCampaignVersionCreateRequest(BaseModel):
     risk_policy: dict[str, Any] = Field(default_factory=dict)
     export_policy: dict[str, Any] = Field(default_factory=lambda: {"raw_export_enabled": True})
     notification_policy: dict[str, Any] = Field(default_factory=dict)
+    caps: dict[str, Any] = Field(default_factory=dict)
+    lifetime_campaign_acknowledgement: bool = False
     reason: str | None = Field(None, max_length=240)
+
+    @model_validator(mode="after")
+    def _validate_lifetime_and_expiry_fields(self) -> "AdminInviteCampaignVersionCreateRequest":
+        _normalize_duration_fields(self, "grant_duration_mode", "grant_duration_days")
+        _normalize_duration_fields(self, "child_grant_duration_mode", "child_grant_duration_days")
+        _normalize_expiry_fields(self, "root_invite_expiry_mode", "root_invite_expiry_days", "root_invite_expires_at")
+        _normalize_expiry_fields(
+            self,
+            "child_invite_expiry_mode",
+            "child_invite_expiry_days",
+            "child_invite_expires_at",
+        )
+        return self
 
 
 class AdminInviteCampaignVersionValidationResponse(BaseModel):
@@ -398,9 +480,25 @@ class AdminInviteCampaignBatchCreateRequest(BaseModel):
     count: int = Field(1, ge=1, le=1_000)
     version_id: UUID | None = None
     idempotency_key: str | None = Field(None, min_length=3, max_length=200)
+    expiry_mode: AdminInviteBatchExpiryMode = "campaign_default"
     expires_at: datetime | None = None
-    expiry_days: int | None = Field(30, ge=1, le=3_660)
+    expiry_days: int | None = Field(None, ge=1, le=3_660)
     reason: str = Field(..., min_length=3, max_length=240)
+
+    @model_validator(mode="after")
+    def _validate_batch_expiry(self) -> "AdminInviteCampaignBatchCreateRequest":
+        if self.expiry_mode == "relative":
+            if self.expiry_days is None:
+                raise ValueError("expiry_days is required for relative invite expiry")
+            self.expires_at = None
+        elif self.expiry_mode == "absolute":
+            if self.expires_at is None:
+                raise ValueError("expires_at is required for absolute invite expiry")
+            self.expiry_days = None
+        elif self.expiry_mode in {"none", "campaign_default"}:
+            self.expiry_days = None
+            self.expires_at = None
+        return self
 
 
 class AdminInviteCampaignBatchCreateResponse(BaseModel):
@@ -437,6 +535,18 @@ class AdminInviteRedemptionResponse(BaseModel):
     created_at: datetime
 
 
+class AdminInviteRedemptionReverseRequest(BaseModel):
+    reason: str = Field(..., min_length=3, max_length=240)
+    cascade_mode: Literal["none", "unused_child_invites", "all_descendants"] = "unused_child_invites"
+    confirm_descendant_reversal: bool = False
+
+    @model_validator(mode="after")
+    def _validate_descendant_confirmation(self) -> "AdminInviteRedemptionReverseRequest":
+        if self.cascade_mode == "all_descendants" and not self.confirm_descendant_reversal:
+            raise ValueError("confirm_descendant_reversal is required for all_descendants")
+        return self
+
+
 class AdminInviteRedemptionListResponse(BaseModel):
     items: list[AdminInviteRedemptionResponse]
     total: int
@@ -454,9 +564,14 @@ class AdminInviteTreeNodeResponse(BaseModel):
     status: str
     grant_mode: str | None = None
     grant_plan_id: UUID | None = None
+    grant_duration_mode: str | None = None
+    grant_device_limit_override: int | None = None
     child_batch_id: UUID | None = None
     granted_plan_id: UUID | None = None
     granted_plan_code: str | None = None
+    grant_lifetime: bool = False
+    child_invite_count: int = 0
+    child_invite_expiry_mode: str | None = None
     child_count: int = 0
     created_at: datetime | None = None
     used_at: datetime | None = None
@@ -496,6 +611,32 @@ class AdminInviteTreeRootResponse(BaseModel):
     child_invites_issued_count: int = 0
     max_depth_reached: int = 0
     created_at: datetime | None = None
+
+
+def _normalize_duration_fields(model: BaseModel, mode_field: str, days_field: str) -> None:
+    mode = getattr(model, mode_field)
+    days = getattr(model, days_field)
+    if mode == "lifetime":
+        setattr(model, days_field, None)
+        return
+    if days is None:
+        raise ValueError(f"{days_field} is required for fixed_days duration")
+
+
+def _normalize_expiry_fields(model: BaseModel, mode_field: str, days_field: str, expires_field: str) -> None:
+    mode = getattr(model, mode_field)
+    if mode == "none":
+        setattr(model, days_field, None)
+        setattr(model, expires_field, None)
+        return
+    if mode == "absolute":
+        if getattr(model, expires_field) is None:
+            raise ValueError(f"{expires_field} is required for absolute invite expiry")
+        setattr(model, days_field, None)
+        return
+    if getattr(model, days_field) is None:
+        raise ValueError(f"{days_field} is required for relative invite expiry")
+    setattr(model, expires_field, None)
 
 
 class AdminInviteTreeRootListResponse(BaseModel):

@@ -125,10 +125,27 @@ class InviteBatchModel(Base):
         CheckConstraint("requested_count > 0", name="ck_invite_batches_requested_count_positive"),
         CheckConstraint("issued_count >= 0", name="ck_invite_batches_issued_count_non_negative"),
         CheckConstraint("issued_count <= requested_count", name="ck_invite_batches_issued_lte_requested"),
-        CheckConstraint("friend_days > 0", name="ck_invite_batches_friend_days_positive"),
+        CheckConstraint("friend_days >= 0", name="ck_invite_batches_friend_days_non_negative"),
         CheckConstraint(
             "expiry_mode IN ('none', 'relative', 'absolute')",
             name="ck_invite_batches_expiry_mode",
+        ),
+        CheckConstraint(
+            "grant_duration_mode IN ('fixed_days','lifetime')",
+            name="ck_invite_batches_grant_duration_mode",
+        ),
+        CheckConstraint(
+            "child_grant_duration_mode IN ('fixed_days','lifetime')",
+            name="ck_invite_batches_child_grant_duration_mode",
+        ),
+        CheckConstraint(
+            "child_invite_expiry_mode IN ('relative','absolute','none')",
+            name="ck_invite_batches_child_expiry_mode",
+        ),
+        CheckConstraint(
+            "(grant_device_limit_override IS NULL OR grant_device_limit_override > 0) "
+            "AND (child_grant_device_limit_override IS NULL OR child_grant_device_limit_override > 0)",
+            name="ck_invite_batches_device_override_positive",
         ),
         UniqueConstraint("idempotency_key", name="uq_invite_batches_idempotency_key"),
     )
@@ -228,14 +245,34 @@ class InviteBatchModel(Base):
         nullable=True,
         index=True,
     )
+    grant_duration_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="fixed_days",
+        server_default="fixed_days",
+    )
     grant_duration_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    grant_device_limit_override: Mapped[int | None] = mapped_column(Integer, nullable=True)
     grant_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     child_grant_plan_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("subscription_plans.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
+    child_grant_duration_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="fixed_days",
+        server_default="fixed_days",
+    )
     child_grant_duration_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    child_grant_device_limit_override: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    child_invite_expiry_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="relative",
+        server_default="relative",
+    )
     child_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     risk_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     redemption_policy: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)

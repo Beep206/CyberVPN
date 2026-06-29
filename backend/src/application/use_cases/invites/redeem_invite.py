@@ -15,6 +15,18 @@ from src.application.services.entitlements_service import EntitlementsService
 from src.application.use_cases.growth_codes.hashing import build_growth_code_prefix, hash_growth_code
 from src.application.use_cases.growth_codes.registry import GrowthCodeRegistryService
 from src.application.use_cases.growth_risk.runtime_guard import evaluate_growth_runtime_risk
+from src.application.use_cases.invites.campaigns import validate_invite_campaign_issue_caps
+from src.application.use_cases.invites.lifetime_policy import (
+    INVITE_DURATION_LIFETIME,
+    INVITE_EXPIRY_RELATIVE,
+    apply_invite_entitlement_overrides,
+    display_days_for_duration,
+    is_lifetime_duration,
+    normalize_invite_duration_mode,
+    normalize_invite_expiry_mode,
+    positive_int_or_none,
+    resolve_invite_expiry,
+)
 from src.application.use_cases.service_access.entitlements import (
     ActivateEntitlementGrantUseCase,
     CreateEntitlementGrantUseCase,
@@ -36,6 +48,8 @@ from src.infrastructure.database.models.invite_campaign_model import (
     InviteTreeEdgeModel,
 )
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.risk_subject_model import RiskSubjectModel
 from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
@@ -44,7 +58,10 @@ from src.infrastructure.monitoring.instrumentation.growth_codes import (
     log_growth_code_event,
     observe_growth_code_redemption,
     observe_growth_code_redemption_duration,
+    observe_invite_device_override_used,
     observe_invite_redeemed,
+    observe_lifetime_child_invites_issued,
+    observe_lifetime_invite_redemption,
 )
 from src.presentation.dependencies.auth_realms import RealmResolution
 
@@ -60,6 +77,12 @@ class RedeemedInviteResult:
     invite_redemption: InviteRedemptionModel | None = None
     child_batch: InviteBatchModel | None = None
     child_invites: tuple[InviteCodeModel, ...] = ()
+
+
+@dataclass(frozen=True)
+class InviteRedemptionRuntimeContext:
+    client_ip_hash: str | None = None
+    device_key_hash: str | None = None
 
 
 class RedeemInviteUseCase:
@@ -88,6 +111,7 @@ class RedeemInviteUseCase:
         user_id: UUID,
         current_realm: RealmResolution,
         source_surface: str = "web",
+        runtime_context: InviteRedemptionRuntimeContext | None = None,
     ) -> RedeemedInviteResult:
         """Redeem *code* on behalf of *user_id*.
 
@@ -117,7 +141,13 @@ class RedeemInviteUseCase:
             )
             try:
                 await self._validate_invite_status(invite)
-                await self._validate_campaign_policy(invite=invite, user_id=user_id, source_surface=source_surface)
+                await self._validate_campaign_policy(
+                    invite=invite,
+                    user_id=user_id,
+                    auth_realm_id=UUID(current_realm.realm_id),
+                    source_surface=source_surface,
+                    runtime_context=runtime_context,
+                )
             except ValueError as exc:
                 await self._record_blocked_redemption(
                     invite=invite,
@@ -163,6 +193,7 @@ class RedeemInviteUseCase:
                     user_id=user_id,
                     current_realm=current_realm,
                     source_surface=source_surface,
+                    runtime_context=runtime_context,
                 )
                 observe_growth_code_redemption_duration(
                     code_type="invite",
@@ -240,11 +271,24 @@ class RedeemInviteUseCase:
             },
             enforce=True,
         )
+        try:
+            await self._preflight_child_issue_caps(invite=invite, redeemer_user_id=user_id)
+        except ValueError as exc:
+            await self._record_blocked_redemption(
+                invite=invite,
+                redeemer_user_id=user_id,
+                source_surface=source_surface,
+                reason=str(exc),
+            )
+            observe_growth_code_redemption_duration(
+                code_type="invite",
+                surface=CUSTOMER_REDEEM_SURFACE,
+                result="failure",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise
 
-        grant_snapshot, access_days = await self._build_grant_snapshot(invite)
-        now = datetime.now(UTC)
-        access_expires_at = now + timedelta(days=access_days)
-
+        grant_snapshot, access_expires_at, access_days = await self._build_grant_snapshot(invite)
         shadow_code = await self._registry.ensure_shadow_invite(invite)
         service_identity = await self._service_identities.execute(
             customer_account_id=user_id,
@@ -278,6 +322,7 @@ class RedeemInviteUseCase:
             entitlement_grant_id=activated.id,
             source_surface=source_surface,
             grant_snapshot=dict(activated.grant_snapshot or grant_snapshot),
+            runtime_context=runtime_context,
         )
         child_batch, child_invites = await self._ensure_child_invites_after_redemption(
             invite=redeemed_invite,
@@ -324,6 +369,20 @@ class RedeemInviteUseCase:
             surface=CUSTOMER_REDEEM_SURFACE,
             result="success",
         )
+        if grant_snapshot.get("duration_mode") == INVITE_DURATION_LIFETIME or grant_snapshot.get("lifetime") is True:
+            observe_lifetime_invite_redemption(
+                plan_code=_string_or_none(grant_snapshot.get("plan_code")),
+                source_type=str(invite.source),
+                surface=CUSTOMER_REDEEM_SURFACE,
+                result="success",
+            )
+        if grant_snapshot.get("device_limit_override") is not None:
+            observe_invite_device_override_used(
+                plan_code=_string_or_none(grant_snapshot.get("plan_code")),
+                duration_mode=_string_or_none(grant_snapshot.get("duration_mode")),
+                surface=CUSTOMER_REDEEM_SURFACE,
+                result="success",
+            )
         observe_growth_code_redemption_duration(
             code_type="invite",
             surface=CUSTOMER_REDEEM_SURFACE,
@@ -377,9 +436,13 @@ class RedeemInviteUseCase:
         user_id: UUID,
         current_realm: RealmResolution,
         source_surface: str,
+        runtime_context: InviteRedemptionRuntimeContext | None,
     ) -> RedeemedInviteResult:
         shadow_code = await self._registry.ensure_shadow_invite(invite)
-        grant_snapshot, access_days = await self._build_grant_snapshot(invite)
+        grant_snapshot, access_expires_at, _access_days = await self._build_grant_snapshot(
+            invite,
+            granted_at=_coerce_utc(invite.used_at) or datetime.now(UTC),
+        )
         service_identity = await self._service_identities.execute(
             customer_account_id=user_id,
             auth_realm_id=UUID(current_realm.realm_id),
@@ -390,7 +453,7 @@ class RedeemInviteUseCase:
             service_identity_id=service_identity.service_identity.id,
             manual_source_key=f"invite:{invite.id}:redeemer:{user_id}",
             grant_snapshot=grant_snapshot,
-            expires_at=(_coerce_utc(invite.used_at) or datetime.now(UTC)) + timedelta(days=access_days),
+            expires_at=access_expires_at,
         )
         activated = await self._activate_entitlement.execute(
             entitlement_grant_id=grant.entitlement_grant.id,
@@ -408,6 +471,7 @@ class RedeemInviteUseCase:
             entitlement_grant_id=activated.id,
             source_surface=source_surface,
             grant_snapshot=dict(activated.grant_snapshot or grant_snapshot),
+            runtime_context=runtime_context,
         )
         child_batch, child_invites = await self._ensure_child_invites_after_redemption(
             invite=invite,
@@ -438,7 +502,15 @@ class RedeemInviteUseCase:
         if invite.status not in {"issued", "active"}:
             raise ValueError("Invite code is not redeemable")
 
-    async def _validate_campaign_policy(self, *, invite: InviteCodeModel, user_id: UUID, source_surface: str) -> None:
+    async def _validate_campaign_policy(
+        self,
+        *,
+        invite: InviteCodeModel,
+        user_id: UUID,
+        auth_realm_id: UUID,
+        source_surface: str,
+        runtime_context: InviteRedemptionRuntimeContext | None,
+    ) -> None:
         version: InviteCampaignVersionModel | None = None
         campaign: InviteCampaignModel | None = None
         if invite.campaign_version_id is not None:
@@ -483,10 +555,118 @@ class RedeemInviteUseCase:
             )
             if int(existing.scalar_one()) >= per_user_redeem_cap:
                 raise ValueError("Invite campaign redemption cap exceeded")
+        await self._validate_lifetime_redemption_controls(
+            invite=invite,
+            user_id=user_id,
+            auth_realm_id=auth_realm_id,
+            runtime_context=runtime_context,
+        )
 
-    async def _build_grant_snapshot(self, invite: InviteCodeModel) -> tuple[dict, int]:
+    async def _validate_lifetime_redemption_controls(
+        self,
+        *,
+        invite: InviteCodeModel,
+        user_id: UUID,
+        auth_realm_id: UUID,
+        runtime_context: InviteRedemptionRuntimeContext | None,
+    ) -> None:
+        if invite.campaign_id is None:
+            return
+        risk_policy = dict(invite.risk_policy or {})
+        root_lifetime = is_lifetime_duration(invite.grant_duration_mode) or bool(
+            (invite.grant_snapshot or {}).get("lifetime")
+        )
+        child_lifetime = is_lifetime_duration(invite.child_grant_duration_mode)
+        no_expiry = invite.expires_at is None or invite.child_invite_expiry_mode == "none"
+        if not (root_lifetime or child_lifetime or no_expiry):
+            return
+
+        if not _policy_bool(invite.redemption_policy, "require_no_active_access", default=True):
+            raise ValueError("Lifetime invite campaigns require no-active-access redemption policy")
+        if not _policy_bool(invite.redemption_policy, "block_self_redemption", default=True):
+            raise ValueError("Lifetime invite campaigns require self-redemption blocking")
+        if _positive_int(invite.redemption_policy.get("per_user_redeem_cap"), default=0) != 1:
+            raise ValueError("Lifetime invite campaigns require per-user redemption cap of 1")
+
+        max_redemptions_per_device = _optional_positive_int(risk_policy.get("max_redemptions_per_device"))
+        max_redemptions_per_ip_window = _optional_positive_int(risk_policy.get("max_redemptions_per_ip_window"))
+        velocity_window_hours = _optional_positive_int(risk_policy.get("velocity_window_hours"))
+        if max_redemptions_per_device is None or max_redemptions_per_device > 1:
+            raise ValueError("Lifetime invite campaigns require device redemption cap")
+        if max_redemptions_per_ip_window is None or max_redemptions_per_ip_window > 3:
+            raise ValueError("Lifetime invite campaigns require IP window redemption cap")
+        if velocity_window_hours is None or velocity_window_hours > 24:
+            raise ValueError("Lifetime invite campaigns require velocity window <= 24 hours")
+        if risk_policy.get("deny_disposable_email") is not True:
+            raise ValueError("Lifetime invite campaigns require disposable email deny policy")
+        if risk_policy.get("deny_known_abuse_subject") is not True:
+            raise ValueError("Lifetime invite campaigns require known-abuse subject deny policy")
+
+        user = await self._session.get(MobileUserModel, user_id)
+        if user is not None and _is_disposable_email_domain(user.email):
+            raise ValueError("Invite code cannot be redeemed by disposable email accounts")
+
+        risk_subject = await self._session.execute(
+            select(RiskSubjectModel).where(
+                RiskSubjectModel.principal_class == "customer",
+                RiskSubjectModel.principal_subject == str(user_id),
+                RiskSubjectModel.auth_realm_id == auth_realm_id,
+            )
+        )
+        subject = risk_subject.scalars().first()
+        if subject is not None and (
+            subject.status in {"blocked", "denied", "suspended"}
+            or subject.risk_level in {"high", "critical"}
+        ):
+            raise ValueError("Invite code cannot be redeemed by known-abuse subjects")
+
+        if runtime_context is None or not runtime_context.device_key_hash:
+            raise ValueError("Lifetime invite redemption requires device context")
+        device_redeemed = await self._session.execute(
+            select(func.count())
+            .select_from(InviteRedemptionModel)
+            .where(
+                InviteRedemptionModel.campaign_id == invite.campaign_id,
+                InviteRedemptionModel.status == "redeemed",
+                InviteRedemptionModel.risk_decision["device_key_hash"].as_string()
+                == runtime_context.device_key_hash,
+            )
+        )
+        if int(device_redeemed.scalar_one()) >= max_redemptions_per_device:
+            raise ValueError("Invite campaign device redemption cap exceeded")
+
+        if not runtime_context.client_ip_hash:
+            raise ValueError("Lifetime invite redemption requires client IP context")
+        window_start = datetime.now(UTC) - timedelta(hours=velocity_window_hours)
+        ip_redeemed = await self._session.execute(
+            select(func.count())
+            .select_from(InviteRedemptionModel)
+            .where(
+                InviteRedemptionModel.campaign_id == invite.campaign_id,
+                InviteRedemptionModel.status == "redeemed",
+                InviteRedemptionModel.created_at >= window_start,
+                InviteRedemptionModel.risk_decision["client_ip_hash"].as_string()
+                == runtime_context.client_ip_hash,
+            )
+        )
+        if int(ip_redeemed.scalar_one()) >= max_redemptions_per_ip_window:
+            raise ValueError("Invite campaign IP window redemption cap exceeded")
+
+    async def _build_grant_snapshot(
+        self,
+        invite: InviteCodeModel,
+        *,
+        granted_at: datetime | None = None,
+    ) -> tuple[dict, datetime | None, int]:
         mode = str(invite.grant_mode or invite.entitlement_mode or "legacy_invite_access")
-        duration_days = _positive_int(invite.grant_duration_days, default=_positive_int(invite.free_days, default=1))
+        duration_mode = normalize_invite_duration_mode(invite.grant_duration_mode)
+        duration_days = display_days_for_duration(
+            duration_mode,
+            invite.grant_duration_days if invite.grant_duration_days is not None else invite.free_days,
+        )
+        access_expires_at = None if duration_mode == INVITE_DURATION_LIFETIME else (
+            granted_at or datetime.now(UTC)
+        ) + timedelta(days=duration_days)
         existing_snapshot = dict(invite.grant_snapshot or {})
         if not existing_snapshot:
             existing_snapshot = dict(invite.entitlement_snapshot or {})
@@ -496,10 +676,17 @@ class RedeemInviteUseCase:
                 raise ValueError("Invite custom entitlement snapshot is missing")
             snapshot = _normalize_grant_snapshot(
                 grant_snapshot=existing_snapshot,
-                expires_at=datetime.now(UTC) + timedelta(days=duration_days),
+                expires_at=access_expires_at,
             )
             snapshot["source_type"] = "invite"
-            return snapshot, duration_days
+            snapshot = apply_invite_entitlement_overrides(
+                snapshot=snapshot,
+                duration_mode=duration_mode,
+                duration_days=None if duration_mode == INVITE_DURATION_LIFETIME else duration_days,
+                expires_at=access_expires_at,
+                device_limit_override=invite.grant_device_limit_override,
+            )
+            return snapshot, access_expires_at, duration_days
 
         grant_plan_id = invite.grant_plan_id or invite.plan_id
         if mode == "plan_snapshot":
@@ -508,21 +695,35 @@ class RedeemInviteUseCase:
             plan = await self._plans.get_by_id(grant_plan_id)
             if plan is None:
                 raise ValueError("Invite grant plan was not found")
-            duration_days = _positive_int(invite.grant_duration_days, default=int(plan.duration_days))
-            expires_at = datetime.now(UTC) + timedelta(days=duration_days)
+            if not is_lifetime_duration(duration_mode):
+                duration_days = _positive_int(invite.grant_duration_days, default=int(plan.duration_days))
+                access_expires_at = (granted_at or datetime.now(UTC)) + timedelta(days=duration_days)
             if existing_snapshot and existing_snapshot.get("plan_code"):
                 snapshot = _normalize_grant_snapshot(
                     grant_snapshot=existing_snapshot,
-                    expires_at=expires_at,
+                    expires_at=access_expires_at,
                 )
             else:
-                snapshot = EntitlementsService.build_snapshot(plan=plan, expires_at=expires_at, status="active")
-            snapshot["period_days"] = duration_days
+                snapshot = EntitlementsService.build_snapshot(plan=plan, expires_at=access_expires_at, status="active")
+            snapshot = apply_invite_entitlement_overrides(
+                snapshot=snapshot,
+                duration_mode=duration_mode,
+                duration_days=None if duration_mode == INVITE_DURATION_LIFETIME else duration_days,
+                expires_at=access_expires_at,
+                device_limit_override=invite.grant_device_limit_override,
+            )
             snapshot["source_type"] = "invite"
             snapshot["entitlement_profile_key"] = invite.entitlement_profile_key or f"{plan.plan_code}_invite_v7"
-            return snapshot, duration_days
+            return snapshot, access_expires_at, duration_days
 
-        return _build_invite_entitlement_snapshot(duration_days), duration_days
+        snapshot = apply_invite_entitlement_overrides(
+            snapshot=_build_invite_entitlement_snapshot(duration_days),
+            duration_mode=duration_mode,
+            duration_days=None if duration_mode == INVITE_DURATION_LIFETIME else duration_days,
+            expires_at=access_expires_at,
+            device_limit_override=invite.grant_device_limit_override,
+        )
+        return snapshot, access_expires_at, duration_days
 
     async def _ensure_invite_redemption(
         self,
@@ -532,6 +733,7 @@ class RedeemInviteUseCase:
         entitlement_grant_id: UUID,
         source_surface: str,
         grant_snapshot: dict,
+        runtime_context: InviteRedemptionRuntimeContext | None,
     ) -> InviteRedemptionModel:
         idempotency_key = f"invite:{invite.id}:redeemer:{redeemer_user_id}"
         existing = await self._session.execute(
@@ -543,6 +745,11 @@ class RedeemInviteUseCase:
                 item.entitlement_grant_id = entitlement_grant_id
             if not item.grant_snapshot:
                 item.grant_snapshot = dict(grant_snapshot)
+            if runtime_context is not None:
+                item.risk_decision = {
+                    **dict(item.risk_decision or {}),
+                    **_runtime_context_payload(runtime_context),
+                }
             await self._session.flush()
             return item
 
@@ -560,19 +767,55 @@ class RedeemInviteUseCase:
             entitlement_grant_id=entitlement_grant_id,
             granted_plan_id=invite.grant_plan_id or invite.plan_id,
             granted_plan_code=_string_or_none(grant_snapshot.get("plan_code")),
-            granted_duration_days=_positive_int(
+            granted_duration_days=None
+            if grant_snapshot.get("duration_mode") == INVITE_DURATION_LIFETIME
+            else _positive_int(
                 grant_snapshot.get("period_days"),
                 default=_positive_int(invite.grant_duration_days, default=invite.free_days),
             ),
             idempotency_key=idempotency_key,
             status="redeemed",
             grant_snapshot=dict(grant_snapshot),
-            risk_decision={"decision": "allow", "source": "redeem_invite_use_case"},
+            risk_decision={
+                "decision": "allow",
+                "source": "redeem_invite_use_case",
+                **_runtime_context_payload(runtime_context),
+            },
             redeemed_at=datetime.now(UTC),
         )
         self._session.add(model)
         await self._session.flush()
         return model
+
+    async def _preflight_child_issue_caps(self, *, invite: InviteCodeModel, redeemer_user_id: UUID) -> None:
+        policy = await self._resolve_child_policy(invite)
+        count = _positive_int(policy.get("count"), default=0)
+        max_depth = _positive_int(policy.get("max_generation_depth"), default=0)
+        parent_depth = int(invite.generation_depth or 0)
+        if count <= 0 or (max_depth > 0 and parent_depth >= max_depth) or invite.campaign_id is None:
+            return
+
+        idempotency_key = (
+            f"invite-child-batch:{invite.id}:redeemer:{redeemer_user_id}:"
+            f"campaign:{invite.campaign_id or 'legacy'}:depth:{parent_depth + 1}"
+        )
+        existing_batch_result = await self._session.execute(
+            select(InviteBatchModel.id).where(InviteBatchModel.idempotency_key == idempotency_key)
+        )
+        if existing_batch_result.scalar_one_or_none() is not None:
+            return
+
+        campaign = await self._session.get(InviteCampaignModel, invite.campaign_id)
+        if campaign is None:
+            return
+        await _pg_advisory_xact_lock(self._session, f"invite-campaign-issue:{campaign.id}:global")
+        await _pg_advisory_xact_lock(self._session, f"invite-campaign-issue:{campaign.id}:{redeemer_user_id}")
+        await validate_invite_campaign_issue_caps(
+            self._session,
+            campaign=campaign,
+            owner_user_id=redeemer_user_id,
+            requested_count=count,
+        )
 
     async def _ensure_child_invites_after_redemption(
         self,
@@ -605,10 +848,24 @@ class RedeemInviteUseCase:
             )
             return existing_batch, list(existing_codes.scalars().all())
 
-        expiry_days = _positive_int(policy.get("expiry_days"), default=30)
-        expires_at = datetime.now(UTC) + timedelta(days=expiry_days)
+        expiry_mode = normalize_invite_expiry_mode(
+            str(policy.get("expiry_mode") or invite.child_invite_expiry_mode or INVITE_EXPIRY_RELATIVE)
+        )
+        expiry = resolve_invite_expiry(
+            expiry_mode=expiry_mode,
+            expiry_days=policy.get("expiry_days"),
+            expires_at=_parse_datetime(policy.get("expires_at")),
+            now=datetime.now(UTC),
+        )
         root_invite_code_id = invite.root_invite_code_id or invite.id
-        grant_snapshot, access_days, child_plan_id = await self._build_child_grant_snapshot(
+        (
+            grant_snapshot,
+            _access_expires_at,
+            access_days,
+            child_plan_id,
+            child_duration_mode,
+            child_device_limit_override,
+        ) = await self._build_child_grant_snapshot(
             invite=invite,
             policy=policy,
         )
@@ -627,19 +884,24 @@ class RedeemInviteUseCase:
             requested_count=count,
             issued_count=count,
             friend_days=access_days,
-            expiry_mode="relative",
-            expiry_days=expiry_days,
-            expires_at=expires_at,
+            expiry_mode=expiry.expiry_mode,
+            expiry_days=expiry.expiry_days,
+            expires_at=expiry.expires_at,
             entitlement_mode=invite.grant_mode or invite.entitlement_mode or "legacy_invite_access",
             entitlement_profile_key=invite.entitlement_profile_key,
             plan_id=child_plan_id or invite.grant_plan_id or invite.plan_id,
             entitlement_snapshot=dict(grant_snapshot),
             grant_mode=invite.grant_mode or "legacy_invite_access",
             grant_plan_id=child_plan_id or invite.grant_plan_id or invite.plan_id,
-            grant_duration_days=access_days,
+            grant_duration_mode=child_duration_mode,
+            grant_duration_days=None if child_duration_mode == INVITE_DURATION_LIFETIME else access_days,
+            grant_device_limit_override=child_device_limit_override,
             grant_snapshot=dict(grant_snapshot),
             child_grant_plan_id=child_plan_id,
-            child_grant_duration_days=access_days,
+            child_grant_duration_mode=child_duration_mode,
+            child_grant_duration_days=None if child_duration_mode == INVITE_DURATION_LIFETIME else access_days,
+            child_grant_device_limit_override=child_device_limit_override,
+            child_invite_expiry_mode=expiry.expiry_mode,
             child_policy=dict(invite.child_policy or {}),
             risk_policy=dict(invite.risk_policy or {}),
             redemption_policy=dict(invite.redemption_policy or {}),
@@ -676,21 +938,32 @@ class RedeemInviteUseCase:
                     entitlement_snapshot=dict(grant_snapshot),
                     grant_mode=invite.grant_mode or "legacy_invite_access",
                     grant_plan_id=child_plan_id or invite.grant_plan_id or invite.plan_id,
-                    grant_duration_days=access_days,
+                    grant_duration_mode=child_duration_mode,
+                    grant_duration_days=None if child_duration_mode == INVITE_DURATION_LIFETIME else access_days,
+                    grant_device_limit_override=child_device_limit_override,
                     grant_snapshot=dict(grant_snapshot),
                     child_grant_plan_id=child_plan_id,
-                    child_grant_duration_days=access_days,
+                    child_grant_duration_mode=child_duration_mode,
+                    child_grant_duration_days=None if child_duration_mode == INVITE_DURATION_LIFETIME else access_days,
+                    child_grant_device_limit_override=child_device_limit_override,
+                    child_invite_expiry_mode=expiry.expiry_mode,
                     child_policy=dict(invite.child_policy or {}),
                     risk_policy=dict(invite.risk_policy or {}),
                     redemption_policy=dict(invite.redemption_policy or {}),
                     issue_policy={"source_surface": source_surface, "source_redemption_id": str(invite_redemption.id)},
                     source="child_after_redemption",
                     source_payment_id=None,
-                    expires_at=expires_at,
+                    expires_at=expiry.expires_at,
                 )
             )
         self._session.add_all(children)
         await self._session.flush()
+        if child_duration_mode == INVITE_DURATION_LIFETIME:
+            observe_lifetime_child_invites_issued(
+                plan_code=_string_or_none(grant_snapshot.get("plan_code")),
+                expiry_mode=expiry.expiry_mode,
+                result="success",
+            )
         return batch, children
 
     async def _build_child_grant_snapshot(
@@ -698,28 +971,50 @@ class RedeemInviteUseCase:
         *,
         invite: InviteCodeModel,
         policy: dict,
-    ) -> tuple[dict, int, UUID | None]:
+    ) -> tuple[dict, datetime | None, int, UUID | None, str, int | None]:
         child_plan_id = _uuid_or_none(policy.get("grant_plan_id")) or invite.child_grant_plan_id
-        duration_days = _positive_int(
-            policy.get("grant_duration_days"),
-            default=_positive_int(invite.child_grant_duration_days, default=_positive_int(invite.free_days, default=1)),
+        duration_mode = normalize_invite_duration_mode(
+            str(policy.get("grant_duration_mode") or invite.child_grant_duration_mode or invite.grant_duration_mode)
         )
+        duration_days = display_days_for_duration(
+            duration_mode,
+            policy.get("grant_duration_days")
+            if policy.get("grant_duration_days") is not None
+            else invite.child_grant_duration_days,
+        )
+        device_limit_override = positive_int_or_none(policy.get("grant_device_limit_override"))
+        if device_limit_override is None:
+            device_limit_override = invite.child_grant_device_limit_override or invite.grant_device_limit_override
+        granted_at = datetime.now(UTC)
+        expires_at = None if duration_mode == INVITE_DURATION_LIFETIME else granted_at + timedelta(days=duration_days)
         existing_snapshot = dict(policy.get("grant_snapshot") or {})
         if child_plan_id is not None:
             plan = await self._plans.get_by_id(child_plan_id)
             if plan is None:
                 raise ValueError("Invite child grant plan was not found")
-            expires_at = datetime.now(UTC) + timedelta(days=duration_days)
             if existing_snapshot and existing_snapshot.get("plan_code"):
                 snapshot = _normalize_grant_snapshot(grant_snapshot=existing_snapshot, expires_at=expires_at)
             else:
                 snapshot = EntitlementsService.build_snapshot(plan=plan, expires_at=expires_at, status="active")
-            snapshot["period_days"] = duration_days
+            snapshot = apply_invite_entitlement_overrides(
+                snapshot=snapshot,
+                duration_mode=duration_mode,
+                duration_days=None if duration_mode == INVITE_DURATION_LIFETIME else duration_days,
+                expires_at=expires_at,
+                device_limit_override=device_limit_override,
+            )
             snapshot["source_type"] = "invite_child"
-            return snapshot, duration_days, child_plan_id
+            return snapshot, expires_at, duration_days, child_plan_id, duration_mode, device_limit_override
 
-        parent_snapshot, parent_duration = await self._build_grant_snapshot(invite)
-        return parent_snapshot, duration_days or parent_duration, invite.grant_plan_id or invite.plan_id
+        parent_snapshot, parent_expires_at, parent_duration = await self._build_grant_snapshot(invite)
+        return (
+            parent_snapshot,
+            parent_expires_at,
+            duration_days or parent_duration,
+            invite.grant_plan_id or invite.plan_id,
+            duration_mode,
+            device_limit_override,
+        )
 
     async def _resolve_child_policy(self, invite: InviteCodeModel) -> dict:
         policy = dict(invite.child_policy or {})
@@ -730,7 +1025,12 @@ class RedeemInviteUseCase:
                 policy = {**version_policy, **policy}
                 policy.setdefault("count", int(version.child_invite_count or 0))
                 policy.setdefault("friend_days", int(version.child_invite_free_days or 0))
+                policy.setdefault("grant_duration_mode", version.child_grant_duration_mode)
+                policy.setdefault("grant_device_limit_override", version.child_grant_device_limit_override)
+                policy.setdefault("expiry_mode", version.child_invite_expiry_mode)
                 policy.setdefault("expiry_days", int(version.child_invite_expiry_days or 0))
+                if version.child_invite_expires_at is not None:
+                    policy.setdefault("expires_at", version.child_invite_expires_at.isoformat())
                 policy.setdefault("max_generation_depth", int(version.max_generation_depth or 0))
         return policy
 
@@ -954,6 +1254,21 @@ def _coerce_utc(value: datetime | None) -> datetime | None:
     return value.astimezone(UTC)
 
 
+def _parse_datetime(value: object) -> datetime | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, datetime):
+        return _coerce_utc(value)
+    raw = str(value).strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00") if raw.endswith("Z") else raw)
+    except ValueError:
+        return None
+    return _coerce_utc(parsed)
+
+
 def _safe_invite_code_ref(code: str) -> dict[str, object]:
     normalized = code.strip()
     return {
@@ -971,6 +1286,44 @@ def _positive_int(value: object, *, default: int) -> int:
     except (TypeError, ValueError):
         return default
     return parsed if parsed > 0 else default
+
+
+def _optional_positive_int(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _runtime_context_payload(runtime_context: InviteRedemptionRuntimeContext | None) -> dict[str, str]:
+    if runtime_context is None:
+        return {}
+    payload: dict[str, str] = {}
+    if runtime_context.client_ip_hash:
+        payload["client_ip_hash"] = runtime_context.client_ip_hash
+    if runtime_context.device_key_hash:
+        payload["device_key_hash"] = runtime_context.device_key_hash
+    return payload
+
+
+def _is_disposable_email_domain(email: str | None) -> bool:
+    if not email or "@" not in email:
+        return False
+    domain = email.rsplit("@", 1)[-1].strip().lower()
+    return domain in {
+        "10minutemail.com",
+        "20minutemail.com",
+        "guerrillamail.com",
+        "mailinator.com",
+        "sharklasers.com",
+        "temp-mail.org",
+        "tempmail.com",
+        "throwawaymail.com",
+        "yopmail.com",
+    }
 
 
 def _string_list(value: object) -> list[str]:

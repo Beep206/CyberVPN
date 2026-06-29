@@ -17570,16 +17570,26 @@ export interface components {
             grant_mode?: string | null;
             /** Grant Plan Id */
             grant_plan_id?: string | null;
+            /** Grant Duration Mode */
+            grant_duration_mode?: string | null;
             /** Grant Duration Days */
             grant_duration_days?: number | null;
+            /** Grant Device Limit Override */
+            grant_device_limit_override?: number | null;
             /** Grant Snapshot */
             grant_snapshot?: {
                 [key: string]: unknown;
             } | null;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
+            /** Child Grant Duration Mode */
+            child_grant_duration_mode?: string | null;
             /** Child Grant Duration Days */
             child_grant_duration_days?: number | null;
+            /** Child Grant Device Limit Override */
+            child_grant_device_limit_override?: number | null;
+            /** Child Invite Expiry Mode */
+            child_invite_expiry_mode?: string | null;
             /** Child Policy */
             child_policy?: {
                 [key: string]: unknown;
@@ -17740,16 +17750,26 @@ export interface components {
             grant_mode?: string | null;
             /** Grant Plan Id */
             grant_plan_id?: string | null;
+            /** Grant Duration Mode */
+            grant_duration_mode?: string | null;
             /** Grant Duration Days */
             grant_duration_days?: number | null;
+            /** Grant Device Limit Override */
+            grant_device_limit_override?: number | null;
             /** Grant Snapshot */
             grant_snapshot?: {
                 [key: string]: unknown;
             } | null;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
+            /** Child Grant Duration Mode */
+            child_grant_duration_mode?: string | null;
             /** Child Grant Duration Days */
             child_grant_duration_days?: number | null;
+            /** Child Grant Device Limit Override */
+            child_grant_device_limit_override?: number | null;
+            /** Child Invite Expiry Mode */
+            child_invite_expiry_mode?: string | null;
             /** Child Policy */
             child_policy?: {
                 [key: string]: unknown;
@@ -17807,13 +17827,16 @@ export interface components {
             version_id?: string | null;
             /** Idempotency Key */
             idempotency_key?: string | null;
+            /**
+             * Expiry Mode
+             * @default campaign_default
+             * @enum {string}
+             */
+            expiry_mode: "campaign_default" | "relative" | "absolute" | "none";
             /** Expires At */
             expires_at?: string | null;
-            /**
-             * Expiry Days
-             * @default 30
-             */
-            expiry_days: number | null;
+            /** Expiry Days */
+            expiry_days?: number | null;
             /** Reason */
             reason: string;
         };
@@ -17862,10 +17885,31 @@ export interface components {
              */
             grant_plan_code: string | null;
             /**
+             * Grant Duration Mode
+             * @default fixed_days
+             * @enum {string}
+             */
+            grant_duration_mode: "fixed_days" | "lifetime";
+            /**
              * Grant Duration Days
              * @default 365
              */
-            grant_duration_days: number;
+            grant_duration_days: number | null;
+            /** Grant Device Limit Override */
+            grant_device_limit_override?: number | null;
+            /**
+             * Root Invite Expiry Mode
+             * @default relative
+             * @enum {string}
+             */
+            root_invite_expiry_mode: "relative" | "absolute" | "none";
+            /**
+             * Root Invite Expiry Days
+             * @default 30
+             */
+            root_invite_expiry_days: number | null;
+            /** Root Invite Expires At */
+            root_invite_expires_at?: string | null;
             /**
              * Child Invite Count
              * @default 10
@@ -17877,10 +17921,18 @@ export interface components {
              */
             child_invite_free_days: number;
             /**
+             * Child Invite Expiry Mode
+             * @default relative
+             * @enum {string}
+             */
+            child_invite_expiry_mode: "relative" | "absolute" | "none";
+            /**
              * Child Invite Expiry Days
              * @default 30
              */
-            child_invite_expiry_days: number;
+            child_invite_expiry_days: number | null;
+            /** Child Invite Expires At */
+            child_invite_expires_at?: string | null;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
             /**
@@ -17889,10 +17941,18 @@ export interface components {
              */
             child_grant_plan_code: string | null;
             /**
+             * Child Grant Duration Mode
+             * @default fixed_days
+             * @enum {string}
+             */
+            child_grant_duration_mode: "fixed_days" | "lifetime";
+            /**
              * Child Grant Duration Days
              * @default 365
              */
             child_grant_duration_days: number | null;
+            /** Child Grant Device Limit Override */
+            child_grant_device_limit_override?: number | null;
             /**
              * Max Generation Depth
              * @default 5
@@ -17924,6 +17984,11 @@ export interface components {
             caps?: {
                 [key: string]: unknown;
             };
+            /**
+             * Lifetime Campaign Acknowledgement
+             * @default false
+             */
+            lifetime_campaign_acknowledgement: boolean;
             /**
              * Publish
              * @default false
@@ -18023,10 +18088,31 @@ export interface components {
              */
             grant_plan_code: string | null;
             /**
+             * Grant Duration Mode
+             * @default fixed_days
+             * @enum {string}
+             */
+            grant_duration_mode: "fixed_days" | "lifetime";
+            /**
              * Grant Duration Days
              * @default 365
              */
-            grant_duration_days: number;
+            grant_duration_days: number | null;
+            /** Grant Device Limit Override */
+            grant_device_limit_override?: number | null;
+            /**
+             * Root Invite Expiry Mode
+             * @default relative
+             * @enum {string}
+             */
+            root_invite_expiry_mode: "relative" | "absolute" | "none";
+            /**
+             * Root Invite Expiry Days
+             * @default 30
+             */
+            root_invite_expiry_days: number | null;
+            /** Root Invite Expires At */
+            root_invite_expires_at?: string | null;
             /**
              * Child Invite Count
              * @default 10
@@ -18038,10 +18124,18 @@ export interface components {
              */
             child_invite_free_days: number;
             /**
+             * Child Invite Expiry Mode
+             * @default relative
+             * @enum {string}
+             */
+            child_invite_expiry_mode: "relative" | "absolute" | "none";
+            /**
              * Child Invite Expiry Days
              * @default 30
              */
-            child_invite_expiry_days: number;
+            child_invite_expiry_days: number | null;
+            /** Child Invite Expires At */
+            child_invite_expires_at?: string | null;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
             /**
@@ -18050,10 +18144,18 @@ export interface components {
              */
             child_grant_plan_code: string | null;
             /**
+             * Child Grant Duration Mode
+             * @default fixed_days
+             * @enum {string}
+             */
+            child_grant_duration_mode: "fixed_days" | "lifetime";
+            /**
              * Child Grant Duration Days
              * @default 365
              */
             child_grant_duration_days: number | null;
+            /** Child Grant Device Limit Override */
+            child_grant_device_limit_override?: number | null;
             /**
              * Max Generation Depth
              * @default 5
@@ -18083,6 +18185,15 @@ export interface components {
             notification_policy?: {
                 [key: string]: unknown;
             };
+            /** Caps */
+            caps?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Lifetime Campaign Acknowledgement
+             * @default false
+             */
+            lifetime_campaign_acknowledgement: boolean;
             /** Reason */
             reason?: string | null;
         };
@@ -18106,8 +18217,24 @@ export interface components {
             grant_mode: string;
             /** Grant Plan Id */
             grant_plan_id?: string | null;
+            /**
+             * Grant Duration Mode
+             * @default fixed_days
+             */
+            grant_duration_mode: string;
             /** Grant Duration Days */
             grant_duration_days?: number | null;
+            /** Grant Device Limit Override */
+            grant_device_limit_override?: number | null;
+            /**
+             * Root Invite Expiry Mode
+             * @default relative
+             */
+            root_invite_expiry_mode: string;
+            /** Root Invite Expiry Days */
+            root_invite_expiry_days?: number | null;
+            /** Root Invite Expires At */
+            root_invite_expires_at?: string | null;
             /** Grant Snapshot */
             grant_snapshot: {
                 [key: string]: unknown;
@@ -18117,11 +18244,25 @@ export interface components {
             /** Child Invite Free Days */
             child_invite_free_days: number;
             /** Child Invite Expiry Days */
-            child_invite_expiry_days: number;
+            child_invite_expiry_days?: number | null;
+            /**
+             * Child Invite Expiry Mode
+             * @default relative
+             */
+            child_invite_expiry_mode: string;
+            /** Child Invite Expires At */
+            child_invite_expires_at?: string | null;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
+            /**
+             * Child Grant Duration Mode
+             * @default fixed_days
+             */
+            child_grant_duration_mode: string;
             /** Child Grant Duration Days */
             child_grant_duration_days?: number | null;
+            /** Child Grant Device Limit Override */
+            child_grant_device_limit_override?: number | null;
             /** Child Grant Snapshot */
             child_grant_snapshot: {
                 [key: string]: unknown;
@@ -18268,14 +18409,31 @@ export interface components {
             grant_plan_id?: string | null;
             /** Grant Plan Code */
             grant_plan_code?: string | null;
+            /** Grant Duration Mode */
+            grant_duration_mode?: string | null;
             /** Grant Duration Days */
             grant_duration_days?: number | null;
+            /** Grant Device Limit Override */
+            grant_device_limit_override?: number | null;
+            /** Root Invite Expiry Mode */
+            root_invite_expiry_mode?: string | null;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
             /** Child Grant Plan Code */
             child_grant_plan_code?: string | null;
+            /** Child Grant Duration Mode */
+            child_grant_duration_mode?: string | null;
             /** Child Grant Duration Days */
             child_grant_duration_days?: number | null;
+            /** Child Grant Device Limit Override */
+            child_grant_device_limit_override?: number | null;
+            /**
+             * Child Invite Count
+             * @default 0
+             */
+            child_invite_count: number;
+            /** Child Invite Expiry Mode */
+            child_invite_expiry_mode?: string | null;
             /** Child Policy Preview */
             child_policy_preview?: {
                 [key: string]: unknown;
@@ -18360,6 +18518,22 @@ export interface components {
              */
             created_at: string;
         };
+        /** AdminInviteRedemptionReverseRequest */
+        AdminInviteRedemptionReverseRequest: {
+            /** Reason */
+            reason: string;
+            /**
+             * Cascade Mode
+             * @default unused_child_invites
+             * @enum {string}
+             */
+            cascade_mode: "none" | "unused_child_invites" | "all_descendants";
+            /**
+             * Confirm Descendant Reversal
+             * @default false
+             */
+            confirm_descendant_reversal: boolean;
+        };
         /** AdminInviteTreeEdgeResponse */
         AdminInviteTreeEdgeResponse: {
             /**
@@ -18428,12 +18602,28 @@ export interface components {
             grant_mode?: string | null;
             /** Grant Plan Id */
             grant_plan_id?: string | null;
+            /** Grant Duration Mode */
+            grant_duration_mode?: string | null;
+            /** Grant Device Limit Override */
+            grant_device_limit_override?: number | null;
             /** Child Batch Id */
             child_batch_id?: string | null;
             /** Granted Plan Id */
             granted_plan_id?: string | null;
             /** Granted Plan Code */
             granted_plan_code?: string | null;
+            /**
+             * Grant Lifetime
+             * @default false
+             */
+            grant_lifetime: boolean;
+            /**
+             * Child Invite Count
+             * @default 0
+             */
+            child_invite_count: number;
+            /** Child Invite Expiry Mode */
+            child_invite_expiry_mode?: string | null;
             /**
              * Child Count
              * @default 0
@@ -23091,12 +23281,22 @@ export interface components {
             grant_mode?: string | null;
             /** Grant Plan Id */
             grant_plan_id?: string | null;
+            /** Grant Duration Mode */
+            grant_duration_mode?: string | null;
             /** Grant Duration Days */
             grant_duration_days?: number | null;
+            /** Grant Device Limit Override */
+            grant_device_limit_override?: number | null;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
+            /** Child Grant Duration Mode */
+            child_grant_duration_mode?: string | null;
             /** Child Grant Duration Days */
             child_grant_duration_days?: number | null;
+            /** Child Grant Device Limit Override */
+            child_grant_device_limit_override?: number | null;
+            /** Child Invite Expiry Mode */
+            child_invite_expiry_mode?: string | null;
             /** Child Policy */
             child_policy?: {
                 [key: string]: unknown;
@@ -25481,12 +25681,22 @@ export interface components {
             grant_mode?: string | null;
             /** Grant Plan Id */
             grant_plan_id?: string | null;
+            /** Grant Duration Mode */
+            grant_duration_mode?: string | null;
             /** Grant Duration Days */
             grant_duration_days?: number | null;
+            /** Grant Device Limit Override */
+            grant_device_limit_override?: number | null;
             /** Child Grant Plan Id */
             child_grant_plan_id?: string | null;
+            /** Child Grant Duration Mode */
+            child_grant_duration_mode?: string | null;
             /** Child Grant Duration Days */
             child_grant_duration_days?: number | null;
+            /** Child Grant Device Limit Override */
+            child_grant_device_limit_override?: number | null;
+            /** Child Invite Expiry Mode */
+            child_invite_expiry_mode?: string | null;
             /** Child Policy */
             child_policy?: {
                 [key: string]: unknown;
@@ -52428,7 +52638,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AdminInviteCampaignActionRequest"];
+                "application/json": components["schemas"]["AdminInviteRedemptionReverseRequest"];
             };
         };
         responses: {

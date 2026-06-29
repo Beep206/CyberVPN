@@ -43,6 +43,12 @@ from src.infrastructure.monitoring.growth_code_metrics import (
     cybervpn_growth_reporting_refresh_duration_seconds,
     cybervpn_growth_reporting_refresh_runs_total,
     cybervpn_growth_reporting_rows_written,
+    cybervpn_invite_campaign_lifetime_created_total,
+    cybervpn_invite_device_override_used_total,
+    cybervpn_invite_lifetime_child_issued_total,
+    cybervpn_invite_lifetime_redemption_total,
+    cybervpn_invite_lifetime_remnawave_sentinel_total,
+    cybervpn_invite_lifetime_reversal_total,
     cybervpn_invites_issued_total,
     cybervpn_invites_redeemed_total,
     cybervpn_promo_codes_applied_total,
@@ -270,6 +276,74 @@ def observe_invite_redeemed(
     cybervpn_invites_redeemed_total.labels(
         source_type=_sanitize_label(source_type),
         surface=_sanitize_label(surface, default=CUSTOMER_REDEEM_SURFACE),
+        result=_sanitize_label(result),
+    ).inc()
+
+
+def observe_lifetime_invite_campaign_created(
+    *,
+    plan_code: str | None,
+    root_expiry_mode: str | None,
+    child_expiry_mode: str | None,
+    result: str,
+) -> None:
+    cybervpn_invite_campaign_lifetime_created_total.labels(
+        plan_code=_sanitize_label(plan_code),
+        root_expiry_mode=_sanitize_label(root_expiry_mode),
+        child_expiry_mode=_sanitize_label(child_expiry_mode),
+        result=_sanitize_label(result),
+    ).inc()
+
+
+def observe_lifetime_invite_redemption(
+    *,
+    plan_code: str | None,
+    source_type: str | None,
+    surface: str,
+    result: str,
+) -> None:
+    cybervpn_invite_lifetime_redemption_total.labels(
+        plan_code=_sanitize_label(plan_code),
+        source_type=_sanitize_label(source_type),
+        surface=_sanitize_label(surface, default=CUSTOMER_REDEEM_SURFACE),
+        result=_sanitize_label(result),
+    ).inc()
+
+
+def observe_lifetime_child_invites_issued(*, plan_code: str | None, expiry_mode: str | None, result: str) -> None:
+    cybervpn_invite_lifetime_child_issued_total.labels(
+        plan_code=_sanitize_label(plan_code),
+        expiry_mode=_sanitize_label(expiry_mode),
+        result=_sanitize_label(result),
+    ).inc()
+
+
+def observe_invite_device_override_used(
+    *,
+    plan_code: str | None,
+    duration_mode: str | None,
+    surface: str,
+    result: str,
+) -> None:
+    cybervpn_invite_device_override_used_total.labels(
+        plan_code=_sanitize_label(plan_code),
+        duration_mode=_sanitize_label(duration_mode),
+        surface=_sanitize_label(surface, default=CUSTOMER_REDEEM_SURFACE),
+        result=_sanitize_label(result),
+    ).inc()
+
+
+def observe_lifetime_invite_reversal(*, plan_code: str | None, cascade_mode: str | None, result: str) -> None:
+    cybervpn_invite_lifetime_reversal_total.labels(
+        plan_code=_sanitize_label(plan_code),
+        cascade_mode=_sanitize_label(cascade_mode),
+        result=_sanitize_label(result),
+    ).inc()
+
+
+def observe_lifetime_remnawave_expiry_mode(*, mode: str | None, result: str) -> None:
+    cybervpn_invite_lifetime_remnawave_sentinel_total.labels(
+        mode=_sanitize_label(mode),
         result=_sanitize_label(result),
     ).inc()
 

@@ -215,10 +215,17 @@ export interface AdminInviteCodeSummaryResponse {
   grant_mode?: string | null;
   grant_plan_id?: string | null;
   grant_plan_code?: string | null;
+  grant_duration_mode?: string | null;
   grant_duration_days?: number | null;
+  grant_device_limit_override?: number | null;
+  root_invite_expiry_mode?: string | null;
   child_grant_plan_id?: string | null;
   child_grant_plan_code?: string | null;
+  child_grant_duration_mode?: string | null;
   child_grant_duration_days?: number | null;
+  child_grant_device_limit_override?: number | null;
+  child_invite_count?: number;
+  child_invite_expiry_mode?: string | null;
   child_policy_preview?: Record<string, unknown> | null;
 }
 
@@ -267,13 +274,22 @@ export interface AdminInviteCampaignCreateRequest {
   risk_policy_key?: string | null;
   grant_plan_id?: string | null;
   grant_plan_code?: string | null;
-  grant_duration_days?: number;
+  grant_duration_mode?: 'fixed_days' | 'lifetime';
+  grant_duration_days?: number | null;
+  grant_device_limit_override?: number | null;
+  root_invite_expiry_mode?: 'relative' | 'absolute' | 'none';
+  root_invite_expiry_days?: number | null;
+  root_invite_expires_at?: string | null;
   child_invite_count?: number;
   child_invite_free_days?: number;
-  child_invite_expiry_days?: number;
+  child_invite_expiry_mode?: 'relative' | 'absolute' | 'none';
+  child_invite_expiry_days?: number | null;
+  child_invite_expires_at?: string | null;
   child_grant_plan_id?: string | null;
   child_grant_plan_code?: string | null;
+  child_grant_duration_mode?: 'fixed_days' | 'lifetime';
   child_grant_duration_days?: number | null;
+  child_grant_device_limit_override?: number | null;
   max_generation_depth?: number;
   require_no_active_access?: boolean;
   block_self_redemption?: boolean;
@@ -281,6 +297,7 @@ export interface AdminInviteCampaignCreateRequest {
   export_policy?: Record<string, unknown>;
   notification_policy?: Record<string, unknown>;
   caps?: Record<string, unknown>;
+  lifetime_campaign_acknowledgement?: boolean;
   publish?: boolean;
   reason?: string | null;
 }
@@ -292,13 +309,22 @@ export interface AdminInviteCampaignVersionResponse {
   status: string;
   grant_mode: string;
   grant_plan_id?: string | null;
+  grant_duration_mode?: string;
   grant_duration_days?: number | null;
+  grant_device_limit_override?: number | null;
+  root_invite_expiry_mode?: string;
+  root_invite_expiry_days?: number | null;
+  root_invite_expires_at?: string | null;
   grant_snapshot: Record<string, unknown>;
   child_invite_count: number;
   child_invite_free_days: number;
-  child_invite_expiry_days: number;
+  child_invite_expiry_days?: number | null;
+  child_invite_expiry_mode?: string;
+  child_invite_expires_at?: string | null;
   child_grant_plan_id?: string | null;
+  child_grant_duration_mode?: string;
   child_grant_duration_days?: number | null;
+  child_grant_device_limit_override?: number | null;
   child_grant_snapshot: Record<string, unknown>;
   max_generation_depth: number;
   block_self_redemption: boolean;
@@ -358,13 +384,22 @@ export interface AdminInviteCampaignActionRequest {
 export interface AdminInviteCampaignVersionCreateRequest {
   grant_plan_id?: string | null;
   grant_plan_code?: string | null;
-  grant_duration_days?: number;
+  grant_duration_mode?: 'fixed_days' | 'lifetime';
+  grant_duration_days?: number | null;
+  grant_device_limit_override?: number | null;
+  root_invite_expiry_mode?: 'relative' | 'absolute' | 'none';
+  root_invite_expiry_days?: number | null;
+  root_invite_expires_at?: string | null;
   child_invite_count?: number;
   child_invite_free_days?: number;
-  child_invite_expiry_days?: number;
+  child_invite_expiry_mode?: 'relative' | 'absolute' | 'none';
+  child_invite_expiry_days?: number | null;
+  child_invite_expires_at?: string | null;
   child_grant_plan_id?: string | null;
   child_grant_plan_code?: string | null;
+  child_grant_duration_mode?: 'fixed_days' | 'lifetime';
   child_grant_duration_days?: number | null;
+  child_grant_device_limit_override?: number | null;
   max_generation_depth?: number;
   require_no_active_access?: boolean;
   block_self_redemption?: boolean;
@@ -372,6 +407,7 @@ export interface AdminInviteCampaignVersionCreateRequest {
   risk_policy?: Record<string, unknown>;
   export_policy?: Record<string, unknown>;
   notification_policy?: Record<string, unknown>;
+  lifetime_campaign_acknowledgement?: boolean;
   reason?: string | null;
 }
 
@@ -389,6 +425,7 @@ export interface AdminInviteCampaignBatchCreateRequest {
   count: number;
   version_id?: string | null;
   idempotency_key?: string | null;
+  expiry_mode?: 'campaign_default' | 'relative' | 'absolute' | 'none';
   expires_at?: string | null;
   expiry_days?: number | null;
   reason: string;
@@ -423,10 +460,15 @@ export interface AdminInviteBatchResponse {
   entitlement_snapshot: Record<string, unknown>;
   grant_mode?: string | null;
   grant_plan_id?: string | null;
+  grant_duration_mode?: string | null;
   grant_duration_days?: number | null;
+  grant_device_limit_override?: number | null;
   grant_snapshot?: Record<string, unknown> | null;
   child_grant_plan_id?: string | null;
+  child_grant_duration_mode?: string | null;
   child_grant_duration_days?: number | null;
+  child_grant_device_limit_override?: number | null;
+  child_invite_expiry_mode?: string | null;
   child_policy?: Record<string, unknown> | null;
   risk_policy?: Record<string, unknown> | null;
   redemption_policy?: Record<string, unknown> | null;
@@ -486,6 +528,12 @@ export interface AdminInviteRedemptionListResponse {
   limit: number;
 }
 
+export interface AdminInviteRedemptionReverseRequest {
+  reason: string;
+  cascade_mode?: 'none' | 'unused_child_invites' | 'all_descendants';
+  confirm_descendant_reversal?: boolean;
+}
+
 export interface AdminInviteTreeNodeResponse {
   invite_code_id: string;
   parent_invite_code_id?: string | null;
@@ -496,9 +544,14 @@ export interface AdminInviteTreeNodeResponse {
   status: string;
   grant_mode?: string | null;
   grant_plan_id?: string | null;
+  grant_duration_mode?: string | null;
+  grant_device_limit_override?: number | null;
   child_batch_id?: string | null;
   granted_plan_id?: string | null;
   granted_plan_code?: string | null;
+  grant_lifetime?: boolean;
+  child_invite_count?: number;
+  child_invite_expiry_mode?: string | null;
   child_count: number;
   created_at?: string | null;
   used_at?: string | null;
@@ -556,6 +609,8 @@ export interface AdminInviteCampaignAnalyticsResponse {
   blocked_count: number;
   active_vpn_total?: number;
   child_invites_issued_total?: number;
+  lifetime_grants?: number;
+  premium_smart_ru_grants?: number;
   max_depth_reached?: number;
   depth_breakdown?: Record<string, number>;
   conversion?: {
@@ -1214,7 +1269,7 @@ export const growthApi = {
       { params },
     ),
 
-  reverseInviteRedemption: (redemptionId: string, data: AdminInviteCampaignActionRequest) =>
+  reverseInviteRedemption: (redemptionId: string, data: AdminInviteRedemptionReverseRequest) =>
     apiClient.post<AdminInviteRedemptionResponse>(
       `/admin/invite-redemptions/${redemptionId}/reverse`,
       data,

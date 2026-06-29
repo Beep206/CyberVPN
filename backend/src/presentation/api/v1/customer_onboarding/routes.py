@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import hmac
 import logging
 from dataclasses import dataclass
@@ -7,9 +8,10 @@ from datetime import datetime
 from typing import Literal, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.auth_session_issuer import hash_device_key
 from src.application.services.config_service import ConfigService
 from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.customer_onboarding import (
@@ -38,7 +40,7 @@ from src.application.use_cases.customer_subscriptions import (
 )
 from src.application.use_cases.gifts import RedeemGiftCodeUseCase
 from src.application.use_cases.growth_codes import GrowthCodeResolutionOutcome, ResolveGrowthCodeUseCase
-from src.application.use_cases.invites.redeem_invite import RedeemInviteUseCase
+from src.application.use_cases.invites.redeem_invite import InviteRedemptionRuntimeContext, RedeemInviteUseCase
 from src.application.use_cases.service_access import GetCurrentEntitlementStateUseCase
 from src.application.use_cases.subscriptions import GenerateConfigUseCase
 from src.config.settings import settings
@@ -74,6 +76,7 @@ from src.infrastructure.remnawave.subscription_urls import normalize_public_subs
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.dependencies.auth import get_current_mobile_user_id, get_optional_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import get_request_customer_realm
+from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_remnawave_client
 
@@ -124,6 +127,7 @@ async def get_current_customer_onboarding(
 @router.post("/growth-code/apply", response_model=CustomerOnboardingApplyResponse)
 async def apply_customer_onboarding_growth_code(
     payload: CustomerOnboardingApplyRequest,
+    request: Request,
     user_id: UUID | None = Depends(get_optional_current_mobile_user_id),
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
@@ -185,6 +189,7 @@ async def apply_customer_onboarding_growth_code(
                 db,
                 current_realm=resolved_realm,
                 source_surface=trusted_source_surface,
+                runtime_context=_invite_redemption_runtime_context(request),
             ),
         )
     except CustomerOnboardingUnavailableError as exc:
@@ -401,6 +406,20 @@ def _first_child_invite_days(invites: tuple[object, ...]) -> int | None:
     return int(value) if value is not None else None
 
 
+def _first_child_invite_duration_mode(invites: tuple[object, ...]) -> str | None:
+    if not invites:
+        return None
+    value = getattr(invites[0], "grant_duration_mode", None)
+    return str(value) if value else None
+
+
+def _first_child_invite_device_override(invites: tuple[object, ...]) -> int | None:
+    if not invites:
+        return None
+    value = getattr(invites[0], "grant_device_limit_override", None)
+    return int(value) if value is not None else None
+
+
 def _skip_response(result: CustomerOnboardingSkipResult) -> CustomerOnboardingSkipResponse:
     return CustomerOnboardingSkipResponse(
         status=cast(Literal["skipped", "completed"], result.status),
@@ -474,6 +493,23 @@ def _trusted_apply_source_surface(
     if requested_source_surface == "telegram_bot":
         return "telegram_bot"
     return requested_source_surface
+
+
+def _invite_redemption_runtime_context(request: Request) -> InviteRedemptionRuntimeContext:
+    client_ip = resolve_client_ip(request).ip
+    device_key = (
+        request.cookies.get("__Host-cvpn_device_id")
+        or request.headers.get("X-Device-ID")
+        or request.headers.get("X-CyberVPN-Device-ID")
+    )
+    return InviteRedemptionRuntimeContext(
+        client_ip_hash=_hash_runtime_key(client_ip) if client_ip else None,
+        device_key_hash=hash_device_key(device_key.strip()) if device_key else None,
+    )
+
+
+def _hash_runtime_key(value: str) -> str:
+    return hashlib.sha256(value.strip().encode("utf-8")).hexdigest()
 
 
 async def _resolve_customer_onboarding_actor(
@@ -722,10 +758,18 @@ def _onboarding_http_error(exc: CustomerOnboardingUnavailableError) -> HTTPExcep
 
 
 class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
-    def __init__(self, session: AsyncSession, *, current_realm: RealmResolution, source_surface: str) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        *,
+        current_realm: RealmResolution,
+        source_surface: str,
+        runtime_context: InviteRedemptionRuntimeContext | None,
+    ) -> None:
         self._session = session
         self._current_realm = current_realm
         self._source_surface = source_surface
+        self._runtime_context = runtime_context
         self._resolver = ResolveGrowthCodeUseCase(session)
         self._invite_redeemer = RedeemInviteUseCase(session)
         self._gift_redeemer = RedeemGiftCodeUseCase(session)
@@ -767,6 +811,7 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
                     user_id=user_id,
                     current_realm=self._current_realm,
                     source_surface=self._source_surface,
+                    runtime_context=self._runtime_context,
                 )
             except InviteCodeNotFoundError as exc:
                 raise CustomerOnboardingUnavailableError(
@@ -815,7 +860,14 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
                         else _first_child_invite_days(redeemed.child_invites)
                     ),
                     "grant_plan_code": _first_child_invite_plan_code(redeemed.child_invites),
+                    "grant_duration_mode": _first_child_invite_duration_mode(redeemed.child_invites),
                     "grant_duration_days": _first_child_invite_days(redeemed.child_invites),
+                    "lifetime": _first_child_invite_duration_mode(redeemed.child_invites) == "lifetime",
+                    "device_limit_override": _first_child_invite_device_override(redeemed.child_invites),
+                    "expiry_mode": redeemed.child_batch.expiry_mode if redeemed.child_batch is not None else None,
+                    "expires_at": redeemed.child_batch.expires_at.isoformat()
+                    if redeemed.child_batch is not None and redeemed.child_batch.expires_at
+                    else None,
                     "generation_depth": (
                         int(redeemed.child_invites[0].generation_depth) if redeemed.child_invites else None
                     ),

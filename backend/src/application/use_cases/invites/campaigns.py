@@ -7,7 +7,7 @@ import json
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -16,6 +16,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.entitlements_service import EntitlementsService
 from src.application.use_cases.growth_codes.hashing import build_growth_code_prefix, hash_growth_code
+from src.application.use_cases.invites.lifetime_policy import (
+    INVITE_DURATION_LIFETIME,
+    INVITE_EXPIRY_CAMPAIGN_DEFAULT,
+    INVITE_EXPIRY_RELATIVE,
+    display_days_for_duration,
+    is_lifetime_duration,
+    normalize_invite_duration_mode,
+    normalize_invite_expiry_mode,
+    resolve_invite_expiry,
+    resolve_invite_grant,
+)
 from src.config.settings import settings
 from src.infrastructure.database.models.growth_benefit_model import InviteBatchModel
 from src.infrastructure.database.models.invite_campaign_model import (
@@ -24,6 +35,7 @@ from src.infrastructure.database.models.invite_campaign_model import (
 )
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
+from src.infrastructure.monitoring.instrumentation.growth_codes import observe_lifetime_invite_campaign_created
 
 
 @dataclass(frozen=True)
@@ -41,13 +53,22 @@ class CreateInviteCampaignCommand:
     risk_policy_key: str | None
     grant_plan_id: UUID | None
     grant_plan_code: str | None
-    grant_duration_days: int
+    grant_duration_mode: str
+    grant_duration_days: int | None
+    grant_device_limit_override: int | None
+    root_invite_expiry_mode: str
+    root_invite_expiry_days: int | None
+    root_invite_expires_at: datetime | None
     child_grant_plan_id: UUID | None
     child_grant_plan_code: str | None
+    child_grant_duration_mode: str
     child_grant_duration_days: int | None
+    child_grant_device_limit_override: int | None
     child_invite_count: int
     child_invite_free_days: int
-    child_invite_expiry_days: int
+    child_invite_expiry_mode: str
+    child_invite_expiry_days: int | None
+    child_invite_expires_at: datetime | None
     max_generation_depth: int
     require_no_active_access: bool
     block_self_redemption: bool
@@ -55,6 +76,7 @@ class CreateInviteCampaignCommand:
     export_policy: dict[str, Any]
     notification_policy: dict[str, Any]
     caps: dict[str, Any]
+    lifetime_campaign_acknowledgement: bool
     publish: bool
     reason: str | None
 
@@ -67,6 +89,7 @@ class CreateInviteCampaignBatchCommand:
     count: int
     version_id: UUID | None
     idempotency_key: str | None
+    expiry_mode: str
     expires_at: datetime | None
     expiry_days: int | None
     reason: str
@@ -76,13 +99,22 @@ class CreateInviteCampaignBatchCommand:
 class CreateInviteCampaignVersionCommand:
     grant_plan_id: UUID | None
     grant_plan_code: str | None
-    grant_duration_days: int
+    grant_duration_mode: str
+    grant_duration_days: int | None
+    grant_device_limit_override: int | None
+    root_invite_expiry_mode: str
+    root_invite_expiry_days: int | None
+    root_invite_expires_at: datetime | None
     child_invite_count: int
     child_invite_free_days: int
-    child_invite_expiry_days: int
+    child_invite_expiry_mode: str
+    child_invite_expiry_days: int | None
+    child_invite_expires_at: datetime | None
     child_grant_plan_id: UUID | None
     child_grant_plan_code: str | None
+    child_grant_duration_mode: str
     child_grant_duration_days: int | None
+    child_grant_device_limit_override: int | None
     max_generation_depth: int
     require_no_active_access: bool
     block_self_redemption: bool
@@ -90,6 +122,8 @@ class CreateInviteCampaignVersionCommand:
     risk_policy: dict[str, Any]
     export_policy: dict[str, Any]
     notification_policy: dict[str, Any]
+    caps: dict[str, Any]
+    lifetime_campaign_acknowledgement: bool
     reason: str | None
 
 
@@ -122,27 +156,60 @@ class CreateInviteCampaignUseCase:
         if existing.scalars().first() is not None:
             raise ValueError("Invite campaign key already exists")
 
+        now = datetime.now(UTC)
+        grant_duration_mode = normalize_invite_duration_mode(command.grant_duration_mode)
+        child_grant_duration_mode = normalize_invite_duration_mode(command.child_grant_duration_mode)
+        root_invite_expiry_mode = normalize_invite_expiry_mode(command.root_invite_expiry_mode)
+        child_invite_expiry_mode = normalize_invite_expiry_mode(command.child_invite_expiry_mode)
+        _validate_lifetime_campaign_policy(
+            grant_duration_mode=grant_duration_mode,
+            child_grant_duration_mode=child_grant_duration_mode,
+            child_invite_count=command.child_invite_count,
+            max_generation_depth=command.max_generation_depth,
+            require_no_active_access=command.require_no_active_access,
+            block_self_redemption=command.block_self_redemption,
+            root_invite_expiry_mode=root_invite_expiry_mode,
+            child_invite_expiry_mode=child_invite_expiry_mode,
+            campaign_expires_at=command.expires_at,
+            caps=command.caps,
+            risk_policy=command.risk_policy,
+            lifetime_campaign_acknowledgement=command.lifetime_campaign_acknowledgement,
+        )
+
         plan = await self._resolve_plan(command.grant_plan_id, command.grant_plan_code)
-        grant_expires_at = datetime.now(UTC) + timedelta(days=int(command.grant_duration_days))
-        grant_snapshot = EntitlementsService.build_snapshot(plan=plan, expires_at=grant_expires_at, status="active")
-        grant_snapshot["period_days"] = int(command.grant_duration_days)
-        grant_snapshot["source_type"] = "invite_campaign"
+        base_grant_snapshot = EntitlementsService.build_snapshot(plan=plan, expires_at=None, status="active")
+        grant_resolution = resolve_invite_grant(
+            snapshot={**base_grant_snapshot, "source_type": "invite_campaign"},
+            duration_mode=grant_duration_mode,
+            duration_days=command.grant_duration_days,
+            granted_at=now,
+            device_limit_override=command.grant_device_limit_override,
+        )
+        grant_snapshot = grant_resolution.snapshot
         child_plan = plan
-        child_duration_days = int(command.child_grant_duration_days or command.child_invite_free_days)
+        child_duration_days = (
+            None
+            if child_grant_duration_mode == INVITE_DURATION_LIFETIME
+            else int(command.child_grant_duration_days or command.child_invite_free_days)
+        )
+        child_display_days = display_days_for_duration(child_grant_duration_mode, child_duration_days)
         child_snapshot = dict(grant_snapshot)
+        child_device_limit_override = command.child_grant_device_limit_override
         if command.child_invite_count > 0:
             child_plan = await self._resolve_plan(
                 command.child_grant_plan_id,
                 command.child_grant_plan_code or command.grant_plan_code,
             )
-            child_expires_at = datetime.now(UTC) + timedelta(days=child_duration_days)
-            child_snapshot = EntitlementsService.build_snapshot(
-                plan=child_plan,
-                expires_at=child_expires_at,
-                status="active",
+            base_child_snapshot = EntitlementsService.build_snapshot(plan=child_plan, expires_at=None, status="active")
+            child_resolution = resolve_invite_grant(
+                snapshot={**base_child_snapshot, "source_type": "invite_campaign_child"},
+                duration_mode=child_grant_duration_mode,
+                duration_days=child_duration_days,
+                granted_at=now,
+                device_limit_override=child_device_limit_override,
             )
-            child_snapshot["period_days"] = child_duration_days
-            child_snapshot["source_type"] = "invite_campaign_child"
+            child_snapshot = child_resolution.snapshot
+            child_display_days = child_resolution.display_days
         allowed_surfaces = _safe_surfaces(command.allowed_surfaces)
         allowed_geos = _safe_geo_policy(
             countries=command.allowed_geos,
@@ -152,7 +219,6 @@ class CreateInviteCampaignUseCase:
         risk_policy = dict(command.risk_policy)
         if command.risk_policy_key:
             risk_policy["risk_policy_key"] = command.risk_policy_key
-        now = datetime.now(UTC)
         status = "active" if command.publish else "draft"
 
         campaign = InviteCampaignModel(
@@ -178,6 +244,19 @@ class CreateInviteCampaignUseCase:
         self._session.add(campaign)
         await self._session.flush()
 
+        grant_duration_days = (
+            None if grant_duration_mode == INVITE_DURATION_LIFETIME else int(command.grant_duration_days or 1)
+        )
+        root_invite_expiry_days = (
+            command.root_invite_expiry_days if root_invite_expiry_mode == INVITE_EXPIRY_RELATIVE else None
+        )
+        child_invite_expiry_days = (
+            command.child_invite_expiry_days if child_invite_expiry_mode == INVITE_EXPIRY_RELATIVE else None
+        )
+        child_policy_expiry_days = (
+            command.child_invite_expiry_days if child_invite_expiry_mode == INVITE_EXPIRY_RELATIVE else None
+        )
+
         version = InviteCampaignVersionModel(
             id=uuid.uuid4(),
             campaign_id=campaign.id,
@@ -185,13 +264,22 @@ class CreateInviteCampaignUseCase:
             status="published" if command.publish else "draft",
             grant_mode="plan_snapshot",
             grant_plan_id=plan.id,
-            grant_duration_days=int(command.grant_duration_days),
+            grant_duration_mode=grant_duration_mode,
+            grant_duration_days=grant_duration_days,
+            grant_device_limit_override=command.grant_device_limit_override,
             grant_snapshot=grant_snapshot,
+            root_invite_expiry_mode=root_invite_expiry_mode,
+            root_invite_expiry_days=root_invite_expiry_days,
+            root_invite_expires_at=command.root_invite_expires_at if root_invite_expiry_mode == "absolute" else None,
             child_invite_count=int(command.child_invite_count),
-            child_invite_free_days=int(command.child_invite_free_days),
-            child_invite_expiry_days=int(command.child_invite_expiry_days),
+            child_invite_free_days=child_display_days,
+            child_invite_expiry_days=child_invite_expiry_days,
+            child_invite_expiry_mode=child_invite_expiry_mode,
+            child_invite_expires_at=command.child_invite_expires_at if child_invite_expiry_mode == "absolute" else None,
             child_grant_plan_id=child_plan.id if command.child_invite_count > 0 else None,
+            child_grant_duration_mode=child_grant_duration_mode,
             child_grant_duration_days=child_duration_days if command.child_invite_count > 0 else None,
+            child_grant_device_limit_override=child_device_limit_override if command.child_invite_count > 0 else None,
             child_grant_snapshot=child_snapshot if command.child_invite_count > 0 else {},
             max_generation_depth=int(command.max_generation_depth),
             block_self_redemption=command.block_self_redemption,
@@ -206,28 +294,49 @@ class CreateInviteCampaignUseCase:
             },
             child_policy={
                 "count": int(command.child_invite_count),
-                "friend_days": int(command.child_invite_free_days),
+                "friend_days": child_display_days,
                 "grant_plan_id": str(child_plan.id) if command.child_invite_count > 0 else None,
                 "grant_plan_code": child_plan.plan_code if command.child_invite_count > 0 else None,
+                "grant_duration_mode": child_grant_duration_mode,
                 "grant_duration_days": child_duration_days if command.child_invite_count > 0 else None,
+                "grant_device_limit_override": child_device_limit_override if command.child_invite_count > 0 else None,
                 "grant_snapshot": child_snapshot if command.child_invite_count > 0 else {},
-                "expiry_days": int(command.child_invite_expiry_days),
+                "expiry_mode": child_invite_expiry_mode,
+                "expiry_days": child_policy_expiry_days,
+                "expires_at": command.child_invite_expires_at.isoformat()
+                if child_invite_expiry_mode == "absolute" and command.child_invite_expires_at
+                else None,
                 "max_generation_depth": int(command.max_generation_depth),
                 "issue_timing": "immediately",
             },
-            issue_policy={"root_batch_kind": "root_campaign", "raw_codes_one_time": True},
+            issue_policy={
+                "root_batch_kind": "root_campaign",
+                "raw_codes_one_time": True,
+                "root_invite_expiry_mode": root_invite_expiry_mode,
+                "root_invite_expiry_days": command.root_invite_expiry_days,
+                "lifetime_campaign_acknowledgement": command.lifetime_campaign_acknowledgement,
+            },
             export_policy=dict(command.export_policy),
             notification_policy=dict(command.notification_policy),
             checksum=_version_checksum(
                 {
                     "campaign_key": command.campaign_key,
                     "grant_plan_id": str(plan.id),
+                    "grant_duration_mode": grant_duration_mode,
                     "grant_duration_days": command.grant_duration_days,
+                    "grant_device_limit_override": command.grant_device_limit_override,
+                    "root_invite_expiry_mode": root_invite_expiry_mode,
+                    "root_invite_expiry_days": command.root_invite_expiry_days,
+                    "root_invite_expires_at": command.root_invite_expires_at,
                     "child_invite_count": command.child_invite_count,
-                    "child_invite_free_days": command.child_invite_free_days,
+                    "child_invite_free_days": child_display_days,
                     "child_grant_plan_id": str(child_plan.id) if command.child_invite_count > 0 else None,
+                    "child_grant_duration_mode": child_grant_duration_mode,
                     "child_grant_duration_days": child_duration_days if command.child_invite_count > 0 else None,
+                    "child_grant_device_limit_override": child_device_limit_override,
+                    "child_invite_expiry_mode": child_invite_expiry_mode,
                     "child_invite_expiry_days": command.child_invite_expiry_days,
+                    "child_invite_expires_at": command.child_invite_expires_at,
                     "max_generation_depth": command.max_generation_depth,
                     "allowed_surfaces": allowed_surfaces,
                     "allowed_geos": allowed_geos,
@@ -241,6 +350,13 @@ class CreateInviteCampaignUseCase:
         )
         self._session.add(version)
         await self._session.flush()
+        if grant_duration_mode == INVITE_DURATION_LIFETIME or child_grant_duration_mode == INVITE_DURATION_LIFETIME:
+            observe_lifetime_invite_campaign_created(
+                plan_code=str(grant_snapshot.get("plan_code") or plan.plan_code),
+                root_expiry_mode=root_invite_expiry_mode,
+                child_expiry_mode=child_invite_expiry_mode,
+                result="created",
+            )
         campaign.current_version_id = version.id
         await self._session.flush()
         if command.publish:
@@ -297,9 +413,18 @@ class CreateInviteCampaignVersionUseCase:
             admin_user_id=admin_user_id,
         )
         self._session.add(version)
+        if command.caps:
+            campaign.caps = {**dict(campaign.caps or {}), **dict(command.caps or {})}
         campaign.updated_by_admin_id = admin_user_id
         campaign.metadata_json = {**dict(campaign.metadata_json or {}), "last_version_reason": command.reason}
         await self._session.flush()
+        if is_lifetime_duration(version.grant_duration_mode) or is_lifetime_duration(version.child_grant_duration_mode):
+            observe_lifetime_invite_campaign_created(
+                plan_code=str((version.grant_snapshot or {}).get("plan_code") or "unknown"),
+                root_expiry_mode=version.root_invite_expiry_mode,
+                child_expiry_mode=version.child_invite_expiry_mode,
+                result="version_created",
+            )
         return version
 
     async def _build_version(
@@ -310,29 +435,62 @@ class CreateInviteCampaignVersionUseCase:
         command: CreateInviteCampaignVersionCommand,
         admin_user_id: UUID,
     ) -> InviteCampaignVersionModel:
+        now = datetime.now(UTC)
+        grant_duration_mode = normalize_invite_duration_mode(command.grant_duration_mode)
+        child_grant_duration_mode = normalize_invite_duration_mode(command.child_grant_duration_mode)
+        root_invite_expiry_mode = normalize_invite_expiry_mode(command.root_invite_expiry_mode)
+        child_invite_expiry_mode = normalize_invite_expiry_mode(command.child_invite_expiry_mode)
+        merged_caps = {**dict(campaign.caps or {}), **dict(command.caps or {})}
+        _validate_lifetime_campaign_policy(
+            grant_duration_mode=grant_duration_mode,
+            child_grant_duration_mode=child_grant_duration_mode,
+            child_invite_count=command.child_invite_count,
+            max_generation_depth=command.max_generation_depth,
+            require_no_active_access=command.require_no_active_access,
+            block_self_redemption=command.block_self_redemption,
+            root_invite_expiry_mode=root_invite_expiry_mode,
+            child_invite_expiry_mode=child_invite_expiry_mode,
+            campaign_expires_at=campaign.expires_at,
+            caps=merged_caps,
+            risk_policy=command.risk_policy,
+            lifetime_campaign_acknowledgement=command.lifetime_campaign_acknowledgement,
+        )
+
         plan = await _resolve_plan(self._plans, command.grant_plan_id, command.grant_plan_code)
-        grant_expires_at = datetime.now(UTC) + timedelta(days=int(command.grant_duration_days))
-        grant_snapshot = EntitlementsService.build_snapshot(plan=plan, expires_at=grant_expires_at, status="active")
-        grant_snapshot["period_days"] = int(command.grant_duration_days)
-        grant_snapshot["source_type"] = "invite_campaign"
+        base_grant_snapshot = EntitlementsService.build_snapshot(plan=plan, expires_at=None, status="active")
+        grant_resolution = resolve_invite_grant(
+            snapshot={**base_grant_snapshot, "source_type": "invite_campaign"},
+            duration_mode=grant_duration_mode,
+            duration_days=command.grant_duration_days,
+            granted_at=now,
+            device_limit_override=command.grant_device_limit_override,
+        )
+        grant_snapshot = grant_resolution.snapshot
 
         child_plan = None
         child_snapshot: dict[str, Any] = {}
-        child_duration_days = command.child_grant_duration_days or command.child_invite_free_days
+        child_duration_days = (
+            None
+            if child_grant_duration_mode == INVITE_DURATION_LIFETIME
+            else command.child_grant_duration_days or command.child_invite_free_days
+        )
+        child_display_days = display_days_for_duration(child_grant_duration_mode, child_duration_days)
         if command.child_invite_count > 0:
             child_plan = await _resolve_plan(
                 self._plans,
                 command.child_grant_plan_id,
                 command.child_grant_plan_code or command.grant_plan_code,
             )
-            child_expires_at = datetime.now(UTC) + timedelta(days=int(child_duration_days))
-            child_snapshot = EntitlementsService.build_snapshot(
-                plan=child_plan,
-                expires_at=child_expires_at,
-                status="active",
+            base_child_snapshot = EntitlementsService.build_snapshot(plan=child_plan, expires_at=None, status="active")
+            child_resolution = resolve_invite_grant(
+                snapshot={**base_child_snapshot, "source_type": "invite_campaign_child"},
+                duration_mode=child_grant_duration_mode,
+                duration_days=child_duration_days,
+                granted_at=now,
+                device_limit_override=command.child_grant_device_limit_override,
             )
-            child_snapshot["period_days"] = int(child_duration_days)
-            child_snapshot["source_type"] = "invite_campaign_child"
+            child_snapshot = child_resolution.snapshot
+            child_display_days = child_resolution.display_days
 
         allowed_surfaces = _safe_surfaces(command.allowed_surfaces)
         redemption_policy = {
@@ -341,15 +499,30 @@ class CreateInviteCampaignVersionUseCase:
             "block_self_redemption": command.block_self_redemption,
             "per_user_redeem_cap": _positive_int(command.risk_policy.get("per_user_redeem_cap"), default=1),
         }
+        child_policy_grant_duration_days = (
+            int(child_duration_days) if child_plan is not None and child_duration_days else None
+        )
+        child_policy_device_limit_override = (
+            command.child_grant_device_limit_override if child_plan is not None else None
+        )
+        child_policy_expiry_days = (
+            command.child_invite_expiry_days if child_invite_expiry_mode == INVITE_EXPIRY_RELATIVE else None
+        )
         child_policy = {
             "enabled": command.child_invite_count > 0,
             "count": int(command.child_invite_count),
-            "friend_days": int(command.child_invite_free_days),
+            "friend_days": child_display_days,
             "grant_plan_id": str(child_plan.id) if child_plan is not None else None,
             "grant_plan_code": child_plan.plan_code if child_plan is not None else None,
-            "grant_duration_days": int(child_duration_days) if child_plan is not None else None,
+            "grant_duration_mode": child_grant_duration_mode,
+            "grant_duration_days": child_policy_grant_duration_days,
+            "grant_device_limit_override": child_policy_device_limit_override,
             "grant_snapshot": child_snapshot,
-            "expiry_days": int(command.child_invite_expiry_days),
+            "expiry_mode": child_invite_expiry_mode,
+            "expiry_days": child_policy_expiry_days,
+            "expires_at": command.child_invite_expires_at.isoformat()
+            if child_invite_expiry_mode == "absolute" and command.child_invite_expires_at
+            else None,
             "max_generation_depth": int(command.max_generation_depth),
             "issue_timing": "immediately",
         }
@@ -357,15 +530,35 @@ class CreateInviteCampaignVersionUseCase:
             "campaign_key": campaign.campaign_key,
             "version": version_number,
             "grant_plan_id": str(plan.id),
+            "grant_duration_mode": grant_duration_mode,
             "grant_duration_days": command.grant_duration_days,
+            "grant_device_limit_override": command.grant_device_limit_override,
+            "root_invite_expiry_mode": root_invite_expiry_mode,
+            "root_invite_expiry_days": command.root_invite_expiry_days,
+            "root_invite_expires_at": command.root_invite_expires_at,
             "child_invite_count": command.child_invite_count,
             "child_grant_plan_id": str(child_plan.id) if child_plan is not None else None,
+            "child_grant_duration_mode": child_grant_duration_mode,
             "child_grant_duration_days": int(child_duration_days) if child_plan is not None else None,
+            "child_grant_device_limit_override": command.child_grant_device_limit_override,
+            "child_invite_expiry_mode": child_invite_expiry_mode,
+            "child_invite_expiry_days": command.child_invite_expiry_days,
+            "child_invite_expires_at": command.child_invite_expires_at,
             "max_generation_depth": command.max_generation_depth,
             "allowed_surfaces": allowed_surfaces,
             "risk_policy": command.risk_policy,
             "export_policy": command.export_policy,
+            "caps": merged_caps,
         }
+        grant_duration_days = (
+            None if grant_duration_mode == INVITE_DURATION_LIFETIME else int(command.grant_duration_days or 1)
+        )
+        root_invite_expiry_days = (
+            command.root_invite_expiry_days if root_invite_expiry_mode == INVITE_EXPIRY_RELATIVE else None
+        )
+        child_invite_expiry_days = (
+            command.child_invite_expiry_days if child_invite_expiry_mode == INVITE_EXPIRY_RELATIVE else None
+        )
         return InviteCampaignVersionModel(
             id=uuid.uuid4(),
             campaign_id=campaign.id,
@@ -373,13 +566,22 @@ class CreateInviteCampaignVersionUseCase:
             status="draft",
             grant_mode="plan_snapshot",
             grant_plan_id=plan.id,
-            grant_duration_days=int(command.grant_duration_days),
+            grant_duration_mode=grant_duration_mode,
+            grant_duration_days=grant_duration_days,
+            grant_device_limit_override=command.grant_device_limit_override,
             grant_snapshot=grant_snapshot,
+            root_invite_expiry_mode=root_invite_expiry_mode,
+            root_invite_expiry_days=root_invite_expiry_days,
+            root_invite_expires_at=command.root_invite_expires_at if root_invite_expiry_mode == "absolute" else None,
             child_invite_count=int(command.child_invite_count),
-            child_invite_free_days=int(command.child_invite_free_days),
-            child_invite_expiry_days=int(command.child_invite_expiry_days),
+            child_invite_free_days=child_display_days,
+            child_invite_expiry_days=child_invite_expiry_days,
+            child_invite_expiry_mode=child_invite_expiry_mode,
+            child_invite_expires_at=command.child_invite_expires_at if child_invite_expiry_mode == "absolute" else None,
             child_grant_plan_id=child_plan.id if child_plan is not None else None,
-            child_grant_duration_days=int(child_duration_days) if child_plan is not None else None,
+            child_grant_duration_mode=child_grant_duration_mode,
+            child_grant_duration_days=child_policy_grant_duration_days,
+            child_grant_device_limit_override=child_policy_device_limit_override,
             child_grant_snapshot=child_snapshot,
             max_generation_depth=int(command.max_generation_depth),
             block_self_redemption=command.block_self_redemption,
@@ -388,7 +590,13 @@ class CreateInviteCampaignVersionUseCase:
             risk_policy=dict(command.risk_policy),
             redemption_policy=redemption_policy,
             child_policy=child_policy,
-            issue_policy={"root_batch_kind": "root_campaign", "raw_codes_one_time": True},
+            issue_policy={
+                "root_batch_kind": "root_campaign",
+                "raw_codes_one_time": True,
+                "root_invite_expiry_mode": root_invite_expiry_mode,
+                "root_invite_expiry_days": command.root_invite_expiry_days,
+                "lifetime_campaign_acknowledgement": command.lifetime_campaign_acknowledgement,
+            },
             export_policy=dict(command.export_policy),
             notification_policy=dict(command.notification_policy),
             checksum=_version_checksum(checksum_payload),
@@ -419,6 +627,29 @@ class ValidateInviteCampaignVersionUseCase:
             errors.append("child_invite_count exceeds campaign cap")
         if _policy_contains_raw_code(version.redemption_policy) or _policy_contains_raw_code(version.child_policy):
             errors.append("policy snapshot must not contain raw invite codes")
+        if is_lifetime_duration(version.grant_duration_mode) and version.grant_duration_days is not None:
+            errors.append("lifetime root grants must not store grant_duration_days")
+        if is_lifetime_duration(version.child_grant_duration_mode) and version.child_grant_duration_days is not None:
+            errors.append("lifetime child grants must not store child_grant_duration_days")
+        try:
+            _validate_lifetime_campaign_policy(
+                grant_duration_mode=version.grant_duration_mode,
+                child_grant_duration_mode=version.child_grant_duration_mode,
+                child_invite_count=version.child_invite_count,
+                max_generation_depth=version.max_generation_depth,
+                require_no_active_access=version.require_no_active_access,
+                block_self_redemption=version.block_self_redemption,
+                root_invite_expiry_mode=version.root_invite_expiry_mode,
+                child_invite_expiry_mode=version.child_invite_expiry_mode,
+                campaign_expires_at=campaign.expires_at,
+                caps=dict(campaign.caps or {}),
+                risk_policy=dict(version.risk_policy or {}),
+                lifetime_campaign_acknowledgement=bool(
+                    (version.issue_policy or {}).get("lifetime_campaign_acknowledgement")
+                ),
+            )
+        except ValueError as exc:
+            errors.append(str(exc))
 
         plan_codes = {
             str((version.grant_snapshot or {}).get("plan_code") or ""),
@@ -507,18 +738,37 @@ class CreateInviteCampaignBatchUseCase:
                 raise ValueError("owner_user_ids is required for uploaded-user-list invite campaigns")
             if len(owner_user_ids) != int(command.count):
                 raise ValueError("owner_user_ids count must match requested invite count")
+            if len(set(owner_user_ids)) != len(owner_user_ids):
+                raise ValueError("owner_user_ids must not contain duplicate users")
         if owner_mode == "system" and owner_user_ids:
             raise ValueError("system invite campaigns do not accept uploaded owner_user_ids")
 
-        await _pg_advisory_xact_lock(
+        await _pg_advisory_xact_lock(self._session, f"invite-campaign-issue:{campaign.id}:global")
+        if owner_user_ids:
+            for owner_user_id in sorted(owner_user_ids, key=str):
+                await _pg_advisory_xact_lock(
+                    self._session,
+                    f"invite-campaign-issue:{campaign.id}:{owner_user_id}",
+                )
+        else:
+            await _pg_advisory_xact_lock(
+                self._session,
+                f"invite-campaign-issue:{campaign.id}:{command.owner_user_id or 'system'}",
+            )
+        await validate_invite_campaign_issue_caps(
             self._session,
-            f"invite-campaign-issue:{campaign.id}:{command.owner_user_id or 'system'}",
-        )
-        await self._validate_issue_caps(
             campaign=campaign,
             owner_user_id=command.owner_user_id,
             requested_count=int(command.count),
+            enforce_owner_cap=not owner_user_ids,
         )
+        for owner_user_id in owner_user_ids:
+            await validate_invite_campaign_issue_caps(
+                self._session,
+                campaign=campaign,
+                owner_user_id=owner_user_id,
+                requested_count=1,
+            )
 
         owner_scope = (
             hashlib.sha256(",".join(str(item) for item in owner_user_ids).encode("utf-8")).hexdigest()[:24]
@@ -541,11 +791,23 @@ class CreateInviteCampaignBatchUseCase:
                 raw_codes=(),
             )
 
-        expires_at = command.expires_at
-        expiry_days = int(command.expiry_days or 30)
-        if expires_at is None:
-            expires_at = datetime.now(UTC) + timedelta(days=expiry_days)
+        expiry_mode = str(command.expiry_mode or INVITE_EXPIRY_CAMPAIGN_DEFAULT)
+        if expiry_mode == INVITE_EXPIRY_CAMPAIGN_DEFAULT:
+            resolved_expiry_mode = version.root_invite_expiry_mode or INVITE_EXPIRY_RELATIVE
+            resolved_expiry_days = version.root_invite_expiry_days or 30
+            resolved_expires_at = version.root_invite_expires_at
+        else:
+            resolved_expiry_mode = expiry_mode
+            resolved_expiry_days = command.expiry_days
+            resolved_expires_at = command.expires_at
+        expiry = resolve_invite_expiry(
+            expiry_mode=resolved_expiry_mode,
+            expiry_days=resolved_expiry_days,
+            expires_at=resolved_expires_at,
+            now=datetime.now(UTC),
+        )
         grant_snapshot = dict(version.grant_snapshot or {})
+        display_days = display_days_for_duration(version.grant_duration_mode, version.grant_duration_days)
         batch = InviteBatchModel(
             owner_user_id=command.owner_user_id,
             invite_campaign_id=campaign.id,
@@ -556,20 +818,25 @@ class CreateInviteCampaignBatchUseCase:
             source_type="root_campaign",
             requested_count=int(command.count),
             issued_count=int(command.count),
-            friend_days=int(version.grant_duration_days or 365),
-            expiry_mode="absolute" if command.expires_at is not None else "relative",
-            expiry_days=None if command.expires_at is not None else expiry_days,
-            expires_at=expires_at,
+            friend_days=display_days,
+            expiry_mode=expiry.expiry_mode,
+            expiry_days=expiry.expiry_days,
+            expires_at=expiry.expires_at,
             entitlement_mode=version.grant_mode,
             entitlement_profile_key=f"{campaign.campaign_key}_v{version.version}",
             plan_id=version.grant_plan_id,
             entitlement_snapshot=grant_snapshot,
             grant_mode=version.grant_mode,
             grant_plan_id=version.grant_plan_id,
+            grant_duration_mode=version.grant_duration_mode,
             grant_duration_days=version.grant_duration_days,
+            grant_device_limit_override=version.grant_device_limit_override,
             grant_snapshot=grant_snapshot,
             child_grant_plan_id=version.child_grant_plan_id,
+            child_grant_duration_mode=version.child_grant_duration_mode,
             child_grant_duration_days=version.child_grant_duration_days,
+            child_grant_device_limit_override=version.child_grant_device_limit_override,
+            child_invite_expiry_mode=version.child_invite_expiry_mode,
             child_policy=dict(version.child_policy or {}),
             risk_policy=dict(version.risk_policy or {}),
             redemption_policy=dict(version.redemption_policy or {}),
@@ -592,7 +859,7 @@ class CreateInviteCampaignBatchUseCase:
                 InviteCodeModel(
                     code=raw_code,
                     owner_user_id=owner_user_id,
-                    free_days=int(version.grant_duration_days or 365),
+                    free_days=display_days,
                     plan_id=version.grant_plan_id,
                     batch_id=batch.id,
                     campaign_id=campaign.id,
@@ -606,16 +873,21 @@ class CreateInviteCampaignBatchUseCase:
                     entitlement_snapshot=grant_snapshot,
                     grant_mode=version.grant_mode,
                     grant_plan_id=version.grant_plan_id,
+                    grant_duration_mode=version.grant_duration_mode,
                     grant_duration_days=version.grant_duration_days,
+                    grant_device_limit_override=version.grant_device_limit_override,
                     grant_snapshot=grant_snapshot,
                     child_grant_plan_id=version.child_grant_plan_id,
+                    child_grant_duration_mode=version.child_grant_duration_mode,
                     child_grant_duration_days=version.child_grant_duration_days,
+                    child_grant_device_limit_override=version.child_grant_device_limit_override,
+                    child_invite_expiry_mode=version.child_invite_expiry_mode,
                     child_policy=dict(version.child_policy or {}),
                     risk_policy=dict(version.risk_policy or {}),
                     redemption_policy=dict(version.redemption_policy or {}),
                     issue_policy={"source": "root_campaign", "created_by_admin_id": str(admin_user_id)},
                     source="root_campaign",
-                    expires_at=expires_at,
+                    expires_at=expiry.expires_at,
                 )
             )
         self._session.add_all(invites)
@@ -648,50 +920,66 @@ class CreateInviteCampaignBatchUseCase:
         owner_user_id: UUID | None,
         requested_count: int,
     ) -> None:
-        caps = dict(campaign.caps or {})
-        max_per_batch = _positive_int(caps.get("max_per_batch"), default=1_000)
-        if requested_count > max_per_batch:
-            raise ValueError("Invite campaign batch exceeds per-batch cap")
+        await validate_invite_campaign_issue_caps(
+            self._session,
+            campaign=campaign,
+            owner_user_id=owner_user_id,
+            requested_count=requested_count,
+        )
 
-        max_total_issued = _optional_positive_int(caps.get("max_total_issued") or caps.get("global_issue_cap"))
-        if max_total_issued is not None:
-            issued = await self._session.execute(
-                select(func.count()).select_from(InviteCodeModel).where(InviteCodeModel.campaign_id == campaign.id)
-            )
-            if int(issued.scalar_one()) + requested_count > max_total_issued:
-                raise ValueError("Invite campaign total issue cap exceeded")
 
-        max_per_owner = _optional_positive_int(caps.get("max_per_owner"))
-        if max_per_owner is not None:
-            owner_filter = (
-                InviteCodeModel.owner_user_id.is_(None)
-                if owner_user_id is None
-                else InviteCodeModel.owner_user_id == owner_user_id
-            )
-            owner_issued = await self._session.execute(
-                select(func.count())
-                .select_from(InviteCodeModel)
-                .where(
-                    InviteCodeModel.campaign_id == campaign.id,
-                    owner_filter,
-                )
-            )
-            if int(owner_issued.scalar_one()) + requested_count > max_per_owner:
-                raise ValueError("Invite campaign owner issue cap exceeded")
+async def validate_invite_campaign_issue_caps(
+    session: AsyncSession,
+    *,
+    campaign: InviteCampaignModel,
+    owner_user_id: UUID | None,
+    requested_count: int,
+    enforce_owner_cap: bool = True,
+) -> None:
+    caps = dict(campaign.caps or {})
+    max_per_batch = _positive_int(caps.get("max_per_batch"), default=1_000)
+    if requested_count > max_per_batch:
+        raise ValueError("Invite campaign batch exceeds per-batch cap")
 
-        max_daily_issued = _optional_positive_int(caps.get("max_daily_issued"))
-        if max_daily_issued is not None:
-            today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-            daily_issued = await self._session.execute(
-                select(func.count())
-                .select_from(InviteCodeModel)
-                .where(
-                    InviteCodeModel.campaign_id == campaign.id,
-                    InviteCodeModel.created_at >= today,
-                )
+    max_total_issued = _optional_positive_int(caps.get("max_total_issued") or caps.get("global_issue_cap"))
+    if max_total_issued is not None:
+        issued = await session.execute(
+            select(func.count()).select_from(InviteCodeModel).where(InviteCodeModel.campaign_id == campaign.id)
+        )
+        if int(issued.scalar_one()) + requested_count > max_total_issued:
+            raise ValueError("Invite campaign total issue cap exceeded")
+
+    max_per_owner = _optional_positive_int(caps.get("max_per_owner"))
+    if enforce_owner_cap and max_per_owner is not None:
+        owner_filter = (
+            InviteCodeModel.owner_user_id.is_(None)
+            if owner_user_id is None
+            else InviteCodeModel.owner_user_id == owner_user_id
+        )
+        owner_issued = await session.execute(
+            select(func.count())
+            .select_from(InviteCodeModel)
+            .where(
+                InviteCodeModel.campaign_id == campaign.id,
+                owner_filter,
             )
-            if int(daily_issued.scalar_one()) + requested_count > max_daily_issued:
-                raise ValueError("Invite campaign daily issue cap exceeded")
+        )
+        if int(owner_issued.scalar_one()) + requested_count > max_per_owner:
+            raise ValueError("Invite campaign owner issue cap exceeded")
+
+    max_daily_issued = _optional_positive_int(caps.get("max_daily_issued"))
+    if max_daily_issued is not None:
+        today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+        daily_issued = await session.execute(
+            select(func.count())
+            .select_from(InviteCodeModel)
+            .where(
+                InviteCodeModel.campaign_id == campaign.id,
+                InviteCodeModel.created_at >= today,
+            )
+        )
+        if int(daily_issued.scalar_one()) + requested_count > max_daily_issued:
+            raise ValueError("Invite campaign daily issue cap exceeded")
 
 
 async def list_invite_campaigns(
@@ -821,6 +1109,59 @@ def _optional_positive_int(value: object) -> int | None:
     except (TypeError, ValueError):
         return None
     return parsed if parsed > 0 else None
+
+
+def _validate_lifetime_campaign_policy(
+    *,
+    grant_duration_mode: str,
+    child_grant_duration_mode: str,
+    child_invite_count: int,
+    max_generation_depth: int,
+    require_no_active_access: bool,
+    block_self_redemption: bool,
+    root_invite_expiry_mode: str,
+    child_invite_expiry_mode: str,
+    campaign_expires_at: datetime | None,
+    caps: dict[str, Any],
+    risk_policy: dict[str, Any],
+    lifetime_campaign_acknowledgement: bool,
+) -> None:
+    root_lifetime = normalize_invite_duration_mode(grant_duration_mode) == INVITE_DURATION_LIFETIME
+    child_lifetime = normalize_invite_duration_mode(child_grant_duration_mode) == INVITE_DURATION_LIFETIME
+    if not root_lifetime and not child_lifetime:
+        return
+    if not require_no_active_access:
+        raise ValueError("lifetime campaigns require require_no_active_access")
+    if not block_self_redemption:
+        raise ValueError("lifetime campaigns require block_self_redemption")
+    if _positive_int(risk_policy.get("per_user_redeem_cap"), default=0) != 1:
+        raise ValueError("lifetime campaigns require risk_policy.per_user_redeem_cap=1")
+    max_redemptions_per_device = _optional_positive_int(risk_policy.get("max_redemptions_per_device"))
+    if max_redemptions_per_device is None or max_redemptions_per_device > 1:
+        raise ValueError("lifetime campaigns require risk_policy.max_redemptions_per_device<=1")
+    max_redemptions_per_ip_window = _optional_positive_int(risk_policy.get("max_redemptions_per_ip_window"))
+    if max_redemptions_per_ip_window is None or max_redemptions_per_ip_window > 3:
+        raise ValueError("lifetime campaigns require risk_policy.max_redemptions_per_ip_window<=3")
+    velocity_window_hours = _optional_positive_int(risk_policy.get("velocity_window_hours"))
+    if velocity_window_hours is None or velocity_window_hours > 24:
+        raise ValueError("lifetime campaigns require risk_policy.velocity_window_hours<=24")
+    if risk_policy.get("deny_disposable_email") is not True:
+        raise ValueError("lifetime campaigns require risk_policy.deny_disposable_email=true")
+    if risk_policy.get("deny_known_abuse_subject") is not True:
+        raise ValueError("lifetime campaigns require risk_policy.deny_known_abuse_subject=true")
+    if child_invite_count > 0 and max_generation_depth > 5:
+        raise ValueError("lifetime campaigns with child invites require max_generation_depth <= 5")
+    if child_invite_count >= 10 and _optional_positive_int(caps.get("global_issue_cap")) is None:
+        raise ValueError("lifetime campaigns with 10 or more child invites require global_issue_cap")
+    if root_invite_expiry_mode == "none" and campaign_expires_at is None and not lifetime_campaign_acknowledgement:
+        raise ValueError("root no-expiry lifetime campaigns require lifetime_campaign_acknowledgement")
+    if (
+        root_invite_expiry_mode == "none"
+        and child_invite_expiry_mode == "none"
+        and max_generation_depth > 3
+        and not bool(risk_policy.get("high_risk_context"))
+    ):
+        raise ValueError("lifetime no-expiry campaigns deeper than 3 require risk_policy.high_risk_context")
 
 
 def _coerce_utc(value: datetime | None) -> datetime | None:

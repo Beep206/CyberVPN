@@ -24695,7 +24695,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AdminInviteCampaignActionRequest"
+                "$ref": "#/components/schemas/AdminInviteRedemptionReverseRequest"
               }
             }
           }
@@ -59207,6 +59207,17 @@
             ],
             "title": "Grant Plan Id"
           },
+          "grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Mode"
+          },
           "grant_duration_days": {
             "anyOf": [
               {
@@ -59217,6 +59228,17 @@
               }
             ],
             "title": "Grant Duration Days"
+          },
+          "grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Device Limit Override"
           },
           "grant_snapshot": {
             "anyOf": [
@@ -59242,6 +59264,17 @@
             ],
             "title": "Child Grant Plan Id"
           },
+          "child_grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Mode"
+          },
           "child_grant_duration_days": {
             "anyOf": [
               {
@@ -59252,6 +59285,28 @@
               }
             ],
             "title": "Child Grant Duration Days"
+          },
+          "child_grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Device Limit Override"
+          },
+          "child_invite_expiry_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invite Expiry Mode"
           },
           "child_policy": {
             "anyOf": [
@@ -59770,6 +59825,17 @@
             ],
             "title": "Grant Plan Id"
           },
+          "grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Mode"
+          },
           "grant_duration_days": {
             "anyOf": [
               {
@@ -59780,6 +59846,17 @@
               }
             ],
             "title": "Grant Duration Days"
+          },
+          "grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Device Limit Override"
           },
           "grant_snapshot": {
             "anyOf": [
@@ -59805,6 +59882,17 @@
             ],
             "title": "Child Grant Plan Id"
           },
+          "child_grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Mode"
+          },
           "child_grant_duration_days": {
             "anyOf": [
               {
@@ -59815,6 +59903,28 @@
               }
             ],
             "title": "Child Grant Duration Days"
+          },
+          "child_grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Device Limit Override"
+          },
+          "child_invite_expiry_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invite Expiry Mode"
           },
           "child_policy": {
             "anyOf": [
@@ -60007,6 +60117,17 @@
             ],
             "title": "Idempotency Key"
           },
+          "expiry_mode": {
+            "type": "string",
+            "enum": [
+              "campaign_default",
+              "relative",
+              "absolute",
+              "none"
+            ],
+            "title": "Expiry Mode",
+            "default": "campaign_default"
+          },
           "expires_at": {
             "anyOf": [
               {
@@ -60030,8 +60151,7 @@
                 "type": "null"
               }
             ],
-            "title": "Expiry Days",
-            "default": 30
+            "title": "Expiry Days"
           },
           "reason": {
             "type": "string",
@@ -60195,12 +60315,77 @@
             "title": "Grant Plan Code",
             "default": "premium_smart_ru"
           },
+          "grant_duration_mode": {
+            "type": "string",
+            "enum": [
+              "fixed_days",
+              "lifetime"
+            ],
+            "title": "Grant Duration Mode",
+            "default": "fixed_days"
+          },
           "grant_duration_days": {
-            "type": "integer",
-            "maximum": 3660.0,
-            "minimum": 1.0,
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3660.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Grant Duration Days",
             "default": 365
+          },
+          "grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 200.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Device Limit Override"
+          },
+          "root_invite_expiry_mode": {
+            "type": "string",
+            "enum": [
+              "relative",
+              "absolute",
+              "none"
+            ],
+            "title": "Root Invite Expiry Mode",
+            "default": "relative"
+          },
+          "root_invite_expiry_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3660.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Expiry Days",
+            "default": 30
+          },
+          "root_invite_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Expires At"
           },
           "child_invite_count": {
             "type": "integer",
@@ -60212,16 +60397,45 @@
           "child_invite_free_days": {
             "type": "integer",
             "maximum": 3660.0,
-            "minimum": 1.0,
+            "minimum": 0.0,
             "title": "Child Invite Free Days",
             "default": 365
           },
+          "child_invite_expiry_mode": {
+            "type": "string",
+            "enum": [
+              "relative",
+              "absolute",
+              "none"
+            ],
+            "title": "Child Invite Expiry Mode",
+            "default": "relative"
+          },
           "child_invite_expiry_days": {
-            "type": "integer",
-            "maximum": 3660.0,
-            "minimum": 1.0,
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3660.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Child Invite Expiry Days",
             "default": 30
+          },
+          "child_invite_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invite Expires At"
           },
           "child_grant_plan_id": {
             "anyOf": [
@@ -60248,6 +60462,15 @@
             "title": "Child Grant Plan Code",
             "default": "premium_smart_ru"
           },
+          "child_grant_duration_mode": {
+            "type": "string",
+            "enum": [
+              "fixed_days",
+              "lifetime"
+            ],
+            "title": "Child Grant Duration Mode",
+            "default": "fixed_days"
+          },
           "child_grant_duration_days": {
             "anyOf": [
               {
@@ -60261,6 +60484,19 @@
             ],
             "title": "Child Grant Duration Days",
             "default": 365
+          },
+          "child_grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 200.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Device Limit Override"
           },
           "max_generation_depth": {
             "type": "integer",
@@ -60298,6 +60534,11 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Caps"
+          },
+          "lifetime_campaign_acknowledgement": {
+            "type": "boolean",
+            "title": "Lifetime Campaign Acknowledgement",
+            "default": false
           },
           "publish": {
             "type": "boolean",
@@ -60578,12 +60819,77 @@
             "title": "Grant Plan Code",
             "default": "premium_smart_ru"
           },
+          "grant_duration_mode": {
+            "type": "string",
+            "enum": [
+              "fixed_days",
+              "lifetime"
+            ],
+            "title": "Grant Duration Mode",
+            "default": "fixed_days"
+          },
           "grant_duration_days": {
-            "type": "integer",
-            "maximum": 3660.0,
-            "minimum": 1.0,
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3660.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Grant Duration Days",
             "default": 365
+          },
+          "grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 200.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Device Limit Override"
+          },
+          "root_invite_expiry_mode": {
+            "type": "string",
+            "enum": [
+              "relative",
+              "absolute",
+              "none"
+            ],
+            "title": "Root Invite Expiry Mode",
+            "default": "relative"
+          },
+          "root_invite_expiry_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3660.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Expiry Days",
+            "default": 30
+          },
+          "root_invite_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Expires At"
           },
           "child_invite_count": {
             "type": "integer",
@@ -60595,16 +60901,45 @@
           "child_invite_free_days": {
             "type": "integer",
             "maximum": 3660.0,
-            "minimum": 1.0,
+            "minimum": 0.0,
             "title": "Child Invite Free Days",
             "default": 365
           },
+          "child_invite_expiry_mode": {
+            "type": "string",
+            "enum": [
+              "relative",
+              "absolute",
+              "none"
+            ],
+            "title": "Child Invite Expiry Mode",
+            "default": "relative"
+          },
           "child_invite_expiry_days": {
-            "type": "integer",
-            "maximum": 3660.0,
-            "minimum": 1.0,
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3660.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Child Invite Expiry Days",
             "default": 30
+          },
+          "child_invite_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invite Expires At"
           },
           "child_grant_plan_id": {
             "anyOf": [
@@ -60631,6 +60966,15 @@
             "title": "Child Grant Plan Code",
             "default": "premium_smart_ru"
           },
+          "child_grant_duration_mode": {
+            "type": "string",
+            "enum": [
+              "fixed_days",
+              "lifetime"
+            ],
+            "title": "Child Grant Duration Mode",
+            "default": "fixed_days"
+          },
           "child_grant_duration_days": {
             "anyOf": [
               {
@@ -60644,6 +60988,19 @@
             ],
             "title": "Child Grant Duration Days",
             "default": 365
+          },
+          "child_grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 200.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Device Limit Override"
           },
           "max_generation_depth": {
             "type": "integer",
@@ -60683,6 +61040,16 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Notification Policy"
+          },
+          "caps": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Caps"
+          },
+          "lifetime_campaign_acknowledgement": {
+            "type": "boolean",
+            "title": "Lifetime Campaign Acknowledgement",
+            "default": false
           },
           "reason": {
             "anyOf": [
@@ -60736,6 +61103,11 @@
             ],
             "title": "Grant Plan Id"
           },
+          "grant_duration_mode": {
+            "type": "string",
+            "title": "Grant Duration Mode",
+            "default": "fixed_days"
+          },
           "grant_duration_days": {
             "anyOf": [
               {
@@ -60746,6 +61118,45 @@
               }
             ],
             "title": "Grant Duration Days"
+          },
+          "grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Device Limit Override"
+          },
+          "root_invite_expiry_mode": {
+            "type": "string",
+            "title": "Root Invite Expiry Mode",
+            "default": "relative"
+          },
+          "root_invite_expiry_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Expiry Days"
+          },
+          "root_invite_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Expires At"
           },
           "grant_snapshot": {
             "additionalProperties": true,
@@ -60761,8 +61172,32 @@
             "title": "Child Invite Free Days"
           },
           "child_invite_expiry_days": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Child Invite Expiry Days"
+          },
+          "child_invite_expiry_mode": {
+            "type": "string",
+            "title": "Child Invite Expiry Mode",
+            "default": "relative"
+          },
+          "child_invite_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invite Expires At"
           },
           "child_grant_plan_id": {
             "anyOf": [
@@ -60776,6 +61211,11 @@
             ],
             "title": "Child Grant Plan Id"
           },
+          "child_grant_duration_mode": {
+            "type": "string",
+            "title": "Child Grant Duration Mode",
+            "default": "fixed_days"
+          },
           "child_grant_duration_days": {
             "anyOf": [
               {
@@ -60786,6 +61226,17 @@
               }
             ],
             "title": "Child Grant Duration Days"
+          },
+          "child_grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Device Limit Override"
           },
           "child_grant_snapshot": {
             "additionalProperties": true,
@@ -60895,7 +61346,6 @@
           "grant_snapshot",
           "child_invite_count",
           "child_invite_free_days",
-          "child_invite_expiry_days",
           "child_grant_snapshot",
           "max_generation_depth",
           "block_self_redemption",
@@ -61210,6 +61660,17 @@
             ],
             "title": "Grant Plan Code"
           },
+          "grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Mode"
+          },
           "grant_duration_days": {
             "anyOf": [
               {
@@ -61220,6 +61681,28 @@
               }
             ],
             "title": "Grant Duration Days"
+          },
+          "grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Device Limit Override"
+          },
+          "root_invite_expiry_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Invite Expiry Mode"
           },
           "child_grant_plan_id": {
             "anyOf": [
@@ -61244,6 +61727,17 @@
             ],
             "title": "Child Grant Plan Code"
           },
+          "child_grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Mode"
+          },
           "child_grant_duration_days": {
             "anyOf": [
               {
@@ -61254,6 +61748,33 @@
               }
             ],
             "title": "Child Grant Duration Days"
+          },
+          "child_grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Device Limit Override"
+          },
+          "child_invite_count": {
+            "type": "integer",
+            "title": "Child Invite Count",
+            "default": 0
+          },
+          "child_invite_expiry_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invite Expiry Mode"
           },
           "child_policy_preview": {
             "anyOf": [
@@ -61526,6 +62047,36 @@
         ],
         "title": "AdminInviteRedemptionResponse"
       },
+      "AdminInviteRedemptionReverseRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 240,
+            "minLength": 3,
+            "title": "Reason"
+          },
+          "cascade_mode": {
+            "type": "string",
+            "enum": [
+              "none",
+              "unused_child_invites",
+              "all_descendants"
+            ],
+            "title": "Cascade Mode",
+            "default": "unused_child_invites"
+          },
+          "confirm_descendant_reversal": {
+            "type": "boolean",
+            "title": "Confirm Descendant Reversal",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "AdminInviteRedemptionReverseRequest"
+      },
       "AdminInviteTreeEdgeResponse": {
         "properties": {
           "id": {
@@ -61712,6 +62263,28 @@
             ],
             "title": "Grant Plan Id"
           },
+          "grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Mode"
+          },
+          "grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Device Limit Override"
+          },
           "child_batch_id": {
             "anyOf": [
               {
@@ -61746,6 +62319,27 @@
               }
             ],
             "title": "Granted Plan Code"
+          },
+          "grant_lifetime": {
+            "type": "boolean",
+            "title": "Grant Lifetime",
+            "default": false
+          },
+          "child_invite_count": {
+            "type": "integer",
+            "title": "Child Invite Count",
+            "default": 0
+          },
+          "child_invite_expiry_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invite Expiry Mode"
           },
           "child_count": {
             "type": "integer",
@@ -74167,6 +74761,17 @@
             ],
             "title": "Grant Plan Id"
           },
+          "grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Mode"
+          },
           "grant_duration_days": {
             "anyOf": [
               {
@@ -74177,6 +74782,17 @@
               }
             ],
             "title": "Grant Duration Days"
+          },
+          "grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Device Limit Override"
           },
           "child_grant_plan_id": {
             "anyOf": [
@@ -74190,6 +74806,17 @@
             ],
             "title": "Child Grant Plan Id"
           },
+          "child_grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Mode"
+          },
           "child_grant_duration_days": {
             "anyOf": [
               {
@@ -74200,6 +74827,28 @@
               }
             ],
             "title": "Child Grant Duration Days"
+          },
+          "child_grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Device Limit Override"
+          },
+          "child_invite_expiry_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invite Expiry Mode"
           },
           "child_policy": {
             "anyOf": [
@@ -80161,6 +80810,17 @@
             ],
             "title": "Grant Plan Id"
           },
+          "grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Duration Mode"
+          },
           "grant_duration_days": {
             "anyOf": [
               {
@@ -80171,6 +80831,17 @@
               }
             ],
             "title": "Grant Duration Days"
+          },
+          "grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Device Limit Override"
           },
           "child_grant_plan_id": {
             "anyOf": [
@@ -80184,6 +80855,17 @@
             ],
             "title": "Child Grant Plan Id"
           },
+          "child_grant_duration_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Duration Mode"
+          },
           "child_grant_duration_days": {
             "anyOf": [
               {
@@ -80194,6 +80876,28 @@
               }
             ],
             "title": "Child Grant Duration Days"
+          },
+          "child_grant_device_limit_override": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Grant Device Limit Override"
+          },
+          "child_invite_expiry_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Child Invite Expiry Mode"
           },
           "child_policy": {
             "anyOf": [

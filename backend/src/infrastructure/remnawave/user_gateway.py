@@ -149,6 +149,9 @@ class RemnawaveUserGateway:
         # Remnawave generates protocol secrets itself; our local password field is not part
         # of the upstream contract.
         payload.pop("password", None)
+        payload.pop("allow_missing_expire_at", None)
+        payload.pop("lifetime_expiry_mode", None)
+        payload.pop("lifetime_expire_at", None)
 
         return payload
 
@@ -169,8 +172,9 @@ class RemnawaveUserGateway:
         return expires_at.isoformat().replace("+00:00", "Z")
 
     async def create(self, username: str, **kwargs) -> User:
+        allow_missing_expire_at = bool(kwargs.get("allow_missing_expire_at"))
         payload = self._normalize_user_payload({"username": username, **kwargs})
-        if not payload.get("expireAt"):
+        if not payload.get("expireAt") and not allow_missing_expire_at:
             payload["expireAt"] = self._build_default_expire_at()
         if not payload.get("activeInternalSquads"):
             default_internal_squad_uuids = await self._resolve_default_internal_squad_uuids()

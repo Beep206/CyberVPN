@@ -6,6 +6,7 @@ Provides:
 - ``POST /admin/invite-codes``    -- admin creates invite codes
 """
 
+import hashlib
 import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -15,6 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService, OutboxActorContext
+from src.application.services.auth_session_issuer import hash_device_key
 from src.application.services.config_service import ConfigService
 from src.application.use_cases.auth.permissions import Permission, has_permission
 from src.application.use_cases.growth_notifications.fanout import PlanCustomerGrowthNotificationFanoutUseCase
@@ -30,7 +32,7 @@ from src.application.use_cases.invites.campaigns import (
     ValidateInviteCampaignVersionUseCase,
     list_invite_campaigns,
 )
-from src.application.use_cases.invites.redeem_invite import RedeemInviteUseCase
+from src.application.use_cases.invites.redeem_invite import InviteRedemptionRuntimeContext, RedeemInviteUseCase
 from src.application.use_cases.service_access.entitlements import RevokeEntitlementGrantUseCase
 from src.application.use_cases.trial.stage1_trial_provisioning import (
     Stage1TrialProvisioningGateway,
@@ -50,6 +52,7 @@ from src.infrastructure.database.models.invite_campaign_model import (
     InviteCampaignModel,
     InviteCampaignVersionModel,
     InviteRedemptionModel,
+    InviteTreeClosureModel,
     InviteTreeEdgeModel,
 )
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
@@ -63,6 +66,7 @@ from src.infrastructure.monitoring.instrumentation.growth_codes import (
     log_growth_code_event,
     observe_growth_admin_grant,
     observe_growth_code_issue,
+    observe_lifetime_invite_reversal,
 )
 from src.infrastructure.monitoring.instrumentation.routes import track_invite_operation
 from src.infrastructure.remnawave.client import RemnawaveClient, get_remnawave_client
@@ -71,6 +75,7 @@ from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.admin.audit import write_required_admin_audit_entry
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
+from src.presentation.dependencies.client_ip import resolve_client_ip
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_permission
 
@@ -96,6 +101,7 @@ from .schemas import (
     AdminInviteCodeSummaryResponse,
     AdminInviteRedemptionListResponse,
     AdminInviteRedemptionResponse,
+    AdminInviteRedemptionReverseRequest,
     AdminInviteTreeEdgeResponse,
     AdminInviteTreeNodeResponse,
     AdminInviteTreeResponse,
@@ -109,6 +115,7 @@ from .schemas import (
 )
 
 logger = logging.getLogger(__name__)
+MAX_SYNCHRONOUS_DESCENDANT_REVERSAL = 5_000
 
 router = APIRouter(prefix="/invites", tags=["invites"])
 
@@ -168,6 +175,7 @@ async def _provision_redeemed_invite_access(
 )
 async def redeem_invite(
     body: RedeemInviteRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
@@ -182,6 +190,7 @@ async def redeem_invite(
             user_id=user_id,
             current_realm=current_realm,
             source_surface="web",
+            runtime_context=_invite_redemption_runtime_context(request),
         )
     except InviteCodeNotFoundError:
         track_invite_operation(operation="redeem", success=False)
@@ -277,6 +286,23 @@ def _invite_result_is_plan_backed(result) -> bool:
         return True
     invite = getattr(result, "invite", None)
     return bool(invite is not None and getattr(invite, "grant_mode", None) in {"plan_snapshot", "custom_snapshot"})
+
+
+def _invite_redemption_runtime_context(request: Request) -> InviteRedemptionRuntimeContext:
+    client_ip = resolve_client_ip(request).ip
+    device_key = (
+        request.cookies.get("__Host-cvpn_device_id")
+        or request.headers.get("X-Device-ID")
+        or request.headers.get("X-CyberVPN-Device-ID")
+    )
+    return InviteRedemptionRuntimeContext(
+        client_ip_hash=_hash_runtime_key(client_ip) if client_ip else None,
+        device_key_hash=hash_device_key(device_key.strip()) if device_key else None,
+    )
+
+
+def _hash_runtime_key(value: str) -> str:
+    return hashlib.sha256(value.strip().encode("utf-8")).hexdigest()
 
 
 @router.get(
@@ -612,13 +638,22 @@ async def admin_create_invite_campaign(
                 risk_policy_key=body.risk_policy_key,
                 grant_plan_id=body.grant_plan_id,
                 grant_plan_code=body.grant_plan_code,
+                grant_duration_mode=body.grant_duration_mode,
                 grant_duration_days=body.grant_duration_days,
+                grant_device_limit_override=body.grant_device_limit_override,
+                root_invite_expiry_mode=body.root_invite_expiry_mode,
+                root_invite_expiry_days=body.root_invite_expiry_days,
+                root_invite_expires_at=body.root_invite_expires_at,
                 child_grant_plan_id=body.child_grant_plan_id,
                 child_grant_plan_code=body.child_grant_plan_code,
+                child_grant_duration_mode=body.child_grant_duration_mode,
                 child_grant_duration_days=body.child_grant_duration_days,
+                child_grant_device_limit_override=body.child_grant_device_limit_override,
                 child_invite_count=body.child_invite_count,
                 child_invite_free_days=body.child_invite_free_days,
+                child_invite_expiry_mode=body.child_invite_expiry_mode,
                 child_invite_expiry_days=body.child_invite_expiry_days,
+                child_invite_expires_at=body.child_invite_expires_at,
                 max_generation_depth=body.max_generation_depth,
                 require_no_active_access=body.require_no_active_access,
                 block_self_redemption=body.block_self_redemption,
@@ -626,6 +661,7 @@ async def admin_create_invite_campaign(
                 export_policy=body.export_policy,
                 notification_policy=body.notification_policy,
                 caps=body.caps,
+                lifetime_campaign_acknowledgement=body.lifetime_campaign_acknowledgement,
                 publish=body.publish,
                 reason=body.reason,
             ),
@@ -668,13 +704,22 @@ async def admin_create_invite_campaign_version(
             command=CreateInviteCampaignVersionCommand(
                 grant_plan_id=body.grant_plan_id,
                 grant_plan_code=body.grant_plan_code,
+                grant_duration_mode=body.grant_duration_mode,
                 grant_duration_days=body.grant_duration_days,
+                grant_device_limit_override=body.grant_device_limit_override,
+                root_invite_expiry_mode=body.root_invite_expiry_mode,
+                root_invite_expiry_days=body.root_invite_expiry_days,
+                root_invite_expires_at=body.root_invite_expires_at,
                 child_invite_count=body.child_invite_count,
                 child_invite_free_days=body.child_invite_free_days,
+                child_invite_expiry_mode=body.child_invite_expiry_mode,
                 child_invite_expiry_days=body.child_invite_expiry_days,
+                child_invite_expires_at=body.child_invite_expires_at,
                 child_grant_plan_id=body.child_grant_plan_id,
                 child_grant_plan_code=body.child_grant_plan_code,
+                child_grant_duration_mode=body.child_grant_duration_mode,
                 child_grant_duration_days=body.child_grant_duration_days,
+                child_grant_device_limit_override=body.child_grant_device_limit_override,
                 max_generation_depth=body.max_generation_depth,
                 require_no_active_access=body.require_no_active_access,
                 block_self_redemption=body.block_self_redemption,
@@ -682,6 +727,8 @@ async def admin_create_invite_campaign_version(
                 risk_policy=body.risk_policy,
                 export_policy=body.export_policy,
                 notification_policy=body.notification_policy,
+                caps=body.caps,
+                lifetime_campaign_acknowledgement=body.lifetime_campaign_acknowledgement,
                 reason=body.reason,
             ),
             admin_user_id=current_user.id,
@@ -819,6 +866,7 @@ async def admin_create_invite_campaign_batch(
                 count=body.count,
                 version_id=body.version_id,
                 idempotency_key=body.idempotency_key,
+                expiry_mode=body.expiry_mode,
                 expires_at=body.expires_at,
                 expiry_days=body.expiry_days,
                 reason=body.reason,
@@ -906,6 +954,22 @@ async def admin_get_invite_campaign_analytics(
             InviteCodeModel.campaign_id == campaign_id
         )
     )
+    lifetime_grants = await db.execute(
+        select(func.count())
+        .select_from(InviteCodeModel)
+        .where(
+            InviteCodeModel.campaign_id == campaign_id,
+            InviteCodeModel.grant_duration_mode == "lifetime",
+        )
+    )
+    premium_smart_ru_grants = await db.execute(
+        select(func.count())
+        .select_from(InviteCodeModel)
+        .where(
+            InviteCodeModel.campaign_id == campaign_id,
+            InviteCodeModel.grant_snapshot["plan_code"].as_string() == "premium_smart_ru",
+        )
+    )
     depth_rows = await db.execute(
         select(InviteCodeModel.generation_depth, func.count())
         .where(InviteCodeModel.campaign_id == campaign_id)
@@ -938,6 +1002,8 @@ async def admin_get_invite_campaign_analytics(
         "blocked_count": int(blocked.scalar_one()),
         "active_vpn_total": active_vpn_total,
         "child_invites_issued_total": int(child_batches.scalar_one() or 0),
+        "lifetime_grants": int(lifetime_grants.scalar_one() or 0),
+        "premium_smart_ru_grants": int(premium_smart_ru_grants.scalar_one() or 0),
         "max_depth_reached": int(max_depth.scalar_one() or 0),
         "depth_breakdown": {str(depth): int(count) for depth, count in depth_rows.all()},
         "conversion": {
@@ -954,7 +1020,7 @@ async def admin_get_invite_campaign_analytics(
 )
 async def admin_reverse_invite_redemption(
     redemption_id: UUID,
-    body: AdminInviteCampaignActionRequest,
+    body: AdminInviteRedemptionReverseRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: AdminUserModel = Depends(require_permission(Permission.GROWTH_CAMPAIGNS_REVOKE)),
@@ -981,25 +1047,28 @@ async def admin_reverse_invite_redemption(
                     revoked_by_admin_user_id=current_user.id,
                     reason_code="invite_redemption_reversed",
                 )
-        if redemption.child_batch_id is not None:
+        if redemption.child_batch_id is not None and body.cascade_mode in {"unused_child_invites", "all_descendants"}:
             child_batch = await db.get(InviteBatchModel, redemption.child_batch_id)
             if child_batch is not None:
                 child_batch.status = "revoked"
                 child_batch.revoked_at = child_batch.revoked_at or now
                 child_batch.revoked_by_admin_id = current_user.id
                 child_batch.revoked_reason = body.reason
-                child_invites = await db.execute(
-                    select(InviteCodeModel).where(
-                        InviteCodeModel.batch_id == child_batch.id,
-                        InviteCodeModel.is_used.is_(False),
-                        InviteCodeModel.revoked_at.is_(None),
-                    )
+                await _revoke_unused_invites_for_batch(
+                    db=db,
+                    batch_id=child_batch.id,
+                    reversed_at=now,
+                    current_user=current_user,
+                    reason=body.reason,
                 )
-                for invite in child_invites.scalars().all():
-                    invite.status = "revoked"
-                    invite.revoked_at = now
-                    invite.revoked_by_admin_id = current_user.id
-                    invite.revoked_reason = body.reason
+        if body.cascade_mode == "all_descendants":
+            await _reverse_invite_descendants(
+                db=db,
+                root_redemption=redemption,
+                reversed_at=now,
+                current_user=current_user,
+                reason=body.reason,
+            )
         edge_result = await db.execute(
             select(InviteTreeEdgeModel).where(InviteTreeEdgeModel.redemption_id == redemption.id)
         )
@@ -1037,11 +1106,135 @@ async def admin_reverse_invite_redemption(
                 else None,
                 "child_batch_id": str(redemption.child_batch_id) if redemption.child_batch_id else None,
                 "reason": body.reason,
+                "cascade_mode": body.cascade_mode,
             },
             actor_context=OutboxActorContext(principal_type="admin", principal_id=str(current_user.id)),
             source_context={"source_use_case": "admin_reverse_invite_redemption_route"},
         )
+        grant_snapshot = redemption.grant_snapshot or {}
+        is_lifetime_reversal = (
+            grant_snapshot.get("duration_mode") == "lifetime" or bool(grant_snapshot.get("lifetime"))
+        )
+        if is_lifetime_reversal:
+            observe_lifetime_invite_reversal(
+                plan_code=_grant_plan_code(grant_snapshot),
+                cascade_mode=body.cascade_mode,
+                result="success",
+            )
     return AdminInviteRedemptionResponse.model_validate(redemption)
+
+
+async def _reverse_invite_descendants(
+    *,
+    db: AsyncSession,
+    root_redemption: InviteRedemptionModel,
+    reversed_at: datetime,
+    current_user: AdminUserModel,
+    reason: str,
+) -> None:
+    root_invite_code_id = root_redemption.root_invite_code_id or root_redemption.invite_code_id
+    descendant_rows = await db.execute(
+        select(InviteTreeClosureModel.descendant_invite_code_id).where(
+            InviteTreeClosureModel.root_invite_code_id == root_invite_code_id,
+            InviteTreeClosureModel.ancestor_invite_code_id == root_redemption.invite_code_id,
+            InviteTreeClosureModel.descendant_invite_code_id != root_redemption.invite_code_id,
+        )
+    )
+    descendant_ids = {item for item in descendant_rows.scalars().all()}
+    if not descendant_ids:
+        return
+    if len(descendant_ids) > MAX_SYNCHRONOUS_DESCENDANT_REVERSAL:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Descendant reversal exceeds synchronous limit; "
+                "use a bounded operational runbook for this invite tree"
+            ),
+        )
+
+    invites_result = await db.execute(select(InviteCodeModel).where(InviteCodeModel.id.in_(descendant_ids)))
+    for invite in invites_result.scalars().all():
+        if not invite.is_used and invite.revoked_at is None:
+            invite.status = "revoked"
+            invite.revoked_at = reversed_at
+            invite.revoked_by_admin_id = current_user.id
+            invite.revoked_reason = reason
+
+    redemptions_result = await db.execute(
+        select(InviteRedemptionModel).where(
+            InviteRedemptionModel.invite_code_id.in_(descendant_ids),
+            InviteRedemptionModel.status == "redeemed",
+        )
+    )
+    for descendant_redemption in redemptions_result.scalars().all():
+        descendant_redemption.status = "reversed"
+        descendant_redemption.reversed_at = descendant_redemption.reversed_at or reversed_at
+        descendant_redemption.blocked_reason = reason
+        if descendant_redemption.entitlement_grant_id is not None:
+            grant = await db.get(EntitlementGrantModel, descendant_redemption.entitlement_grant_id)
+            if grant is not None and grant.grant_status not in {"revoked", "expired"}:
+                await RevokeEntitlementGrantUseCase(db).execute(
+                    entitlement_grant_id=grant.id,
+                    revoked_by_admin_user_id=current_user.id,
+                    reason_code="invite_redemption_descendant_reversed",
+                )
+        if descendant_redemption.child_batch_id is not None:
+            child_batch = await db.get(InviteBatchModel, descendant_redemption.child_batch_id)
+            if child_batch is not None:
+                child_batch.status = "revoked"
+                child_batch.revoked_at = child_batch.revoked_at or reversed_at
+                child_batch.revoked_by_admin_id = current_user.id
+                child_batch.revoked_reason = reason
+                await _revoke_unused_invites_for_batch(
+                    db=db,
+                    batch_id=child_batch.id,
+                    reversed_at=reversed_at,
+                    current_user=current_user,
+                    reason=reason,
+                )
+
+    edge_result = await db.execute(
+        select(InviteTreeEdgeModel).where(
+            InviteTreeEdgeModel.root_invite_code_id == root_invite_code_id,
+            InviteTreeEdgeModel.redeemed_invite_code_id.in_(descendant_ids),
+        )
+    )
+    for edge in edge_result.scalars().all():
+        edge.status = "reversed"
+
+    closure_result = await db.execute(
+        select(InviteTreeClosureModel).where(
+            InviteTreeClosureModel.root_invite_code_id == root_invite_code_id,
+            InviteTreeClosureModel.descendant_invite_code_id.in_(descendant_ids),
+        )
+    )
+    for closure in closure_result.scalars().all():
+        if hasattr(closure, "status"):
+            closure.status = "reversed"
+        if hasattr(closure, "reversed_at"):
+            closure.reversed_at = closure.reversed_at or reversed_at
+
+
+async def _revoke_unused_invites_for_batch(
+    *,
+    db: AsyncSession,
+    batch_id: UUID,
+    reversed_at: datetime,
+    current_user: AdminUserModel,
+    reason: str,
+) -> None:
+    child_invites = await db.execute(
+        select(InviteCodeModel).where(
+            InviteCodeModel.batch_id == batch_id,
+            InviteCodeModel.is_used.is_(False),
+            InviteCodeModel.revoked_at.is_(None),
+        )
+    )
+    for invite in child_invites.scalars().all():
+        invite.status = "revoked"
+        invite.revoked_at = reversed_at
+        invite.revoked_by_admin_id = current_user.id
+        invite.revoked_reason = reason
 
 
 @invite_tree_admin_router.get(
@@ -1472,8 +1665,12 @@ def _safe_child_policy_preview(policy: dict[str, object] | None) -> dict[str, ob
         "friend_days",
         "grant_plan_id",
         "grant_plan_code",
+        "grant_duration_mode",
         "grant_duration_days",
+        "grant_device_limit_override",
+        "expiry_mode",
         "expiry_days",
+        "expires_at",
         "max_generation_depth",
         "issue_timing",
     }
@@ -1514,12 +1711,19 @@ def _serialize_admin_invite_code(
             (plan_code_map.get(invite.grant_plan_id) if invite.grant_plan_id is not None else None)
             or (plan_code_map.get(invite.plan_id) if invite.plan_id is not None else None)
         ),
+        grant_duration_mode=invite.grant_duration_mode,
         grant_duration_days=invite.grant_duration_days,
+        grant_device_limit_override=invite.grant_device_limit_override,
+        root_invite_expiry_mode="none" if invite.expires_at is None else "absolute",
         child_grant_plan_id=invite.child_grant_plan_id,
         child_grant_plan_code=plan_code_map.get(invite.child_grant_plan_id)
         if invite.child_grant_plan_id is not None
         else None,
+        child_grant_duration_mode=invite.child_grant_duration_mode,
         child_grant_duration_days=invite.child_grant_duration_days,
+        child_grant_device_limit_override=invite.child_grant_device_limit_override,
+        child_invite_count=int((invite.child_policy or {}).get("count") or 0),
+        child_invite_expiry_mode=invite.child_invite_expiry_mode,
         child_policy_preview=_safe_child_policy_preview(dict(invite.child_policy or {})),
     )
 
@@ -1580,9 +1784,15 @@ async def _build_invite_tree_response(db: AsyncSession, root_invite_code_id: UUI
                 status=invite.status,
                 grant_mode=invite.grant_mode,
                 grant_plan_id=invite.grant_plan_id,
+                grant_duration_mode=invite.grant_duration_mode,
+                grant_device_limit_override=invite.grant_device_limit_override,
                 child_batch_id=None,
                 granted_plan_id=invite.grant_plan_id or invite.plan_id,
                 granted_plan_code=_grant_plan_code(invite.grant_snapshot),
+                grant_lifetime=bool((invite.grant_snapshot or {}).get("lifetime"))
+                or invite.grant_duration_mode == "lifetime",
+                child_invite_count=int((invite.child_policy or {}).get("count") or 0),
+                child_invite_expiry_mode=invite.child_invite_expiry_mode,
                 child_count=child_counts.get(invite.id, 0),
                 created_at=invite.created_at,
                 used_at=invite.used_at,
@@ -1640,10 +1850,34 @@ async def _build_invite_tree_stats(db: AsyncSession, root_invite_code_id: UUID) 
             InviteCodeModel.root_invite_code_id == root_invite_code_id
         )
     )
+    lifetime_nodes = await db.execute(
+        select(func.count())
+        .select_from(InviteCodeModel)
+        .where(
+            InviteCodeModel.root_invite_code_id == root_invite_code_id,
+            InviteCodeModel.grant_duration_mode == "lifetime",
+        )
+    )
+    premium_smart_ru_nodes = await db.execute(
+        select(func.count())
+        .select_from(InviteCodeModel)
+        .where(
+            InviteCodeModel.root_invite_code_id == root_invite_code_id,
+            InviteCodeModel.grant_snapshot["plan_code"].as_string() == "premium_smart_ru",
+        )
+    )
+    child_invites_issued_total = int(child_issued.scalar_one() or 0)
+    lifetime_grants = int(lifetime_nodes.scalar_one() or 0)
+    premium_smart_ru_grants = int(premium_smart_ru_nodes.scalar_one() or 0)
     return {
         "total_nodes": int(total_nodes.scalar_one() or 0),
         "total_redeemed": int(total_redeemed.scalar_one() or 0),
-        "total_child_invites_issued": int(child_issued.scalar_one() or 0),
+        "total_child_invites_issued": child_invites_issued_total,
+        "child_invites_issued_total": child_invites_issued_total,
+        "lifetime_nodes": lifetime_grants,
+        "lifetime_grants": lifetime_grants,
+        "premium_smart_ru_nodes": premium_smart_ru_grants,
+        "premium_smart_ru_grants": premium_smart_ru_grants,
         "max_depth_reached": int(max_depth.scalar_one() or 0),
     }
 

@@ -459,6 +459,7 @@
       "createBatch": "Create batch",
       "createCampaign": "Create campaign",
       "creating": "Creating...",
+      "applyLifetimePreset": "Apply Premium Smart RU lifetime preset",
       "exportBatch": "Export batch",
       "exporting": "Exporting...",
       "extend": "Extend",
@@ -503,6 +504,9 @@
       "redemptions": "Redemptions",
       "redemptionsHint": "Redeemed invite outcomes from campaign analytics or visible inventory."
     },
+    "presets": {
+      "premiumSmartRuLifetimeName": "Premium Smart RU Lifetime Viral"
+    },
     "feedback": {
       "batchCreated": "Invite campaign batch was created and inventory was refreshed.",
       "batchActionCompleted": "Invite batch action was applied and inventory was refreshed.",
@@ -535,6 +539,7 @@
       "empty": "No invite campaigns matched the current filter.",
       "inventoryDescription": "Bounded list of flexible invite campaigns from the live admin API.",
       "inventoryTitle": "Campaign Inventory",
+      "lifetimeWarning": "Lifetime campaigns create non-expiring access. Keep global issue caps, high-risk context, no-active-access, and self-redemption protection enabled before publishing.",
       "loading": "Loading invite campaigns...",
       "versionBadge": "v{version}"
     },
@@ -595,7 +600,9 @@
       "description": "Read-only snapshot of the selected campaign version policy and analytics. Policy mutations remain backend-owned.",
       "empty": "Select a campaign with a current version to inspect policy settings.",
       "issued": "Issued Codes",
+      "lifetimeGrants": "Lifetime Grants",
       "maxDepth": "Max Depth",
+      "premiumSmartRuGrants": "Premium Smart RU Grants",
       "surfaces": "Allowed Surfaces",
       "title": "Campaign Settings"
     },
@@ -610,11 +617,15 @@
       "campaignId": "Campaign ID",
       "campaignKey": "Campaign Key",
       "childGrantDurationDays": "Child Grant Duration Days",
+      "childGrantDurationMode": "Child Grant Duration Mode",
+      "childGrantDeviceLimitOverride": "Child Device Limit Override",
       "childGrantPlan": "Child Grant Plan",
       "childGrantPlanCode": "Child Grant Plan Code",
       "childGrantPlanCodeFallback": "Use child plan code fallback",
       "childInviteCount": "Child Invite Count",
+      "childInviteExpiresAt": "Child Invite Expires At",
       "childInviteExpiryDays": "Child Invite Expiry Days",
+      "childInviteExpiryMode": "Child Invite Expiry Mode",
       "childInviteFreeDays": "Child Invite Free Days",
       "count": "Count",
       "description": "Description",
@@ -622,9 +633,12 @@
       "expiresFrom": "Expires From",
       "expiresTo": "Expires To",
       "expiryDays": "Expiry Days",
+      "expiryMode": "Expiry Mode",
       "extendExpiryDays": "Extend Days",
       "generationDepth": "Generation Depth",
+      "grantDeviceLimitOverride": "Device Limit Override",
       "grantDurationDays": "Grant Duration Days",
+      "grantDurationMode": "Grant Duration Mode",
       "grantMode": "Grant Mode",
       "grantPlan": "Grant Plan",
       "grantPlanCode": "Grant Plan Code",
@@ -635,7 +649,16 @@
       "allowedSegments": "Allowed segments",
       "blockSelfRedemption": "Block self-redemption",
       "globalIssueCap": "Global issue cap",
+      "highRiskContext": "High-risk campaign context",
+      "lifetimeCampaignAcknowledgement": "Acknowledge lifetime no-expiry campaign",
       "maxDailyIssued": "Max daily issued",
+      "maxRedemptionsPerDevice": "Max redemptions per device",
+      "maxRedemptionsPerIpWindow": "Max redemptions per IP window",
+      "velocityWindowHours": "Velocity window hours",
+      "denyDisposableEmail": "Deny disposable email accounts",
+      "denyKnownAbuseSubject": "Deny known-abuse subjects",
+      "reversalCascadeMode": "Reversal Cascade Mode",
+      "confirmDescendantReversal": "Confirm descendant reversal",
       "maxGenerationDepth": "Max Generation Depth",
       "maxPerBatch": "Max per batch",
       "maxPerOwner": "Max per owner",
@@ -653,7 +676,10 @@
       "reason": "Reason",
       "requireNoActiveAccess": "Require no active access",
       "riskPolicyKey": "Risk policy key",
+      "rootInviteExpiresAt": "Root Invite Expires At",
       "rootInviteCodeId": "Root Invite Code ID",
+      "rootInviteExpiryDays": "Root Invite Expiry Days",
+      "rootInviteExpiryMode": "Root Invite Expiry Mode",
       "startsAt": "Starts At",
       "status": "Status",
       "used": "Usage",
@@ -666,10 +692,13 @@
     "table": {
       "actions": "Actions",
       "batch": "Batch",
+      "childPolicy": "Child Policy",
       "childInvites": "Child Invites",
       "code": "Code",
       "created": "Created",
       "depth": "Depth",
+      "devices": "Devices",
+      "duration": "Duration",
       "exported": "Exported",
       "expires": "Expires",
       "invitee": "Invitee",
@@ -687,6 +716,21 @@
       "miniapp": "Mini App",
       "telegram_bot": "Telegram bot",
       "web": "Web"
+    },
+    "durationModes": {
+      "fixed_days": "Fixed days",
+      "lifetime": "Lifetime"
+    },
+    "expiryModes": {
+      "absolute": "Absolute",
+      "campaign_default": "Campaign default",
+      "none": "No expiry",
+      "relative": "Relative"
+    },
+    "cascadeModes": {
+      "all_descendants": "All descendants",
+      "none": "No cascade",
+      "unused_child_invites": "Unused child invites"
     }
   },
   "giftCodes": {

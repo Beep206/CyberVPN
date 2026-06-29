@@ -54,6 +54,42 @@ cybervpn_invites_redeemed_total = Counter(
     ("source_type", "surface", "result"),
 )
 
+cybervpn_invite_campaign_lifetime_created_total = Counter(
+    "cybervpn_invite_campaign_lifetime_created_total",
+    "Lifetime invite campaign versions created.",
+    ("plan_code", "root_expiry_mode", "child_expiry_mode", "result"),
+)
+
+cybervpn_invite_lifetime_redemption_total = Counter(
+    "cybervpn_invite_lifetime_redemption_total",
+    "Lifetime invite redemptions.",
+    ("plan_code", "source_type", "surface", "result"),
+)
+
+cybervpn_invite_lifetime_child_issued_total = Counter(
+    "cybervpn_invite_lifetime_child_issued_total",
+    "Lifetime child invites issued after redemption.",
+    ("plan_code", "expiry_mode", "result"),
+)
+
+cybervpn_invite_device_override_used_total = Counter(
+    "cybervpn_invite_device_override_used_total",
+    "Invite device-limit overrides applied.",
+    ("plan_code", "duration_mode", "surface", "result"),
+)
+
+cybervpn_invite_lifetime_reversal_total = Counter(
+    "cybervpn_invite_lifetime_reversal_total",
+    "Lifetime invite redemptions reversed by admin.",
+    ("plan_code", "cascade_mode", "result"),
+)
+
+cybervpn_invite_lifetime_remnawave_sentinel_total = Counter(
+    "cybervpn_invite_lifetime_remnawave_sentinel_total",
+    "Lifetime Remnawave upstream expiry strategy usage.",
+    ("mode", "result"),
+)
+
 cybervpn_referral_rewards_created_total = Counter(
     "cybervpn_referral_rewards_created_total",
     "Referral reward allocations created.",

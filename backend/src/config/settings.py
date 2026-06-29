@@ -68,6 +68,8 @@ class Settings(BaseSettings):
     remnawave_webhook_future_skew_seconds: int = 60
     remnawave_webhook_max_body_bytes: int = 65536
     remnawave_default_user_expire_days: int = 7
+    remnawave_lifetime_expiry_mode: Literal["sentinel", "none"] = "sentinel"
+    remnawave_lifetime_expire_at: str = "2099-12-31T23:59:59Z"
     remnawave_default_internal_squad_uuid: str = ""
     remnawave_default_internal_squad_name: str = "Default-Squad"
     remnawave_subscription_public_base_url: str = "https://cyber-vpn.org/api/sub"

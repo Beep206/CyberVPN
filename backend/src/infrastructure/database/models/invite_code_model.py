@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
@@ -14,6 +14,25 @@ class InviteCodeModel(Base):
     """Invite codes generated from purchases or granted by admin."""
 
     __tablename__ = "invite_codes"
+    __table_args__ = (
+        CheckConstraint(
+            "grant_duration_mode IN ('fixed_days','lifetime')",
+            name="ck_invite_codes_grant_duration_mode",
+        ),
+        CheckConstraint(
+            "child_grant_duration_mode IN ('fixed_days','lifetime')",
+            name="ck_invite_codes_child_grant_duration_mode",
+        ),
+        CheckConstraint(
+            "child_invite_expiry_mode IN ('relative','absolute','none')",
+            name="ck_invite_codes_child_expiry_mode",
+        ),
+        CheckConstraint(
+            "(grant_device_limit_override IS NULL OR grant_device_limit_override > 0) "
+            "AND (child_grant_device_limit_override IS NULL OR child_grant_device_limit_override > 0)",
+            name="ck_invite_codes_device_override_positive",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True,
@@ -147,7 +166,19 @@ class InviteCodeModel(Base):
         index=True,
     )
 
+    grant_duration_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="fixed_days",
+        server_default="fixed_days",
+    )
+
     grant_duration_days: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    grant_device_limit_override: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
     )
@@ -164,9 +195,28 @@ class InviteCodeModel(Base):
         index=True,
     )
 
+    child_grant_duration_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="fixed_days",
+        server_default="fixed_days",
+    )
+
     child_grant_duration_days: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
+    )
+
+    child_grant_device_limit_override: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    child_invite_expiry_mode: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="relative",
+        server_default="relative",
     )
 
     child_policy: Mapped[dict[str, Any]] = mapped_column(
@@ -246,4 +296,4 @@ class InviteCodeModel(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<InviteCode(id={self.id}, code={self.code}, is_used={self.is_used})>"
+        return f"<InviteCode(id={self.id}, code_prefix={self.code_prefix}, is_used={self.is_used})>"

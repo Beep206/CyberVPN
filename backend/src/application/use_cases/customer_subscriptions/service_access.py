@@ -14,6 +14,7 @@ from src.application.use_cases.customer_subscriptions.list_customer_subscription
     CustomerSubscriptionSummary,
     ListCustomerSubscriptionsUseCase,
 )
+from src.application.use_cases.invites.lifetime_policy import remnawave_lifetime_payload
 from src.application.use_cases.service_access.access_delivery_channels import (
     CreateAccessDeliveryChannelUseCase,
     TouchAccessDeliveryChannelUseCase,
@@ -34,6 +35,7 @@ from src.application.use_cases.trial.stage1_trial_policy import (
     STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
     STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY,
 )
+from src.config.settings import settings
 from src.infrastructure.database.models.access_delivery_channel_model import AccessDeliveryChannelModel
 from src.infrastructure.database.models.device_credential_model import DeviceCredentialModel
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
@@ -41,6 +43,7 @@ from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.provisioning_profile_model import ProvisioningProfileModel
 from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.database.repositories.service_access_repo import ServiceAccessRepository
+from src.infrastructure.monitoring.instrumentation.growth_codes import observe_lifetime_remnawave_expiry_mode
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.smart_ru_bundle import (
     SmartRuConfigurationError,
@@ -308,14 +311,25 @@ class CustomerSubscriptionServiceAccessUseCase:
         snapshot = self._snapshot_from_summary(item)
         effective = dict(snapshot.get("effective_entitlements") or {})
         gateway = RemnawaveUserGateway(remnawave_client)
-        expires_at = _parse_datetime(item.expires_at) or datetime.now(UTC) + timedelta(days=3650)
+        expires_at = _parse_datetime(item.expires_at)
+        lifetime_access = bool(snapshot.get("lifetime")) or snapshot.get("duration_mode") == "lifetime"
         payload = {
             "email": customer.email,
-            "expire_at": expires_at,
             "traffic_limit_bytes": _resolve_traffic_limit_bytes(effective),
             "trafficLimitStrategy": STAGE1_PAID_TRAFFIC_LIMIT_STRATEGY,
             "hwid_device_limit": max(1, int(effective.get("device_limit") or 1)),
         }
+        if expires_at is not None:
+            payload["expire_at"] = expires_at
+        elif lifetime_access:
+            payload.update(
+                remnawave_lifetime_payload(
+                    mode=settings.remnawave_lifetime_expiry_mode,
+                    sentinel_expire_at=settings.remnawave_lifetime_expire_at,
+                )
+            )
+        else:
+            payload["expire_at"] = datetime.now(UTC) + timedelta(days=3650)
         try:
             smart_ru_external_squad_uuid = resolve_smart_ru_external_squad_uuid(item.plan_code)
             smart_ru_internal_squad_uuids = resolve_smart_ru_internal_squad_uuids(item.plan_code)
@@ -336,6 +350,11 @@ class CustomerSubscriptionServiceAccessUseCase:
             username=f"cvpn_s_{grant.id.hex[:28]}",
             **payload,
         )
+        if lifetime_access:
+            observe_lifetime_remnawave_expiry_mode(
+                mode=str(payload.get("lifetime_expiry_mode") or "sentinel"),
+                result="success",
+            )
         subscription_url = normalize_public_subscription_url(created_user.subscription_url)
 
         if existing is None:
@@ -354,6 +373,11 @@ class CustomerSubscriptionServiceAccessUseCase:
                     "plan_code": item.plan_code,
                     "subscription_url": subscription_url,
                     "provisioned_from": "msub08_selected_grant",
+                    "lifetime": lifetime_access,
+                    "remnawave_lifetime_expiry_mode": payload.get("lifetime_expiry_mode"),
+                    "remnawave_lifetime_expire_at": payload.get("lifetime_expire_at"),
+                    "upstream_expiry_mode": payload.get("upstream_expiry_mode"),
+                    "upstream_expires_at": payload.get("upstream_expires_at"),
                 },
             )
             service_identity = created.service_identity
@@ -367,6 +391,11 @@ class CustomerSubscriptionServiceAccessUseCase:
                 "plan_code": item.plan_code,
                 "subscription_url": subscription_url,
                 "provisioned_from": "msub08_selected_grant",
+                "lifetime": lifetime_access,
+                "remnawave_lifetime_expiry_mode": payload.get("lifetime_expiry_mode"),
+                "remnawave_lifetime_expire_at": payload.get("lifetime_expire_at"),
+                "upstream_expiry_mode": payload.get("upstream_expiry_mode"),
+                "upstream_expires_at": payload.get("upstream_expires_at"),
             }
             service_identity = existing
 
