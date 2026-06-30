@@ -479,6 +479,9 @@
       "selected_user": "Selected user",
       "uploaded_user_list": "Uploaded user list"
     },
+    "planFamilies": {
+      "premium_smart_ru": "premium_smart_ru"
+    },
     "tabs": {
       "label": "Invite operations tabs",
       "overview": "Overview",
@@ -506,7 +509,9 @@
       "redemptionsHint": "Redeemed invite outcomes from campaign analytics or visible inventory."
     },
     "presets": {
-      "premiumSmartRuLifetimeName": "Premium Smart RU Lifetime Viral"
+      "premiumSmartRuLifetimeDescription": "Многоразовый root invite: Premium Smart RU lifetime, 5 devices, 12 unique single-use child invites.",
+      "premiumSmartRuLifetimeReason": "create premium smart ru lifetime multi-use root campaign",
+      "premiumSmartRuLifetimeName": "Premium Smart RU Lifetime Multi-use Root"
     },
     "feedback": {
       "batchCreated": "Invite campaign batch was created and inventory was refreshed.",
@@ -545,8 +550,13 @@
       "empty": "No invite campaigns matched the current filter.",
       "inventoryDescription": "Bounded list of flexible invite campaigns from the live admin API.",
       "inventoryTitle": "Campaign Inventory",
+      "childLifetimeNullBadge": "Child lifetime access: child_grant_duration_days will be sent as null.",
+      "childPlanDurationOverrideWarning": "The selected child plan duration will be overridden by the lifetime policy.",
+      "lifetimeNullBadge": "Lifetime access: grant_duration_days will be sent as null.",
+      "lifetimePlanHelper": "Lifetime access does not need a separate lifetime tariff. Select Duration Mode = Lifetime or use plan code premium_smart_ru. If a 30/90/180/365-day plan is selected, its duration is overridden by the Lifetime policy.",
       "lifetimeWarning": "Lifetime campaigns create non-expiring access. Keep global issue caps, high-risk context, no-active-access, and self-redemption protection enabled before publishing.",
       "loading": "Loading invite campaigns...",
+      "planDurationOverrideWarning": "The selected plan duration will be overridden by the lifetime policy.",
       "versionBadge": "v{version}"
     },
     "createBatch": {
@@ -629,6 +639,7 @@
       "childGrantPlan": "Child Grant Plan",
       "childGrantPlanCode": "Child Grant Plan Code",
       "childGrantPlanCodeFallback": "Use child plan code fallback",
+      "childPlanFamily": "Child Plan Family / Plan Code",
       "childInviteCount": "Child Invite Count",
       "childInviteExpiresAt": "Child Invite Expires At",
       "childInviteExpiryDays": "Child Invite Expiry Days",
@@ -682,6 +693,8 @@
       "perUserRedeemCap": "Per-user redeem cap",
       "planId": "Plan",
       "planCode": "Plan Code",
+      "planFamily": "Plan Family / Plan Code",
+      "planFamilyNone": "Manual plan id or plan code",
       "prefix": "Code Prefix",
       "limit": "Rows per page",
       "publishNow": "Publish after creation",

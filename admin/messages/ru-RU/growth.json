@@ -181,6 +181,9 @@
       "selected_user": "Выбранный пользователь",
       "uploaded_user_list": "Загруженный список пользователей"
     },
+    "planFamilies": {
+      "premium_smart_ru": "premium_smart_ru"
+    },
     "batches": {
       "description": "Последние invite batches с owner, количеством выдачи, lifecycle-статусом, expiry и выбором для export или audit review.",
       "empty": "В текущем окне invite batches не найдены.",
@@ -193,8 +196,13 @@
       "empty": "По текущему фильтру invite campaigns не найдены.",
       "inventoryDescription": "Ограниченный список flexible invite campaigns из live admin API.",
       "inventoryTitle": "Инвентарь Кампаний",
+      "childLifetimeNullBadge": "Бессрочный дочерний доступ: child_grant_duration_days будет отправлен как null.",
+      "childPlanDurationOverrideWarning": "Срок выбранного дочернего плана будет переопределён lifetime policy.",
+      "lifetimeNullBadge": "Бессрочный доступ: grant_duration_days будет отправлен как null.",
+      "lifetimePlanHelper": "Для бессрочного доступа не нужен отдельный бессрочный тариф. Выберите режим срока «Бессрочно» или используйте код плана premium_smart_ru. Если выбран план на 30/90/180/365 дней, его срок будет переопределён lifetime policy.",
       "lifetimeWarning": "Бессрочные кампании создают доступ без даты окончания. Перед публикацией оставьте включенными глобальный лимит выдачи, high-risk context, no-active-access и защиту от самопогашения.",
       "loading": "Загружаем invite campaigns...",
+      "planDurationOverrideWarning": "Срок выбранного плана будет переопределён lifetime policy.",
       "versionBadge": "v{version}"
     },
     "createBatch": {
@@ -251,6 +259,7 @@
       "childGrantPlan": "План дочернего доступа",
       "childGrantPlanCode": "Код плана дочернего доступа",
       "childGrantPlanCodeFallback": "Использовать fallback код дочернего плана",
+      "childPlanFamily": "Plan Family / код дочернего плана",
       "childInviteCount": "Количество дочерних инвайтов",
       "childInviteExpiresAt": "Дочерний инвайт истекает",
       "childInviteExpiryDays": "Дней жизни дочернего инвайта",
@@ -304,6 +313,8 @@
       "perUserRedeemCap": "Лимит погашений на пользователя",
       "planId": "План",
       "planCode": "Код плана",
+      "planFamily": "Plan Family / код плана",
+      "planFamilyNone": "Ручной plan id или plan code",
       "prefix": "Префикс кода",
       "limit": "Строк на странице",
       "publishNow": "Опубликовать после создания",
@@ -361,7 +372,9 @@
       "title": "Операционный Обзор"
     },
     "presets": {
-      "premiumSmartRuLifetimeName": "Бессрочная viral-кампания Premium Smart RU"
+      "premiumSmartRuLifetimeDescription": "Многоразовый root invite: Premium Smart RU lifetime, 5 devices, 12 unique single-use child invites.",
+      "premiumSmartRuLifetimeReason": "create premium smart ru lifetime multi-use root campaign",
+      "premiumSmartRuLifetimeName": "Premium Smart RU Lifetime Multi-use Root"
     },
     "redemptions": {
       "description": "У кампании {campaign} {count} redemption records в текущем backend window.",

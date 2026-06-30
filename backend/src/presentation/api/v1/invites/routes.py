@@ -28,6 +28,7 @@ from src.application.use_cases.invites.campaigns import (
     CreateInviteCampaignUseCase,
     CreateInviteCampaignVersionCommand,
     CreateInviteCampaignVersionUseCase,
+    InviteCampaignValidationError,
     PublishInviteCampaignVersionUseCase,
     ValidateInviteCampaignVersionUseCase,
     list_invite_campaigns,
@@ -96,6 +97,7 @@ from .schemas import (
     AdminInviteCampaignCreateRequest,
     AdminInviteCampaignListResponse,
     AdminInviteCampaignResponse,
+    AdminInviteCampaignValidationErrorResponse,
     AdminInviteCampaignVersionCreateRequest,
     AdminInviteCampaignVersionResponse,
     AdminInviteCampaignVersionValidationResponse,
@@ -500,6 +502,12 @@ invite_redemption_admin_router = APIRouter(prefix="/admin/invite-redemptions", t
 invite_tree_admin_router = APIRouter(prefix="/admin/invite-trees", tags=["admin", "invite-trees"])
 
 
+def _invite_campaign_validation_detail(exc: ValueError) -> str | dict[str, str]:
+    if isinstance(exc, InviteCampaignValidationError):
+        return exc.to_detail()
+    return str(exc)
+
+
 @admin_router.post(
     "",
     response_model=list[InviteCodeResponse],
@@ -785,6 +793,12 @@ async def admin_list_invite_campaigns(
     response_model=AdminInviteCampaignResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Admin: create flexible invite campaign",
+    responses={
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "model": AdminInviteCampaignValidationErrorResponse,
+            "description": "Invite campaign policy validation error.",
+        }
+    },
 )
 async def admin_create_invite_campaign(
     body: AdminInviteCampaignCreateRequest,
@@ -845,7 +859,10 @@ async def admin_create_invite_campaign(
             admin_user_id=current_user.id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=_invite_campaign_validation_detail(exc),
+        ) from exc
     return await _serialize_invite_campaign(db, campaign)
 
 
@@ -868,6 +885,12 @@ async def admin_get_invite_campaign(
     response_model=AdminInviteCampaignVersionResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Admin: create draft invite campaign version",
+    responses={
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "model": AdminInviteCampaignValidationErrorResponse,
+            "description": "Invite campaign policy validation error.",
+        }
+    },
 )
 async def admin_create_invite_campaign_version(
     campaign_id: UUID,
@@ -919,7 +942,10 @@ async def admin_create_invite_campaign_version(
             admin_user_id=current_user.id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=_invite_campaign_validation_detail(exc),
+        ) from exc
     return AdminInviteCampaignVersionResponse.model_validate(version)
 
 

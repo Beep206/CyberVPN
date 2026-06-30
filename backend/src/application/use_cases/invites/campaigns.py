@@ -43,6 +43,27 @@ INVITE_USAGE_CAMPAIGN_DEFAULT = "campaign_default"
 MULTI_USE_PRACTICAL_HARD_CAP = 1_000_000
 
 
+class InviteCampaignValidationError(ValueError):
+    """Structured invite campaign policy validation error for admin API responses."""
+
+    def __init__(self, *, code: str, message_key: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message_key = message_key
+        self.message = message
+
+    def to_detail(self) -> dict[str, str]:
+        return {
+            "code": self.code,
+            "message_key": self.message_key,
+            "message": self.message,
+        }
+
+
+def _policy_error(*, code: str, message_key: str, message: str) -> InviteCampaignValidationError:
+    return InviteCampaignValidationError(code=code, message_key=message_key, message=message)
+
+
 @dataclass(frozen=True)
 class CreateInviteCampaignCommand:
     campaign_key: str
@@ -1324,7 +1345,11 @@ def _normalize_invite_max_redemptions(
     parsed = _optional_positive_int(max_redemptions)
     if parsed is None:
         if not acknowledgement:
-            raise ValueError("multi_use_acknowledgement is required when max_redemptions is omitted")
+            raise _policy_error(
+                code="INVITE_CAMPAIGN_MULTI_USE_ACK_REQUIRED",
+                message_key="invite_campaign.multi_use_ack_required",
+                message="Multi-use acknowledgement is required.",
+            )
         return MULTI_USE_PRACTICAL_HARD_CAP
     if parsed <= 1:
         raise ValueError("multi_use invite codes require max_redemptions greater than 1")
@@ -1347,25 +1372,57 @@ def _validate_multi_use_campaign_policy(
     policy: dict[str, Any],
 ) -> dict[str, Any]:
     if not acknowledgement:
-        raise ValueError("multi_use_acknowledgement is required for multi_use invite campaigns")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_MULTI_USE_ACK_REQUIRED",
+            message_key="invite_campaign.multi_use_ack_required",
+            message="Multi-use acknowledgement is required.",
+        )
     if max_generation_depth > 5:
-        raise ValueError("multi_use invite campaigns require max_generation_depth <= 5")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_MAX_DEPTH_REQUIRED",
+            message_key="invite_campaign.max_generation_depth_required",
+            message="Multi-use invite campaigns require max_generation_depth <= 5.",
+        )
     if _optional_positive_int(caps.get("global_issue_cap") or caps.get("max_total_issued")) is None:
-        raise ValueError("multi_use invite campaigns require global_issue_cap or max_total_issued")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_GLOBAL_ISSUE_CAP_REQUIRED",
+            message_key="invite_campaign.global_issue_cap_required",
+            message="Multi-use invite campaigns require global_issue_cap or max_total_issued.",
+        )
 
     max_per_device = _optional_positive_int(risk_policy.get("max_redemptions_per_device"))
     max_per_ip_window = _optional_positive_int(risk_policy.get("max_redemptions_per_ip_window"))
     velocity_window_hours = _optional_positive_int(risk_policy.get("velocity_window_hours"))
     if max_per_device is None or max_per_device > 1:
-        raise ValueError("multi_use invite campaigns require max_redemptions_per_device <= 1")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_DEVICE_CAP_REQUIRED",
+            message_key="invite_campaign.device_cap_required",
+            message="Multi-use invite campaigns require max_redemptions_per_device <= 1.",
+        )
     if max_per_ip_window is None or max_per_ip_window > 3:
-        raise ValueError("multi_use invite campaigns require max_redemptions_per_ip_window <= 3")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_IP_WINDOW_CAP_REQUIRED",
+            message_key="invite_campaign.ip_window_cap_required",
+            message="Multi-use invite campaigns require max_redemptions_per_ip_window <= 3.",
+        )
     if velocity_window_hours is None or velocity_window_hours > 24:
-        raise ValueError("multi_use invite campaigns require velocity_window_hours <= 24")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_VELOCITY_WINDOW_REQUIRED",
+            message_key="invite_campaign.velocity_window_required",
+            message="Multi-use invite campaigns require velocity_window_hours <= 24.",
+        )
     if risk_policy.get("deny_disposable_email") is not True:
-        raise ValueError("multi_use invite campaigns require deny_disposable_email=true")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_DISPOSABLE_EMAIL_DENY_REQUIRED",
+            message_key="invite_campaign.disposable_email_deny_required",
+            message="Multi-use invite campaigns require deny_disposable_email=true.",
+        )
     if risk_policy.get("deny_known_abuse_subject") is not True:
-        raise ValueError("multi_use invite campaigns require deny_known_abuse_subject=true")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_KNOWN_ABUSE_DENY_REQUIRED",
+            message_key="invite_campaign.known_abuse_deny_required",
+            message="Multi-use invite campaigns require deny_known_abuse_subject=true.",
+        )
 
     result = dict(policy or {})
     result.setdefault("high_risk_context", True)
@@ -1396,37 +1453,85 @@ def _validate_lifetime_campaign_policy(
     if not root_lifetime and not child_lifetime:
         return
     if not require_no_active_access:
-        raise ValueError("lifetime campaigns require require_no_active_access")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_REQUIRE_NO_ACTIVE_ACCESS_REQUIRED",
+            message_key="invite_campaign.require_no_active_access_required",
+            message="Lifetime campaigns require require_no_active_access.",
+        )
     if not block_self_redemption:
-        raise ValueError("lifetime campaigns require block_self_redemption")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_BLOCK_SELF_REDEMPTION_REQUIRED",
+            message_key="invite_campaign.block_self_redemption_required",
+            message="Lifetime campaigns require block_self_redemption.",
+        )
     if _positive_int(risk_policy.get("per_user_redeem_cap"), default=0) != 1:
-        raise ValueError("lifetime campaigns require risk_policy.per_user_redeem_cap=1")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_PER_USER_REDEEM_CAP_REQUIRED",
+            message_key="invite_campaign.per_user_redeem_cap_required",
+            message="Lifetime campaigns require risk_policy.per_user_redeem_cap=1.",
+        )
     max_redemptions_per_device = _optional_positive_int(risk_policy.get("max_redemptions_per_device"))
     if max_redemptions_per_device is None or max_redemptions_per_device > 1:
-        raise ValueError("lifetime campaigns require risk_policy.max_redemptions_per_device<=1")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_DEVICE_CAP_REQUIRED",
+            message_key="invite_campaign.device_cap_required",
+            message="Lifetime campaigns require risk_policy.max_redemptions_per_device<=1.",
+        )
     max_redemptions_per_ip_window = _optional_positive_int(risk_policy.get("max_redemptions_per_ip_window"))
     if max_redemptions_per_ip_window is None or max_redemptions_per_ip_window > 3:
-        raise ValueError("lifetime campaigns require risk_policy.max_redemptions_per_ip_window<=3")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_IP_WINDOW_CAP_REQUIRED",
+            message_key="invite_campaign.ip_window_cap_required",
+            message="Lifetime campaigns require risk_policy.max_redemptions_per_ip_window<=3.",
+        )
     velocity_window_hours = _optional_positive_int(risk_policy.get("velocity_window_hours"))
     if velocity_window_hours is None or velocity_window_hours > 24:
-        raise ValueError("lifetime campaigns require risk_policy.velocity_window_hours<=24")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_VELOCITY_WINDOW_REQUIRED",
+            message_key="invite_campaign.velocity_window_required",
+            message="Lifetime campaigns require risk_policy.velocity_window_hours<=24.",
+        )
     if risk_policy.get("deny_disposable_email") is not True:
-        raise ValueError("lifetime campaigns require risk_policy.deny_disposable_email=true")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_DISPOSABLE_EMAIL_DENY_REQUIRED",
+            message_key="invite_campaign.disposable_email_deny_required",
+            message="Lifetime campaigns require risk_policy.deny_disposable_email=true.",
+        )
     if risk_policy.get("deny_known_abuse_subject") is not True:
-        raise ValueError("lifetime campaigns require risk_policy.deny_known_abuse_subject=true")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_KNOWN_ABUSE_DENY_REQUIRED",
+            message_key="invite_campaign.known_abuse_deny_required",
+            message="Lifetime campaigns require risk_policy.deny_known_abuse_subject=true.",
+        )
     if child_invite_count > 0 and max_generation_depth > 5:
-        raise ValueError("lifetime campaigns with child invites require max_generation_depth <= 5")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_MAX_DEPTH_REQUIRED",
+            message_key="invite_campaign.max_generation_depth_required",
+            message="Lifetime campaigns with child invites require max_generation_depth <= 5.",
+        )
     if child_invite_count >= 10 and _optional_positive_int(caps.get("global_issue_cap")) is None:
-        raise ValueError("lifetime campaigns with 10 or more child invites require global_issue_cap")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_GLOBAL_ISSUE_CAP_REQUIRED",
+            message_key="invite_campaign.global_issue_cap_required",
+            message="Lifetime campaigns with 10 or more child invites require global_issue_cap.",
+        )
     if root_invite_expiry_mode == "none" and campaign_expires_at is None and not lifetime_campaign_acknowledgement:
-        raise ValueError("root no-expiry lifetime campaigns require lifetime_campaign_acknowledgement")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_LIFETIME_ACK_REQUIRED",
+            message_key="invite_campaign.lifetime_ack_required",
+            message="Lifetime campaign acknowledgement is required.",
+        )
     if (
         root_invite_expiry_mode == "none"
         and child_invite_expiry_mode == "none"
         and max_generation_depth > 3
         and not bool(risk_policy.get("high_risk_context"))
     ):
-        raise ValueError("lifetime no-expiry campaigns deeper than 3 require risk_policy.high_risk_context")
+        raise _policy_error(
+            code="INVITE_CAMPAIGN_HIGH_RISK_CONTEXT_REQUIRED",
+            message_key="invite_campaign.high_risk_context_required",
+            message="Lifetime no-expiry campaigns deeper than 3 require risk_policy.high_risk_context.",
+        )
 
 
 def _coerce_utc(value: datetime | None) -> datetime | None:

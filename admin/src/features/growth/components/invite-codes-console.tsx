@@ -67,6 +67,7 @@ const EXPIRY_MODE_OPTIONS = ['relative', 'absolute', 'none'];
 const BATCH_EXPIRY_MODE_OPTIONS = ['campaign_default', 'relative', 'absolute', 'none'];
 const USAGE_MODE_OPTIONS = ['single_use', 'multi_use'];
 const BATCH_USAGE_MODE_OPTIONS = ['campaign_default', 'single_use', 'multi_use'];
+const PLAN_FAMILY_OPTIONS = ['', 'premium_smart_ru'];
 
 const initialCampaignForm = {
   campaignKey: '',
@@ -92,6 +93,7 @@ const initialCampaignForm = {
   denyDisposableEmail: true,
   denyKnownAbuseSubject: true,
   grantPlanId: '',
+  grantPlanFamily: '',
   grantPlanCode: '',
   grantDurationMode: 'fixed_days',
   grantDurationDays: '365',
@@ -103,6 +105,7 @@ const initialCampaignForm = {
   rootMaxRedemptions: '1',
   rootPerUserRedemptionCap: '1',
   childGrantPlanId: '',
+  childGrantPlanFamily: '',
   childGrantPlanCode: '',
   childGrantDurationMode: 'fixed_days',
   childGrantDurationDays: '365',
@@ -140,12 +143,24 @@ const initialBatchForm = {
   reason: '',
 };
 
-function premiumSmartRuLifetimePreset(displayName: string) {
+function premiumSmartRuLifetimePreset({
+  displayName,
+  description,
+  reason,
+}: {
+  displayName: string;
+  description: string;
+  reason: string;
+}) {
   return {
     ...initialCampaignForm,
-    campaignKey: 'premium_smart_ru_lifetime_viral',
+    campaignKey: 'premium_smart_ru_lifetime_multi_root_2026_06_30',
     name: displayName,
-    ownerMode: 'selected_user',
+    description,
+    ownerMode: 'system',
+    allowedSurfaces: SURFACE_OPTIONS,
+    grantPlanId: '',
+    grantPlanFamily: 'premium_smart_ru',
     grantPlanCode: 'premium_smart_ru',
     grantDurationMode: 'lifetime',
     grantDurationDays: '',
@@ -155,6 +170,8 @@ function premiumSmartRuLifetimePreset(displayName: string) {
     rootUsageMode: 'multi_use',
     rootMaxRedemptions: '100000',
     rootPerUserRedemptionCap: '1',
+    childGrantPlanId: '',
+    childGrantPlanFamily: 'premium_smart_ru',
     childGrantPlanCode: 'premium_smart_ru',
     childGrantDurationMode: 'lifetime',
     childGrantDurationDays: '',
@@ -168,7 +185,7 @@ function premiumSmartRuLifetimePreset(displayName: string) {
     childPerUserRedemptionCap: '1',
     maxGenerationDepth: '5',
     perUserRedeemCap: '1',
-    globalIssueCap: '100000',
+    globalIssueCap: '1500000',
     maxPerBatch: '1000',
     maxPerOwner: '12',
     maxDailyIssued: '10000',
@@ -183,6 +200,7 @@ function premiumSmartRuLifetimePreset(displayName: string) {
     multiUseAcknowledgement: true,
     lifetimeCampaignAcknowledgement: true,
     publish: false,
+    reason,
   };
 }
 
@@ -1048,6 +1066,12 @@ function CampaignsTab({
   onSelectCampaign: (campaign: AdminInviteCampaignResponse) => void;
 }) {
   const fanoutEstimate = estimateFanoutIssueCap(campaignForm);
+  const rootPlanDurationOverridden =
+    Boolean(campaignForm.grantPlanId) && campaignForm.grantDurationMode === 'lifetime';
+  const childPlanDurationOverridden =
+    Boolean(campaignForm.childGrantPlanId) && campaignForm.childGrantDurationMode === 'lifetime';
+  const lifetimeDurationSelected =
+    campaignForm.grantDurationMode === 'lifetime' || campaignForm.childGrantDurationMode === 'lifetime';
 
   return (
     <div className="grid gap-6 2xl:grid-cols-[minmax(20rem,0.95fr)_minmax(0,1.2fr)]">
@@ -1066,7 +1090,15 @@ function CampaignsTab({
           className="mt-4 w-full"
           variant="outline"
           magnetic={false}
-          onClick={() => setCampaignForm(premiumSmartRuLifetimePreset(t('inviteCodes.presets.premiumSmartRuLifetimeName')))}
+          onClick={() =>
+            setCampaignForm(
+              premiumSmartRuLifetimePreset({
+                displayName: t('inviteCodes.presets.premiumSmartRuLifetimeName'),
+                description: t('inviteCodes.presets.premiumSmartRuLifetimeDescription'),
+                reason: t('inviteCodes.presets.premiumSmartRuLifetimeReason'),
+              }),
+            )
+          }
         >
           <TicketPlus className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('inviteCodes.actions.applyLifetimePreset')}
@@ -1121,7 +1153,14 @@ function CampaignsTab({
           <SelectField
             label={t('inviteCodes.fields.grantPlan')}
             value={campaignForm.grantPlanId}
-            onChange={(value) => setCampaignForm((current) => ({ ...current, grantPlanId: value }))}
+            onChange={(value) =>
+              setCampaignForm((current) => ({
+                ...current,
+                grantPlanId: value,
+                grantPlanFamily: '',
+                grantPlanCode: value ? '' : current.grantPlanCode,
+              }))
+            }
             options={['', ...plans.map((plan) => plan.uuid)]}
             optionLabel={(value) => {
               const plan = plans.find((item) => item.uuid === value);
@@ -1129,6 +1168,25 @@ function CampaignsTab({
                 ? `${plan.display_name ?? plan.name} · ${t('inviteCodes.units.daysShort', { count: plan.duration_days })}`
                 : t('inviteCodes.fields.grantPlanCodeFallback');
             }}
+          />
+          <p className="rounded-lg border border-grid-line/20 bg-terminal-bg/45 p-3 text-xs font-mono leading-5 text-muted-foreground">
+            {t('inviteCodes.campaigns.lifetimePlanHelper')}
+          </p>
+          <SelectField
+            label={t('inviteCodes.fields.planFamily')}
+            value={campaignForm.grantPlanFamily}
+            onChange={(value) =>
+              setCampaignForm((current) => ({
+                ...current,
+                grantPlanFamily: value,
+                grantPlanId: value ? '' : current.grantPlanId,
+                grantPlanCode: value || current.grantPlanCode,
+              }))
+            }
+            options={PLAN_FAMILY_OPTIONS}
+            optionLabel={(value) =>
+              value ? t(`inviteCodes.planFamilies.${value}`) : t('inviteCodes.fields.planFamilyNone')
+            }
           />
           <TextField
             label={t('inviteCodes.fields.grantPlanCode')}
@@ -1138,7 +1196,14 @@ function CampaignsTab({
           <SelectField
             label={t('inviteCodes.fields.childGrantPlan')}
             value={campaignForm.childGrantPlanId}
-            onChange={(value) => setCampaignForm((current) => ({ ...current, childGrantPlanId: value }))}
+            onChange={(value) =>
+              setCampaignForm((current) => ({
+                ...current,
+                childGrantPlanId: value,
+                childGrantPlanFamily: '',
+                childGrantPlanCode: value ? '' : current.childGrantPlanCode,
+              }))
+            }
             options={['', ...plans.map((plan) => plan.uuid)]}
             optionLabel={(value) => {
               const plan = plans.find((item) => item.uuid === value);
@@ -1146,6 +1211,22 @@ function CampaignsTab({
                 ? `${plan.display_name ?? plan.name} · ${t('inviteCodes.units.daysShort', { count: plan.duration_days })}`
                 : t('inviteCodes.fields.childGrantPlanCodeFallback');
             }}
+          />
+          <SelectField
+            label={t('inviteCodes.fields.childPlanFamily')}
+            value={campaignForm.childGrantPlanFamily}
+            onChange={(value) =>
+              setCampaignForm((current) => ({
+                ...current,
+                childGrantPlanFamily: value,
+                childGrantPlanId: value ? '' : current.childGrantPlanId,
+                childGrantPlanCode: value || current.childGrantPlanCode,
+              }))
+            }
+            options={PLAN_FAMILY_OPTIONS}
+            optionLabel={(value) =>
+              value ? t(`inviteCodes.planFamilies.${value}`) : t('inviteCodes.fields.planFamilyNone')
+            }
           />
           <TextField
             label={t('inviteCodes.fields.childGrantPlanCode')}
@@ -1167,6 +1248,16 @@ function CampaignsTab({
               disabled={campaignForm.grantDurationMode === 'lifetime'}
               onChange={(value) => setCampaignForm((current) => ({ ...current, grantDurationDays: value }))}
             />
+            {campaignForm.grantDurationMode === 'lifetime' ? (
+              <p className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-xs font-mono leading-5 text-emerald-100 md:col-span-2">
+                {t('inviteCodes.campaigns.lifetimeNullBadge')}
+              </p>
+            ) : null}
+            {rootPlanDurationOverridden ? (
+              <p className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-xs font-mono leading-5 text-amber-100 md:col-span-2">
+                {t('inviteCodes.campaigns.planDurationOverrideWarning')}
+              </p>
+            ) : null}
             <TextField
               label={t('inviteCodes.fields.grantDeviceLimitOverride')}
               type="number"
@@ -1228,6 +1319,16 @@ function CampaignsTab({
               disabled={campaignForm.childGrantDurationMode === 'lifetime'}
               onChange={(value) => setCampaignForm((current) => ({ ...current, childGrantDurationDays: value }))}
             />
+            {campaignForm.childGrantDurationMode === 'lifetime' ? (
+              <p className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-xs font-mono leading-5 text-emerald-100 md:col-span-2">
+                {t('inviteCodes.campaigns.childLifetimeNullBadge')}
+              </p>
+            ) : null}
+            {childPlanDurationOverridden ? (
+              <p className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-xs font-mono leading-5 text-amber-100 md:col-span-2">
+                {t('inviteCodes.campaigns.childPlanDurationOverrideWarning')}
+              </p>
+            ) : null}
             <TextField
               label={t('inviteCodes.fields.childGrantDeviceLimitOverride')}
               type="number"
@@ -1463,7 +1564,7 @@ function CampaignsTab({
               }
             />
           </div>
-          {campaignForm.grantDurationMode === 'lifetime' || campaignForm.childGrantDurationMode === 'lifetime' ? (
+          {lifetimeDurationSelected ? (
             <p className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs font-mono leading-5 text-amber-100">
               {t('inviteCodes.campaigns.lifetimeWarning')}
             </p>

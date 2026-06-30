@@ -386,6 +386,22 @@ class AdminInviteCampaignCreateRequest(BaseModel):
         return self
 
 
+class AdminInviteCampaignValidationErrorDetail(BaseModel):
+    code: str = Field(..., max_length=120)
+    message_key: str = Field(..., max_length=160)
+    message: str = Field(..., max_length=500)
+
+
+class AdminInviteCampaignRequestValidationErrorDetail(BaseModel):
+    loc: list[str | int] = Field(default_factory=list)
+    msg: str
+    type: str
+
+
+class AdminInviteCampaignValidationErrorResponse(BaseModel):
+    detail: AdminInviteCampaignValidationErrorDetail | list[AdminInviteCampaignRequestValidationErrorDetail] | str
+
+
 class AdminInviteCampaignVersionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

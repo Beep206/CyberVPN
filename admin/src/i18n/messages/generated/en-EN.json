@@ -2651,13 +2651,18 @@
         "title": "Batch Inventory"
       },
       "campaigns": {
+        "childLifetimeNullBadge": "Child lifetime access: child_grant_duration_days will be sent as null.",
+        "childPlanDurationOverrideWarning": "The selected child plan duration will be overridden by the lifetime policy.",
         "createDescription": "Create a flexible invite campaign with backend-owned policy snapshots, optional publish, and admin reason context.",
         "createTitle": "Create Campaign",
         "empty": "No invite campaigns matched the current filter.",
         "inventoryDescription": "Bounded list of flexible invite campaigns from the live admin API.",
         "inventoryTitle": "Campaign Inventory",
+        "lifetimeNullBadge": "Lifetime access: grant_duration_days will be sent as null.",
+        "lifetimePlanHelper": "Lifetime access does not need a separate lifetime tariff. Select Duration Mode = Lifetime or use plan code premium_smart_ru. If a 30/90/180/365-day plan is selected, its duration is overridden by the Lifetime policy.",
         "lifetimeWarning": "Lifetime campaigns create non-expiring access. Keep global issue caps, high-risk context, no-active-access, and self-redemption protection enabled before publishing.",
         "loading": "Loading invite campaigns...",
+        "planDurationOverrideWarning": "The selected plan duration will be overridden by the lifetime policy.",
         "versionBadge": "v{version}"
       },
       "cascadeModes": {
@@ -2740,6 +2745,7 @@
         "childInviteFreeDays": "Child Invite Free Days",
         "childMaxRedemptions": "Child Max Redemptions",
         "childPerUserRedemptionCap": "Child Per-user Redemption Cap",
+        "childPlanFamily": "Child Plan Family / Plan Code",
         "childUsageMode": "Child Usage Mode",
         "confirmDescendantReversal": "Confirm descendant reversal",
         "count": "Count",
@@ -2782,6 +2788,8 @@
         "perUserRedeemCap": "Per-user redeem cap",
         "perUserRedemptionCap": "Per-user Redemption Cap",
         "planCode": "Plan Code",
+        "planFamily": "Plan Family / Plan Code",
+        "planFamilyNone": "Manual plan id or plan code",
         "planId": "Plan",
         "prefix": "Code Prefix",
         "publishNow": "Publish after creation",
@@ -2843,8 +2851,13 @@
         "system": "System pool",
         "uploaded_user_list": "Uploaded user list"
       },
+      "planFamilies": {
+        "premium_smart_ru": "premium_smart_ru"
+      },
       "presets": {
-        "premiumSmartRuLifetimeName": "Premium Smart RU Lifetime Viral"
+        "premiumSmartRuLifetimeDescription": "Многоразовый root invite: Premium Smart RU lifetime, 5 devices, 12 unique single-use child invites.",
+        "premiumSmartRuLifetimeName": "Premium Smart RU Lifetime Multi-use Root",
+        "premiumSmartRuLifetimeReason": "create premium smart ru lifetime multi-use root campaign"
       },
       "redemptions": {
         "description": "Campaign {campaign} has {count} redemption records in the current backend window.",

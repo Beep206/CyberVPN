@@ -24121,11 +24121,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invite campaign policy validation error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/AdminInviteCampaignValidationErrorResponse"
                 }
               }
             }
@@ -24229,11 +24229,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invite campaign policy validation error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/AdminInviteCampaignValidationErrorResponse"
                 }
               }
             }
@@ -60984,6 +60984,38 @@
         ],
         "title": "AdminInviteCampaignListResponse"
       },
+      "AdminInviteCampaignRequestValidationErrorDetail": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Loc"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Msg"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "msg",
+          "type"
+        ],
+        "title": "AdminInviteCampaignRequestValidationErrorDetail"
+      },
       "AdminInviteCampaignResponse": {
         "properties": {
           "id": {
@@ -61178,6 +61210,58 @@
           "updated_at"
         ],
         "title": "AdminInviteCampaignResponse"
+      },
+      "AdminInviteCampaignValidationErrorDetail": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 120,
+            "title": "Code"
+          },
+          "message_key": {
+            "type": "string",
+            "maxLength": 160,
+            "title": "Message Key"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message_key",
+          "message"
+        ],
+        "title": "AdminInviteCampaignValidationErrorDetail"
+      },
+      "AdminInviteCampaignValidationErrorResponse": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminInviteCampaignValidationErrorDetail"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminInviteCampaignRequestValidationErrorDetail"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "AdminInviteCampaignValidationErrorResponse"
       },
       "AdminInviteCampaignVersionCreateRequest": {
         "properties": {

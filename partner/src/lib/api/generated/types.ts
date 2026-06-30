@@ -18147,6 +18147,15 @@ export interface components {
             /** Limit */
             limit: number;
         };
+        /** AdminInviteCampaignRequestValidationErrorDetail */
+        AdminInviteCampaignRequestValidationErrorDetail: {
+            /** Loc */
+            loc?: (string | number)[];
+            /** Msg */
+            msg: string;
+            /** Type */
+            type: string;
+        };
         /** AdminInviteCampaignResponse */
         AdminInviteCampaignResponse: {
             /**
@@ -18216,6 +18225,20 @@ export interface components {
              */
             updated_at: string;
             current_version?: components["schemas"]["AdminInviteCampaignVersionResponse"] | null;
+        };
+        /** AdminInviteCampaignValidationErrorDetail */
+        AdminInviteCampaignValidationErrorDetail: {
+            /** Code */
+            code: string;
+            /** Message Key */
+            message_key: string;
+            /** Message */
+            message: string;
+        };
+        /** AdminInviteCampaignValidationErrorResponse */
+        AdminInviteCampaignValidationErrorResponse: {
+            /** Detail */
+            detail: components["schemas"]["AdminInviteCampaignValidationErrorDetail"] | components["schemas"]["AdminInviteCampaignRequestValidationErrorDetail"][] | string;
         };
         /** AdminInviteCampaignVersionCreateRequest */
         AdminInviteCampaignVersionCreateRequest: {
@@ -52930,13 +52953,13 @@ export interface operations {
                     "application/json": components["schemas"]["AdminInviteCampaignResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Invite campaign policy validation error. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["AdminInviteCampaignValidationErrorResponse"];
                 };
             };
         };
@@ -52996,13 +53019,13 @@ export interface operations {
                     "application/json": components["schemas"]["AdminInviteCampaignVersionResponse"];
                 };
             };
-            /** @description Validation Error */
+            /** @description Invite campaign policy validation error. */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["AdminInviteCampaignValidationErrorResponse"];
                 };
             };
         };
