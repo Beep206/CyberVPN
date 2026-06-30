@@ -189,7 +189,7 @@ describe('TelegramMiniAppAuthProvider', () => {
     expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
   });
 
-  it('gates mini app routes instead of rendering the standard guest flow while initData is missing', () => {
+  it('gates mini app routes instead of rendering the standard guest flow while Telegram runtime is missing', () => {
     currentAuthState = {
       telegramMiniAppAuth: mockTelegramMiniAppAuth,
       fetchUser: mockFetchUser,
@@ -226,6 +226,30 @@ describe('TelegramMiniAppAuthProvider', () => {
       expect(mockTelegramMiniAppAuth).toHaveBeenCalled();
       expect(mockReplace).toHaveBeenCalledWith('/miniapp/home');
     });
+  });
+
+  it('restores an existing session when Telegram WebApp exists before initData is populated', async () => {
+    currentAuthState = {
+      telegramMiniAppAuth: mockTelegramMiniAppAuth,
+      fetchUser: mockFetchUser,
+      isAuthenticated: false,
+      isMiniApp: false,
+    };
+    setupTelegramWebAppMock({ initData: '' });
+    mockFetchUser.mockImplementation(async () => {
+      currentAuthState = {
+        ...currentAuthState,
+        isAuthenticated: true,
+      };
+    });
+
+    renderProvider(<div>Mini App Child</div>);
+
+    await waitFor(() => {
+      expect(mockFetchUser).toHaveBeenCalled();
+    });
+    expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
+    expect(screen.queryByText('miniAppRequiredMessage')).not.toBeInTheDocument();
   });
 
   it('does not crash when mini app auth fails with structured API detail', async () => {

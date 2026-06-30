@@ -182,7 +182,7 @@ export default function MiniAppHomePage() {
   return (
     <div className="max-w-screen-sm mx-auto space-y-4">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         className={`${cardBg} ${borderColor} border rounded-lg p-4`}
       >
@@ -281,7 +281,7 @@ export default function MiniAppHomePage() {
 
       {rolloutBannerMessage ? (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4"
         >
@@ -297,7 +297,7 @@ export default function MiniAppHomePage() {
 
       {!hasActiveSubscription && !isOnTrial ? (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
           className={`${cardBg} ${borderColor} border rounded-lg p-4`}
@@ -352,7 +352,7 @@ export default function MiniAppHomePage() {
 
       {(hasActiveSubscription || isOnTrial) && usageData && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className={`${cardBg} ${borderColor} border rounded-lg p-4`}
@@ -416,7 +416,7 @@ export default function MiniAppHomePage() {
 
       {!hasActiveSubscription && !isOnTrial && canActivateTrial && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className={`${cardBg} ${borderColor} border rounded-lg p-4`}
@@ -444,7 +444,7 @@ export default function MiniAppHomePage() {
       <VpnConfigCard colorScheme={colorScheme} page="home" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >

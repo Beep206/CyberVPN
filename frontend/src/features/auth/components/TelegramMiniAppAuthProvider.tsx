@@ -112,7 +112,7 @@ export function TelegramMiniAppAuthProvider({
         const detectTelegramWebApp = () => {
             if (cancelled) return;
 
-            const detected = typeof window !== 'undefined' && Boolean(window.Telegram?.WebApp?.initData);
+            const detected = typeof window !== 'undefined' && Boolean(window.Telegram?.WebApp);
             if (detected) {
                 setRuntimeIsMiniApp(true);
                 setTelegramDetectionFinished(true);
@@ -294,7 +294,7 @@ export function TelegramMiniAppAuthProvider({
     if (routeAuthError) {
         return (
             <motion.div
-                initial={{ opacity: 0 }}
+                initial={false}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center gap-4 p-8 text-center"
             >
@@ -338,7 +338,7 @@ export function TelegramMiniAppAuthProvider({
     // Loading state
     return (
         <motion.div
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center gap-4 p-8 text-center"
         >

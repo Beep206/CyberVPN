@@ -251,7 +251,7 @@ describe('Auth Store - Selector hooks', () => {
   describe('useIsMiniApp', () => {
     it('test_useIsMiniApp_returns_boolean_value', () => {
       // The isMiniApp value is computed at store creation time from
-      // window.Telegram?.WebApp?.initData. In the test environment,
+      // window.Telegram?.WebApp. In the test environment,
       // Telegram is not typically on window, so it should be false.
       const { result } = renderHook(() => useIsMiniApp());
       expect(typeof result.current).toBe('boolean');

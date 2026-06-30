@@ -144,7 +144,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       isAuthenticated: false,
       isNewTelegramUser: false,
-      isMiniApp: typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initData,
+      isMiniApp: typeof window !== 'undefined' && !!window.Telegram?.WebApp,
       error: null,
       rateLimitUntil: null,
 
@@ -638,7 +638,7 @@ export const useAuthStore = create<AuthState>()(
           const state = get();
           const isTelegramMiniApp =
             state.isMiniApp ||
-            (typeof window !== 'undefined' && Boolean(window.Telegram?.WebApp?.initData));
+            (typeof window !== 'undefined' && Boolean(window.Telegram?.WebApp));
           await (isTelegramMiniApp ? authApi.deleteMobileAccount() : authApi.deleteAccount());
           // SEC-01: backend clears cookies; clean up legacy localStorage
           tokenStorage.clearTokens();
