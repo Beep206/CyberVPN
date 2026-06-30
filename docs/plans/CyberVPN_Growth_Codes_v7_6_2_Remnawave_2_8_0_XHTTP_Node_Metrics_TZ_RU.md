@@ -1,8 +1,8 @@
-# Техническое задание v7.6.2  
+# Техническое задание v7.6.2
 # Direct Production Rollout: Remnawave 2.8.0, XHTTP-ноды, Node Metrics, Multi-use Invites, Mini App и RSC/CORS
 
-**Проект:** CyberVPN  
-**Версия ТЗ:** v7.6.2  
+**Проект:** CyberVPN
+**Версия ТЗ:** v7.6.2
 **Основание:** после реализации v7.5.1 в репозитории основной функционал multi-use invite codes реализован, но перед production необходимо закрыть оставшиеся риски: backend/concurrency тесты, preview UX, Telegram/Mini App device context, корректный расчёт лимитов fan-out, legacy invite repository paths и фактическую RSC/CORS production-проблему.
 
 ---
