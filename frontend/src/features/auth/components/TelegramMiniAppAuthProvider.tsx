@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
 import { isMiniAppRoute } from '@/features/auth/lib/session';
 import { MINIAPP_AUTH_RESTORE_RECOVERED_EVENT, MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
-import { customerOnboardingApi } from '@/features/customer-onboarding/api';
+import { customerOnboardingApi, type CustomerOnboardingCurrentResponse } from '@/features/customer-onboarding/api';
 import {
     getPostAuthDestination,
     getPostRegistrationOnboardingPath,
@@ -81,6 +81,10 @@ function getMiniAppAuthErrorMessage(error: unknown, fallback: string) {
     return fallback;
 }
 
+type MiniAppOnboardingLookupResult =
+    | { status: 'resolved'; onboarding: CustomerOnboardingCurrentResponse }
+    | { status: 'failed' };
+
 /**
  * TelegramMiniAppAuthProvider detects if running inside a Telegram Mini App
  * and auto-authenticates using a session-first restore, then initData when needed.
@@ -105,7 +109,8 @@ export function TelegramMiniAppAuthProvider({
     const restoreInFlight = useRef(false);
     const authInFlight = useRef<Promise<void> | null>(null);
     const spentInitDataFingerprints = useRef<Set<string>>(new Set());
-    const onboardingGateInFlight = useRef<Promise<void> | null>(null);
+    const onboardingGateInFlight = useRef<{ path: string | null; promise: Promise<void> } | null>(null);
+    const onboardingGateRequestId = useRef(0);
     const effectiveIsMiniApp = isMiniApp || runtimeIsMiniApp;
     const isMiniAppRoutePath = isMiniAppRoute(pathname);
     const shouldGateMiniApp = (effectiveIsMiniApp || isMiniAppRoutePath) && !isMiniAppPublicDiagnosticPath(pathname);
@@ -117,7 +122,7 @@ export function TelegramMiniAppAuthProvider({
     );
     const shouldHoldMiniAppContent = (
         shouldCheckMiniAppOnboarding
-        && (onboardingGatePending || onboardingGateCheckedPath !== pathname)
+        && (onboardingGatePending || onboardingGateCheckedPath !== pathname || authError !== null)
     );
 
     useEffect(() => {
@@ -169,10 +174,10 @@ export function TelegramMiniAppAuthProvider({
         });
     }, [queryClient]);
 
-    const resolveMiniAppOnboardingFromCurrentState = useCallback(async () => {
+    const resolveMiniAppOnboardingFromCurrentState = useCallback(async (): Promise<MiniAppOnboardingLookupResult> => {
         try {
             const { data } = await customerOnboardingApi.current();
-            return data;
+            return { status: 'resolved', onboarding: data };
         } catch (error) {
             reportMiniAppClientError({
                 eventType: 'miniapp_onboarding_gate_failed',
@@ -180,7 +185,7 @@ export function TelegramMiniAppAuthProvider({
                 errorMessage: getMiniAppAuthErrorMessage(error, 'Mini App onboarding gate failed'),
                 chunk: null,
             });
-            return null;
+            return { status: 'failed' };
         }
     }, []);
 
@@ -196,16 +201,34 @@ export function TelegramMiniAppAuthProvider({
             setOnboardingGatePending(false);
             return;
         }
-        if (onboardingGateInFlight.current) {
-            await onboardingGateInFlight.current;
+        const currentPath = pathname ?? null;
+        if (onboardingGateInFlight.current?.path === currentPath) {
+            await onboardingGateInFlight.current.promise;
             return;
         }
 
+        const gateRequestId = onboardingGateRequestId.current + 1;
+        onboardingGateRequestId.current = gateRequestId;
         const gateAttempt = (async () => {
             setOnboardingGatePending(true);
-            const currentPath = pathname ?? null;
-            const onboarding = await resolveMiniAppOnboardingFromCurrentState();
-            if (shouldRouteToPostRegistrationOnboarding(onboarding)) {
+            setAuthError(null);
+            const lookup = await resolveMiniAppOnboardingFromCurrentState();
+            if (
+                onboardingGateRequestId.current !== gateRequestId
+                ||
+                onboardingGateInFlight.current?.path !== currentPath
+            ) {
+                return;
+            }
+
+            if (lookup.status === 'failed') {
+                setOnboardingGateCheckedPath(null);
+                setOnboardingGatePending(false);
+                setAuthError(t('miniAppAuthFailedMessage'));
+                return;
+            }
+
+            if (shouldRouteToPostRegistrationOnboarding(lookup.onboarding)) {
                 router.replace(getPostRegistrationOnboardingPath('miniapp'));
                 return;
             }
@@ -213,15 +236,15 @@ export function TelegramMiniAppAuthProvider({
             setOnboardingGatePending(false);
         })();
 
-        onboardingGateInFlight.current = gateAttempt;
+        onboardingGateInFlight.current = { path: currentPath, promise: gateAttempt };
         try {
             await gateAttempt;
         } finally {
-            if (onboardingGateInFlight.current === gateAttempt) {
+            if (onboardingGateRequestId.current === gateRequestId) {
                 onboardingGateInFlight.current = null;
             }
         }
-    }, [isMiniAppRoutePath, pathname, resolveMiniAppOnboardingFromCurrentState, router, shouldGateMiniApp]);
+    }, [isMiniAppRoutePath, pathname, resolveMiniAppOnboardingFromCurrentState, router, shouldGateMiniApp, t]);
 
     const restoreMiniAppSession = useCallback(async () => {
         await fetchUser();
@@ -268,7 +291,15 @@ export function TelegramMiniAppAuthProvider({
                     return;
                 }
                 invalidateMiniAppQueries();
-                const onboarding = result.onboarding ?? await resolveMiniAppOnboardingFromCurrentState();
+                let onboarding = result.onboarding ?? null;
+                if (onboarding === null) {
+                    const lookup = await resolveMiniAppOnboardingFromCurrentState();
+                    if (lookup.status === 'failed') {
+                        setAuthError(t('miniAppAuthFailedMessage'));
+                        return;
+                    }
+                    onboarding = lookup.onboarding;
+                }
                 const postAuthDestination = getPostAuthDestination({
                     onboarding,
                     surface: 'miniapp',

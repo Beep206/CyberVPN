@@ -365,6 +365,25 @@ describe('TelegramMiniAppAuthProvider', () => {
     expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
   });
 
+  it('keeps restored Mini App sessions gated when onboarding state cannot be loaded', async () => {
+    setupTelegramWebAppMock({
+      initData: 'query_id=gate-failure&user=owner&hash=signature',
+    });
+    mockCustomerOnboardingCurrent.mockRejectedValue(new Error('onboarding unavailable'));
+    mockFetchUser.mockImplementation(async () => {
+      currentAuthState = {
+        ...currentAuthState,
+        isAuthenticated: true,
+      };
+    });
+
+    renderProvider(<div>Mini App Child</div>);
+
+    await screen.findByText('miniAppAuthFailedMessage');
+    expect(screen.queryByText('Mini App Child')).not.toBeInTheDocument();
+    expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
+  });
+
   it('restores Telegram Mini App auth after a protected mini app request loses its cookie session', async () => {
     currentAuthState = {
       telegramMiniAppAuth: mockTelegramMiniAppAuth,
