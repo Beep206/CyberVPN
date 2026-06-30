@@ -29,7 +29,7 @@ function shouldUseDocumentNavigation(event: MouseEvent<HTMLAnchorElement>) {
     return false;
   }
 
-  return Boolean(window.Telegram?.WebApp?.initData);
+  return Boolean(window.Telegram?.WebApp);
 }
 
 export function MiniAppBottomNav() {

@@ -342,6 +342,21 @@ describe('MiniAppBottomNav', () => {
       }
     });
 
+    it('test_uses_document_navigation_when_telegram_webview_init_data_is_empty', async () => {
+      const user = userEvent.setup();
+      const assignMock = vi.mocked(window.location.assign);
+      cleanupTelegramWebAppMock();
+      setupTelegramWebAppMock({ initData: '' });
+
+      render(<MiniAppBottomNav />);
+
+      await user.click(screen.getByLabelText('nav.vpn'));
+
+      expect(assignMock).toHaveBeenCalledWith(
+        'http://localhost:3000/miniapp/vpn',
+      );
+    });
+
     it('test_plans_link_points_to_plans_route', () => {
       render(<MiniAppBottomNav />);
 
