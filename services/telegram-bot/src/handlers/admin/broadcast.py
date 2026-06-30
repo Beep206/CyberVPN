@@ -67,35 +67,30 @@ async def broadcast_message_composed_handler(
         InlineKeyboardButton(
             text=i18n.get("admin-broadcast-audience-all"),
             callback_data="admin:broadcast:audience:all",
-            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-broadcast-audience-active"),
             callback_data="admin:broadcast:audience:active",
-            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-broadcast-audience-inactive"),
             callback_data="admin:broadcast:audience:inactive",
-            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-broadcast-audience-trial"),
             callback_data="admin:broadcast:audience:trial",
-            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="❌ " + i18n.get("button-cancel"),
             callback_data="admin:broadcast:cancel",
-            style="danger",
         )
     )
 
@@ -135,14 +130,12 @@ async def broadcast_audience_selected_handler(
             InlineKeyboardButton(
                 text="✅ " + i18n.get("admin-broadcast-confirm"),
                 callback_data="admin:broadcast:confirm",
-                style="success",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="❌ " + i18n.get("button-cancel"),
                 callback_data="admin:broadcast:cancel",
-                style="danger",
             )
         )
 
@@ -283,7 +276,6 @@ async def broadcast_history_handler(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:menu",
-                style="primary",
             )
         )
 

@@ -132,7 +132,6 @@ def create_pagination_keyboard(
             InlineKeyboardButton(
                 text=prev_text,
                 callback_data=f"{callback_prefix}:{current_page - 1}",
-                style="primary",
             )
         )
     else:
@@ -163,7 +162,6 @@ def create_pagination_keyboard(
             InlineKeyboardButton(
                 text=next_text,
                 callback_data=f"{callback_prefix}:{current_page + 1}",
-                style="primary",
             )
         )
     else:

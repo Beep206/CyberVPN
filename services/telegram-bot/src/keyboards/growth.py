@@ -74,7 +74,7 @@ def growth_menu_keyboard(
     flags = growth_capabilities(capabilities)
 
     if flags["referral"]:
-        builder.button(text=i18n("btn-growth-referral"), callback_data="growth:referral", style="primary")
+        builder.button(text=i18n("btn-growth-referral"), callback_data="growth:referral")
     if flags["gift_codes"]:
         builder.row(
             miniapp_button(
@@ -86,9 +86,9 @@ def growth_menu_keyboard(
             )
         )
     if flags["invites"]:
-        builder.button(text=i18n("btn-growth-invites"), callback_data="growth:invites", style="primary")
+        builder.button(text=i18n("btn-growth-invites"), callback_data="growth:invites")
     if can_enter_code(capabilities):
-        builder.button(text=i18n("btn-enter-code"), callback_data="growth:code", style="primary")
+        builder.button(text=i18n("btn-enter-code"), callback_data="growth:code")
     if flags["growth_hub"]:
         builder.row(
             miniapp_button(
@@ -109,6 +109,6 @@ def growth_menu_keyboard(
             fallback_callback="miniapp:unavailable",
         )
     )
-    builder.button(text=i18n("btn-back"), callback_data="nav:menu", style="primary")
+    builder.button(text=i18n("btn-back"), callback_data="nav:menu")
     builder.adjust(1)
     return builder.as_markup()

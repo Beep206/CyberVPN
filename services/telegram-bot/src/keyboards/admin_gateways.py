@@ -23,7 +23,6 @@ def gateway_settings_keyboard(
         InlineKeyboardButton(
             text=f"{stars_status} {i18n.get('admin-gateway-telegram-stars')}",
             callback_data="admin:gateways:toggle_stars",
-            style="primary",
         )
     )
 
@@ -34,7 +33,6 @@ def gateway_settings_keyboard(
         InlineKeyboardButton(
             text=f"{cryptomus_status} {i18n.get('admin-gateway-cryptomus')}",
             callback_data="admin:gateways:toggle_cryptomus",
-            style="primary",
         )
     )
 
@@ -43,7 +41,6 @@ def gateway_settings_keyboard(
             InlineKeyboardButton(
                 text="⚙️ " + i18n.get("admin-gateway-cryptomus-settings"),
                 callback_data="admin:gateways:cryptomus_settings",
-                style="primary",
             )
         )
 
@@ -54,7 +51,6 @@ def gateway_settings_keyboard(
         InlineKeyboardButton(
             text=f"{yookassa_status} {i18n.get('admin-gateway-yookassa')}",
             callback_data="admin:gateways:toggle_yookassa",
-            style="primary",
         )
     )
 
@@ -63,7 +59,6 @@ def gateway_settings_keyboard(
             InlineKeyboardButton(
                 text="⚙️ " + i18n.get("admin-gateway-yookassa-settings"),
                 callback_data="admin:gateways:yookassa_settings",
-                style="primary",
             )
         )
 
@@ -74,7 +69,6 @@ def gateway_settings_keyboard(
         InlineKeyboardButton(
             text=f"{stripe_status} {i18n.get('admin-gateway-stripe')}",
             callback_data="admin:gateways:toggle_stripe",
-            style="primary",
         )
     )
 
@@ -83,7 +77,6 @@ def gateway_settings_keyboard(
             InlineKeyboardButton(
                 text="⚙️ " + i18n.get("admin-gateway-stripe-settings"),
                 callback_data="admin:gateways:stripe_settings",
-                style="primary",
             )
         )
 
@@ -94,7 +87,6 @@ def gateway_settings_keyboard(
         InlineKeyboardButton(
             text=f"{test_status} {i18n.get('admin-gateway-test-mode')}",
             callback_data="admin:gateways:toggle_test",
-            style="primary",
         )
     )
 
@@ -103,7 +95,6 @@ def gateway_settings_keyboard(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:settings",
-            style="primary",
         )
     )
 

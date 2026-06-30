@@ -31,7 +31,6 @@ def back_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
     return InlineKeyboardButton(
         text=i18n("btn-back"),
         callback_data="nav:back",
-        style="primary",
     )
 
 
@@ -47,7 +46,6 @@ def cancel_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
     return InlineKeyboardButton(
         text=i18n("btn-cancel"),
         callback_data="nav:cancel",
-        style="danger",
     )
 
 
@@ -63,7 +61,6 @@ def confirm_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
     return InlineKeyboardButton(
         text=i18n("btn-confirm"),
         callback_data="nav:confirm",
-        style="success",
     )
 
 
@@ -88,16 +85,16 @@ def main_menu_keyboard(
     """
     builder = InlineKeyboardBuilder()
 
-    builder.button(text=i18n("btn-vpn"), callback_data="menu:vpn", style="primary")
-    builder.button(text=i18n("btn-subscription"), callback_data="menu:subscription", style="primary")
-    builder.button(text=i18n("btn-finance"), callback_data="menu:finance", style="primary")
-    builder.button(text=i18n("btn-rewards"), callback_data="menu:growth", style="primary")
-    builder.button(text=i18n("btn-profile"), callback_data="account:profile", style="primary")
-    builder.button(text=i18n("btn-support"), callback_data="menu:support", style="primary")
+    builder.button(text=i18n("btn-vpn"), callback_data="menu:vpn")
+    builder.button(text=i18n("btn-subscription"), callback_data="menu:subscription")
+    builder.button(text=i18n("btn-finance"), callback_data="menu:finance")
+    builder.button(text=i18n("btn-rewards"), callback_data="menu:growth")
+    builder.button(text=i18n("btn-profile"), callback_data="account:profile")
+    builder.button(text=i18n("btn-support"), callback_data="menu:support")
     builder.row(miniapp_button(i18n, settings))
 
     if not has_subscription and trial_available:
-        builder.button(text=i18n("btn-trial"), callback_data="trial:activate", style="success")
+        builder.button(text=i18n("btn-trial"), callback_data="trial:activate")
 
     # Admin section
     if is_admin:

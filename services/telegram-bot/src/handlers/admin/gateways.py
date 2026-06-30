@@ -50,7 +50,6 @@ async def gateways_settings_handler(
                 InlineKeyboardButton(
                     text=f"⚙️ {gateway_name}",
                     callback_data=f"admin:gateway:view:{gateway_id}",
-                    style="primary",
                 )
             )
 
@@ -58,7 +57,6 @@ async def gateways_settings_handler(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:settings",
-                style="primary",
             )
         )
 
@@ -111,14 +109,12 @@ async def gateway_view_handler(
             InlineKeyboardButton(
                 text=toggle_text,
                 callback_data=f"admin:gateway:toggle:{gateway_id}",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:gateways:settings",
-                style="primary",
             )
         )
 

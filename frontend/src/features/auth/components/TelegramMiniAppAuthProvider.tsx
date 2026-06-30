@@ -7,7 +7,12 @@ import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
 import { isMiniAppRoute } from '@/features/auth/lib/session';
 import { MINIAPP_AUTH_RESTORE_RECOVERED_EVENT, MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
-import { getPostAuthDestination } from '@/features/customer-onboarding/routing';
+import { customerOnboardingApi } from '@/features/customer-onboarding/api';
+import {
+    getPostAuthDestination,
+    getPostRegistrationOnboardingPath,
+    shouldRouteToPostRegistrationOnboarding,
+} from '@/features/customer-onboarding/routing';
 import { installMiniAppClientErrorListeners, reportMiniAppClientError } from '@/features/miniapp-runtime/lib/client-error-telemetry';
 import { Loader2, AlertCircle, Shield, RotateCcw, Send, X } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -22,6 +27,10 @@ function getMiniAppReturnPath(pathname: string | null | undefined) {
 
 function isMiniAppPublicDiagnosticPath(pathname: string | null | undefined) {
     return Boolean(pathname && /^\/miniapp\/(?:health|diagnostics)(?:\/|$)/.test(pathname));
+}
+
+function isMiniAppOnboardingPath(pathname: string | null | undefined) {
+    return Boolean(pathname && /^\/miniapp\/onboarding(?:\/|$)/.test(pathname));
 }
 
 function getTelegramBotUrl() {
@@ -90,13 +99,26 @@ export function TelegramMiniAppAuthProvider({
     const [runtimeIsMiniApp, setRuntimeIsMiniApp] = useState(false);
     const [telegramDetectionFinished, setTelegramDetectionFinished] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
+    const [onboardingGatePending, setOnboardingGatePending] = useState(false);
+    const [onboardingGateCheckedPath, setOnboardingGateCheckedPath] = useState<string | null>(null);
     const hasAttempted = useRef(false);
     const restoreInFlight = useRef(false);
     const authInFlight = useRef<Promise<void> | null>(null);
     const spentInitDataFingerprints = useRef<Set<string>>(new Set());
+    const onboardingGateInFlight = useRef<Promise<void> | null>(null);
     const effectiveIsMiniApp = isMiniApp || runtimeIsMiniApp;
     const isMiniAppRoutePath = isMiniAppRoute(pathname);
     const shouldGateMiniApp = (effectiveIsMiniApp || isMiniAppRoutePath) && !isMiniAppPublicDiagnosticPath(pathname);
+    const shouldCheckMiniAppOnboarding = (
+        shouldGateMiniApp
+        && isAuthenticated
+        && isMiniAppRoutePath
+        && !isMiniAppOnboardingPath(pathname)
+    );
+    const shouldHoldMiniAppContent = (
+        shouldCheckMiniAppOnboarding
+        && (onboardingGatePending || onboardingGateCheckedPath !== pathname)
+    );
 
     useEffect(() => {
         if (!isMiniAppRoutePath) return undefined;
@@ -147,15 +169,70 @@ export function TelegramMiniAppAuthProvider({
         });
     }, [queryClient]);
 
+    const resolveMiniAppOnboardingFromCurrentState = useCallback(async () => {
+        try {
+            const { data } = await customerOnboardingApi.current();
+            return data;
+        } catch (error) {
+            reportMiniAppClientError({
+                eventType: 'miniapp_onboarding_gate_failed',
+                errorName: error instanceof Error ? error.name : 'MiniAppOnboardingGateError',
+                errorMessage: getMiniAppAuthErrorMessage(error, 'Mini App onboarding gate failed'),
+                chunk: null,
+            });
+            return null;
+        }
+    }, []);
+
+    const routeMiniAppOnboardingIfNeeded = useCallback(async () => {
+        const isCurrentSessionAuthenticated = useAuthStore.getState().isAuthenticated;
+        if (
+            !isCurrentSessionAuthenticated
+            || !shouldGateMiniApp
+            || !isMiniAppRoutePath
+            || isMiniAppOnboardingPath(pathname)
+            || isMiniAppPublicDiagnosticPath(pathname)
+        ) {
+            setOnboardingGatePending(false);
+            return;
+        }
+        if (onboardingGateInFlight.current) {
+            await onboardingGateInFlight.current;
+            return;
+        }
+
+        const gateAttempt = (async () => {
+            setOnboardingGatePending(true);
+            const currentPath = pathname ?? null;
+            const onboarding = await resolveMiniAppOnboardingFromCurrentState();
+            if (shouldRouteToPostRegistrationOnboarding(onboarding)) {
+                router.replace(getPostRegistrationOnboardingPath('miniapp'));
+                return;
+            }
+            setOnboardingGateCheckedPath(currentPath);
+            setOnboardingGatePending(false);
+        })();
+
+        onboardingGateInFlight.current = gateAttempt;
+        try {
+            await gateAttempt;
+        } finally {
+            if (onboardingGateInFlight.current === gateAttempt) {
+                onboardingGateInFlight.current = null;
+            }
+        }
+    }, [isMiniAppRoutePath, pathname, resolveMiniAppOnboardingFromCurrentState, router, shouldGateMiniApp]);
+
     const restoreMiniAppSession = useCallback(async () => {
         await fetchUser();
         if (useAuthStore.getState().isAuthenticated) {
             setAuthError(null);
             invalidateMiniAppQueries();
+            await routeMiniAppOnboardingIfNeeded();
             return true;
         }
         return false;
-    }, [fetchUser, invalidateMiniAppQueries]);
+    }, [fetchUser, invalidateMiniAppQueries, routeMiniAppOnboardingIfNeeded]);
 
     const authenticateMiniApp = useCallback(async () => {
         if (authInFlight.current) {
@@ -191,8 +268,9 @@ export function TelegramMiniAppAuthProvider({
                     return;
                 }
                 invalidateMiniAppQueries();
+                const onboarding = result.onboarding ?? await resolveMiniAppOnboardingFromCurrentState();
                 const postAuthDestination = getPostAuthDestination({
-                    onboarding: result.onboarding,
+                    onboarding,
                     surface: 'miniapp',
                 });
                 router.replace(postAuthDestination === '/miniapp/home' ? miniAppReturnPath : postAuthDestination);
@@ -221,13 +299,29 @@ export function TelegramMiniAppAuthProvider({
                 authInFlight.current = null;
             }
         }
-    }, [invalidateMiniAppQueries, pathname, restoreMiniAppSession, router, telegramMiniAppAuth, t]);
+    }, [
+        invalidateMiniAppQueries,
+        pathname,
+        resolveMiniAppOnboardingFromCurrentState,
+        restoreMiniAppSession,
+        router,
+        telegramMiniAppAuth,
+        t,
+    ]);
 
     useEffect(() => {
         if (!effectiveIsMiniApp || isAuthenticated || hasAttempted.current) return;
         hasAttempted.current = true;
         void authenticateMiniApp();
     }, [effectiveIsMiniApp, isAuthenticated, authenticateMiniApp]);
+
+    useEffect(() => {
+        if (!shouldCheckMiniAppOnboarding) {
+            setOnboardingGatePending(false);
+            return;
+        }
+        void routeMiniAppOnboardingIfNeeded();
+    }, [routeMiniAppOnboardingIfNeeded, shouldCheckMiniAppOnboarding]);
 
     useEffect(() => {
         if (!shouldGateMiniApp) return;
@@ -260,8 +354,8 @@ export function TelegramMiniAppAuthProvider({
         return <>{children}</>;
     }
 
-    // Authenticated — render children
-    if (isAuthenticated) {
+    // Authenticated users wait for the Mini App onboarding gate before cabinet routes render.
+    if (isAuthenticated && !shouldHoldMiniAppContent) {
         return <>{children}</>;
     }
 

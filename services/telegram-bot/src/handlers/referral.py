@@ -145,7 +145,6 @@ async def share_referral_link_handler(
         InlineKeyboardButton(
             text=i18n.get("btn-back"),
             callback_data="menu:invite",
-            style="primary",
         )
     )
 

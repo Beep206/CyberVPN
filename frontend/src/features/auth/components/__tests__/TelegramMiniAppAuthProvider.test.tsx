@@ -16,6 +16,7 @@ const {
   mockStagePendingTwoFactorSession,
   mockTelegramMiniAppAuth,
   mockFetchUser,
+  mockCustomerOnboardingCurrent,
 } = vi.hoisted(() => ({
   mockPush: vi.fn(),
   mockReplace: vi.fn(),
@@ -23,6 +24,7 @@ const {
   mockStagePendingTwoFactorSession: vi.fn(),
   mockTelegramMiniAppAuth: vi.fn(),
   mockFetchUser: vi.fn(),
+  mockCustomerOnboardingCurrent: vi.fn(),
 }));
 
 let currentLocale = 'ru-RU';
@@ -31,6 +33,27 @@ let currentAuthState = {
   fetchUser: mockFetchUser,
   isAuthenticated: false,
   isMiniApp: true,
+};
+
+const completedOnboarding = {
+  required: false,
+  status: 'completed' as const,
+  flow_key: 'post_registration_growth_code_v1',
+  version: 1,
+  allowed_code_types: ['promo' as const, 'invite' as const, 'gift' as const],
+  flow_token: null,
+  message_key: 'onboarding.completed',
+  server_state_available: true,
+  referral_already_attributed: false,
+  connection_required: false,
+};
+
+const pendingOnboarding = {
+  ...completedOnboarding,
+  required: true,
+  status: 'pending' as const,
+  flow_token: 'flow-token',
+  message_key: 'onboarding.required',
 };
 
 vi.mock('@/i18n/navigation', () => ({
@@ -52,6 +75,12 @@ vi.mock('@/stores/auth-store', () => {
 
 vi.mock('@/features/auth/lib/pending-twofa-client', () => ({
   stagePendingTwoFactorSession: (...args: unknown[]) => mockStagePendingTwoFactorSession(...args),
+}));
+
+vi.mock('@/features/customer-onboarding/api', () => ({
+  customerOnboardingApi: {
+    current: (...args: unknown[]) => mockCustomerOnboardingCurrent(...args),
+  },
 }));
 
 vi.mock('lucide-react', () => ({
@@ -97,6 +126,7 @@ describe('TelegramMiniAppAuthProvider', () => {
       isMiniApp: true,
     };
     mockUsePathname.mockReturnValue('/miniapp/home');
+    mockCustomerOnboardingCurrent.mockResolvedValue({ data: completedOnboarding });
   });
 
   afterEach(() => {
@@ -152,6 +182,24 @@ describe('TelegramMiniAppAuthProvider', () => {
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/miniapp/rewards/gifts');
     });
+  });
+
+  it('routes pending onboarding returned by Mini App auth to the onboarding code screen', async () => {
+    setupTelegramWebAppMock({
+      initData: 'query_id=fresh-pending&user=owner&hash=signature',
+    });
+    mockTelegramMiniAppAuth.mockResolvedValue({
+      requires_2fa: false,
+      is_new_user: true,
+      onboarding: pendingOnboarding,
+    });
+
+    renderProvider(<div>Mini App Child</div>);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/miniapp/onboarding/code');
+    });
+    expect(mockCustomerOnboardingCurrent).not.toHaveBeenCalled();
   });
 
   it('keeps two-factor-required responses inside the mini app recovery state', async () => {
@@ -295,6 +343,26 @@ describe('TelegramMiniAppAuthProvider', () => {
     });
     expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('routes a restored pending onboarding Mini App session before spending Telegram initData', async () => {
+    setupTelegramWebAppMock({
+      initData: 'query_id=pending-onboarding&user=owner&hash=signature',
+    });
+    mockCustomerOnboardingCurrent.mockResolvedValue({ data: pendingOnboarding });
+    mockFetchUser.mockImplementation(async () => {
+      currentAuthState = {
+        ...currentAuthState,
+        isAuthenticated: true,
+      };
+    });
+
+    renderProvider(<div>Mini App Child</div>);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/miniapp/onboarding/code');
+    });
+    expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
   });
 
   it('restores Telegram Mini App auth after a protected mini app request loses its cookie session', async () => {

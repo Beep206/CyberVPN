@@ -64,35 +64,30 @@ async def notifications_settings_handler(
             InlineKeyboardButton(
                 text="💳 " + i18n.get("admin-notifications-toggle-payment"),
                 callback_data="admin:notifications:toggle:payment",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="⏰ " + i18n.get("admin-notifications-toggle-expiry"),
                 callback_data="admin:notifications:toggle:expiry",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="👥 " + i18n.get("admin-notifications-toggle-referral"),
                 callback_data="admin:notifications:toggle:referral",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🆓 " + i18n.get("admin-notifications-toggle-trial"),
                 callback_data="admin:notifications:toggle:trial",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:settings",
-                style="primary",
             )
         )
 

@@ -48,7 +48,6 @@ async def promos_menu_handler(
                 InlineKeyboardButton(
                     text=f"{status_emoji} {code} - {discount}%",
                     callback_data=f"admin:promo:view:{promo_id}",
-                    style="primary",
                 )
             )
 
@@ -56,14 +55,12 @@ async def promos_menu_handler(
             InlineKeyboardButton(
                 text="➕ " + i18n.get("admin-promos-create"),
                 callback_data="admin:promo:create",
-                style="success",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:menu",
-                style="primary",
             )
         )
 
@@ -117,14 +114,12 @@ async def promo_view_handler(
             InlineKeyboardButton(
                 text=toggle_text,
                 callback_data=f"admin:promo:toggle:{promo_id}",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:promos",
-                style="primary",
             )
         )
 

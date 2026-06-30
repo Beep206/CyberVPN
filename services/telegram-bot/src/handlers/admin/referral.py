@@ -177,7 +177,6 @@ async def referral_stats_handler(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:referral:settings",
-                style="primary",
             )
         )
 

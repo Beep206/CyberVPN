@@ -45,13 +45,11 @@ def miniapp_button(
         return InlineKeyboardButton(
             text=i18n(text_key),
             callback_data=fallback_callback,
-            style="primary",
         )
 
     return InlineKeyboardButton(
         text=i18n(text_key),
         web_app=WebAppInfo(url=url),
-        style="primary",
     )
 
 
@@ -65,7 +63,7 @@ def miniapp_open_keyboard(
     """Build a small keyboard with a Mini App entry point and back button."""
     builder = InlineKeyboardBuilder()
     builder.row(miniapp_button(i18n, settings, text_key=text_key, path=path))
-    builder.button(text=i18n("btn-back"), callback_data="nav:menu", style="primary")
+    builder.button(text=i18n("btn-back"), callback_data="nav:menu")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -83,17 +81,15 @@ def miniapp_onboarding_keyboard(
         builder.button(
             text=i18n("btn-miniapp-open"),
             callback_data="miniapp:unavailable",
-            style="primary",
         )
     else:
         builder.row(
             InlineKeyboardButton(
                 text=i18n("btn-miniapp-open"),
                 web_app=WebAppInfo(url=resolved_url),
-                style="primary",
             )
         )
-    builder.button(text=i18n("btn-enter-code"), callback_data="growth:code", style="primary")
-    builder.button(text=i18n("btn-support"), callback_data="menu:support", style="secondary")
+    builder.button(text=i18n("btn-enter-code"), callback_data="growth:code")
+    builder.button(text=i18n("btn-support"), callback_data="menu:support")
     builder.adjust(1)
     return builder.as_markup()

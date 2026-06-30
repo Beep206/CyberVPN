@@ -56,21 +56,18 @@ async def logs_handler(
             InlineKeyboardButton(
                 text="🔄 " + i18n.get("admin-logs-refresh"),
                 callback_data="admin:logs",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="📥 " + i18n.get("admin-logs-export"),
                 callback_data="admin:logs:export",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:menu",
-                style="primary",
             )
         )
 

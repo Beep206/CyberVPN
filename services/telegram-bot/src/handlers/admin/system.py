@@ -31,28 +31,24 @@ async def system_menu_handler(
         InlineKeyboardButton(
             text=i18n.get("admin-system-health"),
             callback_data="admin:system:health",
-            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-system-logs"),
             callback_data="admin:system:logs",
-            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-system-cache"),
             callback_data="admin:system:cache",
-            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:menu",
-            style="primary",
         )
     )
 
@@ -121,14 +117,12 @@ async def system_health_handler(
             InlineKeyboardButton(
                 text="🔄 " + i18n.get("admin-system-refresh"),
                 callback_data="admin:system:health",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:system",
-                style="primary",
             )
         )
 
@@ -185,14 +179,12 @@ async def system_logs_handler(
             InlineKeyboardButton(
                 text="🔄 " + i18n.get("admin-system-refresh"),
                 callback_data="admin:system:logs",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:system",
-                style="primary",
             )
         )
 
@@ -238,21 +230,18 @@ async def system_cache_handler(
             InlineKeyboardButton(
                 text="🗑️ " + i18n.get("admin-system-cache-clear"),
                 callback_data="admin:system:cache:clear",
-                style="danger",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔄 " + i18n.get("admin-system-refresh"),
                 callback_data="admin:system:cache",
-                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:system",
-                style="primary",
             )
         )
 

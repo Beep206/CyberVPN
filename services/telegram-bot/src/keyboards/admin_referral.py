@@ -23,7 +23,6 @@ def referral_settings_keyboard(
         InlineKeyboardButton(
             text=f"{status} {i18n.get('admin-referral-enabled')}",
             callback_data="admin:referral:toggle_enabled",
-            style="primary",
         )
     )
 
@@ -34,7 +33,6 @@ def referral_settings_keyboard(
             InlineKeyboardButton(
                 text=f"💰 {i18n.get('admin-referral-reward')}: {reward_amount}",
                 callback_data="admin:referral:set_reward",
-                style="primary",
             )
         )
 
@@ -44,7 +42,6 @@ def referral_settings_keyboard(
             InlineKeyboardButton(
                 text=f"📊 {i18n.get('admin-referral-type')}: {reward_type.upper()}",
                 callback_data="admin:referral:toggle_type",
-                style="primary",
             )
         )
 
@@ -54,7 +51,6 @@ def referral_settings_keyboard(
             InlineKeyboardButton(
                 text=f"💵 {i18n.get('admin-referral-min-withdrawal')}: {min_withdrawal}",
                 callback_data="admin:referral:set_min_withdrawal",
-                style="primary",
             )
         )
 
@@ -65,7 +61,6 @@ def referral_settings_keyboard(
             InlineKeyboardButton(
                 text=f"{bonus_status} {i18n.get('admin-referral-first-purchase-bonus')}",
                 callback_data="admin:referral:toggle_first_purchase",
-                style="primary",
             )
         )
 
@@ -76,7 +71,6 @@ def referral_settings_keyboard(
             InlineKeyboardButton(
                 text=f"{lifetime_status} {i18n.get('admin-referral-lifetime')}",
                 callback_data="admin:referral:toggle_lifetime",
-                style="primary",
             )
         )
 
@@ -85,7 +79,6 @@ def referral_settings_keyboard(
             InlineKeyboardButton(
                 text="📊 " + i18n.get("admin-referral-stats"),
                 callback_data="admin:referral:stats",
-                style="primary",
             )
         )
 
@@ -94,7 +87,6 @@ def referral_settings_keyboard(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:settings",
-            style="primary",
         )
     )
 

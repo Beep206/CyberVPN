@@ -47,23 +47,22 @@ def main_menu_kb(
         UserStatus.TRIAL if hasattr(UserStatus, "TRIAL") else None,
     }
 
-    builder.button(text=i18n("btn-vpn"), callback_data="menu:vpn", style="primary")
-    builder.button(text=i18n("btn-subscription"), callback_data="menu:subscription", style="primary")
-    builder.button(text=i18n("btn-finance"), callback_data="menu:finance", style="primary")
-    builder.button(text=i18n("btn-rewards"), callback_data="menu:growth", style="primary")
-    builder.button(text=i18n("btn-profile"), callback_data="account:profile", style="primary")
-    builder.button(text=i18n("btn-support"), callback_data="menu:support", style="primary")
+    builder.button(text=i18n("btn-vpn"), callback_data="menu:vpn")
+    builder.button(text=i18n("btn-subscription"), callback_data="menu:subscription")
+    builder.button(text=i18n("btn-finance"), callback_data="menu:finance")
+    builder.button(text=i18n("btn-rewards"), callback_data="menu:growth")
+    builder.button(text=i18n("btn-profile"), callback_data="account:profile")
+    builder.button(text=i18n("btn-support"), callback_data="menu:support")
     builder.row(miniapp_button(i18n, settings))
 
     if not has_active_subscription and user.status in {"none", "NONE", UserStatus.NONE}:
-        builder.button(text=i18n("btn-trial"), callback_data="trial:activate", style="primary")
+        builder.button(text=i18n("btn-trial"), callback_data="trial:activate")
 
     # Admin panel for privileged users
     if user.is_admin:
         builder.button(
             text=i18n("btn-admin-panel"),
             callback_data="admin:menu",
-            style="primary",
         )
 
     builder.adjust(2, 2, 2, 1, 1)
@@ -82,11 +81,11 @@ def profile_kb(i18n: Callable[..., str]) -> InlineKeyboardMarkup:
     """
     builder = InlineKeyboardBuilder()
 
-    builder.button(text=i18n("btn-subscription"), callback_data="account:subscriptions", style="primary")
-    builder.button(text=i18n("btn-language"), callback_data="account:language", style="primary")
-    builder.button(text=i18n("btn-rewards"), callback_data="menu:growth", style="primary")
-    builder.button(text=i18n("btn-support"), callback_data="menu:support", style="primary")
-    builder.button(text=i18n("btn-back"), callback_data="nav:menu", style="primary")
+    builder.button(text=i18n("btn-subscription"), callback_data="account:subscriptions")
+    builder.button(text=i18n("btn-language"), callback_data="account:language")
+    builder.button(text=i18n("btn-rewards"), callback_data="menu:growth")
+    builder.button(text=i18n("btn-support"), callback_data="menu:support")
+    builder.button(text=i18n("btn-back"), callback_data="nav:menu")
 
     # Layout: 2 buttons per row, except back button
     builder.adjust(2, 2, 1)

@@ -35,22 +35,18 @@ def config_format_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
     builder.button(
         text=i18n("btn-config-link"),
         callback_data="config:link",
-        style="primary",
     )
     builder.button(
         text=i18n("btn-config-qr"),
         callback_data="config:qr",
-        style="primary",
     )
     builder.button(
         text=i18n("btn-config-instruction"),
         callback_data="config:instructions",
-        style="primary",
     )
     builder.button(
         text=i18n("btn-back"),
         callback_data="nav:back",
-        style="primary",
     )
 
     # Layout: 1 option per row for clarity
@@ -98,13 +94,11 @@ def subscription_select_keyboard(
         builder.button(
             text=_subscription_label(subscription, index),
             callback_data=f"config:pick:{action}:{index}",
-            style="primary",
         )
 
     builder.button(
         text=i18n("btn-back"),
         callback_data="config:menu",
-        style="primary",
     )
     builder.adjust(1)
     return builder.as_markup()
