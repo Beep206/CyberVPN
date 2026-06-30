@@ -21,6 +21,7 @@ from src.infrastructure.remnawave.contracts import (
     RemnavwavePlanResponse,
     RemnawaveBaseResponse,
     RemnawaveConfigProfileResponse,
+    RemnawaveCursorPage,
     RemnawaveHealthResponse,
     RemnawaveHostListResponse,
     RemnawaveHostResponse,
@@ -34,6 +35,7 @@ from src.infrastructure.remnawave.contracts import (
     RemnawaveSnippetResponse,
     RemnawaveSquadResponse,
     RemnawaveSubscriptionConfigResponse,
+    RemnawaveSubscriptionDetailsResponse,
     RemnawaveSubscriptionResponse,
     RemnawaveSystemStatsResponse,
     RemnawaveUserListResponse,
@@ -285,6 +287,28 @@ class TestRemnawaveUserResponse:
         assert dumped["usedTrafficBytes"] == 512
 
     @pytest.mark.unit
+    @pytest.mark.parametrize(
+        ("field_name", "value"),
+        [
+            ("hwidActive", 2),
+            ("hwidDevicesActive", 3),
+            ("activeHwidDevices", True),
+        ],
+    )
+    def test_user_accepts_remnawave_2_8_hwid_active_aliases(
+        self,
+        user_data_camel,
+        field_name,
+        value,
+    ):
+        """Test compatibility with Remnawave 2.8 HWID active response aliases."""
+        user = RemnawaveUserResponse(**{**user_data_camel, field_name: value})
+        dumped = user.model_dump(by_alias=True)
+
+        assert user.hwid_active == value
+        assert dumped["hwidActive"] == value
+
+    @pytest.mark.unit
     def test_camel_case_serialization(self, user_data_snake):
         """Test that model_dump(by_alias=True) produces camelCase keys."""
         user = RemnawaveUserResponse(**user_data_snake)
@@ -490,6 +514,26 @@ class TestRemnawaveNodeResponse:
         assert node.used_traffic_bytes == 2048
         assert dumped["xrayVersion"] == "1.8.10"
         assert dumped["nodeVersion"] == "2.7.4"
+
+    @pytest.mark.unit
+    def test_node_accepts_remnawave_2_8_cpu_fields_and_tags(self, node_data_camel):
+        """Test compatibility with Remnawave 2.8 node CPU load fields and tags."""
+        node = RemnawaveNodeResponse(
+            **node_data_camel,
+            tags=["xhttp", "premium-smart-ru"],
+            cpuLoad1m=0.12,
+            cpuLoadAverage5m=0.34,
+            metrics={"cpuLoad15m": 0.56},
+        )
+        dumped = node.model_dump(by_alias=True)
+
+        assert node.tags == ["xhttp", "premium-smart-ru"]
+        assert node.cpu_load_1m == 0.12
+        assert node.cpu_load_5m == 0.34
+        assert node.cpu_load_15m == 0.56
+        assert dumped["cpuLoad1m"] == 0.12
+        assert dumped["cpuLoad5m"] == 0.34
+        assert dumped["cpuLoad15m"] == 0.56
 
     @pytest.mark.unit
     def test_camel_case_serialization(self, node_data_snake):
@@ -755,6 +799,31 @@ class TestRemnawaveHostResponse:
         assert "realityPrivateKey" in dumped
 
     @pytest.mark.unit
+    def test_accepts_remnawave_2_8_tags_and_xhttp_extra_params(self):
+        """Test host tags and XHTTP params added by Remnawave 2.8 host payloads."""
+        host = RemnawaveHostResponse(
+            uuid="host-2",
+            tag="LEGACY_TAG",
+            tags=["ru", "xhttp"],
+            xhttpExtraParams={"mode": "packet-up", "extra": {"headers": {"X-Test": "1"}}},
+            verifyPeerCertByName=True,
+        )
+        dumped = host.model_dump(by_alias=True)
+
+        assert host.tags == ["ru", "xhttp"]
+        assert host.xhttp_extra_params == {"mode": "packet-up", "extra": {"headers": {"X-Test": "1"}}}
+        assert host.verify_peer_cert_by_name is True
+        assert dumped["xhttpExtraParams"] == {"mode": "packet-up", "extra": {"headers": {"X-Test": "1"}}}
+        assert dumped["verifyPeerCertByName"] is True
+
+    @pytest.mark.unit
+    def test_normalizes_legacy_single_tag_to_tags(self):
+        """Test backward compatibility for pre-2.8 single host tag payloads."""
+        host = RemnawaveHostResponse(uuid="host-legacy", tag="LEGACY_TAG")
+
+        assert host.tags == ["LEGACY_TAG"]
+
+    @pytest.mark.unit
     def test_from_attributes_orm_style(self):
         """Test constructing host from SimpleNamespace (ORM compat)."""
         obj = SimpleNamespace(
@@ -861,6 +930,38 @@ class TestRemnawaveSubscriptionResponse:
 
 
 # ---------------------------------------------------------------------------
+# RemnawaveSubscriptionDetailsResponse
+# ---------------------------------------------------------------------------
+
+
+class TestRemnawaveSubscriptionDetailsResponse:
+    """Tests for Remnawave subscription lookup responses."""
+
+    @pytest.mark.unit
+    def test_accepts_remnawave_2_8_xhttp_links(self):
+        """Test parsing XHTTP links returned separately by Remnawave 2.8."""
+        response = RemnawaveSubscriptionDetailsResponse.model_validate(
+            {
+                "isFound": True,
+                "user": {
+                    "shortUuid": "user-1",
+                    "username": "user-1",
+                    "userStatus": "ACTIVE",
+                },
+                "links": ["vless://stable@example.com:443?type=tcp#stable"],
+                "xhttpLinks": ["vless://xhttp@example.com:443?type=xhttp&security=reality#xhttp"],
+                "ssConfLinks": {"ru": "ss://config"},
+                "subscriptionUrl": "https://sub.example.com/user-1",
+            }
+        )
+        dumped = response.model_dump(by_alias=True)
+
+        assert response.xhttp_links == ["vless://xhttp@example.com:443?type=xhttp&security=reality#xhttp"]
+        assert dumped["xhttpLinks"] == ["vless://xhttp@example.com:443?type=xhttp&security=reality#xhttp"]
+        assert response.links == ["vless://stable@example.com:443?type=tcp#stable"]
+
+
+# ---------------------------------------------------------------------------
 # RemnawaveSubscriptionConfigResponse
 # ---------------------------------------------------------------------------
 
@@ -909,6 +1010,50 @@ class TestRemnawaveSubscriptionConfigResponse:
         assert "subscriptionUrl" in dumped
         assert "isFound" in dumped
         assert "ssConfLinks" in dumped
+
+
+# ---------------------------------------------------------------------------
+# RemnawaveCursorPage
+# ---------------------------------------------------------------------------
+
+
+class TestRemnawaveCursorPage:
+    """Tests for cursor pagination envelopes returned by newer Remnawave APIs."""
+
+    @pytest.mark.unit
+    def test_accepts_remnawave_2_8_cursor_page_fields(self):
+        """Test canonical nextCursor/hasNextPage fields and raw response items."""
+        page = RemnawaveCursorPage.model_validate(
+            {
+                "response": [{"uuid": "user-1"}],
+                "nextCursor": "cursor-2",
+                "hasNextPage": True,
+                "total": 42,
+            }
+        )
+        dumped = page.model_dump(by_alias=True)
+
+        assert page.items == [{"uuid": "user-1"}]
+        assert page.next_cursor == "cursor-2"
+        assert page.has_next_page is True
+        assert page.total == 42
+        assert dumped["nextCursor"] == "cursor-2"
+        assert dumped["hasNextPage"] is True
+
+    @pytest.mark.unit
+    def test_accepts_legacy_cursor_page_aliases(self):
+        """Test alternate cursor/hasMore fields while preserving users items."""
+        page = RemnawaveCursorPage.model_validate(
+            {
+                "users": [{"uuid": "user-2"}],
+                "cursor": "cursor-3",
+                "hasMore": False,
+            }
+        )
+
+        assert page.items == [{"uuid": "user-2"}]
+        assert page.next_cursor == "cursor-3"
+        assert page.has_next_page is False
 
 
 # ---------------------------------------------------------------------------

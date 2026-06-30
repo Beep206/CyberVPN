@@ -149,6 +149,98 @@ async def test_list_my_invites_groups_growth_batches_without_breaking_unbatched(
 
 
 @pytest.mark.asyncio
+async def test_list_my_invites_sorts_redeemable_multi_use_before_terminal_states(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    owner_id = uuid.uuid4()
+    owner = _mobile_user(email=f"owner-{uuid.uuid4().hex[:8]}@example.test")
+    owner.id = owner_id
+    now = datetime.now(UTC)
+    soon = now + timedelta(days=3)
+    later = now + timedelta(days=30)
+
+    active_limited = _invite(owner, None, code=f"MU{uuid.uuid4().hex[:10].upper()}")
+    active_limited.usage_mode = "multi_use"
+    active_limited.max_redemptions = 5
+    active_limited.redeemed_count = 2
+    active_limited.active_redemptions_count = 2
+    active_limited.expires_at = soon
+    active_limited.created_at = now - timedelta(days=5)
+
+    active_single = _invite(owner, None, code=f"SU{uuid.uuid4().hex[:10].upper()}")
+    active_single.expires_at = later
+    active_single.created_at = now - timedelta(days=1)
+
+    used = _invite(owner, None, code=f"US{uuid.uuid4().hex[:10].upper()}")
+    used.is_used = True
+    used.status = "used"
+    used.used_at = now - timedelta(hours=2)
+    used.created_at = now - timedelta(days=2)
+
+    expired = _invite(owner, None, code=f"EX{uuid.uuid4().hex[:10].upper()}")
+    expired.status = "expired"
+    expired.expires_at = now - timedelta(days=1)
+    expired.created_at = now - timedelta(days=3)
+
+    revoked = _invite(owner, None, code=f"RV{uuid.uuid4().hex[:10].upper()}")
+    revoked.status = "revoked"
+    revoked.revoked_at = now - timedelta(hours=1)
+    revoked.created_at = now - timedelta(days=4)
+
+    unsorted_invites = [revoked, expired, used, active_single, active_limited]
+    for invite in unsorted_invites:
+        invite.usage_mode = invite.usage_mode or "single_use"
+        invite.is_used = bool(invite.is_used)
+        invite.redeemed_count = int(invite.redeemed_count or 0)
+        invite.active_redemptions_count = int(invite.active_redemptions_count or 0)
+        invite.reversed_redemptions_count = int(invite.reversed_redemptions_count or 0)
+        invite.per_user_redemption_cap = int(invite.per_user_redemption_cap or 1)
+        invite.generation_depth = int(invite.generation_depth or 0)
+        invite.multi_use_policy = dict(invite.multi_use_policy or {})
+        invite.entitlement_snapshot = dict(invite.entitlement_snapshot or {})
+        invite.child_policy = dict(invite.child_policy or {})
+
+    class FakeInviteRepository:
+        def __init__(self, _db: object) -> None:
+            pass
+
+        async def get_by_owner(
+            self,
+            *,
+            owner_user_id: uuid.UUID,
+            offset: int,
+            limit: int,
+        ) -> list[InviteCodeModel]:
+            assert owner_user_id == owner_id
+            assert offset == 0
+            assert limit == 50
+            return unsorted_invites
+
+    monkeypatch.setattr(routes, "InviteCodeRepository", FakeInviteRepository)
+
+    listed = await routes.list_my_invites(
+        offset=0,
+        limit=50,
+        group_by=None,
+        db=object(),
+        user_id=owner_id,
+    )
+
+    assert [invite.code for invite in listed] == [
+        active_limited.code,
+        active_single.code,
+        used.code,
+        expired.code,
+        revoked.code,
+    ]
+    assert [invite.status_sort_order for invite in listed] == [0, 0, 2, 3, 4]
+    assert listed[0].usage_mode == "multi_use"
+    assert listed[0].remaining_redemptions == 3
+    assert listed[0].is_redeemable is True
+    assert listed[-1].is_redeemable is False
+
+
+@pytest.mark.asyncio
 async def test_admin_invite_batch_extend_export_and_revoke_are_audited_without_raw_code_leakage() -> None:
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
     await initialize_realm_test_database(engine)

@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from httpx import HTTPStatusError, Request, Response
 
 from src.application.use_cases.subscriptions.generate_config import GenerateConfigUseCase
+from src.config.settings import settings
 from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse
 
 
@@ -90,6 +91,75 @@ async def test_generate_config_preserves_links_and_ss_conf_links() -> None:
     assert result["is_found"] is True
     assert result["links"] == ["vmess://config-1"]
     assert result["ss_conf_links"] == {"Node A": "ss://config-a"}
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_generate_config_allows_remnawave_2_8_xhttp_links_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_enabled", True)
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_rollout_mode", "canary")
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_force_disabled", False)
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_mihomo_enabled", True)
+    xhttp_link = "vless://xhttp-user@example.com:443?type=xhttp&security=reality#xhttp"
+    client = AsyncMock()
+    client.get_validated = AsyncMock(
+        return_value=RemnawaveSubscriptionDetailsResponse(
+            is_found=True,
+            user={
+                "shortUuid": "xhttp-user",
+                "username": "xhttp-user",
+                "userStatus": "ACTIVE",
+                "isActive": True,
+            },
+            links=[],
+            xhttpLinks=[xhttp_link],
+            subscription_url=None,
+        )
+    )
+
+    result = await GenerateConfigUseCase(client).execute("xhttp-user")
+
+    assert result["config"] == xhttp_link
+    assert result["client_type"] == "vless"
+    assert result["links"] == [xhttp_link]
+    assert result["xhttp_enabled"] is True
+    assert result["xhttp_links"] == [xhttp_link]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_generate_config_force_disabled_filters_xhttp_links_and_uses_stable_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_enabled", True)
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_rollout_mode", "canary")
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_force_disabled", True)
+    stable_link = "vless://stable-user@example.com:443?type=tcp&security=reality#stable"
+    xhttp_link = "vless://stable-user@example.com:443?type=xhttp&security=reality#xhttp"
+    client = AsyncMock()
+    client.get_validated = AsyncMock(
+        return_value=RemnawaveSubscriptionDetailsResponse(
+            is_found=True,
+            user={
+                "shortUuid": "stable-user",
+                "username": "stable-user",
+                "userStatus": "ACTIVE",
+                "isActive": True,
+            },
+            links=[stable_link],
+            xhttpLinks=[xhttp_link],
+            subscription_url=None,
+        )
+    )
+
+    result = await GenerateConfigUseCase(client).execute("stable-user")
+
+    assert result["config"] == stable_link
+    assert result["links"] == [stable_link]
+    assert result["xhttp_enabled"] is False
+    assert result["xhttp_links"] == []
 
 
 @pytest.mark.unit

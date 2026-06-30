@@ -80,19 +80,111 @@ groups:
 
       - record: stage1:remnawave_node_cpu_load_1m:current
         expr: |
-          max by (node_name, node_uuid) ({__name__=~"remnawave_node_cpu_load_avg_1m|remnawave_node_cpu_load_1m|remnawave_node_cpu_load_average_1m|remnawave_node_load_average_1m",job="remnawave"}) or vector(0)
+          (
+            max by (node_uuid) ({__name__=~"remnawave_node_cpu_load_avg_1m|remnawave_node_cpu_load_1m|remnawave_node_cpu_load_average_1m|remnawave_node_load_average_1m",job="remnawave"})
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
 
       - record: stage1:remnawave_node_cpu_load_5m:current
         expr: |
-          max by (node_name, node_uuid) ({__name__=~"remnawave_node_cpu_load_avg_5m|remnawave_node_cpu_load_5m|remnawave_node_cpu_load_average_5m|remnawave_node_load_average_5m",job="remnawave"}) or vector(0)
+          (
+            max by (node_uuid) ({__name__=~"remnawave_node_cpu_load_avg_5m|remnawave_node_cpu_load_5m|remnawave_node_cpu_load_average_5m|remnawave_node_load_average_5m",job="remnawave"})
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
 
       - record: stage1:remnawave_node_cpu_load_15m:current
         expr: |
-          max by (node_name, node_uuid) ({__name__=~"remnawave_node_cpu_load_avg_15m|remnawave_node_cpu_load_15m|remnawave_node_cpu_load_average_15m|remnawave_node_load_average_15m",job="remnawave"}) or vector(0)
+          (
+            max by (node_uuid) ({__name__=~"remnawave_node_cpu_load_avg_15m|remnawave_node_cpu_load_15m|remnawave_node_cpu_load_average_15m|remnawave_node_load_average_15m",job="remnawave"})
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
+
+      - record: stage1:remnawave_node_cpu_count:current
+        expr: |
+          (
+            max by (node_uuid) (remnawave_node_cpu_count{job="remnawave"})
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
+
+      - record: stage1:remnawave_node_cpu_load_1m:normalized
+        expr: |
+          (
+            (
+              max by (node_uuid) ({__name__=~"remnawave_node_cpu_load_avg_1m|remnawave_node_cpu_load_1m|remnawave_node_cpu_load_average_1m|remnawave_node_load_average_1m",job="remnawave"})
+              /
+              clamp_min(max by (node_uuid) (remnawave_node_cpu_count{job="remnawave"}), 1)
+            )
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
+
+      - record: stage1:remnawave_node_cpu_load_5m:normalized
+        expr: |
+          (
+            (
+              max by (node_uuid) ({__name__=~"remnawave_node_cpu_load_avg_5m|remnawave_node_cpu_load_5m|remnawave_node_cpu_load_average_5m|remnawave_node_load_average_5m",job="remnawave"})
+              /
+              clamp_min(max by (node_uuid) (remnawave_node_cpu_count{job="remnawave"}), 1)
+            )
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
+
+      - record: stage1:remnawave_node_cpu_load_15m:normalized
+        expr: |
+          (
+            (
+              max by (node_uuid) ({__name__=~"remnawave_node_cpu_load_avg_15m|remnawave_node_cpu_load_15m|remnawave_node_cpu_load_average_15m|remnawave_node_load_average_15m",job="remnawave"})
+              /
+              clamp_min(max by (node_uuid) (remnawave_node_cpu_count{job="remnawave"}), 1)
+            )
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
+
+      - record: stage1:remnawave_node_online_users:current
+        expr: |
+          (
+            max by (node_uuid) (remnawave_node_online_users{job="remnawave"})
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
+
+      - record: stage1:remnawave_node_network_rx_bytes_per_sec:current
+        expr: |
+          (
+            max by (node_uuid) (remnawave_node_network_rx_bytes_per_sec{job="remnawave"})
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
+
+      - record: stage1:remnawave_node_network_tx_bytes_per_sec:current
+        expr: |
+          (
+            max by (node_uuid) (remnawave_node_network_tx_bytes_per_sec{job="remnawave"})
+            * on (node_uuid) group_left (node_name, tags)
+            max by (node_uuid, node_name, tags) (remnawave_node_basic_info{job="remnawave"})
+          )
+
+      - record: stage1:remnawave_premium_smart_ru_nodes:current
+        expr: |
+          count(remnawave_node_basic_info{job="remnawave",tags=~".*CYBERVPN_PREMIUM_SMART_RU.*"}) or vector(0)
+
+      - record: stage1:remnawave_premium_smart_ru_xhttp_policy_nodes:current
+        expr: |
+          count(remnawave_node_basic_info{job="remnawave",tags=~".*CYBERVPN_PREMIUM_SMART_RU.*"}) or vector(0)
+
+      - record: stage1:remnawave_xhttp_capable_nodes:current
+        expr: |
+          count(remnawave_node_basic_info{job="remnawave",tags=~".*(xhttp|XHTTP).*"}) or vector(0)
 
       - record: stage1:remnawave_node_metrics_available:current
         expr: |
-          count({__name__=~"remnawave_node_status|remnawave_node_online_users|remnawave_node_cpu_load_avg_1m|remnawave_node_cpu_load_1m|remnawave_node_cpu_load_average_1m|remnawave_node_load_average_1m|remnawave_node_cpu_load_avg_5m|remnawave_node_cpu_load_5m|remnawave_node_cpu_load_average_5m|remnawave_node_load_average_5m|remnawave_node_cpu_load_avg_15m|remnawave_node_cpu_load_15m|remnawave_node_cpu_load_average_15m|remnawave_node_load_average_15m",job="remnawave"}) or vector(0)
+          count({__name__=~"remnawave_node_status|remnawave_node_basic_info|remnawave_node_system_info|remnawave_node_online_users|remnawave_node_cpu_count|remnawave_node_cpu_load_avg_1m|remnawave_node_cpu_load_1m|remnawave_node_cpu_load_average_1m|remnawave_node_load_average_1m|remnawave_node_cpu_load_avg_5m|remnawave_node_cpu_load_5m|remnawave_node_cpu_load_average_5m|remnawave_node_load_average_5m|remnawave_node_cpu_load_avg_15m|remnawave_node_cpu_load_15m|remnawave_node_cpu_load_average_15m|remnawave_node_load_average_15m|remnawave_node_network_rx_bytes_per_sec|remnawave_node_network_tx_bytes_per_sec",job="remnawave"}) or vector(0)
 
       - record: stage1:telegram_bot_error_ratio:5m
         expr: |
