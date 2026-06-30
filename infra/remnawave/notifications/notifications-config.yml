@@ -1,4 +1,4 @@
-# CyberVPN defaults for Remnawave 2.7.x notifications.
+# CyberVPN defaults for Remnawave 2.8.x notifications.
 # Telegram delivery is still controlled by IS_TELEGRAM_NOTIFICATIONS_ENABLED
 # and TELEGRAM_NOTIFY_* env vars; this file enables the useful event matrix.
 
@@ -30,16 +30,7 @@ events:
   user.traffic_reset:
     telegram: true
     webhook: true
-  user.expires_in_72_hours:
-    telegram: true
-    webhook: true
-  user.expires_in_48_hours:
-    telegram: true
-    webhook: true
-  user.expires_in_24_hours:
-    telegram: true
-    webhook: true
-  user.expired_24_hours_ago:
+  user.expiration:
     telegram: true
     webhook: true
   user.first_connected:
