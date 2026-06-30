@@ -8,6 +8,11 @@ from uuid import uuid4
 from fastapi import Request
 from prometheus_client import REGISTRY
 
+from src.application.services.config_service import (
+    MANDATORY_CABINET_ALLOWED_PREFIXES,
+    MANDATORY_OPERATIONAL_PATH_PREFIXES,
+    MANDATORY_PUBLIC_ALLOWED_PREFIXES,
+)
 from src.presentation.api.v1.admin import system_config as system_config_routes
 from src.presentation.api.v1.admin.schemas import UpdateAdminMiniAppRuntimeConfigRequest
 
@@ -368,21 +373,25 @@ def test_update_admin_customer_site_runtime_config_persists_versioned_policy_and
     assert response.site.public_hosts == ["cyber-vpn.net", "www.cyber-vpn.net"]
     assert response.site.cabinet_hosts == ["my.cyber-vpn.net"]
     assert response.site.cabinet_destination_path == "/dashboard"
-    assert response.site.allowed_path_prefixes == ["/login", "/register", "/status"]
-    assert response.site.cabinet_allowed_prefixes == ["/dashboard", "/subscriptions", "/support"]
+    expected_allowed_prefixes = [*MANDATORY_PUBLIC_ALLOWED_PREFIXES, "/login", "/register", "/status"]
+    expected_cabinet_prefixes = [*MANDATORY_CABINET_ALLOWED_PREFIXES]
+    expected_operational_prefixes = [*MANDATORY_OPERATIONAL_PATH_PREFIXES, "/status", "/.well-known"]
+
+    assert response.site.allowed_path_prefixes == expected_allowed_prefixes
+    assert response.site.cabinet_allowed_prefixes == expected_cabinet_prefixes
     assert response.site.cabinet_marketing_route_action == "redirect_public"
     assert response.site.public_marketing_destination_path == "/pricing"
     assert response.site.legal_path_prefixes == ["/privacy-policy", "/terms"]
-    assert response.site.operational_path_prefixes == ["/status", "/.well-known"]
+    assert response.site.operational_path_prefixes == expected_operational_prefixes
     assert response.site.preserve_query_keys == ["ref", "utm_campaign", "code"]
     assert response.last_change_reason == "enable private beta routing"
     assert state["value"]["version"] == 8
     assert state["value"]["mode"] == "cabinet_only"
-    assert state["value"]["cabinet_allowed_prefixes"] == ["/dashboard", "/subscriptions", "/support"]
+    assert state["value"]["cabinet_allowed_prefixes"] == expected_cabinet_prefixes
     assert state["value"]["cabinet_marketing_route_action"] == "redirect_public"
     assert state["value"]["public_marketing_destination_path"] == "/pricing"
     assert state["value"]["legal_path_prefixes"] == ["/privacy-policy", "/terms"]
-    assert state["value"]["operational_path_prefixes"] == ["/status", "/.well-known"]
+    assert state["value"]["operational_path_prefixes"] == expected_operational_prefixes
     assert len(fake_db.added) == 1
     audit_entry = fake_db.added[0]
     assert audit_entry.action == "system_config.customer_site_runtime.updated"
@@ -391,15 +400,11 @@ def test_update_admin_customer_site_runtime_config_persists_versioned_policy_and
     assert audit_entry.old_value["version"] == 7
     assert audit_entry.new_value["site"]["mode"] == "cabinet_only"
     assert audit_entry.new_value["site"]["version"] == 8
-    assert audit_entry.new_value["site"]["cabinet_allowed_prefixes"] == [
-        "/dashboard",
-        "/subscriptions",
-        "/support",
-    ]
+    assert audit_entry.new_value["site"]["cabinet_allowed_prefixes"] == expected_cabinet_prefixes
     assert audit_entry.new_value["site"]["cabinet_marketing_route_action"] == "redirect_public"
     assert audit_entry.new_value["site"]["public_marketing_destination_path"] == "/pricing"
     assert audit_entry.new_value["site"]["legal_path_prefixes"] == ["/privacy-policy", "/terms"]
-    assert audit_entry.new_value["site"]["operational_path_prefixes"] == ["/status", "/.well-known"]
+    assert audit_entry.new_value["site"]["operational_path_prefixes"] == expected_operational_prefixes
     assert audit_entry.new_value["change_reason"] == "enable private beta routing"
     assert fake_db.flushed == 1
 
@@ -531,16 +536,19 @@ def test_update_admin_customer_site_runtime_config_preserves_v62_fields_for_lega
 
     assert response.site.mode == "maintenance"
     assert response.site.version == 4
-    assert response.site.cabinet_allowed_prefixes == ["/dashboard", "/subscriptions"]
+    expected_cabinet_prefixes = [*MANDATORY_CABINET_ALLOWED_PREFIXES]
+    expected_operational_prefixes = [*MANDATORY_OPERATIONAL_PATH_PREFIXES, "/status", "/.well-known"]
+
+    assert response.site.cabinet_allowed_prefixes == expected_cabinet_prefixes
     assert response.site.cabinet_marketing_route_action == "not_found"
     assert response.site.public_marketing_destination_path == "/pricing"
     assert response.site.legal_path_prefixes == ["/privacy-policy", "/terms"]
-    assert response.site.operational_path_prefixes == ["/status", "/.well-known"]
-    assert state["value"]["cabinet_allowed_prefixes"] == ["/dashboard", "/subscriptions"]
+    assert response.site.operational_path_prefixes == expected_operational_prefixes
+    assert state["value"]["cabinet_allowed_prefixes"] == expected_cabinet_prefixes
     assert state["value"]["cabinet_marketing_route_action"] == "not_found"
     assert state["value"]["public_marketing_destination_path"] == "/pricing"
     assert state["value"]["legal_path_prefixes"] == ["/privacy-policy", "/terms"]
-    assert state["value"]["operational_path_prefixes"] == ["/status", "/.well-known"]
+    assert state["value"]["operational_path_prefixes"] == expected_operational_prefixes
 
 
 def test_execute_admin_customer_site_runtime_action_rolls_back_to_full_site(monkeypatch) -> None:
@@ -614,7 +622,12 @@ def test_execute_admin_customer_site_runtime_action_rolls_back_to_full_site(monk
     assert response.site.mode == "full_site"
     assert response.site.version == 12
     assert response.site.public_hosts == ["cyber-vpn.net"]
-    assert response.site.allowed_path_prefixes == ["/login", "/register", "/status"]
+    assert response.site.allowed_path_prefixes == [
+        *MANDATORY_PUBLIC_ALLOWED_PREFIXES,
+        "/login",
+        "/register",
+        "/status",
+    ]
     audit_entry = fake_db.added[0]
     assert audit_entry.action == "system_config.customer_site_runtime.action_executed"
     assert audit_entry.old_value["mode"] == "cabinet_only"

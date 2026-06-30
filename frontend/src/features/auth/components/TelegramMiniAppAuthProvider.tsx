@@ -6,7 +6,7 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
 import { isMiniAppRoute } from '@/features/auth/lib/session';
-import { MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
+import { MINIAPP_AUTH_RESTORE_RECOVERED_EVENT, MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
 import { getPostAuthDestination } from '@/features/customer-onboarding/routing';
 import { installMiniAppClientErrorListeners, reportMiniAppClientError } from '@/features/miniapp-runtime/lib/client-error-telemetry';
 import { Loader2, AlertCircle, Shield, RotateCcw, Send, X } from 'lucide-react';
@@ -253,8 +253,10 @@ export function TelegramMiniAppAuthProvider({
         };
 
         window.addEventListener(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, handleMiniAppAuthRestoreRequired);
+        window.addEventListener(MINIAPP_AUTH_RESTORE_RECOVERED_EVENT, handleMiniAppAuthRestoreRequired);
         return () => {
             window.removeEventListener(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, handleMiniAppAuthRestoreRequired);
+            window.removeEventListener(MINIAPP_AUTH_RESTORE_RECOVERED_EVENT, handleMiniAppAuthRestoreRequired);
         };
     }, [authenticateMiniApp, restoreMiniAppSession, shouldGateMiniApp]);
 

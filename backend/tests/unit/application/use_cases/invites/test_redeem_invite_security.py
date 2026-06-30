@@ -5,6 +5,7 @@ from uuid import UUID
 
 import pytest
 
+from src.application.use_cases.growth_codes.hashing import build_growth_code_prefix
 from src.application.use_cases.invites.redeem_invite import RedeemInviteUseCase
 from src.domain.exceptions import InviteCodeNotFoundError
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -12,6 +13,9 @@ from src.presentation.dependencies.auth_realms import RealmResolution
 
 
 class _MissingInviteRepo:
+    async def get_by_code_for_update(self, _code: str):
+        return None
+
     async def get_by_code(self, _code: str):
         return None
 
@@ -43,6 +47,6 @@ async def test_redeem_invite_not_found_log_uses_redacted_code_ref(caplog: pytest
 
     record = next(item for item in caplog.records if item.message == "invite_redeem_not_found")
     assert "code" not in record.__dict__
-    assert record.__dict__["code_prefix"] == "GI-SENSI"
+    assert record.__dict__["code_prefix"] == build_growth_code_prefix(raw_code)
     assert record.__dict__["code_length"] == len(raw_code)
     assert raw_code not in str(record.__dict__)

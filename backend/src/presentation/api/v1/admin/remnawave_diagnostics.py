@@ -189,8 +189,7 @@ async def get_remnawave_node_diagnostics(
     nodes = [_diagnostics_item(item) for item in _as_items(payload)]
     metrics_source = "remnawave_api"
     if any(
-        node.cpu_load_1m is not None or node.cpu_load_5m is not None or node.cpu_load_15m is not None
-        for node in nodes
+        node.cpu_load_1m is not None or node.cpu_load_5m is not None or node.cpu_load_15m is not None for node in nodes
     ):
         metrics_source = "remnawave_api_with_node_load"
     return AdminRemnawaveNodeDiagnosticsResponse(

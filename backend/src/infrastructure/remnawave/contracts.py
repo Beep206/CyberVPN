@@ -19,7 +19,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # ---------------------------------------------------------------------------
 # Shared / generic helpers
@@ -39,6 +39,39 @@ class RemnawaveBaseResponse(BaseModel):
         populate_by_name=True,
         extra="ignore",
     )
+
+
+_REMNAWAVE_PUBLIC_CONFIG_DENY_KEYS = frozenset(
+    {
+        "accesstoken",
+        "client",
+        "clientid",
+        "clients",
+        "keys",
+        "password",
+        "passwd",
+        "privatekey",
+        "realityprivatekey",
+        "refreshtoken",
+        "secret",
+        "token",
+    }
+)
+
+
+def _sanitize_remnawave_public_config(value: Any) -> Any:
+    if isinstance(value, dict):
+        sanitized: dict[str, Any] = {}
+        for raw_key, raw_item in value.items():
+            key = str(raw_key)
+            normalized_key = key.replace("_", "").replace("-", "").lower()
+            if normalized_key in _REMNAWAVE_PUBLIC_CONFIG_DENY_KEYS:
+                continue
+            sanitized[key] = _sanitize_remnawave_public_config(raw_item)
+        return sanitized
+    if isinstance(value, list):
+        return [_sanitize_remnawave_public_config(item) for item in value]
+    return value
 
 
 class StatusMessageResponse(RemnawaveBaseResponse):
@@ -268,29 +301,49 @@ class RemnawaveNodeListResponse(RemnawaveBaseResponse):
 
 
 class RemnawaveInboundResponse(RemnawaveBaseResponse):
-    """Inbound (protocol listener) from the Remnawave ``/api/inbounds`` endpoint."""
+    """Inbound (protocol listener) from Remnawave config-profile inbound endpoints."""
 
     uuid: str = Field(..., description="Inbound UUID")
     tag: str = Field(..., description="Inbound tag identifier")
-    protocol: str = Field(..., description="Protocol (vless, vmess, trojan, shadowsocks, etc.)")
+    protocol: str = Field(
+        ...,
+        validation_alias=AliasChoices("protocol", "type", AliasPath("rawInbound", "protocol")),
+        description="Protocol (vless, vmess, trojan, shadowsocks, etc.)",
+    )
     port: int = Field(..., description="Listening port")
     network: str | None = Field(None, description="Transport network type (tcp, ws, grpc, etc.)")
     transport: str | None = Field(None, description="Transport identifier when returned separately")
     security: str | None = Field(None, description="Security type (tls, reality, none)")
     tls: str | None = Field(None, description="TLS mode")
-    settings: dict[str, Any] | None = Field(None, description="Raw protocol settings")
-    stream_settings: dict[str, Any] | None = Field(
-        None, alias="streamSettings", description="Stream/transport settings"
+    settings: dict[str, Any] | None = Field(
+        None,
+        validation_alias=AliasChoices("settings", AliasPath("rawInbound", "settings")),
+        description="Raw protocol settings",
     )
-    sniffing: dict[str, Any] | None = Field(None, description="Sniffing configuration")
+    stream_settings: dict[str, Any] | None = Field(
+        None,
+        alias="streamSettings",
+        validation_alias=AliasChoices("streamSettings", AliasPath("rawInbound", "streamSettings")),
+        description="Stream/transport settings",
+    )
+    sniffing: dict[str, Any] | None = Field(
+        None,
+        validation_alias=AliasChoices("sniffing", AliasPath("rawInbound", "sniffing")),
+        description="Sniffing configuration",
+    )
 
     # Node association
     node_uuid: str | None = Field(None, alias="nodeUuid", description="Parent node UUID")
     tags: list[str] = Field(default_factory=list, description="Inbound tags when returned by upstream")
 
+    @field_validator("settings", "stream_settings", "sniffing", mode="before")
+    @classmethod
+    def _sanitize_public_config(cls, value: Any) -> Any:
+        return _sanitize_remnawave_public_config(value)
+
 
 class RemnawaveInboundListResponse(RemnawaveBaseResponse):
-    """Wrapper for ``GET /api/inbounds`` list responses."""
+    """Wrapper for Remnawave inbound list responses."""
 
     response: list[RemnawaveInboundResponse] = Field(default_factory=list, description="List of inbounds")
 

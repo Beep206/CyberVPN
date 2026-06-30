@@ -661,7 +661,7 @@ class TestRemnawaveInboundResponse:
             node_uuid="node-uuid-1",
         )
 
-        assert inbound.settings["clients"][0]["id"] == "test-uuid"
+        assert inbound.settings == {}
         assert inbound.stream_settings["wsSettings"]["path"] == "/vmess"
         assert inbound.node_uuid == "node-uuid-1"
 

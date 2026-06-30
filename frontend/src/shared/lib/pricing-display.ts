@@ -3,6 +3,7 @@ import {
   isSupportedCurrency,
   type SupportedCurrency,
 } from '@/features/currency-selector/currency-config';
+import { toIntlLocale } from '@/i18n/intl-locale';
 
 export const S1_BILLING_CURRENCY = 'USD';
 export const S2_DISPLAY_RATE_VERSION = 's2-static-display-rates-2026-05-25';
@@ -76,7 +77,7 @@ function roundUpToIncrement(amount: number, increment: number): number {
 }
 
 export function formatMoney(locale: string, amount: number, currency: string) {
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(toIntlLocale(locale), {
     style: 'currency',
     currency,
     maximumFractionDigits: amount % 1 === 0 ? 0 : 2,

@@ -1,7 +1,13 @@
 import pytest
 from prometheus_client import REGISTRY, generate_latest
 
-from src.application.services.config_service import ConfigService, CustomerSiteRuntimeConfig
+from src.application.services.config_service import (
+    MANDATORY_CABINET_ALLOWED_PREFIXES,
+    MANDATORY_OPERATIONAL_PATH_PREFIXES,
+    MANDATORY_PUBLIC_ALLOWED_PREFIXES,
+    ConfigService,
+    CustomerSiteRuntimeConfig,
+)
 from src.application.services.customer_site_policy import CustomerSiteRuntimePolicy
 
 
@@ -42,14 +48,17 @@ async def test_customer_site_runtime_config_normalizes_v62_paths_and_action() ->
     assert config.mode == "cabinet_only"
     assert config.version == 2
     assert config.cabinet_destination_path == "/dashboard"
-    assert config.allowed_path_prefixes == ("/login",)
-    assert config.cabinet_allowed_prefixes[:2] == ("/dashboard", "/settings")
+    assert config.allowed_path_prefixes == (*MANDATORY_PUBLIC_ALLOWED_PREFIXES, "/login")
+    assert config.cabinet_allowed_prefixes[: len(MANDATORY_CABINET_ALLOWED_PREFIXES)] == (
+        *MANDATORY_CABINET_ALLOWED_PREFIXES,
+    )
+    assert "/settings" in config.cabinet_allowed_prefixes
     assert len(config.cabinet_allowed_prefixes) == 100
     assert "//evil.com" not in config.cabinet_allowed_prefixes
     assert config.cabinet_marketing_route_action == "redirect_public"
     assert config.public_marketing_destination_path == "/"
     assert config.legal_path_prefixes == ("/privacy",)
-    assert config.operational_path_prefixes == ("/status",)
+    assert config.operational_path_prefixes == (*MANDATORY_OPERATIONAL_PATH_PREFIXES, "/status")
 
 
 def test_cabinet_only_redirects_public_marketing_path_to_cabinet_host() -> None:

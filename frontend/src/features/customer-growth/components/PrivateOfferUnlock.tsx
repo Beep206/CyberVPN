@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { useLocale } from 'next-intl';
+import { toIntlLocale } from '@/i18n/intl-locale';
 import { cn } from '@/lib/utils';
 import {
   privateCatalogApi,
@@ -139,7 +140,7 @@ function formatOfferPrice(
   }
 
   try {
-    return new Intl.NumberFormat(locale, {
+    return new Intl.NumberFormat(toIntlLocale(locale), {
       style: 'currency',
       currency: price.currency,
       maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
@@ -156,7 +157,7 @@ function formatGrantExpiry(locale: string, expiresAt: string): string {
   }
 
   try {
-    return new Intl.DateTimeFormat(locale, {
+    return new Intl.DateTimeFormat(toIntlLocale(locale), {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(date);

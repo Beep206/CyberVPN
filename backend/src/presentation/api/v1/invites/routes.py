@@ -362,6 +362,19 @@ def _invite_remaining_redemptions(invite: InviteCodeModel) -> int | None:
     return max(remaining, 0)
 
 
+def _positive_tree_stat(value: object) -> int:
+    if value is None or isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return max(value, 0)
+    if isinstance(value, str):
+        try:
+            return max(int(value), 0)
+        except ValueError:
+            return 0
+    return 0
+
+
 def _invite_is_redeemable(invite: InviteCodeModel) -> bool:
     now = datetime.now(UTC)
     expires_at = _coerce_utc(invite.expires_at)
@@ -1513,10 +1526,10 @@ async def admin_list_invite_tree_roots(
                 owner_user_id=invite.owner_user_id,
                 generation_depth=int(invite.generation_depth or 0),
                 status=invite.status,
-                issued_count=int(stats.get("total_nodes", 0)),
-                redeemed_count=int(stats.get("total_redeemed", 0)),
-                child_invites_issued_count=int(stats.get("total_child_invites_issued", 0)),
-                max_depth_reached=int(stats.get("max_depth_reached", 0)),
+                issued_count=_positive_tree_stat(stats.get("total_nodes")),
+                redeemed_count=_positive_tree_stat(stats.get("total_redeemed")),
+                child_invites_issued_count=_positive_tree_stat(stats.get("total_child_invites_issued")),
+                max_depth_reached=_positive_tree_stat(stats.get("max_depth_reached")),
                 created_at=invite.created_at,
             )
         )
@@ -1776,8 +1789,7 @@ async def admin_export_invite_batch(
     exportable_invites = [
         invite
         for invite in invites
-        if not invite.is_used
-        and invite.revoked_at is None
+        if invite.revoked_at is None
         and invite.status not in {"revoked", "expired"}
         and (_coerce_utc(invite.expires_at) is None or _coerce_utc(invite.expires_at) > now)
     ]

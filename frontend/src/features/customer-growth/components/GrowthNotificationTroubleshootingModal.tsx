@@ -19,13 +19,14 @@ import {
   type GrowthNotificationActionLink,
   type GrowthTroubleshootingSurface,
 } from '@/features/customer-growth/lib/growth-notification-routing';
+import { toIntlLocale } from '@/i18n/intl-locale';
 
 function formatDate(locale: string, value?: string | null): string {
   if (!value) {
     return 'N/A';
   }
 
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(toIntlLocale(locale), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

@@ -761,9 +761,14 @@ def _normalize_multi_use_fields(model: BaseModel, prefix: Literal["root", "child
 def _positive_int_or_none(value: object) -> int | None:
     if value is None or isinstance(value, bool):
         return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
+    if isinstance(value, int):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = int(value)
+        except ValueError:
+            return None
+    else:
         return None
     return parsed if parsed > 0 else None
 

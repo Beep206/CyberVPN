@@ -5,6 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import (
     CUSTOMER_SITE_RUNTIME_CONFIG_KEY,
+    MANDATORY_CABINET_ALLOWED_PREFIXES,
+    MANDATORY_OPERATIONAL_PATH_PREFIXES,
+    MANDATORY_PUBLIC_ALLOWED_PREFIXES,
     ConfigService,
     CustomerSiteRuntimeConfig,
     MiniAppLaunchReadinessConfig,
@@ -99,6 +102,15 @@ def _normalize_customer_site_path_prefixes(values: list[str], *, fallback: tuple
     if normalized:
         return normalized
     return list(fallback)
+
+
+def _merge_customer_site_path_prefixes(required: tuple[str, ...], values: list[str]) -> list[str]:
+    normalized: list[str] = []
+    for value in [*required, *values]:
+        candidate = _normalize_customer_site_path(value, fallback="")
+        if candidate and candidate not in normalized:
+            normalized.append(candidate)
+    return normalized
 
 
 def _normalize_customer_site_query_keys(values: list[str], *, fallback: tuple[str, ...]) -> list[str]:
@@ -488,13 +500,19 @@ def _build_customer_site_runtime_update_payload(
             payload.cabinet_destination_path,
             fallback=current.cabinet_destination_path,
         ),
-        "allowed_path_prefixes": _normalize_customer_site_path_prefixes(
-            payload.allowed_path_prefixes,
-            fallback=current.allowed_path_prefixes,
+        "allowed_path_prefixes": _merge_customer_site_path_prefixes(
+            MANDATORY_PUBLIC_ALLOWED_PREFIXES,
+            _normalize_customer_site_path_prefixes(
+                payload.allowed_path_prefixes,
+                fallback=current.allowed_path_prefixes,
+            ),
         ),
-        "cabinet_allowed_prefixes": _normalize_customer_site_path_prefixes(
-            payload.cabinet_allowed_prefixes,
-            fallback=current.cabinet_allowed_prefixes,
+        "cabinet_allowed_prefixes": _merge_customer_site_path_prefixes(
+            MANDATORY_CABINET_ALLOWED_PREFIXES,
+            _normalize_customer_site_path_prefixes(
+                payload.cabinet_allowed_prefixes,
+                fallback=current.cabinet_allowed_prefixes,
+            ),
         ),
         "cabinet_marketing_route_action": (
             payload.cabinet_marketing_route_action or current.cabinet_marketing_route_action
@@ -507,9 +525,12 @@ def _build_customer_site_runtime_update_payload(
             payload.legal_path_prefixes,
             fallback=current.legal_path_prefixes,
         ),
-        "operational_path_prefixes": _normalize_customer_site_path_prefixes(
-            payload.operational_path_prefixes,
-            fallback=current.operational_path_prefixes,
+        "operational_path_prefixes": _merge_customer_site_path_prefixes(
+            MANDATORY_OPERATIONAL_PATH_PREFIXES,
+            _normalize_customer_site_path_prefixes(
+                payload.operational_path_prefixes,
+                fallback=current.operational_path_prefixes,
+            ),
         ),
         "preserve_query_keys": _normalize_customer_site_query_keys(
             payload.preserve_query_keys,

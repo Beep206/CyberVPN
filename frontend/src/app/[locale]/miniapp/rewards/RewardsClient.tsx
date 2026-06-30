@@ -57,6 +57,7 @@ import {
 import { buildGrowthCodeBasketCopy } from '@/features/customer-growth-code-basket/lib/copy';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { Link } from '@/i18n/navigation';
+import { toIntlLocale } from '@/i18n/intl-locale';
 import { getMiniAppRewardsNavigationItems } from '@/shared/cabinet-navigation';
 
 const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
@@ -96,7 +97,7 @@ function formatDate(locale: string, value?: string | null): string {
     return 'N/A';
   }
 
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(toIntlLocale(locale), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -104,7 +105,7 @@ function formatDate(locale: string, value?: string | null): string {
 }
 
 function formatCurrency(locale: string, amount: number): string {
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(toIntlLocale(locale), {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: amount % 1 === 0 ? 0 : 2,

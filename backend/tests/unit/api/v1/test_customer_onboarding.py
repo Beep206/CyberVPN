@@ -52,6 +52,7 @@ def _enabled_runtime() -> CustomerOnboardingRuntimeConfig:
         post_registration_code_prompt_enabled=True,
         web_otp_enabled=True,
         state_store_ready=True,
+        telegram_bot_code_apply_enabled=True,
     )
 
 
@@ -587,6 +588,12 @@ async def test_telegram_bot_growth_code_apply_matches_backend_contract(
     class RecordingStateRepository:
         def __init__(self, _db) -> None:
             pass
+
+        async def get_current(self, **_kwargs):
+            return SimpleNamespace(status="pending")
+
+        async def ensure_pending(self, **_kwargs):
+            return SimpleNamespace(status="pending")
 
         async def apply_growth_code(self, **kwargs):
             state_calls.append(dict(kwargs))

@@ -129,7 +129,7 @@ async def get_current_customer_onboarding(
 @router.post("/growth-code/apply", response_model=CustomerOnboardingApplyResponse)
 async def apply_customer_onboarding_growth_code(
     payload: CustomerOnboardingApplyRequest,
-    request: Request,
+    request: Request = None,
     user_id: UUID | None = Depends(get_optional_current_mobile_user_id),
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
@@ -503,23 +503,19 @@ def _trusted_apply_source_surface(
 
 def _invite_redemption_runtime_context(
     *,
-    request: Request,
+    request: Request | None,
     source_surface: ConnectionSurface,
     telegram_id: int | None,
 ) -> InviteRedemptionRuntimeContext:
-    client_ip = resolve_client_ip(request).ip
     if source_surface == "telegram_bot" and telegram_id is not None:
         stable_key = f"telegram_bot:{telegram_id}"
         return InviteRedemptionRuntimeContext(
             client_ip_hash=_hash_runtime_key(f"{stable_key}:ipless"),
             device_key_hash=hash_device_key(stable_key),
         )
-    if source_surface == "miniapp" and telegram_id is not None:
-        stable_key = f"miniapp:{telegram_id}"
-        return InviteRedemptionRuntimeContext(
-            client_ip_hash=_hash_runtime_key(f"{stable_key}:ipless"),
-            device_key_hash=hash_device_key(stable_key),
-        )
+    if request is None:
+        return InviteRedemptionRuntimeContext()
+    client_ip = resolve_client_ip(request).ip
     device_key = (
         request.cookies.get("__Host-cvpn_device_id")
         or request.headers.get("X-Device-ID")
@@ -786,8 +782,8 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
         session: AsyncSession,
         *,
         current_realm: RealmResolution,
-        source_surface: str,
-        runtime_context: InviteRedemptionRuntimeContext | None,
+        source_surface: str = "web",
+        runtime_context: InviteRedemptionRuntimeContext | None = None,
     ) -> None:
         self._session = session
         self._current_realm = current_realm
@@ -872,6 +868,8 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
                     message_key="growth_codes.invite.not_eligible",
                     status_code=422,
                 ) from exc
+            child_invites = tuple(getattr(redeemed, "child_invites", ()) or ())
+            child_batch = getattr(redeemed, "child_batch", None)
             return CustomerOnboardingAppliedCode(
                 result="accepted",
                 code_type="invite",
@@ -883,29 +881,27 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
                 entitlement_grant_id=redeemed.entitlement_grant_id,
                 entitlement_snapshot=redeemed.entitlement_snapshot,
                 child_invites={
-                    "generated_count": len(redeemed.child_invites),
-                    "issued_count": len(redeemed.child_invites),
-                    "count": len(redeemed.child_invites),
-                    "batch_id": str(redeemed.child_batch.id) if redeemed.child_batch is not None else None,
-                    "available_count": sum(1 for invite in redeemed.child_invites if not invite.is_used),
-                    "friend_plan_code": _first_child_invite_plan_code(redeemed.child_invites),
+                    "generated_count": len(child_invites),
+                    "issued_count": len(child_invites),
+                    "count": len(child_invites),
+                    "batch_id": str(child_batch.id) if child_batch is not None else None,
+                    "available_count": sum(1 for invite in child_invites if not invite.is_used),
+                    "friend_plan_code": _first_child_invite_plan_code(child_invites),
                     "friend_days": (
-                        int(redeemed.child_batch.friend_days)
-                        if redeemed.child_batch is not None
-                        else _first_child_invite_days(redeemed.child_invites)
+                        int(child_batch.friend_days)
+                        if child_batch is not None
+                        else _first_child_invite_days(child_invites)
                     ),
-                    "grant_plan_code": _first_child_invite_plan_code(redeemed.child_invites),
-                    "grant_duration_mode": _first_child_invite_duration_mode(redeemed.child_invites),
-                    "grant_duration_days": _first_child_invite_days(redeemed.child_invites),
-                    "lifetime": _first_child_invite_duration_mode(redeemed.child_invites) == "lifetime",
-                    "device_limit_override": _first_child_invite_device_override(redeemed.child_invites),
-                    "expiry_mode": redeemed.child_batch.expiry_mode if redeemed.child_batch is not None else None,
-                    "expires_at": redeemed.child_batch.expires_at.isoformat()
-                    if redeemed.child_batch is not None and redeemed.child_batch.expires_at
+                    "grant_plan_code": _first_child_invite_plan_code(child_invites),
+                    "grant_duration_mode": _first_child_invite_duration_mode(child_invites),
+                    "grant_duration_days": _first_child_invite_days(child_invites),
+                    "lifetime": _first_child_invite_duration_mode(child_invites) == "lifetime",
+                    "device_limit_override": _first_child_invite_device_override(child_invites),
+                    "expiry_mode": child_batch.expiry_mode if child_batch is not None else None,
+                    "expires_at": child_batch.expires_at.isoformat()
+                    if child_batch is not None and child_batch.expires_at
                     else None,
-                    "generation_depth": (
-                        int(redeemed.child_invites[0].generation_depth) if redeemed.child_invites else None
-                    ),
+                    "generation_depth": (int(child_invites[0].generation_depth) if child_invites else None),
                 },
                 next_destination="/onboarding/connect",
             )

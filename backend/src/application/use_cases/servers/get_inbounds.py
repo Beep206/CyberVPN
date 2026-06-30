@@ -24,5 +24,9 @@ class GetInboundsUseCase:
         Raises:
             Exception: If API request fails
         """
-        data = await self.client.get_collection_validated("/api/inbounds", "inbounds", RemnawaveInboundResponse)
+        data = await self.client.get_collection_validated(
+            "/config-profiles/inbounds",
+            "inbounds",
+            RemnawaveInboundResponse,
+        )
         return [item.model_dump(by_alias=True, mode="json") for item in data]

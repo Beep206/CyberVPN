@@ -176,8 +176,10 @@ class TestTelegramMiniAppUseCase:
             "replay_canonical_init_data": 'auth_date=1760000000\nuser={"id":""}',
         }
 
-        with pytest.raises(ValueError, match="user ID missing"):
+        with pytest.raises(TelegramMiniAppAuthError) as exc_info:
             await use_case.execute("some_data")
+        assert exc_info.value.code == "TELEGRAM_INIT_DATA_INVALID_OR_EXPIRED"
+        assert exc_info.value.message == "Invalid or expired Telegram initData"
 
     @pytest.mark.unit
     async def test_missing_canonical_replay_material_raises(self, use_case, mock_telegram_provider):

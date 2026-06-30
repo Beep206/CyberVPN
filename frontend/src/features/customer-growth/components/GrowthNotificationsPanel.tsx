@@ -10,6 +10,7 @@ import type {
   GrowthNotificationActionLink,
   GrowthTroubleshootingSurface,
 } from '@/features/customer-growth/lib/growth-notification-routing';
+import { toIntlLocale } from '@/i18n/intl-locale';
 import { GrowthNotificationTroubleshootingModal } from './GrowthNotificationTroubleshootingModal';
 
 function formatDate(locale: string, value?: string | null): string {
@@ -17,7 +18,7 @@ function formatDate(locale: string, value?: string | null): string {
     return 'N/A';
   }
 
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(toIntlLocale(locale), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

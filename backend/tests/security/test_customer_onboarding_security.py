@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from pydantic import ValidationError
 
 from src.application.services.config_service import CustomerOnboardingRuntimeConfig
@@ -14,6 +14,20 @@ from src.presentation.api.v1.customer_onboarding.schemas import (
     CustomerOnboardingApplyRequest,
     CustomerOnboardingSkipRequest,
 )
+
+
+def _request_with_device() -> Request:
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/customer/onboarding/growth-code/apply",
+            "headers": [(b"x-device-id", b"miniapp-device-1")],
+            "client": ("198.51.100.10", 443),
+            "server": ("testserver", 443),
+            "scheme": "https",
+        }
+    )
 
 
 class StaticConfigService:
@@ -61,6 +75,31 @@ def test_onboarding_apply_rejects_registration_access_token_payload_field(
         )
 
     assert exc_info.value.errors()[0]["type"] == "extra_forbidden"
+
+
+def test_miniapp_forged_telegram_id_does_not_change_invite_runtime_fingerprint() -> None:
+    first = routes._invite_redemption_runtime_context(
+        request=_request_with_device(),
+        source_surface="miniapp",
+        telegram_id=111111,
+    )
+    second = routes._invite_redemption_runtime_context(
+        request=_request_with_device(),
+        source_surface="miniapp",
+        telegram_id=222222,
+    )
+    bot_context = routes._invite_redemption_runtime_context(
+        request=None,
+        source_surface="telegram_bot",
+        telegram_id=111111,
+    )
+
+    assert first.client_ip_hash is not None
+    assert first.device_key_hash is not None
+    assert second.client_ip_hash == first.client_ip_hash
+    assert second.device_key_hash == first.device_key_hash
+    assert bot_context.client_ip_hash != first.client_ip_hash
+    assert bot_context.device_key_hash != first.device_key_hash
 
 
 @pytest.mark.asyncio

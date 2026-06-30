@@ -11,6 +11,7 @@ export const CANONICAL_API_BASE_PATH = '/api/v1';
 export const CANONICAL_REQUEST_ID_HEADER = 'X-Request-ID';
 export const CANONICAL_IDEMPOTENCY_HEADER = 'Idempotency-Key';
 export const MINIAPP_AUTH_RESTORE_REQUIRED_EVENT = 'cybervpn:miniapp-auth-restore-required';
+export const MINIAPP_AUTH_RESTORE_RECOVERED_EVENT = 'cybervpn:miniapp-auth-restore-recovered';
 
 function dispatchMiniAppAuthRestoreRequired(requestUrl: string): void {
   if (typeof window === 'undefined') return;
@@ -18,6 +19,16 @@ function dispatchMiniAppAuthRestoreRequired(requestUrl: string): void {
     detail: {
       requestUrl,
       reason: 'miniapp_unauthorized',
+    },
+  }));
+}
+
+function dispatchMiniAppAuthRestoreRecovered(requestUrl: string): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(MINIAPP_AUTH_RESTORE_RECOVERED_EVENT, {
+    detail: {
+      requestUrl,
+      reason: 'miniapp_refresh_recovered',
     },
   }));
 }
@@ -316,6 +327,7 @@ apiClient.interceptors.response.use(
     // 401 handling
     if (error.response?.status === 401 && !originalRequest._retry) {
       const requestUrl = originalRequest.url || '';
+      const isMiniAppRequest = isMiniAppRestoreCandidate(requestUrl);
 
       if (isNonRefreshableUnauthorized(error)) {
         return Promise.reject(error);
@@ -342,7 +354,11 @@ apiClient.interceptors.response.use(
         // Backend sets new cookies; just check response was OK
         if (refreshResponse.status === 200) {
           processQueue(null);
-          return apiClient(originalRequest);
+          const replayResponse = await apiClient(originalRequest);
+          if (isMiniAppRequest) {
+            dispatchMiniAppAuthRestoreRecovered(requestUrl);
+          }
+          return replayResponse;
         }
         throw new Error('Refresh failed');
       } catch (refreshError) {
@@ -354,8 +370,6 @@ apiClient.interceptors.response.use(
           requestUrl.includes('/auth/session') ||
           requestUrl.includes('/auth/magic-link/verify') ||
           requestUrl.includes('/auth/magic-link/verify-otp');
-        const isMiniAppRequest = isMiniAppRestoreCandidate(requestUrl);
-
         if (isMiniAppRequest) {
           dispatchMiniAppAuthRestoreRequired(requestUrl);
         }

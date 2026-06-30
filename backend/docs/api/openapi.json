@@ -100350,7 +100350,7 @@
           "port"
         ],
         "title": "RemnawaveInboundResponse",
-        "description": "Inbound (protocol listener) from the Remnawave ``/api/inbounds`` endpoint."
+        "description": "Inbound (protocol listener) from Remnawave config-profile inbound endpoints."
       },
       "RemnawavePublicKeyResponse": {
         "properties": {

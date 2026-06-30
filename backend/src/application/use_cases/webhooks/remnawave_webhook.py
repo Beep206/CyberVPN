@@ -154,7 +154,7 @@ def _build_remnawave_websocket_payload(event: object, data: object) -> dict[str,
             if safe_value is not _UNSAFE_WEBSOCKET_VALUE:
                 safe_data[key] = safe_value
 
-    payload = {"event": safe_event, "data": safe_data}
+    payload: dict[str, Any] = {"event": safe_event, "data": safe_data}
     if safe_event == _REMNAWAVE_TORRENT_BLOCKER_REPORT_EVENT:
         payload["abuse_type"] = "torrent"
         payload["admin_notification"] = True

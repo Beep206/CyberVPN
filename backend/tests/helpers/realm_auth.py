@@ -934,6 +934,14 @@ async def initialize_realm_test_database(engine) -> None:
                 id TEXT PRIMARY KEY,
                 owner_user_id TEXT NOT NULL,
                 campaign_id TEXT,
+                invite_campaign_id TEXT,
+                invite_campaign_version_id TEXT,
+                root_invite_code_id TEXT,
+                parent_invite_code_id TEXT,
+                source_redemption_id TEXT,
+                root_owner_user_id TEXT,
+                generation_depth INTEGER NOT NULL DEFAULT 0,
+                batch_kind TEXT NOT NULL DEFAULT 'legacy',
                 source_growth_code_id TEXT,
                 source_benefit_id TEXT,
                 source_order_id TEXT,
@@ -945,10 +953,29 @@ async def initialize_realm_test_database(engine) -> None:
                 expiry_mode TEXT NOT NULL,
                 expiry_days INTEGER,
                 expires_at TEXT,
+                usage_mode TEXT NOT NULL DEFAULT 'single_use',
+                max_redemptions_per_code INTEGER,
+                per_user_redemption_cap INTEGER NOT NULL DEFAULT 1,
+                multi_use_policy TEXT NOT NULL DEFAULT '{}',
                 entitlement_mode TEXT NOT NULL,
                 entitlement_profile_key TEXT,
                 plan_id TEXT,
                 entitlement_snapshot TEXT NOT NULL DEFAULT '{}',
+                grant_mode TEXT NOT NULL DEFAULT 'legacy_invite_access',
+                grant_plan_id TEXT,
+                grant_duration_mode TEXT NOT NULL DEFAULT 'fixed_days',
+                grant_duration_days INTEGER,
+                grant_device_limit_override INTEGER,
+                grant_snapshot TEXT NOT NULL DEFAULT '{}',
+                child_grant_plan_id TEXT,
+                child_grant_duration_mode TEXT NOT NULL DEFAULT 'fixed_days',
+                child_grant_duration_days INTEGER,
+                child_grant_device_limit_override INTEGER,
+                child_invite_expiry_mode TEXT NOT NULL DEFAULT 'relative',
+                child_policy TEXT NOT NULL DEFAULT '{}',
+                risk_policy TEXT NOT NULL DEFAULT '{}',
+                redemption_policy TEXT NOT NULL DEFAULT '{}',
+                issue_policy TEXT NOT NULL DEFAULT '{}',
                 status TEXT NOT NULL,
                 idempotency_key TEXT NOT NULL UNIQUE,
                 revoked_at TEXT,
@@ -973,12 +1000,22 @@ async def initialize_realm_test_database(engine) -> None:
         for index_sql in (
             "CREATE INDEX ix_invite_batches_owner_user_id ON invite_batches(owner_user_id)",
             "CREATE INDEX ix_invite_batches_campaign_id ON invite_batches(campaign_id)",
+            "CREATE INDEX ix_invite_batches_invite_campaign_id ON invite_batches(invite_campaign_id)",
+            "CREATE INDEX ix_invite_batches_invite_campaign_version_id ON invite_batches(invite_campaign_version_id)",
+            "CREATE INDEX ix_invite_batches_root_invite_code_id ON invite_batches(root_invite_code_id)",
+            "CREATE INDEX ix_invite_batches_parent_invite_code_id ON invite_batches(parent_invite_code_id)",
+            "CREATE INDEX ix_invite_batches_source_redemption_id ON invite_batches(source_redemption_id)",
+            "CREATE INDEX ix_invite_batches_root_owner_user_id ON invite_batches(root_owner_user_id)",
+            "CREATE INDEX ix_invite_batches_batch_kind ON invite_batches(batch_kind)",
             "CREATE INDEX ix_invite_batches_source_growth_code_id ON invite_batches(source_growth_code_id)",
             "CREATE INDEX ix_invite_batches_source_benefit_id ON invite_batches(source_benefit_id)",
             "CREATE INDEX ix_invite_batches_source_order_id ON invite_batches(source_order_id)",
             "CREATE INDEX ix_invite_batches_source_payment_id ON invite_batches(source_payment_id)",
             "CREATE INDEX ix_invite_batches_source_type ON invite_batches(source_type)",
+            "CREATE INDEX ix_invite_batches_usage_mode ON invite_batches(usage_mode)",
             "CREATE INDEX ix_invite_batches_plan_id ON invite_batches(plan_id)",
+            "CREATE INDEX ix_invite_batches_grant_plan_id ON invite_batches(grant_plan_id)",
+            "CREATE INDEX ix_invite_batches_child_grant_plan_id ON invite_batches(child_grant_plan_id)",
             "CREATE INDEX ix_invite_batches_status ON invite_batches(status)",
             "CREATE INDEX ix_invite_batches_idempotency_key ON invite_batches(idempotency_key)",
         ):
@@ -992,14 +1029,45 @@ async def initialize_realm_test_database(engine) -> None:
                 free_days INTEGER NOT NULL,
                 plan_id TEXT,
                 batch_id TEXT,
+                campaign_id TEXT,
+                campaign_version_id TEXT,
+                root_invite_code_id TEXT,
+                parent_invite_code_id TEXT,
+                source_redemption_id TEXT,
+                generation_depth INTEGER NOT NULL DEFAULT 0,
                 source_growth_code_id TEXT,
                 source_benefit_id TEXT,
                 status TEXT NOT NULL DEFAULT 'issued',
+                usage_mode TEXT NOT NULL DEFAULT 'single_use',
+                max_redemptions INTEGER,
+                redeemed_count INTEGER NOT NULL DEFAULT 0,
+                active_redemptions_count INTEGER NOT NULL DEFAULT 0,
+                reversed_redemptions_count INTEGER NOT NULL DEFAULT 0,
+                first_redeemed_at TEXT,
+                last_redeemed_at TEXT,
+                exhausted_at TEXT,
+                per_user_redemption_cap INTEGER NOT NULL DEFAULT 1,
+                multi_use_policy TEXT NOT NULL DEFAULT '{}',
                 code_hash TEXT,
                 code_prefix TEXT,
                 entitlement_mode TEXT,
                 entitlement_profile_key TEXT,
                 entitlement_snapshot TEXT NOT NULL DEFAULT '{}',
+                grant_mode TEXT NOT NULL DEFAULT 'legacy_invite_access',
+                grant_plan_id TEXT,
+                grant_duration_mode TEXT NOT NULL DEFAULT 'fixed_days',
+                grant_duration_days INTEGER,
+                grant_device_limit_override INTEGER,
+                grant_snapshot TEXT NOT NULL DEFAULT '{}',
+                child_grant_plan_id TEXT,
+                child_grant_duration_mode TEXT NOT NULL DEFAULT 'fixed_days',
+                child_grant_duration_days INTEGER,
+                child_grant_device_limit_override INTEGER,
+                child_invite_expiry_mode TEXT NOT NULL DEFAULT 'relative',
+                child_policy TEXT NOT NULL DEFAULT '{}',
+                risk_policy TEXT NOT NULL DEFAULT '{}',
+                redemption_policy TEXT NOT NULL DEFAULT '{}',
+                issue_policy TEXT NOT NULL DEFAULT '{}',
                 source TEXT NOT NULL,
                 source_payment_id TEXT,
                 is_used INTEGER NOT NULL DEFAULT 0,
@@ -1016,13 +1084,23 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_code ON invite_codes(code)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_owner_user_id ON invite_codes(owner_user_id)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_batch_id ON invite_codes(batch_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_campaign_id ON invite_codes(campaign_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_campaign_version_id ON invite_codes(campaign_version_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_root_invite_code_id ON invite_codes(root_invite_code_id)")
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_invite_codes_parent_invite_code_id ON invite_codes(parent_invite_code_id)"
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_source_redemption_id ON invite_codes(source_redemption_id)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_invite_codes_source_growth_code_id ON invite_codes(source_growth_code_id)"
         )
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_source_benefit_id ON invite_codes(source_benefit_id)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_status ON invite_codes(status)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_usage_mode ON invite_codes(usage_mode)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_code_hash ON invite_codes(code_hash)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_code_prefix ON invite_codes(code_prefix)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_grant_plan_id ON invite_codes(grant_plan_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_invite_codes_child_grant_plan_id ON invite_codes(child_grant_plan_id)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_used_by_user_id ON invite_codes(used_by_user_id)")
         conn.exec_driver_sql(
             """

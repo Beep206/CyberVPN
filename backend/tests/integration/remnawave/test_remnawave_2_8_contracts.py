@@ -80,3 +80,45 @@ def test_remnawave_2_8_node_host_inbound_and_subscription_payloads_validate() ->
     assert inbound.node_uuid == node.uuid
     assert subscription.xhttp_links
     assert subscription.links
+
+
+def test_remnawave_2_8_config_profile_inbound_payload_validates_without_raw_secret_leakage() -> None:
+    inbound = RemnawaveInboundResponse.model_validate(
+        {
+            "uuid": "inbound-2",
+            "tag": "VLESS_REALITY_443",
+            "type": "vless",
+            "network": "tcp",
+            "security": "reality",
+            "port": 443,
+            "rawInbound": {
+                "protocol": "vless",
+                "settings": {"clients": [{"id": "client-secret-id"}]},
+                "streamSettings": {
+                    "network": "tcp",
+                    "security": "reality",
+                    "realitySettings": {
+                        "privateKey": "server-private-key",
+                        "publicKey": "server-public-key",
+                    },
+                },
+                "sniffing": {"enabled": True},
+            },
+            "activeSquads": [],
+        }
+    )
+
+    assert inbound.protocol == "vless"
+    assert inbound.settings == {}
+    assert inbound.stream_settings == {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {"publicKey": "server-public-key"},
+    }
+    dumped = inbound.model_dump(by_alias=True)
+    assert "rawInbound" not in dumped
+    assert "activeSquads" not in dumped
+    dumped_repr = repr(dumped)
+    assert "privateKey" not in dumped_repr
+    assert "server-private-key" not in dumped_repr
+    assert "client-secret-id" not in dumped_repr

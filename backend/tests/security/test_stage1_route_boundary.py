@@ -34,7 +34,9 @@ PUBLIC_EXACT_PATHS = {
     "/health",
     "/readiness",
     "/api/v1/status",
+    "/api/v1/client-errors/miniapp",
     "/api/v1/client/capabilities",
+    "/api/v1/runtime/fingerprint",
     "/api/v3/growth/code-sets/preflight",
 }
 

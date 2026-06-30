@@ -1277,11 +1277,16 @@ def _policy_contains_raw_code(value: object) -> bool:
 
 
 def _positive_int(value: object, *, default: int) -> int:
-    if isinstance(value, bool):
+    if value is None or isinstance(value, bool):
         return default
-    try:
-        parsed = int(value) if value is not None else default
-    except (TypeError, ValueError):
+    if isinstance(value, int):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = int(value)
+        except ValueError:
+            return default
+    else:
         return default
     return parsed if parsed > 0 else default
 
@@ -1289,9 +1294,14 @@ def _positive_int(value: object, *, default: int) -> int:
 def _optional_positive_int(value: object) -> int | None:
     if value is None or isinstance(value, bool):
         return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
+    if isinstance(value, int):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = int(value)
+        except ValueError:
+            return None
+    else:
         return None
     return parsed if parsed > 0 else None
 

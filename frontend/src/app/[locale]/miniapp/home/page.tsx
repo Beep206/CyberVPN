@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { Link } from '@/i18n/navigation';
+import { toIntlLocale } from '@/i18n/intl-locale';
 import { VpnConfigCard } from '../components/VpnConfigCard';
 import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
 import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
@@ -43,6 +44,7 @@ function translateOrFallback(t: ReturnType<typeof useTranslations>, key: string,
  */
 export default function MiniAppHomePage() {
   const locale = useLocale();
+  const intlLocale = toIntlLocale(locale);
   const t = useTranslations('MiniApp.home');
   const tPlans = useTranslations('MiniApp.plans');
   const queryClient = useQueryClient();
@@ -226,7 +228,7 @@ export default function MiniAppHomePage() {
                   <div className="flex justify-between">
                     <span>{t('expires')}:</span>
                     <span className="text-foreground">
-                      {new Date(bootstrap.subscription.expiresAt).toLocaleDateString(locale)}
+                      {new Date(bootstrap.subscription.expiresAt).toLocaleDateString(intlLocale)}
                     </span>
                   </div>
                 )}
@@ -255,7 +257,7 @@ export default function MiniAppHomePage() {
                   <div className="flex justify-between">
                     <span>{t('expires')}:</span>
                     <span className="text-foreground">
-                      {new Date(bootstrap.trial.trialEnd).toLocaleDateString(locale)}
+                      {new Date(bootstrap.trial.trialEnd).toLocaleDateString(intlLocale)}
                     </span>
                   </div>
                 )}
