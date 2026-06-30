@@ -45,6 +45,7 @@ vi.mock('@/i18n/navigation', () => ({
   Link: ({
     href,
     onClick,
+    prefetch,
     children,
     className,
     'aria-label': ariaLabel,
@@ -52,6 +53,7 @@ vi.mock('@/i18n/navigation', () => ({
   }: {
     href: string;
     onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+    prefetch?: boolean;
     children: React.ReactNode;
     className?: string;
     'aria-label'?: string;
@@ -63,6 +65,7 @@ vi.mock('@/i18n/navigation', () => ({
       className={className}
       aria-label={ariaLabel}
       aria-current={ariaCurrent}
+      data-prefetch={String(prefetch)}
     >
       {children}
     </a>
@@ -329,6 +332,14 @@ describe('MiniAppBottomNav', () => {
 
       const homeLink = screen.getByLabelText('nav.home');
       expect(homeLink).toHaveAttribute('href', '/miniapp/home');
+    });
+
+    it('test_disables_next_prefetch_for_telegram_webview_stability', () => {
+      render(<MiniAppBottomNav />);
+
+      for (const link of screen.getAllByRole('link')) {
+        expect(link).toHaveAttribute('data-prefetch', 'false');
+      }
     });
 
     it('test_plans_link_points_to_plans_route', () => {

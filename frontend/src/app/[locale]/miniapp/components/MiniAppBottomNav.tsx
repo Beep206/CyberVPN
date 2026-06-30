@@ -3,10 +3,34 @@
 import { usePathname } from '@/i18n/navigation';
 import { Link } from '@/i18n/navigation';
 import { motion } from 'motion/react';
+import type { MouseEvent } from 'react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { useTranslations } from 'next-intl';
 import { useClientCapabilities } from '@/features/client-capabilities/useClientCapabilities';
 import { getMiniAppBottomNavItems } from '@/shared/cabinet-navigation';
+
+function isPlainPrimaryClick(event: MouseEvent<HTMLAnchorElement>) {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.altKey &&
+    !event.ctrlKey &&
+    !event.shiftKey
+  );
+}
+
+function shouldUseDocumentNavigation(event: MouseEvent<HTMLAnchorElement>) {
+  if (event.defaultPrevented || !isPlainPrimaryClick(event)) {
+    return false;
+  }
+
+  const target = event.currentTarget.getAttribute('target');
+  if (target && target !== '_self') {
+    return false;
+  }
+
+  return Boolean(window.Telegram?.WebApp?.initData);
+}
 
 export function MiniAppBottomNav() {
   const pathname = usePathname();
@@ -15,8 +39,20 @@ export function MiniAppBottomNav() {
   const { data: capabilities } = useClientCapabilities();
   const navItems = getMiniAppBottomNavItems({ capabilities });
 
-  const handleNavClick = () => {
+  const handleNavClick = (event: MouseEvent<HTMLAnchorElement>) => {
     hapticSelection();
+
+    if (!shouldUseDocumentNavigation(event)) {
+      return;
+    }
+
+    const destination = event.currentTarget.href;
+    if (!destination || destination === window.location.href) {
+      return;
+    }
+
+    event.preventDefault();
+    window.location.assign(destination);
   };
 
   return (
@@ -35,6 +71,7 @@ export function MiniAppBottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               onClick={handleNavClick}
               className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 min-w-[64px] touch-manipulation"
               aria-label={label}
