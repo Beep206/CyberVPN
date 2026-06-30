@@ -13,12 +13,14 @@ import {
 } from '@/lib/api/auth';
 import { RateLimitError, tokenStorage } from '@/lib/api/client';
 import { getApiErrorMessage } from '@/lib/api/error-message';
+import { miniappApi, type MiniAppBootstrap } from '@/lib/api/miniapp';
 import { authAnalytics } from '@/lib/analytics';
 import {
   clearTelegramMagicLinkSession,
   saveTelegramMagicLinkSession,
 } from '@/features/auth/lib/telegram-magic-link-session';
 import { getDefaultPostLoginPath, getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
+import { isMiniAppRoute } from '@/features/auth/lib/session';
 
 let fetchUserInFlight: Promise<void> | null = null;
 let pendingPasswordLoginSuccess = false;
@@ -45,6 +47,27 @@ function getApiErrorDetailCode(error: unknown): string | null {
     return typeof code === 'string' && code.trim() ? code.trim() : null;
   }
   return null;
+}
+
+function isCurrentMiniAppRoute(): boolean {
+  return typeof window !== 'undefined' && isMiniAppRoute(window.location.pathname);
+}
+
+function miniAppBootstrapToAuthUser(bootstrap: MiniAppBootstrap): User {
+  const telegramId = bootstrap.session.telegramUserId ? Number(bootstrap.session.telegramUserId) : null;
+  const safeTelegramId = Number.isFinite(telegramId) ? telegramId : null;
+
+  return {
+    id: bootstrap.session.userId ?? '',
+    public_uid: bootstrap.user.publicUid ?? null,
+    email: null,
+    login: bootstrap.user.username ?? bootstrap.user.firstName ?? undefined,
+    telegram_id: safeTelegramId,
+    role: 'viewer',
+    is_active: bootstrap.session.authenticated,
+    is_email_verified: true,
+    created_at: bootstrap.freshness.generatedAt,
+  };
 }
 
 function shouldRetryTelegramMiniAppAuth(error: unknown): boolean {
@@ -316,6 +339,22 @@ export const useAuthStore = create<AuthState>()(
         const restoreToken = createAuthSessionRestoreToken();
         fetchUserInFlight = (async () => {
           try {
+            if (isCurrentMiniAppRoute()) {
+              const { data } = await miniappApi.getBootstrap({
+                locale: getLocalePrefix().slice(1),
+              });
+              if (!data.session.authenticated || !data.session.userId) {
+                throw new Error('Mini App session is not authenticated');
+              }
+              if (!shouldApplyAuthSessionRestore(restoreToken)) {
+                return;
+              }
+              const user = miniAppBootstrapToAuthUser(data);
+              set({ user, isAuthenticated: true, isLoading: false });
+              authAnalytics.sessionRestored(user.id);
+              return;
+            }
+
             const { data } = await authApi.session();
             if (!shouldApplyAuthSessionRestore(restoreToken)) {
               return;

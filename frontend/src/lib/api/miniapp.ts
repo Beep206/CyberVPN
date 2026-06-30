@@ -47,6 +47,7 @@ export type MiniAppBootstrap = {
     };
   };
   user: {
+    publicUid?: number | null;
     firstName?: string | null;
     username?: string | null;
     photoUrl?: string | null;

@@ -105,7 +105,11 @@ export class RateLimitError extends Error {
   }
 }
 
-const NON_REFRESHABLE_UNAUTHORIZED_CODES = new Set(['USER_NOT_FOUND']);
+const NON_REFRESHABLE_UNAUTHORIZED_CODES = new Set([
+  'USER_NOT_FOUND',
+  'TELEGRAM_INIT_DATA_INVALID_OR_EXPIRED',
+  'TELEGRAM_INIT_DATA_REPLAYED',
+]);
 const MINIAPP_AUTH_RESTORE_ENDPOINT_MARKERS = [
   '/auth/telegram/miniapp',
   '/customer/onboarding/growth-code/preview',
