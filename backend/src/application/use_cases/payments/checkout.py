@@ -1176,7 +1176,7 @@ def _normalize_code_basket(
             raise ValueError("codes entries cannot be empty")
         if len(code) > 64:
             raise ValueError("codes entries cannot exceed 64 characters")
-        normalized.append((index + 1, code, item.client_slot_id))
+        normalized.append((index, code, item.client_slot_id))
     return normalized
 
 
