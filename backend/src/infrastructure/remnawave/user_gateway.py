@@ -166,9 +166,9 @@ class RemnawaveUserGateway:
         if isinstance(expire_at, datetime):
             payload["expireAt"] = expire_at.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
-        if payload.get("email"):
+        if "email" in payload:
             payload["email"] = RemnawaveUserGateway._normalize_remnawave_email(
-                str(payload["email"]),
+                str(payload.get("email") or ""),
                 fallback_source=str(payload.get("username") or payload.get("uuid") or "user"),
             )
 

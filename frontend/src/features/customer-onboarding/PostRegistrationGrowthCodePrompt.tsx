@@ -2,11 +2,12 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { CheckCircle2, Loader2, RefreshCw, ShieldCheck, TicketCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CyberInput } from '@/features/auth/components';
 import { useRouter } from '@/i18n/navigation';
+import { replaceMiniAppPath } from '@/features/miniapp-runtime/lib/navigation';
 import { getApiErrorMessage } from '@/lib/api/error-message';
 import {
   CUSTOMER_ONBOARDING_CURRENT_QUERY_KEY,
@@ -160,6 +161,7 @@ export function PostRegistrationGrowthCodePrompt({
 }) {
   const t = useTranslations('Auth.onboarding');
   const router = useRouter();
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const codeInputRef = useRef<HTMLInputElement>(null);
   const applyAttemptRef = useRef<{ code: string; key: string } | null>(null);
@@ -238,6 +240,10 @@ export function PostRegistrationGrowthCodePrompt({
   const completeFlow = async (result: OnboardingMutationResult) => {
     await invalidateOnboardingSideEffects();
     const destination = normalizeOnboardingDestination(result.next_destination, surface);
+    if (surface === 'miniapp') {
+      replaceMiniAppPath(router, destination, locale);
+      return;
+    }
     router.replace(destination);
   };
 
@@ -374,9 +380,13 @@ export function PostRegistrationGrowthCodePrompt({
       !shouldRenderConnectionPanel
       && (!current.required || current.status === 'completed' || current.status === 'skipped')
     ) {
+      if (surface === 'miniapp') {
+        replaceMiniAppPath(router, fallbackDestination, locale);
+        return;
+      }
       router.replace(fallbackDestination);
     }
-  }, [shouldRenderConnectionPanel, current, currentQuery.isSuccess, fallbackDestination, router]);
+  }, [shouldRenderConnectionPanel, current, currentQuery.isSuccess, fallbackDestination, locale, router, surface]);
 
   useEffect(() => {
     const normalizedCode = normalizeCodeInput(code);
@@ -489,7 +499,13 @@ export function PostRegistrationGrowthCodePrompt({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.replace(fallbackDestination)}
+                onClick={() => {
+                  if (surface === 'miniapp') {
+                    replaceMiniAppPath(router, fallbackDestination, locale);
+                    return;
+                  }
+                  router.replace(fallbackDestination);
+                }}
               >
                 {t('continue')}
               </Button>

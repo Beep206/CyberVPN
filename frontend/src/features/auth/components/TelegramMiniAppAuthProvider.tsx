@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter } from '@/i18n/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
 import { isMiniAppRoute } from '@/features/auth/lib/session';
 import { MINIAPP_AUTH_RESTORE_RECOVERED_EVENT, MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
@@ -14,6 +14,7 @@ import {
     shouldRouteToPostRegistrationOnboarding,
 } from '@/features/customer-onboarding/routing';
 import { installMiniAppClientErrorListeners, reportMiniAppClientError } from '@/features/miniapp-runtime/lib/client-error-telemetry';
+import { replaceMiniAppPath } from '@/features/miniapp-runtime/lib/navigation';
 import { Loader2, AlertCircle, Shield, RotateCcw, Send, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -97,6 +98,7 @@ export function TelegramMiniAppAuthProvider({
 }) {
     const router = useRouter();
     const pathname = usePathname();
+    const locale = useLocale();
     const t = useTranslations('Auth.telegram');
     const queryClient = useQueryClient();
     const { telegramMiniAppAuth, fetchUser, isAuthenticated, isMiniApp } = useAuthStore();
@@ -229,7 +231,7 @@ export function TelegramMiniAppAuthProvider({
             }
 
             if (shouldRouteToPostRegistrationOnboarding(lookup.onboarding)) {
-                router.replace(getPostRegistrationOnboardingPath('miniapp'));
+                replaceMiniAppPath(router, getPostRegistrationOnboardingPath('miniapp'), locale);
                 return;
             }
             setOnboardingGateCheckedPath(currentPath);
@@ -244,7 +246,7 @@ export function TelegramMiniAppAuthProvider({
                 onboardingGateInFlight.current = null;
             }
         }
-    }, [isMiniAppRoutePath, pathname, resolveMiniAppOnboardingFromCurrentState, router, shouldGateMiniApp, t]);
+    }, [isMiniAppRoutePath, locale, pathname, resolveMiniAppOnboardingFromCurrentState, router, shouldGateMiniApp, t]);
 
     const restoreMiniAppSession = useCallback(async () => {
         await fetchUser();
@@ -304,7 +306,11 @@ export function TelegramMiniAppAuthProvider({
                     onboarding,
                     surface: 'miniapp',
                 });
-                router.replace(postAuthDestination === '/miniapp/home' ? miniAppReturnPath : postAuthDestination);
+                replaceMiniAppPath(
+                    router,
+                    postAuthDestination === '/miniapp/home' ? miniAppReturnPath : postAuthDestination,
+                    locale,
+                );
             } catch (error) {
                 if (getMiniAppAuthErrorCode(error) === 'TELEGRAM_INIT_DATA_REPLAYED') {
                     spentInitDataFingerprints.current.add(initDataFingerprint);
@@ -332,6 +338,7 @@ export function TelegramMiniAppAuthProvider({
         }
     }, [
         invalidateMiniAppQueries,
+        locale,
         pathname,
         resolveMiniAppOnboardingFromCurrentState,
         restoreMiniAppSession,

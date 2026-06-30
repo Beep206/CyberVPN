@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import QRCode from 'react-qr-code';
 import {
   CheckCircle2,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from '@/i18n/navigation';
+import { replaceMiniAppPath } from '@/features/miniapp-runtime/lib/navigation';
 import {
   customerOnboardingApi,
   type CustomerOnboardingConnectionInstruction,
@@ -104,6 +105,7 @@ export function ConnectionBootstrapPanel({
 }) {
   const t = useTranslations('Auth.onboarding');
   const router = useRouter();
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const pendingRefreshStartedAtRef = useRef<number | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<OnboardingConnectionPlatform>(() => {
@@ -164,7 +166,12 @@ export function ConnectionBootstrapPanel({
         queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] }),
         queryClient.resetQueries({ queryKey: ['miniapp-config'], exact: true }),
       ]);
-      router.replace(normalizeOnboardingDestination(result.next_destination, surface));
+      const destination = normalizeOnboardingDestination(result.next_destination, surface);
+      if (surface === 'miniapp') {
+        replaceMiniAppPath(router, destination, locale);
+        return;
+      }
+      router.replace(destination);
     },
   });
 
@@ -255,7 +262,13 @@ export function ConnectionBootstrapPanel({
             type="button"
             variant="outline"
             className="min-h-11"
-            onClick={() => router.replace(dashboardDestination)}
+            onClick={() => {
+              if (surface === 'miniapp') {
+                replaceMiniAppPath(router, dashboardDestination, locale);
+                return;
+              }
+              router.replace(dashboardDestination);
+            }}
             magnetic={false}
           >
             {isMiniApp ? t('connection.goMiniAppHome') : t('connection.goDashboard')}
@@ -473,7 +486,13 @@ export function ConnectionBootstrapPanel({
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.replace(dashboardDestination)}
+          onClick={() => {
+            if (surface === 'miniapp') {
+              replaceMiniAppPath(router, dashboardDestination, locale);
+              return;
+            }
+            router.replace(dashboardDestination);
+          }}
           className="min-h-11 flex-1"
           magnetic={false}
         >

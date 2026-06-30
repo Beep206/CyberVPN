@@ -37,6 +37,7 @@ vi.mock('@/i18n/navigation', () => ({
 }));
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'ru-RU',
   useTranslations: () => (key: string, values?: Record<string, unknown>) => {
     const messages: Record<string, string> = {
       apply: 'Apply code',

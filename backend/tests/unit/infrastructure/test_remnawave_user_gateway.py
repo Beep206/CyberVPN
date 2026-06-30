@@ -165,6 +165,28 @@ async def test_create_replaces_telegram_placeholder_email_for_remnawave(monkeypa
 
 
 @pytest.mark.unit
+async def test_create_replaces_empty_email_for_remnawave(monkeypatch):
+    client = AsyncMock()
+    client.get_collection_validated.return_value = [SimpleNamespace(uuid=str(uuid4()), name="Default-Squad")]
+    client.post_validated.return_value = _ValidatedModel({"uuid": str(uuid4()), "username": "Sasha_Beep"})
+
+    monkeypatch.setattr(
+        "src.infrastructure.remnawave.user_gateway.map_remnawave_user",
+        lambda data: SimpleNamespace(uuid=data["uuid"], username=data["username"]),
+    )
+    monkeypatch.setattr(settings, "remnawave_default_internal_squad_uuid", "")
+    monkeypatch.setattr(settings, "remnawave_default_internal_squad_name", "Default-Squad")
+
+    gateway = RemnawaveUserGateway(client)
+
+    await gateway.create(username="Sasha_Beep", email="", telegram_id=157383237)
+
+    _, kwargs = client.post_validated.await_args
+    assert kwargs["json"]["email"] == "sasha_beep@cyber-vpn.net"
+    assert kwargs["json"]["telegramId"] == 157383237
+
+
+@pytest.mark.unit
 async def test_get_by_telegram_id_treats_empty_upstream_list_as_missing_user(monkeypatch):
     client = AsyncMock()
     client.get.return_value = []

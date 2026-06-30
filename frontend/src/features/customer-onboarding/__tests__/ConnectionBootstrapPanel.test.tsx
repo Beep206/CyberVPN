@@ -34,6 +34,7 @@ vi.mock('@/i18n/navigation', () => ({
 }));
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'ru-RU',
   useTranslations: () => (key: string, values?: Record<string, unknown>) => {
     const labels: Record<string, string> = {
       'connection.connected': 'I connected',
