@@ -25,9 +25,18 @@ vi.mock('@/i18n/navigation', () => ({
     href,
     children,
     className,
+    prefetch,
     ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
-    <a href={href} className={className} {...props}>
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+    href: string;
+    prefetch?: boolean;
+  }) => (
+    <a
+      href={href}
+      className={className}
+      data-prefetch={String(prefetch)}
+      {...props}
+    >
       {children}
     </a>
   ),
@@ -153,6 +162,7 @@ describe('MiniAppRewardsRoute', () => {
       expect(chip).toHaveClass('inline-flex');
       expect(chip).toHaveClass('whitespace-nowrap');
       expect(chip).toHaveClass('touch-manipulation');
+      expect(chip).toHaveAttribute('data-prefetch', 'false');
     }
   });
 });

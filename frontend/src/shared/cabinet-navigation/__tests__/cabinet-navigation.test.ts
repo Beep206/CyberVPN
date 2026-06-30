@@ -115,7 +115,7 @@ describe('cabinet navigation foundation', () => {
     expect(rewardsItems.every((item) => item.disabled)).toBe(true);
   });
 
-  it('uses VPN as Mini App primary navigation and falls back to wallet only when rewards are unavailable', () => {
+  it('uses VPN as Mini App primary navigation and keeps wallet with rewards when growth is available', () => {
     const growthNav = getMiniAppBottomNavItems({
       capabilities: ALL_GROWTH_CAPABILITIES,
     });
@@ -127,6 +127,7 @@ describe('cabinet navigation foundation', () => {
       '/miniapp/home',
       '/miniapp/vpn',
       '/miniapp/plans',
+      '/miniapp/wallet',
       '/miniapp/rewards',
       '/miniapp/profile',
     ]);
@@ -137,7 +138,7 @@ describe('cabinet navigation foundation', () => {
       '/miniapp/wallet',
       '/miniapp/profile',
     ]);
-    expect(growthNav).toHaveLength(5);
+    expect(growthNav).toHaveLength(6);
     expect(fallbackNav).toHaveLength(5);
   });
 

@@ -1312,6 +1312,7 @@ export default function MiniAppPlansPage() {
               )}
               <Link
                 href="/miniapp/rewards"
+                prefetch={false}
                 className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-matrix-green/40 bg-matrix-green/15 px-4 py-2 font-mono text-sm text-matrix-green transition-colors hover:bg-matrix-green/25 focus:outline-none focus:ring-2 focus:ring-matrix-green/50"
               >
                 <Users className="h-4 w-4" aria-hidden="true" />

@@ -61,7 +61,12 @@ export function MiniAppBottomNav() {
       role="navigation"
       aria-label={t('nav.bottomNav')}
     >
-      <div className="flex items-center justify-around h-16 max-w-screen-sm mx-auto px-2">
+      <div
+        className="grid h-16 max-w-screen-sm items-center gap-0.5 px-1 mx-auto"
+        style={{
+          gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))`,
+        }}
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.match(pathname);
@@ -73,7 +78,7 @@ export function MiniAppBottomNav() {
               href={item.href}
               prefetch={false}
               onClick={handleNavClick}
-              className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 min-w-[64px] touch-manipulation"
+              className="relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 touch-manipulation"
               aria-label={label}
               aria-current={isActive ? 'page' : undefined}
             >
@@ -100,7 +105,7 @@ export function MiniAppBottomNav() {
                 )}
               </div>
               <span
-                className={`text-xs font-mono transition-colors duration-200 ${
+                className={`max-w-full truncate text-center text-[11px] leading-tight font-mono transition-colors duration-200 ${
                   isActive
                     ? 'text-[var(--tg-link-color,var(--color-neon-cyan))] font-semibold'
                     : 'text-[var(--tg-hint-color,var(--muted-foreground))]'

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import {
   partnerApi,
@@ -99,7 +99,6 @@ function getDisplayEmail(email?: string | null) {
 export default function MiniAppProfilePage() {
   const t = useTranslations('MiniApp.profile');
   const commonT = useTranslations('MiniApp.common');
-  const locale = useLocale();
   const { haptic, colorScheme, webApp } = useTelegramWebApp();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -910,6 +909,7 @@ function ProfileLinkCard({
   return (
     <Link
       href={href}
+      prefetch={false}
       onClick={onPress}
       className={`${cardBg} ${borderColor} min-h-[116px] rounded-lg border p-4 transition-colors hover:border-neon-cyan/50 touch-manipulation`}
     >

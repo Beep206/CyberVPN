@@ -123,8 +123,8 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
+      expect(screen.getByLabelText('nav.wallet')).toBeInTheDocument();
       expect(screen.getByLabelText('nav.rewards')).toBeInTheDocument();
-      expect(screen.queryByLabelText('nav.wallet')).not.toBeInTheDocument();
     });
 
     it('test_renders_navigation_role', () => {

@@ -45,6 +45,7 @@ export default function MiniAppError({
         </button>
         <Link
           href="/miniapp/diagnostics"
+          prefetch={false}
           className="inline-flex items-center gap-2 rounded-lg border border-grid-line/30 px-3 py-2 text-xs font-mono text-foreground transition-colors hover:border-neon-cyan/40 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan"
         >
           <Stethoscope className="h-4 w-4" aria-hidden="true" />

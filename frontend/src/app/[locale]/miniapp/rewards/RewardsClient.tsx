@@ -475,6 +475,7 @@ function MiniAppReferralExperience({ view }: { view: MiniAppRewardsView }) {
             <Link
               key={item.id}
               href={item.href}
+              prefetch={false}
               onClick={() => haptic('light')}
               className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-3 py-2 font-mono text-xs transition-colors touch-manipulation ${
                 isActive

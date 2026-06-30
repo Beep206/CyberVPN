@@ -355,6 +355,12 @@ const MINI_APP_BOTTOM_NAV_WITH_REWARDS: readonly CabinetNavigationItemDefinition
     labelKey: 'nav.plans',
   },
   {
+    id: 'miniapp.wallet',
+    href: '/miniapp/wallet',
+    icon: Wallet,
+    labelKey: 'nav.wallet',
+  },
+  {
     id: 'miniapp.rewards',
     href: '/miniapp/rewards',
     icon: Gift,
@@ -374,13 +380,8 @@ const MINI_APP_BOTTOM_NAV_FALLBACK: readonly CabinetNavigationItemDefinition[] =
   MINI_APP_BOTTOM_NAV_WITH_REWARDS[0],
   MINI_APP_BOTTOM_NAV_WITH_REWARDS[1],
   MINI_APP_BOTTOM_NAV_WITH_REWARDS[2],
-  {
-    id: 'miniapp.wallet',
-    href: '/miniapp/wallet',
-    icon: Wallet,
-    labelKey: 'nav.wallet',
-  },
-  MINI_APP_BOTTOM_NAV_WITH_REWARDS[4],
+  MINI_APP_BOTTOM_NAV_WITH_REWARDS[3],
+  MINI_APP_BOTTOM_NAV_WITH_REWARDS[5],
 ] as const;
 
 const MINI_APP_REWARDS_NAV_DEFINITIONS: readonly CabinetNavigationItemDefinition[] = [

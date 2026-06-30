@@ -430,6 +430,7 @@ export default function MiniAppHomePage() {
               </p>
               <Link
                 href="/miniapp/plans"
+                prefetch={false}
                 onClick={() => haptic('medium')}
                 className="inline-flex items-center gap-2 text-sm font-mono text-neon-pink hover:text-neon-pink/80 transition-colors"
               >
@@ -499,6 +500,7 @@ function QuickActionCard({
   return (
     <Link
       href={href}
+      prefetch={false}
       onClick={onPress}
       className={`${cardBg} ${borderColor} border rounded-lg p-4 flex flex-col items-center justify-center gap-2 text-center min-h-[100px] hover:border-neon-cyan/50 transition-colors touch-manipulation`}
     >
