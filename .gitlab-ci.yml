@@ -954,7 +954,8 @@ stage2:deploy:dry-run:
 
 stage1:limited-publication-preflight:
   stage: deploy
-  image: alpine:3.20
+  tags:
+    - wsl-deploy
   extends:
     - .rules_stage1_limited_publication
   environment:
@@ -962,7 +963,9 @@ stage1:limited-publication-preflight:
     action: prepare
   allow_failure: false
   before_script:
-    - apk add --no-cache bash curl coreutils grep
+    - command -v bash
+    - command -v curl
+    - command -v grep
   script:
     - mkdir -p docs/evidence/releases/ci-stage1
     - REPORT="docs/evidence/releases/ci-stage1/stage1-limited-publication-preflight-${CI_COMMIT_SHORT_SHA}.md"
