@@ -524,6 +524,11 @@
       "redemptionReverseFailed": "Invite redemption reversal failed. Check permissions, status, and reason.",
       "treeFailed": "Invite tree lookup failed."
     },
+    "fanout": {
+      "title": "Fan-out estimate",
+      "description": "Minimum recommended global issue cap: {recommended}. Formula: 1 root code + {rootMaxRedemptions} root redemptions × {childInviteCount} child invites.",
+      "warning": "Current global issue cap {current} is lower than the minimum recommended {recommended}."
+    },
     "overview": {
       "campaignQueueDescription": "Recent campaign records are selectable and feed the batch, redemption, analytics, and policy tabs.",
       "campaignQueueTitle": "Campaign Queue",

@@ -228,6 +228,20 @@ function optionalNumber(value: string) {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
+function estimateFanoutIssueCap(form: typeof initialCampaignForm) {
+  const rootMaxRedemptions = form.rootUsageMode === 'multi_use' ? (optionalNumber(form.rootMaxRedemptions) ?? 0) : 1;
+  const childInviteCount = optionalNumber(form.childInviteCount) ?? 0;
+  const recommended = 1 + rootMaxRedemptions * childInviteCount;
+  const current = optionalNumber(form.globalIssueCap);
+  return {
+    rootMaxRedemptions,
+    childInviteCount,
+    recommended,
+    current,
+    isLow: current !== undefined && current < recommended,
+  };
+}
+
 function csvList(value: string) {
   return value
     .split(/[\n,]+/)
@@ -1033,6 +1047,8 @@ function CampaignsTab({
   onPublishCampaign: (campaign: AdminInviteCampaignResponse) => void;
   onSelectCampaign: (campaign: AdminInviteCampaignResponse) => void;
 }) {
+  const fanoutEstimate = estimateFanoutIssueCap(campaignForm);
+
   return (
     <div className="grid gap-6 2xl:grid-cols-[minmax(20rem,0.95fr)_minmax(0,1.2fr)]">
       <form
@@ -1297,6 +1313,31 @@ function CampaignsTab({
               value={campaignForm.globalIssueCap}
               onChange={(value) => setCampaignForm((current) => ({ ...current, globalIssueCap: value }))}
             />
+            <div
+              className={cn(
+                'rounded-lg border p-3 text-xs font-mono md:col-span-2',
+                fanoutEstimate.isLow
+                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-100'
+                  : 'border-grid-line/30 bg-card/60 text-muted-foreground',
+              )}
+            >
+              <div className="font-semibold text-foreground">{t('inviteCodes.fanout.title')}</div>
+              <div className="mt-1">
+                {t('inviteCodes.fanout.description', {
+                  recommended: fanoutEstimate.recommended,
+                  rootMaxRedemptions: fanoutEstimate.rootMaxRedemptions,
+                  childInviteCount: fanoutEstimate.childInviteCount,
+                })}
+              </div>
+              {fanoutEstimate.isLow && fanoutEstimate.current !== undefined ? (
+                <div className="mt-2 text-amber-100">
+                  {t('inviteCodes.fanout.warning', {
+                    current: fanoutEstimate.current,
+                    recommended: fanoutEstimate.recommended,
+                  })}
+                </div>
+              ) : null}
+            </div>
             <TextField
               label={t('inviteCodes.fields.maxPerOwner')}
               type="number"

@@ -77,6 +77,7 @@ class InviteCodeRepository:
         result = await self._session.execute(
             select(InviteCodeModel).where(
                 InviteCodeModel.code == code,
+                InviteCodeModel.usage_mode != "multi_use",
                 InviteCodeModel.is_used == False,  # noqa: E712
                 (InviteCodeModel.expires_at.is_(None)) | (InviteCodeModel.expires_at > now),
             )
@@ -97,6 +98,8 @@ class InviteCodeRepository:
         invite_code = await self._session.get(InviteCodeModel, id)
         if invite_code is None:
             return None
+        if invite_code.usage_mode == "multi_use":
+            raise RuntimeError("Legacy single-use mark_used path is not allowed for multi-use invite codes")
         invite_code.is_used = True
         invite_code.used_by_user_id = used_by_user_id
         invite_code.used_at = datetime.now(UTC)

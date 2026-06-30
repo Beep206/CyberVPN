@@ -8,6 +8,7 @@ from src.config.settings import settings
 from src.domain.entities.user import User
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import (
+    RemnawaveCursorPage,
     RemnawaveDeleteResponse,
     RemnawaveRawSquadResponse,
     RemnawaveUserResponse,
@@ -105,6 +106,9 @@ class RemnawaveUserGateway:
             return None
 
     async def get_all(self, offset: int = 0, limit: int = 100) -> list[User]:
+        if offset == 0:
+            return await self.get_all_cursor(limit=limit)
+
         users = await self._client.get_collection_validated(
             "/api/users",
             "users",
@@ -112,6 +116,33 @@ class RemnawaveUserGateway:
             params={"start": offset, "size": limit},
         )
         return [map_remnawave_user(self._dump_validated_model(user)) for user in users]
+
+    async def get_all_cursor_page(self, cursor: str | None = None, limit: int = 1000) -> RemnawaveCursorPage:
+        return await self._client.get_all_users_cursor_page(cursor=cursor, limit=limit)
+
+    async def get_all_cursor(self, *, cursor: str | None = None, limit: int = 1000) -> list[User]:
+        collected: list[User] = []
+        seen: set[str] = set()
+        next_cursor = cursor
+        page_limit = max(1, min(int(limit), 1000))
+
+        while len(collected) < limit:
+            page = await self.get_all_cursor_page(cursor=next_cursor, limit=page_limit)
+            for item in page.items:
+                mapped = map_remnawave_user(item)
+                unique_key = str(mapped.uuid or mapped.username)
+                if unique_key in seen:
+                    continue
+                seen.add(unique_key)
+                collected.append(mapped)
+                if len(collected) >= limit:
+                    break
+
+            next_cursor = page.next_cursor
+            if not next_cursor or page.has_next_page is False or not page.items:
+                break
+
+        return collected
 
     @staticmethod
     def _normalize_user_payload(raw_payload: dict[str, Any]) -> dict[str, Any]:

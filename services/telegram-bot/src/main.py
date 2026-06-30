@@ -504,6 +504,7 @@ def create_webhook_app(bot: Bot, dp: Dispatcher, settings: BotSettings):
             raise web.HTTPForbidden(text="Forbidden")
 
         miniapp = str(settings.miniapp_url) if settings.miniapp_url is not None else ""
+        miniapp_parts = urlparse(miniapp) if miniapp else None
         webhook_url = build_webhook_url(settings.webhook.url, settings.webhook.path)
         return web.json_response(
             {
@@ -516,8 +517,12 @@ def create_webhook_app(bot: Bot, dp: Dispatcher, settings: BotSettings):
                     settings.webhook.secret_token and settings.webhook.secret_token.get_secret_value().strip()
                 ),
                 "bot_username": settings.bot_username,
-                "miniapp_url_host": urlparse(miniapp).netloc if miniapp else None,
-                "miniapp_url_path": urlparse(miniapp).path if miniapp else None,
+                "miniapp_url_configured": bool(miniapp),
+                "miniapp_url_scheme": miniapp_parts.scheme if miniapp_parts else None,
+                "miniapp_url_host": miniapp_parts.netloc if miniapp_parts else None,
+                "miniapp_url_path": miniapp_parts.path if miniapp_parts else None,
+                "menu_button_type": settings.bot_menu_button,
+                "menu_button_configured": settings.bot_menu_button == "miniapp" and bool(miniapp),
             },
             headers={"Cache-Control": "no-store, max-age=0"},
         )

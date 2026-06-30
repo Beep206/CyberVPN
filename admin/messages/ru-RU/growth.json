@@ -229,6 +229,11 @@
       "redemptionReverseFailed": "Откат погашения invite не удался. Проверьте права, статус и reason.",
       "treeFailed": "Lookup invite tree не удался."
     },
+    "fanout": {
+      "description": "Минимальный рекомендуемый global issue cap: {recommended}. Формула: 1 root-код + {rootMaxRedemptions} погашений root × {childInviteCount} дочерних инвайтов.",
+      "title": "Оценка fan-out",
+      "warning": "Текущий global issue cap {current} ниже минимального рекомендуемого {recommended}."
+    },
     "fields": {
       "allStatuses": "Все статусы",
       "allowedSurfaces": "Разрешённые поверхности",

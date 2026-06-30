@@ -10,6 +10,7 @@ import ipaddress
 import json
 from functools import lru_cache
 from typing import Annotated, ClassVar, Literal
+from urllib.parse import urlparse
 
 from pydantic import (
     AliasChoices,
@@ -480,6 +481,15 @@ class BotSettings(BaseSettings):
         if self.bot_menu_button == "miniapp" and self.miniapp_url is None:
             msg = "TELEGRAM_MINIAPP_URL is required when TELEGRAM_BOT_MENU_BUTTON=miniapp"
             raise ValueError(msg)
+        if self.miniapp_url is not None:
+            parsed = urlparse(str(self.miniapp_url))
+            if parsed.scheme != "https":
+                msg = "TELEGRAM_MINIAPP_URL must use HTTPS"
+                raise ValueError(msg)
+            normalized_path = parsed.path.rstrip("/")
+            if normalized_path.endswith("/miniapp") is False and "/miniapp/" not in f"{normalized_path}/":
+                msg = "TELEGRAM_MINIAPP_URL must point to the canonical Mini App route"
+                raise ValueError(msg)
 
         return self
 

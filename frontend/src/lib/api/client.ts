@@ -189,6 +189,64 @@ function getRequestId(): string {
   return `req-${requestSequence}`;
 }
 
+function fingerprintMiniAppInitData(initData: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < initData.length; index += 1) {
+    hash ^= initData.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${initData.length}:${(hash >>> 0).toString(16)}`;
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  if (typeof window !== 'undefined' && window.crypto?.subtle) {
+    const data = new TextEncoder().encode(value);
+    const digest = await window.crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+async function resolveMiniAppDeviceId(): Promise<string | null> {
+  if (typeof window === 'undefined' || !isMiniAppRoute(window.location.pathname)) {
+    return null;
+  }
+
+  const storageKey = 'cybervpn:miniapp-device-id:v1';
+  const existing = (() => {
+    try {
+      return window.sessionStorage.getItem(storageKey);
+    } catch {
+      return null;
+    }
+  })();
+  if (existing) {
+    return existing;
+  }
+
+  const telegramWebApp = window.Telegram?.WebApp;
+  const telegramUserId = telegramWebApp?.initDataUnsafe?.user?.id;
+  const initDataFingerprint = telegramWebApp?.initData
+    ? fingerprintMiniAppInitData(telegramWebApp.initData)
+    : 'no-init-data';
+  const userAgentLength = typeof navigator !== 'undefined' ? navigator.userAgent.length : 0;
+  const deviceId = `miniapp:${await sha256Hex(
+    `${telegramUserId ?? 'anonymous'}:${initDataFingerprint}:${userAgentLength}`,
+  )}`;
+  try {
+    window.sessionStorage.setItem(storageKey, deviceId);
+  } catch {
+    // Storage can be blocked inside embedded webviews; the deterministic value is still usable for this request.
+  }
+  return deviceId;
+}
+
 // Request interceptor - X-Request-ID + queue during refresh
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
@@ -212,6 +270,10 @@ apiClient.interceptors.request.use(
     // Add X-Request-ID for request correlation (DX-02)
     if (config.headers) {
       config.headers[CANONICAL_REQUEST_ID_HEADER] = getRequestId();
+      const miniAppDeviceId = await resolveMiniAppDeviceId();
+      if (miniAppDeviceId && !config.headers['X-CyberVPN-Device-ID']) {
+        config.headers['X-CyberVPN-Device-ID'] = miniAppDeviceId;
+      }
     }
     return config;
   },

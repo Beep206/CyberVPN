@@ -1852,6 +1852,44 @@
     "common": {
       "close": "Close"
     },
+    "diagnostics": {
+      "description": "Runtime checks for Telegram WebView, session restore, backend reachability and the current route. Raw initData is never displayed.",
+      "fields": {
+        "fingerprint": "Backend fingerprint",
+        "health": "Mini App health",
+        "initData": "initData",
+        "path": "Path",
+        "platform": "Platform",
+        "session": "Session restore",
+        "telegram": "Telegram WebApp",
+        "user": "Telegram user",
+        "userAgent": "User agent",
+        "version": "WebApp version",
+        "viewport": "Viewport"
+      },
+      "networkTitle": "Network probes",
+      "runtimeTitle": "WebView runtime",
+      "statuses": {
+        "checking": "Checking",
+        "missing": "Missing",
+        "ok": "OK",
+        "unavailable": "Unavailable"
+      },
+      "title": "Mini App diagnostics",
+      "values": {
+        "initDataPresent": "Present · length {length} · fingerprint {fingerprint}",
+        "missing": "Missing",
+        "present": "Present",
+        "userAgentLength": "Length {length}"
+      }
+    },
+    "error": {
+      "code": "Diagnostic code: {code}",
+      "description": "The screen failed inside Telegram WebView. Sensitive error details were not shown here.",
+      "diagnostics": "Diagnostics",
+      "retry": "Retry",
+      "title": "Mini App session needs recovery"
+    },
     "home": {
       "activateTrial": "Activate Trial",
       "channel": "Channel",

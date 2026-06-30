@@ -10,6 +10,11 @@ interface TelegramWidgetData {
 
 interface TelegramWebApp {
   initData: string;
+  platform?: string;
+  version?: string;
+  colorScheme?: 'light' | 'dark';
+  viewportHeight?: number;
+  viewportStableHeight?: number;
   initDataUnsafe: {
     query_id?: string;
     user?: {

@@ -15,6 +15,7 @@ from httpx import AsyncClient, HTTPStatusError, RequestError, Response
 from pydantic import BaseModel
 
 from src.config.settings import settings
+from src.infrastructure.remnawave.contracts import RemnawaveCursorPage
 from src.infrastructure.remnawave.response_validator import response_validator
 
 logger = logging.getLogger(__name__)
@@ -296,6 +297,51 @@ class RemnawaveClient:
         except Exception as e:
             _ = e  # Expected when Remnawave is unreachable
             return False
+
+    async def get_all_users_cursor_page(
+        self,
+        *,
+        cursor: str | None = None,
+        limit: int = 1000,
+    ) -> RemnawaveCursorPage:
+        """Fetch a Remnawave users page using cursor pagination when available.
+
+        Remnawave 2.8.0 introduced a cursor-based all-users endpoint. Public
+        path names have differed across prerelease/admin builds, so the client
+        probes the known cursor variants and falls back to the legacy offset
+        list without hiding genuine transport or server failures.
+        """
+
+        bounded_limit = max(1, min(int(limit), 5000))
+        cursor_params: dict[str, Any] = {"limit": bounded_limit}
+        if cursor:
+            cursor_params["cursor"] = cursor
+
+        for path in ("/users/all", "/users/cursor", "/users"):
+            try:
+                if path == "/users" and cursor:
+                    continue
+                params = cursor_params if path != "/users" else {"start": 0, "size": bounded_limit}
+                data = await self.get(path, params=params)
+                if isinstance(data, list):
+                    return RemnawaveCursorPage(response=[item for item in data if isinstance(item, dict)])
+                if isinstance(data, dict):
+                    return RemnawaveCursorPage.model_validate(data)
+            except HTTPStatusError as exc:
+                if exc.response.status_code in {400, 404, 405, 501}:
+                    logger.info(
+                        "Remnawave cursor users endpoint unavailable; trying fallback",
+                        extra={"path": path, "status_code": exc.response.status_code},
+                    )
+                    continue
+                raise
+
+        legacy = await self.get("/users", params={"start": 0, "size": bounded_limit})
+        if isinstance(legacy, list):
+            return RemnawaveCursorPage(response=[item for item in legacy if isinstance(item, dict)])
+        if isinstance(legacy, dict):
+            return RemnawaveCursorPage.model_validate(legacy)
+        return RemnawaveCursorPage(response=[])
 
 
 remnawave_client = RemnawaveClient()

@@ -569,6 +569,37 @@ miniapp_payment_status_checks_total = Counter(
     ["provider", "payment_status"],
 )
 
+# Remnawave 2.8 XHTTP rollout metrics
+remnawave_xhttp_users_total = Counter(
+    "cybervpn_remnawave_xhttp_users_total",
+    "Subscription config generation attempts for users that received at least one XHTTP link",
+    ["rollout_mode"],
+)
+
+remnawave_xhttp_subscription_generated_total = Counter(
+    "cybervpn_remnawave_xhttp_subscription_generated_total",
+    "Remnawave subscription configs generated with XHTTP candidate links",
+    ["rollout_mode", "status"],
+)
+
+remnawave_xhttp_subscription_failed_total = Counter(
+    "cybervpn_remnawave_xhttp_subscription_failed_total",
+    "Remnawave subscription config generations where XHTTP candidates were expected but absent or failed",
+    ["rollout_mode", "reason"],
+)
+
+remnawave_xhttp_canary_enabled_total = Counter(
+    "cybervpn_remnawave_xhttp_canary_enabled_total",
+    "Remnawave XHTTP canary config responses allowed by feature flags",
+    ["rollout_mode"],
+)
+
+remnawave_xhttp_rollback_total = Counter(
+    "cybervpn_remnawave_xhttp_rollback_total",
+    "Remnawave XHTTP candidate links filtered because the force-disabled rollback flag is enabled",
+    ["rollout_mode"],
+)
+
 miniapp_config_delivery_total = Counter(
     "miniapp_config_delivery_total",
     "Mini App VPN config delivery attempts by source and status",

@@ -37,7 +37,7 @@ control_plane_stack_enable_worker: true
 control_plane_stack_enable_scheduler: true
 control_plane_stack_enable_helix_adapter: true
 
-control_plane_stack_remnawave_image: remnawave/backend:2.7.4
+control_plane_stack_remnawave_image: remnawave/backend:2.8.0
 control_plane_stack_postgres_image: postgres:17.7
 control_plane_stack_valkey_image: valkey/valkey:8.1-alpine
 control_plane_stack_db_backup_image: prodrigestivill/postgres-backup-local:17

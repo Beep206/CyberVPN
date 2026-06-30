@@ -204,6 +204,7 @@ describe('server access model', () => {
         primary: 'ss://primary',
       },
       subscriptionUrl: 'https://vpn.example/sub/user-1',
+      xhttpEnabled: false,
     };
 
     expect(extractConfigLinks(config).map((link) => link.value)).toEqual([
@@ -264,21 +265,21 @@ describe('server access model', () => {
     ).toBe('missing_service');
     expect(
       getConfigAvailability({
-        config: { config: '', isFound: false },
+        config: { config: '', isFound: false, xhttpEnabled: false },
         profile,
         serviceState,
       }),
     ).toBe('not_found');
     expect(
       getConfigAvailability({
-        config: { config: '', isFound: true, subscriptionUrl: 'https://vpn.example/sub' },
+        config: { config: '', isFound: true, subscriptionUrl: 'https://vpn.example/sub', xhttpEnabled: false },
         profile,
         serviceState,
       }),
     ).toBe('ready');
     expect(
       getConfigAvailability({
-        config: { config: '', isFound: true, subscriptionUrl: 'https://vpn.example/sub' },
+        config: { config: '', isFound: true, subscriptionUrl: 'https://vpn.example/sub', xhttpEnabled: false },
         profile,
         serviceState: null,
       }),

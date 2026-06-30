@@ -23,6 +23,7 @@ class RuntimeFingerprintResponse(BaseModel):
     container_image: str | None = None
     origin_marker: str
     customer_site_mode: str
+    remnawave_token_rotation_required: bool | None = None
     generated_at: datetime
 
 
@@ -31,6 +32,29 @@ def _first_non_empty(*values: str | None) -> str | None:
         normalized = (value or "").strip()
         if normalized:
             return normalized
+    return None
+
+
+def _parse_utc_datetime(value: str) -> datetime | None:
+    normalized = value.strip()
+    if not normalized:
+        return None
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def _remnawave_token_rotation_required(now: datetime) -> bool | None:
+    expires_at = _parse_utc_datetime(settings.remnawave_token_expires_at)
+    if expires_at is not None:
+        expires_in_days = int((expires_at - now).total_seconds() // 86400)
+        return expires_in_days <= max(0, settings.remnawave_token_rotation_warning_days)
     return None
 
 
@@ -47,6 +71,7 @@ async def get_runtime_fingerprint(
         site_runtime = CustomerSiteRuntimeConfig()
 
     route_operations_total.labels(route="runtime", action="fingerprint", status="success").inc()
+    now = datetime.now(UTC)
     return RuntimeFingerprintResponse(
         service="backend",
         release=_first_non_empty(settings.sentry_release, os.getenv("SENTRY_RELEASE"), os.getenv("CYBERVPN_IMAGE_TAG")),
@@ -58,5 +83,6 @@ async def get_runtime_fingerprint(
         ),
         origin_marker=settings.runtime_origin_marker,
         customer_site_mode=site_runtime.mode,
-        generated_at=datetime.now(UTC),
+        remnawave_token_rotation_required=_remnawave_token_rotation_required(now),
+        generated_at=now,
     )

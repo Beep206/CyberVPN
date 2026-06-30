@@ -5615,6 +5615,47 @@
         }
       }
     },
+    "/api/v1/client-errors/miniapp": {
+      "post": {
+        "tags": [
+          "client-errors"
+        ],
+        "summary": "Ingest Miniapp Client Error",
+        "operationId": "ingest_miniapp_client_error_api_v1_client_errors_miniapp_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MiniAppClientErrorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MiniAppClientErrorAck"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runtime/fingerprint": {
       "get": {
         "tags": [
@@ -37487,6 +37528,33 @@
         ]
       }
     },
+    "/api/v1/admin/remnawave/nodes/diagnostics": {
+      "get": {
+        "tags": [
+          "admin",
+          "remnawave"
+        ],
+        "summary": "Get Remnawave Node Diagnostics",
+        "operationId": "get_remnawave_node_diagnostics_api_v1_admin_remnawave_nodes_diagnostics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRemnawaveNodeDiagnosticsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/mobile-users/{user_id}/notes": {
       "get": {
         "tags": [
@@ -66180,6 +66248,214 @@
         ],
         "title": "AdminReferralUserDetailResponse"
       },
+      "AdminRemnawaveNodeDiagnosticsItem": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "title": "Uuid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "cpu_load_1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpu Load 1M"
+          },
+          "cpu_load_5m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpu Load 5M"
+          },
+          "cpu_load_15m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpu Load 15M"
+          },
+          "online_users": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Online Users"
+          },
+          "xray_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xray Version"
+          },
+          "node_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Version"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "xhttp_enabled": {
+            "type": "boolean",
+            "title": "Xhttp Enabled",
+            "default": false
+          },
+          "consumption_multiplier": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption Multiplier"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uuid",
+          "name",
+          "status"
+        ],
+        "title": "AdminRemnawaveNodeDiagnosticsItem"
+      },
+      "AdminRemnawaveNodeDiagnosticsResponse": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/AdminRemnawaveNodeDiagnosticsItem"
+            },
+            "type": "array",
+            "title": "Nodes"
+          },
+          "metrics_source": {
+            "type": "string",
+            "title": "Metrics Source"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "token_scope_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Scope Label"
+          },
+          "token_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Expires At"
+          },
+          "token_expires_in_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Expires In Days"
+          },
+          "token_rotation_required": {
+            "type": "boolean",
+            "title": "Token Rotation Required",
+            "default": false
+          },
+          "feature_flags": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Feature Flags"
+          },
+          "degraded_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degraded Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "metrics_source",
+          "updated_at"
+        ],
+        "title": "AdminRemnawaveNodeDiagnosticsResponse"
+      },
       "AdminRole": {
         "type": "string",
         "enum": [
@@ -84359,6 +84635,140 @@
         "type": "object",
         "title": "MiniAppCheckoutRequest"
       },
+      "MiniAppClientErrorAck": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "accepted",
+            "title": "Status"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "received_at"
+        ],
+        "title": "MiniAppClientErrorAck"
+      },
+      "MiniAppClientErrorRequest": {
+        "properties": {
+          "surface": {
+            "type": "string",
+            "const": "miniapp",
+            "title": "Surface",
+            "default": "miniapp"
+          },
+          "route": {
+            "type": "string",
+            "maxLength": 256,
+            "title": "Route",
+            "default": "/"
+          },
+          "telegram_platform": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Platform"
+          },
+          "telegram_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Version"
+          },
+          "webapp_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webapp Version"
+          },
+          "error_name": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Error Name",
+            "default": "Error"
+          },
+          "error_message": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Error Message",
+            "default": ""
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "miniapp_webview_js_error",
+              "miniapp_window_error",
+              "miniapp_unhandled_rejection",
+              "miniapp_auth_failed",
+              "miniapp_route_error_boundary"
+            ],
+            "title": "Event Type",
+            "default": "miniapp_webview_js_error"
+          },
+          "chunk": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "git_sha": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Git Sha"
+          }
+        },
+        "type": "object",
+        "title": "MiniAppClientErrorRequest"
+      },
       "MiniAppConfigResponse": {
         "properties": {
           "config": {
@@ -84398,6 +84808,20 @@
               }
             ],
             "title": "Subscriptionurl"
+          },
+          "xhttpEnabled": {
+            "type": "boolean",
+            "title": "Xhttpenabled",
+            "description": "Whether XHTTP links are present",
+            "default": false
+          },
+          "xhttpLinks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Xhttplinks",
+            "description": "XHTTP connection links"
           },
           "configString": {
             "type": "string",
@@ -99822,6 +100246,18 @@
             "title": "Network",
             "description": "Transport network type (tcp, ws, grpc, etc.)"
           },
+          "transport": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transport",
+            "description": "Transport identifier when returned separately"
+          },
           "security": {
             "anyOf": [
               {
@@ -99896,6 +100332,14 @@
             ],
             "title": "Nodeuuid",
             "description": "Parent node UUID"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Inbound tags when returned by upstream"
           }
         },
         "type": "object",
@@ -100155,6 +100599,38 @@
             ],
             "title": "Subscriptionurl",
             "description": "Subscription URL for VPN clients"
+          },
+          "xhttpEnabled": {
+            "type": "boolean",
+            "title": "Xhttpenabled",
+            "description": "Whether XHTTP links are present",
+            "default": false
+          },
+          "xhttpLinks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Xhttplinks",
+            "description": "XHTTP connection links"
+          },
+          "xHwidActive": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xhwidactive",
+            "description": "Remnawave 2.8 HWID active signal with legacy header compatibility"
           }
         },
         "type": "object",
@@ -100229,6 +100705,69 @@
             ],
             "title": "Configdata",
             "description": "Additional config blob"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Template description/DESCRIPTION key"
+          },
+          "clientType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clienttype",
+            "description": "Subscription client family"
+          },
+          "xhttp": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xhttp",
+            "description": "XHTTP template metadata when returned"
+          },
+          "hysteria2": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hysteria2",
+            "description": "Hysteria2 template metadata when returned"
+          },
+          "v2plus": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "V2Plus",
+            "description": "v2plus fallback metadata when returned"
           }
         },
         "type": "object",
@@ -102171,6 +102710,17 @@
           "customer_site_mode": {
             "type": "string",
             "title": "Customer Site Mode"
+          },
+          "remnawave_token_rotation_required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remnawave Token Rotation Required"
           },
           "generated_at": {
             "type": "string",

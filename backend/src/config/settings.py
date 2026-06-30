@@ -82,6 +82,21 @@ class Settings(BaseSettings):
     remnawave_smart_ru_subscription_template_name: str = "CyberVPN Premium Smart RU"
     remnawave_request_retries: int = 1
     remnawave_retry_backoff_seconds: float = 0.25
+    remnawave_token_expires_at: str = ""
+    remnawave_token_scope_label: str = ""
+    remnawave_token_rotation_warning_days: int = 14
+    remnawave_feature_xhttp_enabled: bool = False
+    remnawave_feature_xhttp_mihomo_enabled: bool = False
+    remnawave_feature_xhttp_rollout_mode: Literal["disabled", "internal", "canary", "premium_smart_ru", "stable"] = (
+        "disabled"
+    )
+    remnawave_feature_xhttp_allowed_plan_codes: str = "premium_smart_ru"
+    remnawave_feature_xhttp_allowed_user_segments: str = "internal,beta,premium_smart_ru_canary"
+    remnawave_feature_xhttp_force_disabled: bool = False
+    remnawave_feature_hysteria2_enabled: bool = False
+    remnawave_feature_ech_enabled: bool = False
+    remnawave_feature_tun_enabled: bool = False
+    remnawave_feature_v2plus_enabled: bool = False
     remnawave_abuse_auto_disable_enabled: bool = False
     remnawave_abuse_torrent_disable_after: int = 2
     remnawave_abuse_torrent_window_hours: int = 24

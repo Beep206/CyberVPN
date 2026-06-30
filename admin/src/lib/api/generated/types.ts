@@ -2025,6 +2025,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/client-errors/miniapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ingest Miniapp Client Error */
+        post: operations["ingest_miniapp_client_error_api_v1_client_errors_miniapp_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runtime/fingerprint": {
         parameters: {
             query?: never;
@@ -10582,6 +10599,23 @@ export interface paths {
         get: operations["get_admin_commercial_context_options_api_v1_admin_commercial_context_options_get"];
         /** Update Admin Commercial Context Options */
         put: operations["update_admin_commercial_context_options_api_v1_admin_commercial_context_options_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/nodes/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Remnawave Node Diagnostics */
+        get: operations["get_remnawave_node_diagnostics_api_v1_admin_remnawave_nodes_diagnostics_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -19923,6 +19957,65 @@ export interface components {
             /** Recent Commissions */
             recent_commissions: components["schemas"]["AdminReferralCommissionRecord"][];
         };
+        /** AdminRemnawaveNodeDiagnosticsItem */
+        AdminRemnawaveNodeDiagnosticsItem: {
+            /** Uuid */
+            uuid: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+            /** Cpu Load 1M */
+            cpu_load_1m?: number | null;
+            /** Cpu Load 5M */
+            cpu_load_5m?: number | null;
+            /** Cpu Load 15M */
+            cpu_load_15m?: number | null;
+            /** Online Users */
+            online_users?: number | null;
+            /** Xray Version */
+            xray_version?: string | null;
+            /** Node Version */
+            node_version?: string | null;
+            /** Tags */
+            tags?: string[];
+            /**
+             * Xhttp Enabled
+             * @default false
+             */
+            xhttp_enabled: boolean;
+            /** Consumption Multiplier */
+            consumption_multiplier?: number | null;
+        };
+        /** AdminRemnawaveNodeDiagnosticsResponse */
+        AdminRemnawaveNodeDiagnosticsResponse: {
+            /** Nodes */
+            nodes?: components["schemas"]["AdminRemnawaveNodeDiagnosticsItem"][];
+            /** Metrics Source */
+            metrics_source: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Token Scope Label */
+            token_scope_label?: string | null;
+            /** Token Expires At */
+            token_expires_at?: string | null;
+            /** Token Expires In Days */
+            token_expires_in_days?: number | null;
+            /**
+             * Token Rotation Required
+             * @default false
+             */
+            token_rotation_required: boolean;
+            /** Feature Flags */
+            feature_flags?: {
+                [key: string]: string | boolean | string[];
+            };
+            /** Degraded Reason */
+            degraded_reason?: string | null;
+        };
         /**
          * AdminRole
          * @enum {string}
@@ -27072,6 +27165,61 @@ export interface components {
              */
             currency: string;
         };
+        /** MiniAppClientErrorAck */
+        MiniAppClientErrorAck: {
+            /**
+             * Status
+             * @constant
+             */
+            status: "accepted";
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+        };
+        /** MiniAppClientErrorRequest */
+        MiniAppClientErrorRequest: {
+            /**
+             * Surface
+             * @default miniapp
+             * @constant
+             */
+            surface: "miniapp";
+            /**
+             * Route
+             * @default /
+             */
+            route: string;
+            /** Telegram Platform */
+            telegram_platform?: string | null;
+            /** Telegram Version */
+            telegram_version?: string | null;
+            /** Webapp Version */
+            webapp_version?: string | null;
+            /**
+             * Error Name
+             * @default Error
+             */
+            error_name: string;
+            /**
+             * Error Message
+             * @default
+             */
+            error_message: string;
+            /**
+             * Event Type
+             * @default miniapp_webview_js_error
+             * @enum {string}
+             */
+            event_type: "miniapp_webview_js_error" | "miniapp_window_error" | "miniapp_unhandled_rejection" | "miniapp_auth_failed" | "miniapp_route_error_boundary";
+            /** Chunk */
+            chunk?: string | null;
+            /** Release */
+            release?: string | null;
+            /** Git Sha */
+            git_sha?: string | null;
+        };
         /** MiniAppConfigResponse */
         MiniAppConfigResponse: {
             /**
@@ -27099,6 +27247,17 @@ export interface components {
             };
             /** Subscriptionurl */
             subscriptionUrl?: string | null;
+            /**
+             * Xhttpenabled
+             * @description Whether XHTTP links are present
+             * @default false
+             */
+            xhttpEnabled: boolean;
+            /**
+             * Xhttplinks
+             * @description XHTTP connection links
+             */
+            xhttpLinks?: string[];
             /** Configstring */
             configString: string;
             /** Clienttype */
@@ -33429,6 +33588,11 @@ export interface components {
              */
             network?: string | null;
             /**
+             * Transport
+             * @description Transport identifier when returned separately
+             */
+            transport?: string | null;
+            /**
              * Security
              * @description Security type (tls, reality, none)
              */
@@ -33464,6 +33628,11 @@ export interface components {
              * @description Parent node UUID
              */
             nodeUuid?: string | null;
+            /**
+             * Tags
+             * @description Inbound tags when returned by upstream
+             */
+            tags?: string[];
         };
         /**
          * RemnawavePublicKeyResponse
@@ -33643,6 +33812,22 @@ export interface components {
              * @description Subscription URL for VPN clients
              */
             subscriptionUrl?: string | null;
+            /**
+             * Xhttpenabled
+             * @description Whether XHTTP links are present
+             * @default false
+             */
+            xhttpEnabled: boolean;
+            /**
+             * Xhttplinks
+             * @description XHTTP connection links
+             */
+            xhttpLinks?: string[];
+            /**
+             * Xhwidactive
+             * @description Remnawave 2.8 HWID active signal with legacy header compatibility
+             */
+            xHwidActive?: string | number | boolean | null;
         };
         /**
          * RemnawaveSubscriptionResponse
@@ -33684,6 +33869,37 @@ export interface components {
              * @description Additional config blob
              */
             configData?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Description
+             * @description Template description/DESCRIPTION key
+             */
+            description?: string | null;
+            /**
+             * Clienttype
+             * @description Subscription client family
+             */
+            clientType?: string | null;
+            /**
+             * Xhttp
+             * @description XHTTP template metadata when returned
+             */
+            xhttp?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Hysteria2
+             * @description Hysteria2 template metadata when returned
+             */
+            hysteria2?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * V2Plus
+             * @description v2plus fallback metadata when returned
+             */
+            v2plus?: {
                 [key: string]: unknown;
             } | null;
         };
@@ -34445,6 +34661,8 @@ export interface components {
             origin_marker: string;
             /** Customer Site Mode */
             customer_site_mode: string;
+            /** Remnawave Token Rotation Required */
+            remnawave_token_rotation_required?: boolean | null;
             /**
              * Generated At
              * Format: date-time
@@ -42465,6 +42683,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientCapabilityResponse"];
+                };
+            };
+        };
+    };
+    ingest_miniapp_client_error_api_v1_client_errors_miniapp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MiniAppClientErrorRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MiniAppClientErrorAck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -60442,6 +60693,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_remnawave_node_diagnostics_api_v1_admin_remnawave_nodes_diagnostics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRemnawaveNodeDiagnosticsResponse"];
                 };
             };
         };

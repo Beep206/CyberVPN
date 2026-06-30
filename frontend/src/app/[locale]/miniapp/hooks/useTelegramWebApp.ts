@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 
 interface TelegramWebApp {
   initData: string;
+  platform?: string;
+  version?: string;
   initDataUnsafe: {
     user?: {
       id: number;

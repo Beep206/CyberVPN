@@ -191,7 +191,11 @@ async def apply_customer_onboarding_growth_code(
                 db,
                 current_realm=resolved_realm,
                 source_surface=trusted_source_surface,
-                runtime_context=_invite_redemption_runtime_context(request),
+                runtime_context=_invite_redemption_runtime_context(
+                    request=request,
+                    source_surface=trusted_source_surface,
+                    telegram_id=payload.telegram_id,
+                ),
             ),
         )
     except CustomerOnboardingUnavailableError as exc:
@@ -497,8 +501,25 @@ def _trusted_apply_source_surface(
     return requested_source_surface
 
 
-def _invite_redemption_runtime_context(request: Request) -> InviteRedemptionRuntimeContext:
+def _invite_redemption_runtime_context(
+    *,
+    request: Request,
+    source_surface: ConnectionSurface,
+    telegram_id: int | None,
+) -> InviteRedemptionRuntimeContext:
     client_ip = resolve_client_ip(request).ip
+    if source_surface == "telegram_bot" and telegram_id is not None:
+        stable_key = f"telegram_bot:{telegram_id}"
+        return InviteRedemptionRuntimeContext(
+            client_ip_hash=_hash_runtime_key(f"{stable_key}:ipless"),
+            device_key_hash=hash_device_key(stable_key),
+        )
+    if source_surface == "miniapp" and telegram_id is not None:
+        stable_key = f"miniapp:{telegram_id}"
+        return InviteRedemptionRuntimeContext(
+            client_ip_hash=_hash_runtime_key(f"{stable_key}:ipless"),
+            device_key_hash=hash_device_key(stable_key),
+        )
     device_key = (
         request.cookies.get("__Host-cvpn_device_id")
         or request.headers.get("X-Device-ID")

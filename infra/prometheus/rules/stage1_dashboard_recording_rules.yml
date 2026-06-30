@@ -78,6 +78,22 @@ groups:
         expr: |
           sum(remnawave_node_status{job="remnawave"}) or vector(0)
 
+      - record: stage1:remnawave_node_cpu_load_1m:current
+        expr: |
+          max by (node_name, node_uuid) ({__name__=~"remnawave_node_cpu_load_1m|remnawave_node_cpu_load_average_1m|remnawave_node_load_average_1m",job="remnawave"}) or vector(0)
+
+      - record: stage1:remnawave_node_cpu_load_5m:current
+        expr: |
+          max by (node_name, node_uuid) ({__name__=~"remnawave_node_cpu_load_5m|remnawave_node_cpu_load_average_5m|remnawave_node_load_average_5m",job="remnawave"}) or vector(0)
+
+      - record: stage1:remnawave_node_cpu_load_15m:current
+        expr: |
+          max by (node_name, node_uuid) ({__name__=~"remnawave_node_cpu_load_15m|remnawave_node_cpu_load_average_15m|remnawave_node_load_average_15m",job="remnawave"}) or vector(0)
+
+      - record: stage1:remnawave_node_metrics_available:current
+        expr: |
+          count({__name__=~"remnawave_node_status|remnawave_node_online_users|remnawave_node_cpu_load_1m|remnawave_node_cpu_load_average_1m|remnawave_node_load_average_1m|remnawave_node_cpu_load_5m|remnawave_node_cpu_load_average_5m|remnawave_node_load_average_5m|remnawave_node_cpu_load_15m|remnawave_node_cpu_load_average_15m|remnawave_node_load_average_15m",job="remnawave"}) or vector(0)
+
       - record: stage1:telegram_bot_error_ratio:5m
         expr: |
           sum(rate(bot_updates_total{job="cybervpn-telegram-bot",status="error"}[5m]))

@@ -100,6 +100,35 @@ groups:
           dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
           runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
 
+      - alert: Stage1RemnawaveNodeMetricsUnavailable
+        expr: stage1:remnawave_node_metrics_available:current < 1
+        for: 5m
+        labels:
+          severity: critical
+          priority: p0
+          service: remnawave
+          stage: s1
+        annotations:
+          summary: "Stage 1 Remnawave node metrics are unavailable"
+          description: "Remnawave is reachable, but node metrics are missing. Verify Remnawave 2.8.0 scrape output and node connectivity before expanding XHTTP rollout."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1RemnawaveNodeCpuLoadHigh
+        expr: |
+          max({__name__=~"stage1:remnawave_node_cpu_load_(1m|5m|15m):current"}) > 0.90
+        for: 5m
+        labels:
+          severity: warning
+          priority: p1
+          service: remnawave
+          stage: s1
+        annotations:
+          summary: "Stage 1 Remnawave node CPU load is high"
+          description: "At least one Remnawave node reports 1m/5m/15m CPU load above 90%. Check XHTTP canary traffic and node capacity."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
       - alert: Stage1PublicEndpointProbeFailed
         expr: probe_success{job=~"stage1-public-web|blackbox-stage1-public-web"} == 0
         for: 2m

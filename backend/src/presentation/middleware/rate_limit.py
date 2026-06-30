@@ -499,6 +499,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 name="s1_support_write",
                 limit=support_limit,
                 methods=frozenset({"POST", "PUT", "PATCH", "DELETE"}),
+                exact_paths=frozenset({"/api/v1/client-errors/miniapp"}),
                 path_prefixes=(
                     "/api/v1/admin/mobile-users/",
                     "/api/v1/admin/customer-operations/",

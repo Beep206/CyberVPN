@@ -2691,6 +2691,11 @@
         "title": "Exports & Audit"
       },
       "eyebrow": "Growth / Invite Codes",
+      "fanout": {
+        "description": "Minimum recommended global issue cap: {recommended}. Formula: 1 root code + {rootMaxRedemptions} root redemptions × {childInviteCount} child invites.",
+        "title": "Fan-out estimate",
+        "warning": "Current global issue cap {current} is lower than the minimum recommended {recommended}."
+      },
       "feedback": {
         "allowedSurfacesRequired": "Select at least one allowed surface before creating the campaign.",
         "batchActionCompleted": "Invite batch action was applied and inventory was refreshed.",

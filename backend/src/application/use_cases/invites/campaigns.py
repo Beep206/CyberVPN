@@ -739,6 +739,19 @@ class ValidateInviteCampaignVersionUseCase:
         max_child_invites = _positive_int((campaign.caps or {}).get("max_child_invites"), default=100)
         if version.child_invite_count > max_child_invites:
             errors.append("child_invite_count exceeds campaign cap")
+        global_issue_cap = _optional_positive_int((campaign.caps or {}).get("global_issue_cap"))
+        if global_issue_cap is None:
+            global_issue_cap = _optional_positive_int((campaign.caps or {}).get("max_total_issued"))
+        root_max_redemptions = _optional_positive_int(version.root_max_redemptions)
+        if version.root_usage_mode == INVITE_USAGE_MULTI and root_max_redemptions and version.child_invite_count > 0:
+            minimum_root_issues = 1
+            projected_child_issues = root_max_redemptions * int(version.child_invite_count)
+            recommended_issue_cap = minimum_root_issues + projected_child_issues
+            if global_issue_cap is not None and global_issue_cap < recommended_issue_cap:
+                warnings.append(
+                    "global_issue_cap is lower than the minimum recommended root issue count plus "
+                    "root_max_redemptions multiplied by child_invite_count"
+                )
         if _policy_contains_raw_code(version.redemption_policy) or _policy_contains_raw_code(version.child_policy):
             errors.append("policy snapshot must not contain raw invite codes")
         if is_lifetime_duration(version.grant_duration_mode) and version.grant_duration_days is not None:

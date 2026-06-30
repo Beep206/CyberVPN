@@ -39,6 +39,7 @@ from src.domain.enums import (
     InviteSource,
 )
 from src.infrastructure.database.models.customer_commercial_binding_model import CustomerCommercialBindingModel
+from src.infrastructure.database.models.invite_campaign_model import InviteRedemptionModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from src.infrastructure.database.repositories.customer_commercial_binding_repo import (
@@ -164,7 +165,7 @@ class ResolveGrowthCodeUseCase:
         if invite is not None:
             if ensure_registry:
                 registry_code = await self._registry.ensure_shadow_invite(invite)
-            outcome = self._resolve_invite(
+            outcome = await self._resolve_invite(
                 invite=invite,
                 action_context=action_context,
                 user_id=user_id,
@@ -393,7 +394,7 @@ class ResolveGrowthCodeUseCase:
             duration_seconds=perf_counter() - started_at,
         )
 
-    def _resolve_invite(
+    async def _resolve_invite(
         self,
         *,
         invite,
@@ -419,6 +420,19 @@ class ResolveGrowthCodeUseCase:
                 result=GrowthCodeResolutionStatus.REJECTED,
                 reject_reason=GrowthCodeRejectReason.INVITE_SELF_REDEMPTION_BLOCKED,
                 user_message_key="growth_codes.invite.self_redemption_blocked",
+                issuer_type=self._invite_issuer_type(invite.source),
+                owner_type="customer",
+                resolved_code_id=invite.id,
+            )
+
+        if user_id is not None and await self._has_user_redeemed_invite(invite_code_id=invite.id, user_id=user_id):
+            return GrowthCodeResolutionOutcome(
+                accepted=False,
+                code_type=GrowthCodeType.INVITE,
+                action_context=action_context,
+                result=GrowthCodeResolutionStatus.REJECTED,
+                reject_reason=GrowthCodeRejectReason.CODE_ALREADY_REDEEMED,
+                user_message_key="growth_codes.invite.already_redeemed_by_user",
                 issuer_type=self._invite_issuer_type(invite.source),
                 owner_type="customer",
                 resolved_code_id=invite.id,
@@ -494,6 +508,18 @@ class ResolveGrowthCodeUseCase:
             owner_type="customer",
             resolved_code_id=invite.id,
         )
+
+    async def _has_user_redeemed_invite(self, *, invite_code_id: UUID, user_id: UUID) -> bool:
+        result = await self._session.execute(
+            select(InviteRedemptionModel.id)
+            .where(
+                InviteRedemptionModel.invite_code_id == invite_code_id,
+                InviteRedemptionModel.invitee_user_id == user_id,
+                InviteRedemptionModel.status.in_(("redeemed", "reversed")),
+            )
+            .limit(1)
+        )
+        return result.scalar_one_or_none() is not None
 
     async def _resolve_promo(
         self,

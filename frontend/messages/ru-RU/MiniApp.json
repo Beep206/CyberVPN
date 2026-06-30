@@ -2,6 +2,44 @@
   "common": {
     "close": "Закрыть"
   },
+  "error": {
+    "description": "Экран упал внутри Telegram WebView. Чувствительные детали ошибки здесь не показываются.",
+    "code": "Диагностический код: {code}",
+    "diagnostics": "Диагностика",
+    "retry": "Повторить",
+    "title": "Сессию Mini App нужно восстановить"
+  },
+  "diagnostics": {
+    "description": "Проверка Telegram WebView, восстановления сессии, доступности backend и текущего маршрута. Raw initData никогда не отображается.",
+    "fields": {
+      "fingerprint": "Backend fingerprint",
+      "health": "Mini App health",
+      "initData": "initData",
+      "path": "Маршрут",
+      "platform": "Платформа",
+      "session": "Восстановление сессии",
+      "telegram": "Telegram WebApp",
+      "user": "Пользователь Telegram",
+      "userAgent": "User agent",
+      "version": "Версия WebApp",
+      "viewport": "Viewport"
+    },
+    "networkTitle": "Сетевые проверки",
+    "runtimeTitle": "WebView runtime",
+    "statuses": {
+      "checking": "Проверяем",
+      "missing": "Отсутствует",
+      "ok": "OK",
+      "unavailable": "Недоступно"
+    },
+    "title": "Диагностика Mini App",
+    "values": {
+      "initDataPresent": "Есть · длина {length} · fingerprint {fingerprint}",
+      "missing": "Отсутствует",
+      "present": "Есть",
+      "userAgentLength": "Длина {length}"
+    }
+  },
   "home": {
     "activateTrial": "Активировать пробный доступ",
     "channel": "Канал",

@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { isMiniAppRoute } from '@/features/auth/lib/session';
 import { MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
 import { getPostAuthDestination } from '@/features/customer-onboarding/routing';
+import { installMiniAppClientErrorListeners, reportMiniAppClientError } from '@/features/miniapp-runtime/lib/client-error-telemetry';
 import { Loader2, AlertCircle, Shield, RotateCcw, Send, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -17,6 +18,10 @@ function getMiniAppReturnPath(pathname: string | null | undefined) {
     }
 
     return isMiniAppRoute(pathname) ? pathname : '/miniapp/home';
+}
+
+function isMiniAppPublicDiagnosticPath(pathname: string | null | undefined) {
+    return Boolean(pathname && /^\/miniapp\/(?:health|diagnostics)(?:\/|$)/.test(pathname));
 }
 
 function getTelegramBotUrl() {
@@ -91,7 +96,12 @@ export function TelegramMiniAppAuthProvider({
     const spentInitDataFingerprints = useRef<Set<string>>(new Set());
     const effectiveIsMiniApp = isMiniApp || runtimeIsMiniApp;
     const isMiniAppRoutePath = isMiniAppRoute(pathname);
-    const shouldGateMiniApp = effectiveIsMiniApp || isMiniAppRoutePath;
+    const shouldGateMiniApp = (effectiveIsMiniApp || isMiniAppRoutePath) && !isMiniAppPublicDiagnosticPath(pathname);
+
+    useEffect(() => {
+        if (!isMiniAppRoutePath) return undefined;
+        return installMiniAppClientErrorListeners();
+    }, [isMiniAppRoutePath]);
 
     useEffect(() => {
         let cancelled = false;
@@ -194,6 +204,12 @@ export function TelegramMiniAppAuthProvider({
                     return;
                 }
                 setAuthError(getMiniAppAuthErrorMessage(error, t('miniAppAuthFailedMessage')));
+                reportMiniAppClientError({
+                    eventType: 'miniapp_auth_failed',
+                    errorName: error instanceof Error ? error.name : 'MiniAppAuthError',
+                    errorMessage: getMiniAppAuthErrorMessage(error, t('miniAppAuthFailedMessage')),
+                    chunk: null,
+                });
             }
         })();
 

@@ -46,6 +46,9 @@ def build_stage1_menu_button(settings: BotSettings) -> MenuButtonCommands | Menu
     if settings.bot_menu_button == "miniapp":
         if settings.miniapp_url is None:
             raise ValueError("TELEGRAM_MINIAPP_URL is required for the miniapp menu button")
+        parsed = urlparse(str(settings.miniapp_url))
+        if parsed.scheme != "https" or "/miniapp" not in parsed.path:
+            raise ValueError("TELEGRAM_MINIAPP_URL must be the HTTPS canonical Mini App route")
         return MenuButtonWebApp(
             text="Open CyberVPN",
             web_app=WebAppInfo(url=str(settings.miniapp_url)),
