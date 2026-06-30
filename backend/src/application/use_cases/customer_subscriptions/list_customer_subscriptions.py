@@ -38,7 +38,7 @@ class CustomerSubscriptionSummary:
     expires_at: str | None
     created_at: datetime | None
     effective_entitlements: dict[str, Any]
-    invite_bundle: dict[str, int]
+    invite_bundle: dict[str, Any]
     is_trial: bool
     addons: list[dict[str, Any]]
     can_manage: bool

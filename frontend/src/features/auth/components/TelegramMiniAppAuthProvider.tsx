@@ -226,12 +226,7 @@ export function TelegramMiniAppAuthProvider({
     useEffect(() => {
         if (!effectiveIsMiniApp || isAuthenticated || hasAttempted.current) return;
         hasAttempted.current = true;
-        const timeoutId = window.setTimeout(() => {
-            void authenticateMiniApp();
-        }, 0);
-        return () => {
-            window.clearTimeout(timeoutId);
-        };
+        void authenticateMiniApp();
     }, [effectiveIsMiniApp, isAuthenticated, authenticateMiniApp]);
 
     useEffect(() => {

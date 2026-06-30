@@ -104,7 +104,7 @@ class CurrentEntitlementsResponse(BaseModel):
     period_days: int | None = None
     expires_at: str | None = None
     effective_entitlements: dict[str, Any]
-    invite_bundle: dict[str, int]
+    invite_bundle: dict[str, Any]
     is_trial: bool
     addons: list[dict[str, Any]] = Field(default_factory=list)
 

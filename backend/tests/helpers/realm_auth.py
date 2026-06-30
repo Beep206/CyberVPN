@@ -234,6 +234,9 @@ class SyncSessionAdapter:
     async def refresh(self, instance) -> None:
         self._session.refresh(instance)
 
+    def get_bind(self):
+        return self._session.get_bind()
+
     @asynccontextmanager
     async def begin_nested(self):
         with self._session.begin_nested():
@@ -1102,6 +1105,130 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_grant_plan_id ON invite_codes(grant_plan_id)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_child_grant_plan_id ON invite_codes(child_grant_plan_id)")
         conn.exec_driver_sql("CREATE INDEX ix_invite_codes_used_by_user_id ON invite_codes(used_by_user_id)")
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE invite_redemptions (
+                id TEXT PRIMARY KEY,
+                invite_code_id TEXT NOT NULL,
+                campaign_id TEXT,
+                campaign_version_id TEXT,
+                root_invite_code_id TEXT,
+                parent_invite_code_id TEXT,
+                inviter_user_id TEXT,
+                invitee_user_id TEXT NOT NULL,
+                generation_depth INTEGER NOT NULL DEFAULT 0,
+                source_surface TEXT NOT NULL DEFAULT 'web',
+                entitlement_grant_id TEXT,
+                granted_plan_id TEXT,
+                granted_plan_code TEXT,
+                granted_duration_days INTEGER,
+                child_batch_id TEXT,
+                child_issued_count INTEGER NOT NULL DEFAULT 0,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                usage_mode_snapshot TEXT NOT NULL DEFAULT 'single_use',
+                redemption_sequence INTEGER,
+                code_redemptions_count_after INTEGER,
+                device_key_hash TEXT,
+                client_ip_hash TEXT,
+                user_agent_hash TEXT,
+                status TEXT NOT NULL DEFAULT 'redeemed',
+                blocked_reason TEXT,
+                risk_decision TEXT NOT NULL DEFAULT '{}',
+                grant_snapshot TEXT NOT NULL DEFAULT '{}',
+                service_snapshot TEXT NOT NULL DEFAULT '{}',
+                metadata TEXT NOT NULL DEFAULT '{}',
+                redeemed_at TEXT,
+                reversed_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CHECK (status IN ('redeemed','blocked','reversed')),
+                CHECK (usage_mode_snapshot IN ('single_use','multi_use'))
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_invite_redemptions_invite_code_id ON invite_redemptions(invite_code_id)",
+            "CREATE INDEX ix_invite_redemptions_campaign_id ON invite_redemptions(campaign_id)",
+            "CREATE INDEX ix_invite_redemptions_campaign_version_id ON invite_redemptions(campaign_version_id)",
+            "CREATE INDEX ix_invite_redemptions_root_invite_code_id ON invite_redemptions(root_invite_code_id)",
+            "CREATE INDEX ix_invite_redemptions_parent_invite_code_id ON invite_redemptions(parent_invite_code_id)",
+            "CREATE INDEX ix_invite_redemptions_inviter_user_id ON invite_redemptions(inviter_user_id)",
+            "CREATE INDEX ix_invite_redemptions_invitee_user_id ON invite_redemptions(invitee_user_id)",
+            "CREATE INDEX ix_invite_redemptions_entitlement_grant_id ON invite_redemptions(entitlement_grant_id)",
+            "CREATE INDEX ix_invite_redemptions_granted_plan_id ON invite_redemptions(granted_plan_id)",
+            "CREATE INDEX ix_invite_redemptions_granted_plan_code ON invite_redemptions(granted_plan_code)",
+            "CREATE INDEX ix_invite_redemptions_child_batch_id ON invite_redemptions(child_batch_id)",
+            "CREATE INDEX ix_invite_redemptions_idempotency_key ON invite_redemptions(idempotency_key)",
+            "CREATE INDEX ix_invite_redemptions_device_key_hash ON invite_redemptions(device_key_hash)",
+            "CREATE INDEX ix_invite_redemptions_client_ip_hash ON invite_redemptions(client_ip_hash)",
+            "CREATE INDEX ix_invite_redemptions_user_agent_hash ON invite_redemptions(user_agent_hash)",
+            "CREATE INDEX ix_invite_redemptions_redeemed_at ON invite_redemptions(redeemed_at)",
+            "CREATE UNIQUE INDEX uq_invite_redemptions_redeemed_invite_code_id "
+            "ON invite_redemptions(invite_code_id) "
+            "WHERE status = 'redeemed' AND usage_mode_snapshot = 'single_use'",
+            "CREATE UNIQUE INDEX uq_invite_redemptions_code_user_active "
+            "ON invite_redemptions(invite_code_id, invitee_user_id) "
+            "WHERE status = 'redeemed'",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE invite_tree_edges (
+                id TEXT PRIMARY KEY,
+                root_invite_code_id TEXT NOT NULL,
+                parent_invite_code_id TEXT,
+                redeemed_invite_code_id TEXT NOT NULL,
+                redemption_id TEXT NOT NULL UNIQUE,
+                campaign_id TEXT,
+                campaign_version_id TEXT,
+                child_batch_id TEXT,
+                granted_plan_id TEXT,
+                granted_plan_code TEXT,
+                inviter_user_id TEXT,
+                invitee_user_id TEXT NOT NULL,
+                generation_depth INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CHECK (status IN ('active','blocked','reversed'))
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_invite_tree_edges_root_invite_code_id ON invite_tree_edges(root_invite_code_id)",
+            "CREATE INDEX ix_invite_tree_edges_parent_invite_code_id ON invite_tree_edges(parent_invite_code_id)",
+            "CREATE INDEX ix_invite_tree_edges_redeemed_invite_code_id ON invite_tree_edges(redeemed_invite_code_id)",
+            "CREATE INDEX ix_invite_tree_edges_campaign_id ON invite_tree_edges(campaign_id)",
+            "CREATE INDEX ix_invite_tree_edges_child_batch_id ON invite_tree_edges(child_batch_id)",
+            "CREATE INDEX ix_invite_tree_edges_granted_plan_id ON invite_tree_edges(granted_plan_id)",
+            "CREATE INDEX ix_invite_tree_edges_inviter_user_id ON invite_tree_edges(inviter_user_id)",
+            "CREATE INDEX ix_invite_tree_edges_invitee_user_id ON invite_tree_edges(invitee_user_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE invite_tree_closure (
+                id TEXT PRIMARY KEY,
+                root_invite_code_id TEXT NOT NULL,
+                ancestor_invite_code_id TEXT NOT NULL,
+                descendant_invite_code_id TEXT NOT NULL,
+                depth INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                reversed_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CHECK (depth >= 0),
+                UNIQUE (root_invite_code_id, ancestor_invite_code_id, descendant_invite_code_id)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_invite_tree_closure_root_invite_code_id ON invite_tree_closure(root_invite_code_id)",
+            "CREATE INDEX ix_invite_tree_closure_ancestor_invite_code_id "
+            "ON invite_tree_closure(ancestor_invite_code_id)",
+            "CREATE INDEX ix_invite_tree_closure_descendant_invite_code_id "
+            "ON invite_tree_closure(descendant_invite_code_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
             """
             CREATE TABLE promo_codes (

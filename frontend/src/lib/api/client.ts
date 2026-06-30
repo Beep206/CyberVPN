@@ -353,6 +353,7 @@ apiClient.interceptors.response.use(
 
         // Backend sets new cookies; just check response was OK
         if (refreshResponse.status === 200) {
+          isRefreshing = false;
           processQueue(null);
           const replayResponse = await apiClient(originalRequest);
           if (isMiniAppRequest) {
@@ -362,6 +363,7 @@ apiClient.interceptors.response.use(
         }
         throw new Error('Refresh failed');
       } catch (refreshError) {
+        isRefreshing = false;
         processQueue(refreshError as AxiosError);
         // Clear any legacy localStorage tokens
         tokenStorage.clearTokens();

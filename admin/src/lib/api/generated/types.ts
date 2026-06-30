@@ -23293,7 +23293,7 @@ export interface components {
             };
             /** Invite Bundle */
             invite_bundle: {
-                [key: string]: number;
+                [key: string]: unknown;
             };
             /** Is Trial */
             is_trial: boolean;
@@ -23325,7 +23325,7 @@ export interface components {
             };
             /** Invite Bundle */
             invite_bundle: {
-                [key: string]: number;
+                [key: string]: unknown;
             };
             /** Is Trial */
             is_trial: boolean;
@@ -24046,7 +24046,7 @@ export interface components {
             };
             /** Invite Bundle */
             invite_bundle?: {
-                [key: string]: number;
+                [key: string]: unknown;
             };
             /** Is Trial */
             is_trial: boolean;
@@ -24659,7 +24659,7 @@ export interface components {
             effective_entitlements: components["schemas"]["EffectiveEntitlementsResponse"];
             /** Invite Bundle */
             invite_bundle: {
-                [key: string]: number;
+                [key: string]: unknown;
             };
             /** Is Trial */
             is_trial: boolean;
@@ -33559,7 +33559,7 @@ export interface components {
         };
         /**
          * RemnawaveInboundResponse
-         * @description Inbound (protocol listener) from the Remnawave ``/api/inbounds`` endpoint.
+         * @description Inbound (protocol listener) from Remnawave config-profile inbound endpoints.
          */
         RemnawaveInboundResponse: {
             /**

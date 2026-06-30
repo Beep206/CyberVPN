@@ -104,6 +104,9 @@ describe('TelegramMiniAppAuthProvider', () => {
   });
 
   it('keeps successful mini app auth inside the current mini app namespace', async () => {
+    setupTelegramWebAppMock({
+      initData: 'query_id=home&user=owner&hash=signature',
+    });
     mockTelegramMiniAppAuth.mockResolvedValue({
       requires_2fa: false,
       is_new_user: false,
@@ -118,6 +121,9 @@ describe('TelegramMiniAppAuthProvider', () => {
 
   it('preserves a direct VPN route after successful mini app auth', async () => {
     mockUsePathname.mockReturnValue('/miniapp/vpn');
+    setupTelegramWebAppMock({
+      initData: 'query_id=vpn&user=owner&hash=signature',
+    });
     mockTelegramMiniAppAuth.mockResolvedValue({
       requires_2fa: false,
       is_new_user: false,
@@ -133,6 +139,9 @@ describe('TelegramMiniAppAuthProvider', () => {
 
   it('preserves nested rewards routes after successful mini app auth', async () => {
     mockUsePathname.mockReturnValue('/miniapp/rewards/gifts');
+    setupTelegramWebAppMock({
+      initData: 'query_id=rewards&user=owner&hash=signature',
+    });
     mockTelegramMiniAppAuth.mockResolvedValue({
       requires_2fa: false,
       is_new_user: false,
@@ -147,6 +156,9 @@ describe('TelegramMiniAppAuthProvider', () => {
 
   it('keeps two-factor-required responses inside the mini app recovery state', async () => {
     mockUsePathname.mockReturnValue('/miniapp/rewards/referral');
+    setupTelegramWebAppMock({
+      initData: 'query_id=two-factor&user=owner&hash=signature',
+    });
     mockTelegramMiniAppAuth.mockResolvedValue({
       requires_2fa: true,
       tfa_token: 'pending_2fa_token',
@@ -217,6 +229,9 @@ describe('TelegramMiniAppAuthProvider', () => {
   });
 
   it('does not crash when mini app auth fails with structured API detail', async () => {
+    setupTelegramWebAppMock({
+      initData: 'query_id=invalid&user=owner&hash=signature',
+    });
     mockTelegramMiniAppAuth.mockRejectedValue({
       response: {
         data: {

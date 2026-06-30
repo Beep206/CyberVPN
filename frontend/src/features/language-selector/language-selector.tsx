@@ -17,8 +17,10 @@ function persistLocaleCookie(locale: string): void {
         return;
     }
 
-    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    const domain = window.location.hostname === 'cyber-vpn.net' || window.location.hostname.endsWith('.cyber-vpn.net')
+    const protocol = window.location?.protocol ?? '';
+    const hostname = window.location?.hostname ?? '';
+    const secure = protocol === 'https:' ? '; Secure' : '';
+    const domain = hostname === 'cyber-vpn.net' || hostname.endsWith('.cyber-vpn.net')
         ? '; Domain=.cyber-vpn.net'
         : '';
     document.cookie = [

@@ -1,7 +1,7 @@
 """Payment API schemas."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -128,7 +128,7 @@ class EntitlementsSnapshotResponse(BaseModel):
     period_days: int | None = None
     expires_at: str | None = None
     effective_entitlements: EffectiveEntitlementsResponse
-    invite_bundle: dict[str, int]
+    invite_bundle: dict[str, Any]
     is_trial: bool
     addons: list[dict] = Field(default_factory=list)
 

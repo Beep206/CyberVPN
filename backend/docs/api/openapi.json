@@ -74664,9 +74664,7 @@
             "title": "Effective Entitlements"
           },
           "invite_bundle": {
-            "additionalProperties": {
-              "type": "integer"
-            },
+            "additionalProperties": true,
             "type": "object",
             "title": "Invite Bundle"
           },
@@ -74759,9 +74757,7 @@
             "title": "Effective Entitlements"
           },
           "invite_bundle": {
-            "additionalProperties": {
-              "type": "integer"
-            },
+            "additionalProperties": true,
             "type": "object",
             "title": "Invite Bundle"
           },
@@ -77000,9 +76996,7 @@
             "title": "Effective Entitlements"
           },
           "invite_bundle": {
-            "additionalProperties": {
-              "type": "integer"
-            },
+            "additionalProperties": true,
             "type": "object",
             "title": "Invite Bundle"
           },
@@ -78533,9 +78527,7 @@
             "$ref": "#/components/schemas/EffectiveEntitlementsResponse"
           },
           "invite_bundle": {
-            "additionalProperties": {
-              "type": "integer"
-            },
+            "additionalProperties": true,
             "type": "object",
             "title": "Invite Bundle"
           },

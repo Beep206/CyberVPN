@@ -22,7 +22,7 @@ class CustomerSubscriptionSummaryResponse(BaseModel):
     expires_at: str | None = None
     created_at: datetime | None = None
     effective_entitlements: dict[str, Any] = Field(default_factory=dict)
-    invite_bundle: dict[str, int] = Field(default_factory=dict)
+    invite_bundle: dict[str, Any] = Field(default_factory=dict)
     is_trial: bool
     addons: list[dict[str, Any]] = Field(default_factory=list)
     can_manage: bool
