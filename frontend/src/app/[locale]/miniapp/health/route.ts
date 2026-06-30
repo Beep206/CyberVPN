@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 function firstNonEmpty(...values: Array<string | undefined>): string | null {
   for (const value of values) {
     const normalized = value?.trim();
