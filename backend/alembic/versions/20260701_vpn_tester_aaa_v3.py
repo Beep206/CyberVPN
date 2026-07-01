@@ -1,6 +1,6 @@
 """Harden CyberVPN VPN Tester AAA v3 persistence.
 
-Revision ID: 20260701_vpn_tester_aaa_hardening_v3
+Revision ID: 20260701_vpn_tester_aaa_v3
 Revises: 20260701_vpn_tester_aaa_v2
 Create Date: 2026-07-01
 """
@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision: str = "20260701_vpn_tester_aaa_hardening_v3"
+revision: str = "20260701_vpn_tester_aaa_v3"
 down_revision: str | Sequence[str] | None = "20260701_vpn_tester_aaa_v2"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
