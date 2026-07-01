@@ -237,6 +237,22 @@ describe('TelegramMiniAppAuthProvider', () => {
     expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
   });
 
+  it('does not gate desktop auth routes when a stale mini app flag is present', () => {
+    currentAuthState = {
+      telegramMiniAppAuth: mockTelegramMiniAppAuth,
+      fetchUser: mockFetchUser,
+      isAuthenticated: false,
+      isMiniApp: true,
+    };
+    mockUsePathname.mockReturnValue('/login');
+
+    renderProvider(<div>Desktop Login Child</div>);
+
+    expect(screen.getByText('Desktop Login Child')).toBeInTheDocument();
+    expect(screen.queryByText('miniAppRequiredMessage')).not.toBeInTheDocument();
+    expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
+  });
+
   it('gates mini app routes instead of rendering the standard guest flow while Telegram runtime is missing', () => {
     currentAuthState = {
       telegramMiniAppAuth: mockTelegramMiniAppAuth,

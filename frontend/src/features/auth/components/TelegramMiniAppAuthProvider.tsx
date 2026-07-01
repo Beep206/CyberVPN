@@ -115,7 +115,7 @@ export function TelegramMiniAppAuthProvider({
     const onboardingGateRequestId = useRef(0);
     const effectiveIsMiniApp = isMiniApp || runtimeIsMiniApp;
     const isMiniAppRoutePath = isMiniAppRoute(pathname);
-    const shouldGateMiniApp = (effectiveIsMiniApp || isMiniAppRoutePath) && !isMiniAppPublicDiagnosticPath(pathname);
+    const shouldGateMiniApp = isMiniAppRoutePath && !isMiniAppPublicDiagnosticPath(pathname);
     const shouldCheckMiniAppOnboarding = (
         shouldGateMiniApp
         && isAuthenticated
@@ -348,10 +348,10 @@ export function TelegramMiniAppAuthProvider({
     ]);
 
     useEffect(() => {
-        if (!effectiveIsMiniApp || isAuthenticated || hasAttempted.current) return;
+        if (!shouldGateMiniApp || !effectiveIsMiniApp || isAuthenticated || hasAttempted.current) return;
         hasAttempted.current = true;
         void authenticateMiniApp();
-    }, [effectiveIsMiniApp, isAuthenticated, authenticateMiniApp]);
+    }, [shouldGateMiniApp, effectiveIsMiniApp, isAuthenticated, authenticateMiniApp]);
 
     useEffect(() => {
         if (!shouldCheckMiniAppOnboarding) {

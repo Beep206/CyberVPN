@@ -319,7 +319,7 @@ class InviteCodeModel(Base):
     )
 
     source: Mapped[str] = mapped_column(
-        String(20),
+        String(40),
         nullable=False,
     )
 
