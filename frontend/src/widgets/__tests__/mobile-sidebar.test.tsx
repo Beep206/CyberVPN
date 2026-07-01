@@ -40,11 +40,14 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-vi.mock('@/i18n/navigation', () => ({
-  usePathname: () => mockUsePathname(),
+vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
+}));
+
+vi.mock('@/i18n/navigation', () => ({
+  usePathname: () => mockUsePathname(),
   Link: ({
     children,
     href,

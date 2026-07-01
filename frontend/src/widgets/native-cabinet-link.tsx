@@ -5,10 +5,12 @@ import type {
   MouseEvent,
   ReactNode,
 } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
-import { useRouter } from '@/i18n/navigation';
 import { defaultLocale, locales } from '@/i18n/config';
 import { toLocalizedPath } from '@/shared/lib/seo-route-policy';
+
+const SPA_NAVIGATION_FALLBACK_DELAY_MS = 10_000;
 
 type Locale = (typeof locales)[number];
 
@@ -68,13 +70,13 @@ export function NativeCabinetLink({
       return;
     }
 
-    router.push(href);
+    router.push(localizedHref);
 
     window.setTimeout(() => {
       if (window.location.href !== targetHref) {
         window.location.assign(targetHref);
       }
-    }, 900);
+    }, SPA_NAVIGATION_FALLBACK_DELAY_MS);
   };
 
   return (

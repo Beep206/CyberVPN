@@ -8,7 +8,7 @@ vi.mock('next-intl', () => ({
   useLocale: () => 'ru-RU',
 }));
 
-vi.mock('@/i18n/navigation', () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: routerPushMock,
   }),
@@ -41,8 +41,8 @@ describe('NativeCabinetLink', () => {
     fireEvent(link, event);
 
     expect(event.defaultPrevented).toBe(true);
-    expect(routerPushMock).toHaveBeenCalledWith('/wallet');
-    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    expect(routerPushMock).toHaveBeenCalledWith('/ru-RU/wallet');
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 10_000);
   });
 
   it('keeps modified clicks native without SPA interception or fallback', () => {
