@@ -29,7 +29,7 @@ describe('NativeCabinetLink', () => {
     );
   });
 
-  it('uses SPA navigation first and keeps hard fallback for plain clicks', () => {
+  it('uses SPA navigation for plain clicks without scheduling a hard reload', () => {
     const setTimeoutSpy = vi
       .spyOn(window, 'setTimeout')
       .mockImplementation(() => 1 as unknown as ReturnType<typeof setTimeout>);
@@ -42,7 +42,7 @@ describe('NativeCabinetLink', () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(routerPushMock).toHaveBeenCalledWith('/ru-RU/wallet');
-    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 10_000);
+    expect(setTimeoutSpy).not.toHaveBeenCalled();
   });
 
   it('keeps modified clicks native without SPA interception or fallback', () => {

@@ -10,8 +10,6 @@ import { useLocale } from 'next-intl';
 import { defaultLocale, locales } from '@/i18n/config';
 import { toLocalizedPath } from '@/shared/lib/seo-route-policy';
 
-const SPA_NAVIGATION_FALLBACK_DELAY_MS = 10_000;
-
 type Locale = (typeof locales)[number];
 
 type NativeCabinetLinkProps = Omit<
@@ -70,13 +68,11 @@ export function NativeCabinetLink({
       return;
     }
 
-    router.push(localizedHref);
-
-    window.setTimeout(() => {
-      if (window.location.href !== targetHref) {
-        window.location.assign(targetHref);
-      }
-    }, SPA_NAVIGATION_FALLBACK_DELAY_MS);
+    try {
+      router.push(localizedHref);
+    } catch {
+      window.location.assign(targetHref);
+    }
   };
 
   return (
