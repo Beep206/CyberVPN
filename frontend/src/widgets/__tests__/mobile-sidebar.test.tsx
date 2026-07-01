@@ -56,7 +56,11 @@ vi.mock('@/i18n/navigation', () => ({
     onClick?: MouseEventHandler<HTMLAnchorElement>;
     [key: string]: unknown;
   }) => (
-    <a href={href} onClick={onClick} {...rest}>
+    <a
+      href={href.startsWith('/ru-RU') ? href : `/ru-RU${href}`}
+      onClick={onClick}
+      {...rest}
+    >
       {children}
     </a>
   ),

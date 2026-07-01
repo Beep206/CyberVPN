@@ -57,7 +57,7 @@ vi.mock('@/i18n/navigation', () => ({
     href: string;
     [key: string]: unknown;
   }) => (
-    <a href={href} {...rest}>
+    <a href={href.startsWith('/ru-RU') ? href : `/ru-RU${href}`} {...rest}>
       {children}
     </a>
   ),

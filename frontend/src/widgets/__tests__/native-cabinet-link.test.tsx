@@ -1,23 +1,62 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createEvent, fireEvent, render, screen } from '@testing-library/react';
+import type { MouseEventHandler, ReactNode } from 'react';
 import { NativeCabinetLink } from '../native-cabinet-link';
 
-const routerPushMock = vi.hoisted(() => vi.fn());
+const linkNavigateMock = vi.hoisted(() => vi.fn());
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'ru-RU',
 }));
 
 vi.mock('@/i18n/navigation', () => ({
-  useRouter: () => ({
-    push: routerPushMock,
-  }),
+  Link: ({
+    children,
+    href,
+    onClick,
+    target,
+    ...rest
+  }: {
+    children: ReactNode;
+    href: string;
+    onClick?: MouseEventHandler<HTMLAnchorElement>;
+    target?: string;
+    [key: string]: unknown;
+  }) => {
+    const localizedHref = href.startsWith('/ru-RU') ? href : `/ru-RU${href}`;
+
+    return (
+      <a
+        href={localizedHref}
+        onClick={(event) => {
+          onClick?.(event);
+
+          if (
+            !event.defaultPrevented &&
+            event.button === 0 &&
+            !event.altKey &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.shiftKey &&
+            (!target || target === '_self')
+          ) {
+            event.preventDefault();
+            linkNavigateMock(href);
+          }
+        }}
+        target={target}
+        {...rest}
+      >
+        {children}
+      </a>
+    );
+  },
 }));
 
 describe('NativeCabinetLink', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    routerPushMock.mockClear();
+    linkNavigateMock.mockClear();
   });
 
   it('renders a localized native cabinet href', () => {
@@ -41,7 +80,7 @@ describe('NativeCabinetLink', () => {
     fireEvent(link, event);
 
     expect(event.defaultPrevented).toBe(true);
-    expect(routerPushMock).toHaveBeenCalledWith('/wallet');
+    expect(linkNavigateMock).toHaveBeenCalledWith('/wallet');
     expect(setTimeoutSpy).not.toHaveBeenCalled();
   });
 
@@ -57,7 +96,7 @@ describe('NativeCabinetLink', () => {
       metaKey: true,
     });
 
-    expect(routerPushMock).not.toHaveBeenCalled();
+    expect(linkNavigateMock).not.toHaveBeenCalled();
     expect(setTimeoutSpy).not.toHaveBeenCalled();
   });
 });
