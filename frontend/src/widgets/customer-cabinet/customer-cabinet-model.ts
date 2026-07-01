@@ -153,7 +153,7 @@ function getEntitlementValue(
   entitlement: CurrentEntitlementState | null | undefined,
   key: string,
 ): unknown {
-  return entitlement?.effective_entitlements[key];
+  return entitlement?.effective_entitlements?.[key];
 }
 
 function normalizeStateValue(value: string | null | undefined): string | null {

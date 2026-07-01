@@ -147,6 +147,24 @@ describe('customer cabinet model', () => {
     ]);
   });
 
+  it('treats missing entitlement maps as empty instead of throwing', () => {
+    const degradedEntitlement = {
+      ...entitlement,
+      effective_entitlements: undefined,
+    } as unknown as CurrentEntitlementState;
+
+    expect(
+      readEntitlementString(degradedEntitlement, 'stage1_payment_state'),
+    ).toBeNull();
+    expect(
+      readEntitlementString(degradedEntitlement, 'display_traffic_label'),
+    ).toBeNull();
+    expect(readEntitlementNumber(degradedEntitlement, 'device_limit')).toBeNull();
+    expect(
+      readEntitlementStringArray(degradedEntitlement, 'connection_modes'),
+    ).toEqual([]);
+  });
+
   it('formats bytes, dates, money, service channels, and usage percentage', () => {
     expect(formatBytes(1536, 'en-US')).toBe('1.5 KB');
     expect(formatDate('2026-04-24T00:00:00Z', 'en-US')).toBe('Apr 24, 2026');
