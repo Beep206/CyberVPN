@@ -390,6 +390,21 @@ class BackendAPIClient:
             raise BackendAPIError(f"VPN Tester scheduled run failed: {response.status_code}")
         return response.json()
 
+    async def run_vpn_tester_schedule(self, schedule_key: str, payload: dict[str, Any]) -> dict[str, Any]:
+        self._require_backend_internal_enabled("Internal backend VPN Tester schedule gate")
+        if self._client is None:
+            raise RuntimeError("BackendAPIClient must be used as a context manager")
+
+        response = await self._client.post(
+            f"admin/vpn-tester/internal/schedules/{schedule_key}/run",
+            json=payload,
+            headers=self._backend_internal_secret_headers(),
+        )
+        if response.status_code >= 400:
+            logger.error("backend_vpn_tester_schedule_gate_failed", status_code=response.status_code)
+            raise BackendAPIError(f"VPN Tester schedule gate failed: {response.status_code}")
+        return response.json()
+
     async def cleanup_vpn_tester(self) -> dict[str, Any]:
         self._require_backend_internal_enabled("Internal backend VPN Tester")
         if self._client is None:

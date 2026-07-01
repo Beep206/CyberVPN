@@ -17,6 +17,7 @@ from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.vpn_tester_model import (
+    VpnBalancerRecommendationModel,
     VpnTestEvidenceArtifactModel,
     VpnTestResultModel,
     VpnTestRunModel,
@@ -70,6 +71,10 @@ class VpnTesterRunResponse(BaseModel):
     trigger: str
     status: str
     requested_by_admin_id: UUID | None
+    agent_id: str | None
+    runtime_mode: str | None
+    route_registry_version: str | None
+    blocking: bool
     summary: dict[str, Any]
     pass_count: int
     fail_count: int
@@ -95,6 +100,10 @@ class VpnTesterScheduleResponse(BaseModel):
     next_run_at: datetime | None
     last_run_id: UUID | None
     last_status: str | None
+    last_skipped_reason: str | None
+    last_checked_at: datetime | None
+    last_triggered_at: datetime | None
+    schedule_source: str
     updated_at: datetime
 
 
@@ -135,12 +144,21 @@ class InternalScheduledRunRequest(BaseModel):
     execute_immediately: bool = True
 
 
+class InternalScheduleGateRunRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    trigger: str = Field(default="scheduled", min_length=3, max_length=60)
+    execute_immediately: bool = True
+    idempotency_window: str = Field(default="minute", pattern="^(none|disabled|off|minute|hour|hourly|day|daily)$")
+
+
 class InternalWorkerResultResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     skipped: bool = False
     reason: str | None = None
     run: VpnTesterRunResponse | None = None
+    schedule: VpnTesterScheduleResponse | None = None
     cleanup: dict[str, Any] | None = None
 
 
@@ -152,6 +170,28 @@ class VpnTesterTariffMatrixResponse(BaseModel):
     generated_at: datetime
 
 
+class VpnTesterRouteMatrixResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    registry_key: str
+    rows: list[dict[str, Any]]
+    total: int
+    generated_at: datetime
+
+
+class VpnTesterReleaseGateOverrideResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID
+    latest_run_id: UUID | None
+    overridden_by_admin_id: UUID | None
+    previous_status: str
+    previous_blocking: bool
+    reason: str
+    expires_at: datetime
+    created_at: datetime
+
+
 class VpnTesterReleaseGateResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -160,7 +200,45 @@ class VpnTesterReleaseGateResponse(BaseModel):
     latest_run_id: UUID | None
     reason: str
     override_allowed_roles: list[str]
+    active_override: VpnTesterReleaseGateOverrideResponse | None = None
     generated_at: datetime
+
+
+class CreateReleaseGateOverrideRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(..., min_length=20, max_length=1000)
+    ttl_minutes: int = Field(default=60, ge=1, le=4320)
+
+
+class DismissBalancerRecommendationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class VpnBalancerRecommendationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID
+    recommendation_key: str
+    recommendation_hash: str
+    run_id: UUID | None
+    status: str
+    scope: str
+    safe_summary: str
+    candidate_changes: dict[str, Any]
+    confidence: float
+    acknowledged_by_admin_id: UUID | None
+    acknowledged_at: datetime | None
+    dismissed_by_admin_id: UUID | None
+    dismissed_at: datetime | None
+    dismissed_reason: str | None
+    applied_manually_by_admin_id: UUID | None
+    applied_manually_at: datetime | None
+    expires_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
 
 
 def _serialize_result(result: VpnTestResultModel) -> VpnTesterResultResponse:
@@ -201,6 +279,10 @@ def _serialize_run(run: VpnTestRunModel, *, include_children: bool = True) -> Vp
         trigger=run.trigger,
         status=run.status,
         requested_by_admin_id=run.requested_by_admin_id,
+        agent_id=run.agent_id,
+        runtime_mode=run.runtime_mode,
+        route_registry_version=run.route_registry_version,
+        blocking=run.blocking,
         summary=dict(run.summary or {}),
         pass_count=run.pass_count,
         fail_count=run.fail_count,
@@ -226,7 +308,37 @@ def _serialize_schedule(schedule: VpnTestScheduleModel) -> VpnTesterScheduleResp
         next_run_at=schedule.next_run_at,
         last_run_id=schedule.last_run_id,
         last_status=schedule.last_status,
+        last_skipped_reason=schedule.last_skipped_reason,
+        last_checked_at=schedule.last_checked_at,
+        last_triggered_at=schedule.last_triggered_at,
+        schedule_source=schedule.schedule_source,
         updated_at=schedule.updated_at,
+    )
+
+
+def _serialize_balancer_recommendation(
+    recommendation: VpnBalancerRecommendationModel,
+) -> VpnBalancerRecommendationResponse:
+    return VpnBalancerRecommendationResponse(
+        id=recommendation.id,
+        recommendation_key=recommendation.recommendation_key,
+        recommendation_hash=recommendation.recommendation_hash,
+        run_id=recommendation.run_id,
+        status=recommendation.status,
+        scope=recommendation.scope,
+        safe_summary=recommendation.safe_summary,
+        candidate_changes=dict(recommendation.candidate_changes or {}),
+        confidence=recommendation.confidence,
+        acknowledged_by_admin_id=recommendation.acknowledged_by_admin_id,
+        acknowledged_at=recommendation.acknowledged_at,
+        dismissed_by_admin_id=recommendation.dismissed_by_admin_id,
+        dismissed_at=recommendation.dismissed_at,
+        dismissed_reason=recommendation.dismissed_reason,
+        applied_manually_by_admin_id=recommendation.applied_manually_by_admin_id,
+        applied_manually_at=recommendation.applied_manually_at,
+        expires_at=recommendation.expires_at,
+        created_at=recommendation.created_at,
+        updated_at=recommendation.updated_at,
     )
 
 
@@ -255,6 +367,27 @@ def require_all_permissions(*permissions: Permission):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
     return checker
+
+
+def _can_manage_plans(user: AdminUserModel) -> bool:
+    return has_permission(_admin_role(user), Permission.MANAGE_PLANS)
+
+
+def _sanitize_tariff_matrix(matrix: dict[str, Any], *, include_sensitive: bool) -> dict[str, Any]:
+    if include_sensitive:
+        return matrix
+    sanitized_rows = []
+    for row in matrix.get("rows") or []:
+        if not isinstance(row, dict):
+            continue
+        safe = dict(row)
+        safe.pop("duration_days", None)
+        safe.pop("traffic_limit_bytes", None)
+        safe.pop("traffic_policy_keys", None)
+        safe.pop("remnawave_assignment", None)
+        safe["sensitive_fields_hidden"] = True
+        sanitized_rows.append(safe)
+    return {**matrix, "rows": sanitized_rows}
 
 
 async def get_vpn_tester_service(
@@ -323,11 +456,10 @@ async def create_vpn_tester_run(
     payload: CreateVpnTesterRunRequest,
     request: Request,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
-    admin: AdminUserModel = Depends(require_any_permission(Permission.SERVER_UPDATE, Permission.MONITORING_READ)),
+    admin: AdminUserModel = Depends(require_any_permission(Permission.SERVER_UPDATE, Permission.MANAGE_PLANS)),
     service: VpnTesterService = Depends(get_vpn_tester_service),
 ) -> VpnTesterRunResponse:
     _require_enabled()
-    _require_mode_enabled(payload.mode)
     context = {
         "admin_surface": "vpn_tester",
         "client_host": request.client.host if request.client else None,
@@ -358,7 +490,7 @@ async def get_vpn_tester_run(
 @router.post("/runs/{run_id}/cancel", response_model=VpnTesterRunResponse)
 async def cancel_vpn_tester_run(
     run_id: UUID,
-    _admin: AdminUserModel = Depends(require_any_permission(Permission.SERVER_UPDATE, Permission.MONITORING_READ)),
+    _admin: AdminUserModel = Depends(require_any_permission(Permission.SERVER_UPDATE, Permission.MANAGE_PLANS)),
     service: VpnTesterService = Depends(get_vpn_tester_service),
 ) -> VpnTesterRunResponse:
     run = await service.cancel_run(run_id)
@@ -403,11 +535,21 @@ async def update_vpn_tester_schedule(
 
 @router.get("/tariffs", response_model=VpnTesterTariffMatrixResponse)
 async def get_vpn_tester_tariff_matrix(
-    _admin: AdminUserModel = Depends(require_all_permissions(Permission.SERVER_UPDATE, Permission.MANAGE_PLANS)),
+    admin: AdminUserModel = Depends(
+        require_any_permission(Permission.SERVER_READ, Permission.MONITORING_READ, Permission.MANAGE_PLANS)
+    ),
     service: VpnTesterService = Depends(get_vpn_tester_service),
 ) -> VpnTesterTariffMatrixResponse:
     matrix = await service.tariff_matrix()
-    return VpnTesterTariffMatrixResponse(**matrix)
+    return VpnTesterTariffMatrixResponse(**_sanitize_tariff_matrix(matrix, include_sensitive=_can_manage_plans(admin)))
+
+
+@router.get("/route-matrix", response_model=VpnTesterRouteMatrixResponse)
+async def get_vpn_tester_route_matrix(
+    _admin: AdminUserModel = Depends(require_any_permission(Permission.SERVER_READ, Permission.MONITORING_READ)),
+    service: VpnTesterService = Depends(get_vpn_tester_service),
+) -> VpnTesterRouteMatrixResponse:
+    return VpnTesterRouteMatrixResponse(**await service.route_matrix())
 
 
 @router.get("/balancer/preview", response_model=dict[str, Any])
@@ -435,14 +577,64 @@ async def get_vpn_tester_release_gate(
 
 @router.post("/release-gate/override", response_model=VpnTesterReleaseGateResponse)
 async def override_vpn_tester_release_gate(
-    _admin: AdminUserModel = Depends(require_role(AdminRole.SUPER_ADMIN)),
+    payload: CreateReleaseGateOverrideRequest,
+    request: Request,
+    admin: AdminUserModel = Depends(require_role(AdminRole.SUPER_ADMIN)),
     service: VpnTesterService = Depends(get_vpn_tester_service),
 ) -> VpnTesterReleaseGateResponse:
-    gate = await service.release_gate()
-    gate["status"] = "override_recorded"
-    gate["blocking"] = False
-    gate["reason"] = "manual_super_admin_override"
+    try:
+        gate = await service.create_release_gate_override(
+            admin_id=admin.id,
+            admin_role=_admin_role(admin),
+            reason=payload.reason,
+            ttl_minutes=payload.ttl_minutes,
+            request_context={
+                "admin_surface": "vpn_tester",
+                "client_host": request.client.host if request.client else None,
+            },
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
     return VpnTesterReleaseGateResponse(**gate)
+
+
+@router.get("/balancer/recommendations", response_model=list[VpnBalancerRecommendationResponse])
+async def list_vpn_tester_balancer_recommendations(
+    limit: int = 50,
+    _admin: AdminUserModel = Depends(require_any_permission(Permission.SERVER_READ, Permission.MONITORING_READ)),
+    service: VpnTesterService = Depends(get_vpn_tester_service),
+) -> list[VpnBalancerRecommendationResponse]:
+    recommendations = await service.list_balancer_recommendations(limit=limit)
+    return [_serialize_balancer_recommendation(item) for item in recommendations]
+
+
+@router.post("/balancer/recommendations/{recommendation_id}/ack", response_model=VpnBalancerRecommendationResponse)
+async def acknowledge_vpn_tester_balancer_recommendation(
+    recommendation_id: UUID,
+    admin: AdminUserModel = Depends(require_any_permission(Permission.SERVER_UPDATE, Permission.MANAGE_PLANS)),
+    service: VpnTesterService = Depends(get_vpn_tester_service),
+) -> VpnBalancerRecommendationResponse:
+    recommendation = await service.acknowledge_balancer_recommendation(recommendation_id, admin_id=admin.id)
+    if recommendation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recommendation not found")
+    return _serialize_balancer_recommendation(recommendation)
+
+
+@router.post("/balancer/recommendations/{recommendation_id}/dismiss", response_model=VpnBalancerRecommendationResponse)
+async def dismiss_vpn_tester_balancer_recommendation(
+    recommendation_id: UUID,
+    payload: DismissBalancerRecommendationRequest,
+    admin: AdminUserModel = Depends(require_any_permission(Permission.SERVER_UPDATE, Permission.MANAGE_PLANS)),
+    service: VpnTesterService = Depends(get_vpn_tester_service),
+) -> VpnBalancerRecommendationResponse:
+    recommendation = await service.dismiss_balancer_recommendation(
+        recommendation_id,
+        admin_id=admin.id,
+        reason=payload.reason,
+    )
+    if recommendation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recommendation not found")
+    return _serialize_balancer_recommendation(recommendation)
 
 
 @router.post("/internal/runs/{run_id}/execute", response_model=InternalWorkerResultResponse, include_in_schema=False)
@@ -478,12 +670,40 @@ async def internal_create_scheduled_vpn_tester_run(
     service: VpnTesterService = Depends(get_vpn_tester_service),
 ) -> InternalWorkerResultResponse:
     _require_backend_internal_secret(x_backend_internal_secret)
-    if not settings.vpn_tester_scheduled_enabled:
-        return InternalWorkerResultResponse(skipped=True, reason="scheduled_disabled")
+    if not settings.vpn_tester_enabled:
+        return InternalWorkerResultResponse(skipped=True, reason="vpn_tester_disabled")
     run = await service.create_scheduled_run(suite_key=payload.suite_key, mode=payload.mode, trigger=payload.trigger)
     if payload.execute_immediately:
         run = await service.execute_run(run)
     return InternalWorkerResultResponse(run=_serialize_run(run))
+
+
+@router.post(
+    "/internal/schedules/{schedule_key}/run",
+    response_model=InternalWorkerResultResponse,
+    include_in_schema=True,
+)
+async def internal_run_vpn_tester_schedule(
+    schedule_key: str,
+    payload: InternalScheduleGateRunRequest,
+    x_backend_internal_secret: str | None = Header(default=None, alias="X-Backend-Internal-Secret"),
+    service: VpnTesterService = Depends(get_vpn_tester_service),
+) -> InternalWorkerResultResponse:
+    _require_backend_internal_secret(x_backend_internal_secret)
+    result = await service.run_schedule(
+        schedule_key=schedule_key,
+        trigger=payload.trigger,
+        execute_immediately=payload.execute_immediately,
+        idempotency_window=payload.idempotency_window,
+    )
+    run = result.get("run")
+    schedule_model = result.get("schedule")
+    return InternalWorkerResultResponse(
+        skipped=bool(result.get("skipped")),
+        reason=result.get("reason"),
+        run=_serialize_run(run) if isinstance(run, VpnTestRunModel) else None,
+        schedule=_serialize_schedule(schedule_model) if isinstance(schedule_model, VpnTestScheduleModel) else None,
+    )
 
 
 @router.post("/internal/cleanup", response_model=InternalWorkerResultResponse, include_in_schema=False)

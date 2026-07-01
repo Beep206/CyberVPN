@@ -4289,20 +4289,35 @@
     },
     "vpnTester": {
       "actions": {
+        "ack": "Acknowledge",
+        "dismiss": "Dismiss",
         "inspect": "Inspect",
+        "overrideGate": "Record override",
         "queueing": "Queueing...",
         "queueRun": "Queue run",
         "refresh": "Refresh"
       },
-      "description": "Contract and release-gate checks for Premium Smart RU, all tariffs, Remnawave routing, and safe VPN evidence.",
+      "balancer": {
+        "confidence": "Confidence",
+        "description": "Read-only recommendations with deterministic deduplication and lifecycle actions.",
+        "dismissReason": "Dismiss reason",
+        "empty": "No balancer recommendations found.",
+        "key": "Key",
+        "summary": "Summary",
+        "title": "Balancer recommendations"
+      },
+      "description": "Contract, runtime, route matrix, release-gate and safe evidence checks for Premium Smart RU, all tariffs and Remnawave routing.",
       "detail": {
         "evidence": "Evidence",
         "noEvidence": "No evidence artifacts for this run.",
         "results": "Results",
+        "selectRun": "Select a run from the Runs tab to inspect evidence.",
         "title": "Run detail"
       },
       "eyebrow": "VPN TESTER AAA",
       "feedback": {
+        "overrideRecorded": "Release gate override has been recorded.",
+        "recommendationUpdated": "Recommendation state updated.",
         "runCancelled": "VPN Tester run has been cancelled.",
         "runQueued": "VPN Tester run has been queued.",
         "scheduleUpdated": "Schedule updated."
@@ -4317,6 +4332,8 @@
       "metrics": {
         "failures": "Failures",
         "failuresHint": "latest listed failures",
+        "routes": "Routes",
+        "routesHint": "golden matrix rows",
         "runs": "Runs",
         "runsHint": "stored executions",
         "status": "Latest status",
@@ -4330,38 +4347,68 @@
         "contract": "Contract",
         "runtime": "Runtime"
       },
+      "permission": {
+        "readOnly": "This role can inspect VPN Tester state, but mutations require server update or plan-management permissions."
+      },
+      "recommendationStatus": {
+        "acknowledged": "Acknowledged",
+        "applied_manually": "Applied manually",
+        "dismissed": "Dismissed",
+        "expired": "Expired",
+        "open": "Open"
+      },
       "releaseGate": {
         "description": "Latest VPN Tester status used by the release checklist.",
+        "overrideReason": "Override reason",
         "reasons": {
           "latest_vpn_tester_run_acceptable": "Latest VPN Tester run is acceptable.",
           "latest_vpn_tester_run_not_passing": "Latest VPN Tester run is not passing yet.",
+          "manual_release_gate_override_active": "Persistent release gate override is active.",
           "manual_super_admin_override": "Super admin override has been recorded."
         },
         "title": "Release gate"
       },
+      "routeMatrix": {
+        "description": "Golden Premium Smart RU route registry consumed by static and runtime checks.",
+        "domain": "Domain",
+        "empty": "No route matrix rows available.",
+        "group": "Group",
+        "policy": "Policy",
+        "route": "Route",
+        "severity": "Severity",
+        "title": "Route matrix"
+      },
       "runBuilder": {
-        "description": "Create a lightweight queued run. The backend records the request and the task-worker performs the checks.",
+        "description": "Create a queued run. The backend records the request and the task-worker performs the checks.",
         "mode": "Mode",
         "suite": "Suite",
         "title": "Manual run"
       },
       "runs": {
-        "description": "Queued, running, and finished contract checks with safe evidence.",
+        "description": "Queued, running, skipped and finished checks with safe evidence.",
         "empty": "No VPN Tester runs found.",
+        "mode": "Mode",
         "results": "Pass/fail/degraded",
         "run": "Run",
         "suite": "Suite",
         "title": "Runs"
       },
       "schedules": {
-        "description": "Task-worker schedules are safe by default and respect backend feature flags.",
+        "description": "Task-worker schedules call the backend schedule gate and record skipped or triggered state.",
+        "lastChecked": "Last checked",
+        "lastSkipped": "Last skipped",
         "title": "Schedules"
+      },
+      "settings": {
+        "description": "Current operator permissions and feature flags that affect VPN Tester controls.",
+        "title": "Settings"
       },
       "status": {
         "blocked": "Blocked",
         "cancelled": "Cancelled",
         "degraded": "Degraded",
         "fail": "Fail",
+        "override_active": "Override active",
         "override_recorded": "Override",
         "pass": "Pass",
         "queued": "Queued",
@@ -4373,9 +4420,21 @@
         "defaultSmoke": "Default smoke",
         "premiumSmartRu": "Premium Smart RU"
       },
+      "tabs": {
+        "balancer": "Balancer",
+        "evidence": "Evidence",
+        "overview": "Overview",
+        "releaseGate": "Release gate",
+        "routeMatrix": "Route matrix",
+        "runs": "Runs",
+        "schedules": "Schedules",
+        "settings": "Settings",
+        "tariffs": "Tariffs"
+      },
       "tariffs": {
         "checks": "Checks",
         "description": "Active tariff contract coverage without provisioning synthetic production users.",
+        "devices": "Devices",
         "empty": "No tariff rows available.",
         "plan": "Plan",
         "title": "Tariff matrix",

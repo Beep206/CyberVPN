@@ -16,7 +16,7 @@ Usage:
   scripts/deploy/stage1-gitlab-deploy.sh <services>
 
 Services:
-  all, frontend, admin, partner, backend, telegram-bot, task-worker
+  all, frontend, admin, partner, backend, telegram-bot, task-worker, vpn-test-agent
 
 Required CI variables:
   STAGE1_PROD_HOST
@@ -78,7 +78,7 @@ for raw_service in "${requested_services[@]}"; do
   service="$(printf '%s' "$raw_service" | xargs)"
   [[ -n "$service" ]] || continue
   case "$service" in
-    all|frontend|admin|partner|backend|telegram-bot|task-worker)
+    all|frontend|admin|partner|backend|telegram-bot|task-worker|vpn-test-agent)
       requested["$service"]=1
       ;;
     *)
@@ -97,6 +97,7 @@ if [[ -n "${requested[all]:-}" ]]; then
     [backend]=1
     [telegram-bot]=1
     [task-worker]=1
+    [vpn-test-agent]=1
   )
 fi
 
@@ -182,7 +183,7 @@ elif [[ "$source_sync_mode" == "runtime-archive" ]]; then
   log "syncing tracked runtime source archive"
   ssh_cmd "$remote_sudo rm -rf '$remote_src' && $remote_sudo install -d -o '$user' -g '$user' '$remote_src'"
   git ls-files |
-    awk '/^(backend|frontend|services\/telegram-bot|infra\/deploy\/stage1)\// || /^(package.json|package-lock.json|tsconfig.base.json|AGENTS.md)$/ {print}' |
+    awk '/^(backend|frontend|services\/telegram-bot|services\/vpn-test-agent|infra\/deploy\/stage1)\// || /^(package.json|package-lock.json|tsconfig.base.json|AGENTS.md)$/ {print}' |
     tar -cf - -T - |
     "${ssh_base[@]}" "$user@$host" "tar -xf - -C '$remote_src'"
 else
@@ -303,6 +304,24 @@ ensure_remote_env_value() {
   fi
 }
 
+ensure_remote_env_secret() {
+  file="$1"
+  key="$2"
+
+  if $REMOTE_SUDO grep -q "^${key}=." "$file"; then
+    log "${key} is present"
+    return 0
+  fi
+
+  value="$(openssl rand -hex 32)"
+  if $REMOTE_SUDO grep -q "^${key}=" "$file"; then
+    $REMOTE_SUDO sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+  else
+    printf '\n%s=%s\n' "$key" "$value" | $REMOTE_SUDO tee -a "$file" >/dev/null
+  fi
+  log "created ${key}"
+}
+
 ensure_backend_device_cookie_pepper() {
   is_requested backend || return 0
 
@@ -343,6 +362,7 @@ image_for() {
     partner) echo "${IMAGE_REGISTRY}/cybervpn-partner" ;;
     telegram-bot) echo "${IMAGE_REGISTRY}/cybervpn-telegram-bot" ;;
     task-worker) echo "${IMAGE_REGISTRY}/cybervpn-task-worker" ;;
+    vpn-test-agent) echo "${IMAGE_REGISTRY}/cybervpn-vpn-test-agent" ;;
     *) return 1 ;;
   esac
 }
@@ -417,10 +437,14 @@ build_service() {
       log "building task-worker image"
       $REMOTE_SUDO docker build --pull -t "${repo}:${RELEASE_TAG}" services/task-worker
       ;;
+    vpn-test-agent)
+      log "building vpn-test-agent image"
+      $REMOTE_SUDO docker build --pull -t "${repo}:${RELEASE_TAG}" services/vpn-test-agent
+      ;;
   esac
 }
 
-for service in backend frontend admin partner telegram-bot task-worker; do
+for service in backend frontend admin partner telegram-bot task-worker vpn-test-agent; do
   repo="$(image_for "$service")"
   if is_requested "$service"; then
     build_service "$service"
@@ -458,6 +482,10 @@ ensure_remote_env_value .env VPN_TESTER_SYNTHETIC_USERS_ENABLED false
 ensure_remote_env_value .env VPN_TESTER_SCHEDULED_ENABLED true
 ensure_remote_env_value .env VPN_TESTER_BALANCER_RECOMMENDATIONS_ENABLED true
 ensure_remote_env_value .env VPN_TESTER_RETENTION_DAYS 30
+ensure_remote_env_value .env VPN_TEST_AGENT_URL http://cybervpn-vpn-test-agent:8080
+ensure_remote_env_secret .env VPN_TEST_AGENT_SECRET
+ensure_remote_env_value .env VPN_TEST_AGENT_PROXY_ONLY_ENABLED true
+ensure_remote_env_value .env VPN_TEST_AGENT_TUN_ENABLED false
 
 compose_services=()
 is_requested backend && compose_services+=(cybervpn-backend)
@@ -465,6 +493,7 @@ is_requested frontend && compose_services+=(cybervpn-frontend)
 is_requested admin && compose_services+=(cybervpn-admin)
 is_requested partner && compose_services+=(cybervpn-partner)
 is_requested telegram-bot && compose_services+=(cybervpn-telegram-bot)
+is_requested vpn-test-agent && compose_services+=(cybervpn-vpn-test-agent)
 if is_requested task-worker; then
   compose_services+=(cybervpn-worker cybervpn-scheduler)
 fi
@@ -528,6 +557,9 @@ print(json.dumps(safe, ensure_ascii=False, sort_keys=True))
 if safe["last_error_message"] and "401" in str(safe["last_error_message"]):
     sys.exit(1)
 PY
+fi
+if is_requested vpn-test-agent; then
+  retry_curl vpn-test-agent-health $REMOTE_SUDO docker compose exec -T cybervpn-vpn-test-agent python healthcheck.py
 fi
 
 log "deployment complete"

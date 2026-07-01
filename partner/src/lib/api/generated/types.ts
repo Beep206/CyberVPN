@@ -10623,6 +10623,279 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/vpn-tester/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vpn Tester Overview */
+        get: operations["get_vpn_tester_overview_api_v1_admin_vpn_tester_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vpn Tester Runs */
+        get: operations["list_vpn_tester_runs_api_v1_admin_vpn_tester_runs_get"];
+        put?: never;
+        /** Create Vpn Tester Run */
+        post: operations["create_vpn_tester_run_api_v1_admin_vpn_tester_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vpn Tester Run */
+        get: operations["get_vpn_tester_run_api_v1_admin_vpn_tester_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Vpn Tester Run */
+        post: operations["cancel_vpn_tester_run_api_v1_admin_vpn_tester_runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/runs/{run_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vpn Tester Evidence */
+        get: operations["list_vpn_tester_evidence_api_v1_admin_vpn_tester_runs__run_id__evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vpn Tester Schedules */
+        get: operations["list_vpn_tester_schedules_api_v1_admin_vpn_tester_schedules_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/schedules/{schedule_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Vpn Tester Schedule */
+        put: operations["update_vpn_tester_schedule_api_v1_admin_vpn_tester_schedules__schedule_key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/tariffs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vpn Tester Tariff Matrix */
+        get: operations["get_vpn_tester_tariff_matrix_api_v1_admin_vpn_tester_tariffs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/route-matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vpn Tester Route Matrix */
+        get: operations["get_vpn_tester_route_matrix_api_v1_admin_vpn_tester_route_matrix_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/balancer/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vpn Tester Balancer Preview */
+        get: operations["get_vpn_tester_balancer_preview_api_v1_admin_vpn_tester_balancer_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/release-gate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vpn Tester Release Gate */
+        get: operations["get_vpn_tester_release_gate_api_v1_admin_vpn_tester_release_gate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/release-gate/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Override Vpn Tester Release Gate */
+        post: operations["override_vpn_tester_release_gate_api_v1_admin_vpn_tester_release_gate_override_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/balancer/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vpn Tester Balancer Recommendations */
+        get: operations["list_vpn_tester_balancer_recommendations_api_v1_admin_vpn_tester_balancer_recommendations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/balancer/recommendations/{recommendation_id}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge Vpn Tester Balancer Recommendation */
+        post: operations["acknowledge_vpn_tester_balancer_recommendation_api_v1_admin_vpn_tester_balancer_recommendations__recommendation_id__ack_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/balancer/recommendations/{recommendation_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Vpn Tester Balancer Recommendation */
+        post: operations["dismiss_vpn_tester_balancer_recommendation_api_v1_admin_vpn_tester_balancer_recommendations__recommendation_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/internal/schedules/{schedule_key}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Internal Run Vpn Tester Schedule */
+        post: operations["internal_run_vpn_tester_schedule_api_v1_admin_vpn_tester_internal_schedules__schedule_key__run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/mobile-users/{user_id}/notes": {
         parameters: {
             query?: never;
@@ -22862,6 +23135,16 @@ export interface components {
             /** Reason Text */
             reason_text?: string | null;
         };
+        /** CreateReleaseGateOverrideRequest */
+        CreateReleaseGateOverrideRequest: {
+            /** Reason */
+            reason: string;
+            /**
+             * Ttl Minutes
+             * @default 60
+             */
+            ttl_minutes: number;
+        };
         /** CreateReserveRequest */
         CreateReserveRequest: {
             /**
@@ -23242,6 +23525,23 @@ export interface components {
             data_limit?: number | null;
             /** Expire At */
             expire_at?: string | null;
+        };
+        /** CreateVpnTesterRunRequest */
+        CreateVpnTesterRunRequest: {
+            /**
+             * Suite Key
+             * @default premium_smart_ru_v1
+             */
+            suite_key: string;
+            /**
+             * Mode
+             * @default contract
+             */
+            mode: string;
+            /** Context */
+            context?: {
+                [key: string]: unknown;
+            };
         };
         /**
          * CreativeApprovalKind
@@ -24326,6 +24626,11 @@ export interface components {
              * @description Remaining web session devices before the enforced limit; null when not enforced.
              */
             remaining_devices: number | null;
+        };
+        /** DismissBalancerRecommendationRequest */
+        DismissBalancerRecommendationRequest: {
+            /** Reason */
+            reason?: string | null;
         };
         /**
          * DisputeCaseKind
@@ -25981,6 +26286,40 @@ export interface components {
             open_count: number;
             /** Overdue Count */
             overdue_count: number;
+        };
+        /** InternalScheduleGateRunRequest */
+        InternalScheduleGateRunRequest: {
+            /**
+             * Trigger
+             * @default scheduled
+             */
+            trigger: string;
+            /**
+             * Execute Immediately
+             * @default true
+             */
+            execute_immediately: boolean;
+            /**
+             * Idempotency Window
+             * @default minute
+             */
+            idempotency_window: string;
+        };
+        /** InternalWorkerResultResponse */
+        InternalWorkerResultResponse: {
+            /**
+             * Skipped
+             * @default false
+             */
+            skipped: boolean;
+            /** Reason */
+            reason?: string | null;
+            run?: components["schemas"]["VpnTesterRunResponse"] | null;
+            schedule?: components["schemas"]["VpnTesterScheduleResponse"] | null;
+            /** Cleanup */
+            cleanup?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** InviteBundleSchema */
         InviteBundleSchema: {
@@ -37851,6 +38190,15 @@ export interface components {
             /** Expire At */
             expire_at?: string | null;
         };
+        /** UpdateVpnTesterScheduleRequest */
+        UpdateVpnTesterScheduleRequest: {
+            /** Enabled */
+            enabled: boolean;
+            /** Settings */
+            settings?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /**
          * UpdateXrayConfigRequest
          * @description Request schema for updating Xray configuration.
@@ -38184,6 +38532,316 @@ export interface components {
             scope_family?: string | null;
             user: components["schemas"]["AdminUserResponse"];
             onboarding?: components["schemas"]["CustomerOnboardingAuthSummaryResponse"] | null;
+        };
+        /** VpnBalancerRecommendationResponse */
+        VpnBalancerRecommendationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Recommendation Key */
+            recommendation_key: string;
+            /** Recommendation Hash */
+            recommendation_hash: string;
+            /** Run Id */
+            run_id: string | null;
+            /** Status */
+            status: string;
+            /** Scope */
+            scope: string;
+            /** Safe Summary */
+            safe_summary: string;
+            /** Candidate Changes */
+            candidate_changes: {
+                [key: string]: unknown;
+            };
+            /** Confidence */
+            confidence: number;
+            /** Acknowledged By Admin Id */
+            acknowledged_by_admin_id: string | null;
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Dismissed By Admin Id */
+            dismissed_by_admin_id: string | null;
+            /** Dismissed At */
+            dismissed_at: string | null;
+            /** Dismissed Reason */
+            dismissed_reason: string | null;
+            /** Applied Manually By Admin Id */
+            applied_manually_by_admin_id: string | null;
+            /** Applied Manually At */
+            applied_manually_at: string | null;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** VpnTesterEvidenceResponse */
+        VpnTesterEvidenceResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Artifact Key */
+            artifact_key: string;
+            /** Artifact Type */
+            artifact_type: string;
+            /** Sha256 */
+            sha256: string;
+            /** Preview */
+            preview: {
+                [key: string]: unknown;
+            };
+            /** Storage Uri */
+            storage_uri: string | null;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** VpnTesterOverviewResponse */
+        VpnTesterOverviewResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Runtime Enabled */
+            runtime_enabled: boolean;
+            /** Scheduled Enabled */
+            scheduled_enabled: boolean;
+            /** Balancer Recommendations Enabled */
+            balancer_recommendations_enabled: boolean;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Latest Runs */
+            latest_runs: components["schemas"]["VpnTesterRunResponse"][];
+            /** Schedules */
+            schedules: components["schemas"]["VpnTesterScheduleResponse"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
+        /** VpnTesterReleaseGateOverrideResponse */
+        VpnTesterReleaseGateOverrideResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Latest Run Id */
+            latest_run_id: string | null;
+            /** Overridden By Admin Id */
+            overridden_by_admin_id: string | null;
+            /** Previous Status */
+            previous_status: string;
+            /** Previous Blocking */
+            previous_blocking: boolean;
+            /** Reason */
+            reason: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** VpnTesterReleaseGateResponse */
+        VpnTesterReleaseGateResponse: {
+            /** Status */
+            status: string;
+            /** Blocking */
+            blocking: boolean;
+            /** Latest Run Id */
+            latest_run_id: string | null;
+            /** Reason */
+            reason: string;
+            /** Override Allowed Roles */
+            override_allowed_roles: string[];
+            active_override?: components["schemas"]["VpnTesterReleaseGateOverrideResponse"] | null;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
+        /** VpnTesterResultResponse */
+        VpnTesterResultResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Check Key */
+            check_key: string;
+            /** Check Name */
+            check_name: string;
+            /** Category */
+            category: string;
+            /** Status */
+            status: string;
+            /** Severity */
+            severity: string;
+            /** Target */
+            target: string;
+            /** Safe Summary */
+            safe_summary: string;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+            /** Duration Ms */
+            duration_ms: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** VpnTesterRouteMatrixResponse */
+        VpnTesterRouteMatrixResponse: {
+            /** Registry Key */
+            registry_key: string;
+            /** Rows */
+            rows: {
+                [key: string]: unknown;
+            }[];
+            /** Total */
+            total: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
+        /** VpnTesterRunResponse */
+        VpnTesterRunResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Suite Key */
+            suite_key: string;
+            /** Suite Version */
+            suite_version: string;
+            /** Mode */
+            mode: string;
+            /** Trigger */
+            trigger: string;
+            /** Status */
+            status: string;
+            /** Requested By Admin Id */
+            requested_by_admin_id: string | null;
+            /** Agent Id */
+            agent_id: string | null;
+            /** Runtime Mode */
+            runtime_mode: string | null;
+            /** Route Registry Version */
+            route_registry_version: string | null;
+            /** Blocking */
+            blocking: boolean;
+            /** Summary */
+            summary: {
+                [key: string]: unknown;
+            };
+            /** Pass Count */
+            pass_count: number;
+            /** Fail Count */
+            fail_count: number;
+            /** Degraded Count */
+            degraded_count: number;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Results */
+            results?: components["schemas"]["VpnTesterResultResponse"][];
+            /** Evidence Artifacts */
+            evidence_artifacts?: components["schemas"]["VpnTesterEvidenceResponse"][];
+        };
+        /** VpnTesterScheduleResponse */
+        VpnTesterScheduleResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Schedule Key */
+            schedule_key: string;
+            /** Suite Key */
+            suite_key: string;
+            /** Mode */
+            mode: string;
+            /** Cron */
+            cron: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
+            /** Next Run At */
+            next_run_at: string | null;
+            /** Last Run Id */
+            last_run_id: string | null;
+            /** Last Status */
+            last_status: string | null;
+            /** Last Skipped Reason */
+            last_skipped_reason: string | null;
+            /** Last Checked At */
+            last_checked_at: string | null;
+            /** Last Triggered At */
+            last_triggered_at: string | null;
+            /** Schedule Source */
+            schedule_source: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** VpnTesterTariffMatrixResponse */
+        VpnTesterTariffMatrixResponse: {
+            /** Rows */
+            rows: {
+                [key: string]: unknown;
+            }[];
+            /** Total */
+            total: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
         };
         /**
          * WSTicketResponse
@@ -60736,6 +61394,490 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminRemnawaveNodeDiagnosticsResponse"];
+                };
+            };
+        };
+    };
+    get_vpn_tester_overview_api_v1_admin_vpn_tester_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterOverviewResponse"];
+                };
+            };
+        };
+    };
+    list_vpn_tester_runs_api_v1_admin_vpn_tester_runs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                status_filter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterRunResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_vpn_tester_run_api_v1_admin_vpn_tester_runs_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateVpnTesterRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vpn_tester_run_api_v1_admin_vpn_tester_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_vpn_tester_run_api_v1_admin_vpn_tester_runs__run_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vpn_tester_evidence_api_v1_admin_vpn_tester_runs__run_id__evidence_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterEvidenceResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vpn_tester_schedules_api_v1_admin_vpn_tester_schedules_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterScheduleResponse"][];
+                };
+            };
+        };
+    };
+    update_vpn_tester_schedule_api_v1_admin_vpn_tester_schedules__schedule_key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schedule_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateVpnTesterScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterScheduleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vpn_tester_tariff_matrix_api_v1_admin_vpn_tester_tariffs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterTariffMatrixResponse"];
+                };
+            };
+        };
+    };
+    get_vpn_tester_route_matrix_api_v1_admin_vpn_tester_route_matrix_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterRouteMatrixResponse"];
+                };
+            };
+        };
+    };
+    get_vpn_tester_balancer_preview_api_v1_admin_vpn_tester_balancer_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    get_vpn_tester_release_gate_api_v1_admin_vpn_tester_release_gate_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterReleaseGateResponse"];
+                };
+            };
+        };
+    };
+    override_vpn_tester_release_gate_api_v1_admin_vpn_tester_release_gate_override_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReleaseGateOverrideRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterReleaseGateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vpn_tester_balancer_recommendations_api_v1_admin_vpn_tester_balancer_recommendations_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnBalancerRecommendationResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_vpn_tester_balancer_recommendation_api_v1_admin_vpn_tester_balancer_recommendations__recommendation_id__ack_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recommendation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnBalancerRecommendationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_vpn_tester_balancer_recommendation_api_v1_admin_vpn_tester_balancer_recommendations__recommendation_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recommendation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DismissBalancerRecommendationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnBalancerRecommendationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    internal_run_vpn_tester_schedule_api_v1_admin_vpn_tester_internal_schedules__schedule_key__run_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Backend-Internal-Secret"?: string | null;
+            };
+            path: {
+                schedule_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalScheduleGateRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalWorkerResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

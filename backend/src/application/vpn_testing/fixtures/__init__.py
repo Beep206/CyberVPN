@@ -1,0 +1,1 @@
+"""Safe VPN Tester fixtures."""

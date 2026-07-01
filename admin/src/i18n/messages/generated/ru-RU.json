@@ -4273,20 +4273,35 @@
     },
     "vpnTester": {
       "actions": {
+        "ack": "Принять",
+        "dismiss": "Отклонить",
         "inspect": "Открыть",
+        "overrideGate": "Записать override",
         "queueing": "Ставим в очередь...",
         "queueRun": "Поставить запуск",
         "refresh": "Обновить"
       },
-      "description": "Проверки контрактов и release-gate для Premium Smart RU, всех тарифов, Remnawave routing и безопасных VPN evidence.",
+      "balancer": {
+        "confidence": "Уверенность",
+        "description": "Read-only рекомендации с deterministic deduplication и lifecycle actions.",
+        "dismissReason": "Причина отклонения",
+        "empty": "Balancer recommendations не найдены.",
+        "key": "Ключ",
+        "summary": "Сводка",
+        "title": "Balancer recommendations"
+      },
+      "description": "Проверки contract, runtime, route matrix, release-gate и безопасных evidence для Premium Smart RU, всех тарифов и Remnawave routing.",
       "detail": {
         "evidence": "Evidence",
         "noEvidence": "Для этого запуска нет evidence artifacts.",
         "results": "Результаты",
+        "selectRun": "Выберите запуск во вкладке Запуски, чтобы открыть evidence.",
         "title": "Детали запуска"
       },
       "eyebrow": "VPN TESTER AAA",
       "feedback": {
+        "overrideRecorded": "Release gate override записан.",
+        "recommendationUpdated": "Статус recommendation обновлён.",
         "runCancelled": "Запуск VPN Tester отменён.",
         "runQueued": "Запуск VPN Tester поставлен в очередь.",
         "scheduleUpdated": "Расписание обновлено."
@@ -4301,6 +4316,8 @@
       "metrics": {
         "failures": "Ошибки",
         "failuresHint": "ошибки в последних запусках",
+        "routes": "Маршруты",
+        "routesHint": "строки golden matrix",
         "runs": "Запуски",
         "runsHint": "сохранённых проверок",
         "status": "Последний статус",
@@ -4314,14 +4331,36 @@
         "contract": "Контракт",
         "runtime": "Runtime"
       },
+      "permission": {
+        "readOnly": "Эта роль может смотреть состояние VPN Tester, но мутации требуют server update или plan-management permissions."
+      },
+      "recommendationStatus": {
+        "acknowledged": "Принято",
+        "applied_manually": "Применено вручную",
+        "dismissed": "Отклонено",
+        "expired": "Истекло",
+        "open": "Открыто"
+      },
       "releaseGate": {
         "description": "Последний статус VPN Tester для release checklist.",
+        "overrideReason": "Причина override",
         "reasons": {
           "latest_vpn_tester_run_acceptable": "Последний запуск VPN Tester приемлем.",
           "latest_vpn_tester_run_not_passing": "Последний запуск VPN Tester пока не проходит.",
+          "manual_release_gate_override_active": "Persistent release gate override активен.",
           "manual_super_admin_override": "Super admin override зафиксирован."
         },
         "title": "Release gate"
+      },
+      "routeMatrix": {
+        "description": "Golden Premium Smart RU route registry, который используют static и runtime checks.",
+        "domain": "Домен",
+        "empty": "Строки route matrix не найдены.",
+        "group": "Группа",
+        "policy": "Policy",
+        "route": "Маршрут",
+        "severity": "Severity",
+        "title": "Route matrix"
       },
       "runBuilder": {
         "description": "Создаёт queued run. Backend фиксирует запрос, а task-worker выполняет проверки.",
@@ -4330,22 +4369,30 @@
         "title": "Ручной запуск"
       },
       "runs": {
-        "description": "Queued, running и завершённые contract checks с безопасными evidence.",
+        "description": "Queued, running, skipped и завершённые checks с безопасными evidence.",
         "empty": "Запуски VPN Tester не найдены.",
+        "mode": "Режим",
         "results": "Pass/fail/degraded",
         "run": "Run",
         "suite": "Suite",
         "title": "Запуски"
       },
       "schedules": {
-        "description": "Task-worker schedules по умолчанию безопасны и соблюдают backend feature flags.",
+        "description": "Task-worker schedules вызывают backend schedule gate и сохраняют skipped или triggered state.",
+        "lastChecked": "Последняя проверка",
+        "lastSkipped": "Последний skip",
         "title": "Расписания"
+      },
+      "settings": {
+        "description": "Текущие permissions оператора и feature flags, влияющие на VPN Tester controls.",
+        "title": "Settings"
       },
       "status": {
         "blocked": "Блокирует",
         "cancelled": "Отменён",
         "degraded": "Degraded",
         "fail": "Fail",
+        "override_active": "Override активен",
         "override_recorded": "Override",
         "pass": "Pass",
         "queued": "В очереди",
@@ -4357,9 +4404,21 @@
         "defaultSmoke": "Default smoke",
         "premiumSmartRu": "Premium Smart RU"
       },
+      "tabs": {
+        "balancer": "Balancer",
+        "evidence": "Evidence",
+        "overview": "Обзор",
+        "releaseGate": "Release gate",
+        "routeMatrix": "Route matrix",
+        "runs": "Запуски",
+        "schedules": "Расписания",
+        "settings": "Settings",
+        "tariffs": "Тарифы"
+      },
       "tariffs": {
         "checks": "Проверки",
         "description": "Покрытие активных тарифов без создания synthetic production users.",
+        "devices": "Устройства",
         "empty": "Строки тарифов не найдены.",
         "plan": "Тариф",
         "title": "Матрица тарифов",

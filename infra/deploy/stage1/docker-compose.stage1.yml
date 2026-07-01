@@ -127,6 +127,9 @@ services:
       VPN_TESTER_SCHEDULED_ENABLED: ${VPN_TESTER_SCHEDULED_ENABLED:-false}
       VPN_TESTER_BALANCER_RECOMMENDATIONS_ENABLED: ${VPN_TESTER_BALANCER_RECOMMENDATIONS_ENABLED:-false}
       VPN_TESTER_RETENTION_DAYS: ${VPN_TESTER_RETENTION_DAYS:-30}
+      VPN_TEST_AGENT_URL: ${VPN_TEST_AGENT_URL:-http://cybervpn-vpn-test-agent:8080}
+      VPN_TEST_AGENT_SECRET: ${VPN_TEST_AGENT_SECRET:-replace-before-live-vpn-test-agent}
+      VPN_TEST_AGENT_TIMEOUT_SECONDS: ${VPN_TEST_AGENT_TIMEOUT_SECONDS:-20}
       BACKEND_INTERNAL_SECRET: ${BACKEND_INTERNAL_SECRET:-replace-before-live-backend-internal}
       TELEGRAM_BOT_INTERNAL_SECRET: ${TELEGRAM_BOT_INTERNAL_SECRET:-replace-before-live-telegram-internal}
       TELEGRAM_BOT_REGISTRATION_MODE: ${TELEGRAM_BOT_REGISTRATION_MODE:-allow_pending_onboarding}
@@ -205,6 +208,40 @@ services:
       prometheus.io/port: "9091"
       prometheus.job: cybervpn-backend
       prometheus.service: cybervpn-backend
+
+  cybervpn-vpn-test-agent:
+    <<: *runtime-defaults
+    image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-vpn-test-agent:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/app.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+        required: false
+    expose:
+      - "8080"
+    environment:
+      VPN_TEST_AGENT_SECRET: ${VPN_TEST_AGENT_SECRET:-replace-before-live-vpn-test-agent}
+      VPN_TEST_AGENT_ID: ${VPN_TEST_AGENT_ID:-stage1-vpn-test-agent}
+      VPN_TEST_AGENT_PROXY_ONLY_ENABLED: ${VPN_TEST_AGENT_PROXY_ONLY_ENABLED:-true}
+      VPN_TEST_AGENT_TUN_ENABLED: ${VPN_TEST_AGENT_TUN_ENABLED:-false}
+      LOG_LEVEL: INFO
+    networks:
+      cybervpn-backend: {}
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "python healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 256m
+    cpus: "0.50"
+    pids_limit: 128
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-vpn-test-agent
+      cybervpn.metrics.target: internal_vpn_test_agent
 
   cybervpn-worker:
     <<: *runtime-defaults

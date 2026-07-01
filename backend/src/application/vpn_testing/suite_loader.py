@@ -13,7 +13,7 @@ DEFAULT_SUITE_FILES = (
     "all_tariffs_contract_v1.yaml",
     "default_subscription_smoke_v1.yaml",
 )
-DEFAULT_ROUTE_REGISTRY_FILES = ("premium_smart_ru_v1.yaml",)
+DEFAULT_ROUTE_REGISTRY_FILES = ("premium_smart_ru_v1.yaml", "premium_smart_ru_v2.yaml")
 
 
 def _load_json_resource(package: str, file_name: str) -> dict[str, Any]:

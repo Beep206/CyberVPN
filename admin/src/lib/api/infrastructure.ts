@@ -219,8 +219,12 @@ export interface VpnTesterRun {
   suite_version: string;
   mode: string;
   trigger: string;
-  status: 'queued' | 'running' | 'pass' | 'fail' | 'degraded' | 'cancelled' | string;
+  status: 'queued' | 'running' | 'pass' | 'fail' | 'degraded' | 'skipped' | 'cancelled' | string;
   requested_by_admin_id: string | null;
+  agent_id: string | null;
+  runtime_mode: string | null;
+  route_registry_version: string | null;
+  blocking: boolean;
   summary: Record<string, unknown>;
   pass_count: number;
   fail_count: number;
@@ -244,6 +248,10 @@ export interface VpnTesterSchedule {
   next_run_at: string | null;
   last_run_id: string | null;
   last_status: string | null;
+  last_skipped_reason: string | null;
+  last_checked_at: string | null;
+  last_triggered_at: string | null;
+  schedule_source: string;
   updated_at: string;
 }
 
@@ -275,13 +283,63 @@ export interface VpnTesterTariffMatrix {
   generated_at: string;
 }
 
+export interface VpnTesterRouteMatrix {
+  registry_key: string;
+  rows: Array<Record<string, unknown>>;
+  total: number;
+  generated_at: string;
+}
+
+export interface VpnTesterReleaseGateOverride {
+  id: string;
+  latest_run_id: string | null;
+  overridden_by_admin_id: string | null;
+  previous_status: string;
+  previous_blocking: boolean;
+  reason: string;
+  expires_at: string;
+  created_at: string;
+}
+
 export interface VpnTesterReleaseGate {
   status: string;
   blocking: boolean;
   latest_run_id: string | null;
   reason: string;
   override_allowed_roles: string[];
+  active_override: VpnTesterReleaseGateOverride | null;
   generated_at: string;
+}
+
+export interface CreateReleaseGateOverrideRequest {
+  reason: string;
+  ttl_minutes: number;
+}
+
+export interface DismissBalancerRecommendationRequest {
+  reason?: string | null;
+}
+
+export interface VpnBalancerRecommendation {
+  id: string;
+  recommendation_key: string;
+  recommendation_hash: string;
+  run_id: string | null;
+  status: string;
+  scope: string;
+  safe_summary: string;
+  candidate_changes: Record<string, unknown>;
+  confidence: number;
+  acknowledged_by_admin_id: string | null;
+  acknowledged_at: string | null;
+  dismissed_by_admin_id: string | null;
+  dismissed_at: string | null;
+  dismissed_reason: string | null;
+  applied_manually_by_admin_id: string | null;
+  applied_manually_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export const vpnTesterApi = {
@@ -306,8 +364,27 @@ export const vpnTesterApi = {
     ),
   tariffMatrix: () =>
     apiClient.get<VpnTesterTariffMatrix>('/admin/vpn-tester/tariffs'),
+  routeMatrix: () =>
+    apiClient.get<VpnTesterRouteMatrix>('/admin/vpn-tester/route-matrix'),
   balancerPreview: () =>
     apiClient.get<Record<string, unknown>>('/admin/vpn-tester/balancer/preview'),
+  listBalancerRecommendations: (params?: { limit?: number }) =>
+    apiClient.get<VpnBalancerRecommendation[]>('/admin/vpn-tester/balancer/recommendations', { params }),
+  acknowledgeBalancerRecommendation: (recommendationId: string) =>
+    apiClient.post<VpnBalancerRecommendation>(
+      `/admin/vpn-tester/balancer/recommendations/${recommendationId}/ack`,
+      {},
+    ),
+  dismissBalancerRecommendation: (
+    recommendationId: string,
+    data: DismissBalancerRecommendationRequest,
+  ) =>
+    apiClient.post<VpnBalancerRecommendation>(
+      `/admin/vpn-tester/balancer/recommendations/${recommendationId}/dismiss`,
+      data,
+    ),
   releaseGate: () =>
     apiClient.get<VpnTesterReleaseGate>('/admin/vpn-tester/release-gate'),
+  overrideReleaseGate: (data: CreateReleaseGateOverrideRequest) =>
+    apiClient.post<VpnTesterReleaseGate>('/admin/vpn-tester/release-gate/override', data),
 };

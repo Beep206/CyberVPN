@@ -10,6 +10,11 @@ import structlog
 
 from src.broker import broker
 from src.config import get_settings
+from src.metrics import (
+    VPN_TESTER_WORKER_LOCK_SKIPS_TOTAL,
+    VPN_TESTER_WORKER_QUEUE_RUNS_TOTAL,
+    VPN_TESTER_WORKER_SCHEDULE_GATE_TOTAL,
+)
 from src.services.backend_api_client import BackendAPIClient
 from src.services.redis_client import get_redis_client
 from src.utils.constants import QUEUE_VPN_TESTING, VPN_TESTER_LOCK_KEY
@@ -26,6 +31,7 @@ async def _with_redis_lock(task_key: str, operation: Callable[[], Awaitable[dict
         acquired = await redis.set(lock_key, lock_value, ex=settings.vpn_tester_lock_ttl_seconds, nx=True)
         if not acquired:
             logger.info("vpn_tester_task_skipped", task_key=task_key, reason="lock_held")
+            VPN_TESTER_WORKER_LOCK_SKIPS_TOTAL.labels(task_key=task_key).inc()
             return {"skipped": True, "reason": "lock_held", "task_key": task_key}
         return await operation()
     finally:
@@ -55,16 +61,11 @@ def _run_summary(response: dict[str, Any]) -> dict[str, Any]:
 async def _call_scheduled_backend(
     *,
     task_key: str,
-    suite_key: str,
-    mode: str,
+    schedule_key: str,
     trigger: str,
-    scheduled_required: bool = True,
+    idempotency_window: str = "minute",
 ) -> dict[str, Any]:
     settings = get_settings()
-    if not settings.vpn_tester_enabled:
-        return {"skipped": True, "reason": "vpn_tester_disabled", "task_key": task_key}
-    if scheduled_required and not settings.vpn_tester_scheduled_enabled:
-        return {"skipped": True, "reason": "scheduled_disabled", "task_key": task_key}
     if not settings.backend_api_url or settings.backend_internal_secret is None:
         return {"skipped": True, "reason": "backend_api_not_configured", "task_key": task_key}
 
@@ -72,14 +73,16 @@ async def _call_scheduled_backend(
         async with BackendAPIClient() as backend:
             if not backend.backend_internal_enabled:
                 return {"skipped": True, "reason": "backend_internal_disabled", "task_key": task_key}
-            response = await backend.run_scheduled_vpn_tester(
+            response = await backend.run_vpn_tester_schedule(
+                schedule_key,
                 {
-                    "suite_key": suite_key,
-                    "mode": mode,
                     "trigger": trigger,
                     "execute_immediately": True,
-                }
+                    "idempotency_window": idempotency_window,
+                },
             )
+            result = str(response.get("reason") or (response.get("run") or {}).get("status") or "accepted")
+            VPN_TESTER_WORKER_SCHEDULE_GATE_TOTAL.labels(schedule_key=schedule_key, result=result).inc()
             logger.info("vpn_tester_scheduled_complete", task_key=task_key, **_run_summary(response))
             return response
 
@@ -104,6 +107,8 @@ async def process_vpn_tester_queue() -> dict[str, Any]:
                     skipped_reason = str(response.get("reason") or "no_queued_runs")
                     break
                 processed += 1
+                result = str((response.get("run") or {}).get("status") or "processed")
+                VPN_TESTER_WORKER_QUEUE_RUNS_TOTAL.labels(result=result).inc()
                 logger.info("vpn_tester_queued_run_complete", **_run_summary(response))
         return {"processed": processed, "reason": skipped_reason}
 
@@ -114,8 +119,7 @@ async def process_vpn_tester_queue() -> dict[str, Any]:
 async def run_vpn_tester_lightweight() -> dict[str, Any]:
     return await _call_scheduled_backend(
         task_key="lightweight",
-        suite_key="default_subscription_smoke_v1",
-        mode="contract",
+        schedule_key="vpn-tester:lightweight",
         trigger="scheduled_lightweight",
     )
 
@@ -124,9 +128,9 @@ async def run_vpn_tester_lightweight() -> dict[str, Any]:
 async def run_vpn_tester_all_tariffs() -> dict[str, Any]:
     return await _call_scheduled_backend(
         task_key="all_tariffs",
-        suite_key="all_tariffs_contract_v1",
-        mode="all_tariffs",
+        schedule_key="vpn-tester:all-tariffs",
         trigger="scheduled_all_tariffs",
+        idempotency_window="hour",
     )
 
 
@@ -134,21 +138,17 @@ async def run_vpn_tester_all_tariffs() -> dict[str, Any]:
 async def run_vpn_tester_deep() -> dict[str, Any]:
     return await _call_scheduled_backend(
         task_key="deep",
-        suite_key="premium_smart_ru_v1",
-        mode="contract",
+        schedule_key="vpn-tester:deep",
         trigger="scheduled_deep",
+        idempotency_window="day",
     )
 
 
 @broker.task(task_name="run_vpn_tester_balancer_preview", queue=QUEUE_VPN_TESTING)
 async def run_vpn_tester_balancer_preview() -> dict[str, Any]:
-    settings = get_settings()
-    if not settings.vpn_tester_balancer_recommendations_enabled:
-        return {"skipped": True, "reason": "balancer_recommendations_disabled"}
     return await _call_scheduled_backend(
         task_key="balancer_preview",
-        suite_key="premium_smart_ru_v1",
-        mode="balancer_preview",
+        schedule_key="vpn-tester:balancer-preview",
         trigger="scheduled_balancer_preview",
     )
 

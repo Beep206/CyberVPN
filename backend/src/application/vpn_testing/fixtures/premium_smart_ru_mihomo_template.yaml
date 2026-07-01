@@ -1,0 +1,85 @@
+proxy-providers:
+  remnawave-ru:
+    type: http
+    url: https://redacted.invalid/ru
+    path: ./providers/remnawave-ru.yaml
+    filter: "(?i)(ru|moscow|spb|premium_smart_ru)"
+  remnawave-de:
+    type: http
+    url: https://redacted.invalid/de
+    path: ./providers/remnawave-de.yaml
+    filter: "(?i)(de|germany|xhttp)"
+  remnawave-global:
+    type: http
+    url: https://redacted.invalid/global
+    path: ./providers/remnawave-global.yaml
+    filter: "(?i)(nl|de|global|xhttp)"
+proxy-groups:
+  - name: "🇩🇪 DE Auto"
+    type: url-test
+    use: ["remnawave-de"]
+    filter: "(?i)(de|germany|xhttp)"
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+  - name: "🇷🇺 RU Sites"
+    type: url-test
+    use: ["remnawave-ru"]
+    filter: "(?i)(ru|moscow|spb|premium_smart_ru)"
+    url: https://ya.ru
+    interval: 300
+  - name: "🌍 Global Auto"
+    type: url-test
+    use: ["remnawave-global"]
+    filter: "(?i)(nl|de|global|xhttp)"
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+  - name: "🧲 Torrents"
+    type: select
+    proxies: ["REJECT"]
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - https://dns.google/dns-query
+    - https://cloudflare-dns.com/dns-query
+rules:
+  - DOMAIN-SUFFIX,gosuslugi.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,nalog.gov.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,sberbank.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,tinkoff.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,vtb.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,market.yandex.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,ozon.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,wildberries.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,kinopoisk.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,okko.tv,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,vk.com,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,mail.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,rutube.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,maps.yandex.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,rzd.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,aeroflot.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,mts.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,megafon.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,beeline.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,tele2.ru,🇷🇺 RU Sites
+  - DOMAIN-SUFFIX,google.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,youtube.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,mail.google.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,apple.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,cloudflare.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,github.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,gitlab.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,openai.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,telegram.org,🌍 Global Auto
+  - DOMAIN-SUFFIX,whatsapp.com,🌍 Global Auto
+  - DOMAIN-SUFFIX,instagram.com,🌍 Global Auto
+  - DOMAIN-SUFFIX,facebook.com,🌍 Global Auto
+  - DOMAIN-SUFFIX,netflix.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,spotify.com,🇩🇪 DE Auto
+  - DOMAIN-SUFFIX,discord.com,🌍 Global Auto
+  - DOMAIN-SUFFIX,steampowered.com,🇩🇪 DE Auto
+  - DOMAIN-KEYWORD,bittorrent,🧲 Torrents
+  - DOMAIN-KEYWORD,torrent,🧲 Torrents
+  - DOMAIN-SUFFIX,torproject.org,🧲 Torrents
+  - MATCH,🇩🇪 DE Auto

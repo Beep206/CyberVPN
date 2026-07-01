@@ -1,0 +1,62 @@
+groups:
+  - name: cybervpn-vpn-tester
+    rules:
+      - alert: CyberVPNVpnTesterReleaseGateBlocking
+        expr: cybervpn_vpn_tester_release_gate_blocking == 1
+        for: 15m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: VPN Tester release gate is blocking
+          description: The latest VPN Tester release gate evaluation is blocking the release checklist.
+
+      - alert: CyberVPNVpnTesterScheduledFailures
+        expr: increase(cybervpn_vpn_tester_schedule_runs_total{result=~"fail|unknown_suite|schedule_not_found"}[30m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: VPN Tester schedule gate failures detected
+          description: A scheduled VPN Tester gate returned a hard failure or invalid schedule result.
+
+      - alert: CyberVPNVpnTesterRuntimeAgentUnavailable
+        expr: increase(cybervpn_vpn_tester_runtime_agent_unavailable_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: vpn-test-agent
+        annotations:
+          summary: VPN Tester runtime agent unavailable
+          description: Backend runtime checks degraded because the internal VPN test agent was unavailable.
+
+      - alert: CyberVPNVpnTesterWorkerLockBacklog
+        expr: increase(cybervpn_vpn_tester_worker_lock_skips_total[30m]) > 3
+        for: 10m
+        labels:
+          severity: warning
+          service: task-worker
+        annotations:
+          summary: VPN Tester worker lock contention
+          description: Repeated VPN Tester worker lock skips can indicate queue backlog or a stuck task.
+
+      - alert: CyberVPNVpnTesterEvidenceCleanupStopped
+        expr: absent_over_time(cybervpn_vpn_tester_evidence_cleanup_total[48h])
+        for: 30m
+        labels:
+          severity: info
+          service: backend
+        annotations:
+          summary: VPN Tester evidence cleanup has no recent samples
+          description: No VPN Tester evidence cleanup metric was observed in the last 48 hours.
+
+      - alert: CyberVPNVpnTesterRecommendationSpam
+        expr: increase(cybervpn_vpn_tester_balancer_recommendations_total{status="open"}[1h]) > 12
+        for: 10m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: VPN Tester balancer recommendations are too noisy
+          description: More than 12 open VPN balancer recommendations were emitted in one hour.

@@ -10760,6 +10760,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/vpn-tester/route-matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vpn Tester Route Matrix */
+        get: operations["get_vpn_tester_route_matrix_api_v1_admin_vpn_tester_route_matrix_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/vpn-tester/balancer/preview": {
         parameters: {
             query?: never;
@@ -10805,6 +10822,74 @@ export interface paths {
         put?: never;
         /** Override Vpn Tester Release Gate */
         post: operations["override_vpn_tester_release_gate_api_v1_admin_vpn_tester_release_gate_override_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/balancer/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vpn Tester Balancer Recommendations */
+        get: operations["list_vpn_tester_balancer_recommendations_api_v1_admin_vpn_tester_balancer_recommendations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/balancer/recommendations/{recommendation_id}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge Vpn Tester Balancer Recommendation */
+        post: operations["acknowledge_vpn_tester_balancer_recommendation_api_v1_admin_vpn_tester_balancer_recommendations__recommendation_id__ack_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/balancer/recommendations/{recommendation_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Vpn Tester Balancer Recommendation */
+        post: operations["dismiss_vpn_tester_balancer_recommendation_api_v1_admin_vpn_tester_balancer_recommendations__recommendation_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/vpn-tester/internal/schedules/{schedule_key}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Internal Run Vpn Tester Schedule */
+        post: operations["internal_run_vpn_tester_schedule_api_v1_admin_vpn_tester_internal_schedules__schedule_key__run_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -23050,6 +23135,16 @@ export interface components {
             /** Reason Text */
             reason_text?: string | null;
         };
+        /** CreateReleaseGateOverrideRequest */
+        CreateReleaseGateOverrideRequest: {
+            /** Reason */
+            reason: string;
+            /**
+             * Ttl Minutes
+             * @default 60
+             */
+            ttl_minutes: number;
+        };
         /** CreateReserveRequest */
         CreateReserveRequest: {
             /**
@@ -24531,6 +24626,11 @@ export interface components {
              * @description Remaining web session devices before the enforced limit; null when not enforced.
              */
             remaining_devices: number | null;
+        };
+        /** DismissBalancerRecommendationRequest */
+        DismissBalancerRecommendationRequest: {
+            /** Reason */
+            reason?: string | null;
         };
         /**
          * DisputeCaseKind
@@ -26186,6 +26286,40 @@ export interface components {
             open_count: number;
             /** Overdue Count */
             overdue_count: number;
+        };
+        /** InternalScheduleGateRunRequest */
+        InternalScheduleGateRunRequest: {
+            /**
+             * Trigger
+             * @default scheduled
+             */
+            trigger: string;
+            /**
+             * Execute Immediately
+             * @default true
+             */
+            execute_immediately: boolean;
+            /**
+             * Idempotency Window
+             * @default minute
+             */
+            idempotency_window: string;
+        };
+        /** InternalWorkerResultResponse */
+        InternalWorkerResultResponse: {
+            /**
+             * Skipped
+             * @default false
+             */
+            skipped: boolean;
+            /** Reason */
+            reason?: string | null;
+            run?: components["schemas"]["VpnTesterRunResponse"] | null;
+            schedule?: components["schemas"]["VpnTesterScheduleResponse"] | null;
+            /** Cleanup */
+            cleanup?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** InviteBundleSchema */
         InviteBundleSchema: {
@@ -38399,6 +38533,58 @@ export interface components {
             user: components["schemas"]["AdminUserResponse"];
             onboarding?: components["schemas"]["CustomerOnboardingAuthSummaryResponse"] | null;
         };
+        /** VpnBalancerRecommendationResponse */
+        VpnBalancerRecommendationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Recommendation Key */
+            recommendation_key: string;
+            /** Recommendation Hash */
+            recommendation_hash: string;
+            /** Run Id */
+            run_id: string | null;
+            /** Status */
+            status: string;
+            /** Scope */
+            scope: string;
+            /** Safe Summary */
+            safe_summary: string;
+            /** Candidate Changes */
+            candidate_changes: {
+                [key: string]: unknown;
+            };
+            /** Confidence */
+            confidence: number;
+            /** Acknowledged By Admin Id */
+            acknowledged_by_admin_id: string | null;
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Dismissed By Admin Id */
+            dismissed_by_admin_id: string | null;
+            /** Dismissed At */
+            dismissed_at: string | null;
+            /** Dismissed Reason */
+            dismissed_reason: string | null;
+            /** Applied Manually By Admin Id */
+            applied_manually_by_admin_id: string | null;
+            /** Applied Manually At */
+            applied_manually_at: string | null;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** VpnTesterEvidenceResponse */
         VpnTesterEvidenceResponse: {
             /**
@@ -38450,6 +38636,34 @@ export interface components {
              */
             generated_at: string;
         };
+        /** VpnTesterReleaseGateOverrideResponse */
+        VpnTesterReleaseGateOverrideResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Latest Run Id */
+            latest_run_id: string | null;
+            /** Overridden By Admin Id */
+            overridden_by_admin_id: string | null;
+            /** Previous Status */
+            previous_status: string;
+            /** Previous Blocking */
+            previous_blocking: boolean;
+            /** Reason */
+            reason: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** VpnTesterReleaseGateResponse */
         VpnTesterReleaseGateResponse: {
             /** Status */
@@ -38462,6 +38676,7 @@ export interface components {
             reason: string;
             /** Override Allowed Roles */
             override_allowed_roles: string[];
+            active_override?: components["schemas"]["VpnTesterReleaseGateOverrideResponse"] | null;
             /**
              * Generated At
              * Format: date-time
@@ -38501,6 +38716,22 @@ export interface components {
              */
             created_at: string;
         };
+        /** VpnTesterRouteMatrixResponse */
+        VpnTesterRouteMatrixResponse: {
+            /** Registry Key */
+            registry_key: string;
+            /** Rows */
+            rows: {
+                [key: string]: unknown;
+            }[];
+            /** Total */
+            total: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
         /** VpnTesterRunResponse */
         VpnTesterRunResponse: {
             /**
@@ -38520,6 +38751,14 @@ export interface components {
             status: string;
             /** Requested By Admin Id */
             requested_by_admin_id: string | null;
+            /** Agent Id */
+            agent_id: string | null;
+            /** Runtime Mode */
+            runtime_mode: string | null;
+            /** Route Registry Version */
+            route_registry_version: string | null;
+            /** Blocking */
+            blocking: boolean;
             /** Summary */
             summary: {
                 [key: string]: unknown;
@@ -38576,6 +38815,14 @@ export interface components {
             last_run_id: string | null;
             /** Last Status */
             last_status: string | null;
+            /** Last Skipped Reason */
+            last_skipped_reason: string | null;
+            /** Last Checked At */
+            last_checked_at: string | null;
+            /** Last Triggered At */
+            last_triggered_at: string | null;
+            /** Schedule Source */
+            schedule_source: string;
             /**
              * Updated At
              * Format: date-time
@@ -61406,6 +61653,26 @@ export interface operations {
             };
         };
     };
+    get_vpn_tester_route_matrix_api_v1_admin_vpn_tester_route_matrix_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnTesterRouteMatrixResponse"];
+                };
+            };
+        };
+    };
     get_vpn_tester_balancer_preview_api_v1_admin_vpn_tester_balancer_preview_get: {
         parameters: {
             query?: never;
@@ -61455,7 +61722,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReleaseGateOverrideRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -61464,6 +61735,149 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VpnTesterReleaseGateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vpn_tester_balancer_recommendations_api_v1_admin_vpn_tester_balancer_recommendations_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnBalancerRecommendationResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_vpn_tester_balancer_recommendation_api_v1_admin_vpn_tester_balancer_recommendations__recommendation_id__ack_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recommendation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnBalancerRecommendationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_vpn_tester_balancer_recommendation_api_v1_admin_vpn_tester_balancer_recommendations__recommendation_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recommendation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DismissBalancerRecommendationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpnBalancerRecommendationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    internal_run_vpn_tester_schedule_api_v1_admin_vpn_tester_internal_schedules__schedule_key__run_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Backend-Internal-Secret"?: string | null;
+            };
+            path: {
+                schedule_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalScheduleGateRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalWorkerResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

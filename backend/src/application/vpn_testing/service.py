@@ -4,18 +4,36 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from importlib.resources import files
 from time import perf_counter
 from typing import Any
 from uuid import UUID
 
 from httpx import HTTPError
 
+from src.application.vpn_testing.analyzers import analyze_mihomo_template
+from src.application.vpn_testing.balancer import recommendation_key, stable_recommendation_hash
+from src.application.vpn_testing.generated_subscription_checker import (
+    expected_remnawave_assignment,
+    generated_subscription_checks,
+)
 from src.application.vpn_testing.redaction import safe_artifact_preview
+from src.application.vpn_testing.runtime_agent_client import call_runtime_agent, runtime_agent_configured
 from src.application.vpn_testing.suite_loader import load_default_route_registries, load_default_suites
 from src.config.settings import settings
+from src.domain.enums import AdminRole
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.infrastructure.database.models.vpn_tester_model import VpnTestRunModel
 from src.infrastructure.database.repositories.vpn_tester_repo import VpnTesterRepository
+from src.infrastructure.monitoring.metrics import (
+    vpn_tester_balancer_recommendations_total,
+    vpn_tester_evidence_cleanup_total,
+    vpn_tester_release_gate_blocking,
+    vpn_tester_run_duration_seconds,
+    vpn_tester_runs_total,
+    vpn_tester_runtime_agent_unavailable_total,
+    vpn_tester_schedule_runs_total,
+)
 from src.infrastructure.remnawave.client import RemnawaveClient
 
 DEFAULT_SCHEDULES = (
@@ -42,6 +60,14 @@ DEFAULT_SCHEDULES = (
         "cron": "20 2 * * *",
         "enabled": False,
         "settings": {"profile": "deep"},
+    },
+    {
+        "schedule_key": "vpn-tester:runtime",
+        "suite_key": "premium_smart_ru_v1",
+        "mode": "runtime",
+        "cron": "35 2 * * *",
+        "enabled": False,
+        "settings": {"profile": "runtime_proxy_only", "tun_sandbox": False},
     },
     {
         "schedule_key": "vpn-tester:balancer-preview",
@@ -135,6 +161,8 @@ def _run_status(results: list[dict[str, Any]]) -> str:
         return "fail"
     if any(item["status"] == "degraded" for item in results):
         return "degraded"
+    if results and all(item["status"] == "skipped" for item in results):
+        return "skipped"
     return "pass"
 
 
@@ -153,6 +181,34 @@ def _summary(results: list[dict[str, Any]], *, suite_key: str, mode: str) -> dic
         "skipped_count": skipped_count,
         "generated_at": _utc_now().isoformat(),
     }
+
+
+def _idempotency_bucket(now: datetime, window: str) -> str:
+    normalized = (window or "minute").strip().lower()
+    if normalized in {"none", "disabled", "off"}:
+        return f"{now:%Y%m%d%H%M%S%f}"
+    if normalized in {"hour", "hourly"}:
+        return f"{now:%Y%m%d%H}"
+    if normalized in {"day", "daily"}:
+        return f"{now:%Y%m%d}"
+    return f"{now:%Y%m%d%H%M}"
+
+
+def _next_run_fallback(now: datetime, cron: str) -> datetime:
+    if cron.startswith("*/"):
+        minute = int(cron.split()[0].removeprefix("*/") or "15")
+        return now + timedelta(minutes=max(1, min(minute, 60)))
+    if cron.startswith("5 ") or cron.startswith("20 ") or cron.startswith("35 ") or cron.startswith("45 "):
+        return now + timedelta(hours=1)
+    return now + timedelta(minutes=15)
+
+
+def _default_mihomo_template() -> str:
+    return (
+        files("src.application.vpn_testing.fixtures")
+        .joinpath("premium_smart_ru_mihomo_template.yaml")
+        .read_text(encoding="utf-8")
+    )
 
 
 class VpnTesterService:
@@ -183,6 +239,7 @@ class VpnTesterService:
         suite = await self._repository.get_suite(suite_key)
         if suite is None:
             raise ValueError("unknown_suite")
+        suite_spec = dict(suite.spec or {})
         return await self._repository.create_run(
             suite_key=suite.suite_key,
             suite_version=suite.version,
@@ -191,6 +248,8 @@ class VpnTesterService:
             requested_by_admin_id=requested_by_admin_id,
             idempotency_key=idempotency_key,
             request_context=request_context,
+            runtime_mode="proxy-only" if mode == "runtime" else None,
+            route_registry_version=str(suite_spec.get("required_route_registry") or ""),
         )
 
     async def create_scheduled_run(self, *, suite_key: str, mode: str, trigger: str) -> VpnTestRunModel:
@@ -198,6 +257,7 @@ class VpnTesterService:
         suite = await self._repository.get_suite(suite_key)
         if suite is None:
             raise ValueError("unknown_suite")
+        suite_spec = dict(suite.spec or {})
         idempotency_key = f"{trigger}:{suite_key}:{mode}:{_utc_now():%Y%m%d%H%M}"
         return await self._repository.create_run(
             suite_key=suite.suite_key,
@@ -207,7 +267,85 @@ class VpnTesterService:
             requested_by_admin_id=None,
             idempotency_key=idempotency_key,
             request_context={"source": "task_worker", "trigger": trigger},
+            runtime_mode="proxy-only" if mode == "runtime" else None,
+            route_registry_version=str(suite_spec.get("required_route_registry") or ""),
         )
+
+    async def run_schedule(
+        self,
+        *,
+        schedule_key: str,
+        trigger: str,
+        execute_immediately: bool,
+        idempotency_window: str,
+    ) -> dict[str, Any]:
+        await self.ensure_seeded()
+        now = _utc_now()
+        schedule = await self._repository.get_schedule(schedule_key)
+        if schedule is None:
+            vpn_tester_schedule_runs_total.labels(schedule_key=schedule_key, result="schedule_not_found").inc()
+            return {"skipped": True, "reason": "schedule_not_found", "schedule": None, "run": None}
+
+        async def skip(reason: str) -> dict[str, Any]:
+            await self._repository.update_schedule_gate_state(
+                schedule,
+                checked_at=now,
+                skipped_reason=reason,
+                next_run_at=_next_run_fallback(now, schedule.cron),
+            )
+            vpn_tester_schedule_runs_total.labels(schedule_key=schedule_key, result=reason).inc()
+            return {"skipped": True, "reason": reason, "schedule": schedule, "run": None}
+
+        if not settings.vpn_tester_enabled:
+            return await skip("vpn_tester_disabled")
+        if not settings.vpn_tester_scheduled_enabled:
+            return await skip("scheduled_disabled")
+        if not schedule.enabled:
+            return await skip("schedule_disabled")
+
+        suite = await self._repository.get_suite(schedule.suite_key)
+        if suite is None:
+            return await skip("unknown_suite")
+
+        idempotency_key = (
+            f"schedule:{schedule.schedule_key}:{schedule.suite_key}:{schedule.mode}:"
+            f"{_idempotency_bucket(now, idempotency_window)}"
+        )
+        suite_spec = dict(suite.spec or {})
+        run = await self._repository.create_run(
+            suite_key=suite.suite_key,
+            suite_version=suite.version,
+            mode=schedule.mode or suite.mode,
+            trigger=trigger,
+            requested_by_admin_id=None,
+            idempotency_key=idempotency_key,
+            request_context={
+                "source": "task_worker_schedule_gate",
+                "trigger": trigger,
+                "schedule_key": schedule.schedule_key,
+                "execute_immediately": execute_immediately,
+                "idempotency_window": idempotency_window,
+                "lock_policy": dict(schedule.settings or {}).get(
+                    "lock_policy",
+                    "worker_redis_lock_plus_db_idempotency",
+                ),
+            },
+            runtime_mode="proxy-only" if schedule.mode == "runtime" else None,
+            route_registry_version=str(suite_spec.get("required_route_registry") or ""),
+        )
+        if execute_immediately:
+            run = await self.execute_run(run)
+        await self._repository.update_schedule_gate_state(
+            schedule,
+            checked_at=now,
+            triggered_at=now,
+            last_run_id=run.id,
+            last_status=run.status,
+            skipped_reason=None,
+            next_run_at=_next_run_fallback(now, schedule.cron),
+        )
+        vpn_tester_schedule_runs_total.labels(schedule_key=schedule_key, result=str(run.status)).inc()
+        return {"skipped": False, "reason": None, "schedule": schedule, "run": run}
 
     async def list_runs(self, *, limit: int = 25, status: str | None = None) -> list[VpnTestRunModel]:
         await self.ensure_seeded()
@@ -230,20 +368,25 @@ class VpnTesterService:
     async def execute_run(self, run: VpnTestRunModel) -> VpnTestRunModel:
         if run.status == "cancelled":
             return run
+        started = perf_counter()
         await self._repository.mark_run_running(run)
         suite = await self._repository.get_suite(run.suite_key, run.suite_version)
         suite_spec = dict(suite.spec if suite is not None else {})
+        registry_key = str(suite_spec.get("required_route_registry") or "")
         plans = await self._repository.list_active_plans()
-        route_entries = await self._repository.get_route_registry(run.suite_key)
+        route_entries = await self._repository.get_route_registry(run.suite_key, registry_key or None)
 
         if run.mode == "all_tariffs" or run.suite_key == "all_tariffs_contract_v1":
-            results = self._all_tariffs_results(plans)
+            results = self._all_tariffs_results(plans, route_entries)
         elif run.mode == "balancer_preview":
             results = await self._balancer_preview_results(plans, route_entries)
+        elif run.mode == "runtime":
+            results = await self._runtime_results(run, route_entries)
         else:
             results = await self._contract_results(suite_spec, plans, route_entries)
 
         summary = _summary(results, suite_key=run.suite_key, mode=run.mode)
+        summary["route_registry_version"] = registry_key or run.route_registry_version
         evidence = self._evidence(run, suite_spec=suite_spec, results=results, plans=plans)
         status = str(summary["status"])
         completed = await self._repository.replace_run_results(
@@ -253,17 +396,27 @@ class VpnTesterService:
             summary=summary,
             status=status,
         )
+        vpn_tester_runs_total.labels(mode=run.mode, trigger=run.trigger, status=status).inc()
+        vpn_tester_run_duration_seconds.labels(mode=run.mode).observe(max(0.0, perf_counter() - started))
         if run.mode == "balancer_preview" and settings.vpn_tester_balancer_recommendations_enabled:
+            payload = {
+                "mutates_live_state": False,
+                "status": status,
+                "summary": summary,
+                "result_keys": [str(item.get("check_key")) for item in results],
+            }
+            scope = "premium_smart_ru"
+            rec_hash = stable_recommendation_hash(scope, payload)
             await self._repository.create_balancer_recommendation(
                 completed,
-                "Read-only VPN balancer recommendation generated from contract metadata.",
-                {
-                    "mutates_live_state": False,
-                    "status": status,
-                    "summary": summary,
-                    "result_keys": [str(item.get("check_key")) for item in results],
-                },
+                recommendation_key=recommendation_key(scope, rec_hash),
+                recommendation_hash=rec_hash,
+                scope=scope,
+                summary="Read-only VPN balancer recommendation generated from contract metadata.",
+                payload=payload,
+                confidence=0.72 if status == "pass" else 0.42,
             )
+            vpn_tester_balancer_recommendations_total.labels(status="open").inc()
         return completed
 
     async def execute_next_queued_run(self) -> VpnTestRunModel | None:
@@ -286,14 +439,39 @@ class VpnTesterService:
         rows = []
         for plan in plans:
             checks = self._plan_contract_checks(plan)
+            assignment = expected_remnawave_assignment(plan)
             rows.append(
                 {
                     **_safe_plan_payload(plan),
                     "status": _run_status(checks),
                     "checks": checks,
+                    "device_limit": plan.device_limit,
+                    "remnawave_assignment": assignment,
                 }
             )
         return {"rows": rows, "total": len(rows), "generated_at": _utc_now()}
+
+    async def route_matrix(self) -> dict[str, Any]:
+        await self.ensure_seeded()
+        entries = await self._repository.get_route_registry("premium_smart_ru_v1", "premium_smart_ru_v2")
+        rows = []
+        for entry in entries:
+            metadata = dict(entry.metadata_json or {})
+            rows.append(
+                {
+                    "route_key": entry.route_key,
+                    "registry_key": entry.registry_key,
+                    "country_code": entry.country_code,
+                    "node_tags": list(entry.node_tags or []),
+                    "expected_modes": list(entry.expected_modes or []),
+                    "expected_policy": metadata.get("expected_policy"),
+                    "expected_group": metadata.get("expected_group"),
+                    "severity": metadata.get("severity"),
+                    "domain": metadata.get("domain"),
+                    "enabled": entry.enabled,
+                }
+            )
+        return {"registry_key": "premium_smart_ru_v2", "rows": rows, "total": len(rows), "generated_at": _utc_now()}
 
     async def overview(self) -> dict[str, Any]:
         await self.ensure_seeded()
@@ -315,17 +493,97 @@ class VpnTesterService:
         runs = await self._repository.list_runs(limit=10)
         latest = runs[0] if runs else None
         blocking = latest is None or latest.status in {"fail", "queued", "running"}
+        active_override = await self._repository.get_active_release_gate_override()
+        if active_override is not None:
+            vpn_tester_release_gate_blocking.set(0)
+            return {
+                "status": "override_active",
+                "blocking": False,
+                "latest_run_id": latest.id if latest else None,
+                "reason": "manual_release_gate_override_active",
+                "override_allowed_roles": ["owner/super_admin", "super_admin"],
+                "active_override": {
+                    "id": active_override.id,
+                    "latest_run_id": active_override.latest_run_id,
+                    "overridden_by_admin_id": active_override.overridden_by_admin_id,
+                    "previous_status": active_override.previous_status,
+                    "previous_blocking": active_override.previous_blocking,
+                    "reason": active_override.reason,
+                    "expires_at": active_override.expires_at,
+                    "created_at": active_override.created_at,
+                },
+                "generated_at": _utc_now(),
+            }
+        vpn_tester_release_gate_blocking.set(1 if blocking else 0)
         return {
             "status": "blocked" if blocking else latest.status,
             "blocking": blocking,
             "latest_run_id": latest.id if latest else None,
             "reason": "latest_vpn_tester_run_not_passing" if blocking else "latest_vpn_tester_run_acceptable",
-            "override_allowed_roles": ["owner_super_admin", "super_admin"],
+            "override_allowed_roles": ["owner/super_admin", "super_admin"],
+            "active_override": None,
             "generated_at": _utc_now(),
         }
 
+    async def create_release_gate_override(
+        self,
+        *,
+        admin_id: UUID,
+        admin_role: AdminRole,
+        reason: str,
+        ttl_minutes: int,
+        request_context: dict,
+    ) -> dict[str, Any]:
+        normalized_reason = reason.strip()
+        if len(normalized_reason) < 20:
+            raise ValueError("override_reason_too_short")
+        max_ttl = 4320 if admin_role == AdminRole.OWNER_SUPER_ADMIN else 1440
+        if ttl_minutes < 1 or ttl_minutes > max_ttl:
+            raise ValueError("override_ttl_out_of_range")
+        runs = await self._repository.list_runs(limit=1)
+        latest = runs[0] if runs else None
+        gate = await self.release_gate()
+        expires_at = _utc_now() + timedelta(minutes=ttl_minutes)
+        await self._repository.create_release_gate_override(
+            latest_run_id=latest.id if latest else None,
+            overridden_by_admin_id=admin_id,
+            previous_status=str(gate.get("status") or "unknown"),
+            previous_blocking=bool(gate.get("blocking")),
+            reason=normalized_reason,
+            expires_at=expires_at,
+            request_context=request_context,
+        )
+        return await self.release_gate()
+
+    async def list_balancer_recommendations(self, *, limit: int = 50) -> list[Any]:
+        await self.ensure_seeded()
+        return await self._repository.list_balancer_recommendations(limit=limit)
+
+    async def acknowledge_balancer_recommendation(self, recommendation_id: UUID, *, admin_id: UUID):
+        recommendation = await self._repository.set_balancer_recommendation_status(
+            recommendation_id,
+            status="acknowledged",
+            admin_id=admin_id,
+        )
+        if recommendation is not None:
+            vpn_tester_balancer_recommendations_total.labels(status="acknowledged").inc()
+        return recommendation
+
+    async def dismiss_balancer_recommendation(self, recommendation_id: UUID, *, admin_id: UUID, reason: str | None):
+        recommendation = await self._repository.set_balancer_recommendation_status(
+            recommendation_id,
+            status="dismissed",
+            admin_id=admin_id,
+            reason=reason,
+        )
+        if recommendation is not None:
+            vpn_tester_balancer_recommendations_total.labels(status="dismissed").inc()
+        return recommendation
+
     async def cleanup_expired_evidence(self) -> dict[str, Any]:
         removed = await self._repository.cleanup_expired_evidence()
+        if removed:
+            vpn_tester_evidence_cleanup_total.inc(removed)
         return {"removed": removed, "cleaned_at": _utc_now()}
 
     def _plan_contract_checks(self, plan: SubscriptionPlanModel) -> list[dict[str, Any]]:
@@ -364,6 +622,32 @@ class VpnTesterService:
                 details={"server_pool": server_pool, "traffic_policy_keys": sorted((plan.traffic_policy or {}).keys())},
             ),
             _result(
+                check_key="all_tariffs.device_limit",
+                check_name="Device limit is explicit",
+                category="plans",
+                status="pass" if int(plan.device_limit or 0) > 0 else "fail",
+                target=plan_code,
+                safe_summary=(
+                    "Device limit is positive" if int(plan.device_limit or 0) > 0 else "Device limit is missing"
+                ),
+                details={"device_limit": int(plan.device_limit or 0)},
+            ),
+            _result(
+                check_key="all_tariffs.traffic_policy",
+                check_name="Traffic policy is explicit",
+                category="plans",
+                status="pass" if plan.traffic_limit_bytes or (plan.traffic_policy or {}) else "degraded",
+                severity="warning",
+                target=plan_code,
+                safe_summary="Traffic limit or traffic policy is declared"
+                if plan.traffic_limit_bytes or (plan.traffic_policy or {})
+                else "Traffic policy is implicit",
+                details={
+                    "traffic_limit_bytes": plan.traffic_limit_bytes,
+                    "traffic_policy_keys": sorted((plan.traffic_policy or {}).keys()),
+                },
+            ),
+            _result(
                 check_key="all_tariffs.visibility_policy",
                 check_name="Catalog visibility is explicit",
                 category="plans",
@@ -378,7 +662,9 @@ class VpnTesterService:
         ]
         return checks
 
-    def _all_tariffs_results(self, plans: list[SubscriptionPlanModel]) -> list[dict[str, Any]]:
+    def _all_tariffs_results(
+        self, plans: list[SubscriptionPlanModel], route_entries: list[Any]
+    ) -> list[dict[str, Any]]:
         if not plans:
             return [
                 _result(
@@ -393,6 +679,29 @@ class VpnTesterService:
         results: list[dict[str, Any]] = []
         for plan in plans:
             results.extend(self._plan_contract_checks(plan))
+            assignment = expected_remnawave_assignment(plan)
+            if assignment["is_premium_smart_ru"]:
+                configured = bool(assignment["expected_internal_squad_uuid_present"]) and bool(
+                    assignment["expected_external_squad_uuid_present"]
+                )
+                results.append(
+                    _result(
+                        check_key="all_tariffs.remnawave_assignment",
+                        check_name="Tariff Remnawave assignment",
+                        category="plans",
+                        status="pass" if configured else "fail",
+                        target=_plan_code(plan),
+                        safe_summary="Premium Smart RU has internal/external squad assignment intent"
+                        if configured
+                        else "Premium Smart RU Remnawave assignment is incomplete",
+                        details={
+                            "internal_squad_configured": bool(assignment["expected_internal_squad_uuid_present"]),
+                            "external_squad_configured": bool(assignment["expected_external_squad_uuid_present"]),
+                            "template_configured": bool(assignment["expected_subscription_template_name_present"]),
+                        },
+                    )
+                )
+            results.extend(generated_subscription_checks(plan, route_entries))
         return results
 
     async def _contract_results(
@@ -455,12 +764,14 @@ class VpnTesterService:
                 check_key="premium_smart_ru.route_registry",
                 check_name="Premium Smart RU route registry",
                 category="route_registry",
-                status="pass" if route_entries else "fail",
-                safe_summary="Route registry entries are present"
-                if route_entries
-                else "Route registry entries are missing",
+                status="pass" if len(route_entries) >= 40 else "fail",
+                safe_summary="Golden route registry v2 has at least 40 entries"
+                if len(route_entries) >= 40
+                else "Golden route registry v2 is missing required route coverage",
                 details={
                     "route_count": len(route_entries),
+                    "required_route_count": 40,
+                    "registry_key": suite_spec.get("required_route_registry"),
                     "routes": [
                         {
                             "route_key": item.route_key,
@@ -474,9 +785,100 @@ class VpnTesterService:
             )
         )
 
+        mihomo_template = str(suite_spec.get("mihomo_template") or "").strip() or _default_mihomo_template()
+        results.extend(analyze_mihomo_template(mihomo_template, route_entries))
+        for plan in target_plans:
+            results.extend(generated_subscription_checks(plan, route_entries))
         results.append(self._feature_flag_result())
         results.append(await self._remnawave_nodes_result())
         return results
+
+    async def _runtime_results(self, run: VpnTestRunModel, route_entries: list[Any]) -> list[dict[str, Any]]:
+        if not settings.vpn_tester_runtime_enabled:
+            return [
+                _result(
+                    check_key="runtime.enabled",
+                    check_name="Runtime checks enabled",
+                    category="runtime",
+                    status="skipped",
+                    severity="warning",
+                    safe_summary="Runtime checks are disabled by VPN_TESTER_RUNTIME_ENABLED",
+                    details={"runtime_enabled": False, "tun_sandbox": False},
+                )
+            ]
+        if not runtime_agent_configured():
+            vpn_tester_runtime_agent_unavailable_total.labels(reason="not_configured").inc()
+            return [
+                _result(
+                    check_key="runtime.agent.available",
+                    check_name="Runtime agent availability",
+                    category="runtime",
+                    status="degraded",
+                    severity="warning",
+                    safe_summary="Runtime agent is not configured",
+                    details={"agent_configured": False, "tun_sandbox": False},
+                )
+            ]
+        started = perf_counter()
+        try:
+            payload = await call_runtime_agent(
+                run_id=str(run.id),
+                suite_key=run.suite_key,
+                mode=run.mode,
+                route_entries=route_entries,
+            )
+        except HTTPError as exc:
+            vpn_tester_runtime_agent_unavailable_total.labels(reason=type(exc).__name__).inc()
+            return [
+                _result(
+                    check_key="runtime.agent.available",
+                    check_name="Runtime agent availability",
+                    category="runtime",
+                    status="degraded",
+                    severity="warning",
+                    safe_summary="Runtime agent request failed",
+                    details={"error_type": type(exc).__name__, "tun_sandbox": False},
+                    started=started,
+                )
+            ]
+        agent_status = str(payload.get("status") or "degraded")
+        checks = payload.get("checks") if isinstance(payload.get("checks"), list) else []
+        if not checks:
+            checks = [
+                {
+                    "check_key": "runtime.agent.response",
+                    "check_name": "Runtime agent response",
+                    "category": "runtime",
+                    "status": agent_status if agent_status in {"pass", "degraded", "fail", "skipped"} else "degraded",
+                    "severity": "warning",
+                    "target": "runtime-agent",
+                    "safe_summary": str(payload.get("reason") or "Runtime agent returned safe status"),
+                    "details": {
+                        "agent_id": payload.get("agent_id"),
+                        "runtime_mode": payload.get("runtime_mode"),
+                        "tun_sandbox": bool(payload.get("tun_sandbox")),
+                    },
+                    "duration_ms": _elapsed_ms(started),
+                }
+            ]
+        normalized: list[dict[str, Any]] = []
+        for item in checks:
+            if not isinstance(item, dict):
+                continue
+            normalized.append(
+                _result(
+                    check_key=str(item.get("check_key") or "runtime.agent.check"),
+                    check_name=str(item.get("check_name") or "Runtime agent check"),
+                    category="runtime",
+                    status=str(item.get("status") or "degraded"),
+                    severity=str(item.get("severity") or "warning"),
+                    target=str(item.get("target") or "runtime-agent"),
+                    safe_summary=str(item.get("safe_summary") or "Runtime check completed"),
+                    details=dict(item.get("details") or {}),
+                    started=started,
+                )
+            )
+        return normalized or checks
 
     async def _balancer_preview_results(
         self, plans: list[SubscriptionPlanModel], route_entries: list[Any]

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -14,6 +14,7 @@ from src.infrastructure.database.models.vpn_tester_model import (
     VpnBalancerRecommendationModel,
     VpnRouteRegistryEntryModel,
     VpnTestEvidenceArtifactModel,
+    VpnTestReleaseGateOverrideModel,
     VpnTestResultModel,
     VpnTestRunModel,
     VpnTestScheduleModel,
@@ -91,6 +92,9 @@ class VpnTesterRepository:
         schedule.suite_key = str(payload["suite_key"])
         schedule.mode = str(payload.get("mode") or "contract")
         schedule.cron = str(payload["cron"])
+        schedule.schedule_source = str(
+            payload.get("schedule_source") or getattr(schedule, "schedule_source", None) or "seeded"
+        )
         if created:
             schedule.enabled = bool(payload.get("enabled", False))
             schedule.settings = dict(payload.get("settings") or {})
@@ -102,6 +106,12 @@ class VpnTesterRepository:
     async def list_schedules(self) -> list[VpnTestScheduleModel]:
         result = await self._session.execute(select(VpnTestScheduleModel).order_by(VpnTestScheduleModel.schedule_key))
         return list(result.scalars().all())
+
+    async def get_schedule(self, schedule_key: str) -> VpnTestScheduleModel | None:
+        result = await self._session.execute(
+            select(VpnTestScheduleModel).where(VpnTestScheduleModel.schedule_key == schedule_key)
+        )
+        return result.scalars().first()
 
     async def update_schedule(
         self, schedule_key: str, *, enabled: bool, settings: dict | None = None
@@ -118,6 +128,26 @@ class VpnTesterRepository:
         await self._session.flush()
         return schedule
 
+    async def update_schedule_gate_state(
+        self,
+        schedule: VpnTestScheduleModel,
+        *,
+        checked_at: datetime,
+        triggered_at: datetime | None = None,
+        last_run_id: UUID | None = None,
+        last_status: str | None = None,
+        skipped_reason: str | None = None,
+        next_run_at: datetime | None = None,
+    ) -> VpnTestScheduleModel:
+        schedule.last_checked_at = checked_at
+        schedule.last_triggered_at = triggered_at or schedule.last_triggered_at
+        schedule.last_run_id = last_run_id if last_run_id is not None else schedule.last_run_id
+        schedule.last_status = last_status if last_status is not None else schedule.last_status
+        schedule.last_skipped_reason = skipped_reason
+        schedule.next_run_at = next_run_at if next_run_at is not None else schedule.next_run_at
+        await self._session.flush()
+        return schedule
+
     async def create_run(
         self,
         *,
@@ -128,6 +158,9 @@ class VpnTesterRepository:
         requested_by_admin_id: UUID | None,
         idempotency_key: str | None,
         request_context: dict,
+        agent_id: str | None = None,
+        runtime_mode: str | None = None,
+        route_registry_version: str | None = None,
     ) -> VpnTestRunModel:
         if idempotency_key:
             result = await self._session.execute(
@@ -144,6 +177,9 @@ class VpnTesterRepository:
             requested_by_admin_id=requested_by_admin_id,
             idempotency_key=idempotency_key,
             request_context=request_context,
+            agent_id=agent_id,
+            runtime_mode=runtime_mode,
+            route_registry_version=route_registry_version,
             status="queued",
             summary={"queued_for": "task_worker"},
         )
@@ -212,6 +248,7 @@ class VpnTesterRepository:
         run.degraded_count = sum(1 for item in results if item["status"] == "degraded")
         run.status = status
         run.summary = summary
+        run.blocking = status in {"fail", "queued", "running"}
         run.finished_at = datetime.now(UTC)
         await self._session.flush()
         return run
@@ -232,12 +269,16 @@ class VpnTesterRepository:
         )
         return list(result.scalars().all())
 
-    async def get_route_registry(self, suite_key: str) -> list[VpnRouteRegistryEntryModel]:
-        result = await self._session.execute(
-            select(VpnRouteRegistryEntryModel)
-            .where(VpnRouteRegistryEntryModel.suite_key == suite_key, VpnRouteRegistryEntryModel.enabled.is_(True))
-            .order_by(VpnRouteRegistryEntryModel.route_key.asc())
+    async def get_route_registry(
+        self, suite_key: str, registry_key: str | None = None
+    ) -> list[VpnRouteRegistryEntryModel]:
+        stmt = select(VpnRouteRegistryEntryModel).where(
+            VpnRouteRegistryEntryModel.suite_key == suite_key,
+            VpnRouteRegistryEntryModel.enabled.is_(True),
         )
+        if registry_key:
+            stmt = stmt.where(VpnRouteRegistryEntryModel.registry_key == registry_key)
+        result = await self._session.execute(stmt.order_by(VpnRouteRegistryEntryModel.route_key.asc()))
         return list(result.scalars().all())
 
     async def overview_counts(self) -> dict[str, int]:
@@ -260,18 +301,132 @@ class VpnTesterRepository:
         return int(result.rowcount or 0)
 
     async def create_balancer_recommendation(
-        self, run: VpnTestRunModel | None, summary: str, payload: dict
+        self,
+        run: VpnTestRunModel | None,
+        *,
+        recommendation_key: str,
+        recommendation_hash: str,
+        scope: str,
+        summary: str,
+        payload: dict,
+        confidence: float,
     ) -> VpnBalancerRecommendationModel:
-        recommendation = VpnBalancerRecommendationModel(
-            recommendation_key=f"vpn-balancer:{datetime.now(UTC):%Y%m%d%H%M%S%f}",
-            run_id=run.id if run is not None else None,
-            scope="global",
-            status="open",
-            safe_summary=summary,
-            candidate_changes=payload,
-            confidence=0.0,
-            expires_at=datetime.now(UTC) + timedelta(days=7),
+        result = await self._session.execute(
+            select(VpnBalancerRecommendationModel).where(
+                VpnBalancerRecommendationModel.recommendation_hash == recommendation_hash
+            )
         )
-        self._session.add(recommendation)
+        recommendation = result.scalars().first()
+        if recommendation is None:
+            recommendation = VpnBalancerRecommendationModel(
+                recommendation_key=recommendation_key,
+                recommendation_hash=recommendation_hash,
+                run_id=run.id if run is not None else None,
+                scope=scope,
+                status="open",
+                safe_summary=summary,
+                candidate_changes=payload,
+                confidence=confidence,
+                expires_at=datetime.now(UTC) + timedelta(days=7),
+            )
+            self._session.add(recommendation)
+        else:
+            recommendation.run_id = run.id if run is not None else recommendation.run_id
+            recommendation.safe_summary = summary
+            recommendation.candidate_changes = payload
+            recommendation.confidence = confidence
+            recommendation.expires_at = datetime.now(UTC) + timedelta(days=7)
+            if recommendation.status == "expired":
+                recommendation.status = "open"
         await self._session.flush()
         return recommendation
+
+    async def list_balancer_recommendations(
+        self, *, limit: int = 50, include_terminal: bool = False
+    ) -> list[VpnBalancerRecommendationModel]:
+        now = datetime.now(UTC)
+        expired_result = await self._session.execute(
+            select(VpnBalancerRecommendationModel).where(
+                VpnBalancerRecommendationModel.status == "open",
+                VpnBalancerRecommendationModel.expires_at.is_not(None),
+                VpnBalancerRecommendationModel.expires_at < now,
+            )
+        )
+        for expired in expired_result.scalars().all():
+            expired.status = "expired"
+        stmt = select(VpnBalancerRecommendationModel).order_by(VpnBalancerRecommendationModel.updated_at.desc())
+        if not include_terminal:
+            stmt = stmt.where(
+                or_(
+                    VpnBalancerRecommendationModel.status.in_(["open", "acknowledged"]),
+                    VpnBalancerRecommendationModel.expires_at > now,
+                    VpnBalancerRecommendationModel.expires_at.is_(None),
+                )
+            )
+        result = await self._session.execute(stmt.limit(max(1, min(limit, 100))))
+        return list(result.scalars().all())
+
+    async def set_balancer_recommendation_status(
+        self,
+        recommendation_id: UUID,
+        *,
+        status: str,
+        admin_id: UUID,
+        reason: str | None = None,
+    ) -> VpnBalancerRecommendationModel | None:
+        result = await self._session.execute(
+            select(VpnBalancerRecommendationModel).where(VpnBalancerRecommendationModel.id == recommendation_id)
+        )
+        recommendation = result.scalars().first()
+        if recommendation is None:
+            return None
+        now = datetime.now(UTC)
+        recommendation.status = status
+        if status == "acknowledged":
+            recommendation.acknowledged_by_admin_id = admin_id
+            recommendation.acknowledged_at = now
+        elif status == "dismissed":
+            recommendation.dismissed_by_admin_id = admin_id
+            recommendation.dismissed_at = now
+            recommendation.dismissed_reason = reason
+        elif status == "applied_manually":
+            recommendation.applied_manually_by_admin_id = admin_id
+            recommendation.applied_manually_at = now
+        await self._session.flush()
+        return recommendation
+
+    async def get_active_release_gate_override(
+        self, now: datetime | None = None
+    ) -> VpnTestReleaseGateOverrideModel | None:
+        now = now or datetime.now(UTC)
+        result = await self._session.execute(
+            select(VpnTestReleaseGateOverrideModel)
+            .where(VpnTestReleaseGateOverrideModel.expires_at > now)
+            .order_by(VpnTestReleaseGateOverrideModel.created_at.desc())
+            .limit(1)
+        )
+        return result.scalars().first()
+
+    async def create_release_gate_override(
+        self,
+        *,
+        latest_run_id: UUID | None,
+        overridden_by_admin_id: UUID,
+        previous_status: str,
+        previous_blocking: bool,
+        reason: str,
+        expires_at: datetime,
+        request_context: dict,
+    ) -> VpnTestReleaseGateOverrideModel:
+        override = VpnTestReleaseGateOverrideModel(
+            latest_run_id=latest_run_id,
+            overridden_by_admin_id=overridden_by_admin_id,
+            previous_status=previous_status,
+            previous_blocking=previous_blocking,
+            reason=reason,
+            expires_at=expires_at,
+            request_context=request_context,
+        )
+        self._session.add(override)
+        await self._session.flush()
+        return override

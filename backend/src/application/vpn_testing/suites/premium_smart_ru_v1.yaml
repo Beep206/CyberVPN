@@ -8,7 +8,7 @@
   "required_connection_modes": ["xhttp"],
   "required_server_pool": ["ru", "premium_smart_ru"],
   "forbidden_modes": ["tun", "amnezia", "helix"],
-  "required_route_registry": "premium_smart_ru_v1",
+  "required_route_registry": "premium_smart_ru_v2",
   "checks": [
     {"key": "suite.dsl.valid", "category": "static", "severity": "error"},
     {"key": "premium_smart_ru.plan.exists", "category": "plans", "severity": "error"},

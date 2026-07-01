@@ -106,6 +106,9 @@ class Settings(BaseSettings):
     vpn_tester_scheduled_enabled: bool = False
     vpn_tester_balancer_recommendations_enabled: bool = False
     vpn_tester_retention_days: int = 30
+    vpn_test_agent_url: str = ""
+    vpn_test_agent_secret: SecretStr | None = None
+    vpn_test_agent_timeout_seconds: int = 20
     stage1_trial_provisioning_enabled: bool = False
     stage1_paid_provisioning_enabled: bool = False
     stage1_provisioning_retry_claiming_enabled: bool = False

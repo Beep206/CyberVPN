@@ -60,6 +60,10 @@ class VpnTestRunModel(Base):
     idempotency_key: Mapped[str | None] = mapped_column(String(160), nullable=True)
     request_context: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     summary: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    agent_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    runtime_mode: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    route_registry_version: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    blocking: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     pass_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     fail_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     degraded_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -162,6 +166,10 @@ class VpnTestScheduleModel(Base):
         nullable=True,
     )
     last_status: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    last_skipped_reason: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_triggered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    schedule_source: Mapped[str] = mapped_column(String(40), nullable=False, default="seeded")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -201,11 +209,14 @@ class VpnBalancerRecommendationModel(Base):
     __tablename__ = "vpn_balancer_recommendations"
     __table_args__ = (
         UniqueConstraint("recommendation_key", name="uq_vpn_balancer_recommendation_key"),
+        UniqueConstraint("recommendation_hash", name="uq_vpn_balancer_recommendation_hash"),
         Index("ix_vpn_balancer_recommendations_status_created", "status", "created_at"),
+        Index("ix_vpn_balancer_recommendations_scope_status", "scope", "status"),
     )
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
     recommendation_key: Mapped[str] = mapped_column(String(140), nullable=False)
+    recommendation_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     run_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),
         ForeignKey("vpn_test_runs.id", ondelete="SET NULL"),
@@ -217,6 +228,25 @@ class VpnBalancerRecommendationModel(Base):
     safe_summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
     candidate_changes: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    acknowledged_by_admin_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("admin_users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    dismissed_by_admin_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("admin_users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    dismissed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    dismissed_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    applied_manually_by_admin_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("admin_users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    applied_manually_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
@@ -225,3 +255,31 @@ class VpnBalancerRecommendationModel(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+
+class VpnTestReleaseGateOverrideModel(Base):
+    __tablename__ = "vpn_test_release_gate_overrides"
+    __table_args__ = (
+        Index("ix_vpn_test_release_gate_overrides_expires", "expires_at"),
+        Index("ix_vpn_test_release_gate_overrides_created", "created_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    latest_run_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("vpn_test_runs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    overridden_by_admin_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("admin_users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    previous_status: Mapped[str] = mapped_column(String(40), nullable=False)
+    previous_blocking: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    request_context: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

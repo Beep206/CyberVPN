@@ -146,6 +146,24 @@ GDPR_PURGE_RELATED_RECORDS = Counter(
     ["record_type"],
 )
 
+VPN_TESTER_WORKER_SCHEDULE_GATE_TOTAL = Counter(
+    "cybervpn_vpn_tester_worker_schedule_gate_total",
+    "Task-worker VPN Tester schedule gate calls by schedule key and result",
+    ["schedule_key", "result"],
+)
+
+VPN_TESTER_WORKER_QUEUE_RUNS_TOTAL = Counter(
+    "cybervpn_vpn_tester_worker_queue_runs_total",
+    "Task-worker VPN Tester queued execution outcomes",
+    ["result"],
+)
+
+VPN_TESTER_WORKER_LOCK_SKIPS_TOTAL = Counter(
+    "cybervpn_vpn_tester_worker_lock_skips_total",
+    "Task-worker VPN Tester Redis lock skip count",
+    ["task_key"],
+)
+
 # OTP Email metrics (for Grafana monitoring per PRD requirements)
 OTP_EMAILS_SENT = Counter(
     "cybervpn_otp_emails_sent_total",

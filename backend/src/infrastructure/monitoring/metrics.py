@@ -263,6 +263,48 @@ auth_active_sessions_client_app_total = Gauge(
     ["client_app"],
 )
 
+# VPN Tester AAA+ metrics.
+vpn_tester_runs_total = Counter(
+    "cybervpn_vpn_tester_runs_total",
+    "Total VPN Tester runs by mode, trigger and status",
+    ["mode", "trigger", "status"],
+)
+
+vpn_tester_run_duration_seconds = Histogram(
+    "cybervpn_vpn_tester_run_duration_seconds",
+    "VPN Tester run execution duration",
+    ["mode"],
+    buckets=(0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 180.0),
+)
+
+vpn_tester_release_gate_blocking = Gauge(
+    "cybervpn_vpn_tester_release_gate_blocking",
+    "Whether the VPN Tester release gate is currently blocking",
+)
+
+vpn_tester_schedule_runs_total = Counter(
+    "cybervpn_vpn_tester_schedule_runs_total",
+    "Total VPN Tester schedule gate outcomes",
+    ["schedule_key", "result"],
+)
+
+vpn_tester_runtime_agent_unavailable_total = Counter(
+    "cybervpn_vpn_tester_runtime_agent_unavailable_total",
+    "Total VPN Tester runtime attempts where the runtime agent was unavailable",
+    ["reason"],
+)
+
+vpn_tester_balancer_recommendations_total = Counter(
+    "cybervpn_vpn_tester_balancer_recommendations_total",
+    "Total VPN balancer recommendation lifecycle events",
+    ["status"],
+)
+
+vpn_tester_evidence_cleanup_total = Counter(
+    "cybervpn_vpn_tester_evidence_cleanup_total",
+    "Total VPN Tester evidence artifacts cleaned up",
+)
+
 auth_mobile_devices_total = Gauge(
     "auth_mobile_devices_total",
     "Current number of registered and recently active mobile devices by platform",
