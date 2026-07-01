@@ -4335,6 +4335,7 @@
         "generic": "Code could not be applied.",
         "inactive": "Code is inactive.",
         "inviteSelfRedemption": "You cannot redeem your own invite code.",
+        "namespaceAmbiguous": "This code matches more than one code type. Use the right surface or contact support.",
         "notEligibleForSku": "This code does not apply to the selected checkout basket.",
         "notEligibleForSurface": "This code is not available on the current surface.",
         "notFound": "Code not found.",

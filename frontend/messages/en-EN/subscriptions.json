@@ -337,6 +337,7 @@
       "inviteSelfRedemption": "You cannot redeem your own invite code.",
       "notEligibleForSku": "This code does not apply to the selected checkout basket.",
       "notEligibleForSurface": "This code is not available on the current surface.",
+      "namespaceAmbiguous": "This code matches more than one code type. Use the right surface or contact support.",
       "blockedByRisk": "This code needs additional verification before it can be used.",
       "requiresAuth": "Sign in again to use this code.",
       "generic": "Code could not be applied."
