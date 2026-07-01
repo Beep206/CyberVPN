@@ -5,8 +5,8 @@ import type {
   MouseEvent,
   ReactNode,
 } from 'react';
-import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { defaultLocale, locales } from '@/i18n/config';
 import { toLocalizedPath } from '@/shared/lib/seo-route-policy';
 
@@ -69,7 +69,7 @@ export function NativeCabinetLink({
     }
 
     try {
-      router.push(localizedHref);
+      router.push(href);
     } catch {
       window.location.assign(targetHref);
     }

@@ -9,15 +9,6 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    back: vi.fn(),
-    prefetch: vi.fn(),
-  }),
-}));
-
 vi.mock('@/shared/ui/atoms/cypher-text', () => ({
   CypherText: ({ text, className }: { text: string; className?: string }) => (
     <span data-testid="cypher-text" className={className}>
@@ -50,6 +41,12 @@ const clientCapabilitiesMock = vi.hoisted(() => ({
 }));
 
 vi.mock('@/i18n/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    prefetch: vi.fn(),
+  }),
   usePathname: () => mockUsePathname(),
   Link: ({
     children,

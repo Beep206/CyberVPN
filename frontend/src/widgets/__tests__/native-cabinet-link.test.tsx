@@ -8,7 +8,7 @@ vi.mock('next-intl', () => ({
   useLocale: () => 'ru-RU',
 }));
 
-vi.mock('next/navigation', () => ({
+vi.mock('@/i18n/navigation', () => ({
   useRouter: () => ({
     push: routerPushMock,
   }),
@@ -41,7 +41,7 @@ describe('NativeCabinetLink', () => {
     fireEvent(link, event);
 
     expect(event.defaultPrevented).toBe(true);
-    expect(routerPushMock).toHaveBeenCalledWith('/ru-RU/wallet');
+    expect(routerPushMock).toHaveBeenCalledWith('/wallet');
     expect(setTimeoutSpy).not.toHaveBeenCalled();
   });
 
