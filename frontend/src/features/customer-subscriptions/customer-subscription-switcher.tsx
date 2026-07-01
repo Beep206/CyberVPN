@@ -41,7 +41,7 @@ function getCopy(locale: string): SwitcherCopy {
 
 function formatSubscriptionLabel(subscription: CustomerSubscriptionSummary): string {
   const trafficLabel =
-    typeof subscription.effective_entitlements.display_traffic_label === 'string'
+    typeof subscription.effective_entitlements?.display_traffic_label === 'string'
       ? subscription.effective_entitlements.display_traffic_label
       : null;
 

@@ -116,6 +116,28 @@ describe('CustomerSubscriptionSwitcher', () => {
     expect(contextMock.setSelectedSubscriptionKey).toHaveBeenCalledWith('trial:trial-1');
   });
 
+  it('keeps subscription navigation shell mounted when entitlements are degraded', () => {
+    contextMock.selectedSubscription = subscription({
+      effective_entitlements:
+        undefined as unknown as CustomerSubscriptionSummary['effective_entitlements'],
+    });
+    contextMock.subscriptions = [contextMock.selectedSubscription];
+
+    render(<CustomerSubscriptionSwitcher />);
+
+    expect(
+      screen.getByRole('combobox', { name: 'Subscription selector' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {
+        name: 'Pro Plan / 2026-05-18',
+      }),
+    ).toHaveValue('grant:pro');
+    expect(
+      screen.getAllByText(/Pro Plan \/ 2026-05-18/i).length,
+    ).toBeGreaterThan(0);
+  });
+
   it('explains account-scoped subscriptions while keeping status visible', () => {
     contextMock.limitations = ['account_scoped_config'];
     contextMock.selectedSubscription = subscription({
