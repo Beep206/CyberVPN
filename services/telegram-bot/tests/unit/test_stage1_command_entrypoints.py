@@ -95,7 +95,7 @@ async def test_start_command_registers_user_and_shows_s1_onboarding_menu(mock_se
     callbacks = _callback_data(message.answer.await_args.kwargs["reply_markup"])
     assert {"trial:activate", "menu:vpn", "menu:subscription", "menu:growth", "menu:support"}.issubset(callbacks)
     assert "miniapp:unavailable" not in callbacks
-    assert _web_app_urls(message.answer.await_args.kwargs["reply_markup"]) == ["https://cyber-vpn.net/ru-RU/miniapp"]
+    assert _web_app_urls(message.answer.await_args.kwargs["reply_markup"]) == ["https://cyber-vpn.net/ru-RU/miniapp/home"]
 
 
 @pytest.mark.asyncio

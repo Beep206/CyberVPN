@@ -88,7 +88,7 @@ def test_main_menu_exposes_unified_cabinet_items_and_admin_gate(mock_settings) -
         "menu:support",
         "admin:menu",
     }.issubset(callbacks)
-    assert _web_app_urls(keyboard) == ["https://cyber-vpn.net/ru-RU/miniapp"]
+    assert _web_app_urls(keyboard) == ["https://cyber-vpn.net/ru-RU/miniapp/home"]
 
 
 def test_growth_keyboard_hides_disabled_capabilities(mock_settings) -> None:

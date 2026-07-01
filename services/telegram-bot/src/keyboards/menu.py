@@ -53,7 +53,7 @@ def main_menu_kb(
     builder.button(text=i18n("btn-rewards"), callback_data="menu:growth")
     builder.button(text=i18n("btn-profile"), callback_data="account:profile")
     builder.button(text=i18n("btn-support"), callback_data="menu:support")
-    builder.row(miniapp_button(i18n, settings))
+    builder.row(miniapp_button(i18n, settings, path="home"))
 
     if not has_active_subscription and user.status in {"none", "NONE", UserStatus.NONE}:
         builder.button(text=i18n("btn-trial"), callback_data="trial:activate")

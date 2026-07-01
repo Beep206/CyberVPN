@@ -42,7 +42,7 @@ def test_stage1_menu_button_supports_miniapp_when_url_is_configured(mock_setting
     menu_button = build_stage1_menu_button(settings)
 
     assert isinstance(menu_button, MenuButtonWebApp)
-    assert menu_button.web_app.url == "https://cyber-vpn.net/ru-RU/miniapp"
+    assert menu_button.web_app.url == "https://cyber-vpn.net/ru-RU/miniapp/home"
 
 
 def test_stage1_menu_button_rejects_miniapp_without_url(mock_settings: BotSettings) -> None:

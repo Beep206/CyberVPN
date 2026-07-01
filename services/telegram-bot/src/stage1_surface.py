@@ -14,6 +14,8 @@ from aiogram.types import (
     WebAppInfo,
 )
 
+from src.keyboards.miniapp import build_miniapp_url
+
 if TYPE_CHECKING:
     from aiogram import Bot
 
@@ -44,14 +46,15 @@ def build_stage1_public_commands() -> list[BotCommand]:
 def build_stage1_menu_button(settings: BotSettings) -> MenuButtonCommands | MenuButtonDefault | MenuButtonWebApp:
     """Build the S1 default Telegram menu button from settings."""
     if settings.bot_menu_button == "miniapp":
-        if settings.miniapp_url is None:
+        miniapp_home_url = build_miniapp_url(settings, "home")
+        if miniapp_home_url is None:
             raise ValueError("TELEGRAM_MINIAPP_URL is required for the miniapp menu button")
-        parsed = urlparse(str(settings.miniapp_url))
+        parsed = urlparse(miniapp_home_url)
         if parsed.scheme != "https" or "/miniapp" not in parsed.path:
             raise ValueError("TELEGRAM_MINIAPP_URL must be the HTTPS canonical Mini App route")
         return MenuButtonWebApp(
             text="Open CyberVPN",
-            web_app=WebAppInfo(url=str(settings.miniapp_url)),
+            web_app=WebAppInfo(url=miniapp_home_url),
         )
 
     if settings.bot_menu_button == "default":

@@ -167,8 +167,8 @@ export function TelegramMiniAppAuthProvider({
         };
     }, []);
 
-    const invalidateMiniAppQueries = useCallback(() => {
-        void queryClient.invalidateQueries({
+    const refreshMiniAppQueriesAfterAuthRecovery = useCallback(async () => {
+        await queryClient.resetQueries({
             predicate: (query) => {
                 const [queryKey] = query.queryKey;
                 return typeof queryKey === 'string' && queryKey.startsWith('miniapp-');
@@ -252,12 +252,12 @@ export function TelegramMiniAppAuthProvider({
         await fetchUser();
         if (useAuthStore.getState().isAuthenticated) {
             setAuthError(null);
-            invalidateMiniAppQueries();
+            await refreshMiniAppQueriesAfterAuthRecovery();
             await routeMiniAppOnboardingIfNeeded();
             return true;
         }
         return false;
-    }, [fetchUser, invalidateMiniAppQueries, routeMiniAppOnboardingIfNeeded]);
+    }, [fetchUser, refreshMiniAppQueriesAfterAuthRecovery, routeMiniAppOnboardingIfNeeded]);
 
     const authenticateMiniApp = useCallback(async () => {
         if (authInFlight.current) {
@@ -292,7 +292,7 @@ export function TelegramMiniAppAuthProvider({
                     setAuthError(t('miniAppTwoFactorUnsupported'));
                     return;
                 }
-                invalidateMiniAppQueries();
+                await refreshMiniAppQueriesAfterAuthRecovery();
                 let onboarding = result.onboarding ?? null;
                 if (onboarding === null) {
                     const lookup = await resolveMiniAppOnboardingFromCurrentState();
@@ -337,9 +337,9 @@ export function TelegramMiniAppAuthProvider({
             }
         }
     }, [
-        invalidateMiniAppQueries,
         locale,
         pathname,
+        refreshMiniAppQueriesAfterAuthRecovery,
         resolveMiniAppOnboardingFromCurrentState,
         restoreMiniAppSession,
         router,
