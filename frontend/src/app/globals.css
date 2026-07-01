@@ -568,6 +568,15 @@ body {
       oklch(0 0 0 / 0.03) 4px);
 }
 
+[data-cy-overlay='decorative'] {
+  pointer-events: none !important;
+}
+
+[data-cy-overlay='dashboard-globe'],
+[data-cy-overlay='dashboard-globe'] * {
+  pointer-events: none !important;
+}
+
 /* 3D Transforms */
 .transform-3d {
   transform-style: preserve-3d;

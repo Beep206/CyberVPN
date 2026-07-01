@@ -1,15 +1,18 @@
 export function injectTwaMock() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return () => {};
+
+    const originalTelegram = (window as any).Telegram;
+    let didInject = false;
 
     try {
         const saved = localStorage.getItem('DEV_TWA_MOCK');
-        if (!saved) return;
+        if (!saved) return () => {};
         
         const config = JSON.parse(saved);
-        if (!config.enabled) return;
+        if (!config.enabled) return () => {};
 
         // Skip if we are actually inside Telegram
-        if ((window as any).Telegram?.WebApp?.initData) return;
+        if ((window as any).Telegram?.WebApp?.initData) return () => {};
 
         console.log('[Dev Tools] Injecting TWA Mock Context...');
 
@@ -61,7 +64,17 @@ export function injectTwaMock() {
                 close: () => {},
             }
         };
+        didInject = true;
     } catch {
         // ignore errors
     }
+
+    return () => {
+        if (!didInject) return;
+        if (originalTelegram === undefined) {
+            delete (window as any).Telegram;
+            return;
+        }
+        (window as any).Telegram = originalTelegram;
+    };
 }

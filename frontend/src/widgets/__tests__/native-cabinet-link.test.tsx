@@ -4,12 +4,14 @@ import type { MouseEventHandler, ReactNode } from 'react';
 import { NativeCabinetLink } from '../native-cabinet-link';
 
 const linkNavigateMock = vi.hoisted(() => vi.fn());
+const mockUsePathname = vi.hoisted(() => vi.fn(() => '/ru-RU/dashboard'));
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'ru-RU',
 }));
 
 vi.mock('@/i18n/navigation', () => ({
+  usePathname: () => mockUsePathname(),
   Link: ({
     children,
     href,
@@ -55,8 +57,14 @@ vi.mock('@/i18n/navigation', () => ({
 
 describe('NativeCabinetLink', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     linkNavigateMock.mockClear();
+    vi.mocked(window.location.assign).mockClear();
+    mockUsePathname.mockReturnValue('/ru-RU/dashboard');
+    window.location.href = 'http://localhost:3000';
+    window.location.pathname = '/';
+    delete process.env.NEXT_PUBLIC_SAFE_CABINET_LINK_FALLBACK;
   });
 
   it('renders a localized native cabinet href', () => {
@@ -82,6 +90,26 @@ describe('NativeCabinetLink', () => {
     expect(event.defaultPrevented).toBe(true);
     expect(linkNavigateMock).toHaveBeenCalledWith('/wallet');
     expect(setTimeoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('falls back to document navigation only when explicitly enabled and the path stalls', () => {
+    vi.useFakeTimers();
+    process.env.NEXT_PUBLIC_SAFE_CABINET_LINK_FALLBACK = 'true';
+    window.location.href = 'http://localhost:3000/ru-RU/dashboard';
+    window.location.pathname = '/ru-RU/dashboard';
+
+    render(<NativeCabinetLink href="/wallet">Wallet</NativeCabinetLink>);
+
+    fireEvent.click(screen.getByRole('link', { name: 'Wallet' }), {
+      button: 0,
+    });
+    vi.advanceTimersByTime(399);
+    expect(window.location.assign).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    expect(window.location.assign).toHaveBeenCalledWith(
+      'http://localhost:3000/ru-RU/wallet',
+    );
   });
 
   it('keeps modified clicks native without SPA interception or fallback', () => {

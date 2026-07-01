@@ -2,6 +2,7 @@
 
 import type { ComponentProps, ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
+import { SafeCabinetLink } from '@/widgets/safe-cabinet-link';
 
 type NativeCabinetLinkProps = Omit<ComponentProps<typeof Link>, 'href'> & {
   children: ReactNode;
@@ -14,8 +15,8 @@ export function NativeCabinetLink({
   ...props
 }: NativeCabinetLinkProps) {
   return (
-    <Link href={href} {...props}>
+    <SafeCabinetLink href={href} {...props}>
       {children}
-    </Link>
+    </SafeCabinetLink>
   );
 }

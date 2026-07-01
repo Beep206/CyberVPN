@@ -146,6 +146,14 @@ describe('CyberSidebar', () => {
       'href',
       '/ru-RU/rewards/gifts',
     );
+    expect(screen.getByRole('link', { name: 'items.invites' })).toHaveAttribute(
+      'href',
+      '/ru-RU/rewards/invites',
+    );
+    expect(screen.getByRole('link', { name: 'items.codes' })).toHaveAttribute(
+      'href',
+      '/ru-RU/rewards/codes',
+    );
   });
 
   it('stays hidden on mobile and fixed on desktop', () => {

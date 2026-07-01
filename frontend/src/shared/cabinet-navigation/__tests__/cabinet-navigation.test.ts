@@ -76,6 +76,25 @@ describe('cabinet navigation foundation', () => {
     expect(growth?.items.every((item) => item.disabled)).toBe(true);
   });
 
+  it('keeps the web cabinet inventory suitable for both desktop and mobile sidebars', () => {
+    const webCabinetRoutes = getWebCabinetNavigationSections({
+      capabilities: ALL_GROWTH_CAPABILITIES,
+    })
+      .flatMap((section) => section.items)
+      .map((item) => item.href);
+    const disabledGrowthRoutes = getWebCabinetNavigationSections({
+      capabilities: DISABLED_GROWTH_CAPABILITIES,
+    })
+      .flatMap((section) => section.items)
+      .map((item) => item.href);
+
+    expect(webCabinetRoutes).toContain('/rewards/invites');
+    expect(webCabinetRoutes).toContain('/rewards/codes');
+    expect(webCabinetRoutes).not.toContain('/referral');
+    expect(disabledGrowthRoutes).not.toContain('/rewards/invites');
+    expect(disabledGrowthRoutes).not.toContain('/rewards/codes');
+  });
+
   it('maps growth capabilities to reward subsections without exposing unavailable features', () => {
     const partialCapabilities = {
       growth: {

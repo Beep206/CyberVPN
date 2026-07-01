@@ -1,4 +1,5 @@
 import type { SoftwareApplication } from 'schema-dts';
+import { NavigationDebugProvider } from '@/app/providers/navigation-debug-provider';
 import { QueryProvider } from '@/app/providers/query-provider';
 import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { DASHBOARD_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
@@ -60,6 +61,7 @@ export default async function DashboardLayout({
             />
 
             <div className="flex min-h-dvh w-full bg-terminal-bg text-foreground">
+              <NavigationDebugProvider />
               <a
                 href="#main-content"
                 className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-neon-cyan focus:text-black focus:px-4 focus:py-2 focus:rounded-sm focus:font-mono focus:text-sm"

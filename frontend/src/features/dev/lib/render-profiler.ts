@@ -26,6 +26,11 @@ class RenderProfiler {
         }
     }
 
+    stop() {
+        this.isFlashing = false;
+        this.disableObserver();
+    }
+
     private enableObserver() {
         if (typeof window === 'undefined' || this.observer) return;
         

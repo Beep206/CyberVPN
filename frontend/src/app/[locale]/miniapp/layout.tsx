@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 import { MiniAppBottomNav } from './components/MiniAppBottomNav';
 import { MiniAppSubscriptionSwitcher } from './components/MiniAppSubscriptionSwitcher';
+import { TelegramWebAppScript } from './components/TelegramWebAppScript';
 
 export async function generateMetadata({
   params,
@@ -37,6 +38,7 @@ export default async function MiniAppLayout({
 
   return (
     <ScopedIntlProvider locale={locale} namespaces={MINI_APP_CLIENT_NAMESPACES}>
+      <TelegramWebAppScript />
       <QueryProvider>
         <TelegramMiniAppAuthProvider>
           <CustomerSubscriptionProvider>

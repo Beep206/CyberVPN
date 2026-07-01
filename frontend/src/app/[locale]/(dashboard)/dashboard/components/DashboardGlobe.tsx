@@ -70,6 +70,7 @@ export function DashboardGlobe() {
     <>
       <div
         aria-hidden="true"
+        data-cy-overlay="dashboard-globe"
         data-visual-tier={visualTier}
         className="fixed inset-0 z-0 pointer-events-none md:pl-64"
       >
@@ -84,6 +85,7 @@ export function DashboardGlobe() {
 
       <div
         aria-hidden="true"
+        data-cy-overlay="decorative"
         className={
           visualTier === 'full'
             ? 'fixed inset-0 z-0 pointer-events-none bg-gradient-to-br from-terminal-bg/90 via-terminal-bg/80 to-terminal-bg/40 md:pl-64'

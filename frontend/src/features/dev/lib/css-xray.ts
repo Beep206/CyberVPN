@@ -24,6 +24,11 @@ class CssXRay {
         }
     }
 
+    stop() {
+        this.isActive = false;
+        this.removeStyles();
+    }
+
     private applyStyles() {
         if (typeof document === 'undefined') return;
         const id = 'dev-css-xray-styles';

@@ -9,7 +9,14 @@ import { injectTwaMock } from '@/features/dev/lib/twa-mock';
 
 export function DevToolsBootstrap() {
   useEffect(() => {
-    injectTwaMock();
+    if (
+      process.env.NODE_ENV !== 'development' ||
+      process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED !== 'true'
+    ) {
+      return undefined;
+    }
+
+    const restoreTwaMock = injectTwaMock();
     consoleInterceptor.start();
     networkLogger.start();
     renderProfiler.start();
@@ -53,8 +60,11 @@ export function DevToolsBootstrap() {
     }
 
     return () => {
+      restoreTwaMock();
       consoleInterceptor.stop();
       networkLogger.stop();
+      renderProfiler.stop();
+      cssXRay.stop();
     };
   }, []);
 

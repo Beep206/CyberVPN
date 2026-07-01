@@ -20,7 +20,9 @@ import { SkipNavLink } from '@/shared/ui/atoms/skip-nav-link';
 import '../globals.css';
 
 const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevToolsEnabled =
+  process.env.NODE_ENV === 'development' &&
+  process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED === 'true';
 
 export function generateStaticParams() {
   return getStaticParamsLocales().map((locale) => ({ locale }));
@@ -75,16 +77,16 @@ export default async function RootLayout({
             <AuthSessionBootstrap />
             <ReferralAttributionProvider />
             <PartnerAttributionProvider />
-            <Script
-              src="https://telegram.org/js/telegram-web-app.js"
-              strategy="beforeInteractive"
-            />
             <SkipNavLink label={t('skipToMainContent')} />
             <div className="relative z-10 min-h-full w-full">{children}</div>
-            <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
+            <div
+              aria-hidden="true"
+              data-cy-overlay="decorative"
+              className="pointer-events-none fixed inset-0 z-50 scanline opacity-20"
+            />
 
             <AnalyticsReporters />
-            {isDevelopment ? (
+            {isDevToolsEnabled ? (
               <DevTools
                 closeButtonLabel={t('closeDeveloperTools')}
                 openButtonLabel={t('openDeveloperTools')}

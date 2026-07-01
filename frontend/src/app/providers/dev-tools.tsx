@@ -4,7 +4,10 @@ type DevToolsProps = {
 };
 
 export async function DevTools({ closeButtonLabel, openButtonLabel }: DevToolsProps) {
-  if (process.env.NODE_ENV !== 'development') {
+  if (
+    process.env.NODE_ENV !== 'development' ||
+    process.env.NEXT_PUBLIC_DEV_TOOLS_ENABLED !== 'true'
+  ) {
     return null;
   }
 

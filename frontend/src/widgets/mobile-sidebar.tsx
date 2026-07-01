@@ -16,7 +16,8 @@ import {
 } from '@/features/client-capabilities/useClientCapabilities';
 import {
   DASHBOARD_NAV_LABEL_FALLBACKS,
-  getDashboardNavItems,
+  getCabinetNavigationLabelFallback,
+  getWebCabinetNavigationSections,
 } from '@/widgets/dashboard-navigation';
 import { NativeCabinetLink } from '@/widgets/native-cabinet-link';
 
@@ -32,14 +33,16 @@ export function MobileSidebar() {
   const { data: capabilities } = useClientCapabilities();
   const portalContainer =
     typeof document === 'undefined' ? null : document.body;
-  const navItems = getDashboardNavItems({
+  const navSections = getWebCabinetNavigationSections({
+    capabilities,
     growthVisible: isAnyGrowthSurfaceEnabled(capabilities),
   });
-  const labelFor = (key: keyof typeof DASHBOARD_NAV_LABEL_FALLBACKS) => {
+  const navItems = navSections.flatMap((section) => section.items);
+  const labelFor = (key: keyof typeof DASHBOARD_NAV_LABEL_FALLBACKS | string) => {
     try {
       return t(key);
     } catch {
-      return DASHBOARD_NAV_LABEL_FALLBACKS[key];
+      return getCabinetNavigationLabelFallback(key);
     }
   };
 
@@ -120,6 +123,7 @@ export function MobileSidebar() {
               {isOpen && (
                 <>
                   <motion.div
+                    data-cy-overlay="mobile-sidebar-backdrop"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -163,13 +167,13 @@ export function MobileSidebar() {
                         className="grid gap-2"
                       >
                         {navItems.map((item) => {
-                          const isActive = pathname?.includes(item.href);
+                          const isActive = item.match(pathname);
                           const Icon = item.icon;
                           const label = labelFor(item.labelKey);
 
                           return (
                             <NativeCabinetLink
-                              key={item.href}
+                              key={item.id}
                               href={item.href}
                               onClick={() => setIsOpen(false)}
                               aria-label={label}
