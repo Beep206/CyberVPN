@@ -237,7 +237,7 @@ async def _handle_start(
 
         await message.answer(
             i18n.get("telegram-auth-link-success"),
-            reply_markup=main_menu_keyboard(i18n),
+            reply_markup=main_menu_keyboard(i18n, settings=settings),
         )
         logger.info("start_command_completed", user_id=user_id, flow="magic_link_auth")
         return
@@ -366,7 +366,7 @@ async def _handle_start(
 
     await message.answer(
         text=welcome_text,
-        reply_markup=main_menu_keyboard(i18n),
+        reply_markup=main_menu_keyboard(i18n, settings=settings),
     )
 
     if direct_offer and state is not None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -45,9 +46,26 @@ def _callback_data(reply_markup: object) -> set[str]:
     }
 
 
+def _web_app_urls(reply_markup: object) -> list[str]:
+    keyboard = getattr(reply_markup, "inline_keyboard", [])
+    return [
+        str(button.web_app.url)
+        for row in keyboard
+        for button in row
+        if getattr(button, "web_app", None) is not None
+    ]
+
+
+def _clone_settings(settings: Any, **overrides: object):
+    data = settings.model_dump()
+    data.update(overrides)
+    return settings.__class__(**data)
+
+
 @pytest.mark.asyncio
-async def test_start_command_registers_user_and_shows_s1_onboarding_menu() -> None:
+async def test_start_command_registers_user_and_shows_s1_onboarding_menu(mock_settings) -> None:
     message = _message()
+    settings = _clone_settings(mock_settings, miniapp_url="https://cyber-vpn.net/ru-RU/miniapp")
     api_client = SimpleNamespace(
         register_user=AsyncMock(
             return_value={
@@ -67,6 +85,7 @@ async def test_start_command_registers_user_and_shows_s1_onboarding_menu() -> No
         _I18nStub(),
         api_client,
         state,
+        settings=settings,
     )
 
     api_client.register_user.assert_awaited_once()
@@ -75,6 +94,8 @@ async def test_start_command_registers_user_and_shows_s1_onboarding_menu() -> No
     assert message.answer.await_args.kwargs["text"].startswith("welcome-message")
     callbacks = _callback_data(message.answer.await_args.kwargs["reply_markup"])
     assert {"trial:activate", "menu:vpn", "menu:subscription", "menu:growth", "menu:support"}.issubset(callbacks)
+    assert "miniapp:unavailable" not in callbacks
+    assert _web_app_urls(message.answer.await_args.kwargs["reply_markup"]) == ["https://cyber-vpn.net/ru-RU/miniapp"]
 
 
 @pytest.mark.asyncio

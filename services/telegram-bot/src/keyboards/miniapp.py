@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit, urlunsplit
 
 from aiogram.types import InlineKeyboardButton, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -15,16 +16,31 @@ if TYPE_CHECKING:
     from src.config import BotSettings
 
 
+def _canonical_miniapp_base(raw_url: str) -> str:
+    parsed = urlsplit(raw_url)
+    path_parts = [part for part in parsed.path.split("/") if part]
+    try:
+        miniapp_index = path_parts.index("miniapp")
+    except ValueError:
+        path = parsed.path.rstrip("/") or "/"
+    else:
+        path = "/" + "/".join(path_parts[: miniapp_index + 1])
+    return urlunsplit((parsed.scheme, parsed.netloc, path, "", "")).rstrip("/")
+
+
 def build_miniapp_url(settings: BotSettings | None, path: str = "") -> str | None:
     """Build a Mini App URL for a nested Mini App path.
 
     ``settings.miniapp_url`` is expected to point at the Mini App root, for
-    example ``https://example.com/ru-RU/miniapp``.
+    example ``https://example.com/ru-RU/miniapp``. Production config has
+    historically used concrete pages with cache-busting query params, so the
+    builder normalizes the value back to the Mini App root before appending
+    nested paths.
     """
     if settings is None or settings.miniapp_url is None:
         return None
 
-    base = str(settings.miniapp_url).rstrip("/")
+    base = _canonical_miniapp_base(str(settings.miniapp_url))
     suffix = path.strip("/")
     if not suffix:
         return base

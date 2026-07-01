@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.keyboards.miniapp import miniapp_onboarding_keyboard
+from src.keyboards.miniapp import build_miniapp_url, miniapp_onboarding_keyboard
 
 
 def _clone_settings(settings: Any, **overrides: object):
@@ -32,3 +32,14 @@ def test_miniapp_onboarding_keyboard_omits_telegram_unsupported_style(mock_setti
     assert payload["inline_keyboard"][0][0]["web_app"]["url"] == "https://cyber-vpn.net/ru-RU/miniapp/onboarding/code"
     assert payload["inline_keyboard"][1][0]["callback_data"] == "growth:code"
     assert payload["inline_keyboard"][2][0]["callback_data"] == "menu:support"
+
+
+def test_build_miniapp_url_normalizes_page_url_with_query(mock_settings) -> None:
+    settings = _clone_settings(
+        mock_settings,
+        miniapp_url="https://cyber-vpn.net/ru-RU/miniapp/home?release=ec433aa5",
+    )
+
+    assert build_miniapp_url(settings) == "https://cyber-vpn.net/ru-RU/miniapp"
+    assert build_miniapp_url(settings, "onboarding/code") == "https://cyber-vpn.net/ru-RU/miniapp/onboarding/code"
+    assert build_miniapp_url(settings, "/wallet") == "https://cyber-vpn.net/ru-RU/miniapp/wallet"
