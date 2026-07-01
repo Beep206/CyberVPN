@@ -2,7 +2,7 @@
 
 import { Shield } from 'lucide-react';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
-import { Link, usePathname } from '@/i18n/navigation';
+import { usePathname } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
@@ -14,6 +14,7 @@ import {
   getCabinetNavigationLabelFallback,
   getWebCabinetNavigationSections,
 } from '@/widgets/dashboard-navigation';
+import { NativeCabinetLink } from '@/widgets/native-cabinet-link';
 
 export function CyberSidebar() {
   const pathname = usePathname();
@@ -57,7 +58,7 @@ export function CyberSidebar() {
                   const label = labelFor(item.labelKey);
 
                   return (
-                    <Link
+                    <NativeCabinetLink
                       key={item.id}
                       href={item.href}
                       aria-label={label}
@@ -121,7 +122,7 @@ export function CyberSidebar() {
                           />
                         )}
                       </div>
-                    </Link>
+                    </NativeCabinetLink>
                   );
                 })}
               </div>

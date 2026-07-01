@@ -2,6 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { getWebCabinetNavigationSections } from '@/widgets/dashboard-navigation';
+import { toLocalizedPath } from '@/shared/lib/seo-route-policy';
+
+vi.mock('next-intl', () => ({
+  useLocale: () => 'ru-RU',
+  useTranslations: () => (key: string) => key,
+}));
 
 vi.mock('@/shared/ui/atoms/cypher-text', () => ({
   CypherText: ({ text, className }: { text: string; className?: string }) => (
@@ -100,7 +106,7 @@ describe('CyberSidebar', () => {
     for (const item of navItems) {
       expect(screen.getByRole('link', { name: item.labelKey })).toHaveAttribute(
         'href',
-        item.href,
+        toLocalizedPath('ru-RU', item.href),
       );
     }
   });
@@ -130,15 +136,15 @@ describe('CyberSidebar', () => {
     expect(screen.getByText('sections.growth')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'items.rewards' })).toHaveAttribute(
       'href',
-      '/rewards',
+      '/ru-RU/rewards',
     );
     expect(screen.getByRole('link', { name: 'items.referral' })).toHaveAttribute(
       'href',
-      '/rewards/referral',
+      '/ru-RU/rewards/referral',
     );
     expect(screen.getByRole('link', { name: 'items.gifts' })).toHaveAttribute(
       'href',
-      '/rewards/gifts',
+      '/ru-RU/rewards/gifts',
     );
   });
 

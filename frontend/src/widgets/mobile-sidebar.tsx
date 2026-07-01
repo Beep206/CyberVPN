@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, Shield, X } from 'lucide-react';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
-import { Link, usePathname } from '@/i18n/navigation';
+import { usePathname } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
   DASHBOARD_NAV_LABEL_FALLBACKS,
   getDashboardNavItems,
 } from '@/widgets/dashboard-navigation';
+import { NativeCabinetLink } from '@/widgets/native-cabinet-link';
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -167,7 +168,7 @@ export function MobileSidebar() {
                           const label = labelFor(item.labelKey);
 
                           return (
-                            <Link
+                            <NativeCabinetLink
                               key={item.href}
                               href={item.href}
                               onClick={() => setIsOpen(false)}
@@ -204,7 +205,7 @@ export function MobileSidebar() {
                                   />
                                 </span>
                               </div>
-                            </Link>
+                            </NativeCabinetLink>
                           );
                         })}
                       </nav>

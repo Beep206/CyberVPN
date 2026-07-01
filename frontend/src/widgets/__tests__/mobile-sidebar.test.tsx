@@ -36,6 +36,7 @@ vi.mock('@/lib/utils', () => ({
 }));
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'ru-RU',
   useTranslations: () => (key: string) => key,
 }));
 
