@@ -640,7 +640,7 @@ export function CustomerCabinetDashboard() {
   const walletCurrency = wallet?.currency ?? 'USD';
   const channelLabel = getServiceAccessLabel(
     serviceState?.access_delivery_channel?.channel_type ??
-      serviceState?.consumption_context.channel_type,
+      serviceState?.consumption_context?.channel_type,
     t('pendingProvisioning'),
   );
   const credentialStatus = formatStatus(

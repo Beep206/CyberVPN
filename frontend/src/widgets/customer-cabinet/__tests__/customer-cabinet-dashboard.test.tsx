@@ -620,6 +620,28 @@ describe('CustomerCabinetDashboard', () => {
     expect(screen.getAllByText('unlimited')).not.toHaveLength(0);
   });
 
+  it('keeps dashboard links available when service state is partially degraded', async () => {
+    getCurrentServiceStateMock.mockResolvedValueOnce({
+      data: {
+        access_delivery_channel: null,
+        device_credential: null,
+        provisioning_profile: null,
+        service_identity: null,
+      },
+    });
+
+    renderWithQueryClient(<CustomerCabinetDashboard />);
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+    expect(screen.getAllByText('pendingProvisioning')).not.toHaveLength(0);
+    expect(
+      screen.getAllByRole('link', { name: /actions\.getConfig/i })[0],
+    ).toHaveAttribute('href', '/servers');
+    expect(
+      screen.getByRole('link', { name: /s2Actions\.trialPlans/i }),
+    ).toHaveAttribute('href', '/subscriptions');
+  });
+
   it('retries degraded metric cards and refreshes the notification panel', async () => {
     getUsageMock
       .mockRejectedValueOnce(new Error('usage unavailable'))
