@@ -1,14 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { NativeCabinetLink } from '../native-cabinet-link';
+
+const routerPushMock = vi.hoisted(() => vi.fn());
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'ru-RU',
 }));
 
+vi.mock('@/i18n/navigation', () => ({
+  useRouter: () => ({
+    push: routerPushMock,
+  }),
+}));
+
 describe('NativeCabinetLink', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    routerPushMock.mockClear();
   });
 
   it('renders a localized native cabinet href', () => {
@@ -20,21 +29,23 @@ describe('NativeCabinetLink', () => {
     );
   });
 
-  it('schedules same-window navigation fallback for plain clicks', () => {
+  it('uses SPA navigation first and keeps hard fallback for plain clicks', () => {
     const setTimeoutSpy = vi
       .spyOn(window, 'setTimeout')
       .mockImplementation(() => 1 as unknown as ReturnType<typeof setTimeout>);
 
     render(<NativeCabinetLink href="/wallet">Wallet</NativeCabinetLink>);
 
-    fireEvent.click(screen.getByRole('link', { name: 'Wallet' }), {
-      button: 0,
-    });
+    const link = screen.getByRole('link', { name: 'Wallet' });
+    const event = createEvent.click(link, { button: 0 });
+    fireEvent(link, event);
 
+    expect(event.defaultPrevented).toBe(true);
+    expect(routerPushMock).toHaveBeenCalledWith('/wallet');
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps modified clicks native without scheduling same-window fallback', () => {
+  it('keeps modified clicks native without SPA interception or fallback', () => {
     const setTimeoutSpy = vi
       .spyOn(window, 'setTimeout')
       .mockImplementation(() => 1 as unknown as ReturnType<typeof setTimeout>);
@@ -46,6 +57,7 @@ describe('NativeCabinetLink', () => {
       metaKey: true,
     });
 
+    expect(routerPushMock).not.toHaveBeenCalled();
     expect(setTimeoutSpy).not.toHaveBeenCalled();
   });
 });

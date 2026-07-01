@@ -6,6 +6,7 @@ import type {
   ReactNode,
 } from 'react';
 import { useLocale } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { defaultLocale, locales } from '@/i18n/config';
 import { toLocalizedPath } from '@/shared/lib/seo-route-policy';
 
@@ -44,6 +45,7 @@ export function NativeCabinetLink({
   target,
   ...props
 }: NativeCabinetLinkProps) {
+  const router = useRouter();
   const locale = resolveLocale(useLocale());
   const localizedHref = toLocalizedPath(locale, href);
 
@@ -60,11 +62,19 @@ export function NativeCabinetLink({
       return;
     }
 
+    event.preventDefault();
+
+    if (window.location.href === targetHref) {
+      return;
+    }
+
+    router.push(href);
+
     window.setTimeout(() => {
       if (window.location.href !== targetHref) {
         window.location.assign(targetHref);
       }
-    }, 120);
+    }, 900);
   };
 
   return (
