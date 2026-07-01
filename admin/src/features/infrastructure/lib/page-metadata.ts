@@ -52,6 +52,11 @@ const INFRASTRUCTURE_PAGE_CONFIG = {
     titleKey: 'snippets.metaTitle',
     descriptionKey: 'snippets.description',
   },
+  vpnTester: {
+    canonicalPath: '/infrastructure/vpn-tester',
+    titleKey: 'vpnTester.metaTitle',
+    descriptionKey: 'vpnTester.description',
+  },
 } as const;
 
 export type InfrastructurePageKey = keyof typeof INFRASTRUCTURE_PAGE_CONFIG;

@@ -83,6 +83,13 @@ class Settings(BaseSettings):
     stage1_provisioning_retry_batch_limit: int = 25
     payment_completed_partner_earnings_enabled: bool = True
     payment_completed_partner_earnings_batch_limit: int = 25
+    vpn_tester_enabled: bool = False
+    vpn_tester_runtime_enabled: bool = False
+    vpn_tester_synthetic_users_enabled: bool = False
+    vpn_tester_scheduled_enabled: bool = False
+    vpn_tester_balancer_recommendations_enabled: bool = False
+    vpn_tester_queue_batch_limit: int = 5
+    vpn_tester_lock_ttl_seconds: int = 600
 
     # Notification Settings
     notification_max_retries: int = 5

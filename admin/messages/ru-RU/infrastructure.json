@@ -340,5 +340,101 @@
       "ordered": "С порядком",
       "orderedHint": "задан explicit order"
     }
+  },
+  "vpnTester": {
+    "metaTitle": "VPN Tester - Ozoxy Admin",
+    "eyebrow": "VPN TESTER AAA",
+    "title": "VPN Tester",
+    "description": "Проверки контрактов и release-gate для Premium Smart RU, всех тарифов, Remnawave routing и безопасных VPN evidence.",
+    "actions": {
+      "refresh": "Обновить",
+      "queueRun": "Поставить запуск",
+      "queueing": "Ставим в очередь...",
+      "inspect": "Открыть"
+    },
+    "feedback": {
+      "runQueued": "Запуск VPN Tester поставлен в очередь.",
+      "runCancelled": "Запуск VPN Tester отменён.",
+      "scheduleUpdated": "Расписание обновлено."
+    },
+    "metrics": {
+      "status": "Последний статус",
+      "statusHint": "вход для release gate",
+      "runs": "Запуски",
+      "runsHint": "сохранённых проверок",
+      "failures": "Ошибки",
+      "failuresHint": "ошибки в последних запусках",
+      "tariffs": "Тарифы",
+      "tariffsHint": "строки контракта"
+    },
+    "runBuilder": {
+      "title": "Ручной запуск",
+      "description": "Создаёт queued run. Backend фиксирует запрос, а task-worker выполняет проверки.",
+      "suite": "Suite",
+      "mode": "Режим"
+    },
+    "suites": {
+      "premiumSmartRu": "Premium Smart RU",
+      "allTariffs": "Все тарифы",
+      "defaultSmoke": "Default smoke"
+    },
+    "modes": {
+      "contract": "Контракт",
+      "runtime": "Runtime",
+      "all_tariffs": "Все тарифы",
+      "balancer_preview": "Balancer"
+    },
+    "status": {
+      "queued": "В очереди",
+      "running": "Выполняется",
+      "pass": "Pass",
+      "fail": "Fail",
+      "degraded": "Degraded",
+      "cancelled": "Отменён",
+      "skipped": "Пропущен",
+      "blocked": "Блокирует",
+      "override_recorded": "Override"
+    },
+    "flags": {
+      "enabled": "Модуль",
+      "runtime": "Runtime probes",
+      "scheduled": "Расписания",
+      "balancer": "Balancer preview"
+    },
+    "releaseGate": {
+      "title": "Release gate",
+      "description": "Последний статус VPN Tester для release checklist.",
+      "reasons": {
+        "latest_vpn_tester_run_not_passing": "Последний запуск VPN Tester пока не проходит.",
+        "latest_vpn_tester_run_acceptable": "Последний запуск VPN Tester приемлем.",
+        "manual_super_admin_override": "Super admin override зафиксирован."
+      }
+    },
+    "runs": {
+      "title": "Запуски",
+      "description": "Queued, running и завершённые contract checks с безопасными evidence.",
+      "empty": "Запуски VPN Tester не найдены.",
+      "run": "Run",
+      "suite": "Suite",
+      "results": "Pass/fail/degraded"
+    },
+    "schedules": {
+      "title": "Расписания",
+      "description": "Task-worker schedules по умолчанию безопасны и соблюдают backend feature flags."
+    },
+    "tariffs": {
+      "title": "Матрица тарифов",
+      "description": "Покрытие активных тарифов без создания synthetic production users.",
+      "empty": "Строки тарифов не найдены.",
+      "plan": "Тариф",
+      "visibility": "Видимость",
+      "checks": "Проверки"
+    },
+    "detail": {
+      "title": "Детали запуска",
+      "results": "Результаты",
+      "evidence": "Evidence",
+      "noEvidence": "Для этого запуска нет evidence artifacts."
+    }
   }
 }

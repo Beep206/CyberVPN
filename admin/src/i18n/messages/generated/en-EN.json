@@ -4287,6 +4287,102 @@
       },
       "title": "Squads Console"
     },
+    "vpnTester": {
+      "actions": {
+        "inspect": "Inspect",
+        "queueing": "Queueing...",
+        "queueRun": "Queue run",
+        "refresh": "Refresh"
+      },
+      "description": "Contract and release-gate checks for Premium Smart RU, all tariffs, Remnawave routing, and safe VPN evidence.",
+      "detail": {
+        "evidence": "Evidence",
+        "noEvidence": "No evidence artifacts for this run.",
+        "results": "Results",
+        "title": "Run detail"
+      },
+      "eyebrow": "VPN TESTER AAA",
+      "feedback": {
+        "runCancelled": "VPN Tester run has been cancelled.",
+        "runQueued": "VPN Tester run has been queued.",
+        "scheduleUpdated": "Schedule updated."
+      },
+      "flags": {
+        "balancer": "Balancer preview",
+        "enabled": "Module",
+        "runtime": "Runtime probes",
+        "scheduled": "Schedules"
+      },
+      "metaTitle": "VPN Tester - Ozoxy Admin",
+      "metrics": {
+        "failures": "Failures",
+        "failuresHint": "latest listed failures",
+        "runs": "Runs",
+        "runsHint": "stored executions",
+        "status": "Latest status",
+        "statusHint": "release gate input",
+        "tariffs": "Tariffs",
+        "tariffsHint": "contract rows"
+      },
+      "modes": {
+        "all_tariffs": "All tariffs",
+        "balancer_preview": "Balancer",
+        "contract": "Contract",
+        "runtime": "Runtime"
+      },
+      "releaseGate": {
+        "description": "Latest VPN Tester status used by the release checklist.",
+        "reasons": {
+          "latest_vpn_tester_run_acceptable": "Latest VPN Tester run is acceptable.",
+          "latest_vpn_tester_run_not_passing": "Latest VPN Tester run is not passing yet.",
+          "manual_super_admin_override": "Super admin override has been recorded."
+        },
+        "title": "Release gate"
+      },
+      "runBuilder": {
+        "description": "Create a lightweight queued run. The backend records the request and the task-worker performs the checks.",
+        "mode": "Mode",
+        "suite": "Suite",
+        "title": "Manual run"
+      },
+      "runs": {
+        "description": "Queued, running, and finished contract checks with safe evidence.",
+        "empty": "No VPN Tester runs found.",
+        "results": "Pass/fail/degraded",
+        "run": "Run",
+        "suite": "Suite",
+        "title": "Runs"
+      },
+      "schedules": {
+        "description": "Task-worker schedules are safe by default and respect backend feature flags.",
+        "title": "Schedules"
+      },
+      "status": {
+        "blocked": "Blocked",
+        "cancelled": "Cancelled",
+        "degraded": "Degraded",
+        "fail": "Fail",
+        "override_recorded": "Override",
+        "pass": "Pass",
+        "queued": "Queued",
+        "running": "Running",
+        "skipped": "Skipped"
+      },
+      "suites": {
+        "allTariffs": "All tariffs",
+        "defaultSmoke": "Default smoke",
+        "premiumSmartRu": "Premium Smart RU"
+      },
+      "tariffs": {
+        "checks": "Checks",
+        "description": "Active tariff contract coverage without provisioning synthetic production users.",
+        "empty": "No tariff rows available.",
+        "plan": "Plan",
+        "title": "Tariff matrix",
+        "visibility": "Visibility"
+      },
+      "title": "VPN Tester"
+    },
     "xray": {
       "description": "Inspect and update raw Xray configuration directly from the admin panel.",
       "editorTitle": "Config editor",
@@ -5379,6 +5475,8 @@
       "telegramHint": "Telegram bot operations",
       "twoFactor": "2FA",
       "twoFactorHint": "Two-factor controls",
+      "vpnTester": "VPN Tester",
+      "vpnTesterHint": "Contract, route, and release checks",
       "wallets": "Wallets",
       "walletsHint": "Balances and adjustments",
       "webhookLog": "Webhook log",

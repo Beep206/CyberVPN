@@ -7,4 +7,5 @@ import src.tasks.monitoring
 import src.tasks.notifications
 import src.tasks.payments
 import src.tasks.sync
+import src.tasks.vpn_testing
 import src.tasks.wallet  # noqa: F401

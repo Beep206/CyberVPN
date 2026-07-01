@@ -1,0 +1,20 @@
+{
+  "registry_key": "premium_smart_ru_v1",
+  "suite_key": "premium_smart_ru_v1",
+  "routes": [
+    {
+      "route_key": "ru-moscow-primary",
+      "country_code": "RU",
+      "node_tags": ["ru", "moscow", "xhttp", "premium_smart_ru"],
+      "expected_modes": ["xhttp"],
+      "metadata": {"city": "moscow", "priority": 10, "provider": "remnawave"}
+    },
+    {
+      "route_key": "ru-spb-secondary",
+      "country_code": "RU",
+      "node_tags": ["ru", "spb", "xhttp", "premium_smart_ru"],
+      "expected_modes": ["xhttp"],
+      "metadata": {"city": "saint-petersburg", "priority": 20, "provider": "remnawave"}
+    }
+  ]
+}

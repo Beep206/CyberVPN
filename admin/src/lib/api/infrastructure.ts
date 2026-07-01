@@ -187,3 +187,127 @@ export const helixApi = {
   previewNodeAssignment: (nodeId: string) =>
     apiClient.get<HelixNodeAssignmentResponse>(`/helix/admin/nodes/${nodeId}/assignment`),
 };
+
+export interface VpnTesterResult {
+  id: string;
+  check_key: string;
+  check_name: string;
+  category: string;
+  status: 'pass' | 'fail' | 'degraded' | 'skipped' | string;
+  severity: string;
+  target: string;
+  safe_summary: string;
+  details: Record<string, unknown>;
+  duration_ms: number;
+  created_at: string;
+}
+
+export interface VpnTesterEvidenceArtifact {
+  id: string;
+  artifact_key: string;
+  artifact_type: string;
+  sha256: string;
+  preview: Record<string, unknown>;
+  storage_uri: string | null;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface VpnTesterRun {
+  id: string;
+  suite_key: string;
+  suite_version: string;
+  mode: string;
+  trigger: string;
+  status: 'queued' | 'running' | 'pass' | 'fail' | 'degraded' | 'cancelled' | string;
+  requested_by_admin_id: string | null;
+  summary: Record<string, unknown>;
+  pass_count: number;
+  fail_count: number;
+  degraded_count: number;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+  updated_at: string;
+  results: VpnTesterResult[];
+  evidence_artifacts: VpnTesterEvidenceArtifact[];
+}
+
+export interface VpnTesterSchedule {
+  id: string;
+  schedule_key: string;
+  suite_key: string;
+  mode: string;
+  cron: string;
+  enabled: boolean;
+  settings: Record<string, unknown>;
+  next_run_at: string | null;
+  last_run_id: string | null;
+  last_status: string | null;
+  updated_at: string;
+}
+
+export interface VpnTesterOverview {
+  enabled: boolean;
+  runtime_enabled: boolean;
+  scheduled_enabled: boolean;
+  balancer_recommendations_enabled: boolean;
+  counts: Record<string, number>;
+  latest_runs: VpnTesterRun[];
+  schedules: VpnTesterSchedule[];
+  generated_at: string;
+}
+
+export interface CreateVpnTesterRunRequest {
+  suite_key: string;
+  mode: 'contract' | 'runtime' | 'all_tariffs' | 'balancer_preview';
+  context?: Record<string, unknown>;
+}
+
+export interface UpdateVpnTesterScheduleRequest {
+  enabled: boolean;
+  settings?: Record<string, unknown>;
+}
+
+export interface VpnTesterTariffMatrix {
+  rows: Array<Record<string, unknown>>;
+  total: number;
+  generated_at: string;
+}
+
+export interface VpnTesterReleaseGate {
+  status: string;
+  blocking: boolean;
+  latest_run_id: string | null;
+  reason: string;
+  override_allowed_roles: string[];
+  generated_at: string;
+}
+
+export const vpnTesterApi = {
+  overview: () =>
+    apiClient.get<VpnTesterOverview>('/admin/vpn-tester/overview'),
+  listRuns: (params?: { limit?: number; status_filter?: string }) =>
+    apiClient.get<VpnTesterRun[]>('/admin/vpn-tester/runs', { params }),
+  createRun: (data: CreateVpnTesterRunRequest) =>
+    apiClient.post<VpnTesterRun>('/admin/vpn-tester/runs', data),
+  getRun: (runId: string) =>
+    apiClient.get<VpnTesterRun>(`/admin/vpn-tester/runs/${runId}`),
+  cancelRun: (runId: string) =>
+    apiClient.post<VpnTesterRun>(`/admin/vpn-tester/runs/${runId}/cancel`, {}),
+  listEvidence: (runId: string) =>
+    apiClient.get<VpnTesterEvidenceArtifact[]>(`/admin/vpn-tester/runs/${runId}/evidence`),
+  listSchedules: () =>
+    apiClient.get<VpnTesterSchedule[]>('/admin/vpn-tester/schedules'),
+  updateSchedule: (scheduleKey: string, data: UpdateVpnTesterScheduleRequest) =>
+    apiClient.put<VpnTesterSchedule>(
+      `/admin/vpn-tester/schedules/${encodeURIComponent(scheduleKey)}`,
+      data,
+    ),
+  tariffMatrix: () =>
+    apiClient.get<VpnTesterTariffMatrix>('/admin/vpn-tester/tariffs'),
+  balancerPreview: () =>
+    apiClient.get<Record<string, unknown>>('/admin/vpn-tester/balancer/preview'),
+  releaseGate: () =>
+    apiClient.get<VpnTesterReleaseGate>('/admin/vpn-tester/release-gate'),
+};

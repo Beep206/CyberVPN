@@ -100,6 +100,12 @@ class Settings(BaseSettings):
     remnawave_abuse_auto_disable_enabled: bool = False
     remnawave_abuse_torrent_disable_after: int = 2
     remnawave_abuse_torrent_window_hours: int = 24
+    vpn_tester_enabled: bool = False
+    vpn_tester_runtime_enabled: bool = False
+    vpn_tester_synthetic_users_enabled: bool = False
+    vpn_tester_scheduled_enabled: bool = False
+    vpn_tester_balancer_recommendations_enabled: bool = False
+    vpn_tester_retention_days: int = 30
     stage1_trial_provisioning_enabled: bool = False
     stage1_paid_provisioning_enabled: bool = False
     stage1_provisioning_retry_claiming_enabled: bool = False

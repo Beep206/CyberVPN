@@ -340,5 +340,101 @@
       "ordered": "Ordered",
       "orderedHint": "explicit order set"
     }
+  },
+  "vpnTester": {
+    "metaTitle": "VPN Tester - Ozoxy Admin",
+    "eyebrow": "VPN TESTER AAA",
+    "title": "VPN Tester",
+    "description": "Contract and release-gate checks for Premium Smart RU, all tariffs, Remnawave routing, and safe VPN evidence.",
+    "actions": {
+      "refresh": "Refresh",
+      "queueRun": "Queue run",
+      "queueing": "Queueing...",
+      "inspect": "Inspect"
+    },
+    "feedback": {
+      "runQueued": "VPN Tester run has been queued.",
+      "runCancelled": "VPN Tester run has been cancelled.",
+      "scheduleUpdated": "Schedule updated."
+    },
+    "metrics": {
+      "status": "Latest status",
+      "statusHint": "release gate input",
+      "runs": "Runs",
+      "runsHint": "stored executions",
+      "failures": "Failures",
+      "failuresHint": "latest listed failures",
+      "tariffs": "Tariffs",
+      "tariffsHint": "contract rows"
+    },
+    "runBuilder": {
+      "title": "Manual run",
+      "description": "Create a lightweight queued run. The backend records the request and the task-worker performs the checks.",
+      "suite": "Suite",
+      "mode": "Mode"
+    },
+    "suites": {
+      "premiumSmartRu": "Premium Smart RU",
+      "allTariffs": "All tariffs",
+      "defaultSmoke": "Default smoke"
+    },
+    "modes": {
+      "contract": "Contract",
+      "runtime": "Runtime",
+      "all_tariffs": "All tariffs",
+      "balancer_preview": "Balancer"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "pass": "Pass",
+      "fail": "Fail",
+      "degraded": "Degraded",
+      "cancelled": "Cancelled",
+      "skipped": "Skipped",
+      "blocked": "Blocked",
+      "override_recorded": "Override"
+    },
+    "flags": {
+      "enabled": "Module",
+      "runtime": "Runtime probes",
+      "scheduled": "Schedules",
+      "balancer": "Balancer preview"
+    },
+    "releaseGate": {
+      "title": "Release gate",
+      "description": "Latest VPN Tester status used by the release checklist.",
+      "reasons": {
+        "latest_vpn_tester_run_not_passing": "Latest VPN Tester run is not passing yet.",
+        "latest_vpn_tester_run_acceptable": "Latest VPN Tester run is acceptable.",
+        "manual_super_admin_override": "Super admin override has been recorded."
+      }
+    },
+    "runs": {
+      "title": "Runs",
+      "description": "Queued, running, and finished contract checks with safe evidence.",
+      "empty": "No VPN Tester runs found.",
+      "run": "Run",
+      "suite": "Suite",
+      "results": "Pass/fail/degraded"
+    },
+    "schedules": {
+      "title": "Schedules",
+      "description": "Task-worker schedules are safe by default and respect backend feature flags."
+    },
+    "tariffs": {
+      "title": "Tariff matrix",
+      "description": "Active tariff contract coverage without provisioning synthetic production users.",
+      "empty": "No tariff rows available.",
+      "plan": "Plan",
+      "visibility": "Visibility",
+      "checks": "Checks"
+    },
+    "detail": {
+      "title": "Run detail",
+      "results": "Results",
+      "evidence": "Evidence",
+      "noEvidence": "No evidence artifacts for this run."
+    }
   }
 }

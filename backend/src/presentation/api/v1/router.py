@@ -14,6 +14,7 @@ from src.presentation.api.v1.admin.pricebooks import router as admin_pricebooks_
 from src.presentation.api.v1.admin.remnawave_diagnostics import router as admin_remnawave_diagnostics_router
 from src.presentation.api.v1.admin.routes import router as admin_router
 from src.presentation.api.v1.admin.system_config import router as admin_system_config_router
+from src.presentation.api.v1.admin.vpn_tester import router as admin_vpn_tester_router
 from src.presentation.api.v1.attribution.routes import router as attribution_router
 from src.presentation.api.v1.auth.passkey_policy import router as passkey_policy_router
 from src.presentation.api.v1.auth.passkeys import router as passkeys_router
@@ -292,6 +293,7 @@ api_router.include_router(admin_mobile_users_router)
 api_router.include_router(admin_payment_attempts_router)
 api_router.include_router(admin_pricebooks_router)
 api_router.include_router(admin_remnawave_diagnostics_router)
+api_router.include_router(admin_vpn_tester_router)
 api_router.include_router(admin_customer_support_router)
 api_router.include_router(admin_customer_operations_router)
 api_router.include_router(admin_privacy_requests_router)

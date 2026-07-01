@@ -229,6 +229,15 @@ from src.infrastructure.database.models.support_ticket_model import (
 )
 from src.infrastructure.database.models.system_config_model import SystemConfigModel
 from src.infrastructure.database.models.user_device_model import UserDeviceModel
+from src.infrastructure.database.models.vpn_tester_model import (
+    VpnBalancerRecommendationModel,
+    VpnRouteRegistryEntryModel,
+    VpnTestEvidenceArtifactModel,
+    VpnTestResultModel,
+    VpnTestRunModel,
+    VpnTestScheduleModel,
+    VpnTestSuiteModel,
+)
 from src.infrastructure.database.models.wallet_model import WalletModel, WalletTransactionModel
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
 from src.infrastructure.database.models.withdrawal_request_model import WithdrawalRequestModel
@@ -407,6 +416,13 @@ __all__ = [
     "SupportTicketModel",
     "SystemConfigModel",
     "UserDeviceModel",
+    "VpnBalancerRecommendationModel",
+    "VpnRouteRegistryEntryModel",
+    "VpnTestEvidenceArtifactModel",
+    "VpnTestResultModel",
+    "VpnTestRunModel",
+    "VpnTestScheduleModel",
+    "VpnTestSuiteModel",
     "WalletModel",
     "WalletTransactionModel",
     "WebhookLog",

@@ -136,6 +136,8 @@
     "squadsHint": "Группы нод",
     "snippets": "Сниппеты",
     "snippetsHint": "Операционные сниппеты",
+    "vpnTester": "VPN Tester",
+    "vpnTesterHint": "Проверки контрактов, маршрутов и релиза",
     "securityOverview": "Обзор безопасности",
     "securityOverviewHint": "Сводка профиля безопасности",
     "reviewQueue": "Очередь проверки",

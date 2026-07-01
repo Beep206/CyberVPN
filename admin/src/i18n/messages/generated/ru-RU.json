@@ -4271,6 +4271,102 @@
       },
       "title": "Консоль Squads"
     },
+    "vpnTester": {
+      "actions": {
+        "inspect": "Открыть",
+        "queueing": "Ставим в очередь...",
+        "queueRun": "Поставить запуск",
+        "refresh": "Обновить"
+      },
+      "description": "Проверки контрактов и release-gate для Premium Smart RU, всех тарифов, Remnawave routing и безопасных VPN evidence.",
+      "detail": {
+        "evidence": "Evidence",
+        "noEvidence": "Для этого запуска нет evidence artifacts.",
+        "results": "Результаты",
+        "title": "Детали запуска"
+      },
+      "eyebrow": "VPN TESTER AAA",
+      "feedback": {
+        "runCancelled": "Запуск VPN Tester отменён.",
+        "runQueued": "Запуск VPN Tester поставлен в очередь.",
+        "scheduleUpdated": "Расписание обновлено."
+      },
+      "flags": {
+        "balancer": "Balancer preview",
+        "enabled": "Модуль",
+        "runtime": "Runtime probes",
+        "scheduled": "Расписания"
+      },
+      "metaTitle": "VPN Tester - Ozoxy Admin",
+      "metrics": {
+        "failures": "Ошибки",
+        "failuresHint": "ошибки в последних запусках",
+        "runs": "Запуски",
+        "runsHint": "сохранённых проверок",
+        "status": "Последний статус",
+        "statusHint": "вход для release gate",
+        "tariffs": "Тарифы",
+        "tariffsHint": "строки контракта"
+      },
+      "modes": {
+        "all_tariffs": "Все тарифы",
+        "balancer_preview": "Balancer",
+        "contract": "Контракт",
+        "runtime": "Runtime"
+      },
+      "releaseGate": {
+        "description": "Последний статус VPN Tester для release checklist.",
+        "reasons": {
+          "latest_vpn_tester_run_acceptable": "Последний запуск VPN Tester приемлем.",
+          "latest_vpn_tester_run_not_passing": "Последний запуск VPN Tester пока не проходит.",
+          "manual_super_admin_override": "Super admin override зафиксирован."
+        },
+        "title": "Release gate"
+      },
+      "runBuilder": {
+        "description": "Создаёт queued run. Backend фиксирует запрос, а task-worker выполняет проверки.",
+        "mode": "Режим",
+        "suite": "Suite",
+        "title": "Ручной запуск"
+      },
+      "runs": {
+        "description": "Queued, running и завершённые contract checks с безопасными evidence.",
+        "empty": "Запуски VPN Tester не найдены.",
+        "results": "Pass/fail/degraded",
+        "run": "Run",
+        "suite": "Suite",
+        "title": "Запуски"
+      },
+      "schedules": {
+        "description": "Task-worker schedules по умолчанию безопасны и соблюдают backend feature flags.",
+        "title": "Расписания"
+      },
+      "status": {
+        "blocked": "Блокирует",
+        "cancelled": "Отменён",
+        "degraded": "Degraded",
+        "fail": "Fail",
+        "override_recorded": "Override",
+        "pass": "Pass",
+        "queued": "В очереди",
+        "running": "Выполняется",
+        "skipped": "Пропущен"
+      },
+      "suites": {
+        "allTariffs": "Все тарифы",
+        "defaultSmoke": "Default smoke",
+        "premiumSmartRu": "Premium Smart RU"
+      },
+      "tariffs": {
+        "checks": "Проверки",
+        "description": "Покрытие активных тарифов без создания synthetic production users.",
+        "empty": "Строки тарифов не найдены.",
+        "plan": "Тариф",
+        "title": "Матрица тарифов",
+        "visibility": "Видимость"
+      },
+      "title": "VPN Tester"
+    },
     "xray": {
       "description": "Просмотр и обновление raw-конфигурации Xray прямо из админ-панели.",
       "editorTitle": "Редактор конфигурации",
@@ -5347,6 +5443,8 @@
       "telegramHint": "Операции Telegram-бота",
       "twoFactor": "2FA",
       "twoFactorHint": "Контроль двухфакторной защиты",
+      "vpnTester": "VPN Tester",
+      "vpnTesterHint": "Проверки контрактов, маршрутов и релиза",
       "wallets": "Кошельки",
       "walletsHint": "Балансы и корректировки",
       "webhookLog": "Журнал вебхуков",

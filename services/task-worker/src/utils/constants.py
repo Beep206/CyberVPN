@@ -36,6 +36,7 @@ HELIX_POLICY_ADVISORY_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_
 HELIX_ACTUATION_AUDIT_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:actuation"
 HELIX_CANARY_GATE_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-gate"
 HELIX_CANARY_CONTROL_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-control"
+VPN_TESTER_LOCK_KEY: Final[str] = f"{REDIS_PREFIX}vpn_tester:lock:{{task_key}}"
 
 # ============================================================================
 # Cron Schedule Expressions
@@ -85,6 +86,12 @@ SCHEDULE_HELIX_HEALTH: Final[str] = "*/2 * * * *"  # Every 2 minutes
 SCHEDULE_HELIX_ACTUATIONS: Final[str] = "*/4 * * * *"  # Every 4 minutes
 SCHEDULE_HELIX_CANARY_GATES: Final[str] = "*/5 * * * *"  # Every 5 minutes
 SCHEDULE_HELIX_CANARY_CONTROL: Final[str] = "*/6 * * * *"  # Every 6 minutes
+SCHEDULE_VPN_TESTER_QUEUE: Final[str] = "*/1 * * * *"  # Every minute
+SCHEDULE_VPN_TESTER_LIGHTWEIGHT: Final[str] = "*/15 * * * *"  # Every 15 minutes
+SCHEDULE_VPN_TESTER_ALL_TARIFFS: Final[str] = "5 * * * *"  # Hourly at :05 UTC
+SCHEDULE_VPN_TESTER_DEEP: Final[str] = "20 2 * * *"  # Daily at 02:20 UTC
+SCHEDULE_VPN_TESTER_BALANCER: Final[str] = "*/10 * * * *"  # Every 10 minutes
+SCHEDULE_VPN_TESTER_CLEANUP: Final[str] = "45 2 * * *"  # Daily at 02:45 UTC
 
 # Legacy string aliases kept for compatibility with older tests/tooling.
 SCHEDULE_NOTIFICATION_QUEUE: Final[str] = f"interval:{INTERVAL_NOTIFICATION_QUEUE_SECONDS}"
@@ -201,6 +208,7 @@ QUEUE_SYNC: Final[str] = "sync"
 QUEUE_REPORTS: Final[str] = "reports"
 QUEUE_BULK: Final[str] = "bulk"
 QUEUE_EMAIL: Final[str] = "email"
+QUEUE_VPN_TESTING: Final[str] = "vpn_testing"
 
 # ============================================================================
 # Status Constants
@@ -238,6 +246,7 @@ __all__ = [  # noqa: RUF022
     "HELIX_CANARY_GATE_KEY",
     "HELIX_CANARY_CONTROL_KEY",
     "HELIX_CANARY_CONTROL_KEY",
+    "VPN_TESTER_LOCK_KEY",
     # Schedules
     "INTERVAL_NOTIFICATION_QUEUE_SECONDS",
     "SCHEDULE_NOTIFICATION_QUEUE",
@@ -284,6 +293,12 @@ __all__ = [  # noqa: RUF022
     "SCHEDULE_HELIX_CANARY_GATES",
     "SCHEDULE_HELIX_CANARY_CONTROL",
     "SCHEDULE_HELIX_CANARY_CONTROL",
+    "SCHEDULE_VPN_TESTER_QUEUE",
+    "SCHEDULE_VPN_TESTER_LIGHTWEIGHT",
+    "SCHEDULE_VPN_TESTER_ALL_TARIFFS",
+    "SCHEDULE_VPN_TESTER_DEEP",
+    "SCHEDULE_VPN_TESTER_BALANCER",
+    "SCHEDULE_VPN_TESTER_CLEANUP",
     # Retry Policies
     "RetryPolicy",
     "RETRY_POLICIES",
@@ -310,6 +325,7 @@ __all__ = [  # noqa: RUF022
     "QUEUE_REPORTS",
     "QUEUE_BULK",
     "QUEUE_EMAIL",
+    "QUEUE_VPN_TESTING",
     # Status Constants
     "STATUS_PENDING",
     "STATUS_PROCESSING",

@@ -37555,6 +37555,515 @@
         ]
       }
     },
+    "/api/v1/admin/vpn-tester/overview": {
+      "get": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "Get Vpn Tester Overview",
+        "operationId": "get_vpn_tester_overview_api_v1_admin_vpn_tester_overview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VpnTesterOverviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/vpn-tester/runs": {
+      "get": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "List Vpn Tester Runs",
+        "operationId": "list_vpn_tester_runs_api_v1_admin_vpn_tester_runs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "status_filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VpnTesterRunResponse"
+                  },
+                  "title": "Response List Vpn Tester Runs Api V1 Admin Vpn Tester Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "Create Vpn Tester Run",
+        "operationId": "create_vpn_tester_run_api_v1_admin_vpn_tester_runs_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVpnTesterRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VpnTesterRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/vpn-tester/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "Get Vpn Tester Run",
+        "operationId": "get_vpn_tester_run_api_v1_admin_vpn_tester_runs__run_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VpnTesterRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/vpn-tester/runs/{run_id}/cancel": {
+      "post": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "Cancel Vpn Tester Run",
+        "operationId": "cancel_vpn_tester_run_api_v1_admin_vpn_tester_runs__run_id__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VpnTesterRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/vpn-tester/runs/{run_id}/evidence": {
+      "get": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "List Vpn Tester Evidence",
+        "operationId": "list_vpn_tester_evidence_api_v1_admin_vpn_tester_runs__run_id__evidence_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VpnTesterEvidenceResponse"
+                  },
+                  "title": "Response List Vpn Tester Evidence Api V1 Admin Vpn Tester Runs  Run Id  Evidence Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/vpn-tester/schedules": {
+      "get": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "List Vpn Tester Schedules",
+        "operationId": "list_vpn_tester_schedules_api_v1_admin_vpn_tester_schedules_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VpnTesterScheduleResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Vpn Tester Schedules Api V1 Admin Vpn Tester Schedules Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/vpn-tester/schedules/{schedule_key}": {
+      "put": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "Update Vpn Tester Schedule",
+        "operationId": "update_vpn_tester_schedule_api_v1_admin_vpn_tester_schedules__schedule_key__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "schedule_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Schedule Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVpnTesterScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VpnTesterScheduleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/vpn-tester/tariffs": {
+      "get": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "Get Vpn Tester Tariff Matrix",
+        "operationId": "get_vpn_tester_tariff_matrix_api_v1_admin_vpn_tester_tariffs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VpnTesterTariffMatrixResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/vpn-tester/balancer/preview": {
+      "get": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "Get Vpn Tester Balancer Preview",
+        "operationId": "get_vpn_tester_balancer_preview_api_v1_admin_vpn_tester_balancer_preview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Vpn Tester Balancer Preview Api V1 Admin Vpn Tester Balancer Preview Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/vpn-tester/release-gate": {
+      "get": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "Get Vpn Tester Release Gate",
+        "operationId": "get_vpn_tester_release_gate_api_v1_admin_vpn_tester_release_gate_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VpnTesterReleaseGateResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/vpn-tester/release-gate/override": {
+      "post": {
+        "tags": [
+          "admin",
+          "vpn-tester"
+        ],
+        "summary": "Override Vpn Tester Release Gate",
+        "operationId": "override_vpn_tester_release_gate_api_v1_admin_vpn_tester_release_gate_override_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VpnTesterReleaseGateResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/mobile-users/{user_id}/notes": {
       "get": {
         "tags": [
@@ -74541,6 +75050,31 @@
         "title": "CreateUserRequest",
         "description": "Request schema for creating a new VPN user."
       },
+      "CreateVpnTesterRunRequest": {
+        "properties": {
+          "suite_key": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Suite Key",
+            "default": "premium_smart_ru_v1"
+          },
+          "mode": {
+            "type": "string",
+            "pattern": "^(contract|runtime|all_tariffs|balancer_preview)$",
+            "title": "Mode",
+            "default": "contract"
+          },
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CreateVpnTesterRunRequest"
+      },
       "CreativeApprovalKind": {
         "type": "string",
         "enum": [
@@ -110939,6 +111473,32 @@
         "title": "UpdateUserRequest",
         "description": "Request schema for updating a VPN user."
       },
+      "UpdateVpnTesterScheduleRequest": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "UpdateVpnTesterScheduleRequest"
+      },
       "UpdateXrayConfigRequest": {
         "properties": {
           "log": {
@@ -111677,6 +112237,495 @@
         ],
         "title": "VerifyOtpResponse",
         "description": "Response for successful browser OTP verification.\n\nBrowser sessions are delivered through httpOnly cookies only."
+      },
+      "VpnTesterEvidenceResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "artifact_key": {
+            "type": "string",
+            "title": "Artifact Key"
+          },
+          "artifact_type": {
+            "type": "string",
+            "title": "Artifact Type"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "preview": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Preview"
+          },
+          "storage_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Uri"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "artifact_key",
+          "artifact_type",
+          "sha256",
+          "preview",
+          "storage_uri",
+          "expires_at",
+          "created_at"
+        ],
+        "title": "VpnTesterEvidenceResponse"
+      },
+      "VpnTesterOverviewResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "runtime_enabled": {
+            "type": "boolean",
+            "title": "Runtime Enabled"
+          },
+          "scheduled_enabled": {
+            "type": "boolean",
+            "title": "Scheduled Enabled"
+          },
+          "balancer_recommendations_enabled": {
+            "type": "boolean",
+            "title": "Balancer Recommendations Enabled"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "latest_runs": {
+            "items": {
+              "$ref": "#/components/schemas/VpnTesterRunResponse"
+            },
+            "type": "array",
+            "title": "Latest Runs"
+          },
+          "schedules": {
+            "items": {
+              "$ref": "#/components/schemas/VpnTesterScheduleResponse"
+            },
+            "type": "array",
+            "title": "Schedules"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled",
+          "runtime_enabled",
+          "scheduled_enabled",
+          "balancer_recommendations_enabled",
+          "counts",
+          "latest_runs",
+          "schedules",
+          "generated_at"
+        ],
+        "title": "VpnTesterOverviewResponse"
+      },
+      "VpnTesterReleaseGateResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "blocking": {
+            "type": "boolean",
+            "title": "Blocking"
+          },
+          "latest_run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Run Id"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "override_allowed_roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Override Allowed Roles"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "blocking",
+          "latest_run_id",
+          "reason",
+          "override_allowed_roles",
+          "generated_at"
+        ],
+        "title": "VpnTesterReleaseGateResponse"
+      },
+      "VpnTesterResultResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "check_key": {
+            "type": "string",
+            "title": "Check Key"
+          },
+          "check_name": {
+            "type": "string",
+            "title": "Check Name"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target"
+          },
+          "safe_summary": {
+            "type": "string",
+            "title": "Safe Summary"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "check_key",
+          "check_name",
+          "category",
+          "status",
+          "severity",
+          "target",
+          "safe_summary",
+          "details",
+          "duration_ms",
+          "created_at"
+        ],
+        "title": "VpnTesterResultResponse"
+      },
+      "VpnTesterRunResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "suite_key": {
+            "type": "string",
+            "title": "Suite Key"
+          },
+          "suite_version": {
+            "type": "string",
+            "title": "Suite Version"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "requested_by_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By Admin Id"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Summary"
+          },
+          "pass_count": {
+            "type": "integer",
+            "title": "Pass Count"
+          },
+          "fail_count": {
+            "type": "integer",
+            "title": "Fail Count"
+          },
+          "degraded_count": {
+            "type": "integer",
+            "title": "Degraded Count"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/VpnTesterResultResponse"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "evidence_artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/VpnTesterEvidenceResponse"
+            },
+            "type": "array",
+            "title": "Evidence Artifacts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "suite_key",
+          "suite_version",
+          "mode",
+          "trigger",
+          "status",
+          "requested_by_admin_id",
+          "summary",
+          "pass_count",
+          "fail_count",
+          "degraded_count",
+          "started_at",
+          "finished_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VpnTesterRunResponse"
+      },
+      "VpnTesterScheduleResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "schedule_key": {
+            "type": "string",
+            "title": "Schedule Key"
+          },
+          "suite_key": {
+            "type": "string",
+            "title": "Suite Key"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "cron": {
+            "type": "string",
+            "title": "Cron"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Settings"
+          },
+          "next_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Run At"
+          },
+          "last_run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run Id"
+          },
+          "last_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Status"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "schedule_key",
+          "suite_key",
+          "mode",
+          "cron",
+          "enabled",
+          "settings",
+          "next_run_at",
+          "last_run_id",
+          "last_status",
+          "updated_at"
+        ],
+        "title": "VpnTesterScheduleResponse"
+      },
+      "VpnTesterTariffMatrixResponse": {
+        "properties": {
+          "rows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rows",
+          "total",
+          "generated_at"
+        ],
+        "title": "VpnTesterTariffMatrixResponse"
       },
       "WSTicketResponse": {
         "properties": {

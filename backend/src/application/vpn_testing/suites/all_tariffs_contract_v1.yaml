@@ -1,0 +1,14 @@
+{
+  "suite_key": "all_tariffs_contract_v1",
+  "version": "v1",
+  "display_name": "All Tariffs Contract",
+  "mode": "all_tariffs",
+  "description": "Evaluates every active tariff against the generated subscription contract without provisioning synthetic production users.",
+  "include_visibility": ["public", "private_code_gated", "admin_only", "internal_test"],
+  "checks": [
+    {"key": "all_tariffs.plan_code", "category": "plans", "severity": "error"},
+    {"key": "all_tariffs.connection_modes", "category": "plans", "severity": "error"},
+    {"key": "all_tariffs.routing_policy", "category": "plans", "severity": "warning"},
+    {"key": "all_tariffs.visibility_policy", "category": "plans", "severity": "warning"}
+  ]
+}

@@ -360,3 +360,46 @@ class BackendAPIClient:
             )
             raise BackendAPIError(f"Growth reporting governance follow-up processing failed: {response.status_code}")
         return response.json()
+
+    async def execute_next_vpn_tester_run(self) -> dict[str, Any]:
+        self._require_backend_internal_enabled("Internal backend VPN Tester")
+        if self._client is None:
+            raise RuntimeError("BackendAPIClient must be used as a context manager")
+
+        response = await self._client.post(
+            "admin/vpn-tester/internal/queued/execute-next",
+            headers=self._backend_internal_secret_headers(),
+        )
+        if response.status_code >= 400:
+            logger.error("backend_vpn_tester_execute_next_failed", status_code=response.status_code)
+            raise BackendAPIError(f"VPN Tester execute-next failed: {response.status_code}")
+        return response.json()
+
+    async def run_scheduled_vpn_tester(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self._require_backend_internal_enabled("Internal backend VPN Tester")
+        if self._client is None:
+            raise RuntimeError("BackendAPIClient must be used as a context manager")
+
+        response = await self._client.post(
+            "admin/vpn-tester/internal/scheduled/run",
+            json=payload,
+            headers=self._backend_internal_secret_headers(),
+        )
+        if response.status_code >= 400:
+            logger.error("backend_vpn_tester_scheduled_failed", status_code=response.status_code)
+            raise BackendAPIError(f"VPN Tester scheduled run failed: {response.status_code}")
+        return response.json()
+
+    async def cleanup_vpn_tester(self) -> dict[str, Any]:
+        self._require_backend_internal_enabled("Internal backend VPN Tester")
+        if self._client is None:
+            raise RuntimeError("BackendAPIClient must be used as a context manager")
+
+        response = await self._client.post(
+            "admin/vpn-tester/internal/cleanup",
+            headers=self._backend_internal_secret_headers(),
+        )
+        if response.status_code >= 400:
+            logger.error("backend_vpn_tester_cleanup_failed", status_code=response.status_code)
+            raise BackendAPIError(f"VPN Tester cleanup failed: {response.status_code}")
+        return response.json()

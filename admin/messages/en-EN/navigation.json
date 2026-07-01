@@ -136,6 +136,8 @@
     "squadsHint": "Node squads",
     "snippets": "Snippets",
     "snippetsHint": "Operational snippets",
+    "vpnTester": "VPN Tester",
+    "vpnTesterHint": "Contract, route, and release checks",
     "securityOverview": "Security overview",
     "securityOverviewHint": "Security posture summary",
     "reviewQueue": "Review queue",

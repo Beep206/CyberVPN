@@ -1,0 +1,11 @@
+{
+  "suite_key": "default_subscription_smoke_v1",
+  "version": "v1",
+  "display_name": "Default Subscription Smoke",
+  "mode": "contract",
+  "description": "Safe smoke suite for default subscription delivery settings and Remnawave availability.",
+  "checks": [
+    {"key": "default_subscription.base_url", "category": "settings", "severity": "error"},
+    {"key": "remnawave.api.reachable", "category": "remnawave", "severity": "warning"}
+  ]
+}

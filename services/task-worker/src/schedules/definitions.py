@@ -52,6 +52,12 @@ from src.utils.constants import (
     SCHEDULE_SYNC_USER_STATS,
     SCHEDULE_TELEGRAM_STARS_RECONCILIATION,
     SCHEDULE_TRAFFIC_RESET,
+    SCHEDULE_VPN_TESTER_ALL_TARIFFS,
+    SCHEDULE_VPN_TESTER_BALANCER,
+    SCHEDULE_VPN_TESTER_CLEANUP,
+    SCHEDULE_VPN_TESTER_DEEP,
+    SCHEDULE_VPN_TESTER_LIGHTWEIGHT,
+    SCHEDULE_VPN_TESTER_QUEUE,
     SCHEDULE_WEBHOOK_RETRY,
 )
 
@@ -167,6 +173,32 @@ from src.tasks.monitoring.helix_canary_control import (
 )
 
 audit_helix_canary_control = _schedule_task(audit_helix_canary_control, [{"cron": SCHEDULE_HELIX_CANARY_CONTROL}])
+
+# =============================================================================
+# VPN Tester Tasks
+# =============================================================================
+
+from src.tasks.vpn_testing.run_checks import (
+    cleanup_vpn_tester_artifacts,
+    process_vpn_tester_queue,
+    run_vpn_tester_all_tariffs,
+    run_vpn_tester_balancer_preview,
+    run_vpn_tester_deep,
+    run_vpn_tester_lightweight,
+)
+
+process_vpn_tester_queue = _schedule_task(process_vpn_tester_queue, [{"cron": SCHEDULE_VPN_TESTER_QUEUE}])
+run_vpn_tester_lightweight = _schedule_task(run_vpn_tester_lightweight, [{"cron": SCHEDULE_VPN_TESTER_LIGHTWEIGHT}])
+run_vpn_tester_all_tariffs = _schedule_task(
+    run_vpn_tester_all_tariffs,
+    [{"cron": SCHEDULE_VPN_TESTER_ALL_TARIFFS}],
+)
+run_vpn_tester_deep = _schedule_task(run_vpn_tester_deep, [{"cron": SCHEDULE_VPN_TESTER_DEEP}])
+run_vpn_tester_balancer_preview = _schedule_task(
+    run_vpn_tester_balancer_preview,
+    [{"cron": SCHEDULE_VPN_TESTER_BALANCER}],
+)
+cleanup_vpn_tester_artifacts = _schedule_task(cleanup_vpn_tester_artifacts, [{"cron": SCHEDULE_VPN_TESTER_CLEANUP}])
 
 # =============================================================================
 # Subscription Tasks
