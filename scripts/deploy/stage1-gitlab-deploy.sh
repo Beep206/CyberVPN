@@ -452,6 +452,12 @@ ensure_remote_env_value .env TELEGRAM_BOT_REGISTRATION_MODE allow_pending_onboar
 ensure_remote_env_value .env TELEGRAM_BOT_ALLOW_REGISTRATION_WHEN_PUBLIC_CLOSED true
 ensure_remote_env_value .env TELEGRAM_MINIAPP_URL https://cyber-vpn.net/ru-RU/miniapp
 ensure_remote_env_value .env TELEGRAM_MINIAPP_ONBOARDING_URL https://cyber-vpn.net/ru-RU/miniapp/onboarding/code
+ensure_remote_env_value .env VPN_TESTER_ENABLED true
+ensure_remote_env_value .env VPN_TESTER_RUNTIME_ENABLED false
+ensure_remote_env_value .env VPN_TESTER_SYNTHETIC_USERS_ENABLED false
+ensure_remote_env_value .env VPN_TESTER_SCHEDULED_ENABLED true
+ensure_remote_env_value .env VPN_TESTER_BALANCER_RECOMMENDATIONS_ENABLED true
+ensure_remote_env_value .env VPN_TESTER_RETENTION_DAYS 30
 
 compose_services=()
 is_requested backend && compose_services+=(cybervpn-backend)
