@@ -26,6 +26,7 @@
     "check:i18n:s1": "node scripts/stage1-i18n-critical-path-audit.mjs",
     "check:marketing:s1": "node scripts/stage1-marketing-critical-pages-audit.mjs",
     "check:login-passkey-smoke": "node scripts/login-passkey-browser-smoke.mjs",
+    "check:cabinet-nav-smoke": "node scripts/cabinet-navigation-browser-smoke.mjs",
     "check:mobile-performance": "node scripts/mobile-performance-budget.mjs",
     "check:mobile": "npm run test:mobile-layout && npm run check:mobile-performance",
     "generate:api-types": "node scripts/generate-api-types.mjs"

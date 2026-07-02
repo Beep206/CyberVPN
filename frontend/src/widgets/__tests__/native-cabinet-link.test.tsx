@@ -4,14 +4,12 @@ import type { MouseEventHandler, ReactNode } from 'react';
 import { NativeCabinetLink } from '../native-cabinet-link';
 
 const linkNavigateMock = vi.hoisted(() => vi.fn());
-const mockUsePathname = vi.hoisted(() => vi.fn(() => '/ru-RU/dashboard'));
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'ru-RU',
 }));
 
 vi.mock('@/i18n/navigation', () => ({
-  usePathname: () => mockUsePathname(),
   Link: ({
     children,
     href,
@@ -40,10 +38,13 @@ vi.mock('@/i18n/navigation', () => ({
             !event.ctrlKey &&
             !event.metaKey &&
             !event.shiftKey &&
-            (!target || target === '_self')
+            (!target || target === '_self') &&
+            !rest.download
           ) {
             event.preventDefault();
             linkNavigateMock(href);
+          } else if (target || rest.download) {
+            event.preventDefault();
           }
         }}
         target={target}
@@ -61,10 +62,8 @@ describe('NativeCabinetLink', () => {
     vi.restoreAllMocks();
     linkNavigateMock.mockClear();
     vi.mocked(window.location.assign).mockClear();
-    mockUsePathname.mockReturnValue('/ru-RU/dashboard');
     window.location.href = 'http://localhost:3000';
     window.location.pathname = '/';
-    delete process.env.NEXT_PUBLIC_SAFE_CABINET_LINK_FALLBACK;
   });
 
   it('renders a localized native cabinet href', () => {
@@ -76,11 +75,10 @@ describe('NativeCabinetLink', () => {
     );
   });
 
-  it('uses SPA navigation for plain clicks without scheduling a hard reload', () => {
-    const setTimeoutSpy = vi
-      .spyOn(window, 'setTimeout')
-      .mockImplementation(() => 1 as unknown as ReturnType<typeof setTimeout>);
-
+  it('keeps SPA navigation for plain clicks while arming the stalled-router fallback', () => {
+    vi.useFakeTimers();
+    window.location.href = 'http://localhost:3000/ru-RU/dashboard';
+    window.location.pathname = '/ru-RU/dashboard';
     render(<NativeCabinetLink href="/wallet">Wallet</NativeCabinetLink>);
 
     const link = screen.getByRole('link', { name: 'Wallet' });
@@ -89,12 +87,16 @@ describe('NativeCabinetLink', () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(linkNavigateMock).toHaveBeenCalledWith('/wallet');
-    expect(setTimeoutSpy).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(399);
+    expect(window.location.assign).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(window.location.assign).toHaveBeenCalledWith(
+      'http://localhost:3000/ru-RU/wallet',
+    );
   });
 
-  it('falls back to document navigation only when explicitly enabled and the path stalls', () => {
+  it('does not hard navigate when the router commits the path before the fallback timer', () => {
     vi.useFakeTimers();
-    process.env.NEXT_PUBLIC_SAFE_CABINET_LINK_FALLBACK = 'true';
     window.location.href = 'http://localhost:3000/ru-RU/dashboard';
     window.location.pathname = '/ru-RU/dashboard';
 
@@ -106,10 +108,9 @@ describe('NativeCabinetLink', () => {
     vi.advanceTimersByTime(399);
     expect(window.location.assign).not.toHaveBeenCalled();
 
+    window.location.pathname = '/ru-RU/wallet';
     vi.advanceTimersByTime(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
-      'http://localhost:3000/ru-RU/wallet',
-    );
+    expect(window.location.assign).not.toHaveBeenCalled();
   });
 
   it('keeps modified clicks native without SPA interception or fallback', () => {
@@ -122,6 +123,33 @@ describe('NativeCabinetLink', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Wallet' }), {
       button: 0,
       metaKey: true,
+    });
+
+    expect(linkNavigateMock).not.toHaveBeenCalled();
+    expect(setTimeoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not arm the fallback for links that should keep native browser behavior', () => {
+    const setTimeoutSpy = vi
+      .spyOn(window, 'setTimeout')
+      .mockImplementation(() => 1 as unknown as ReturnType<typeof setTimeout>);
+
+    render(
+      <>
+        <NativeCabinetLink href="/wallet" target="_blank">
+          Blank Wallet
+        </NativeCabinetLink>
+        <NativeCabinetLink href="/payment-history" download>
+          Download History
+        </NativeCabinetLink>
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Blank Wallet' }), {
+      button: 0,
+    });
+    fireEvent.click(screen.getByRole('link', { name: 'Download History' }), {
+      button: 0,
     });
 
     expect(linkNavigateMock).not.toHaveBeenCalled();

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComponentProps, MouseEvent, ReactNode } from 'react';
-import { Link, usePathname } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 
 type SafeCabinetLinkProps = Omit<ComponentProps<typeof Link>, 'href'> & {
   children: ReactNode;
@@ -20,8 +20,7 @@ function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>) {
 
 function canUseDocumentFallback(anchor: HTMLAnchorElement) {
   return (
-    process.env.NEXT_PUBLIC_SAFE_CABINET_LINK_FALLBACK === 'true' &&
-    anchor.target !== '_blank' &&
+    (!anchor.target || anchor.target === '_self') &&
     !anchor.hasAttribute('download') &&
     anchor.origin === window.location.origin
   );
@@ -33,8 +32,6 @@ export function SafeCabinetLink({
   onClick,
   ...props
 }: SafeCabinetLinkProps) {
-  const pathname = usePathname();
-
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);
 
@@ -47,13 +44,13 @@ export function SafeCabinetLink({
       return;
     }
 
-    const before = pathname ?? window.location.pathname;
+    const before = window.location.pathname;
     window.setTimeout(() => {
       if (
         window.location.pathname === before &&
         anchor.href !== window.location.href
       ) {
-        // eslint-disable-next-line no-console -- explicit opt-in navigation fallback diagnostic.
+        // eslint-disable-next-line no-console -- rare production navigation fallback diagnostic.
         console.info('[safe-cabinet-link] document navigation fallback', {
           hrefPath: anchor.pathname,
         });
