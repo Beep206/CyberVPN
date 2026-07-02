@@ -472,7 +472,7 @@ class ResolveGrowthCodeUseCase:
                 resolved_code_id=invite.id,
             )
 
-        if usage_mode != "multi_use" and invite.is_used:
+        if usage_mode != "multi_use" and _invite_single_use_consumed(invite):
             return GrowthCodeResolutionOutcome(
                 accepted=False,
                 code_type=GrowthCodeType.INVITE,
@@ -1146,6 +1146,14 @@ def _growth_reject_for_partner_eligibility(
     if reason_codes.intersection({"sale_channel_not_allowed", "storefront_not_allowed", "geography_not_allowed"}):
         return GrowthCodeRejectReason.CODE_NOT_ELIGIBLE_FOR_SURFACE, "growth_codes.partner.not_eligible_for_surface"
     return GrowthCodeRejectReason.CODE_NOT_ACTIVE, "growth_codes.partner.inactive"
+
+
+def _invite_single_use_consumed(invite) -> bool:
+    return (
+        bool(getattr(invite, "is_used", False))
+        or int(getattr(invite, "redeemed_count", 0) or 0) > 0
+        or getattr(invite, "status", None) in {"redeemed", "used"}
+    )
 
 
 def _resolve_base_commission_pct(tiers: list[dict]) -> Decimal:

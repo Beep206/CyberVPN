@@ -56,7 +56,8 @@ def upgrade() -> None:
             name="ck_invite_campaigns_status",
         ),
         sa.CheckConstraint(
-            "owner_mode IN ('system','selected_user','uploaded_user_list','admin_pool','customer_owned','partner_owned')",
+            "owner_mode IN "
+            "('system','selected_user','uploaded_user_list','admin_pool','customer_owned','partner_owned')",
             name="ck_invite_campaigns_owner_mode",
         ),
         sa.ForeignKeyConstraint(["created_by_admin_id"], ["admin_users.id"], ondelete="RESTRICT"),

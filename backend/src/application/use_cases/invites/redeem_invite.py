@@ -41,7 +41,7 @@ from src.domain.exceptions import (
     InviteCodeNotFoundError,
 )
 from src.infrastructure.database.models.growth_benefit_model import InviteBatchModel
-from src.infrastructure.database.models.growth_code_model import GrowthCodeRedemptionModel
+from src.infrastructure.database.models.growth_code_model import GrowthCodeModel, GrowthCodeRedemptionModel
 from src.infrastructure.database.models.invite_campaign_model import (
     InviteCampaignModel,
     InviteCampaignVersionModel,
@@ -343,6 +343,38 @@ class RedeemInviteUseCase:
 
         grant_snapshot, access_expires_at, access_days = await self._build_grant_snapshot(invite)
         shadow_code = await self._registry.ensure_shadow_invite(invite)
+        try:
+            _ensure_shadow_invite_redeemable(invite=invite, shadow_code=shadow_code)
+        except InviteCodeAlreadyUsedError:
+            logger.warning(
+                "invite_redeem_shadow_already_used",
+                extra={**code_ref, "user_id": str(user_id), "invite_id": str(invite.id)},
+            )
+            observe_growth_code_redemption_duration(
+                code_type="invite",
+                surface=CUSTOMER_REDEEM_SURFACE,
+                result="failure",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise
+        except InviteCodeExhaustedError:
+            await self._record_blocked_redemption(
+                invite=invite,
+                redeemer_user_id=user_id,
+                source_surface=source_surface,
+                reason="Invite code exhausted",
+            )
+            logger.warning(
+                "invite_redeem_shadow_exhausted",
+                extra={**code_ref, "user_id": str(user_id), "invite_id": str(invite.id)},
+            )
+            observe_growth_code_redemption_duration(
+                code_type="invite",
+                surface=CUSTOMER_REDEEM_SURFACE,
+                result="failure",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise
         service_identity = await self._service_identities.execute(
             customer_account_id=user_id,
             auth_realm_id=UUID(current_realm.realm_id),
@@ -390,8 +422,7 @@ class RedeemInviteUseCase:
             invite_redemption.child_batch_id = child_batch.id
             invite_redemption.child_issued_count = len(child_invites)
         await self._ensure_tree_state(invite=redeemed_invite, invite_redemption=invite_redemption)
-        shadow_code.status = "redeemed"
-        shadow_code.uses_count = max(int(shadow_code.uses_count or 0), int(redeemed_invite.redeemed_count or 1))
+        shadow_code = await self._registry.ensure_shadow_invite(redeemed_invite)
         await self._session.flush()
         await self._outbox.append_event(
             event_name="growth_code.redeemed",
@@ -540,8 +571,7 @@ class RedeemInviteUseCase:
             invite_redemption.child_batch_id = child_batch.id
             invite_redemption.child_issued_count = len(child_invites)
         await self._ensure_tree_state(invite=invite, invite_redemption=invite_redemption)
-        shadow_code.status = "redeemed"
-        shadow_code.uses_count = max(int(shadow_code.uses_count or 0), int(invite.redeemed_count or 1))
+        shadow_code = await self._registry.ensure_shadow_invite(invite)
         await self._session.flush()
         return RedeemedInviteResult(
             invite=invite,
@@ -1497,6 +1527,27 @@ def _invite_is_exhausted(invite: InviteCodeModel) -> bool:
         return bool(invite.is_used and invite.used_by_user_id is not None)
     max_redemptions = _optional_positive_int(getattr(invite, "max_redemptions", None))
     return max_redemptions is not None and int(getattr(invite, "active_redemptions_count", 0) or 0) >= max_redemptions
+
+
+def _ensure_shadow_invite_redeemable(*, invite: InviteCodeModel, shadow_code: GrowthCodeModel) -> None:
+    status = str(shadow_code.status or "")
+    usage_mode = _invite_usage_mode(invite)
+    if status == "exhausted":
+        raise InviteCodeExhaustedError()
+    if usage_mode == INVITE_USAGE_SINGLE and status == "redeemed":
+        raise InviteCodeAlreadyUsedError()
+
+    max_uses = _optional_positive_int(getattr(shadow_code, "max_uses", None))
+    if max_uses is None:
+        return
+    used_or_reserved = int(getattr(shadow_code, "uses_count", 0) or 0) + int(
+        getattr(shadow_code, "reserved_uses", 0) or 0
+    )
+    if used_or_reserved < max_uses:
+        return
+    if usage_mode == INVITE_USAGE_MULTI:
+        raise InviteCodeExhaustedError()
+    raise InviteCodeAlreadyUsedError()
 
 
 def _runtime_context_payload(runtime_context: InviteRedemptionRuntimeContext | None) -> dict[str, str]:

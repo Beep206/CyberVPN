@@ -18,9 +18,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.growth_codes.hashing import build_growth_code_prefix, hash_growth_code
 from src.config.settings import settings
 from src.domain.enums import InviteSource
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.growth_code_model import GrowthCodeModel
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.partner_model import (
@@ -255,6 +257,74 @@ class TestInviteCodeFlow:
 
         assert redeem_response.status_code == 409
         assert "already used" in redeem_response.json()["detail"].lower()
+
+    @pytest.mark.integration
+    async def test_multi_use_invite_redeem_syncs_existing_shadow_capacity(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        owner_user = await _create_mobile_user(db)
+        first_redeemer = await _create_mobile_user(db)
+        second_redeemer = await _create_mobile_user(db)
+        plan = await _create_plan(db, name="Multi Invite Plan", price_usd="10.00")
+        invite_code = f"MULTI{secrets.token_hex(4).upper()}"
+        now = datetime.now(UTC)
+        multi_invite = InviteCodeModel(
+            code=invite_code,
+            owner_user_id=owner_user.id,
+            free_days=7,
+            plan_id=plan.id,
+            grant_plan_id=plan.id,
+            grant_mode="plan_snapshot",
+            source=InviteSource.ADMIN_GRANT,
+            expires_at=now + timedelta(days=30),
+            usage_mode="multi_use",
+            max_redemptions=2,
+            redeemed_count=1,
+            active_redemptions_count=1,
+            is_used=False,
+            used_by_user_id=first_redeemer.id,
+            used_at=now,
+            status="active",
+        )
+        stale_shadow = GrowthCodeModel(
+            code_hash=hash_growth_code(invite_code),
+            code_prefix=build_growth_code_prefix(invite_code),
+            code_type="invite",
+            status="redeemed",
+            issuer_type="admin",
+            owner_user_id=owner_user.id,
+            auth_realm_id=owner_user.auth_realm_id,
+            starts_at=now,
+            expires_at=now + timedelta(days=30),
+            max_uses=1,
+            uses_count=1,
+        )
+        db.add_all([multi_invite, stale_shadow])
+        await db.commit()
+
+        _override_mobile_user(second_redeemer.id)
+        redeem_response = await async_client.post(
+            "/api/v1/invites/redeem",
+            json={"code": invite_code},
+        )
+
+        assert redeem_response.status_code == 200
+        redeem_data = redeem_response.json()
+        assert redeem_data["code"] == invite_code
+        assert redeem_data["usage_mode"] == "multi_use"
+        assert redeem_data["redeemed_count"] == 2
+        assert redeem_data["active_redemptions_count"] == 2
+        assert redeem_data["remaining_redemptions"] == 0
+
+        await db.refresh(multi_invite)
+        await db.refresh(stale_shadow)
+        assert multi_invite.status == "exhausted"
+        assert multi_invite.used_by_user_id == second_redeemer.id
+        assert stale_shadow.max_uses == 2
+        assert stale_shadow.uses_count == 2
+        assert stale_shadow.status == "exhausted"
 
 
 class TestPromoCodeFlow:

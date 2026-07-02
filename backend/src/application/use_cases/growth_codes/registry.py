@@ -25,6 +25,9 @@ from src.infrastructure.monitoring.instrumentation.growth_codes import (
     observe_growth_code_resolution,
 )
 
+INVITE_USAGE_MULTI = "multi_use"
+INVITE_USAGE_SINGLE = "single_use"
+
 
 class GrowthCodeRegistryService:
     def __init__(self, session: AsyncSession) -> None:
@@ -35,6 +38,7 @@ class GrowthCodeRegistryService:
     async def ensure_shadow_invite(self, invite) -> GrowthCodeModel:
         owner = await self._session.get(MobileUserModel, invite.owner_user_id)
         now = datetime.now(UTC)
+        status, max_uses, uses_count = _invite_shadow_usage(invite=invite, now=now)
         code = await self._codes.get_code_by_hash(hash_growth_code(invite.code), code_type=GrowthCodeType.INVITE.value)
         if code is None:
             code = await self._codes.create_code(
@@ -42,25 +46,31 @@ class GrowthCodeRegistryService:
                     code_hash=hash_growth_code(invite.code),
                     code_prefix=build_growth_code_prefix(invite.code),
                     code_type=GrowthCodeType.INVITE.value,
-                    status=_invite_status(invite=invite, now=now),
+                    status=status,
                     issuer_type="purchase" if invite.source == InviteSource.PURCHASE.value else "admin",
                     owner_user_id=invite.owner_user_id,
                     auth_realm_id=owner.auth_realm_id if owner is not None else None,
                     starts_at=_coerce_utc(invite.created_at),
                     expires_at=_coerce_utc(invite.expires_at),
-                    max_uses=1,
-                    uses_count=1 if invite.is_used else 0,
+                    max_uses=max_uses,
+                    uses_count=uses_count,
                 )
             )
         else:
-            code.status = _invite_status(invite=invite, now=now)
+            existing_uses = int(code.uses_count or 0)
+            status, max_uses, uses_count = _invite_shadow_usage(
+                invite=invite,
+                now=now,
+                existing_uses_count=existing_uses,
+            )
+            code.status = status
             code.issuer_type = "purchase" if invite.source == InviteSource.PURCHASE.value else "admin"
             code.owner_user_id = invite.owner_user_id
             code.auth_realm_id = owner.auth_realm_id if owner is not None else None
             code.starts_at = _coerce_utc(invite.created_at)
             code.expires_at = _coerce_utc(invite.expires_at)
-            code.max_uses = 1
-            code.uses_count = 1 if invite.is_used else 0
+            code.max_uses = max_uses
+            code.uses_count = uses_count
             await self._session.flush()
 
         invite_policy = await self._codes.get_invite_policy(code.id)
@@ -447,12 +457,73 @@ class GrowthCodeRegistryService:
 
 
 def _invite_status(*, invite, now: datetime) -> str:
-    if invite.is_used:
-        return "redeemed"
+    if getattr(invite, "revoked_at", None) is not None or getattr(invite, "status", None) == "revoked":
+        return "revoked"
     expires_at = _coerce_utc(invite.expires_at)
     if expires_at is not None and expires_at <= now:
         return "expired"
+    usage_mode = _invite_usage_mode(invite)
+    if usage_mode == INVITE_USAGE_MULTI:
+        if getattr(invite, "status", None) == "exhausted" or getattr(invite, "exhausted_at", None) is not None:
+            return "exhausted"
+        return "active"
+    if (
+        bool(getattr(invite, "is_used", False))
+        or int(getattr(invite, "redeemed_count", 0) or 0) > 0
+        or getattr(invite, "status", None) in {"redeemed", "used"}
+    ):
+        return "redeemed"
     return "active"
+
+
+def _invite_shadow_usage(
+    *,
+    invite,
+    now: datetime,
+    existing_uses_count: int = 0,
+) -> tuple[str, int | None, int]:
+    max_uses = _invite_max_uses(invite)
+    uses_count = max(_invite_uses_count(invite), int(existing_uses_count or 0))
+    if max_uses is not None:
+        uses_count = min(uses_count, max_uses)
+    status = _invite_status(invite=invite, now=now)
+    if status == "active" and max_uses is not None and uses_count >= max_uses:
+        status = "exhausted" if _invite_usage_mode(invite) == INVITE_USAGE_MULTI else "redeemed"
+    return status, max_uses, uses_count
+
+
+def _invite_max_uses(invite) -> int | None:
+    if _invite_usage_mode(invite) == INVITE_USAGE_MULTI:
+        return _positive_int_or_none(getattr(invite, "max_redemptions", None))
+    return 1
+
+
+def _invite_uses_count(invite) -> int:
+    redeemed_count = int(getattr(invite, "redeemed_count", 0) or 0)
+    active_count = int(getattr(invite, "active_redemptions_count", 0) or 0)
+    if _invite_usage_mode(invite) == INVITE_USAGE_MULTI:
+        return max(redeemed_count, active_count)
+    return max(redeemed_count, 1 if bool(getattr(invite, "is_used", False)) else 0)
+
+
+def _invite_usage_mode(invite) -> str:
+    usage_mode = str(getattr(invite, "usage_mode", "") or "").lower()
+    return INVITE_USAGE_MULTI if usage_mode == INVITE_USAGE_MULTI else INVITE_USAGE_SINGLE
+
+
+def _positive_int_or_none(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = int(value)
+        except ValueError:
+            return None
+    else:
+        return None
+    return parsed if parsed > 0 else None
 
 
 def _promo_status(*, promo, now: datetime) -> str:
