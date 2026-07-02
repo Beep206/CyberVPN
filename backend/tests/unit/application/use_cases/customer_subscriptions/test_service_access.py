@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import HTTPException
+from httpx import HTTPStatusError, Request, Response
 
 from src.application.use_cases.customer_subscriptions import service_access as service_access_module
 from src.application.use_cases.customer_subscriptions.service_access import (
@@ -211,6 +212,176 @@ async def test_selected_subscription_lazy_provisioning_fails_closed_when_smart_r
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail == "Selected subscription VPN identity requires Premium Smart RU routing configuration"
     session.flush.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_selected_subscription_lazy_provisioning_recovers_existing_remnawave_user_after_create_400(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    customer_account_id = uuid.uuid4()
+    auth_realm_id = uuid.uuid4()
+    service_identity_id = uuid.uuid4()
+    recovered_user_uuid = uuid.uuid4()
+    request = Request("POST", "https://remnawave.local/api/users")
+    response = Response(400, request=request, json={"message": "duplicate username"})
+
+    class FakeRemnawaveUserGateway:
+        def __init__(self, client) -> None:
+            captured["remnawave_client"] = client
+
+        async def create(self, username: str, **kwargs):
+            captured["create_username"] = username
+            raise HTTPStatusError("400 Bad Request", request=request, response=response)
+
+        async def get_by_username(self, username: str):
+            captured["lookup_username"] = username
+            return SimpleNamespace(
+                uuid=recovered_user_uuid,
+                subscription_url="https://subscription.example.local/sub/recovered",
+            )
+
+    class FakeCreateServiceIdentityUseCase:
+        def __init__(self, session) -> None:
+            captured["identity_session"] = session
+
+        async def execute(self, **kwargs):
+            captured["identity_kwargs"] = kwargs
+            return SimpleNamespace(
+                service_identity=SimpleNamespace(
+                    id=service_identity_id,
+                    service_key="svc-recovered",
+                    provider_subject_ref=kwargs["provider_subject_ref"],
+                    service_context=kwargs["service_context"],
+                )
+            )
+
+    monkeypatch.setattr(service_access_module, "RemnawaveUserGateway", FakeRemnawaveUserGateway)
+    monkeypatch.setattr(service_access_module, "CreateServiceIdentityUseCase", FakeCreateServiceIdentityUseCase)
+
+    session = SimpleNamespace(
+        get=AsyncMock(return_value=SimpleNamespace(email="recover-user@example.test")),
+        flush=AsyncMock(),
+    )
+    use_case = CustomerSubscriptionServiceAccessUseCase(session)
+    use_case._repo = SimpleNamespace(get_service_identity_by_subscription_key=AsyncMock(return_value=None))
+    use_case._ensure_provisioning_profile = AsyncMock()
+    use_case._store_subscription_url = AsyncMock()
+    item = _subscription_summary()
+    grant = SimpleNamespace(
+        id=item.entitlement_grant_id,
+        customer_account_id=customer_account_id,
+        auth_realm_id=auth_realm_id,
+        source_order_id=uuid.uuid4(),
+        origin_storefront_id=None,
+        service_identity_id=None,
+    )
+
+    service_identity = await use_case._ensure_grant_service_identity(
+        item=item,
+        grant=grant,
+        provider_name="remnawave",
+        remnawave_client=SimpleNamespace(),
+        existing=None,
+    )
+
+    assert captured["lookup_username"] == captured["create_username"]
+    assert captured["identity_kwargs"]["provider_subject_ref"] == str(recovered_user_uuid)
+    assert captured["identity_kwargs"]["service_context"]["subscription_url"].endswith("/recovered")
+    assert grant.service_identity_id == service_identity_id
+    assert service_identity.id == service_identity_id
+    session.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_selected_subscription_lazy_provisioning_maps_unrecoverable_create_400_to_safe_502(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    customer_account_id = uuid.uuid4()
+    auth_realm_id = uuid.uuid4()
+    request = Request("POST", "https://remnawave.local/api/users")
+    response = Response(400, request=request, json={"message": "raw upstream validation details"})
+
+    class FakeRemnawaveUserGateway:
+        def __init__(self, client) -> None:
+            self.client = client
+
+        async def create(self, username: str, **kwargs):
+            raise HTTPStatusError("400 raw upstream validation details", request=request, response=response)
+
+        async def get_by_username(self, username: str):
+            return None
+
+    monkeypatch.setattr(service_access_module, "RemnawaveUserGateway", FakeRemnawaveUserGateway)
+
+    session = SimpleNamespace(
+        get=AsyncMock(return_value=SimpleNamespace(email="unrecoverable-user@example.test")),
+        flush=AsyncMock(),
+    )
+    use_case = CustomerSubscriptionServiceAccessUseCase(session)
+    use_case._repo = SimpleNamespace(get_service_identity_by_subscription_key=AsyncMock(return_value=None))
+    item = _subscription_summary()
+    grant = SimpleNamespace(
+        id=item.entitlement_grant_id,
+        customer_account_id=customer_account_id,
+        auth_realm_id=auth_realm_id,
+        source_order_id=uuid.uuid4(),
+        origin_storefront_id=None,
+        service_identity_id=None,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await use_case._ensure_grant_service_identity(
+            item=item,
+            grant=grant,
+            provider_name="remnawave",
+            remnawave_client=SimpleNamespace(),
+            existing=None,
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Selected subscription VPN identity is temporarily unavailable"
+    assert "raw upstream" not in str(exc_info.value.detail)
+    session.flush.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_selected_subscription_config_maps_upstream_status_error_to_safe_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = Request("GET", "https://remnawave.local/api/subscriptions/by-uuid/test-user")
+    response = Response(500, request=request, json={"message": "raw upstream outage"})
+
+    class FakeGenerateConfigUseCase:
+        def __init__(self, client) -> None:
+            self.client = client
+
+        async def execute(self, user_uuid):
+            raise HTTPStatusError("500 raw upstream outage", request=request, response=response)
+
+    monkeypatch.setattr(service_access_module, "GenerateConfigUseCase", FakeGenerateConfigUseCase)
+
+    use_case = CustomerSubscriptionServiceAccessUseCase(SimpleNamespace())
+    use_case.get_service_state = AsyncMock(
+        return_value=SimpleNamespace(
+            access_delivery_channel=None,
+            service_identity=SimpleNamespace(provider_subject_ref=uuid.uuid4()),
+        )
+    )
+    use_case._store_subscription_url = AsyncMock()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await use_case.get_config(
+            customer_account_id=uuid.uuid4(),
+            auth_realm_id=uuid.uuid4(),
+            subscription_key=f"grant:{uuid.uuid4()}",
+            remnawave_client=SimpleNamespace(),
+        )
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Selected subscription VPN config is temporarily unavailable"
+    assert "raw upstream" not in str(exc_info.value.detail)
+    use_case._store_subscription_url.assert_not_awaited()
 
 
 @pytest.mark.asyncio

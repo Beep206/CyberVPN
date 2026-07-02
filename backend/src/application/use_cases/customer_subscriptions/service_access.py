@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, NoReturn
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from httpx import HTTPStatusError, RequestError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.entitlements_service import EntitlementsService
@@ -36,6 +38,7 @@ from src.application.use_cases.trial.stage1_trial_policy import (
     STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY,
 )
 from src.config.settings import settings
+from src.domain.entities.user import User
 from src.infrastructure.database.models.access_delivery_channel_model import AccessDeliveryChannelModel
 from src.infrastructure.database.models.device_credential_model import DeviceCredentialModel
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
@@ -53,6 +56,8 @@ from src.infrastructure.remnawave.smart_ru_bundle import (
 from src.infrastructure.remnawave.stage1_ru_bundle import resolve_stage1_ru_bundle_external_squad_uuid
 from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -189,7 +194,20 @@ class CustomerSubscriptionServiceAccessUseCase:
                 detail="Selected subscription VPN identity is not provisioned",
             )
 
-        config = await GenerateConfigUseCase(remnawave_client).execute(service_identity.provider_subject_ref)
+        try:
+            config = await GenerateConfigUseCase(remnawave_client).execute(service_identity.provider_subject_ref)
+        except HTTPStatusError as exc:
+            _raise_remnawave_dependency_unavailable(
+                exc,
+                operation="customer_subscription_config_fetch",
+                detail="Selected subscription VPN config is temporarily unavailable",
+            )
+        except RequestError as exc:
+            _raise_remnawave_dependency_unavailable(
+                exc,
+                operation="customer_subscription_config_fetch",
+                detail="Selected subscription VPN config is temporarily unavailable",
+            )
         subscription_url = normalize_public_subscription_url(config.get("subscription_url"))
         if subscription_url:
             await self._store_subscription_url(
@@ -346,16 +364,142 @@ class CustomerSubscriptionServiceAccessUseCase:
         if smart_ru_internal_squad_uuids:
             payload["active_internal_squads"] = smart_ru_internal_squad_uuids
 
-        created_user = await gateway.create(
-            username=f"cvpn_s_{grant.id.hex[:28]}",
-            **payload,
-        )
+        username = f"cvpn_s_{grant.id.hex[:28]}"
+        try:
+            created_user = await gateway.create(
+                username=username,
+                **payload,
+            )
+        except (HTTPStatusError, RequestError) as exc:
+            recovered_identity = await self._recover_grant_service_identity_after_create_failure(
+                item=item,
+                grant=grant,
+                provider_name=provider_name,
+                existing=existing,
+                gateway=gateway,
+                username=username,
+                lifetime_access=lifetime_access,
+                payload=payload,
+                exc=exc,
+            )
+            if recovered_identity is not None:
+                return recovered_identity
+            _raise_remnawave_dependency_unavailable(
+                exc,
+                operation="customer_subscription_grant_provisioning",
+                detail="Selected subscription VPN identity is temporarily unavailable",
+            )
         if lifetime_access:
             observe_lifetime_remnawave_expiry_mode(
                 mode=str(payload.get("lifetime_expiry_mode") or "sentinel"),
                 result="success",
             )
-        subscription_url = normalize_public_subscription_url(created_user.subscription_url)
+        return await self._upsert_grant_service_identity_from_user(
+            item=item,
+            grant=grant,
+            provider_name=provider_name,
+            existing=existing,
+            remnawave_user=created_user,
+            lifetime_access=lifetime_access,
+            payload=payload,
+        )
+
+    async def _recover_grant_service_identity_after_create_failure(
+        self,
+        *,
+        item: CustomerSubscriptionSummary,
+        grant: EntitlementGrantModel,
+        provider_name: str,
+        existing: ServiceIdentityModel | None,
+        gateway: RemnawaveUserGateway,
+        username: str,
+        lifetime_access: bool,
+        payload: dict[str, Any],
+        exc: HTTPStatusError | RequestError,
+    ) -> ServiceIdentityModel | None:
+        local_identity = await self._repo.get_service_identity_by_subscription_key(
+            customer_account_id=grant.customer_account_id,
+            auth_realm_id=grant.auth_realm_id,
+            provider_name=provider_name,
+            subscription_key=item.subscription_key,
+        )
+        if local_identity is not None and local_identity.provider_subject_ref:
+            if grant.service_identity_id != local_identity.id:
+                grant.service_identity_id = local_identity.id
+            await self._ensure_provisioning_profile(
+                service_identity=local_identity,
+                profile_key="shared_client-default",
+                channel_type="shared_client",
+            )
+            await self._session.flush()
+            logger.info(
+                "Recovered selected subscription VPN identity from local state after Remnawave create failure",
+                extra={
+                    "subscription_key": item.subscription_key,
+                    "entitlement_grant_id": str(grant.id),
+                    "provider_name": provider_name,
+                    "upstream_status_code": _http_status_code(exc),
+                },
+            )
+            return local_identity
+
+        remnawave_user = await gateway.get_by_username(username)
+        if remnawave_user is None:
+            logger.warning(
+                "Remnawave selected subscription provisioning failed without a recoverable upstream user",
+                extra={
+                    "subscription_key": item.subscription_key,
+                    "entitlement_grant_id": str(grant.id),
+                    "provider_name": provider_name,
+                    "upstream_status_code": _http_status_code(exc),
+                    "error_type": type(exc).__name__,
+                },
+            )
+            return None
+
+        logger.info(
+            "Recovered selected subscription VPN identity from deterministic Remnawave username",
+            extra={
+                "subscription_key": item.subscription_key,
+                "entitlement_grant_id": str(grant.id),
+                "provider_name": provider_name,
+                "upstream_status_code": _http_status_code(exc),
+            },
+        )
+        return await self._upsert_grant_service_identity_from_user(
+            item=item,
+            grant=grant,
+            provider_name=provider_name,
+            existing=existing or local_identity,
+            remnawave_user=remnawave_user,
+            lifetime_access=lifetime_access,
+            payload=payload,
+        )
+
+    async def _upsert_grant_service_identity_from_user(
+        self,
+        *,
+        item: CustomerSubscriptionSummary,
+        grant: EntitlementGrantModel,
+        provider_name: str,
+        existing: ServiceIdentityModel | None,
+        remnawave_user: User,
+        lifetime_access: bool,
+        payload: dict[str, Any],
+    ) -> ServiceIdentityModel:
+        subscription_url = normalize_public_subscription_url(remnawave_user.subscription_url)
+        service_context = {
+            "subscription_key": item.subscription_key,
+            "entitlement_grant_id": str(grant.id),
+            "plan_code": item.plan_code,
+            "subscription_url": subscription_url,
+            "provisioned_from": "msub08_selected_grant",
+            "lifetime": lifetime_access,
+            "remnawave_lifetime_expiry_mode": payload.get("lifetime_expiry_mode"),
+            "remnawave_lifetime_expire_at": payload.get("lifetime_expire_at"),
+            "upstream_expiry_mode": payload.get("upstream_expiry_mode"),
+            "upstream_expires_at": payload.get("upstream_expires_at"),
+        }
 
         if existing is None:
             created = await CreateServiceIdentityUseCase(self._session).execute(
@@ -364,38 +508,18 @@ class CustomerSubscriptionServiceAccessUseCase:
                 provider_name=provider_name,
                 source_order_id=grant.source_order_id,
                 origin_storefront_id=grant.origin_storefront_id,
-                provider_subject_ref=str(created_user.uuid),
+                provider_subject_ref=str(remnawave_user.uuid),
                 identity_scope="subscription",
                 subscription_key=item.subscription_key,
-                service_context={
-                    "subscription_key": item.subscription_key,
-                    "entitlement_grant_id": str(grant.id),
-                    "plan_code": item.plan_code,
-                    "subscription_url": subscription_url,
-                    "provisioned_from": "msub08_selected_grant",
-                    "lifetime": lifetime_access,
-                    "remnawave_lifetime_expiry_mode": payload.get("lifetime_expiry_mode"),
-                    "remnawave_lifetime_expire_at": payload.get("lifetime_expire_at"),
-                    "upstream_expiry_mode": payload.get("upstream_expiry_mode"),
-                    "upstream_expires_at": payload.get("upstream_expires_at"),
-                },
+                service_context=service_context,
             )
             service_identity = created.service_identity
         else:
-            existing.provider_subject_ref = str(created_user.uuid)
+            existing.provider_subject_ref = str(remnawave_user.uuid)
             existing.identity_status = "active"
             existing.service_context = {
                 **dict(existing.service_context or {}),
-                "subscription_key": item.subscription_key,
-                "entitlement_grant_id": str(grant.id),
-                "plan_code": item.plan_code,
-                "subscription_url": subscription_url,
-                "provisioned_from": "msub08_selected_grant",
-                "lifetime": lifetime_access,
-                "remnawave_lifetime_expiry_mode": payload.get("lifetime_expiry_mode"),
-                "remnawave_lifetime_expire_at": payload.get("lifetime_expire_at"),
-                "upstream_expiry_mode": payload.get("upstream_expiry_mode"),
-                "upstream_expires_at": payload.get("upstream_expires_at"),
+                **service_context,
             }
             service_identity = existing
 
@@ -434,14 +558,25 @@ class CustomerSubscriptionServiceAccessUseCase:
                     detail="Selected trial VPN identity requires Remnawave provisioning",
                 )
             gateway = RemnawaveUserGateway(remnawave_client)
-            user = await gateway.create(
-                username=f"cvpn_ts_{customer.id.hex[:27]}",
-                email=customer.email,
-                expire_at=_parse_datetime(item.expires_at) or datetime.now(UTC) + timedelta(days=3),
-                traffic_limit_bytes=STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
-                trafficLimitStrategy=STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY,
-                hwid_device_limit=STAGE1_TRIAL_DEVICE_LIMIT,
-            )
+            username = f"cvpn_ts_{customer.id.hex[:27]}"
+            try:
+                user = await gateway.create(
+                    username=username,
+                    email=customer.email,
+                    expire_at=_parse_datetime(item.expires_at) or datetime.now(UTC) + timedelta(days=3),
+                    traffic_limit_bytes=STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+                    trafficLimitStrategy=STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY,
+                    hwid_device_limit=STAGE1_TRIAL_DEVICE_LIMIT,
+                )
+            except (HTTPStatusError, RequestError) as exc:
+                recovered_user = await gateway.get_by_username(username)
+                if recovered_user is None:
+                    _raise_remnawave_dependency_unavailable(
+                        exc,
+                        operation="customer_subscription_trial_provisioning",
+                        detail="Selected trial VPN identity is temporarily unavailable",
+                    )
+                user = recovered_user
             provider_subject_ref = str(user.uuid)
             subscription_url = normalize_public_subscription_url(user.subscription_url)
             customer.remnawave_uuid = provider_subject_ref
@@ -653,3 +788,33 @@ def _resolve_traffic_limit_bytes(effective_entitlements: dict[str, Any]) -> int 
     unit = match.group(2).lower()
     multiplier = 1024**3 if unit in {"gb", "gib"} else 1024**2
     return int(amount * multiplier)
+
+
+def _http_status_code(exc: HTTPStatusError | RequestError) -> int | None:
+    if isinstance(exc, HTTPStatusError):
+        return exc.response.status_code
+    return None
+
+
+def _raise_remnawave_dependency_unavailable(
+    exc: HTTPStatusError | RequestError,
+    *,
+    operation: str,
+    detail: str,
+) -> NoReturn:
+    upstream_status_code = _http_status_code(exc)
+    response_status_code = (
+        status.HTTP_503_SERVICE_UNAVAILABLE
+        if upstream_status_code is None or upstream_status_code >= 500
+        else status.HTTP_502_BAD_GATEWAY
+    )
+    logger.warning(
+        "Remnawave dependency unavailable for selected customer subscription",
+        extra={
+            "operation": operation,
+            "upstream_status_code": upstream_status_code,
+            "response_status_code": response_status_code,
+            "error_type": type(exc).__name__,
+        },
+    )
+    raise HTTPException(status_code=response_status_code, detail=detail) from exc
