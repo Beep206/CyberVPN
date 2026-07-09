@@ -1468,7 +1468,7 @@ premium_host_exclusions as (
     where not exists (
         select 1
         from unnest(coalesce(hosts.tags, array[]::text[])) as host_tags(tag)
-        where host_tags.tag like 'PREMIUM_SMART_RU_%'
+        where host_tags.tag like 'PREMIUM\_SMART\_RU\_%' escape '\'
     )
       and not exists (
           select 1
@@ -1725,7 +1725,7 @@ begin
       and not exists (
           select 1
           from unnest(coalesce(hosts.tags, array[]::text[])) as host_tags(tag)
-          where host_tags.tag like 'PREMIUM_SMART_RU_%'
+          where host_tags.tag like 'PREMIUM\_SMART\_RU\_%' escape '\'
       )
       and not exists (
           select 1

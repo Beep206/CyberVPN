@@ -91,7 +91,7 @@ def test_premium_smart_ru_seed_embeds_hardened_template_and_rollout_settings() -
     assert "smart_host_node_links" in seed_sql
     assert "premium_host_exclusions" in seed_sql
     assert "internal_squad_host_exclusions" in seed_sql
-    assert "host_tags.tag like 'PREMIUM_SMART_RU_%'" in seed_sql
+    assert "host_tags.tag like 'PREMIUM\\_SMART\\_RU\\_%' escape '\\'" in seed_sql
     assert "Expected 8 Premium Smart RU Remnawave hosts" in seed_sql
     assert "Expected 8 Premium Smart RU host-to-node links" in seed_sql
     assert "Expected Premium Smart RU squad to exclude non-Smart-RU shared inbound hosts" in seed_sql
