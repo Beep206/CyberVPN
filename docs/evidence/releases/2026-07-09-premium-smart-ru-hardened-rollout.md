@@ -1,9 +1,9 @@
 # CyberVPN Premium Smart RU Hardened Rollout Evidence
 
-Date: 2026-07-09  
-Production host: `45.87.41.146`  
-Source commit: `b35e7df64ea24cb11832a6e4644b1f70b6334b1f`  
-Backend release tag: `main-b35e7df-premium-smart-ru-xhttp-gate-20260709T122827Z`  
+Date: 2026-07-09
+Production host: `45.87.41.146`
+Source commit: `b35e7df64ea24cb11832a6e4644b1f70b6334b1f`
+Backend release tag: `main-b35e7df-premium-smart-ru-xhttp-gate-20260709T122827Z`
 Backend image digest: `sha256:fb938c134b2e2b87b64aa67df6ffb4da073928ead63662696c8e573a1a758b95`
 
 ## Scope
@@ -86,6 +86,7 @@ Seed command:
 
 ```text
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/seed-cybervpn-premium-smart-ru.sql
+re-run with Mihomo v1.19.28-compatible template: /tmp/seed-cybervpn-premium-smart-ru-20260709T125601Z.sql
 ```
 
 Result:
@@ -222,6 +223,10 @@ invite_code|LU7QQTQZHG|active|premium_smart_ru_lifetime_multi_root_2026_06_30|pr
 
 No new public tariff or root invite code was created by this rollout.
 
+The user owns the final real registration/onboarding activation smoke with
+`LU7QQTQZHG`. Codex did not create or delete `veephtc@gmail.com` during this
+final pass after the user clarified they will register and verify the flow.
+
 ## Local Validation
 
 ```text
@@ -256,13 +261,23 @@ rule_providers=39
 rules=59
 ```
 
-`mihomo -t` was not run locally because the `mihomo` binary is not installed.
+```text
+Downloaded official MetaCubeX Mihomo release asset:
+https://github.com/MetaCubeX/mihomo/releases/download/v1.19.28/mihomo-linux-amd64-compatible-v1.19.28.gz
+
+Mihomo Meta v1.19.28 linux amd64 with go1.26.5 Wed Jul  8 00:22:48 UTC 2026
+mihomo -t -f scripts/remnawave/templates/cybervpn-premium-smart-ru-de-primary-hardened.yaml
+exit=0
+configuration file ...cybervpn-premium-smart-ru-de-primary-hardened.yaml test is successful
+warnings: Classical inline providers only match contained domain rules
+```
 
 ## Release Warnings
 
 - Build logs selected yanked package versions from the existing backend lockfile: `charset-normalizer==3.4.8` and `grpcio==1.82.0`. This rollout did not change dependencies; backend image build and production smoke passed.
 - `docker compose up -d cybervpn-backend` also recreated dependency `nats`; it returned healthy before backend start. No backend errors or tracebacks were observed in fresh logs after deploy.
 - Remnawave API metadata probes returned no usable JSON through the attempted internal URLs; version evidence is from running image and `/opt/app/package.json`.
+- Mihomo v1.19.28 rejected the previous `global-client-fingerprint` key and a proxy-group loop during review; both were removed before the final production seed re-run.
 
 ## Rollback Anchors
 
@@ -300,6 +315,6 @@ Re-run seed-cybervpn-premium-smart-ru.sql from the previous commit/template, or 
 - User-owned: real XHTTP client connectivity.
 - User-owned: HAPP/INCY response headers on real clients and real user agents.
 - User-owned: DE/RU route smoke on real clients.
+- User-owned: real registration/onboarding activation smoke with `LU7QQTQZHG`.
 - Direct SSH/OS/Docker image proof for `s1-ru-msk-3` is missing.
-- Local `mihomo -t` is not available because `mihomo` is not installed.
 - TOR shared lists require P1 updater/list population before claiming full TOR egress blocking.

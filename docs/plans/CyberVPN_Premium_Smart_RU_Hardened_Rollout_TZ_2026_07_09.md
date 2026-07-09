@@ -1,10 +1,10 @@
 # ТЗ: внедрение `cybervpn-premium-smart-ru-de-primary-hardened.yaml`
 
-Проект: `Beep206/CyberVPN`  
-Remnawave: `2.8.0`  
-Целевой тариф/кампания: `premium_smart_ru_lifetime_multi_root_2026_06_30`  
-Root invite-code: `LU7QQTQZHG`  
-Целевой шаблон: `cybervpn-premium-smart-ru-de-primary-hardened.yaml`  
+Проект: `Beep206/CyberVPN`
+Remnawave: `2.8.0`
+Целевой тариф/кампания: `premium_smart_ru_lifetime_multi_root_2026_06_30`
+Root invite-code: `LU7QQTQZHG`
+Целевой шаблон: `cybervpn-premium-smart-ru-de-primary-hardened.yaml`
 Цель: быстро внедрить hardened smart-routing профиль, применить его к существующему Premium Smart RU lifetime invite, сохранить XHTTP, корректно отображать полезную информацию в HAPP/INCY и закрыть abuse-риск по Torrent/TOR.
 
 ---
@@ -617,7 +617,7 @@ curl -i -A "INCY/1.0" "https://cyber-vpn.org/api/sub/<short_uuid>" | sed -n '1,4
 }
 ```
 
-P0: Torrent Blocker + SMTP ports.  
+P0: Torrent Blocker + SMTP ports.
 P1: наполнить TOR lists через updater. До наполнения TOR egress block считается placeholder.
 
 ### 9.2. Torrent Blocker requirements

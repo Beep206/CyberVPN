@@ -61,7 +61,6 @@ ipv6: false
 tcp-concurrent: true
 unified-delay: true
 keep-alive-interval: 30
-global-client-fingerprint: chrome
 enable-process: true
 find-process-mode: always
 external-controller: 127.0.0.1:9090
@@ -231,7 +230,6 @@ proxy-groups:
       - 🇩🇪 DE Auto
       - ⚡ EU Auto
       - 🇳🇱 NL Auto
-      - 🇷🇺 RU Sites
       - DIRECT
 
   - name: 🇷🇺 RU Sites
