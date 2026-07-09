@@ -48,8 +48,8 @@ class GrowthCodeRegistryService:
                     auth_realm_id=owner.auth_realm_id if owner is not None else None,
                     starts_at=_coerce_utc(invite.created_at),
                     expires_at=_coerce_utc(invite.expires_at),
-                    max_uses=1,
-                    uses_count=1 if invite.is_used else 0,
+                    max_uses=_invite_max_uses(invite),
+                    uses_count=_invite_uses_count(invite),
                 )
             )
         else:
@@ -59,8 +59,8 @@ class GrowthCodeRegistryService:
             code.auth_realm_id = owner.auth_realm_id if owner is not None else None
             code.starts_at = _coerce_utc(invite.created_at)
             code.expires_at = _coerce_utc(invite.expires_at)
-            code.max_uses = 1
-            code.uses_count = 1 if invite.is_used else 0
+            code.max_uses = _invite_max_uses(invite)
+            code.uses_count = _invite_uses_count(invite)
             await self._session.flush()
 
         invite_policy = await self._codes.get_invite_policy(code.id)
@@ -464,6 +464,22 @@ def _promo_status(*, promo, now: datetime) -> str:
     if promo.max_uses is not None and promo.current_uses >= promo.max_uses:
         return "exhausted"
     return "active"
+
+
+def _invite_max_uses(invite) -> int | None:
+    if str(getattr(invite, "usage_mode", "single_use") or "single_use") == "multi_use":
+        max_redemptions = getattr(invite, "max_redemptions", None)
+        return int(max_redemptions) if max_redemptions is not None else None
+    return 1
+
+
+def _invite_uses_count(invite) -> int:
+    if str(getattr(invite, "usage_mode", "single_use") or "single_use") == "multi_use":
+        return max(
+            int(getattr(invite, "active_redemptions_count", 0) or 0),
+            int(getattr(invite, "redeemed_count", 0) or 0),
+        )
+    return 1 if invite.is_used else 0
 
 
 def _coerce_utc(value: datetime | None) -> datetime | None:

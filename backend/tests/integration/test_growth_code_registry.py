@@ -10,7 +10,7 @@ from src.application.services.auth_service import AuthService
 from src.application.use_cases.growth_codes.hashing import build_growth_code_prefix, hash_growth_code
 from src.application.use_cases.growth_codes.registry import GrowthCodeRegistryService
 from src.application.use_cases.growth_rewards.create_allocation import CreateGrowthRewardAllocationUseCase
-from src.domain.enums import GrowthCodeType, GrowthRewardAllocationStatus, GrowthRewardType
+from src.domain.enums import GrowthCodeType, GrowthRewardAllocationStatus, GrowthRewardType, InviteSource
 from src.infrastructure.database.models.growth_code_model import (
     GrowthCodeIssuanceModel,
     GrowthCodeModel,
@@ -21,6 +21,7 @@ from src.infrastructure.database.models.growth_code_model import (
     GrowthSignupAttributionModel,
     InviteCodePolicyModel,
 )
+from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.policy_version_model import PolicyVersionModel
 from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
@@ -266,6 +267,81 @@ async def test_growth_code_registry_service_creates_referral_shadow_code_and_pol
             assert len(issuances) == 1
             assert issuances[0].issuance_type == "user_owned_referral"
             assert issuances[0].issued_to_user_id == referral_owner.id
+    finally:
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_growth_code_registry_preserves_multi_use_invite_shadow_capacity() -> None:
+    auth_service = AuthService()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    try:
+        seeded = await _seed_quote_context(sessionmaker, auth_service)
+        now = datetime.now(UTC)
+        owner_user_id = uuid.UUID(seeded["customer_user_id"])
+        auth_realm_id = uuid.UUID(seeded["customer_realm_id"])
+        raw_code = "LU7QQTQZHG"
+
+        with sessionmaker() as db:
+            invite = InviteCodeModel(
+                id=uuid.uuid4(),
+                code=raw_code,
+                owner_user_id=owner_user_id,
+                free_days=30,
+                status="active",
+                usage_mode="multi_use",
+                max_redemptions=100_000,
+                redeemed_count=2,
+                active_redemptions_count=2,
+                reversed_redemptions_count=0,
+                per_user_redemption_cap=1,
+                code_hash=hash_growth_code(raw_code),
+                code_prefix=build_growth_code_prefix(raw_code),
+                grant_mode="legacy_invite_access",
+                grant_duration_mode="fixed_days",
+                grant_duration_days=30,
+                source=InviteSource.ADMIN_GRANT.value,
+                source_payment_id=None,
+                is_used=False,
+                used_at=now - timedelta(days=7),
+                created_at=now - timedelta(days=9),
+                expires_at=None,
+            )
+            shadow = GrowthCodeModel(
+                code_hash=hash_growth_code(raw_code),
+                code_prefix=build_growth_code_prefix(raw_code),
+                code_type=GrowthCodeType.INVITE.value,
+                status="active",
+                issuer_type="admin",
+                owner_user_id=owner_user_id,
+                auth_realm_id=auth_realm_id,
+                starts_at=now - timedelta(days=9),
+                expires_at=None,
+                max_uses=100_000,
+                uses_count=2,
+            )
+            db.add_all([invite, shadow])
+            db.commit()
+
+            adapter = SyncSessionAdapter(db)
+            registry = GrowthCodeRegistryService(adapter)
+            codes = GrowthCodeRepository(adapter)
+
+            synced = await registry.ensure_shadow_invite(invite)
+            await adapter.commit()
+
+            stored_code = await codes.get_code_by_hash(
+                hash_growth_code(raw_code),
+                code_type=GrowthCodeType.INVITE.value,
+            )
+            assert stored_code is not None
+            assert stored_code.id == synced.id == shadow.id
+            assert stored_code.max_uses == 100_000
+            assert stored_code.uses_count == 2
+            assert stored_code.status == "active"
     finally:
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)
