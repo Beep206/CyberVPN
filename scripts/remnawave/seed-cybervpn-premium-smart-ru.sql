@@ -1453,6 +1453,31 @@ smart_host_node_links as (
     on conflict do nothing
     returning host_uuid, node_uuid
 ),
+premium_host_exclusions as (
+    insert into internal_squad_host_exclusions (
+        squad_uuid,
+        host_uuid
+    )
+    select internal_squad_row.uuid, hosts.uuid
+    from internal_squad_row
+    join hosts
+      on hosts.config_profile_inbound_uuid in (
+          select smart_inbound_rows.uuid
+          from smart_inbound_rows
+      )
+    where not exists (
+        select 1
+        from unnest(coalesce(hosts.tags, array[]::text[])) as host_tags(tag)
+        where host_tags.tag like 'PREMIUM_SMART_RU_%'
+    )
+      and not exists (
+          select 1
+          from internal_squad_host_exclusions existing_exclusion
+          where existing_exclusion.squad_uuid = internal_squad_row.uuid
+            and existing_exclusion.host_uuid = hosts.uuid
+      )
+    returning host_uuid
+),
 plugin_update as (
     update node_plugin
     set plugin_config = '{
@@ -1540,6 +1565,7 @@ declare
     v_linked_node_inbounds integer;
     v_smart_host_count integer;
     v_smart_host_link_count integer;
+    v_unexcluded_non_smart_host_count integer;
     v_conflicting_active_plugin_count integer;
     v_plugin_assigned_node_count integer;
     v_conflicting_node_names text;
@@ -1688,6 +1714,28 @@ begin
     );
     if v_smart_host_link_count <> 8 then
         raise exception 'Expected 8 Premium Smart RU host-to-node links, found %', v_smart_host_link_count;
+    end if;
+
+    select count(*)
+    into v_unexcluded_non_smart_host_count
+    from hosts
+    join config_profile_inbounds
+      on config_profile_inbounds.uuid = hosts.config_profile_inbound_uuid
+    where config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+      and not exists (
+          select 1
+          from unnest(coalesce(hosts.tags, array[]::text[])) as host_tags(tag)
+          where host_tags.tag like 'PREMIUM_SMART_RU_%'
+      )
+      and not exists (
+          select 1
+          from internal_squad_host_exclusions
+          where internal_squad_host_exclusions.squad_uuid = v_internal_squad_uuid
+            and internal_squad_host_exclusions.host_uuid = hosts.uuid
+      );
+    if v_unexcluded_non_smart_host_count > 0 then
+        raise exception 'Expected Premium Smart RU squad to exclude non-Smart-RU shared inbound hosts, found % unexcluded',
+            v_unexcluded_non_smart_host_count;
     end if;
 
     select count(*), string_agg(name, ', ' order by name)

@@ -89,8 +89,12 @@ def test_premium_smart_ru_seed_embeds_hardened_template_and_rollout_settings() -
     assert "linked_node_inbounds" in seed_sql
     assert "smart_host_specs" in seed_sql
     assert "smart_host_node_links" in seed_sql
+    assert "premium_host_exclusions" in seed_sql
+    assert "internal_squad_host_exclusions" in seed_sql
+    assert "host_tags.tag like 'PREMIUM_SMART_RU_%'" in seed_sql
     assert "Expected 8 Premium Smart RU Remnawave hosts" in seed_sql
     assert "Expected 8 Premium Smart RU host-to-node links" in seed_sql
+    assert "Expected Premium Smart RU squad to exclude non-Smart-RU shared inbound hosts" in seed_sql
     assert "nodes.active_plugin_uuid is null" in seed_sql
     assert "or nodes.active_plugin_uuid = plugin_row.uuid" in seed_sql
     assert "Refusing to overwrite existing active plugin on Premium Smart RU nodes" in seed_sql
