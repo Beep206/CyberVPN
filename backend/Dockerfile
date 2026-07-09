@@ -1,5 +1,5 @@
 # Stage 1: Builder — compiles C-extensions (argon2-cffi, asyncpg, etc.)
-FROM python:3.13.14-alpine AS builder
+FROM python:3.14.6-alpine AS builder
 
 RUN apk add --no-cache build-base
 
@@ -17,7 +17,7 @@ RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir --no-deps .
 
 # Stage 2: Runtime — lean image without build-essential
-FROM python:3.13.14-alpine
+FROM python:3.14.6-alpine
 
 # SEC-002: Create non-root user for security. Keep the UID/GID aligned with Helm.
 RUN addgroup -S -g 10001 cybervpn && \
