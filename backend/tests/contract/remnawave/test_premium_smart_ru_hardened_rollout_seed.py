@@ -73,8 +73,24 @@ def test_premium_smart_ru_seed_embeds_hardened_template_and_rollout_settings() -
     assert "('🇳🇱 NL Amsterdam 01 10G')" in seed_sql
     assert "('🇷🇺 RU Moscow 01 25G')" in seed_sql
     assert "('🇷🇺 RU SPB 01 25G')" in seed_sql
+    assert "'🇩🇪 DE Frankfurt 01 25G Reality 443'" in seed_sql
+    assert "'🇩🇪 DE Frankfurt 01 25G XHTTP Reality 8443'" in seed_sql
+    assert "'🇳🇱 NL Amsterdam 01 10G Reality 443'" in seed_sql
+    assert "'🇳🇱 NL Amsterdam 01 10G XHTTP Reality 8443'" in seed_sql
+    assert "'🇷🇺 RU Moscow 01 25G Reality 443'" in seed_sql
+    assert "'🇷🇺 RU Moscow 01 25G XHTTP Reality 8443'" in seed_sql
+    assert "'🇷🇺 RU SPB 01 25G Reality 443'" in seed_sql
+    assert "'🇷🇺 RU SPB 01 25G XHTTP Reality 8443'" in seed_sql
+    assert "'de-3.cyber-vpn.org'" in seed_sql
+    assert "'nl-4.cyber-vpn.org'" in seed_sql
+    assert "'ru-msk-3.cyber-vpn.org'" in seed_sql
+    assert "'ru-spb-3.cyber-vpn.org'" in seed_sql
     assert "where tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')" in seed_sql
     assert "linked_node_inbounds" in seed_sql
+    assert "smart_host_specs" in seed_sql
+    assert "smart_host_node_links" in seed_sql
+    assert "Expected 8 Premium Smart RU Remnawave hosts" in seed_sql
+    assert "Expected 8 Premium Smart RU host-to-node links" in seed_sql
     assert "nodes.active_plugin_uuid is null" in seed_sql
     assert "or nodes.active_plugin_uuid = plugin_row.uuid" in seed_sql
     assert "Refusing to overwrite existing active plugin on Premium Smart RU nodes" in seed_sql

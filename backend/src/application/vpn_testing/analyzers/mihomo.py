@@ -12,10 +12,20 @@ try:  # PyYAML is provided by uvicorn[standard] in the backend runtime image.
 except ImportError:  # pragma: no cover - fallback keeps diagnostics safe in minimal envs
     yaml = None  # type: ignore[assignment]
 
-REQUIRED_GROUPS = ("🇩🇪 DE Auto", "🇷🇺 RU Sites", "🧲 Torrents")
-RU_POLICY_NAME = "ru-services-inline"
-EU_POLICY_NAME = "ru-eu-exceptions"
+REQUIRED_GROUPS = (
+    "🌍 World / EU",
+    "🇩🇪 DE Auto",
+    "🇳🇱 NL Auto",
+    "⚡ RU Auto",
+    "🇷🇺 RU Sites",
+    "🇷🇺 Moscow Auto",
+    "🇷🇺 SPB Auto",
+    "🧲 Torrents",
+)
+RU_POLICY_NAMES = ("ru-services-inline", "ru-apps", "geosite-ru", "geoip-for-ru")
+EU_POLICY_NAMES = ("ru-eu-exceptions", "ru-inside", "refilter_domains", "refilter_ipsum", "ru-bundle", "rknasnblock")
 MATCH_PREFIX = "MATCH,"
+MATCH_TARGET = "🌍 World / EU"
 
 
 def _elapsed_ms(started: float) -> int:
@@ -162,47 +172,66 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
     )
 
     match_indexes = [index for index, rule in enumerate(rules) if rule.strip().upper().startswith(MATCH_PREFIX)]
-    match_is_last = bool(rules) and match_indexes == [len(rules) - 1] and not rules[-1].upper().endswith(",DIRECT")
+    last_rule = rules[-1].strip() if rules else None
+    match_is_last = bool(rules) and match_indexes == [len(rules) - 1] and last_rule == f"{MATCH_PREFIX}{MATCH_TARGET}"
     results.append(
         _result(
             check_key="mihomo.match.default",
             check_name="Mihomo MATCH default is safe",
             status="pass" if match_is_last else "fail",
-            safe_summary="MATCH rule is the final fallback and does not use DIRECT"
+            safe_summary="MATCH rule is the final World / EU fallback"
             if match_is_last
-            else "MATCH rule must be last and must not route DIRECT",
-            details={"match_indexes": match_indexes, "last_rule": rules[-1] if rules else None},
+            else "MATCH rule must be last and must route to World / EU, not DIRECT",
+            details={
+                "match_indexes": match_indexes,
+                "last_rule": last_rule,
+                "required_last_rule": f"{MATCH_PREFIX}{MATCH_TARGET}",
+            },
         )
     )
 
-    ru_index = _rule_index(rules, RU_POLICY_NAME)
-    eu_index = _rule_index(rules, EU_POLICY_NAME)
-    rule_order_ok = ru_index is not None and eu_index is not None and ru_index < eu_index
+    eu_indexes = {name: _rule_index(rules, name) for name in EU_POLICY_NAMES}
+    ru_indexes = {name: _rule_index(rules, name) for name in RU_POLICY_NAMES}
+    present_eu_indexes = [index for index in eu_indexes.values() if index is not None]
+    present_ru_indexes = [index for index in ru_indexes.values() if index is not None]
+    rule_order_ok = (
+        len(present_eu_indexes) == len(EU_POLICY_NAMES)
+        and len(present_ru_indexes) == len(RU_POLICY_NAMES)
+        and max(present_eu_indexes) < min(present_ru_indexes)
+    )
     results.append(
         _result(
-            check_key="mihomo.rule_order.ru_before_eu",
+            check_key="mihomo.rule_order.eu_before_ru",
             check_name="Mihomo RU/EU policy order",
             status="pass" if rule_order_ok else "fail",
-            safe_summary="ru-services-inline appears before ru-eu-exceptions"
+            safe_summary="EU exceptions appear before broad RU services"
             if rule_order_ok
-            else "ru-eu-exceptions must not shadow ru-services-inline",
-            details={"ru_services_index": ru_index, "ru_eu_exceptions_index": eu_index},
+            else "Broad RU services must not shadow EU exceptions",
+            details={"eu_indexes": eu_indexes, "ru_indexes": ru_indexes},
         )
     )
 
-    ru_group = next((group for group in groups if str(group.get("name")) == "🇷🇺 RU Sites"), {})
-    de_group = next((group for group in groups if str(group.get("name")) == "🇩🇪 DE Auto"), {})
-    ru_filtered = _has_filtered_provider(ru_group, "ru")
-    de_filtered = _has_filtered_provider(de_group, "de")
+    location_group_markers = {
+        "🇷🇺 RU Sites": "ru",
+        "🇩🇪 DE Auto": "de",
+        "🇳🇱 NL Auto": "nl",
+        "🇷🇺 Moscow Auto": "moscow",
+        "🇷🇺 SPB Auto": "spb",
+    }
+    location_filters = {}
+    for group_name, marker in location_group_markers.items():
+        group = next((item for item in groups if str(item.get("name")) == group_name), {})
+        location_filters[group_name] = _has_filtered_provider(group, marker)
+    location_groups_filtered = all(location_filters.values())
     results.append(
         _result(
             check_key="mihomo.location_groups.filtered",
             check_name="Mihomo location groups filter providers",
-            status="pass" if ru_filtered and de_filtered else "fail",
-            safe_summary="RU and DE location groups use provider filters"
-            if ru_filtered and de_filtered
+            status="pass" if location_groups_filtered else "fail",
+            safe_summary="RU, DE, NL, Moscow, and SPB location groups use provider filters"
+            if location_groups_filtered
             else "Location groups must not include all proxies without country filters",
-            details={"ru_filtered": ru_filtered, "de_filtered": de_filtered},
+            details={"location_filters": location_filters},
         )
     )
 
@@ -251,6 +280,19 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
             if abuse_ok
             else "Torrent abuse route is missing from static client policy",
             details={"torrent_group_present": "🧲 Torrents" in group_names},
+        )
+    )
+
+    tor_block_ok = "⛔ BLOCK" in group_names and any("RULE-SET,tor-inline,⛔ BLOCK" in rule for rule in rules)
+    results.append(
+        _result(
+            check_key="mihomo.tor_block_sentinel",
+            check_name="Mihomo TOR block policy",
+            status="pass" if tor_block_ok else "fail",
+            safe_summary="TOR routes are explicitly sent to BLOCK"
+            if tor_block_ok
+            else "TOR routes must be blocked through the BLOCK group",
+            details={"block_group_present": "⛔ BLOCK" in group_names},
         )
     )
 

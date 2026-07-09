@@ -8,6 +8,17 @@ from typing import Any
 from src.config.settings import settings
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 
+PREMIUM_SMART_RU_MIHOMO_GROUPS = (
+    "🌍 World / EU",
+    "🇩🇪 DE Auto",
+    "🇳🇱 NL Auto",
+    "⚡ RU Auto",
+    "🇷🇺 RU Sites",
+    "🇷🇺 Moscow Auto",
+    "🇷🇺 SPB Auto",
+    "🧲 Torrents",
+)
+
 
 def _str_list(value: Any) -> list[str]:
     if isinstance(value, list):
@@ -21,6 +32,12 @@ def _str_list(value: Any) -> list[str]:
 
 def _plan_code(plan: SubscriptionPlanModel) -> str:
     return str(plan.plan_code or plan.name or plan.id)
+
+
+def _plan_target(plan: SubscriptionPlanModel) -> str:
+    plan_code = _plan_code(plan)
+    plan_name = str(plan.name or "").strip()
+    return plan_name or plan_code
 
 
 def expected_remnawave_assignment(plan: SubscriptionPlanModel) -> dict[str, Any]:
@@ -46,7 +63,11 @@ def expected_remnawave_assignment(plan: SubscriptionPlanModel) -> dict[str, Any]
 
 def build_subscription_dry_run(plan: SubscriptionPlanModel, route_entries: Sequence[Any]) -> dict[str, Any]:
     assignment = expected_remnawave_assignment(plan)
-    groups = ["🇩🇪 DE Auto", "🇷🇺 RU Sites", "🧲 Torrents"]
+    groups = list(PREMIUM_SMART_RU_MIHOMO_GROUPS) if assignment["is_premium_smart_ru"] else [
+        "🇩🇪 DE Auto",
+        "🇷🇺 RU Sites",
+        "🧲 Torrents",
+    ]
     route_domains = []
     for entry in route_entries:
         metadata = getattr(entry, "metadata_json", None)
@@ -76,7 +97,7 @@ def build_subscription_dry_run(plan: SubscriptionPlanModel, route_entries: Seque
 def generated_subscription_checks(plan: SubscriptionPlanModel, route_entries: Sequence[Any]) -> list[dict[str, Any]]:
     dry_run = build_subscription_dry_run(plan, route_entries)
     assignment = dry_run["assignment"]
-    target = str(assignment["plan_code"])
+    target = _plan_target(plan)
     checks: list[dict[str, Any]] = [
         {
             "check_key": "generated_subscription.synthetic_safety",
@@ -95,11 +116,25 @@ def generated_subscription_checks(plan: SubscriptionPlanModel, route_entries: Se
             "check_key": "generated_subscription.mihomo_groups",
             "check_name": "Generated Mihomo groups",
             "category": "generated_subscription",
-            "status": "pass" if len(dry_run["mihomo"]["groups"]) >= 3 else "fail",
+            "status": "pass"
+            if set(PREMIUM_SMART_RU_MIHOMO_GROUPS).issubset(set(dry_run["mihomo"]["groups"]))
+            or not assignment["is_premium_smart_ru"]
+            else "fail",
             "severity": "error",
             "target": target,
             "safe_summary": "Dry-run Mihomo artifact exposes required route groups",
-            "details": {"groups": dry_run["mihomo"]["groups"], "links_redacted": True},
+            "details": {
+                "groups": dry_run["mihomo"]["groups"],
+                "required_groups": list(PREMIUM_SMART_RU_MIHOMO_GROUPS)
+                if assignment["is_premium_smart_ru"]
+                else ["🇩🇪 DE Auto", "🇷🇺 RU Sites", "🧲 Torrents"],
+                "missing_groups": sorted(
+                    set(PREMIUM_SMART_RU_MIHOMO_GROUPS) - set(dry_run["mihomo"]["groups"])
+                )
+                if assignment["is_premium_smart_ru"]
+                else [],
+                "links_redacted": True,
+            },
             "duration_ms": 0,
         },
         {

@@ -118,6 +118,12 @@ def _plan_code(plan: SubscriptionPlanModel) -> str:
     return str(plan.plan_code or plan.name or plan.id)
 
 
+def _plan_target(plan: SubscriptionPlanModel) -> str:
+    plan_code = _plan_code(plan)
+    plan_name = str(plan.name or "").strip()
+    return plan_name or plan_code
+
+
 def _safe_plan_payload(plan: SubscriptionPlanModel) -> dict[str, Any]:
     return {
         "plan_code": _plan_code(plan),
@@ -587,7 +593,7 @@ class VpnTesterService:
         return {"removed": removed, "cleaned_at": _utc_now()}
 
     def _plan_contract_checks(self, plan: SubscriptionPlanModel) -> list[dict[str, Any]]:
-        plan_code = _plan_code(plan)
+        plan_target = _plan_target(plan)
         connection_modes = _str_list(plan.connection_modes)
         server_pool = _str_list(plan.server_pool)
         checks = [
@@ -596,7 +602,7 @@ class VpnTesterService:
                 check_name="Plan code is stable",
                 category="plans",
                 status="pass" if plan.plan_code else "fail",
-                target=plan_code,
+                target=plan_target,
                 safe_summary="Plan exposes stable plan_code" if plan.plan_code else "Plan is missing plan_code",
                 details=_safe_plan_payload(plan),
             ),
@@ -605,7 +611,7 @@ class VpnTesterService:
                 check_name="Connection modes are declared",
                 category="plans",
                 status="pass" if connection_modes else "fail",
-                target=plan_code,
+                target=plan_target,
                 safe_summary="Connection modes declared" if connection_modes else "No connection modes declared",
                 details={"connection_modes": connection_modes},
             ),
@@ -615,7 +621,7 @@ class VpnTesterService:
                 category="plans",
                 status="pass" if server_pool or (plan.traffic_policy or {}) else "degraded",
                 severity="warning",
-                target=plan_code,
+                target=plan_target,
                 safe_summary="Routing policy has pool/policy metadata"
                 if server_pool or (plan.traffic_policy or {})
                 else "Routing policy metadata is sparse",
@@ -626,7 +632,7 @@ class VpnTesterService:
                 check_name="Device limit is explicit",
                 category="plans",
                 status="pass" if int(plan.device_limit or 0) > 0 else "fail",
-                target=plan_code,
+                target=plan_target,
                 safe_summary=(
                     "Device limit is positive" if int(plan.device_limit or 0) > 0 else "Device limit is missing"
                 ),
@@ -638,7 +644,7 @@ class VpnTesterService:
                 category="plans",
                 status="pass" if plan.traffic_limit_bytes or (plan.traffic_policy or {}) else "degraded",
                 severity="warning",
-                target=plan_code,
+                target=plan_target,
                 safe_summary="Traffic limit or traffic policy is declared"
                 if plan.traffic_limit_bytes or (plan.traffic_policy or {})
                 else "Traffic policy is implicit",
@@ -655,7 +661,7 @@ class VpnTesterService:
                 if _visibility(plan) in {"public", "private_code_gated", "admin_only", "internal_test", "hidden"}
                 else "degraded",
                 severity="warning",
-                target=plan_code,
+                target=plan_target,
                 safe_summary=f"Visibility policy: {_visibility(plan)}",
                 details={"visibility": _visibility(plan)},
             ),
@@ -690,7 +696,7 @@ class VpnTesterService:
                         check_name="Tariff Remnawave assignment",
                         category="plans",
                         status="pass" if configured else "fail",
-                        target=_plan_code(plan),
+                        target=_plan_target(plan),
                         safe_summary="Premium Smart RU has internal/external squad assignment intent"
                         if configured
                         else "Premium Smart RU Remnawave assignment is incomplete",
@@ -744,18 +750,28 @@ class VpnTesterService:
         required_modes = set(_str_list(suite_spec.get("required_connection_modes") or []))
         for plan in target_plans:
             modes = set(_str_list(plan.connection_modes))
-            missing = sorted(required_modes - modes)
+            effective_modes = set(modes)
+            assignment = expected_remnawave_assignment(plan)
+            if assignment["requires_xhttp"]:
+                effective_modes.add("xhttp")
+            missing = sorted(required_modes - effective_modes)
             results.append(
                 _result(
                     check_key="premium_smart_ru.connection_modes",
                     check_name="Premium Smart RU connection modes",
                     category="plans",
                     status="pass" if not missing else "fail",
-                    target=_plan_code(plan),
+                    target=_plan_target(plan),
                     safe_summary="Required connection modes present"
                     if not missing
                     else f"Missing modes: {', '.join(missing)}",
-                    details={"required_modes": sorted(required_modes), "actual_modes": sorted(modes)},
+                    details={
+                        "required_modes": sorted(required_modes),
+                        "actual_modes": sorted(modes),
+                        "effective_modes": sorted(effective_modes),
+                        "xhttp_satisfied_by_remnawave_assignment": "xhttp" not in modes
+                        and "xhttp" in effective_modes,
+                    },
                 )
             )
 

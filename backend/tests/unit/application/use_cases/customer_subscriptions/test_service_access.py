@@ -98,8 +98,10 @@ async def test_selected_subscription_lazy_provisioning_uses_smart_ru_squads(
     customer_account_id = uuid.uuid4()
     auth_realm_id = uuid.uuid4()
     service_identity_id = uuid.uuid4()
+    created_remnawave_uuid = uuid.uuid4()
     smart_external_squad_uuid = str(uuid.uuid4())
     smart_internal_squad_uuid = str(uuid.uuid4())
+    customer = SimpleNamespace(email="smart-user@example.test", remnawave_uuid=None, subscription_url=None)
 
     class FakeRemnawaveUserGateway:
         def __init__(self, client) -> None:
@@ -109,7 +111,7 @@ async def test_selected_subscription_lazy_provisioning_uses_smart_ru_squads(
             captured["remnawave_username"] = username
             captured["remnawave_payload"] = kwargs
             return SimpleNamespace(
-                uuid=uuid.uuid4(),
+                uuid=created_remnawave_uuid,
                 subscription_url="https://subscription.example.local/sub/redacted-smart",
             )
 
@@ -131,11 +133,13 @@ async def test_selected_subscription_lazy_provisioning_uses_smart_ru_squads(
     monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", smart_external_squad_uuid)
     monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", smart_internal_squad_uuid)
     monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    monkeypatch.setattr(settings, "remnawave_lifetime_expiry_mode", "sentinel")
+    monkeypatch.setattr(settings, "remnawave_lifetime_expire_at", "2099-12-31T23:59:59Z")
     monkeypatch.setattr(service_access_module, "RemnawaveUserGateway", FakeRemnawaveUserGateway)
     monkeypatch.setattr(service_access_module, "CreateServiceIdentityUseCase", FakeCreateServiceIdentityUseCase)
 
     session = SimpleNamespace(
-        get=AsyncMock(return_value=SimpleNamespace(email="smart-user@example.test")),
+        get=AsyncMock(return_value=customer),
         flush=AsyncMock(),
     )
     use_case = CustomerSubscriptionServiceAccessUseCase(session)
@@ -145,6 +149,7 @@ async def test_selected_subscription_lazy_provisioning_uses_smart_ru_squads(
     item.plan_code = "premium_smart_ru"
     item.display_name = "Premium Smart RU"
     item.effective_entitlements = {"device_limit": 5}
+    item.expires_at = None
     grant = SimpleNamespace(
         id=item.entitlement_grant_id,
         customer_account_id=customer_account_id,
@@ -152,6 +157,7 @@ async def test_selected_subscription_lazy_provisioning_uses_smart_ru_squads(
         source_order_id=uuid.uuid4(),
         origin_storefront_id=None,
         service_identity_id=None,
+        grant_snapshot={"duration_mode": "lifetime", "lifetime": True},
     )
 
     service_identity = await use_case._ensure_grant_service_identity(
@@ -166,8 +172,14 @@ async def test_selected_subscription_lazy_provisioning_uses_smart_ru_squads(
     assert payload["external_squad_uuid"] == smart_external_squad_uuid
     assert payload["active_internal_squads"] == [smart_internal_squad_uuid]
     assert payload["hwid_device_limit"] == 5
+    assert payload["expire_at"] == "2099-12-31T23:59:59Z"
+    assert payload["lifetime_expiry_mode"] == "sentinel"
     assert captured["identity_kwargs"]["service_context"]["plan_code"] == "premium_smart_ru"
+    assert captured["identity_kwargs"]["service_context"]["duration_mode"] == "lifetime"
+    assert captured["identity_kwargs"]["service_context"]["lifetime"] is True
     assert grant.service_identity_id == service_identity_id
+    assert customer.remnawave_uuid == str(created_remnawave_uuid)
+    assert customer.subscription_url == "https://subscription.example.local/sub/redacted-smart"
     assert service_identity.id == service_identity_id
     session.flush.assert_awaited_once()
 

@@ -1180,7 +1180,7 @@ internal_squad_row as (
     limit 1
 ),
 smart_inbound_rows as (
-    select uuid
+    select uuid, tag, profile_uuid as config_profile_uuid
     from config_profile_inbounds
     where tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
 ),
@@ -1215,6 +1215,243 @@ smart_node_inbound_links as (
     from smart_inbound_rows, smart_node_rows
     on conflict do nothing
     returning node_uuid, config_profile_inbound_uuid
+),
+smart_host_specs(node_name, remark, address, port, path, inbound_tag, server_description, host_tag, view_position) as (
+    values
+        (
+            '🇩🇪 DE Frankfurt 01 25G',
+            '🇩🇪 DE Frankfurt 01 25G Reality 443',
+            'de-3.cyber-vpn.org',
+            443,
+            null::text,
+            'VLESS_REALITY_443',
+            'Premium Smart RU DE',
+            'PREMIUM_SMART_RU_DE_REALITY_443',
+            210
+        ),
+        (
+            '🇩🇪 DE Frankfurt 01 25G',
+            '🇩🇪 DE Frankfurt 01 25G XHTTP Reality 8443',
+            'de-3.cyber-vpn.org',
+            8443,
+            '/s1-xhttp-9fec0898',
+            'VLESS_XHTTP_REALITY_8443',
+            'Premium Smart RU DE',
+            'PREMIUM_SMART_RU_DE_XHTTP_REALITY_8443',
+            211
+        ),
+        (
+            '🇳🇱 NL Amsterdam 01 10G',
+            '🇳🇱 NL Amsterdam 01 10G Reality 443',
+            'nl-4.cyber-vpn.org',
+            443,
+            null::text,
+            'VLESS_REALITY_443',
+            'Premium Smart RU NL',
+            'PREMIUM_SMART_RU_NL_REALITY_443',
+            212
+        ),
+        (
+            '🇳🇱 NL Amsterdam 01 10G',
+            '🇳🇱 NL Amsterdam 01 10G XHTTP Reality 8443',
+            'nl-4.cyber-vpn.org',
+            8443,
+            '/s1-xhttp-9fec0898',
+            'VLESS_XHTTP_REALITY_8443',
+            'Premium Smart RU NL',
+            'PREMIUM_SMART_RU_NL_XHTTP_REALITY_8443',
+            213
+        ),
+        (
+            '🇷🇺 RU Moscow 01 25G',
+            '🇷🇺 RU Moscow 01 25G Reality 443',
+            'ru-msk-3.cyber-vpn.org',
+            443,
+            null::text,
+            'VLESS_REALITY_443',
+            'Premium Smart RU Moscow',
+            'PREMIUM_SMART_RU_MSK_REALITY_443',
+            214
+        ),
+        (
+            '🇷🇺 RU Moscow 01 25G',
+            '🇷🇺 RU Moscow 01 25G XHTTP Reality 8443',
+            'ru-msk-3.cyber-vpn.org',
+            8443,
+            '/s1-xhttp-9fec0898',
+            'VLESS_XHTTP_REALITY_8443',
+            'Premium Smart RU Moscow',
+            'PREMIUM_SMART_RU_MSK_XHTTP_REALITY_8443',
+            215
+        ),
+        (
+            '🇷🇺 RU SPB 01 25G',
+            '🇷🇺 RU SPB 01 25G Reality 443',
+            'ru-spb-3.cyber-vpn.org',
+            443,
+            null::text,
+            'VLESS_REALITY_443',
+            'Premium Smart RU SPB',
+            'PREMIUM_SMART_RU_SPB_REALITY_443',
+            216
+        ),
+        (
+            '🇷🇺 RU SPB 01 25G',
+            '🇷🇺 RU SPB 01 25G XHTTP Reality 8443',
+            'ru-spb-3.cyber-vpn.org',
+            8443,
+            '/s1-xhttp-9fec0898',
+            'VLESS_XHTTP_REALITY_8443',
+            'Premium Smart RU SPB',
+            'PREMIUM_SMART_RU_SPB_XHTTP_REALITY_8443',
+            217
+        )
+),
+smart_host_update as (
+    update hosts
+    set view_position = smart_host_specs.view_position,
+        path = smart_host_specs.path,
+        sni = null,
+        host = null,
+        alpn = null,
+        fingerprint = 'chrome',
+        is_disabled = false,
+        security_layer = 'DEFAULT',
+        xhttp_extra_params = null,
+        config_profile_inbound_uuid = smart_inbound_rows.uuid,
+        config_profile_uuid = smart_inbound_rows.config_profile_uuid,
+        server_description = smart_host_specs.server_description,
+        mux_params = null,
+        sockopt_params = null,
+        is_hidden = false,
+        override_sni_from_address = false,
+        mihomo_x25519 = false,
+        shuffle_host = false,
+        keep_sni_blank = false,
+        exclude_from_subscription_types = array[]::text[],
+        tags = array[smart_host_specs.host_tag]::text[]
+    from smart_host_specs
+    join smart_inbound_rows
+      on smart_inbound_rows.tag = smart_host_specs.inbound_tag
+    where hosts.remark = smart_host_specs.remark
+      and hosts.address = smart_host_specs.address
+      and hosts.port = smart_host_specs.port
+    returning hosts.uuid, hosts.remark, hosts.address, hosts.port
+),
+smart_host_insert as (
+    insert into hosts (
+        view_position,
+        remark,
+        address,
+        port,
+        path,
+        sni,
+        host,
+        alpn,
+        fingerprint,
+        is_disabled,
+        security_layer,
+        xhttp_extra_params,
+        config_profile_inbound_uuid,
+        config_profile_uuid,
+        server_description,
+        mux_params,
+        sockopt_params,
+        is_hidden,
+        override_sni_from_address,
+        mihomo_x25519,
+        shuffle_host,
+        keep_sni_blank,
+        exclude_from_subscription_types,
+        tags
+    )
+    select
+        smart_host_specs.view_position,
+        smart_host_specs.remark,
+        smart_host_specs.address,
+        smart_host_specs.port,
+        smart_host_specs.path,
+        null,
+        null,
+        null,
+        'chrome',
+        false,
+        'DEFAULT',
+        null,
+        smart_inbound_rows.uuid,
+        smart_inbound_rows.config_profile_uuid,
+        smart_host_specs.server_description,
+        null,
+        null,
+        false,
+        false,
+        false,
+        false,
+        false,
+        array[]::text[],
+        array[smart_host_specs.host_tag]::text[]
+    from smart_host_specs
+    join smart_inbound_rows
+      on smart_inbound_rows.tag = smart_host_specs.inbound_tag
+    where not exists (
+        select 1
+        from hosts
+        where hosts.remark = smart_host_specs.remark
+          and hosts.address = smart_host_specs.address
+          and hosts.port = smart_host_specs.port
+    )
+    returning uuid, remark, address, port
+),
+smart_host_rows as (
+    select distinct on (smart_host_specs.node_name, smart_host_specs.inbound_tag)
+        smart_hosts.uuid,
+        smart_host_specs.node_name,
+        smart_host_specs.inbound_tag
+    from smart_host_specs
+    join (
+        select uuid, remark, address, port
+        from smart_host_update
+        union all
+        select uuid, remark, address, port
+        from smart_host_insert
+        union all
+        select hosts.uuid, hosts.remark, hosts.address, hosts.port
+        from hosts
+        join smart_host_specs existing_specs
+          on existing_specs.remark = hosts.remark
+         and existing_specs.address = hosts.address
+         and existing_specs.port = hosts.port
+        where not exists (
+            select 1
+            from smart_host_update
+            where smart_host_update.remark = hosts.remark
+              and smart_host_update.address = hosts.address
+              and smart_host_update.port = hosts.port
+        )
+          and not exists (
+              select 1
+              from smart_host_insert
+              where smart_host_insert.remark = hosts.remark
+                and smart_host_insert.address = hosts.address
+                and smart_host_insert.port = hosts.port
+          )
+    ) as smart_hosts
+      on smart_hosts.remark = smart_host_specs.remark
+     and smart_hosts.address = smart_host_specs.address
+     and smart_hosts.port = smart_host_specs.port
+    order by smart_host_specs.node_name, smart_host_specs.inbound_tag, smart_hosts.uuid
+),
+smart_host_node_links as (
+    insert into hosts_to_nodes (
+        host_uuid,
+        node_uuid
+    )
+    select smart_host_rows.uuid, smart_node_rows.uuid
+    from smart_host_rows
+    join smart_node_rows
+      on smart_node_rows.name = smart_host_rows.node_name
+    on conflict do nothing
+    returning host_uuid, node_uuid
 ),
 plugin_update as (
     update node_plugin
@@ -1286,6 +1523,8 @@ smart_node_plugin_assignment as (
 select
     (select count(*) from internal_squad_inbound_links) as linked_internal_squad_inbounds,
     (select count(*) from smart_node_inbound_links) as linked_node_inbounds,
+    (select count(*) from smart_host_rows) as smart_host_count,
+    (select count(*) from smart_host_node_links) as linked_smart_hosts,
     (select count(*) from smart_node_plugin_assignment) as plugin_assigned_nodes;
 
 do $cybervpn_premium_smart_ru_validation$
@@ -1299,6 +1538,8 @@ declare
     v_internal_squad_inbound_count integer;
     v_smart_node_count integer;
     v_linked_node_inbounds integer;
+    v_smart_host_count integer;
+    v_smart_host_link_count integer;
     v_conflicting_active_plugin_count integer;
     v_plugin_assigned_node_count integer;
     v_conflicting_node_names text;
@@ -1395,6 +1636,60 @@ begin
         raise exception 'Expected at least 8 Smart RU node inbound links, found %', v_linked_node_inbounds;
     end if;
 
+    select count(*)
+    into v_smart_host_count
+    from hosts
+    join config_profile_inbounds
+      on config_profile_inbounds.uuid = hosts.config_profile_inbound_uuid
+    where hosts.remark in (
+        '🇩🇪 DE Frankfurt 01 25G Reality 443',
+        '🇩🇪 DE Frankfurt 01 25G XHTTP Reality 8443',
+        '🇳🇱 NL Amsterdam 01 10G Reality 443',
+        '🇳🇱 NL Amsterdam 01 10G XHTTP Reality 8443',
+        '🇷🇺 RU Moscow 01 25G Reality 443',
+        '🇷🇺 RU Moscow 01 25G XHTTP Reality 8443',
+        '🇷🇺 RU SPB 01 25G Reality 443',
+        '🇷🇺 RU SPB 01 25G XHTTP Reality 8443'
+    )
+      and hosts.address in (
+          'de-3.cyber-vpn.org',
+          'nl-4.cyber-vpn.org',
+          'ru-msk-3.cyber-vpn.org',
+          'ru-spb-3.cyber-vpn.org'
+      )
+      and hosts.is_disabled = false
+      and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443');
+    if v_smart_host_count <> 8 then
+        raise exception 'Expected 8 Premium Smart RU Remnawave hosts, found %', v_smart_host_count;
+    end if;
+
+    select count(*)
+    into v_smart_host_link_count
+    from hosts
+    join hosts_to_nodes
+      on hosts_to_nodes.host_uuid = hosts.uuid
+    join nodes
+      on nodes.uuid = hosts_to_nodes.node_uuid
+    where (
+            nodes.name = '🇩🇪 DE Frankfurt 01 25G'
+        and hosts.remark in ('🇩🇪 DE Frankfurt 01 25G Reality 443', '🇩🇪 DE Frankfurt 01 25G XHTTP Reality 8443')
+    )
+       or (
+            nodes.name = '🇳🇱 NL Amsterdam 01 10G'
+        and hosts.remark in ('🇳🇱 NL Amsterdam 01 10G Reality 443', '🇳🇱 NL Amsterdam 01 10G XHTTP Reality 8443')
+    )
+       or (
+            nodes.name = '🇷🇺 RU Moscow 01 25G'
+        and hosts.remark in ('🇷🇺 RU Moscow 01 25G Reality 443', '🇷🇺 RU Moscow 01 25G XHTTP Reality 8443')
+    )
+       or (
+            nodes.name = '🇷🇺 RU SPB 01 25G'
+        and hosts.remark in ('🇷🇺 RU SPB 01 25G Reality 443', '🇷🇺 RU SPB 01 25G XHTTP Reality 8443')
+    );
+    if v_smart_host_link_count <> 8 then
+        raise exception 'Expected 8 Premium Smart RU host-to-node links, found %', v_smart_host_link_count;
+    end if;
+
     select count(*), string_agg(name, ', ' order by name)
     into v_conflicting_active_plugin_count, v_conflicting_node_names
     from nodes
@@ -1459,6 +1754,47 @@ select
               '🇷🇺 RU SPB 01 25G'
           )
     ) as linked_node_inbounds,
+    (
+        select count(*)
+        from hosts
+        join config_profile_inbounds
+          on config_profile_inbounds.uuid = hosts.config_profile_inbound_uuid
+        where hosts.remark in (
+            '🇩🇪 DE Frankfurt 01 25G Reality 443',
+            '🇩🇪 DE Frankfurt 01 25G XHTTP Reality 8443',
+            '🇳🇱 NL Amsterdam 01 10G Reality 443',
+            '🇳🇱 NL Amsterdam 01 10G XHTTP Reality 8443',
+            '🇷🇺 RU Moscow 01 25G Reality 443',
+            '🇷🇺 RU Moscow 01 25G XHTTP Reality 8443',
+            '🇷🇺 RU SPB 01 25G Reality 443',
+            '🇷🇺 RU SPB 01 25G XHTTP Reality 8443'
+        )
+          and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+    ) as smart_host_count,
+    (
+        select count(*)
+        from hosts
+        join hosts_to_nodes
+          on hosts_to_nodes.host_uuid = hosts.uuid
+        join nodes
+          on nodes.uuid = hosts_to_nodes.node_uuid
+        where (
+                nodes.name = '🇩🇪 DE Frankfurt 01 25G'
+            and hosts.remark in ('🇩🇪 DE Frankfurt 01 25G Reality 443', '🇩🇪 DE Frankfurt 01 25G XHTTP Reality 8443')
+        )
+           or (
+                nodes.name = '🇳🇱 NL Amsterdam 01 10G'
+            and hosts.remark in ('🇳🇱 NL Amsterdam 01 10G Reality 443', '🇳🇱 NL Amsterdam 01 10G XHTTP Reality 8443')
+        )
+           or (
+                nodes.name = '🇷🇺 RU Moscow 01 25G'
+            and hosts.remark in ('🇷🇺 RU Moscow 01 25G Reality 443', '🇷🇺 RU Moscow 01 25G XHTTP Reality 8443')
+        )
+           or (
+                nodes.name = '🇷🇺 RU SPB 01 25G'
+            and hosts.remark in ('🇷🇺 RU SPB 01 25G Reality 443', '🇷🇺 RU SPB 01 25G XHTTP Reality 8443')
+        )
+    ) as smart_host_node_link_count,
     (
         select count(distinct nodes.uuid)
         from nodes

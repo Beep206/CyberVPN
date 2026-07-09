@@ -221,12 +221,16 @@ class CustomerSubscriptionServiceAccessUseCase:
         return item
 
     def _snapshot_from_summary(self, item: CustomerSubscriptionSummary) -> dict[str, Any]:
+        duration_mode = getattr(item, "duration_mode", None)
+        lifetime = bool(getattr(item, "lifetime", False)) or duration_mode == "lifetime"
         return {
             "status": item.status,
             "plan_uuid": item.plan_uuid,
             "plan_code": item.plan_code,
             "display_name": item.display_name,
             "period_days": None,
+            "duration_mode": duration_mode,
+            "lifetime": lifetime,
             "expires_at": item.expires_at,
             "effective_entitlements": dict(item.effective_entitlements or {}),
             "invite_bundle": dict(item.invite_bundle or {}),
@@ -312,10 +316,14 @@ class CustomerSubscriptionServiceAccessUseCase:
             raise ValueError("Customer account not found")
 
         snapshot = self._snapshot_from_summary(item)
+        grant_snapshot = dict(getattr(grant, "grant_snapshot", None) or {})
         effective = dict(snapshot.get("effective_entitlements") or {})
         gateway = RemnawaveUserGateway(remnawave_client)
         expires_at = _parse_datetime(item.expires_at)
-        lifetime_access = bool(snapshot.get("lifetime")) or snapshot.get("duration_mode") == "lifetime"
+        duration_mode = str(grant_snapshot.get("duration_mode") or snapshot.get("duration_mode") or "").strip()
+        lifetime_access = (
+            bool(grant_snapshot.get("lifetime")) or bool(snapshot.get("lifetime")) or duration_mode == "lifetime"
+        )
         payload = {
             "email": customer.email,
             "traffic_limit_bytes": _resolve_traffic_limit_bytes(effective),
@@ -374,6 +382,7 @@ class CustomerSubscriptionServiceAccessUseCase:
                     "subscription_key": item.subscription_key,
                     "entitlement_grant_id": str(grant.id),
                     "plan_code": item.plan_code,
+                    "duration_mode": duration_mode or None,
                     "subscription_url": subscription_url,
                     "provisioned_from": "msub08_selected_grant",
                     "lifetime": lifetime_access,
@@ -392,6 +401,7 @@ class CustomerSubscriptionServiceAccessUseCase:
                 "subscription_key": item.subscription_key,
                 "entitlement_grant_id": str(grant.id),
                 "plan_code": item.plan_code,
+                "duration_mode": duration_mode or None,
                 "subscription_url": subscription_url,
                 "provisioned_from": "msub08_selected_grant",
                 "lifetime": lifetime_access,
@@ -403,6 +413,10 @@ class CustomerSubscriptionServiceAccessUseCase:
             service_identity = existing
 
         grant.service_identity_id = service_identity.id
+        if not getattr(customer, "remnawave_uuid", None):
+            customer.remnawave_uuid = str(created_user.uuid)
+        if subscription_url and not normalize_public_subscription_url(getattr(customer, "subscription_url", None)):
+            customer.subscription_url = subscription_url
         await self._ensure_provisioning_profile(
             service_identity=service_identity,
             profile_key="shared_client-default",
