@@ -108,6 +108,11 @@ def _providers(config: Mapping[str, Any]) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _rule_providers(config: Mapping[str, Any]) -> dict[str, Any]:
+    value = config.get("rule-providers") or config.get("rule_providers") or {}
+    return value if isinstance(value, dict) else {}
+
+
 def _group_names(groups: Sequence[Mapping[str, Any]]) -> set[str]:
     return {str(group.get("name") or "").strip() for group in groups if str(group.get("name") or "").strip()}
 
@@ -129,15 +134,37 @@ def _has_filtered_provider(group: Mapping[str, Any], marker: str) -> bool:
     return marker.lower() in normalized and any(token in normalized for token in filter_tokens)
 
 
-def _route_domains(route_entries: Sequence[Any]) -> set[str]:
-    domains: set[str] = set()
-    for entry in route_entries:
-        metadata = getattr(entry, "metadata_json", None)
-        if isinstance(metadata, dict):
-            domain = str(metadata.get("domain") or "").strip().lower()
-            if domain and not domain.endswith(".invalid"):
-                domains.add(domain)
-    return domains
+def _route_markers(route_entry: Any) -> list[str]:
+    metadata = getattr(route_entry, "metadata_json", None)
+    if not isinstance(metadata, dict):
+        return []
+    markers: list[str] = []
+    domain = str(metadata.get("domain") or "").strip().lower()
+    if domain and not domain.endswith(".invalid"):
+        markers.append(domain)
+    for key in ("expected_policy", "expected_group"):
+        value = str(metadata.get(key) or "").strip().lower()
+        if value:
+            markers.append(value)
+    return markers
+
+
+def _rule_provider_text(rule_providers: Mapping[str, Any]) -> str:
+    chunks: list[str] = []
+    for name, provider in rule_providers.items():
+        chunks.append(str(name))
+        if not isinstance(provider, Mapping):
+            continue
+        payload = provider.get("payload")
+        if isinstance(payload, list):
+            chunks.extend(str(item) for item in payload)
+        url = provider.get("url")
+        if url:
+            chunks.append(str(url))
+        path = provider.get("path")
+        if path:
+            chunks.append(str(path))
+    return "\n".join(chunks).lower()
 
 
 def _rule_index(rules: Sequence[str], marker: str) -> int | None:
@@ -171,6 +198,7 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
     groups = _proxy_groups(config)
     rules = _rules(config)
     providers = _providers(config)
+    rule_providers = _rule_providers(config)
     group_names = _group_names(groups)
     results: list[dict[str, Any]] = [
         _result(
@@ -178,7 +206,12 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
             check_name="Mihomo YAML parses",
             status="pass",
             safe_summary="Mihomo template parsed without exposing generated credentials.",
-            details={"group_count": len(groups), "rule_count": len(rules), "provider_count": len(providers)},
+            details={
+                "group_count": len(groups),
+                "rule_count": len(rules),
+                "provider_count": len(providers),
+                "rule_provider_count": len(rule_providers),
+            },
             started=started,
         )
     ]
@@ -273,10 +306,19 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
         )
     )
 
-    required_domains = _route_domains(route_entries)
-    rule_text = "\n".join(rules).lower()
-    covered_domains = sorted(domain for domain in required_domains if domain in rule_text)
-    coverage_ratio = len(covered_domains) / max(1, len(required_domains))
+    route_markers = {
+        getattr(entry, "route_key", str(index)): _route_markers(entry) for index, entry in enumerate(route_entries)
+    }
+    rule_text = "\n".join((("\n".join(rules)).lower(), _rule_provider_text(rule_providers)))
+    covered_routes = sorted(
+        route_key
+        for route_key, markers in route_markers.items()
+        if markers and any(marker in rule_text for marker in markers)
+    )
+    uncovered_routes = sorted(
+        route_key for route_key, markers in route_markers.items() if markers and route_key not in covered_routes
+    )
+    coverage_ratio = len(covered_routes) / max(1, len(route_markers))
     results.append(
         _result(
             check_key="mihomo.route_registry.coverage",
@@ -286,9 +328,10 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
             if coverage_ratio >= 0.75
             else "Mihomo rules do not cover enough golden routes",
             details={
-                "required_route_count": len(required_domains),
-                "covered_route_count": len(covered_domains),
+                "required_route_count": len(route_markers),
+                "covered_route_count": len(covered_routes),
                 "coverage_ratio": round(coverage_ratio, 3),
+                "uncovered_route_keys": uncovered_routes[:20],
             },
         )
     )

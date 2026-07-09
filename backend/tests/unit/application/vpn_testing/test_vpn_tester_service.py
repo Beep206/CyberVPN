@@ -172,3 +172,59 @@ async def test_contract_results_do_not_infer_xhttp_without_generated_or_node_evi
     assert "xhttp" not in by_key["premium_smart_ru.connection_modes"]["details"]["effective_modes"]
     assert by_key["generated_subscription.mihomo_groups"]["status"] == "fail"
     assert by_key["generated_subscription.xhttp_transport"]["status"] == "fail"
+
+
+@pytest.mark.asyncio
+async def test_generated_mihomo_artifact_falls_back_to_active_smart_ru_remnawave_user(monkeypatch) -> None:
+    smart_squad_uuid = str(uuid4())
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", smart_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", str(uuid4()))
+
+    repository = SimpleNamespace(list_subscription_delivery_candidates=AsyncMock(return_value=[]))
+    remnawave_client = SimpleNamespace(
+        get_all_users_cursor_page=AsyncMock(
+            return_value=SimpleNamespace(
+                items=[
+                    {
+                        "status": "EXPIRED",
+                        "subscriptionUrl": "https://subscription.example.test/sub/expired",
+                        "activeInternalSquads": [{"uuid": smart_squad_uuid, "name": "CYBERVPN_PREMIUM_SMART_RU_NODES"}],
+                    },
+                    {
+                        "status": "ACTIVE",
+                        "subscriptionUrl": "https://subscription.example.test/sub/default",
+                        "activeInternalSquads": [{"uuid": str(uuid4()), "name": "S1_DEFAULT_DE"}],
+                    },
+                    {
+                        "status": "ACTIVE",
+                        "subscriptionUrl": "https://subscription.example.test/sub/smart",
+                        "activeInternalSquads": [{"uuid": smart_squad_uuid, "name": "CYBERVPN_PREMIUM_SMART_RU_NODES"}],
+                    },
+                ]
+            )
+        )
+    )
+    service = VpnTesterService(repository, remnawave_client=remnawave_client)
+    service._generated_mihomo_artifact_from_candidates = AsyncMock(
+        side_effect=[
+            None,
+            {
+                "generated_mihomo_yaml": _generated_mihomo_yaml(),
+                "source": "remnawave_users_cursor",
+                "http_status": 200,
+            },
+        ]
+    )
+
+    artifact = await service._generated_mihomo_artifact({})
+
+    assert artifact["source"] == "remnawave_users_cursor"
+    _, remnawave_call = service._generated_mihomo_artifact_from_candidates.await_args_list
+    assert remnawave_call.kwargs == {}
+    assert remnawave_call.args[0] == [
+        {
+            "subscription_url": "https://subscription.example.test/sub/smart",
+            "source": "remnawave_users_cursor",
+        }
+    ]

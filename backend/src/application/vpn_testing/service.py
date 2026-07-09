@@ -243,20 +243,50 @@ def _context_generated_mihomo_artifact(request_context: Mapping[str, Any] | None
     return None
 
 
+def _mapping_str(value: Mapping[str, Any], *keys: str) -> str:
+    for key in keys:
+        item = value.get(key)
+        if item is not None:
+            return str(item).strip()
+    return ""
+
+
+def _remnawave_user_subscription_url(user: Mapping[str, Any]) -> str:
+    return _mapping_str(user, "subscriptionUrl", "subscription_url")
+
+
+def _remnawave_user_is_active(user: Mapping[str, Any]) -> bool:
+    return _mapping_str(user, "status").lower() == "active"
+
+
+def _remnawave_user_matches_smart_ru(user: Mapping[str, Any]) -> bool:
+    internal_squad_uuid = settings.remnawave_smart_ru_internal_squad_uuid.strip().lower()
+    external_squad_uuid = settings.remnawave_smart_ru_external_squad_uuid.strip().lower()
+    external_user_squad_uuid = _mapping_str(user, "externalSquadUuid", "external_squad_uuid").lower()
+    if external_squad_uuid and external_user_squad_uuid == external_squad_uuid:
+        return True
+
+    squads = user.get("activeInternalSquads") or user.get("active_internal_squads") or []
+    if not isinstance(squads, list):
+        return False
+    for squad in squads:
+        if not isinstance(squad, Mapping):
+            continue
+        squad_uuid = _mapping_str(squad, "uuid").lower()
+        squad_name = _mapping_str(squad, "name").lower()
+        if internal_squad_uuid and squad_uuid == internal_squad_uuid:
+            return True
+        if "premium_smart_ru" in squad_name:
+            return True
+    return False
+
+
 class VpnTesterService:
     def __init__(self, repository: VpnTesterRepository, remnawave_client: RemnawaveClient | None = None) -> None:
         self._repository = repository
         self._remnawave_client = remnawave_client
 
-    async def _generated_mihomo_artifact(self, request_context: Mapping[str, Any] | None) -> Any:
-        context_artifact = _context_generated_mihomo_artifact(request_context)
-        if context_artifact:
-            return context_artifact
-        list_candidates = getattr(self._repository, "list_subscription_delivery_candidates", None)
-        if list_candidates is None:
-            return None
-        plan_codes = set(_csv(settings.remnawave_smart_ru_plan_codes))
-        candidates = await list_candidates(plan_codes=plan_codes, limit=20)
+    async def _generated_mihomo_artifact_from_candidates(self, candidates: list[dict[str, str]]) -> Any:
         async with AsyncClient(
             timeout=20.0,
             follow_redirects=True,
@@ -279,6 +309,44 @@ class VpnTesterService:
                         "source": str(candidate.get("source") or "subscription_delivery_channel"),
                         "http_status": response.status_code,
                     }
+        return None
+
+    async def _generated_mihomo_artifact_from_remnawave_users(self) -> Any:
+        if self._remnawave_client is None:
+            return None
+        try:
+            page = await self._remnawave_client.get_all_users_cursor_page(limit=100)
+        except HTTPError:
+            return None
+
+        candidates: list[dict[str, str]] = []
+        for user in page.items:
+            if not isinstance(user, Mapping):
+                continue
+            subscription_url = _remnawave_user_subscription_url(user)
+            if not subscription_url:
+                continue
+            if not _remnawave_user_is_active(user):
+                continue
+            if not _remnawave_user_matches_smart_ru(user):
+                continue
+            candidates.append({"subscription_url": subscription_url, "source": "remnawave_users_cursor"})
+        return await self._generated_mihomo_artifact_from_candidates(candidates)
+
+    async def _generated_mihomo_artifact(self, request_context: Mapping[str, Any] | None) -> Any:
+        context_artifact = _context_generated_mihomo_artifact(request_context)
+        if context_artifact:
+            return context_artifact
+        list_candidates = getattr(self._repository, "list_subscription_delivery_candidates", None)
+        if list_candidates is not None:
+            plan_codes = set(_csv(settings.remnawave_smart_ru_plan_codes))
+            candidates = await list_candidates(plan_codes=plan_codes, limit=20)
+            artifact = await self._generated_mihomo_artifact_from_candidates(candidates)
+            if artifact:
+                return artifact
+        artifact = await self._generated_mihomo_artifact_from_remnawave_users()
+        if artifact:
+            return artifact
         return None
 
     async def ensure_seeded(self) -> None:

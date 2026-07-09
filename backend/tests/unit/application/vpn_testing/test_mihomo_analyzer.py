@@ -47,6 +47,10 @@ def test_vpn_tester_default_fixture_and_route_registry_match_hardened_template()
     template_text = HARDENED_TEMPLATE.read_text(encoding="utf-8")
     registry = json.loads(ROUTE_REGISTRY.read_text(encoding="utf-8"))
     expected_groups = {route["metadata"]["expected_group"] for route in registry["routes"]}
+    route_entries = [
+        SimpleNamespace(route_key=route["route_key"], metadata_json=route["metadata"]) for route in registry["routes"]
+    ]
+    by_key = {result["check_key"]: result for result in analyze_mihomo_template(template_text, route_entries)}
 
     assert fixture_text == template_text
     assert "🌍 Global Auto" not in expected_groups
@@ -57,6 +61,8 @@ def test_vpn_tester_default_fixture_and_route_registry_match_hardened_template()
     assert "🤖 AI" in expected_groups
     assert "👨‍💻 Dev Services" in expected_groups
     assert "⛔ BLOCK" in expected_groups
+    assert by_key["mihomo.route_registry.coverage"]["status"] == "pass"
+    assert by_key["mihomo.route_registry.coverage"]["details"]["coverage_ratio"] >= 0.75
 
 
 def test_mihomo_analyzer_rejects_abuse_group_mutations() -> None:
