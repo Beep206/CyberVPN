@@ -156,14 +156,26 @@ s1-nl-4 138.16.140.44:
   ports=443,8443,22230
   nft tables include remnanode/remnanode6
   backup=/opt/cybervpn/remnanode/current/docker-compose.yml.bak-20260709T120648Z-pre-2.8.0
+
+s1-ru-msk-3 178.159.94.225:
+  accessed through prod-app-1 IPv6 path to 2a12:5940:e38b::2 because public IPv4 SSH timed out
+  OS=Ubuntu 24.04.4 LTS
+  kernel=6.8.0-124-generic
+  remnanode|remnawave/node:2.8.0
+  network=host
+  cap=["CAP_NET_ADMIN"]
+  ports=443,8443,22230
+  nft tables include remnanode/remnanode6
+  backup=/opt/cybervpn/remnanode/current/docker-compose.yml.bak-20260709T131210Z-pre-2.8.0
 ```
 
 Moscow direct SSH evidence:
 
 ```text
 s1-ru-msk-3 178.159.94.225:
-  TCP port 22 opened, but SSH timed out before a usable session.
-  Direct OS/Docker/image evidence is missing in this run.
+  public IPv4 SSH attempts to ports 22/2222/22022/22222 timed out before banner exchange.
+  prod-app-1 has IPv6 route to 2a12:5940:e38b::2 and SSH port 22 is reachable there.
+  Temporary key forwarding through prod-app-1 allowed direct OS/Docker/image verification.
 ```
 
 Remnawave Panel/DB node evidence:
@@ -173,6 +185,8 @@ DE Frankfurt: address=138.124.115.206 port=22230 connected=true disabled=false p
 NL Amsterdam: address=138.16.140.44 port=22230 connected=true disabled=false plugin_assigned=true
 RU Moscow: address=172.30.3.1 port=32230 connected=true disabled=false plugin_assigned=true
 RU SPB: address=193.233.91.99 port=22230 connected=true disabled=false plugin_assigned=true
+all_smart_connected=4
+moscow_node_inbound_links=2
 ```
 
 ## Inbounds
@@ -294,6 +308,7 @@ Node compose rollback backups:
 s1-ru-spb-3:/opt/cybervpn/remnanode/current/docker-compose.yml.bak-20260709T120558Z-pre-2.8.0
 s1-de-3:/opt/cybervpn/remnanode/current/docker-compose.yml.bak-20260709T120616Z-pre-2.8.0
 s1-nl-4:/opt/cybervpn/remnanode/current/docker-compose.yml.bak-20260709T120648Z-pre-2.8.0
+s1-ru-msk-3:/opt/cybervpn/remnanode/current/docker-compose.yml.bak-20260709T131210Z-pre-2.8.0
 ```
 
 XHTTP rollback:
@@ -316,5 +331,4 @@ Re-run seed-cybervpn-premium-smart-ru.sql from the previous commit/template, or 
 - User-owned: HAPP/INCY response headers on real clients and real user agents.
 - User-owned: DE/RU route smoke on real clients.
 - User-owned: real registration/onboarding activation smoke with `LU7QQTQZHG`.
-- Direct SSH/OS/Docker image proof for `s1-ru-msk-3` is missing.
 - TOR shared lists require P1 updater/list population before claiming full TOR egress blocking.
