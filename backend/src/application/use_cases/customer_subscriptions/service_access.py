@@ -269,6 +269,14 @@ class CustomerSubscriptionServiceAccessUseCase:
             if grant is not None and grant.service_identity_id != existing.id:
                 grant.service_identity_id = existing.id
                 await self._session.flush()
+            if grant is not None and remnawave_client is not None:
+                return await self._ensure_grant_service_identity(
+                    item=item,
+                    grant=grant,
+                    provider_name=provider_name,
+                    remnawave_client=remnawave_client,
+                    existing=existing,
+                )
             return existing
 
         if item.kind == "trial":
@@ -297,15 +305,14 @@ class CustomerSubscriptionServiceAccessUseCase:
         remnawave_client: RemnawaveClient | None,
         existing: ServiceIdentityModel | None,
     ) -> ServiceIdentityModel:
-        if (
-            existing is not None
-            and existing.provider_subject_ref
-            and existing.identity_scope == "subscription"
-            and existing.subscription_key == item.subscription_key
-        ):
-            return existing
-
         if remnawave_client is None:
+            if (
+                existing is not None
+                and existing.provider_subject_ref
+                and existing.identity_scope == "subscription"
+                and existing.subscription_key == item.subscription_key
+            ):
+                return existing
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Selected subscription VPN identity requires Remnawave provisioning",
@@ -356,6 +363,28 @@ class CustomerSubscriptionServiceAccessUseCase:
             payload["external_squad_uuid"] = external_squad_uuid
         if smart_ru_internal_squad_uuids:
             payload["active_internal_squads"] = smart_ru_internal_squad_uuids
+
+        if (
+            existing is not None
+            and existing.provider_subject_ref
+            and existing.identity_scope == "subscription"
+            and existing.subscription_key == item.subscription_key
+        ):
+            existing_uuid = _parse_remnawave_uuid(existing.provider_subject_ref)
+            existing_user = await gateway.get_by_uuid(existing_uuid) if existing_uuid is not None else None
+            if existing_user is not None:
+                subscription_url = normalize_public_subscription_url(existing_user.subscription_url)
+                if subscription_url:
+                    if customer.remnawave_uuid != str(existing_user.uuid):
+                        customer.remnawave_uuid = str(existing_user.uuid)
+                    if normalize_public_subscription_url(customer.subscription_url) != subscription_url:
+                        customer.subscription_url = subscription_url
+                    await self._store_subscription_url(
+                        service_identity=existing,
+                        subscription_url=subscription_url,
+                    )
+                    await self._session.flush()
+                return existing
 
         created_user = await gateway.create(
             username=f"cvpn_s_{grant.id.hex[:28]}",
@@ -413,9 +442,12 @@ class CustomerSubscriptionServiceAccessUseCase:
             service_identity = existing
 
         grant.service_identity_id = service_identity.id
-        if not getattr(customer, "remnawave_uuid", None):
+        if customer.remnawave_uuid != str(created_user.uuid):
             customer.remnawave_uuid = str(created_user.uuid)
-        if subscription_url and not normalize_public_subscription_url(getattr(customer, "subscription_url", None)):
+        if (
+            subscription_url
+            and normalize_public_subscription_url(getattr(customer, "subscription_url", None)) != subscription_url
+        ):
             customer.subscription_url = subscription_url
         await self._ensure_provisioning_profile(
             service_identity=service_identity,
@@ -646,6 +678,15 @@ def _parse_subscription_uuid(subscription_key: str, *, prefix: str) -> UUID:
     if raw_prefix != prefix or not raw_uuid:
         raise LookupError("Unsupported subscription key")
     return UUID(raw_uuid)
+
+
+def _parse_remnawave_uuid(value: str | None) -> UUID | None:
+    if not value:
+        return None
+    try:
+        return UUID(str(value))
+    except ValueError:
+        return None
 
 
 def _parse_datetime(value: str | None) -> datetime | None:

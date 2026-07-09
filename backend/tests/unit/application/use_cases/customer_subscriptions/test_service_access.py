@@ -185,6 +185,216 @@ async def test_selected_subscription_lazy_provisioning_uses_smart_ru_squads(
 
 
 @pytest.mark.asyncio
+async def test_selected_subscription_recreates_stale_remnawave_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    customer_account_id = uuid.uuid4()
+    auth_realm_id = uuid.uuid4()
+    service_identity_id = uuid.uuid4()
+    stale_remnawave_uuid = uuid.uuid4()
+    recreated_remnawave_uuid = uuid.uuid4()
+    smart_external_squad_uuid = str(uuid.uuid4())
+    smart_internal_squad_uuid = str(uuid.uuid4())
+    old_subscription_url = "https://subscription.example.local/sub/old-stale"
+    new_subscription_url = "https://subscription.example.local/sub/new-ready"
+    customer = SimpleNamespace(
+        email="smart-user@example.test",
+        remnawave_uuid=str(stale_remnawave_uuid),
+        subscription_url=old_subscription_url,
+    )
+    existing_identity = SimpleNamespace(
+        id=service_identity_id,
+        provider_subject_ref=str(stale_remnawave_uuid),
+        identity_scope="subscription",
+        subscription_key=None,
+        identity_status="active",
+        service_context={"subscription_url": old_subscription_url},
+    )
+
+    class FakeRemnawaveUserGateway:
+        def __init__(self, client) -> None:
+            captured["remnawave_client"] = client
+
+        async def get_by_uuid(self, remnawave_uuid: uuid.UUID):
+            captured["looked_up_remnawave_uuid"] = remnawave_uuid
+            return None
+
+        async def create(self, username: str, **kwargs):
+            captured["remnawave_username"] = username
+            captured["remnawave_payload"] = kwargs
+            return SimpleNamespace(
+                uuid=recreated_remnawave_uuid,
+                subscription_url=new_subscription_url,
+            )
+
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", smart_external_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", smart_internal_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    monkeypatch.setattr(service_access_module, "RemnawaveUserGateway", FakeRemnawaveUserGateway)
+
+    session = SimpleNamespace(
+        get=AsyncMock(return_value=customer),
+        flush=AsyncMock(),
+    )
+    use_case = CustomerSubscriptionServiceAccessUseCase(session)
+    use_case._ensure_provisioning_profile = AsyncMock()
+    use_case._store_subscription_url = AsyncMock()
+    item = _subscription_summary()
+    item.plan_code = "premium_smart_ru"
+    item.display_name = "Premium Smart RU"
+    item.effective_entitlements = {"device_limit": 5}
+    existing_identity.subscription_key = item.subscription_key
+    grant = SimpleNamespace(
+        id=item.entitlement_grant_id,
+        customer_account_id=customer_account_id,
+        auth_realm_id=auth_realm_id,
+        source_order_id=uuid.uuid4(),
+        origin_storefront_id=None,
+        service_identity_id=service_identity_id,
+        grant_snapshot={},
+    )
+
+    service_identity = await use_case._ensure_grant_service_identity(
+        item=item,
+        grant=grant,
+        provider_name="remnawave",
+        remnawave_client=SimpleNamespace(),
+        existing=existing_identity,
+    )
+
+    assert captured["looked_up_remnawave_uuid"] == stale_remnawave_uuid
+    assert captured["remnawave_payload"]["external_squad_uuid"] == smart_external_squad_uuid
+    assert captured["remnawave_payload"]["active_internal_squads"] == [smart_internal_squad_uuid]
+    assert existing_identity.provider_subject_ref == str(recreated_remnawave_uuid)
+    assert existing_identity.identity_status == "active"
+    assert existing_identity.service_context["subscription_url"] == new_subscription_url
+    assert customer.remnawave_uuid == str(recreated_remnawave_uuid)
+    assert customer.subscription_url == new_subscription_url
+    assert grant.service_identity_id == service_identity_id
+    assert service_identity is existing_identity
+    use_case._store_subscription_url.assert_awaited_once_with(
+        service_identity=existing_identity,
+        subscription_url=new_subscription_url,
+    )
+    session.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_selected_subscription_config_recreates_stale_existing_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    customer_account_id = uuid.uuid4()
+    auth_realm_id = uuid.uuid4()
+    service_identity_id = uuid.uuid4()
+    stale_remnawave_uuid = uuid.uuid4()
+    recreated_remnawave_uuid = uuid.uuid4()
+    smart_external_squad_uuid = str(uuid.uuid4())
+    smart_internal_squad_uuid = str(uuid.uuid4())
+    new_subscription_url = "https://subscription.example.local/sub/new-ready"
+    customer = SimpleNamespace(
+        email="smart-user@example.test",
+        remnawave_uuid=str(stale_remnawave_uuid),
+        subscription_url="https://subscription.example.local/sub/old-stale",
+    )
+    item = _subscription_summary()
+    item.plan_code = "premium_smart_ru"
+    item.display_name = "Premium Smart RU"
+    item.effective_entitlements = {"device_limit": 5}
+    existing_identity = SimpleNamespace(
+        id=service_identity_id,
+        service_key="svc-stale-existing",
+        provider_subject_ref=str(stale_remnawave_uuid),
+        identity_scope="subscription",
+        subscription_key=item.subscription_key,
+        identity_status="active",
+        service_context={"subscription_url": customer.subscription_url},
+    )
+    grant = SimpleNamespace(
+        id=item.entitlement_grant_id,
+        customer_account_id=customer_account_id,
+        auth_realm_id=auth_realm_id,
+        source_order_id=uuid.uuid4(),
+        origin_storefront_id=None,
+        service_identity_id=service_identity_id,
+        grant_snapshot={},
+    )
+
+    class FakeRemnawaveUserGateway:
+        def __init__(self, client) -> None:
+            captured["remnawave_client"] = client
+
+        async def get_by_uuid(self, remnawave_uuid: uuid.UUID):
+            captured["looked_up_remnawave_uuid"] = remnawave_uuid
+            return None
+
+        async def create(self, username: str, **kwargs):
+            captured["remnawave_username"] = username
+            captured["remnawave_payload"] = kwargs
+            return SimpleNamespace(
+                uuid=recreated_remnawave_uuid,
+                subscription_url=new_subscription_url,
+            )
+
+    class FakeGenerateConfigUseCase:
+        def __init__(self, client) -> None:
+            captured["config_client"] = client
+
+        async def execute(self, user_uuid: str, *, plan_code: str | None = None, user_segments=None):
+            captured["config_user_uuid"] = user_uuid
+            captured["config_plan_code"] = plan_code
+            captured["config_user_segments"] = user_segments
+            return {"subscription_url": new_subscription_url}
+
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", smart_external_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", smart_internal_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    monkeypatch.setattr(service_access_module, "RemnawaveUserGateway", FakeRemnawaveUserGateway)
+    monkeypatch.setattr(service_access_module, "GenerateConfigUseCase", FakeGenerateConfigUseCase)
+
+    session = SimpleNamespace(
+        get=AsyncMock(return_value=customer),
+        flush=AsyncMock(),
+    )
+    use_case = CustomerSubscriptionServiceAccessUseCase(session)
+    use_case._get_subscription = AsyncMock(return_value=item)
+    use_case._get_selected_grant = AsyncMock(return_value=grant)
+    use_case._repo = SimpleNamespace(
+        get_service_identity_by_subscription_key=AsyncMock(return_value=existing_identity),
+        get_device_credential_by_id=AsyncMock(),
+    )
+    use_case._ensure_provisioning_profile = AsyncMock(return_value=SimpleNamespace(id=uuid.uuid4()))
+    use_case._ensure_access_delivery_channel = AsyncMock(
+        return_value=SimpleNamespace(
+            id=uuid.uuid4(),
+            channel_subject_ref="svc-stale-existing",
+            device_credential_id=None,
+        )
+    )
+    use_case._store_subscription_url = AsyncMock()
+
+    config = await use_case.get_config(
+        customer_account_id=customer_account_id,
+        auth_realm_id=auth_realm_id,
+        subscription_key=item.subscription_key,
+        remnawave_client=SimpleNamespace(),
+    )
+
+    assert config["subscription_url"] == new_subscription_url
+    assert captured["looked_up_remnawave_uuid"] == stale_remnawave_uuid
+    assert captured["config_user_uuid"] == str(recreated_remnawave_uuid)
+    assert captured["config_plan_code"] == "premium_smart_ru"
+    assert captured["config_user_segments"] is None
+    assert existing_identity.provider_subject_ref == str(recreated_remnawave_uuid)
+    assert existing_identity.service_context["subscription_url"] == new_subscription_url
+    assert customer.remnawave_uuid == str(recreated_remnawave_uuid)
+    assert customer.subscription_url == new_subscription_url
+    assert grant.service_identity_id == service_identity_id
+    assert use_case._store_subscription_url.await_count == 2
+
+
+@pytest.mark.asyncio
 async def test_selected_subscription_lazy_provisioning_fails_closed_when_smart_ru_squads_are_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
