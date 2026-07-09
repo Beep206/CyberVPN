@@ -42,6 +42,32 @@ def _route_entry(index: int) -> SimpleNamespace:
     )
 
 
+def _generated_mihomo_yaml() -> str:
+    groups = [
+        "🌍 World / EU",
+        "🇩🇪 DE Auto",
+        "🇳🇱 NL Auto",
+        "⚡ RU Auto",
+        "🇷🇺 RU Sites",
+        "🇷🇺 Moscow Auto",
+        "🇷🇺 SPB Auto",
+        "🧲 Torrents",
+    ]
+    group_yaml = "\n".join(f"  - name: {name!r}\n    type: select\n    proxies: ['smart-node']" for name in groups)
+    return f"""
+proxies:
+  - name: smart-node
+    type: vless
+    server: de-3.cyber-vpn.org
+    port: 8443
+    network: xhttp
+proxy-groups:
+{group_yaml}
+rules:
+  - MATCH,🌍 World / EU
+"""
+
+
 @pytest.mark.asyncio
 async def test_contract_results_treat_smart_ru_assignment_as_xhttp_and_uses_unique_plan_targets(
     monkeypatch,
@@ -62,7 +88,7 @@ async def test_contract_results_treat_smart_ru_assignment_as_xhttp_and_uses_uniq
             "severity": "warning",
             "target": "global",
             "safe_summary": "Remnawave nodes snapshot loaded",
-            "details": {},
+            "details": {"node_count": 4, "xhttp_node_count": 4, "ru_node_count": 2},
             "duration_ms": 0,
         }
     )
@@ -80,9 +106,13 @@ async def test_contract_results_treat_smart_ru_assignment_as_xhttp_and_uses_uniq
         suite_spec,
         [_smart_ru_plan("premium_smart_ru_30"), _smart_ru_plan("premium_smart_ru_lifetime")],
         [_route_entry(index) for index in range(40)],
+        request_context={"generated_mihomo_yaml": _generated_mihomo_yaml()},
     )
     connection_checks = [item for item in results if item["check_key"] == "premium_smart_ru.connection_modes"]
     generated_group_checks = [item for item in results if item["check_key"] == "generated_subscription.mihomo_groups"]
+    generated_xhttp_checks = [
+        item for item in results if item["check_key"] == "generated_subscription.xhttp_transport"
+    ]
 
     assert [item["target"] for item in connection_checks] == [
         "premium_smart_ru_30",
@@ -91,8 +121,56 @@ async def test_contract_results_treat_smart_ru_assignment_as_xhttp_and_uses_uniq
     assert {item["status"] for item in connection_checks} == {"pass"}
     assert all("xhttp" in item["details"]["effective_modes"] for item in connection_checks)
     assert all(item["details"]["xhttp_satisfied_by_remnawave_assignment"] for item in connection_checks)
+    assert all(item["details"]["xhttp_satisfied_by_generated_subscription"] for item in connection_checks)
     assert [item["target"] for item in generated_group_checks] == [
         "premium_smart_ru_30",
         "premium_smart_ru_lifetime",
     ]
     assert {item["status"] for item in generated_group_checks} == {"pass"}
+    assert {item["status"] for item in generated_xhttp_checks} == {"pass"}
+
+
+@pytest.mark.asyncio
+async def test_contract_results_do_not_infer_xhttp_without_generated_or_node_evidence(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
+    monkeypatch.setattr(settings, "remnawave_smart_ru_internal_squad_uuid", str(uuid4()))
+    monkeypatch.setattr(settings, "remnawave_smart_ru_external_squad_uuid", str(uuid4()))
+    monkeypatch.setattr(settings, "remnawave_smart_ru_subscription_template_name", "CyberVPN Premium Smart RU")
+    monkeypatch.setattr(settings, "vpn_tester_synthetic_users_enabled", False)
+
+    service = VpnTesterService(SimpleNamespace())
+    service._remnawave_nodes_result = AsyncMock(
+        return_value={
+            "check_key": "remnawave.nodes.contract",
+            "check_name": "Remnawave node contract snapshot",
+            "category": "remnawave",
+            "status": "pass",
+            "severity": "warning",
+            "target": "global",
+            "safe_summary": "Remnawave nodes snapshot loaded",
+            "details": {"node_count": 4, "xhttp_node_count": 0, "ru_node_count": 2},
+            "duration_ms": 0,
+        }
+    )
+    suite_spec = {
+        "suite_key": "premium_smart_ru_v1",
+        "version": "v1",
+        "checks": [{"key": "premium_smart_ru.connection_modes"}],
+        "target_plan_codes": ["premium_smart_ru"],
+        "required_connection_modes": ["xhttp"],
+        "required_route_registry": "premium_smart_ru_v2",
+        "mihomo_template": HARDENED_TEMPLATE.read_text(encoding="utf-8"),
+    }
+
+    results = await service._contract_results(
+        suite_spec,
+        [_smart_ru_plan("premium_smart_ru_30")],
+        [_route_entry(index) for index in range(40)],
+        request_context={},
+    )
+    by_key = {item["check_key"]: item for item in results}
+
+    assert by_key["premium_smart_ru.connection_modes"]["status"] == "fail"
+    assert "xhttp" not in by_key["premium_smart_ru.connection_modes"]["details"]["effective_modes"]
+    assert by_key["generated_subscription.mihomo_groups"]["status"] == "fail"
+    assert by_key["generated_subscription.xhttp_transport"]["status"] == "fail"

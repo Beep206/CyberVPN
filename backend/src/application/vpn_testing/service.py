@@ -9,12 +9,13 @@ from time import perf_counter
 from typing import Any
 from uuid import UUID
 
-from httpx import HTTPError
+from httpx import AsyncClient, HTTPError
 
 from src.application.vpn_testing.analyzers import analyze_mihomo_template
 from src.application.vpn_testing.balancer import recommendation_key, stable_recommendation_hash
 from src.application.vpn_testing.generated_subscription_checker import (
     expected_remnawave_assignment,
+    generated_mihomo_artifact_summary,
     generated_subscription_checks,
 )
 from src.application.vpn_testing.redaction import safe_artifact_preview
@@ -217,10 +218,68 @@ def _default_mihomo_template() -> str:
     )
 
 
+def _request_context_payload(request_context: Mapping[str, Any] | None) -> Mapping[str, Any]:
+    if not isinstance(request_context, Mapping):
+        return {}
+    requested = request_context.get("requested_context")
+    if isinstance(requested, Mapping):
+        return requested
+    return request_context
+
+
+def _context_generated_mihomo_artifact(request_context: Mapping[str, Any] | None) -> Any:
+    payload = _request_context_payload(request_context)
+    for key in (
+        "generated_mihomo_yaml",
+        "mihomo_yaml",
+        "generated_subscription_yaml",
+        "subscription_yaml",
+        "generated_mihomo",
+        "generated_subscription",
+    ):
+        value = payload.get(key)
+        if value:
+            return value
+    return None
+
+
 class VpnTesterService:
     def __init__(self, repository: VpnTesterRepository, remnawave_client: RemnawaveClient | None = None) -> None:
         self._repository = repository
         self._remnawave_client = remnawave_client
+
+    async def _generated_mihomo_artifact(self, request_context: Mapping[str, Any] | None) -> Any:
+        context_artifact = _context_generated_mihomo_artifact(request_context)
+        if context_artifact:
+            return context_artifact
+        list_candidates = getattr(self._repository, "list_subscription_delivery_candidates", None)
+        if list_candidates is None:
+            return None
+        plan_codes = set(_csv(settings.remnawave_smart_ru_plan_codes))
+        candidates = await list_candidates(plan_codes=plan_codes, limit=20)
+        async with AsyncClient(
+            timeout=20.0,
+            follow_redirects=True,
+            headers={"User-Agent": "ClashMetaForAndroid/2.11.0"},
+        ) as client:
+            for candidate in candidates:
+                subscription_url = str(candidate.get("subscription_url") or "").strip()
+                if not subscription_url:
+                    continue
+                try:
+                    response = await client.get(subscription_url)
+                    response.raise_for_status()
+                except HTTPError:
+                    continue
+                text = response.text
+                summary = generated_mihomo_artifact_summary(text)
+                if summary["present"]:
+                    return {
+                        "generated_mihomo_yaml": text,
+                        "source": str(candidate.get("source") or "subscription_delivery_channel"),
+                        "http_status": response.status_code,
+                    }
+        return None
 
     async def ensure_seeded(self) -> None:
         for suite in load_default_suites():
@@ -258,7 +317,14 @@ class VpnTesterService:
             route_registry_version=str(suite_spec.get("required_route_registry") or ""),
         )
 
-    async def create_scheduled_run(self, *, suite_key: str, mode: str, trigger: str) -> VpnTestRunModel:
+    async def create_scheduled_run(
+        self,
+        *,
+        suite_key: str,
+        mode: str,
+        trigger: str,
+        request_context: dict[str, Any] | None = None,
+    ) -> VpnTestRunModel:
         await self.ensure_seeded()
         suite = await self._repository.get_suite(suite_key)
         if suite is None:
@@ -272,7 +338,7 @@ class VpnTesterService:
             trigger=trigger,
             requested_by_admin_id=None,
             idempotency_key=idempotency_key,
-            request_context={"source": "task_worker", "trigger": trigger},
+            request_context={"source": "task_worker", "trigger": trigger, **dict(request_context or {})},
             runtime_mode="proxy-only" if mode == "runtime" else None,
             route_registry_version=str(suite_spec.get("required_route_registry") or ""),
         )
@@ -389,7 +455,12 @@ class VpnTesterService:
         elif run.mode == "runtime":
             results = await self._runtime_results(run, route_entries)
         else:
-            results = await self._contract_results(suite_spec, plans, route_entries)
+            results = await self._contract_results(
+                suite_spec,
+                plans,
+                route_entries,
+                request_context=run.request_context,
+            )
 
         summary = _summary(results, suite_key=run.suite_key, mode=run.mode)
         summary["route_registry_version"] = registry_key or run.route_registry_version
@@ -715,6 +786,8 @@ class VpnTesterService:
         suite_spec: dict[str, Any],
         plans: list[SubscriptionPlanModel],
         route_entries: list[Any],
+        *,
+        request_context: Mapping[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
         results.append(
@@ -747,12 +820,22 @@ class VpnTesterService:
             )
         )
 
+        generated_mihomo_artifact = await self._generated_mihomo_artifact(request_context)
+        generated_artifact_summary = generated_mihomo_artifact_summary(generated_mihomo_artifact)
+        remnawave_nodes_result = await self._remnawave_nodes_result()
+        remnawave_node_details = dict(remnawave_nodes_result.get("details") or {})
+        xhttp_node_ready = (
+            remnawave_nodes_result.get("status") == "pass"
+            and int(remnawave_node_details.get("xhttp_node_count") or 0) > 0
+        )
+        generated_xhttp_ready = int(generated_artifact_summary.get("xhttp_proxy_count") or 0) > 0
+
         required_modes = set(_str_list(suite_spec.get("required_connection_modes") or []))
         for plan in target_plans:
             modes = set(_str_list(plan.connection_modes))
             effective_modes = set(modes)
             assignment = expected_remnawave_assignment(plan)
-            if assignment["requires_xhttp"]:
+            if assignment["requires_xhttp"] and (generated_xhttp_ready or xhttp_node_ready):
                 effective_modes.add("xhttp")
             missing = sorted(required_modes - effective_modes)
             results.append(
@@ -771,6 +854,8 @@ class VpnTesterService:
                         "effective_modes": sorted(effective_modes),
                         "xhttp_satisfied_by_remnawave_assignment": "xhttp" not in modes
                         and "xhttp" in effective_modes,
+                        "xhttp_satisfied_by_generated_subscription": generated_xhttp_ready,
+                        "xhttp_satisfied_by_remnawave_nodes": xhttp_node_ready,
                     },
                 )
             )
@@ -804,9 +889,15 @@ class VpnTesterService:
         mihomo_template = str(suite_spec.get("mihomo_template") or "").strip() or _default_mihomo_template()
         results.extend(analyze_mihomo_template(mihomo_template, route_entries))
         for plan in target_plans:
-            results.extend(generated_subscription_checks(plan, route_entries))
+            results.extend(
+                generated_subscription_checks(
+                    plan,
+                    route_entries,
+                    generated_mihomo_artifact=generated_mihomo_artifact,
+                )
+            )
         results.append(self._feature_flag_result())
-        results.append(await self._remnawave_nodes_result())
+        results.append(remnawave_nodes_result)
         return results
 
     async def _runtime_results(self, run: VpnTestRunModel, route_entries: list[Any]) -> list[dict[str, Any]]:

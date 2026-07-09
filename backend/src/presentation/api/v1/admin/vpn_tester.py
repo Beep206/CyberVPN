@@ -142,6 +142,7 @@ class InternalScheduledRunRequest(BaseModel):
     mode: str = Field(default="contract", pattern="^(contract|runtime|all_tariffs|balancer_preview)$")
     trigger: str = Field(default="scheduled", min_length=3, max_length=60)
     execute_immediately: bool = True
+    context: dict[str, Any] = Field(default_factory=dict)
 
 
 class InternalScheduleGateRunRequest(BaseModel):
@@ -672,7 +673,12 @@ async def internal_create_scheduled_vpn_tester_run(
     _require_backend_internal_secret(x_backend_internal_secret)
     if not settings.vpn_tester_enabled:
         return InternalWorkerResultResponse(skipped=True, reason="vpn_tester_disabled")
-    run = await service.create_scheduled_run(suite_key=payload.suite_key, mode=payload.mode, trigger=payload.trigger)
+    run = await service.create_scheduled_run(
+        suite_key=payload.suite_key,
+        mode=payload.mode,
+        trigger=payload.trigger,
+        request_context=payload.context,
+    )
     if payload.execute_immediately:
         run = await service.execute_run(run)
     return InternalWorkerResultResponse(run=_serialize_run(run))

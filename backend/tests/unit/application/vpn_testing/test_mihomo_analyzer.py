@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import yaml
+
 from src.application.vpn_testing.analyzers.mihomo import REQUIRED_GROUPS, analyze_mihomo_template
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
@@ -55,3 +57,34 @@ def test_vpn_tester_default_fixture_and_route_registry_match_hardened_template()
     assert "🤖 AI" in expected_groups
     assert "👨‍💻 Dev Services" in expected_groups
     assert "⛔ BLOCK" in expected_groups
+
+
+def test_mihomo_analyzer_rejects_abuse_group_mutations() -> None:
+    config = yaml.safe_load(HARDENED_TEMPLATE.read_text(encoding="utf-8"))
+    for group in config["proxy-groups"]:
+        if group["name"] == "🧲 Torrents":
+            group["proxies"] = ["🌍 World / EU"]
+        if group["name"] == "⛔ BLOCK":
+            group["proxies"] = ["DIRECT"]
+    results = analyze_mihomo_template(yaml.safe_dump(config, allow_unicode=True, sort_keys=False), [])
+    by_key = {result["check_key"]: result for result in results}
+
+    assert by_key["mihomo.abuse_sentinel"]["status"] == "fail"
+    assert by_key["mihomo.tor_block_sentinel"]["status"] == "fail"
+
+
+def test_mihomo_analyzer_rejects_manual_eu_rule_after_broad_ru() -> None:
+    config = yaml.safe_load(HARDENED_TEMPLATE.read_text(encoding="utf-8"))
+    rules = config["rules"]
+    manual_rule = next(rule for rule in rules if "manual-eu-inline" in rule)
+    rules.remove(manual_rule)
+    ru_index = next(index for index, rule in enumerate(rules) if "ru-services-inline" in rule)
+    rules.insert(ru_index + 1, manual_rule)
+
+    results = analyze_mihomo_template(yaml.safe_dump(config, allow_unicode=True, sort_keys=False), [])
+    by_key = {result["check_key"]: result for result in results}
+
+    assert by_key["mihomo.rule_order.eu_before_ru"]["status"] == "fail"
+    assert by_key["mihomo.rule_order.eu_before_ru"]["details"]["eu_indexes"]["manual-eu-inline"][0] > by_key[
+        "mihomo.rule_order.eu_before_ru"
+    ]["details"]["ru_indexes"]["ru-services-inline"][0]

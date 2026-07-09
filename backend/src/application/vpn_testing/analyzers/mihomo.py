@@ -23,7 +23,16 @@ REQUIRED_GROUPS = (
     "🧲 Torrents",
 )
 RU_POLICY_NAMES = ("ru-services-inline", "ru-apps", "geosite-ru", "geoip-for-ru")
-EU_POLICY_NAMES = ("ru-eu-exceptions", "ru-inside", "refilter_domains", "refilter_ipsum", "ru-bundle", "rknasnblock")
+EU_POLICY_NAMES = (
+    "manual-eu-inline",
+    "ru-eu-exceptions",
+    "ru-inside",
+    "refilter_domains",
+    "refilter_ipsum",
+    "ru-bundle",
+    "rknasnblock",
+)
+REJECT_TARGETS = {"REJECT", "REJECT-DROP"}
 MATCH_PREFIX = "MATCH,"
 MATCH_TARGET = "🌍 World / EU"
 
@@ -103,6 +112,17 @@ def _group_names(groups: Sequence[Mapping[str, Any]]) -> set[str]:
     return {str(group.get("name") or "").strip() for group in groups if str(group.get("name") or "").strip()}
 
 
+def _group_by_name(groups: Sequence[Mapping[str, Any]], name: str) -> Mapping[str, Any]:
+    return next((group for group in groups if str(group.get("name") or "").strip() == name), {})
+
+
+def _group_proxies(group: Mapping[str, Any]) -> list[str]:
+    value = group.get("proxies")
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
 def _has_filtered_provider(group: Mapping[str, Any], marker: str) -> bool:
     normalized = json.dumps(group, ensure_ascii=False, sort_keys=True).lower()
     filter_tokens = ("filter", "include", "exclude", "provider")
@@ -126,6 +146,11 @@ def _rule_index(rules: Sequence[str], marker: str) -> int | None:
         if marker_lower in rule.lower():
             return index
     return None
+
+
+def _rule_indexes(rules: Sequence[str], marker: str) -> list[int]:
+    marker_lower = marker.lower()
+    return [index for index, rule in enumerate(rules) if marker_lower in rule.lower()]
 
 
 def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) -> list[dict[str, Any]]:
@@ -190,14 +215,14 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
         )
     )
 
-    eu_indexes = {name: _rule_index(rules, name) for name in EU_POLICY_NAMES}
-    ru_indexes = {name: _rule_index(rules, name) for name in RU_POLICY_NAMES}
-    present_eu_indexes = [index for index in eu_indexes.values() if index is not None]
-    present_ru_indexes = [index for index in ru_indexes.values() if index is not None]
+    eu_indexes = {name: _rule_indexes(rules, name) for name in EU_POLICY_NAMES}
+    ru_indexes = {name: _rule_indexes(rules, name) for name in RU_POLICY_NAMES}
+    present_eu_indexes = [index for indexes in eu_indexes.values() for index in indexes]
+    present_ru_indexes = [index for indexes in ru_indexes.values() for index in indexes]
     rule_order_ok = (
         len(present_eu_indexes) == len(EU_POLICY_NAMES)
         and len(present_ru_indexes) == len(RU_POLICY_NAMES)
-        and max(present_eu_indexes) < min(present_ru_indexes)
+        and all(eu_index < ru_index for eu_index in present_eu_indexes for ru_index in present_ru_indexes)
     )
     results.append(
         _result(
@@ -220,7 +245,7 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
     }
     location_filters = {}
     for group_name, marker in location_group_markers.items():
-        group = next((item for item in groups if str(item.get("name")) == group_name), {})
+        group = _group_by_name(groups, group_name)
         location_filters[group_name] = _has_filtered_provider(group, marker)
     location_groups_filtered = all(location_filters.values())
     results.append(
@@ -268,9 +293,18 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
         )
     )
 
-    abuse_ok = "🧲 Torrents" in group_names and any(
-        "bittorrent" in rule.lower() or "torrent" in rule.lower() for rule in rules
+    torrent_group = _group_by_name(groups, "🧲 Torrents")
+    torrent_proxies = _group_proxies(torrent_group)
+    torrent_rules = [
+        rule
+        for rule in rules
+        if "bittorrent" in rule.lower() or "torrent" in rule.lower()
+    ]
+    torrent_group_rejects = torrent_proxies == ["REJECT"]
+    torrent_rules_route_to_reject_group = bool(torrent_rules) and all(
+        rule.strip().endswith(",🧲 Torrents") for rule in torrent_rules
     )
+    abuse_ok = torrent_group_rejects and torrent_rules_route_to_reject_group
     results.append(
         _result(
             check_key="mihomo.abuse_sentinel",
@@ -279,11 +313,29 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
             safe_summary="Torrent abuse route is explicitly handled"
             if abuse_ok
             else "Torrent abuse route is missing from static client policy",
-            details={"torrent_group_present": "🧲 Torrents" in group_names},
+            details={
+                "torrent_group_present": "🧲 Torrents" in group_names,
+                "torrent_group_proxies": torrent_proxies,
+                "torrent_group_rejects": torrent_group_rejects,
+                "torrent_rule_count": len(torrent_rules),
+                "torrent_rules_route_to_reject_group": torrent_rules_route_to_reject_group,
+            },
         )
     )
 
-    tor_block_ok = "⛔ BLOCK" in group_names and any("RULE-SET,tor-inline,⛔ BLOCK" in rule for rule in rules)
+    block_group = _group_by_name(groups, "⛔ BLOCK")
+    block_proxies = _group_proxies(block_group)
+    tor_rules = [
+        rule
+        for rule in rules
+        if rule.lower().startswith("rule-set,tor-inline,")
+        or "torbrowser" in rule.lower()
+        or "obfs4proxy" in rule.lower()
+        or "snowflake-client" in rule.lower()
+    ]
+    block_group_rejects = bool(block_proxies) and set(block_proxies).issubset(REJECT_TARGETS)
+    tor_rules_route_to_block_group = bool(tor_rules) and all(rule.strip().endswith(",⛔ BLOCK") for rule in tor_rules)
+    tor_block_ok = block_group_rejects and tor_rules_route_to_block_group
     results.append(
         _result(
             check_key="mihomo.tor_block_sentinel",
@@ -292,7 +344,13 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
             safe_summary="TOR routes are explicitly sent to BLOCK"
             if tor_block_ok
             else "TOR routes must be blocked through the BLOCK group",
-            details={"block_group_present": "⛔ BLOCK" in group_names},
+            details={
+                "block_group_present": "⛔ BLOCK" in group_names,
+                "block_group_proxies": block_proxies,
+                "block_group_rejects": block_group_rejects,
+                "tor_rule_count": len(tor_rules),
+                "tor_rules_route_to_block_group": tor_rules_route_to_block_group,
+            },
         )
     )
 

@@ -12,6 +12,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.infrastructure.database.models.access_delivery_channel_model import AccessDeliveryChannelModel
+from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.infrastructure.database.models.vpn_tester_model import (
     VpnBalancerRecommendationModel,
@@ -280,6 +282,57 @@ class VpnTesterRepository:
             .order_by(SubscriptionPlanModel.sort_order.asc(), SubscriptionPlanModel.name.asc())
         )
         return list(result.scalars().all())
+
+    async def list_subscription_delivery_candidates(
+        self,
+        *,
+        plan_codes: set[str],
+        limit: int = 20,
+    ) -> list[dict[str, str]]:
+        result = await self._session.execute(
+            select(AccessDeliveryChannelModel, ServiceIdentityModel)
+            .join(ServiceIdentityModel, AccessDeliveryChannelModel.service_identity_id == ServiceIdentityModel.id)
+            .where(
+                AccessDeliveryChannelModel.channel_type == "subscription_url",
+                AccessDeliveryChannelModel.channel_status == "active",
+                AccessDeliveryChannelModel.provider_name == "remnawave",
+                AccessDeliveryChannelModel.archived_at.is_(None),
+                ServiceIdentityModel.provider_name == "remnawave",
+                ServiceIdentityModel.identity_status == "active",
+            )
+            .order_by(AccessDeliveryChannelModel.updated_at.desc(), AccessDeliveryChannelModel.created_at.desc())
+            .limit(max(1, min(limit, 100)))
+        )
+        candidates: list[dict[str, str]] = []
+        normalized_plan_codes = {code.strip().lower() for code in plan_codes if code.strip()}
+        for channel, identity in result.all():
+            service_context = dict(identity.service_context or {})
+            delivery_payload = dict(channel.delivery_payload or {})
+            delivery_context = dict(channel.delivery_context or {})
+            plan_code = str(
+                service_context.get("plan_code")
+                or delivery_payload.get("plan_code")
+                or delivery_context.get("plan_code")
+                or ""
+            ).strip().lower()
+            if normalized_plan_codes and plan_code not in normalized_plan_codes:
+                continue
+            subscription_url = str(
+                delivery_payload.get("subscription_url")
+                or service_context.get("subscription_url")
+                or delivery_context.get("subscription_url")
+                or ""
+            ).strip()
+            if not subscription_url:
+                continue
+            candidates.append(
+                {
+                    "plan_code": plan_code,
+                    "subscription_url": subscription_url,
+                    "source": "access_delivery_channel",
+                }
+            )
+        return candidates
 
     async def get_route_registry(
         self, suite_key: str, registry_key: str | None = None
