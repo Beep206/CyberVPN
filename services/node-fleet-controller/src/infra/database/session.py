@@ -60,4 +60,3 @@ async def get_db_session(settings: Settings) -> AsyncGenerator[AsyncSession]:
         except Exception:
             await session.rollback()
             raise
-

@@ -5,11 +5,13 @@ This module contains Pydantic models for broadcast messaging to users.
 
 from __future__ import annotations
 
-from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class BroadcastStatus(StrEnum):

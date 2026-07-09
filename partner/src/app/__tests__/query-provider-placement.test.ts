@@ -22,6 +22,7 @@ describe('partner query provider placement', () => {
     expect(localeLayout).toContain('{isDevelopment ? <DevTools /> : null}');
     expect(dashboardLayout).not.toContain('@/app/providers/query-provider');
     expect(storefrontLayout).not.toContain('@/app/providers/query-provider');
+    expect(queryProvider).toContain('queryClientDefaultOptions');
     expect(queryProvider).not.toContain('@tanstack/react-query-devtools');
     expect(queryProvider).not.toContain('ReactQueryDevtools');
   });

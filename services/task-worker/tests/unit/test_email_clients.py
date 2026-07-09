@@ -74,9 +74,10 @@ class TestResendClient:
 
     async def test_send_otp_success(self, mock_response):
         """Test successful OTP email sending."""
-        with patch("src.services.email.resend_client.get_settings", return_value=_settings()), patch(
-            "httpx.AsyncClient"
-        ) as mock_client_cls:
+        with (
+            patch("src.services.email.resend_client.get_settings", return_value=_settings()),
+            patch("httpx.AsyncClient") as mock_client_cls,
+        ):
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_response
             mock_client_cls.return_value = mock_client
@@ -92,9 +93,10 @@ class TestResendClient:
 
     async def test_send_otp_error(self, mock_error_response):
         """Test OTP email sending with API error."""
-        with patch("src.services.email.resend_client.get_settings", return_value=_settings()), patch(
-            "httpx.AsyncClient"
-        ) as mock_client_cls:
+        with (
+            patch("src.services.email.resend_client.get_settings", return_value=_settings()),
+            patch("httpx.AsyncClient") as mock_client_cls,
+        ):
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_error_response
             mock_client_cls.return_value = mock_client
@@ -111,10 +113,13 @@ class TestResendClient:
 
     async def test_missing_api_key_fails_in_production(self):
         """Production must not mark registration email delivery as successful without Resend credentials."""
-        with patch(
-            "src.services.email.resend_client.get_settings",
-            return_value=_settings(environment="production", resend_key=None),
-        ), patch("httpx.AsyncClient") as mock_client_cls:
+        with (
+            patch(
+                "src.services.email.resend_client.get_settings",
+                return_value=_settings(environment="production", resend_key=None),
+            ),
+            patch("httpx.AsyncClient") as mock_client_cls,
+        ):
             mock_client = AsyncMock()
             mock_client_cls.return_value = mock_client
 
@@ -130,10 +135,13 @@ class TestResendClient:
 
     async def test_missing_api_key_can_skip_outside_production(self):
         """Local/test environments may still skip real email delivery without hiding production defects."""
-        with patch(
-            "src.services.email.resend_client.get_settings",
-            return_value=_settings(environment="test", resend_key=None),
-        ), patch("httpx.AsyncClient") as mock_client_cls:
+        with (
+            patch(
+                "src.services.email.resend_client.get_settings",
+                return_value=_settings(environment="test", resend_key=None),
+            ),
+            patch("httpx.AsyncClient") as mock_client_cls,
+        ):
             mock_client = AsyncMock()
             mock_client_cls.return_value = mock_client
 
@@ -170,9 +178,10 @@ class TestBrevoClient:
 
     async def test_send_otp_success(self, mock_response):
         """Test successful OTP email sending via Brevo."""
-        with patch("src.services.email.brevo_client.get_settings", return_value=_brevo_settings()), patch(
-            "httpx.AsyncClient"
-        ) as mock_client_cls:
+        with (
+            patch("src.services.email.brevo_client.get_settings", return_value=_brevo_settings()),
+            patch("httpx.AsyncClient") as mock_client_cls,
+        ):
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_response
             mock_client_cls.return_value = mock_client
@@ -188,9 +197,10 @@ class TestBrevoClient:
 
     async def test_send_otp_error(self, mock_error_response):
         """Test OTP email sending with Brevo API error."""
-        with patch("src.services.email.brevo_client.get_settings", return_value=_brevo_settings()), patch(
-            "httpx.AsyncClient"
-        ) as mock_client_cls:
+        with (
+            patch("src.services.email.brevo_client.get_settings", return_value=_brevo_settings()),
+            patch("httpx.AsyncClient") as mock_client_cls,
+        ):
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_error_response
             mock_client_cls.return_value = mock_client
@@ -259,10 +269,13 @@ class TestSmtpClient:
         smtp_context = MagicMock()
         smtp_context.__enter__.return_value = smtp_connection
 
-        with patch("src.services.email.smtp_client.get_settings", return_value=_smtp_settings()), patch(
-            "src.services.email.smtp_client.smtplib.SMTP",
-            return_value=smtp_context,
-        ) as smtp_cls:
+        with (
+            patch("src.services.email.smtp_client.get_settings", return_value=_smtp_settings()),
+            patch(
+                "src.services.email.smtp_client.smtplib.SMTP",
+                return_value=smtp_context,
+            ) as smtp_cls,
+        ):
             async with SmtpClient() as client:
                 result = await client.send_otp(
                     email="test@example.com",

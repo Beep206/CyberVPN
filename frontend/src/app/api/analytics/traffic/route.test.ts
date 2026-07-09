@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
 const { addBreadcrumb, metricsDistribution } = vi.hoisted(() => ({
@@ -34,6 +34,10 @@ describe('POST /api/analytics/traffic', () => {
   beforeEach(() => {
     metricsDistribution.mockClear();
     addBreadcrumb.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('accepts valid acquisition payloads and records metrics', async () => {
@@ -111,6 +115,56 @@ describe('POST /api/analytics/traffic', () => {
 
     expect(response.status).toBe(204);
     expect(metricsDistribution).toHaveBeenCalled();
+  });
+
+  it('accepts custom loopback ports used by local browser smokes', async () => {
+    const response = await POST(
+      createRequest(
+        {
+          connectionType: '4g',
+          deviceBucket: 'desktop',
+          event: 'page_view',
+          path: '/ru-RU/pricing',
+          reducedMotion: 'no-preference',
+          routeGroup: 'marketing',
+          saveData: 'off',
+          sourceName: 'direct',
+          sourceType: 'direct',
+          viewportBucket: 'desktop',
+        },
+        'http://127.0.0.1:9464',
+        'http://localhost:3000',
+      ) as never,
+    );
+
+    expect(response.status).toBe(204);
+    expect(metricsDistribution).toHaveBeenCalled();
+  });
+
+  it('rejects custom loopback origins in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+
+    const response = await POST(
+      createRequest(
+        {
+          connectionType: '4g',
+          deviceBucket: 'desktop',
+          event: 'page_view',
+          path: '/ru-RU/pricing',
+          reducedMotion: 'no-preference',
+          routeGroup: 'marketing',
+          saveData: 'off',
+          sourceName: 'direct',
+          sourceType: 'direct',
+          viewportBucket: 'desktop',
+        },
+        'http://127.0.0.1:9464',
+        'https://cyber-vpn.net',
+      ) as never,
+    );
+
+    expect(response.status).toBe(403);
+    expect(metricsDistribution).not.toHaveBeenCalled();
   });
 
   it('rejects foreign origins', async () => {

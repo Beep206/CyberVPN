@@ -25,31 +25,31 @@ from .subscription import (
 )
 
 __all__ = [
-    # Common
-    "back_button",
-    "cancel_button",
-    "confirm_button",
-    "main_menu_keyboard",
-    # Menu
-    "main_menu_kb",
-    "profile_kb",
-    # Subscription
-    "plans_keyboard",
-    "duration_keyboard",
-    "payment_methods_keyboard",
-    # Payment
-    "payment_status_keyboard",
-    "payment_success_keyboard",
-    # Config
-    "config_format_keyboard",
-    # Referral
-    "referral_keyboard",
     # Account
     "account_keyboard",
     # Admin
     "admin_main_keyboard",
+    "admin_plans_keyboard",
     "admin_stats_keyboard",
     "admin_users_keyboard",
+    # Common
+    "back_button",
     "broadcast_audience_keyboard",
-    "admin_plans_keyboard",
+    "cancel_button",
+    # Config
+    "config_format_keyboard",
+    "confirm_button",
+    "duration_keyboard",
+    # Menu
+    "main_menu_kb",
+    "main_menu_keyboard",
+    "payment_methods_keyboard",
+    # Payment
+    "payment_status_keyboard",
+    "payment_success_keyboard",
+    # Subscription
+    "plans_keyboard",
+    "profile_kb",
+    # Referral
+    "referral_keyboard",
 ]

@@ -21,18 +21,17 @@ function readSetCookieHeaders(response: Response): string[] {
 }
 
 describe("POST /api/auth/2fa/complete", () => {
-  const originalFetch = global.fetch;
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    vi.unstubAllGlobals();
   });
 
   it("completes pending 2FA, forwards backend cookies, and returns redirect target", async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           access_token: "access_token_value",
@@ -48,7 +47,7 @@ describe("POST /api/auth/2fa/complete", () => {
           },
         },
       ),
-    ) as typeof fetch;
+    ));
 
     const pending = createPendingTwoFactorCookieValue(
       "pending_2fa_token",
@@ -63,9 +62,13 @@ describe("POST /api/auth/2fa/complete", () => {
         body: JSON.stringify({ code: "123456" }),
         headers: {
           "content-type": "application/json",
+          authorization: "Bearer browser-supplied",
+          "x-backend-internal-secret": "leaked-backend-secret",
           "x-forwarded-for": "203.0.113.10",
           "x-forwarded-host": "api.cyber-vpn.net",
           "x-forwarded-proto": "https",
+          "x-payment-settlement-worker-secret": "leaked-payment-secret",
+          "x-telegram-bot-secret": "leaked-telegram-secret",
           "x-auth-realm": "customer",
         },
       },
@@ -89,8 +92,12 @@ describe("POST /api/auth/2fa/complete", () => {
       "admin.cyber-vpn.net",
     );
     expect(forwardedHeaders.get("x-forwarded-proto")).toBe("https");
-    expect(forwardedHeaders.get("x-forwarded-for")).toBe("203.0.113.10");
+    expect(forwardedHeaders.get("x-forwarded-for")).toBeNull();
     expect(forwardedHeaders.get("x-auth-realm")).toBeNull();
+    expect(forwardedHeaders.get("authorization")).toBe("Bearer pending_2fa_token");
+    expect(forwardedHeaders.get("x-backend-internal-secret")).toBeNull();
+    expect(forwardedHeaders.get("x-payment-settlement-worker-secret")).toBeNull();
+    expect(forwardedHeaders.get("x-telegram-bot-secret")).toBeNull();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       redirect_to: "/ru-RU/dashboard?welcome=true",
@@ -102,7 +109,7 @@ describe("POST /api/auth/2fa/complete", () => {
   });
 
   it("splits collapsed backend auth cookies and mirrors JSON token fallback cookies", async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           access_token: "json_access_token_value",
@@ -115,11 +122,11 @@ describe("POST /api/auth/2fa/complete", () => {
           headers: {
             "content-type": "application/json",
             "set-cookie":
-              "access_token=backend_access; Path=/api; HttpOnly; Secure; SameSite=Lax, refresh_token=backend_refresh; Path=/api; HttpOnly; Secure; SameSite=Lax",
+              "access_token=backend_access; Path=/api/a,b=c; HttpOnly; Secure; SameSite=Lax, refresh_token=backend_refresh; Path=/api; HttpOnly; Secure; SameSite=Lax",
           },
         },
       ),
-    ) as typeof fetch;
+    ));
 
     const pending = createPendingTwoFactorCookieValue(
       "pending_2fa_token",
@@ -160,8 +167,59 @@ describe("POST /api/auth/2fa/complete", () => {
     expect(authCookieHeaders.join("\n")).not.toContain("Path=/;");
   });
 
+  it("forwards collapsed backend auth cookies with comma attributes when no JSON fallback is present", async () => {
+    const combinedSetCookie =
+      "access_token=backend_access; Path=/api/a,b=c; HttpOnly; Secure; SameSite=Lax, refresh_token=backend_refresh; Path=/api; HttpOnly; Secure; SameSite=Lax";
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        entries: () => [["content-type", "application/json"]][Symbol.iterator](),
+        get: (name: string) =>
+          name.toLowerCase() === "set-cookie"
+            ? combinedSetCookie
+            : null,
+        getSetCookie: () => [combinedSetCookie],
+      },
+      text: async () => JSON.stringify({ redirect_to: "/ru-RU/dashboard" }),
+    } as unknown as Response));
+
+    const pending = createPendingTwoFactorCookieValue(
+      "pending_2fa_token",
+      "ru-RU",
+      "/ru-RU/dashboard",
+      false,
+    );
+    const request = new NextRequest(
+      "https://admin.cyber-vpn.net/api/auth/2fa/complete",
+      {
+        method: "POST",
+        body: JSON.stringify({ code: "123456" }),
+        headers: {
+          "content-type": "application/json",
+        },
+      },
+    );
+    request.cookies.set(PENDING_2FA_COOKIE, pending.cookieValue);
+
+    const response = await POST(request);
+    const setCookieHeaders = readSetCookieHeaders(response);
+    const authCookieHeaders = setCookieHeaders.filter(
+      (header) =>
+        header.startsWith("access_token=") ||
+        header.startsWith("refresh_token="),
+    );
+    const accessCookie = authCookieHeaders.find((header) => header.startsWith("access_token="));
+
+    expect(response.status).toBe(200);
+    expect(authCookieHeaders).toHaveLength(2);
+    expect(accessCookie).toContain("access_token=backend_access");
+    expect(accessCookie).toContain("Path=/api/a,b=c");
+    expect(accessCookie).not.toContain("refresh_token=backend_refresh");
+  });
+
   it("strips Secure from backend auth cookies for approved local-stage admin origin", async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           access_token: "json_access_token_value",
@@ -178,7 +236,7 @@ describe("POST /api/auth/2fa/complete", () => {
           },
         },
       ),
-    ) as typeof fetch;
+    ));
 
     const pending = createPendingTwoFactorCookieValue(
       "pending_2fa_token",

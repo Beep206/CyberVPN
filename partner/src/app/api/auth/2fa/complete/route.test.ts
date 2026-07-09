@@ -21,19 +21,18 @@ function readSetCookieHeaders(response: Response): string[] {
 }
 
 describe('POST /api/auth/2fa/complete', () => {
-  const originalFetch = global.fetch;
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
 
   it('completes pending 2FA, forwards backend cookies, and returns redirect target', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -49,7 +48,7 @@ describe('POST /api/auth/2fa/complete', () => {
           token_type: 'bearer',
           expires_in: 3600,
         }),
-    } as unknown as Response) as typeof fetch;
+    } as unknown as Response));
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',
@@ -61,8 +60,14 @@ describe('POST /api/auth/2fa/complete', () => {
       method: 'POST',
       body: JSON.stringify({ code: '123456' }),
       headers: {
+        authorization: 'Bearer browser-supplied',
         'content-type': 'application/json',
+        'x-backend-internal-secret': 'leaked-backend-secret',
+        'x-forwarded-for': '203.0.113.10',
+        'x-forwarded-host': 'storefront.localhost:3004',
+        'x-payment-settlement-worker-secret': 'leaked-payment-secret',
         'x-forwarded-proto': 'http',
+        'x-telegram-bot-secret': 'leaked-telegram-secret',
       },
     });
     request.cookies.set(PENDING_2FA_COOKIE, pending.cookieValue);
@@ -83,6 +88,11 @@ describe('POST /api/auth/2fa/complete', () => {
     expect(headers.get('x-auth-realm')).toBe('partner');
     expect(headers.get('x-forwarded-host')).toBe('partner.cyber-vpn.net');
     expect(headers.get('x-forwarded-proto')).toBe('https');
+    expect(headers.get('x-forwarded-for')).toBeNull();
+    expect(headers.get('authorization')).toBe('Bearer pending_2fa_token');
+    expect(headers.get('x-backend-internal-secret')).toBeNull();
+    expect(headers.get('x-payment-settlement-worker-secret')).toBeNull();
+    expect(headers.get('x-telegram-bot-secret')).toBeNull();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       redirect_to: '/ru-RU/dashboard?welcome=true',
@@ -92,11 +102,11 @@ describe('POST /api/auth/2fa/complete', () => {
 
   it('splits combined backend Set-Cookie fallback headers before forwarding to the browser', async () => {
     const combinedSetCookie = [
-      'partner_access_token=access; Path=/api; Max-Age=900; Expires=Thu, 04 Jun 2026 17:15:00 GMT; HttpOnly; SameSite=Lax',
+      'partner_access_token=access; Path=/api/a,b=c; Max-Age=900; Expires=Thu, 04 Jun 2026 17:15:00 GMT; HttpOnly; SameSite=Lax',
       'partner_refresh_token=refresh; Path=/api; Max-Age=604800; Expires=Thu, 11 Jun 2026 17:00:00 GMT; HttpOnly; SameSite=Lax',
     ].join(', ');
 
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -111,7 +121,7 @@ describe('POST /api/auth/2fa/complete', () => {
         token_type: 'bearer',
         expires_in: 3600,
       }),
-    } as unknown as Response) as typeof fetch;
+    } as unknown as Response));
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',
@@ -145,10 +155,12 @@ describe('POST /api/auth/2fa/complete', () => {
     );
     expect(setCookieHeaders.find((header) => header.includes('partner_access_token')))
       .not.toContain('partner_refresh_token=refresh');
+    expect(setCookieHeaders.find((header) => header.includes('partner_access_token')))
+      .toContain('Path=/api/a,b=c');
   });
 
   it('strips incompatible Domain and Secure for approved local partner HTTP Set-Cookie headers', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -159,7 +171,7 @@ describe('POST /api/auth/2fa/complete', () => {
         get: () => null,
       },
       json: async () => ({ redirect_to: '/en-EN/dashboard' }),
-    } as unknown as Response) as typeof fetch;
+    } as unknown as Response));
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',
@@ -194,7 +206,7 @@ describe('POST /api/auth/2fa/complete', () => {
   });
 
   it('preserves Secure Set-Cookie attributes for production partner portal requests', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -204,7 +216,7 @@ describe('POST /api/auth/2fa/complete', () => {
         get: () => null,
       },
       json: async () => ({}),
-    } as unknown as Response) as typeof fetch;
+    } as unknown as Response));
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',
@@ -231,7 +243,7 @@ describe('POST /api/auth/2fa/complete', () => {
   });
 
   it('preserves compatible backend Set-Cookie Domain values while stripping local Secure', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -241,7 +253,7 @@ describe('POST /api/auth/2fa/complete', () => {
         get: () => null,
       },
       json: async () => ({}),
-    } as unknown as Response) as typeof fetch;
+    } as unknown as Response));
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',
@@ -273,7 +285,7 @@ describe('POST /api/auth/2fa/complete', () => {
   });
 
   it('strips Secure for approved storefront local HTTP hosts', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -283,7 +295,7 @@ describe('POST /api/auth/2fa/complete', () => {
         get: () => null,
       },
       json: async () => ({}),
-    } as unknown as Response) as typeof fetch;
+    } as unknown as Response));
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',
@@ -312,8 +324,8 @@ describe('POST /api/auth/2fa/complete', () => {
     expect(setCookieHeaders).toContain('SameSite=Lax');
   });
 
-  it('preserves Secure for non-approved HTTP hosts', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+  it('rejects unknown request hosts before forwarding to the backend', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -323,7 +335,7 @@ describe('POST /api/auth/2fa/complete', () => {
         get: () => null,
       },
       json: async () => ({}),
-    } as unknown as Response) as typeof fetch;
+    } as unknown as Response));
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',
@@ -342,16 +354,21 @@ describe('POST /api/auth/2fa/complete', () => {
     request.cookies.set(PENDING_2FA_COOKIE, pending.cookieValue);
 
     const response = await POST(request);
-    const setCookieHeaders = readSetCookieHeaders(response).join('\n');
 
-    expect(response.status).toBe(200);
-    expect(setCookieHeaders).toContain('Secure');
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(response.status).toBe(421);
+    await expect(response.json()).resolves.toEqual({
+      detail: {
+        code: 'UNKNOWN_PARTNER_SURFACE_HOST',
+        message: 'Unknown partner surface host.',
+      },
+    });
   });
 
   it('preserves Secure for approved local HTTP hosts when running in production mode', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('PENDING_2FA_SECRET', 'test-only-production-pending-two-factor-secret');
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -361,7 +378,7 @@ describe('POST /api/auth/2fa/complete', () => {
         get: () => null,
       },
       json: async () => ({}),
-    } as unknown as Response) as typeof fetch;
+    } as unknown as Response));
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',
@@ -387,7 +404,7 @@ describe('POST /api/auth/2fa/complete', () => {
   });
 
   it('does not synthesize auth cookies from JSON token bodies without backend Set-Cookie', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -400,7 +417,7 @@ describe('POST /api/auth/2fa/complete', () => {
         token_type: 'bearer',
         expires_in: 3600,
       }),
-    } as unknown as Response) as typeof fetch;
+    } as unknown as Response));
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',

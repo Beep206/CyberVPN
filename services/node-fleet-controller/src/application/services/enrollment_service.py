@@ -26,7 +26,9 @@ class EnrollmentService:
             common_name=completion.certificate_common_name,
             ttl_hours=completion.certificate_ttl_hours,
         )
-        await self._repository.mark_bootstrap_token_consumed(bootstrap_token_id, consumed_at=certificate_preview.certificate.issued_at)
+        await self._repository.mark_bootstrap_token_consumed(
+            bootstrap_token_id, consumed_at=certificate_preview.certificate.issued_at
+        )
         await self._repository.create_certificate(certificate_preview.certificate)
         updated_node = await self._repository.upsert_node(
             NodeRecord(
@@ -48,4 +50,3 @@ class EnrollmentService:
             )
         )
         return updated_node, certificate_preview
-

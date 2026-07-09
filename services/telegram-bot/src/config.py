@@ -544,4 +544,4 @@ def get_settings() -> BotSettings:
     Returns the same BotSettings instance on every call.
     Settings are loaded once from environment / .env file.
     """
-    return BotSettings()  # type: ignore[call-arg]
+    return BotSettings()

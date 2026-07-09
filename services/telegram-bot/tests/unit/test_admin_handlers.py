@@ -109,9 +109,7 @@ class TestAdminUserManagement:
     async def test_ban_user(self) -> None:
         """Test banning a user."""
         api_client = MagicMock()
-        api_client.ban_user = AsyncMock(
-            return_value={"telegram_id": 123, "status": "banned"}
-        )
+        api_client.ban_user = AsyncMock(return_value={"telegram_id": 123, "status": "banned"})
 
         result = await api_client.ban_user(telegram_id=123)
 
@@ -120,9 +118,7 @@ class TestAdminUserManagement:
     async def test_unban_user(self) -> None:
         """Test unbanning a user."""
         api_client = MagicMock()
-        api_client.unban_user = AsyncMock(
-            return_value={"telegram_id": 123, "status": "active"}
-        )
+        api_client.unban_user = AsyncMock(return_value={"telegram_id": 123, "status": "active"})
 
         result = await api_client.unban_user(telegram_id=123)
 
@@ -138,9 +134,7 @@ class TestAdminUserManagement:
             }
         )
 
-        result = await api_client.grant_subscription(
-            telegram_id=456, plan_id="premium", days=30
-        )
+        result = await api_client.grant_subscription(telegram_id=456, plan_id="premium", days=30)
 
         assert result["subscription"]["plan"] == "Premium"
         assert result["subscription"]["days"] == 30
@@ -206,9 +200,7 @@ class TestAdminBroadcastHandler:
         callback.message.edit_text = AsyncMock()
 
         state = MagicMock(spec=FSMContext)
-        state.get_data = AsyncMock(
-            return_value={"broadcast_text": "Test message"}
-        )
+        state.get_data = AsyncMock(return_value={"broadcast_text": "Test message"})
         state.clear = AsyncMock()
 
         # Get stored message
@@ -218,16 +210,12 @@ class TestAdminBroadcastHandler:
         # Simulate sending (in real handler, would send to all users)
         # Mock broadcast service
         broadcast_service = MagicMock()
-        broadcast_service.send_to_all = AsyncMock(
-            return_value={"sent": 1200, "failed": 50}
-        )
+        broadcast_service.send_to_all = AsyncMock(return_value={"sent": 1200, "failed": 50})
 
         result = await broadcast_service.send_to_all(text=broadcast_text)
 
         # Show result
-        await callback.message.edit_text(
-            f"Broadcast sent!\n\nSent: {result['sent']}\nFailed: {result['failed']}"
-        )
+        await callback.message.edit_text(f"Broadcast sent!\n\nSent: {result['sent']}\nFailed: {result['failed']}")
         await state.clear()
 
         # Verify
@@ -254,27 +242,21 @@ class TestAdminBroadcastHandler:
 class TestIsAdminFilter:
     """Test IsAdmin filter."""
 
-    async def test_admin_filter_allows_admin(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_admin_filter_allows_admin(self, mock_settings: BotSettings) -> None:
         """Test that admin filter allows admin users."""
         admin_id = mock_settings.admin_ids[0]
 
         is_admin = admin_id in mock_settings.admin_ids
         assert is_admin is True
 
-    async def test_admin_filter_blocks_non_admin(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_admin_filter_blocks_non_admin(self, mock_settings: BotSettings) -> None:
         """Test that admin filter blocks non-admin users."""
         non_admin_id = 999999
 
         is_admin = non_admin_id in mock_settings.admin_ids
         assert is_admin is False
 
-    async def test_admin_filter_with_message(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_admin_filter_with_message(self, mock_settings: BotSettings) -> None:
         """Test admin filter with message event."""
         admin_id = mock_settings.admin_ids[0]
 
@@ -286,9 +268,7 @@ class TestIsAdminFilter:
         is_admin = message.from_user.id in mock_settings.admin_ids
         assert is_admin is True
 
-    async def test_admin_filter_with_callback(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_admin_filter_with_callback(self, mock_settings: BotSettings) -> None:
         """Test admin filter with callback event."""
         non_admin_id = 777777
 
@@ -317,9 +297,7 @@ class TestAdminIntegration:
         state = MagicMock(spec=FSMContext)
         state.set_state = AsyncMock()
         state.update_data = AsyncMock()
-        state.get_data = AsyncMock(
-            return_value={"broadcast_text": "Hello users!"}
-        )
+        state.get_data = AsyncMock(return_value={"broadcast_text": "Hello users!"})
         state.clear = AsyncMock()
 
         # 2. Enter composing state
@@ -334,13 +312,9 @@ class TestAdminIntegration:
 
         # 5. Send
         broadcast_service = MagicMock()
-        broadcast_service.send_to_all = AsyncMock(
-            return_value={"sent": 100, "failed": 0}
-        )
+        broadcast_service.send_to_all = AsyncMock(return_value={"sent": 100, "failed": 0})
 
-        result = await broadcast_service.send_to_all(
-            text=data["broadcast_text"]
-        )
+        result = await broadcast_service.send_to_all(text=data["broadcast_text"])
 
         # 6. Clear state
         await state.clear()

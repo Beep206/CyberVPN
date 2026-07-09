@@ -279,7 +279,7 @@ async def inspect_growth_code_sets(
 ) -> AdminGrowthCodeSetInspectResponse:
     if not any((code_set_id, code_set_hash, quote_session_id, checkout_session_id, order_id)):
         raise _admin_growth_error(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "CODE_SET_INSPECT_FILTER_REQUIRED",
             "admin.growth.codeSets.errors.filterRequired",
         )

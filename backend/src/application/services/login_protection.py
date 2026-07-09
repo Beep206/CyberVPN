@@ -13,6 +13,8 @@ from datetime import timedelta
 
 import redis.asyncio as redis
 
+from src.shared.logging import fingerprint_pii
+
 logger = logging.getLogger(__name__)
 
 
@@ -112,21 +114,24 @@ class LoginProtectionService:
             lockout_applied = True
             logger.warning(
                 "Account permanently locked due to excessive failed attempts",
-                extra={"identifier": identifier, "attempts": attempts},
+                extra={
+                    "identifier_fingerprint": fingerprint_pii(identifier, namespace="login_identifier"),
+                    "attempts": attempts,
+                },
             )
         elif lockout_duration.total_seconds() > 0:
             # Temporary lockout
             lockout_key = f"{self.LOCKOUT_PREFIX}{identifier}"
-            await self._redis.setex(
+            await self._redis.set(
                 lockout_key,
-                int(lockout_duration.total_seconds()),
                 str(attempts),
+                ex=int(lockout_duration.total_seconds()),
             )
             lockout_applied = True
             logger.warning(
                 "Account locked due to failed attempts",
                 extra={
-                    "identifier": identifier,
+                    "identifier_fingerprint": fingerprint_pii(identifier, namespace="login_identifier"),
                     "attempts": attempts,
                     "lockout_seconds": lockout_duration.total_seconds(),
                 },
@@ -199,7 +204,7 @@ class LoginProtectionService:
         if lockout_value == "permanent":
             logger.info(
                 "Successful login on permanently locked account - keeping lock",
-                extra={"identifier": identifier},
+                extra={"identifier_fingerprint": fingerprint_pii(identifier, namespace="login_identifier")},
             )
             return previous_attempts
 
@@ -207,7 +212,7 @@ class LoginProtectionService:
 
         logger.debug(
             "Login attempts reset on successful login",
-            extra={"identifier": identifier},
+            extra={"identifier_fingerprint": fingerprint_pii(identifier, namespace="login_identifier")},
         )
         return previous_attempts
 
@@ -228,7 +233,7 @@ class LoginProtectionService:
         if deleted:
             logger.info(
                 "Account unlocked by admin",
-                extra={"identifier": identifier},
+                extra={"identifier_fingerprint": fingerprint_pii(identifier, namespace="login_identifier")},
             )
             return True
 

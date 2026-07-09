@@ -1,14 +1,8 @@
-use std::time::Duration;
-
-use sqlx::{
-    postgres::{PgConnectOptions, PgPoolOptions},
-    query, query_as, query_scalar, ConnectOptions, PgPool,
-};
+use sqlx::{query, query_as, query_scalar};
 use uuid::Uuid;
 
 use helix_adapter::{
     config::AdapterConfig,
-    db::pool::run_migrations,
     node_registry::{
         model::{
             DesktopRuntimeCore, DesktopRuntimeEventBenchmarkEvidence,
@@ -29,6 +23,10 @@ use helix_adapter::{
     },
 };
 
+mod support;
+
+use support::helix_db::IsolatedTestPool;
+
 fn inventory_item(id: String, name: &str, hostname: &str) -> NodeInventoryItem {
     NodeInventoryItem {
         id,
@@ -46,6 +44,34 @@ fn inventory_item(id: String, name: &str, hostname: &str) -> NodeInventoryItem {
     }
 }
 
+async fn upsert_edge_profile(
+    pool: &sqlx::PgPool,
+    transport_profile_id: &str,
+    channel: RolloutChannel,
+    profile_version: i32,
+    policy_version: i32,
+) {
+    TransportProfileRepository::new(pool.clone())
+        .upsert_profile(&UpsertTransportProfileRequest {
+            transport_profile_id: transport_profile_id.to_string(),
+            channel,
+            profile_family: "edge-hybrid".to_string(),
+            profile_version,
+            policy_version,
+            protocol_version: 1,
+            session_mode: "hybrid".to_string(),
+            status: TransportProfileStatus::Active,
+            fallback_core: "sing-box".to_string(),
+            required_capabilities: vec!["protocol.v1".to_string()],
+            compatibility_min_profile_version: 1,
+            compatibility_max_profile_version: 9,
+            startup_timeout_seconds: 20,
+            runtime_unhealthy_threshold: 3,
+        })
+        .await
+        .expect("upsert synthetic transport profile");
+}
+
 #[test]
 fn node_registry_inventory_helper_accepts_current_remnawave_fixture() {
     let payload = include_str!("fixtures/remnawave/node_inventory_item_2_7_4.json");
@@ -61,11 +87,10 @@ fn node_registry_inventory_helper_accepts_current_remnawave_fixture() {
 
 #[tokio::test]
 async fn node_registry_persists_rollout_assignments() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let inventory_item = inventory_item(
@@ -109,11 +134,10 @@ async fn node_registry_persists_rollout_assignments() {
 
 #[tokio::test]
 async fn node_registry_records_heartbeat_snapshots() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let inventory_item = inventory_item(
@@ -198,11 +222,10 @@ async fn node_registry_records_heartbeat_snapshots() {
 
 #[tokio::test]
 async fn node_registry_list_nodes_returns_cached_registry_when_remnawave_sync_fails() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let inventory_item = inventory_item(
@@ -235,13 +258,13 @@ async fn node_registry_list_nodes_returns_cached_registry_when_remnawave_sync_fa
 
 #[tokio::test]
 async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
+    upsert_edge_profile(&pool, "ptp-stable-edge-v4", RolloutChannel::Stable, 4, 4).await;
     let inventory_item = inventory_item(
         format!("node-{}", Uuid::new_v4().simple()),
         "PT Edge Stable",
@@ -392,6 +415,13 @@ async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
         .await
         .expect("record benchmark");
 
+    let rollout = repository
+        .find_rollout_by_id(&rollout_id)
+        .await
+        .expect("rollout state");
+    assert!((rollout.desktop_connect_success_rate - 0.5).abs() < f64::EPSILON);
+    assert!((rollout.desktop_fallback_rate - 0.5).abs() < f64::EPSILON);
+
     repository
         .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
             schema_version: "1.0".to_string(),
@@ -426,18 +456,12 @@ async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
         .await
         .expect("record startup ready");
 
-    let rollout = repository
-        .find_rollout_by_id(&rollout_id)
-        .await
-        .expect("rollout state");
     let rollout_state = repository
         .fetch_rollout_state(&rollout_id)
         .await
         .expect("rollout status response");
-    assert!((rollout.desktop_connect_success_rate - 0.5).abs() < f64::EPSILON);
-    assert!((rollout.desktop_fallback_rate - 0.5).abs() < f64::EPSILON);
     assert!((rollout_state.desktop.connect_success_rate - (2.0 / 3.0)).abs() < f64::EPSILON);
-    assert!((rollout_state.desktop.fallback_rate - 0.5).abs() < f64::EPSILON);
+    assert!((rollout_state.desktop.fallback_rate - (1.0 / 3.0)).abs() < f64::EPSILON);
     assert_eq!(rollout_state.desktop.continuity_observed_events, 2);
     assert!((rollout_state.desktop.continuity_success_rate - 0.5).abs() < f64::EPSILON);
     assert!((rollout_state.desktop.cross_route_recovery_rate - 0.5).abs() < f64::EPSILON);
@@ -476,11 +500,10 @@ async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
 
 #[tokio::test]
 async fn node_registry_counts_cross_route_ready_recovery_as_continuity_success() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let inventory_item = inventory_item(
@@ -558,13 +581,13 @@ async fn node_registry_counts_cross_route_ready_recovery_as_continuity_success()
 
 #[tokio::test]
 async fn node_registry_rollout_canary_evidence_reports_watch_when_throughput_evidence_is_missing() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
+    upsert_edge_profile(&pool, "ptp-canary-edge-v1", RolloutChannel::Canary, 1, 1).await;
     let service = NodeRegistryService::new(
         repository.clone(),
         RemnawaveClient::new(&AdapterConfig::test_default()).expect("remnawave client"),
@@ -594,7 +617,7 @@ async fn node_registry_rollout_canary_evidence_reports_watch_when_throughput_evi
         .await
         .expect("publish rollout");
 
-    for index in 0..2 {
+    for index in 0..4 {
         repository
             .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
                 schema_version: "1.0".to_string(),
@@ -614,11 +637,13 @@ async fn node_registry_rollout_canary_evidence_reports_watch_when_throughput_evi
                 payload: DesktopRuntimeEventPayload {
                     continuity: Some(DesktopRuntimeEventContinuityEvidence {
                         successful_continuity_recovers: Some(1),
+                        successful_cross_route_recovers: Some(1),
                         ..Default::default()
                     }),
                     recovery: Some(DesktopRuntimeEventRecoveryEvidence {
                         same_route_recovered: Some(true),
                         ready_recovery_latency_ms: Some(66 + index * 4),
+                        successful_cross_route_recovers: Some(1),
                         ..Default::default()
                     }),
                     ..Default::default()
@@ -647,11 +672,10 @@ async fn node_registry_rollout_canary_evidence_reports_watch_when_throughput_evi
 
 #[tokio::test]
 async fn node_registry_rollout_canary_evidence_reports_no_go_for_poor_relative_throughput() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let service = NodeRegistryService::new(
@@ -746,14 +770,17 @@ async fn node_registry_rollout_canary_evidence_reports_no_go_for_poor_relative_t
 
 #[tokio::test]
 async fn node_registry_rollout_state_recommends_pause_for_avoid_new_sessions_profile() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let transport_profiles = TransportProfileRepository::new(pool.clone());
+    transport_profiles
+        .revoke_profile("ptp-stable-edge-v2")
+        .await
+        .expect("revoke seed stable profile");
     let inventory_item = inventory_item(
         format!("node-{}", Uuid::new_v4().simple()),
         "PT Edge Advisory",
@@ -875,11 +902,10 @@ async fn node_registry_rollout_state_recommends_pause_for_avoid_new_sessions_pro
 
 #[tokio::test]
 async fn node_registry_rollout_state_pauses_when_degraded_profile_fails_new_session_guardrails() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -909,6 +935,11 @@ async fn node_registry_rollout_state_pauses_when_degraded_profile_fails_new_sess
         .expect("publish rollout");
 
     let transport_profiles = TransportProfileRepository::new(pool.clone());
+    transport_profiles
+        .revoke_profile("ptp-stable-edge-v2")
+        .await
+        .expect("revoke seed stable profile");
+    upsert_edge_profile(&pool, "ptp-stable-edge-v8", RolloutChannel::Stable, 8, 8).await;
     transport_profiles
         .upsert_profile(&UpsertTransportProfileRequest {
             transport_profile_id: "ptp-stable-edge-v9".to_string(),
@@ -963,7 +994,7 @@ async fn node_registry_rollout_state_pauses_when_degraded_profile_fails_new_sess
             .expect("record v8 avoid evidence");
     }
 
-    for index in 0..2 {
+    for index in 0..4 {
         repository
             .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
                 schema_version: "1.0".to_string(),
@@ -1048,7 +1079,7 @@ async fn node_registry_rollout_state_pauses_when_degraded_profile_fails_new_sess
             .map(|policy| policy.advisory_state.as_str()),
         Some("degraded")
     );
-    assert_eq!(rollout_state.policy.suppressed_candidate_count, 1);
+    assert_eq!(rollout_state.policy.suppressed_candidate_count, 2);
     assert!(rollout_state.policy.active_profile_suppressed);
     assert!(!rollout_state.policy.profile_rotation_recommended);
     assert!(rollout_state.policy.pause_recommended);
@@ -1072,13 +1103,18 @@ async fn node_registry_rollout_state_pauses_when_degraded_profile_fails_new_sess
 
 #[tokio::test]
 async fn node_registry_persists_suppression_window_for_blocked_profile_posture() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
+    let transport_profiles = TransportProfileRepository::new(pool.clone());
+    transport_profiles
+        .revoke_profile("ptp-stable-edge-v2")
+        .await
+        .expect("revoke seed stable profile");
+    upsert_edge_profile(&pool, "ptp-stable-edge-v8", RolloutChannel::Stable, 8, 8).await;
     let node_id = format!("node-{}", Uuid::new_v4().simple());
     repository
         .upsert_nodes(&[NodeUpsertInput {
@@ -1158,11 +1194,10 @@ async fn node_registry_persists_suppression_window_for_blocked_profile_posture()
 
 #[tokio::test]
 async fn node_registry_profile_policy_ignores_startup_ready_events_for_continuity_rates() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let transport_profiles = TransportProfileRepository::new(pool.clone());
@@ -1294,11 +1329,10 @@ async fn node_registry_profile_policy_ignores_startup_ready_events_for_continuit
 
 #[tokio::test]
 async fn node_registry_clears_pause_channel_actuation_after_profile_recovers() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let transport_profiles = TransportProfileRepository::new(pool.clone());
@@ -1471,13 +1505,18 @@ async fn node_registry_clears_pause_channel_actuation_after_profile_recovers() {
 
 #[tokio::test]
 async fn node_registry_extends_suppression_window_for_repeat_blocked_profile_offenses() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
+    let transport_profiles = TransportProfileRepository::new(pool.clone());
+    transport_profiles
+        .revoke_profile("ptp-stable-edge-v2")
+        .await
+        .expect("revoke seed stable profile");
+    upsert_edge_profile(&pool, "ptp-stable-edge-v8", RolloutChannel::Stable, 8, 8).await;
     let node_id = format!("node-{}", Uuid::new_v4().simple());
     repository
         .upsert_nodes(&[NodeUpsertInput {
@@ -1569,14 +1608,17 @@ async fn node_registry_extends_suppression_window_for_repeat_blocked_profile_off
 #[tokio::test]
 async fn node_registry_rollout_state_rotates_immediately_when_suppressed_profile_has_healthier_alternative(
 ) {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let transport_profiles = TransportProfileRepository::new(pool.clone());
+    transport_profiles
+        .revoke_profile("ptp-stable-edge-v2")
+        .await
+        .expect("revoke seed stable profile");
     let node_id = format!("node-{}", Uuid::new_v4().simple());
     repository
         .upsert_nodes(&[NodeUpsertInput {
@@ -1627,6 +1669,7 @@ async fn node_registry_rollout_state_rotates_immediately_when_suppressed_profile
             .expect("upsert profile");
     }
 
+    let observed_at = chrono::Utc::now();
     for index in 0..3 {
         repository
             .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
@@ -1643,7 +1686,7 @@ async fn node_registry_rollout_state_rotates_immediately_when_suppressed_profile
                 latency_ms: Some(70 + (index * 5)),
                 route_count: Some(2),
                 reason: None,
-                observed_at: chrono::Utc::now(),
+                observed_at: observed_at + chrono::Duration::seconds(index as i64),
                 payload: DesktopRuntimeEventPayload {
                     continuity: Some(DesktopRuntimeEventContinuityEvidence {
                         successful_continuity_recovers: Some(1),
@@ -1661,7 +1704,7 @@ async fn node_registry_rollout_state_rotates_immediately_when_suppressed_profile
             .expect("record v8 ready evidence");
     }
 
-    for latency_ms in [620, 640, 660, 680] {
+    for (index, latency_ms) in [620, 640, 660, 680].into_iter().enumerate() {
         repository
             .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
                 schema_version: "1.0".to_string(),
@@ -1677,7 +1720,7 @@ async fn node_registry_rollout_state_rotates_immediately_when_suppressed_profile
                 latency_ms: Some(latency_ms),
                 route_count: Some(2),
                 reason: Some("continuity drift".to_string()),
-                observed_at: chrono::Utc::now(),
+                observed_at: observed_at + chrono::Duration::seconds((10 + index) as i64),
                 payload: DesktopRuntimeEventPayload {
                     continuity: Some(DesktopRuntimeEventContinuityEvidence {
                         failed_continuity_recovers: Some(1),
@@ -1735,24 +1778,6 @@ async fn node_registry_rollout_state_rotates_immediately_when_suppressed_profile
         .is_some_and(|message| message.contains("Rotate Helix rollout")));
 }
 
-async fn maybe_test_pool() -> Option<PgPool> {
-    let database_url = std::env::var("TEST_DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://cybervpn:cybervpn@localhost:6767/cybervpn".to_string());
-    let options = database_url.parse::<PgConnectOptions>().ok()?;
-    let options = options
-        .application_name("helix-adapter-tests")
-        .disable_statement_logging();
-
-    match PgPoolOptions::new()
-        .max_connections(2)
-        .acquire_timeout(Duration::from_secs(2))
-        .connect_with(options)
-        .await
-    {
-        Ok(pool) => Some(pool),
-        Err(error) => {
-            eprintln!("Skipping DB-backed node registry test: {error}");
-            None
-        }
-    }
+async fn maybe_test_pool() -> Option<IsolatedTestPool> {
+    support::helix_db::maybe_test_pool("helix-adapter-node-registry-tests").await
 }

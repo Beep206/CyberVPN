@@ -6,6 +6,8 @@ import structlog
 from aiogram import F, Router
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
+from src.utils.telegram import callback_message
+
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
@@ -115,7 +117,7 @@ async def _send_config_link(
         await callback.answer(i18n.get("error-config-not-ready"), show_alert=True)
         return False
 
-    await callback.message.answer(
+    await callback_message(callback).answer(
         text=i18n.get("config-link-message", url=config_url),
     )
 
@@ -147,7 +149,7 @@ async def _send_config_qr(
     qr_buffer = generate_subscription_qr(config_url)
     qr_file = BufferedInputFile(qr_buffer.getvalue(), filename="config_qr.png")
 
-    await callback.message.answer_photo(
+    await callback_message(callback).answer_photo(
         photo=qr_file,
         caption=i18n.get("config-qr-caption"),
     )
@@ -345,7 +347,7 @@ async def send_config_instructions_handler(
 
     instructions = i18n.get("config-instructions")
 
-    await callback.message.answer(
+    await callback_message(callback).answer(
         text=instructions,
     )
 

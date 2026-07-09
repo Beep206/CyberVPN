@@ -1,4 +1,4 @@
-FROM rust:1.86-bookworm AS builder
+FROM rust:1.96-bookworm AS builder
 
 WORKDIR /workspace
 
@@ -15,12 +15,17 @@ FROM debian:bookworm-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates wget \
+    && groupadd --gid 10001 helix \
+    && useradd --uid 10001 --gid helix --no-create-home --home /nonexistent --shell /usr/sbin/nologin helix \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+RUN chown helix:helix /app
 
 COPY --from=builder /workspace/services/helix-node/target/release/helix-node /usr/local/bin/helix-node
 
 EXPOSE 8091
+
+USER helix:helix
 
 CMD ["helix-node"]

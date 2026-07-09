@@ -7,46 +7,119 @@ into handler data for localized message formatting.
 from __future__ import annotations
 
 import os
-from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject
 from fluent.runtime import FluentBundle, FluentResource
 
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
 logger = structlog.get_logger(__name__)
 
 # Supported locale codes
 SUPPORTED_LOCALES = (
-    "am", "ar", "be", "bn", "cs", "de", "en", "es", "fa", "fil",
-    "fr", "ha", "he", "hi", "hu", "id", "it", "ja", "kk", "ko",
-    "ku", "ms", "my", "nl", "pl", "pt", "ro", "ru", "sv", "th",
-    "tk", "tr", "uk", "ur", "uz", "vi", "yo", "zh", "zh-Hant",
+    "am",
+    "ar",
+    "be",
+    "bn",
+    "cs",
+    "de",
+    "en",
+    "es",
+    "fa",
+    "fil",
+    "fr",
+    "ha",
+    "he",
+    "hi",
+    "hu",
+    "id",
+    "it",
+    "ja",
+    "kk",
+    "ko",
+    "ku",
+    "ms",
+    "my",
+    "nl",
+    "pl",
+    "pt",
+    "ro",
+    "ru",
+    "sv",
+    "th",
+    "tk",
+    "tr",
+    "uk",
+    "ur",
+    "uz",
+    "vi",
+    "yo",
+    "zh",
+    "zh-Hant",
 )
 DEFAULT_LOCALE = "ru"
 
 # Telegram language_code → our locale mapping
 LANGUAGE_MAP: dict[str, str] = {
     # Direct matches
-    "am": "am", "ar": "ar", "be": "be", "bn": "bn", "cs": "cs",
-    "de": "de", "en": "en", "es": "es", "fa": "fa", "fil": "fil",
-    "fr": "fr", "ha": "ha", "he": "he", "hi": "hi", "hu": "hu",
-    "id": "id", "it": "it", "ja": "ja", "kk": "kk", "ko": "ko",
-    "ku": "ku", "ms": "ms", "my": "my", "nl": "nl", "pl": "pl",
-    "pt": "pt", "ro": "ro", "ru": "ru", "sv": "sv", "th": "th",
-    "tk": "tk", "tr": "tr", "uk": "uk", "ur": "ur", "uz": "uz",
-    "vi": "vi", "yo": "yo", "zh": "zh",
+    "am": "am",
+    "ar": "ar",
+    "be": "be",
+    "bn": "bn",
+    "cs": "cs",
+    "de": "de",
+    "en": "en",
+    "es": "es",
+    "fa": "fa",
+    "fil": "fil",
+    "fr": "fr",
+    "ha": "ha",
+    "he": "he",
+    "hi": "hi",
+    "hu": "hu",
+    "id": "id",
+    "it": "it",
+    "ja": "ja",
+    "kk": "kk",
+    "ko": "ko",
+    "ku": "ku",
+    "ms": "ms",
+    "my": "my",
+    "nl": "nl",
+    "pl": "pl",
+    "pt": "pt",
+    "ro": "ro",
+    "ru": "ru",
+    "sv": "sv",
+    "th": "th",
+    "tk": "tk",
+    "tr": "tr",
+    "uk": "uk",
+    "ur": "ur",
+    "uz": "uz",
+    "vi": "vi",
+    "yo": "yo",
+    "zh": "zh",
     # Regional variants
-    "ar-EG": "ar", "ar-SA": "ar",
+    "ar-EG": "ar",
+    "ar-SA": "ar",
     "bn-BD": "bn",
     "cs-CZ": "cs",
-    "de-AT": "de", "de-DE": "de",
-    "en-GB": "en", "en-US": "en",
-    "es-AR": "es", "es-ES": "es", "es-MX": "es",
+    "de-AT": "de",
+    "de-DE": "de",
+    "en-GB": "en",
+    "en-US": "en",
+    "es-AR": "es",
+    "es-ES": "es",
+    "es-MX": "es",
     "fa-IR": "fa",
-    "fr-CA": "fr", "fr-FR": "fr",
+    "fr-CA": "fr",
+    "fr-FR": "fr",
     "he-IL": "he",
     "hi-IN": "hi",
     "hu-HU": "hu",
@@ -55,9 +128,11 @@ LANGUAGE_MAP: dict[str, str] = {
     "ja-JP": "ja",
     "ko-KR": "ko",
     "ms-MY": "ms",
-    "nl-BE": "nl", "nl-NL": "nl",
+    "nl-BE": "nl",
+    "nl-NL": "nl",
     "pl-PL": "pl",
-    "pt-BR": "pt", "pt-PT": "pt",
+    "pt-BR": "pt",
+    "pt-PT": "pt",
     "ro-RO": "ro",
     "sv-SE": "sv",
     "th-TH": "th",
@@ -66,7 +141,9 @@ LANGUAGE_MAP: dict[str, str] = {
     "ur-PK": "ur",
     "vi-VN": "vi",
     "zh-Hans": "zh",
-    "zh-Hant": "zh-Hant", "zh-HK": "zh-Hant", "zh-TW": "zh-Hant",
+    "zh-Hant": "zh-Hant",
+    "zh-HK": "zh-Hant",
+    "zh-TW": "zh-Hant",
 }
 
 
@@ -275,7 +352,7 @@ class I18nMiddleware(BaseMiddleware):
         user = data.get("user")
         if isinstance(user, dict):
             lang = user.get("language") or user.get("language_code")
-            if lang and lang in self._available_locales:
+            if isinstance(lang, str) and lang in self._available_locales:
                 return lang
 
         # 2. Check Telegram language_code

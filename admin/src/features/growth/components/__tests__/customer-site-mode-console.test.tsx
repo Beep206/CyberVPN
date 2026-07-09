@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomerSiteModeConsole } from '../customer-site-mode-console';
@@ -143,10 +143,14 @@ describe('CustomerSiteModeConsole', () => {
     expect(await screen.findByText('Rollback To Full Site')).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText('siteMode.fields.mode'), 'maintenance');
-    await user.type(screen.getByLabelText('siteMode.fields.reason'), 'Private beta freeze');
+    fireEvent.change(screen.getByLabelText('siteMode.fields.reason'), {
+      target: { value: 'Private beta freeze' },
+    });
     const updateButton = screen.getByRole('button', { name: 'siteMode.updateAction' });
     expect(updateButton).toBeDisabled();
-    await user.type(screen.getByLabelText('siteMode.fields.confirmation'), 'maintenance');
+    fireEvent.change(screen.getByLabelText('siteMode.fields.confirmation'), {
+      target: { value: 'maintenance' },
+    });
     expect(updateButton).toBeEnabled();
     await user.click(updateButton);
 
@@ -176,9 +180,13 @@ describe('CustomerSiteModeConsole', () => {
     const rollback = screen.getByRole('button', { name: 'siteMode.rollbackAction' });
     expect(rollback).toBeDisabled();
 
-    await user.type(screen.getByLabelText('siteMode.fields.reason'), 'Marketing restored');
+    fireEvent.change(screen.getByLabelText('siteMode.fields.reason'), {
+      target: { value: 'Marketing restored' },
+    });
     expect(rollback).toBeDisabled();
-    await user.type(screen.getByLabelText('siteMode.fields.confirmation'), 'full_site');
+    fireEvent.change(screen.getByLabelText('siteMode.fields.confirmation'), {
+      target: { value: 'full_site' },
+    });
     expect(rollback).toBeEnabled();
     await user.click(rollback);
 

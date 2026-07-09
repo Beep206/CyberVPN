@@ -7,6 +7,26 @@ type ListAdminPricebooksOperation =
   operations['list_admin_pricebooks_api_v1_pricebooks_admin_get'];
 type CreatePricebookOperation =
   operations['create_pricebook_api_v1_pricebooks__post'];
+type ListAdminCommercialPricebooksOperation =
+  operations['list_admin_commercial_pricebooks_api_v1_admin_pricebooks_get'];
+type UpdateAdminCommercialPricebookOperation =
+  operations['update_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__patch'];
+type PublishAdminCommercialPricebookOperation =
+  operations['publish_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__publish_post'];
+type ScheduleAdminCommercialPricebookOperation =
+  operations['schedule_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__schedule_post'];
+type RollbackAdminCommercialPricebookOperation =
+  operations['rollback_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__rollback_post'];
+type AdminCommercialPricebookHistoryOperation =
+  operations['get_admin_commercial_pricebook_history_api_v1_admin_pricebooks__pricebook_key__history_get'];
+type AdminCommercialPricebookAuditOperation =
+  operations['get_admin_commercial_pricebook_audit_api_v1_admin_pricebooks__pricebook_id__audit_get'];
+type ValidateAdminCommercialPricebookOperation =
+  operations['validate_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__validate_post'];
+type GetCommercialContextOptionsOperation =
+  operations['get_admin_commercial_context_options_api_v1_admin_commercial_context_options_get'];
+type UpdateCommercialContextOptionsOperation =
+  operations['update_admin_commercial_context_options_api_v1_admin_commercial_context_options_put'];
 
 export type PricebooksResponse =
   ResolvePricebooksOperation['responses'][200]['content']['application/json'];
@@ -17,125 +37,34 @@ export type AdminPricebooksResponse =
   ListAdminPricebooksOperation['responses'][200]['content']['application/json'];
 export type ListAdminPricebooksParams =
   ListAdminPricebooksOperation['parameters']['query'];
-type JsonObject = Record<string, unknown>;
-type PricebookEntryResponse = {
-  id: string;
-  offer_id: string;
-  visible_price: number;
-  compare_at_price: number | null;
-  included_addon_codes: string[];
-  display_order: number;
-};
-type AdminPricebookRecordBase = {
-  id: string;
-  pricebook_key: string;
-  display_name: string;
-  storefront_id: string;
-  merchant_profile_id: string | null;
-  currency_code: string;
-  region_code: string | null;
-  discount_rules: JsonObject;
-  renewal_pricing_policy: JsonObject;
-  version_status: string;
-  effective_from: string;
-  effective_to: string | null;
-  is_active: boolean;
-  entries: PricebookEntryResponse[];
-};
-export type AdminCommercialPricebookRecord = AdminPricebookRecordBase & {
-  lifecycle_status: string;
-};
 export type AdminCommercialPricebooksResponse =
-  AdminCommercialPricebookRecord[];
-export type ListAdminCommercialPricebooksParams = {
-  include_inactive?: boolean;
-  storefront_id?: string | null;
-  storefront_key?: string | null;
-  currency_code?: string | null;
-  region_code?: string | null;
-};
-export type UpdateAdminPricebookRequest = Partial<
-  Omit<AdminPricebookRecordBase, 'id' | 'pricebook_key' | 'entries'>
-> & {
-  entries?: PricebookEntryRequest[];
-  change_reason?: string | null;
-};
-export type AdminPricebookLifecycleResponse = {
-  pricebook: AdminPricebookRecordBase;
-  lifecycle_status: string;
-  audit_action: string;
-};
-export type PublishAdminPricebookRequest = {
-  effective_from?: string | null;
-  change_reason?: string | null;
-};
-export type ScheduleAdminPricebookRequest = {
-  scheduled_for: string;
-  change_reason?: string | null;
-};
-export type RollbackAdminPricebookRequest = {
-  target_pricebook_id?: string | null;
-  change_reason?: string | null;
-};
-export type AdminPricebookHistoryResponse = {
-  pricebook_key: string;
-  versions: AdminCommercialPricebookRecord[];
-};
-export type AdminPricebookAuditParams = {
-  limit?: number;
-};
-export type AdminPricebookAuditResponse = Array<{
-  id: string;
-  admin_id: string | null;
-  action: string;
-  entity_type: string | null;
-  entity_id: string | null;
-  old_value: JsonObject | null;
-  new_value: JsonObject | null;
-  ip_address: string | null;
-  user_agent: string | null;
-  created_at: string;
-}>;
-export type AdminPricebookValidationResponse = {
-  pricebook_id: string;
-  valid: boolean;
-  checked_at: string;
-  issues: Array<{
-    code:
-      | 'missing_price'
-      | 'unsupported_currency'
-      | 'missing_provisioning_profile'
-      | 'incompatible_addon';
-    severity: 'error' | 'warning';
-    message: string;
-    field: string | null;
-    entry_id: string | null;
-    offer_id: string | null;
-    remediation: string | null;
-  }>;
-};
-export type CommercialContextCountryOption = {
-  country_code: string;
-  default_currency_code: string;
-  supported_currency_codes: string[];
-  payment_country_code: string | null;
-  is_enabled: boolean;
-};
-export type CommercialContextCurrencyOption = {
-  currency_code: string;
-  minor_units: number;
-  is_enabled: boolean;
-};
-export type CommercialContextOptionsResponse = {
-  countries: CommercialContextCountryOption[];
-  currencies: CommercialContextCurrencyOption[];
-  source: 'default' | 'system_config';
-};
-export type UpdateCommercialContextOptionsRequest = {
-  countries: CommercialContextCountryOption[];
-  currencies: CommercialContextCurrencyOption[];
-  change_reason?: string | null;
-};
+  ListAdminCommercialPricebooksOperation['responses'][200]['content']['application/json'];
+export type AdminCommercialPricebookRecord =
+  AdminCommercialPricebooksResponse[number];
+export type ListAdminCommercialPricebooksParams =
+  ListAdminCommercialPricebooksOperation['parameters']['query'];
+export type UpdateAdminPricebookRequest =
+  UpdateAdminCommercialPricebookOperation['requestBody']['content']['application/json'];
+export type AdminPricebookLifecycleResponse =
+  UpdateAdminCommercialPricebookOperation['responses'][200]['content']['application/json'];
+export type PublishAdminPricebookRequest =
+  PublishAdminCommercialPricebookOperation['requestBody']['content']['application/json'];
+export type ScheduleAdminPricebookRequest =
+  ScheduleAdminCommercialPricebookOperation['requestBody']['content']['application/json'];
+export type RollbackAdminPricebookRequest =
+  RollbackAdminCommercialPricebookOperation['requestBody']['content']['application/json'];
+export type AdminPricebookHistoryResponse =
+  AdminCommercialPricebookHistoryOperation['responses'][200]['content']['application/json'];
+export type AdminPricebookAuditParams =
+  AdminCommercialPricebookAuditOperation['parameters']['query'];
+export type AdminPricebookAuditResponse =
+  AdminCommercialPricebookAuditOperation['responses'][200]['content']['application/json'];
+export type AdminPricebookValidationResponse =
+  ValidateAdminCommercialPricebookOperation['responses'][200]['content']['application/json'];
+export type CommercialContextOptionsResponse =
+  GetCommercialContextOptionsOperation['responses'][200]['content']['application/json'];
+export type UpdateCommercialContextOptionsRequest =
+  UpdateCommercialContextOptionsOperation['requestBody']['content']['application/json'];
 export type CreatePricebookRequest =
   CreatePricebookOperation['requestBody']['content']['application/json'];
 export type CreatePricebookResponse =

@@ -37,6 +37,9 @@ __all__ = [
     "REDIS_KEY_PREFIX_SESSION",
     "REDIS_KEY_PREFIX_SUBSCRIPTION",
     "REDIS_KEY_PREFIX_USER",
+    # Pagination
+    "Paginator",
+    "create_pagination_keyboard",
     # Deep links
     "decode_deep_link",
     "encode_deep_link",
@@ -45,7 +48,4 @@ __all__ = [
     "format_duration",
     "format_money",
     "format_traffic_bytes",
-    # Pagination
-    "Paginator",
-    "create_pagination_keyboard",
 ]

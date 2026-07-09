@@ -4,23 +4,22 @@ import { NextRequest } from 'next/server';
 import { GET } from './route';
 import {
   OAUTH_TRANSACTION_COOKIE,
-  parseOAuthTransactionCookieValue,
+  parseProviderTransactionCookieValue,
 } from '@/features/auth/lib/oauth-transaction';
 import { OAUTH_PROVIDER_QUERY_PARAM } from '@/features/auth/lib/oauth-error-codes';
 
 describe('GET /api/oauth/start/[provider]', () => {
-  const originalFetch = global.fetch;
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    vi.unstubAllGlobals();
   });
 
   it('redirects to provider authorize URL and stores signed transaction cookie', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth?state=csrf123',
@@ -32,7 +31,7 @@ describe('GET /api/oauth/start/[provider]', () => {
           },
         },
       ),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest(
       'http://localhost:3000/api/oauth/start/google?locale=ru-RU&return_to=%2Fru-RU%2Fpricing',
@@ -60,10 +59,15 @@ describe('GET /api/oauth/start/[provider]', () => {
         method: 'GET',
       }),
     );
+    const [, fetchInit] = vi.mocked(fetch).mock.calls[0] ?? [];
+    const fetchHeaders = fetchInit?.headers as Headers;
+    expect(fetchHeaders.get('x-forwarded-for')).toBeNull();
+    expect(fetchHeaders.get('x-forwarded-host')).toBe('localhost:3000');
+    expect(fetchHeaders.get('x-forwarded-proto')).toBe('http');
 
     const cookieValue = response.cookies.get(OAUTH_TRANSACTION_COOKIE)?.value;
     expect(cookieValue).toBeTruthy();
-    expect(parseOAuthTransactionCookieValue(cookieValue)).toEqual({
+    expect(parseProviderTransactionCookieValue(cookieValue)).toEqual({
       locale: 'ru-RU',
       provider: 'google',
       returnTo: '/ru-RU/pricing',
@@ -71,7 +75,7 @@ describe('GET /api/oauth/start/[provider]', () => {
   });
 
   it('falls back to locale dashboard when return_to points to an auth page', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           authorize_url: 'https://github.com/login/oauth/authorize?state=csrf456',
@@ -83,7 +87,7 @@ describe('GET /api/oauth/start/[provider]', () => {
           },
         },
       ),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest(
       'http://localhost:3000/api/oauth/start/github?locale=ru-RU&return_to=%2Fru-RU%2Flogin',
@@ -94,7 +98,7 @@ describe('GET /api/oauth/start/[provider]', () => {
     });
 
     const cookieValue = response.cookies.get(OAUTH_TRANSACTION_COOKIE)?.value;
-    expect(parseOAuthTransactionCookieValue(cookieValue)).toEqual({
+    expect(parseProviderTransactionCookieValue(cookieValue)).toEqual({
       locale: 'ru-RU',
       provider: 'github',
       returnTo: '/ru-RU/dashboard',
@@ -102,9 +106,9 @@ describe('GET /api/oauth/start/[provider]', () => {
   });
 
   it('redirects upstream failures back to login with a stable provider-scoped error', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(null, { status: 503 }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest(
       'http://localhost:3000/api/oauth/start/google?locale=ru-RU&return_to=%2Fru-RU%2Fdashboard',
@@ -119,10 +123,10 @@ describe('GET /api/oauth/start/[provider]', () => {
     expect(location.searchParams.get(OAUTH_PROVIDER_QUERY_PARAM)).toBe('google');
   });
 
-  it('builds local error redirects from forwarded host headers behind a proxy', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+  it('ignores allowlisted forwarded host headers when the browser-facing host is not trusted', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(null, { status: 503 }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest(
       'http://0.0.0.0:9001/api/oauth/start/google?locale=ru-RU&return_to=%2Fru-RU%2Fdashboard',
@@ -140,7 +144,68 @@ describe('GET /api/oauth/start/[provider]', () => {
     });
 
     expect(response.headers.get('location')).toBe(
-      'https://cyber-vpn.net/ru-RU/login?oauth_error=oauth_start_failed&oauth_provider=google',
+      'https://my.cyber-vpn.net/ru-RU/login?oauth_error=oauth_start_failed&oauth_provider=google',
+    );
+  });
+
+  it('uses the browser-facing public host instead of an allowlisted spoofed forwarded host', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth?state=csrf123',
+        }),
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json',
+          },
+        },
+      ),
+    ));
+
+    const request = new NextRequest(
+      'https://my.cyber-vpn.net/api/oauth/start/google?locale=ru-RU',
+      {
+        headers: new Headers({
+          host: 'my.cyber-vpn.net',
+          'x-forwarded-host': 'localhost:3000',
+          'x-forwarded-proto': 'http',
+        }),
+      },
+    );
+
+    await GET(request, {
+      params: Promise.resolve({ provider: 'google' }),
+    });
+
+    const [, fetchInit] = vi.mocked(fetch).mock.calls[0] ?? [];
+    const fetchHeaders = fetchInit?.headers as Headers;
+    expect(fetchHeaders.get('x-forwarded-host')).toBe('my.cyber-vpn.net');
+    expect(fetchHeaders.get('x-forwarded-proto')).toBe('https');
+  });
+
+  it('ignores untrusted forwarded host headers when building error redirects', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(null, { status: 503 }),
+    ));
+
+    const request = new NextRequest(
+      'http://0.0.0.0:9001/api/oauth/start/google?locale=ru-RU&return_to=%2Fru-RU%2Fdashboard',
+      {
+        headers: new Headers({
+          host: '0.0.0.0:9001',
+          'x-forwarded-host': 'evil.example',
+          'x-forwarded-proto': 'http',
+        }),
+      },
+    );
+
+    const response = await GET(request, {
+      params: Promise.resolve({ provider: 'google' }),
+    });
+
+    expect(response.headers.get('location')).toBe(
+      'https://my.cyber-vpn.net/ru-RU/login?oauth_error=oauth_start_failed&oauth_provider=google',
     );
   });
 });

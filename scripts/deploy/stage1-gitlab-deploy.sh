@@ -183,7 +183,7 @@ elif [[ "$source_sync_mode" == "runtime-archive" ]]; then
   log "syncing tracked runtime source archive"
   ssh_cmd "$remote_sudo rm -rf '$remote_src' && $remote_sudo install -d -o '$user' -g '$user' '$remote_src'"
   git ls-files |
-    awk '/^(backend|frontend|services\/telegram-bot|services\/vpn-test-agent|infra\/deploy\/stage1)\// || /^(package.json|package-lock.json|tsconfig.base.json|AGENTS.md)$/ {print}' |
+    awk '/^(backend|frontend|admin|partner|services\/telegram-bot|services\/vpn-test-agent|infra\/deploy\/stage1)\// || /^(package.json|package-lock.json|\.node-version|tsconfig.base.json|AGENTS.md)$/ {print}' |
     tar -cf - -T - |
     "${ssh_base[@]}" "$user@$host" "tar -xf - -C '$remote_src'"
 else

@@ -8,6 +8,7 @@ from aiogram import F, Router
 from src.keyboards.account import language_selection_keyboard
 from src.keyboards.menu import profile_kb
 from src.states.account import AccountState
+from src.utils.telegram import callback_data, callback_message
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -45,7 +46,7 @@ async def show_profile_handler(
             registered=user.get("created_at", "N/A"),
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=profile_text,
             reply_markup=profile_kb(i18n),
         )
@@ -66,7 +67,7 @@ async def change_language_handler(
     state: FSMContext,
 ) -> None:
     """Start language change flow."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("language-select-prompt"),
         reply_markup=language_selection_keyboard(i18n),
     )
@@ -89,7 +90,7 @@ async def language_selected_handler(
         await state.clear()
         return
     user_id = callback.from_user.id
-    language_code = callback.data.split(":")[1]
+    language_code = callback_data(callback).split(":")[1]
 
     try:
         # Update user language
@@ -98,7 +99,7 @@ async def language_selected_handler(
         # Update i18n locale
         await i18n.set_locale(language_code)
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("language-changed", language=language_code),
         )
 
@@ -144,7 +145,7 @@ async def show_subscriptions_handler(
                 f"   Date: {order.get('created_at', 'N/A')}\n\n"
             )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=subs_text,
             reply_markup=profile_kb(i18n),
         )

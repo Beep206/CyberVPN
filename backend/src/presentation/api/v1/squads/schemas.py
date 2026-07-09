@@ -21,9 +21,9 @@ class CreateSquadRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Squad name")
     squad_type: Literal["internal", "external"] = Field(..., description="Squad type")
     inbounds: list[str] = Field(default_factory=list, description="Internal squad inbound UUIDs")
-    max_members: int | None = Field(None, ge=1, le=10_000, description="Maximum squad members")
+    max_members: int | None = Field(default=None, ge=1, le=10_000, description="Maximum squad members")
     is_active: bool = Field(True, description="Whether squad is active")
-    description: str | None = Field(None, max_length=500, description="Squad description")
+    description: str | None = Field(default=None, max_length=500, description="Squad description")
 
 
 class SquadResponse(BaseModel):
@@ -34,7 +34,7 @@ class SquadResponse(BaseModel):
     uuid: str = Field(..., description="Squad UUID")
     name: str = Field(..., max_length=100, description="Squad name")
     squad_type: str = Field(..., max_length=50, description="Squad type")
-    max_members: int | None = Field(None, description="Maximum squad members")
+    max_members: int | None = Field(default=None, description="Maximum squad members")
     is_active: bool = Field(..., description="Whether squad is active")
-    description: str | None = Field(None, max_length=500, description="Squad description")
-    member_count: int | None = Field(None, description="Current member count")
+    description: str | None = Field(default=None, max_length=500, description="Squad description")
+    member_count: int | None = Field(default=None, description="Current member count")

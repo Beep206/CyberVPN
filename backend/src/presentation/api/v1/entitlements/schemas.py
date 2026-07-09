@@ -14,13 +14,13 @@ class CreateEntitlementGrantRequest(BaseModel):
     source_order_id: UUID | None = None
     source_growth_reward_allocation_id: UUID | None = None
     source_renewal_order_id: UUID | None = None
-    manual_source_key: str | None = Field(None, min_length=1, max_length=160)
+    manual_source_key: str | None = Field(default=None, min_length=1, max_length=160)
     grant_snapshot: dict[str, Any] = Field(default_factory=dict)
     expires_at: datetime | None = None
 
 
 class EntitlementGrantTransitionRequest(BaseModel):
-    reason_code: str | None = Field(None, min_length=1, max_length=80)
+    reason_code: str | None = Field(default=None, min_length=1, max_length=80)
 
 
 class CurrentEntitlementStateResponse(BaseModel):

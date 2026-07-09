@@ -24,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13.13'
+          python-version: '3.13.14'
           cache: 'pip'
 
       - name: Install ruff
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.13.13']
+        python-version: ['3.13.14']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-        if: matrix.python-version == '3.13.13'
+        if: matrix.python-version == '3.13.14'
         with:
           file: ./coverage.xml
           flags: task-worker
@@ -128,7 +128,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13.13'
+          python-version: '3.13.14'
           cache: 'pip'
 
       - name: Install dependencies with dev extras
@@ -171,20 +171,35 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13.13'
+          python-version: '3.13.14'
 
       - name: Install pip-audit
-        run: pip install pip-audit
+        run: pip install uv pip-audit
+
+      - name: Check uv lock is synchronized
+        working-directory: services/task-worker
+        run: uv lock --check
 
       - name: Run pip-audit
         run: |
-          pip-audit --require-hashes --desc services/task-worker/
-        continue-on-error: true
+          cd services/task-worker
+          uv export \
+            --frozen \
+            --no-dev \
+            --no-emit-project \
+            --no-hashes \
+            --format requirements.txt \
+            --output-file /tmp/task-worker-requirements.txt
+          pip-audit \
+            --progress-spinner off \
+            --no-deps \
+            --disable-pip \
+            --requirement /tmp/task-worker-requirements.txt
 
   all-checks:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, test, typecheck, docker-build]
+    needs: [lint, test, typecheck, docker-build, security]
     if: always()
     steps:
       - name: Check all jobs
@@ -193,11 +208,13 @@ jobs:
           TEST_RESULT: ${{ needs.test.result }}
           TYPECHECK_RESULT: ${{ needs.typecheck.result }}
           DOCKER_RESULT: ${{ needs.docker-build.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
         run: |
           if [[ "$LINT_RESULT" != "success" ]] || \
              [[ "$TEST_RESULT" != "success" ]] || \
              [[ "$TYPECHECK_RESULT" != "success" ]] || \
-             [[ "$DOCKER_RESULT" != "success" ]]; then
+             [[ "$DOCKER_RESULT" != "success" ]] || \
+             [[ "$SECURITY_RESULT" != "success" ]]; then
             echo "One or more checks failed"
             exit 1
           fi

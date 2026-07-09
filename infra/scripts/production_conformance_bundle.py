@@ -64,7 +64,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -334,7 +334,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
     write_text(output_dir / "README.md", render_root_readme())
     write_text(output_dir / "versions.env", render_versions_env())
     write_text(output_dir / "spec-manifest.yaml", render_spec_manifest())
-    write_text(output_dir / "scripts" / "check-production-conformance-bundle.sh", render_check_script(), mode=0o750)
+    write_text(output_dir / "scripts" / "check-production-conformance-bundle.sh", render_check_script(), mode=0o700)
     write_text(output_dir / "run-order.md", render_run_order())
     write_text(output_dir / "gate-d-evidence-outline.md", render_gate_d_outline())
     write_text(output_dir / "scorecard" / "gate-d-scorecard-snapshot.md", render_scorecard_snapshot())

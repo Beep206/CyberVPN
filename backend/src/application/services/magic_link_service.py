@@ -11,6 +11,8 @@ from datetime import UTC, datetime
 
 import redis.asyncio as redis
 
+from src.shared.logging import fingerprint_pii
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,7 +22,7 @@ class RateLimitExceededError(Exception):
     def __init__(self, email: str, retry_after_seconds: int | None = None) -> None:
         self.email = email
         self.retry_after_seconds = retry_after_seconds
-        super().__init__(f"Rate limit exceeded for magic link requests: {email}")
+        super().__init__("Rate limit exceeded for magic link requests")
 
 
 class MagicLinkService:
@@ -43,7 +45,7 @@ class MagicLinkService:
     OTP_PREFIX = "magic_link_otp:"  # Reverse lookup: email -> 6-digit OTP code
     RATE_LIMIT_PREFIX = "magic_link_rate:"
     TTL_SECONDS = 3600  # 1 hour
-    CONSUMED_TTL_SECONDS = 120  # Allow one replay to tolerate duplicate requests
+    CONSUMED_TTL_SECONDS = 120  # Short marker for replay diagnostics after single-use consumption
     MAX_REQUESTS_PER_HOUR = 5
     RATE_LIMIT_WINDOW = 3600  # 1 hour
 
@@ -89,7 +91,11 @@ class MagicLinkService:
             retry_after = current_ttl if current_ttl > 0 else self.RATE_LIMIT_WINDOW
             logger.warning(
                 "Magic link rate limit exceeded",
-                extra={"email": email, "count": count, "retry_after": retry_after},
+                extra={
+                    "email_fingerprint": fingerprint_pii(email, namespace="magic_link_email"),
+                    "count": count,
+                    "retry_after": retry_after,
+                },
             )
             raise RateLimitExceededError(email, retry_after_seconds=retry_after)
 
@@ -108,7 +114,7 @@ class MagicLinkService:
                     existing_otp = existing_otp.decode() if isinstance(existing_otp, bytes) else existing_otp
                     logger.debug(
                         "Reusing existing magic link token and OTP code",
-                        extra={"email": email, "token_prefix": existing_token[:8]},
+                        extra={"email_fingerprint": fingerprint_pii(email, namespace="magic_link_email")},
                     )
                     return existing_token, existing_otp
 
@@ -126,14 +132,14 @@ class MagicLinkService:
 
         # Store token data, reverse lookups (email -> token, email -> otp) with same TTL
         pipe = self._redis.pipeline()
-        pipe.setex(key, self.TTL_SECONDS, json.dumps(data))
-        pipe.setex(email_key, self.TTL_SECONDS, token)
-        pipe.setex(otp_key, self.TTL_SECONDS, otp_code)
+        pipe.set(key, json.dumps(data), ex=self.TTL_SECONDS)
+        pipe.set(email_key, token, ex=self.TTL_SECONDS)
+        pipe.set(otp_key, otp_code, ex=self.TTL_SECONDS)
         await pipe.execute()
 
         logger.debug(
             "Magic link token and OTP code generated",
-            extra={"email": email, "token_prefix": token[:8]},
+            extra={"email_fingerprint": fingerprint_pii(email, namespace="magic_link_email")},
         )
 
         return token, otp_code
@@ -153,7 +159,6 @@ class MagicLinkService:
         """
         key = f"{self.PREFIX}{token}"
         consumed_key = f"{self.CONSUMED_PREFIX}{token}"
-        replay_key = f"{self.CONSUMED_REPLAY_PREFIX}{token}"
 
         # Atomic get+delete using pipeline
         pipe = self._redis.pipeline()
@@ -166,27 +171,14 @@ class MagicLinkService:
             consumed_payload = await self._redis.get(consumed_key)
             payload = self._deserialize_payload(consumed_payload)
             if payload:
-                replay_granted = await self._redis.set(
-                    replay_key,
-                    "1",
-                    ex=self.CONSUMED_TTL_SECONDS,
-                    nx=True,
+                logger.warning(
+                    "Magic link token replay rejected",
+                    extra=self._log_extra_from_consumed_marker(payload),
                 )
-                if replay_granted:
-                    logger.info(
-                        "Magic link token replay accepted",
-                        extra={
-                            "email": payload.get("email"),
-                            "token_prefix": token[:8] if len(token) >= 8 else token,
-                        },
-                    )
-                    return payload
+                return None
 
             logger.warning(
                 "Invalid or expired magic link token used",
-                extra={
-                    "token_prefix": token[:8] if len(token) >= 8 else token,
-                },
             )
             return None
 
@@ -194,9 +186,6 @@ class MagicLinkService:
         if not payload:
             logger.warning(
                 "Magic link token payload is malformed",
-                extra={
-                    "token_prefix": token[:8] if len(token) >= 8 else token,
-                },
             )
             return None
 
@@ -208,19 +197,17 @@ class MagicLinkService:
             pipe = self._redis.pipeline()
             pipe.delete(email_key)
             pipe.delete(otp_key)
-            pipe.setex(consumed_key, self.CONSUMED_TTL_SECONDS, json.dumps(payload))
-            pipe.delete(replay_key)
+            pipe.set(consumed_key, self._consumed_marker(payload), ex=self.CONSUMED_TTL_SECONDS)
+            pipe.delete(f"{self.CONSUMED_REPLAY_PREFIX}{token}")
             await pipe.execute()
         else:
-            # Keep a short replay window even for malformed/missing email payloads.
-            await self._redis.setex(consumed_key, self.CONSUMED_TTL_SECONDS, json.dumps(payload))
-            await self._redis.delete(replay_key)
+            await self._redis.set(consumed_key, self._consumed_marker(payload), ex=self.CONSUMED_TTL_SECONDS)
+            await self._redis.delete(f"{self.CONSUMED_REPLAY_PREFIX}{token}")
 
         logger.info(
             "Magic link token validated and consumed",
             extra={
-                "email": email,
-                "token_prefix": token[:8],
+                "email_fingerprint": fingerprint_pii(str(email or ""), namespace="magic_link_email"),
             },
         )
 
@@ -263,6 +250,28 @@ class MagicLinkService:
 
         return None
 
+    @staticmethod
+    def _consumed_marker(payload: dict) -> str:
+        email = str(payload.get("email") or "")
+        return json.dumps(
+            {
+                "email_fingerprint": fingerprint_pii(email, namespace="magic_link_email") if email else None,
+                "created_at": payload.get("created_at"),
+            }
+        )
+
+    @staticmethod
+    def _log_extra_from_consumed_marker(payload: dict) -> dict[str, str]:
+        marker_fingerprint = payload.get("email_fingerprint")
+        if isinstance(marker_fingerprint, str) and marker_fingerprint:
+            return {"email_fingerprint": marker_fingerprint}
+
+        email = payload.get("email")
+        if isinstance(email, str) and email:
+            return {"email_fingerprint": fingerprint_pii(email, namespace="magic_link_email")}
+
+        return {}
+
     async def validate_otp(self, email: str, code: str) -> dict | None:
         """Validate a 6-digit OTP code for magic link authentication.
 
@@ -284,7 +293,7 @@ class MagicLinkService:
         if not stored_otp:
             logger.warning(
                 "Magic link OTP lookup failed: no OTP found",
-                extra={"email": email},
+                extra={"email_fingerprint": fingerprint_pii(email, namespace="magic_link_email")},
             )
             return None
 
@@ -293,7 +302,7 @@ class MagicLinkService:
         if stored_otp != code:
             logger.warning(
                 "Magic link OTP code mismatch",
-                extra={"email": email},
+                extra={"email_fingerprint": fingerprint_pii(email, namespace="magic_link_email")},
             )
             return None
 
@@ -304,7 +313,7 @@ class MagicLinkService:
         if not token:
             logger.warning(
                 "Magic link OTP valid but token not found",
-                extra={"email": email},
+                extra={"email_fingerprint": fingerprint_pii(email, namespace="magic_link_email")},
             )
             return None
 

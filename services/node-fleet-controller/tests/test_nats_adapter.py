@@ -40,4 +40,3 @@ class NatsAdapterTests(unittest.TestCase):
         self.assertEqual(envelope["subject"], "node.command.provision_requested.v1")
         self.assertEqual(envelope["aggregate_id"], "req_123")
         self.assertEqual(envelope["payload"]["operation_run_id"], "opr_123")
-

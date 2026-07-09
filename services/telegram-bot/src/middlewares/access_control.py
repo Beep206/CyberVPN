@@ -10,16 +10,19 @@ Uses data['user'] from AuthMiddleware and data['settings'] from dispatcher.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from aiogram import BaseMiddleware, Bot
 from aiogram.types import CallbackQuery, Message, TelegramObject
 
-from src.config import BotSettings
 from src.services.api_client import APIError, CyberVPNAPIClient
-from src.services.cache_service import CacheService
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from src.config import BotSettings
+    from src.services.cache_service import CacheService
 
 logger = structlog.get_logger(__name__)
 
@@ -181,7 +184,7 @@ class AccessControlMiddleware(BaseMiddleware):
 
     @staticmethod
     async def _send_auth_required_message(event: TelegramObject) -> None:
-        text = "⚠️ <b>Сервис временно недоступен</b>\n\nПопробуйте позже."
+        text = "⚠️ <b>Сервис временно недоступен</b>\n\nПопробуйте позже."  # noqa: RUF001
 
         if isinstance(event, Message):
             await event.answer(text, parse_mode="HTML")
@@ -195,7 +198,7 @@ class AccessControlMiddleware(BaseMiddleware):
         Args:
             event: Telegram event to respond to.
         """
-        text = "🔧 <b>Технические работы</b>\n\nБот временно недоступен. Попробуйте позже."
+        text = "🔧 <b>Технические работы</b>\n\nБот временно недоступен. Попробуйте позже."  # noqa: RUF001
 
         if isinstance(event, Message):
             await event.answer(text, parse_mode="HTML")
@@ -242,10 +245,7 @@ class AccessControlMiddleware(BaseMiddleware):
             channel_id: Channel username or ID.
         """
         # Format channel link
-        if channel_id.startswith("@"):
-            channel_link = f"https://t.me/{channel_id[1:]}"
-        else:
-            channel_link = channel_id
+        channel_link = f"https://t.me/{channel_id[1:]}" if channel_id.startswith("@") else channel_id
 
         text = (
             "📢 <b>Подпишитесь на канал</b>\n\n"

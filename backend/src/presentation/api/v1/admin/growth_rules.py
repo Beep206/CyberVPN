@@ -417,7 +417,7 @@ async def diff_growth_rule_policy_against(
 
 def _rule_validation_http_error(exc: RuleValidationError) -> HTTPException:
     return HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         detail={
             "code": exc.code,
             "message_key": f"growth.rules.{exc.code.lower()}",
@@ -431,7 +431,7 @@ def _rule_policy_http_error(exc: GrowthRulePolicyError) -> HTTPException:
     if exc.code.endswith("_not_found"):
         status_code = status.HTTP_404_NOT_FOUND
     elif exc.code.startswith("invalid_") or exc.code in {"max_nodes_exceeded", "max_depth_exceeded"}:
-        status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+        status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
     return HTTPException(
         status_code=status_code,
         detail={

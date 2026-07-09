@@ -122,7 +122,8 @@ async def list_nodes(
     try:
         response = await service.list_nodes()
     except HelixDisabledError:
-        _raise_hidden_not_found()
+        route_operations_total.labels(route="helix", action="list_nodes", status="degraded").inc()
+        return []
     route_operations_total.labels(route="helix", action="list_nodes", status="success").inc()
     return response
 
@@ -169,7 +170,8 @@ async def list_transport_profiles(
     try:
         response = await service.list_transport_profiles()
     except HelixDisabledError:
-        _raise_hidden_not_found()
+        route_operations_total.labels(route="helix", action="list_profiles", status="degraded").inc()
+        return []
     route_operations_total.labels(route="helix", action="list_profiles", status="success").inc()
     return response
 

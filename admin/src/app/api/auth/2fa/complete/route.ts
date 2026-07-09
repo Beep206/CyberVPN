@@ -29,6 +29,18 @@ const APPROVED_LOCAL_STAGE_ADMIN_ORIGINS = new Set([
   "http://127.0.0.1:3000",
   "http://localhost:3000",
 ]);
+const SET_COOKIE_BOUNDARY_NAMES = [
+  "__Host-cvpn_device_id",
+  "__Host-cvpn_private_catalog_session",
+  "access_token",
+  "customer_access_token",
+  "customer_refresh_token",
+  "cv_partner_attribution",
+  "cv_ref_attribution",
+  "partner_access_token",
+  "partner_refresh_token",
+  "refresh_token",
+];
 
 function getRequestOrigin(request: NextRequest): string {
   try {
@@ -76,13 +88,9 @@ function buildForwardHeaders(request: NextRequest, token: string): Headers {
     "content-type": "application/json",
   });
 
-  const forwardedFor = request.headers.get("x-forwarded-for");
   const userAgent = request.headers.get("user-agent");
   const acceptLanguage = request.headers.get("accept-language");
 
-  if (forwardedFor) {
-    headers.set("x-forwarded-for", forwardedFor);
-  }
   headers.set("x-forwarded-host", ADMIN_CANONICAL_HOST);
   headers.set("x-forwarded-proto", ADMIN_CANONICAL_PROTO);
   if (userAgent) {
@@ -138,7 +146,7 @@ function getFetchSetCookieHeaders(response: Response): string[] {
   if (typeof headers.getSetCookie === "function") {
     const setCookieHeaders = headers.getSetCookie();
     if (setCookieHeaders.length > 0) {
-      return setCookieHeaders;
+      return setCookieHeaders.flatMap(splitCombinedSetCookieHeader);
     }
   }
 
@@ -228,29 +236,17 @@ function postBackendJson(
 function splitCombinedSetCookieHeader(headerValue: string): string[] {
   const headers: string[] = [];
   let start = 0;
-  let inExpiresAttribute = false;
 
   for (let index = 0; index < headerValue.length; index += 1) {
-    const remaining = headerValue.slice(index).toLowerCase();
-    if (remaining.startsWith("expires=")) {
-      inExpiresAttribute = true;
-    }
+    if (headerValue[index] !== ",") continue;
 
-    const char = headerValue[index];
-    if (char === ";") {
-      inExpiresAttribute = false;
+    const candidate = headerValue.slice(index + 1).trimStart();
+    if (!SET_COOKIE_BOUNDARY_NAMES.some((name) => candidate.startsWith(`${name}=`))) {
       continue;
     }
 
-    if (char !== "," || inExpiresAttribute) {
-      continue;
-    }
-
-    const nextPart = headerValue.slice(index + 1).trimStart();
-    if (/^[^=;\s]+=/.test(nextPart)) {
-      headers.push(headerValue.slice(start, index).trim());
-      start = index + 1;
-    }
+    headers.push(headerValue.slice(start, index).trim());
+    start = index + 1;
   }
 
   const tail = headerValue.slice(start).trim();

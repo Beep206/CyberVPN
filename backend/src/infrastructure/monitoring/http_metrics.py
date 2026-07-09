@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import os
 import re
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from http import HTTPStatus
 from timeit import default_timer
+from typing import Protocol, runtime_checkable
 
 from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, Counter, Gauge, Histogram, Summary, generate_latest
 from starlette.applications import Starlette
@@ -100,8 +101,42 @@ def _env_enabled(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+class _EffectiveRouteContextLike(Protocol):
+    path: str
+    path_format: str
+
+    def matches(self, scope: Scope) -> tuple[Match, Scope]: ...
+
+
+@runtime_checkable
+class _EffectiveRouteProvider(Protocol):
+    def effective_route_contexts(self) -> Iterable[_EffectiveRouteContextLike]: ...
+
+
+def _get_effective_route_name(scope: Scope, route: _EffectiveRouteProvider) -> str | None:
+    """Resolve FastAPI 0.139+ flattened include-router contexts."""
+
+    partial_route_name: str | None = None
+    for context in route.effective_route_contexts():
+        match, _child_scope = context.matches(scope)
+        context_route_name = context.path_format or context.path
+        if not context_route_name:
+            continue
+        if match == Match.FULL:
+            return context_route_name
+        if match == Match.PARTIAL and partial_route_name is None:
+            partial_route_name = context_route_name
+    return partial_route_name
+
+
 def _get_route_name(scope: Scope, routes: Sequence[BaseRoute], route_name: str | None = None) -> str | None:
     for route in routes:
+        if isinstance(route, _EffectiveRouteProvider):
+            effective_route_name = _get_effective_route_name(scope, route)
+            if effective_route_name is not None:
+                return effective_route_name
+            continue
+
         if not isinstance(route, Route | Mount):
             continue
         match, child_scope = route.matches(scope)

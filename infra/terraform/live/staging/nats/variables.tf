@@ -107,13 +107,13 @@ variable "nats_exporter_port" {
 variable "nats_version" {
   type        = string
   description = "Pinned NATS server version."
-  default     = "2.12.7"
+  default     = "2.14.3"
 }
 
 variable "nats_exporter_version" {
   type        = string
   description = "Pinned prometheus-nats-exporter version."
-  default     = "0.18.0"
+  default     = "0.20.1"
 }
 
 variable "jetstream_max_file_store" {

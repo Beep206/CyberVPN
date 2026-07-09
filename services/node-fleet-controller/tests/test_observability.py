@@ -115,7 +115,7 @@ class SentrySetupTests(unittest.TestCase):
         os.environ["SENTRY_DSN"] = "https://fleet@example.com/1"
         os.environ["SENTRY_RELEASE"] = "node-fleet-controller@testsha"
         os.environ["ENVIRONMENT"] = "staging"
-        os.environ["FLEET_CONTROLLER_OBSERVABILITY_INTERNAL_SECRET"] = "fleet-secret"
+        os.environ["FLEET_CONTROLLER_OBSERVABILITY_INTERNAL_SECRET"] = "fleet-secret"  # noqa: S105
 
         reset_settings_cache()
         settings = get_settings()
@@ -152,7 +152,7 @@ class ApiObservabilityTests(unittest.TestCase):
             environment="staging",
             sentry_dsn="https://fleet@example.com/1",
             sentry_release="node-fleet-controller@abc123",
-            observability_internal_secret="fleet-secret",
+            observability_internal_secret="fleet-secret",  # noqa: S106
         )
         self.client = TestClient(create_app(settings))
         self.client.__enter__()

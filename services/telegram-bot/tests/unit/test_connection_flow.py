@@ -348,6 +348,7 @@ async def test_mark_connected_failure_logs_safe_telegram_reference(
 async def test_code_command_masks_user_visible_code_and_opens_connection(fake_redis: object) -> None:
     cache = await _cache(fake_redis)
     api_client = SimpleNamespace(
+        register_user=AsyncMock(return_value={"telegram_id": 123456}),
         apply_telegram_onboarding_code=AsyncMock(return_value={"status": "accepted"}),
         get_customer_connection_bootstrap=AsyncMock(return_value=_available_bootstrap()),
     )
@@ -375,7 +376,10 @@ async def test_code_apply_failure_logs_safe_telegram_reference(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     cache = await _cache(fake_redis)
-    api_client = SimpleNamespace(apply_telegram_onboarding_code=AsyncMock(side_effect=RuntimeError("backend down")))
+    api_client = SimpleNamespace(
+        register_user=AsyncMock(return_value={"telegram_id": 123456}),
+        apply_telegram_onboarding_code=AsyncMock(side_effect=RuntimeError("backend down")),
+    )
     message = _message(text="/code GiftSecret42")
     warning = MagicMock()
     monkeypatch.setattr(connection_handlers, "logger", SimpleNamespace(warning=warning))
@@ -437,13 +441,14 @@ async def test_code_command_uses_real_backend_apply_contract(
 async def test_code_apply_403_is_not_reported_as_not_found(fake_redis: object) -> None:
     cache = await _cache(fake_redis)
     api_client = SimpleNamespace(
+        register_user=AsyncMock(return_value={"telegram_id": 123456}),
         apply_telegram_onboarding_code=AsyncMock(
             side_effect=APIError(
                 message="Forbidden",
                 status_code=403,
                 detail="CUSTOMER_ONBOARDING_FLOW_TOKEN_REQUIRED",
             )
-        )
+        ),
     )
     message = _message(text="/code GiftSecret42")
 
@@ -467,6 +472,7 @@ async def test_promocode_text_entry_uses_onboarding_connection_flow_without_lega
 
     cache = await _cache(fake_redis)
     api_client = SimpleNamespace(
+        register_user=AsyncMock(return_value={"telegram_id": 123456}),
         apply_telegram_onboarding_code=AsyncMock(return_value={"status": "completed"}),
         get_customer_connection_bootstrap=AsyncMock(return_value=_available_bootstrap()),
     )

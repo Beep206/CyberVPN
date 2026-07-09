@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const ADMIN_CANONICAL_HOST = 'admin.cyber-vpn.net';
+
 function getBackendBaseUrl(): string {
-  const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  const baseUrl =
+    process.env.API_INTERNAL_ORIGIN?.trim()
+    || process.env.API_URL?.trim()
+    || process.env.NEXT_PUBLIC_API_URL?.trim();
   if (!baseUrl) {
-    throw new Error('API_URL or NEXT_PUBLIC_API_URL must be configured.');
+    throw new Error('API_INTERNAL_ORIGIN, API_URL or NEXT_PUBLIC_API_URL must be configured.');
   }
 
   return baseUrl.replace(/\/$/, '');
@@ -15,15 +20,12 @@ function buildSessionHeaders(request: NextRequest): Headers {
   });
 
   const cookie = request.headers.get('cookie');
-  const forwardedFor = request.headers.get('x-forwarded-for');
   const userAgent = request.headers.get('user-agent');
   const acceptLanguage = request.headers.get('accept-language');
+  const requestId = request.headers.get('x-request-id');
 
   if (cookie) {
     headers.set('cookie', cookie);
-  }
-  if (forwardedFor) {
-    headers.set('x-forwarded-for', forwardedFor);
   }
   if (userAgent) {
     headers.set('user-agent', userAgent);
@@ -31,6 +33,11 @@ function buildSessionHeaders(request: NextRequest): Headers {
   if (acceptLanguage) {
     headers.set('accept-language', acceptLanguage);
   }
+  if (requestId) {
+    headers.set('x-request-id', requestId);
+  }
+  headers.set('x-forwarded-host', ADMIN_CANONICAL_HOST);
+  headers.set('x-forwarded-proto', 'https');
 
   return headers;
 }
@@ -74,21 +81,21 @@ function buildProxyHeaders(
     'x-telegram-bot-secret': secret,
   });
 
-  const forwardedFor = request.headers.get('x-forwarded-for');
   const userAgent = request.headers.get('user-agent');
   const acceptLanguage = request.headers.get('accept-language');
+  const requestId = request.headers.get('x-request-id');
 
   if (hasBody) {
     headers.set('content-type', 'application/json');
-  }
-  if (forwardedFor) {
-    headers.set('x-forwarded-for', forwardedFor);
   }
   if (userAgent) {
     headers.set('user-agent', userAgent);
   }
   if (acceptLanguage) {
     headers.set('accept-language', acceptLanguage);
+  }
+  if (requestId) {
+    headers.set('x-request-id', requestId);
   }
 
   return headers;
@@ -112,7 +119,9 @@ async function proxyTelegramBotRequest(
   }
 
   const upstreamUrl = new URL(
-    `${getBackendBaseUrl()}/api/v1/telegram/bot/${pathSegments.join('/')}`,
+    `${getBackendBaseUrl()}/api/v1/telegram/bot/${pathSegments
+      .map((segment) => encodeURIComponent(segment))
+      .join('/')}`,
   );
   upstreamUrl.search = new URL(request.url).search;
 

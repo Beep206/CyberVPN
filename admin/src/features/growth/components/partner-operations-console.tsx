@@ -108,10 +108,23 @@ export function PartnerOperationsConsole() {
     staleTime: 15_000,
   });
 
+  const capabilitiesQuery = useQuery({
+    queryKey: ['partner-ops', 'client-capabilities'],
+    queryFn: async () => {
+      const response = await growthApi.getClientCapabilities();
+      return response.data;
+    },
+    staleTime: 60_000,
+  });
+
   const effectiveSelectedWorkspaceId = selectedWorkspaceId
     ?? applicationsQuery.data?.[0]?.workspace.id
     ?? workspacesQuery.data?.[0]?.id
     ?? null;
+
+  const selectedApplicationSummary = applicationsQuery.data?.find(
+    (application) => application.workspace.id === effectiveSelectedWorkspaceId,
+  ) ?? null;
 
   const workspaceDetailQuery = useQuery({
     queryKey: ['partner-ops', 'workspace', effectiveSelectedWorkspaceId],
@@ -136,7 +149,7 @@ export function PartnerOperationsConsole() {
         throw error;
       }
     },
-    enabled: Boolean(effectiveSelectedWorkspaceId),
+    enabled: Boolean(effectiveSelectedWorkspaceId && selectedApplicationSummary),
     staleTime: 15_000,
     retry: false,
   });
@@ -209,6 +222,8 @@ export function PartnerOperationsConsole() {
     staleTime: 15_000,
   });
 
+  const payoutsEnabled = Boolean(capabilitiesQuery.data?.partner.payouts);
+
   const payoutAccountsQuery = useQuery({
     queryKey: ['partner-ops', 'payout-accounts', effectiveSelectedWorkspaceId],
     queryFn: async () => {
@@ -219,7 +234,7 @@ export function PartnerOperationsConsole() {
       });
       return response.data;
     },
-    enabled: Boolean(effectiveSelectedWorkspaceId),
+    enabled: Boolean(effectiveSelectedWorkspaceId && payoutsEnabled),
     staleTime: 15_000,
   });
 
@@ -233,7 +248,7 @@ export function PartnerOperationsConsole() {
       });
       return response.data;
     },
-    enabled: Boolean(effectiveSelectedWorkspaceId),
+    enabled: Boolean(effectiveSelectedWorkspaceId && payoutsEnabled),
     staleTime: 15_000,
   });
 
@@ -247,7 +262,7 @@ export function PartnerOperationsConsole() {
       });
       return response.data;
     },
-    enabled: Boolean(effectiveSelectedWorkspaceId),
+    enabled: Boolean(effectiveSelectedWorkspaceId && payoutsEnabled),
     staleTime: 15_000,
   });
 

@@ -7,6 +7,7 @@ from aiogram import F, Router
 from aiogram.types import LabeledPrice
 
 from src.states.subscription import SubscriptionState
+from src.utils.telegram import callback_data, callback_message, message_user_id
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -63,7 +64,7 @@ async def payment_method_selected_handler(
         await state.clear()
         return
 
-    payment_method = callback.data.split(":")[1]
+    payment_method = callback_data(callback).split(":")[1]
     user_id = callback.from_user.id
     data = await state.get_data()
     checkout_payload = dict(data.get("checkout_payload") or {})
@@ -108,7 +109,7 @@ async def payment_method_selected_handler(
             )
             await state.set_state(SubscriptionState.processing_payment)
 
-            await callback.message.answer_invoice(
+            await callback_message(callback).answer_invoice(
                 title=str(invoice.get("title") or data.get("plan_name") or "CyberVPN subscription"),
                 description=str(invoice.get("description") or "Telegram Stars payment"),
                 payload=invoice_payload,
@@ -131,19 +132,19 @@ async def payment_method_selected_handler(
             return
 
         payment = await api_client.commit_checkout(user_id, checkout_payload)
-        payment_id = payment.get("payment_id")
+        payment_id = str(payment.get("payment_id") or "")
         status = payment.get("status")
         invoice = payment.get("invoice") or {}
 
         await state.update_data(payment_id=payment_id, checkout_payload=checkout_payload)
 
         if status == "completed":
-            await callback.message.edit_text(text=i18n.get("payment-success"))
+            await callback_message(callback).edit_text(text=i18n.get("payment-success"))
             await state.clear()
 
             from src.keyboards.config import config_delivery_keyboard
 
-            await callback.message.answer(
+            await callback_message(callback).answer(
                 text=i18n.get("config-delivery-prompt"),
                 reply_markup=config_delivery_keyboard(i18n),
             )
@@ -166,7 +167,7 @@ async def payment_method_selected_handler(
                     ],
                 ]
             )
-            await callback.message.edit_text(
+            await callback_message(callback).edit_text(
                 text=i18n.get("payment-external-instructions"),
                 reply_markup=keyboard,
             )
@@ -199,7 +200,7 @@ async def check_payment_status_handler(
         await state.clear()
         return
 
-    parts = callback.data.split(":")
+    parts = callback_data(callback).split(":")
     payment_id = parts[2] if len(parts) > 2 else None
     if not payment_id:
         payment_id = (await state.get_data()).get("payment_id")
@@ -215,12 +216,12 @@ async def check_payment_status_handler(
         status = payment.get("status")
 
         if status == "completed":
-            await callback.message.edit_text(text=i18n.get("payment-success"))
+            await callback_message(callback).edit_text(text=i18n.get("payment-success"))
             await state.clear()
 
             from src.keyboards.config import config_delivery_keyboard
 
-            await callback.message.answer(
+            await callback_message(callback).answer(
                 text=i18n.get("config-delivery-prompt"),
                 reply_markup=config_delivery_keyboard(i18n),
             )
@@ -228,7 +229,7 @@ async def check_payment_status_handler(
         elif status == "pending":
             await callback.answer(i18n.get("payment-pending"), show_alert=True)
         elif status in {"failed", "cancelled", "expired"}:
-            await callback.message.edit_text(text=i18n.get("payment-failed"))
+            await callback_message(callback).edit_text(text=i18n.get("payment-failed"))
             await state.clear()
             logger.warning("payment_failed", user_id=user_id, payment_id=payment_id, status=status)
         else:
@@ -296,12 +297,12 @@ async def successful_payment_handler(
         return
 
     payment_id, telegram_id = parsed_payload
-    if telegram_id != message.from_user.id:
+    if telegram_id != message_user_id(message):
         logger.warning(
             "successful_payment_user_mismatch",
             payment_id=payment_id,
             expected_telegram_id=telegram_id,
-            actual_telegram_id=message.from_user.id,
+            actual_telegram_id=message_user_id(message),
         )
         await message.answer(i18n.get("payment-status-unknown"))
         return

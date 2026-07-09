@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 import respx
-from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import User
 
@@ -26,6 +25,8 @@ from src.states.subscription import SubscriptionStates
 from tests.conftest import create_fsm_context
 
 if TYPE_CHECKING:
+    from aiogram import Bot, Dispatcher
+
     from src.config import BotSettings
     from src.services.api_client import CyberVPNAPIClient
 
@@ -190,7 +191,7 @@ async def test_full_subscription_flow_success(
         await state.update_data(user_id=test_user.id)
 
         # Simulate plan selection callback
-        callback_data = await state.get_data()
+        await state.get_data()
         assert await state.get_state() == SubscriptionStates.selecting_plan
 
         # Step 2: Plan selected -> selecting duration

@@ -51,9 +51,9 @@ class CreateServerRequest(BaseModel):
 class UpdateServerRequest(BaseModel):
     """Request schema for updating a server."""
 
-    name: str | None = Field(None, min_length=1, max_length=100)
-    address: str | None = Field(None, min_length=1, max_length=255)
-    port: int | None = Field(None, ge=1, le=65535)
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    address: str | None = Field(default=None, min_length=1, max_length=255)
+    port: int | None = Field(default=None, ge=1, le=65535)
 
     @field_validator("address")
     @classmethod

@@ -100,6 +100,7 @@ async def create_order_from_checkout(
     return _serialize_order(order)
 
 
+@router.get("", response_model=list[OrderResponse], include_in_schema=False)
 @router.get("/", response_model=list[OrderResponse])
 async def list_orders(
     limit: int = Query(50, ge=1, le=100),

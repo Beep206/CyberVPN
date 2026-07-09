@@ -22,4 +22,3 @@ class WorkflowEngineTests(unittest.TestCase):
         self.assertEqual(steps[0].step_name, "evaluate_guardrails")
         self.assertEqual(steps[1].step_name, "create_parallel_capacity")
         self.assertEqual(steps[2].step_name, "canary_traffic_shift")
-

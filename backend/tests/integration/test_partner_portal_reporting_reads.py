@@ -1049,6 +1049,51 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                 for note in cases_payload["payout_dispute"]["notes"]
             )
 
+            admin_programs_response = await async_client.get(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/programs",
+                headers=support_headers,
+            )
+            assert admin_programs_response.status_code == 200
+            admin_programs_payload = admin_programs_response.json()
+            assert admin_programs_payload["canonical_source"] == "pilot_cohorts"
+            assert admin_programs_payload["primary_lane_key"] is None
+            assert len(admin_programs_payload["lane_memberships"]) >= 1
+            assert len(admin_programs_payload["readiness_items"]) >= 1
+
+            admin_codes_response = await async_client.get(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/codes",
+                headers=admin_headers,
+            )
+            assert admin_codes_response.status_code == 200
+            admin_codes_payload = {item["code"]: item for item in admin_codes_response.json()}
+            assert admin_codes_payload["REPORT42"]["partner_account_id"] == workspace_id
+            assert admin_codes_payload["REPORT42"]["is_active"] is True
+
+            support_admin_codes_response = await async_client.get(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/codes",
+                headers=support_headers,
+            )
+            assert support_admin_codes_response.status_code == 403
+
+            admin_review_requests_response = await async_client.get(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/review-requests",
+                headers=support_headers,
+            )
+            assert admin_review_requests_response.status_code == 200
+            admin_review_requests_payload = {item["kind"]: item for item in admin_review_requests_response.json()}
+            assert admin_review_requests_payload["business_profile"]["status"] == "open"
+            assert admin_review_requests_payload["finance_profile"]["status"] == "open"
+
+            admin_cases_response = await async_client.get(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/cases",
+                headers=support_headers,
+            )
+            assert admin_cases_response.status_code == 200
+            admin_cases_payload = {item["kind"]: item for item in admin_cases_response.json()}
+            assert "requested_info" in admin_cases_payload
+            assert "finance_onboarding" in admin_cases_payload
+            assert "payout_dispute" in admin_cases_payload
+
             support_ops_response = await async_client.get(
                 f"/api/v1/admin/partner-workspaces/{workspace_id}/ops-overview",
                 headers=support_headers,

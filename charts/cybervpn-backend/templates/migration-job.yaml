@@ -17,6 +17,8 @@ spec:
     spec:
       restartPolicy: OnFailure
       serviceAccountName: {{ include "cybervpn-backend.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       imagePullSecrets:
         {{- range .Values.imagePullSecrets }}
         - name: {{ .name }}
@@ -25,6 +27,8 @@ spec:
         - name: migrate
           image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           command:
             {{- toYaml .Values.migrationJob.command | nindent 12 }}
           envFrom:

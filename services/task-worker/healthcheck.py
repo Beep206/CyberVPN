@@ -46,7 +46,7 @@ def main() -> int:
 
     if not all_healthy:
         failed = [name for name, status in checks.items() if not status]
-        print(f"Health check failed: {', '.join(failed)}", file=sys.stderr)
+        sys.stderr.write(f"Health check failed: {', '.join(failed)}\n")
 
     return 0 if all_healthy else 1
 

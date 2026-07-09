@@ -167,7 +167,9 @@ class FleetRequestRepository:
         return [self._operation_step_from_model(model) for model in result.scalars().all()]
 
     async def update_request_status(self, request_id: str, status: RequestStatus) -> FleetRequestRecord | None:
-        result = await self._session.execute(select(FleetRequestModel).where(FleetRequestModel.request_id == request_id))
+        result = await self._session.execute(
+            select(FleetRequestModel).where(FleetRequestModel.request_id == request_id)
+        )
         model = result.scalar_one_or_none()
         if model is None:
             return None
@@ -537,7 +539,9 @@ class FleetRequestRepository:
         return token
 
     async def mark_bootstrap_token_consumed(self, token_id: str, *, consumed_at) -> BootstrapTokenRecord | None:
-        result = await self._session.execute(select(BootstrapTokenModel).where(BootstrapTokenModel.token_id == token_id))
+        result = await self._session.execute(
+            select(BootstrapTokenModel).where(BootstrapTokenModel.token_id == token_id)
+        )
         model = result.scalar_one_or_none()
         if model is None:
             return None
@@ -735,17 +739,6 @@ class FleetRequestRepository:
         model.last_evaluated_at = eligibility.last_evaluated_at
         await self._session.flush()
         return self._traffic_eligibility_from_model(model)
-
-    async def update_request_status(self, request_id: str, status: RequestStatus) -> FleetRequestRecord | None:
-        result = await self._session.execute(
-            select(FleetRequestModel).where(FleetRequestModel.request_id == request_id)
-        )
-        model = result.scalar_one_or_none()
-        if model is None:
-            return None
-        model.status = status.value
-        await self._session.flush()
-        return self._request_from_model(model)
 
     async def count_failover_requests_since(
         self,

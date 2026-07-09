@@ -14,13 +14,13 @@ class CreateGrowthRewardAllocationRequest(BaseModel):
     reward_type: GrowthRewardType
     beneficiary_user_id: UUID
     quantity: Decimal | None = None
-    unit: str | None = Field(None, min_length=1, max_length=20)
-    currency_code: str | None = Field(None, min_length=1, max_length=12)
+    unit: str | None = Field(default=None, min_length=1, max_length=20)
+    currency_code: str | None = Field(default=None, min_length=1, max_length=12)
     storefront_id: UUID | None = None
     order_id: UUID | None = None
     invite_code_id: UUID | None = None
     referral_commission_id: UUID | None = None
-    source_key: str | None = Field(None, min_length=1, max_length=160)
+    source_key: str | None = Field(default=None, min_length=1, max_length=160)
     reward_payload: dict[str, Any] = Field(default_factory=dict)
     allocated_at: datetime | None = None
 

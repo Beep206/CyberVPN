@@ -15,6 +15,7 @@ from .schemas import CreateOfferRequest, OfferResponse
 router = APIRouter(prefix="/offers", tags=["offers"])
 
 
+@router.get("", response_model=list[OfferResponse], include_in_schema=False)
 @router.get("/", response_model=list[OfferResponse])
 async def list_offers(
     sale_channel: str | None = Query(None),

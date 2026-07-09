@@ -29,12 +29,7 @@ class _I18nStub:
 
 def _callback_data(reply_markup: object) -> set[str]:
     keyboard = getattr(reply_markup, "inline_keyboard", [])
-    return {
-        button.callback_data
-        for row in keyboard
-        for button in row
-        if getattr(button, "callback_data", None)
-    }
+    return {button.callback_data for row in keyboard for button in row if getattr(button, "callback_data", None)}
 
 
 def _web_app_urls(reply_markup: object) -> list[str]:
@@ -255,6 +250,8 @@ async def test_growth_code_callback_reuses_code_fsm_prompt() -> None:
     callback.data = "growth:code"
     callback.from_user = User(id=123456, is_bot=False, first_name="Test")
     callback.message = MagicMock(spec=Message)
+    callback.message.chat = type("Chat", (), {"id": 123456, "type": "private"})()
+    callback.message.answer = AsyncMock()
     callback.message.edit_text = AsyncMock()
     callback.answer = AsyncMock()
     state = MagicMock(spec=FSMContext)

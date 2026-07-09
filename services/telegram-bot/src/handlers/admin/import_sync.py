@@ -4,9 +4,11 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
+
+from src.utils.telegram import callback_message
 
 if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -52,7 +54,7 @@ async def import_menu_handler(
         )
     )
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-import-title"),
         reply_markup=builder.as_markup(),
     )
@@ -78,7 +80,7 @@ async def import_users_handler(
         skipped_count = result.get("skipped_count", 0)
         errors_count = result.get("errors_count", 0)
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get(
                 "admin-import-users-completed",
                 imported=imported_count,
@@ -97,7 +99,7 @@ async def import_users_handler(
 
     except Exception as e:
         logger.error("admin_import_users_error", admin_id=callback.from_user.id, error=str(e))
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("admin-import-users-failed", error=str(e)),
         )
 
@@ -119,7 +121,7 @@ async def import_subscriptions_handler(
         updated_count = result.get("updated_count", 0)
         errors_count = result.get("errors_count", 0)
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get(
                 "admin-import-subscriptions-completed",
                 imported=imported_count,
@@ -138,7 +140,7 @@ async def import_subscriptions_handler(
 
     except Exception as e:
         logger.error("admin_import_subscriptions_error", admin_id=callback.from_user.id, error=str(e))
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("admin-import-subscriptions-failed", error=str(e)),
         )
 
@@ -173,7 +175,7 @@ async def sync_remnawave_handler(
             for error in errors[:5]:  # Show first 5 errors
                 sync_text += f"- {error}\n"
 
-        await callback.message.edit_text(text=sync_text)
+        await callback_message(callback).edit_text(text=sync_text)
 
         logger.info(
             "admin_remnawave_synced",
@@ -186,7 +188,7 @@ async def sync_remnawave_handler(
 
     except Exception as e:
         logger.error("admin_sync_remnawave_error", admin_id=callback.from_user.id, error=str(e))
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("admin-import-sync-failed", error=str(e)),
         )
 
@@ -232,7 +234,7 @@ async def import_status_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=status_text,
             reply_markup=builder.as_markup(),
         )

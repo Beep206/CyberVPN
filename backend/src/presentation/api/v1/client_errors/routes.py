@@ -31,19 +31,19 @@ MiniAppClientErrorEventType = Literal[
 
 
 class MiniAppClientErrorRequest(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     surface: Literal["miniapp"] = "miniapp"
-    route: str = Field("/", max_length=256)
-    telegram_platform: str | None = Field(None, max_length=40)
-    telegram_version: str | None = Field(None, max_length=40)
-    webapp_version: str | None = Field(None, max_length=40)
-    error_name: str = Field("Error", max_length=80)
-    error_message: str = Field("", max_length=500)
+    route: str = Field(default="/", max_length=256)
+    telegram_platform: str | None = Field(default=None, max_length=40)
+    telegram_version: str | None = Field(default=None, max_length=40)
+    webapp_version: str | None = Field(default=None, max_length=40)
+    error_name: str = Field(default="Error", max_length=80)
+    error_message: str = Field(default="", max_length=500)
     event_type: MiniAppClientErrorEventType = "miniapp_webview_js_error"
-    chunk: str | None = Field(None, max_length=160)
-    release: str | None = Field(None, max_length=120)
-    git_sha: str | None = Field(None, max_length=80)
+    chunk: str | None = Field(default=None, max_length=160)
+    release: str | None = Field(default=None, max_length=120)
+    git_sha: str | None = Field(default=None, max_length=80)
 
 
 class MiniAppClientErrorAck(BaseModel):

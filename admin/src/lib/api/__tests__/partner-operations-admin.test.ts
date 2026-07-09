@@ -6,10 +6,18 @@ import { partnerOperationsApi } from '../partner-operations';
 const MATCH_ANY_API_ORIGIN = {
   adminPartnerWorkspaces: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-workspaces(?:\?.*)?$/,
   adminPartnerWorkspaceById: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-workspaces\/[^/]+$/,
+  adminPartnerWorkspacePrograms: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-workspaces\/[^/]+\/programs$/,
+  adminPartnerWorkspaceCodes: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-workspaces\/[^/]+\/codes$/,
+  adminPartnerWorkspaceReviewRequests:
+    /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-workspaces\/[^/]+\/review-requests$/,
+  adminPartnerWorkspaceCases: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-workspaces\/[^/]+\/cases$/,
   adminPartnerApplications: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-applications(?:\?.*)?$/,
   adminPartnerApplicationByWorkspace: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-applications\/[^/]+$/,
   adminApproveProbation: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-applications\/[^/]+\/approve-probation$/,
   adminLaneApprove: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/partner-applications\/[^/]+\/lane-applications\/[^/]+\/approve(?:\?.*)?$/,
+  trafficDeclarations: /https?:\/\/localhost(?::\d+)?\/api\/v1\/traffic-declarations\/(?:\?.*)?$/,
+  creativeApprovals: /https?:\/\/localhost(?::\d+)?\/api\/v1\/creative-approvals\/(?:\?.*)?$/,
+  partnerPayoutAccounts: /https?:\/\/localhost(?::\d+)?\/api\/v1\/partner-payout-accounts\/(?:\?.*)?$/,
   partnerPayoutAccountVerify: /https?:\/\/localhost(?::\d+)?\/api\/v1\/partner-payout-accounts\/[^/]+\/verify$/,
   payoutInstructions: /https?:\/\/localhost(?::\d+)?\/api\/v1\/payouts\/instructions(?:\?.*)?$/,
 };
@@ -160,6 +168,171 @@ describe('partnerOperationsApi', () => {
     expect(listResponse.data[0]?.workspace.display_name).toBe('Nebula Affiliates');
     expect(detailResponse.status).toBe(200);
     expect(detailResponse.data.draft.draft_payload.primary_lane).toBe('creator_affiliate');
+  });
+
+  it('loads workspace drilldown through admin-safe read endpoints', async () => {
+    const requestedPaths: string[] = [];
+
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.adminPartnerWorkspacePrograms, ({ request }) => {
+        requestedPaths.push(new URL(request.url).pathname);
+        return HttpResponse.json({
+          canonical_source: 'admin_workspace',
+          primary_lane_key: 'creator_affiliate',
+          lane_memberships: [
+            {
+              lane_key: 'creator_affiliate',
+              membership_status: 'active',
+              owner_context_label: 'Admin reviewed',
+              activated_at: '2026-04-20T10:00:00Z',
+              updated_at: '2026-04-20T10:00:00Z',
+            },
+          ],
+          readiness_items: [],
+          updated_at: '2026-04-20T10:00:00Z',
+        });
+      }),
+      http.get(MATCH_ANY_API_ORIGIN.adminPartnerWorkspaceCodes, ({ request }) => {
+        requestedPaths.push(new URL(request.url).pathname);
+        return HttpResponse.json([
+          {
+            id: '11111111-1111-4111-8111-111111111111',
+            partner_account_id: 'workspace_005',
+            partner_user_id: null,
+            code: 'ADMINOPS',
+            code_normalized: 'ADMINOPS',
+            masked_code: 'ADM***OPS',
+            markup_pct: 7.5,
+            is_active: true,
+            lifecycle_status: 'active',
+            approval_status: 'approved',
+            owner_type: 'affiliate',
+            lane_key: 'creator_affiliate',
+            attribution_model: 'last_eligible_touch',
+            attribution_window_seconds: 2592000,
+            share_url: 'https://cyber-vpn.net/p/ADMINOPS',
+            default_destination_url: 'https://cyber-vpn.net/',
+            destination_path: null,
+            allowed_channels: ['content'],
+            allowed_storefront_ids: ['*'],
+            allowed_geographies: ['*'],
+            sub_id_schema: {},
+            policy_version_id: null,
+            commission_contract_id: null,
+            active_from: null,
+            expires_at: null,
+            paused_at: null,
+            revoked_at: null,
+            version: 1,
+            available_actions: ['pause'],
+            created_at: '2026-04-20T10:00:00Z',
+            updated_at: '2026-04-20T10:00:00Z',
+          },
+        ]);
+      }),
+      http.get(MATCH_ANY_API_ORIGIN.adminPartnerWorkspaceReviewRequests, ({ request }) => {
+        requestedPaths.push(new URL(request.url).pathname);
+        return HttpResponse.json([
+          {
+            id: 'review_001',
+            kind: 'application_info',
+            due_date: '2026-04-22T10:00:00Z',
+            status: 'open',
+            available_actions: ['submit_response'],
+            thread_events: [],
+          },
+        ]);
+      }),
+      http.get(MATCH_ANY_API_ORIGIN.adminPartnerWorkspaceCases, ({ request }) => {
+        requestedPaths.push(new URL(request.url).pathname);
+        return HttpResponse.json([
+          {
+            id: 'case_001',
+            kind: 'finance',
+            status: 'waiting_on_ops',
+            updated_at: '2026-04-20T10:00:00Z',
+            notes: ['Manual payout review'],
+            available_actions: ['submit_response'],
+            thread_events: [],
+          },
+        ]);
+      }),
+    );
+
+    const [programs, codes, reviewRequests, cases] = await Promise.all([
+      partnerOperationsApi.getWorkspacePrograms('workspace_005'),
+      partnerOperationsApi.listWorkspaceCodes('workspace_005'),
+      partnerOperationsApi.listWorkspaceReviewRequests('workspace_005'),
+      partnerOperationsApi.listWorkspaceCases('workspace_005'),
+    ]);
+
+    expect(programs.data.primary_lane_key).toBe('creator_affiliate');
+    expect(codes.data[0]?.code).toBe('ADMINOPS');
+    expect(reviewRequests.data[0]?.status).toBe('open');
+    expect(cases.data[0]?.status).toBe('waiting_on_ops');
+    expect(requestedPaths).toEqual([
+      '/api/v1/admin/partner-workspaces/workspace_005/programs',
+      '/api/v1/admin/partner-workspaces/workspace_005/codes',
+      '/api/v1/admin/partner-workspaces/workspace_005/review-requests',
+      '/api/v1/admin/partner-workspaces/workspace_005/cases',
+    ]);
+  });
+
+  it('uses canonical collection roots for partner governance and payout reads', async () => {
+    const requestedPaths: string[] = [];
+    const requestedPartnerAccountIds: string[] = [];
+
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.trafficDeclarations, ({ request }) => {
+        const url = new URL(request.url);
+        requestedPaths.push(url.pathname);
+        requestedPartnerAccountIds.push(url.searchParams.get('partner_account_id') ?? '');
+
+        return HttpResponse.json([]);
+      }),
+      http.get(MATCH_ANY_API_ORIGIN.creativeApprovals, ({ request }) => {
+        const url = new URL(request.url);
+        requestedPaths.push(url.pathname);
+        requestedPartnerAccountIds.push(url.searchParams.get('partner_account_id') ?? '');
+
+        return HttpResponse.json([]);
+      }),
+      http.get(MATCH_ANY_API_ORIGIN.partnerPayoutAccounts, ({ request }) => {
+        const url = new URL(request.url);
+        requestedPaths.push(url.pathname);
+        requestedPartnerAccountIds.push(url.searchParams.get('partner_account_id') ?? '');
+
+        return HttpResponse.json([]);
+      }),
+    );
+
+    const [trafficResponse, creativeResponse, payoutAccountsResponse] = await Promise.all([
+      partnerOperationsApi.listTrafficDeclarations({
+        partner_account_id: 'workspace_005',
+        limit: 20,
+        offset: 0,
+      }),
+      partnerOperationsApi.listCreativeApprovals({
+        partner_account_id: 'workspace_005',
+        limit: 20,
+        offset: 0,
+      }),
+      partnerOperationsApi.listPayoutAccounts({
+        partner_account_id: 'workspace_005',
+        limit: 20,
+        offset: 0,
+      }),
+    ]);
+
+    expect(trafficResponse.status).toBe(200);
+    expect(creativeResponse.status).toBe(200);
+    expect(payoutAccountsResponse.status).toBe(200);
+    expect(requestedPaths).toEqual([
+      '/api/v1/traffic-declarations/',
+      '/api/v1/creative-approvals/',
+      '/api/v1/partner-payout-accounts/',
+    ]);
+    expect(requestedPartnerAccountIds).toEqual(['workspace_005', 'workspace_005', 'workspace_005']);
   });
 
   it('submits admin application and lane approval actions', async () => {

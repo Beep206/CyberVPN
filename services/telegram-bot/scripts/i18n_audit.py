@@ -170,11 +170,7 @@ def parse_ftl_file(path: Path) -> tuple[dict[str, MessageInfo], list[str]]:
             continue
 
         variables = sorted(
-            {
-                item.id.name
-                for item in walk_fluent(entry)
-                if isinstance(item, fluent_ast.VariableReference)
-            }
+            {item.id.name for item in walk_fluent(entry) if isinstance(item, fluent_ast.VariableReference)}
         )
         key = entry.id.name
         messages[key] = MessageInfo(
@@ -201,7 +197,7 @@ def locale_contract(locale: str) -> tuple[dict[str, dict[str, MessageInfo]], lis
 
 def flatten_contract(contract: Mapping[str, Mapping[str, MessageInfo]]) -> dict[str, MessageInfo]:
     flat: dict[str, MessageInfo] = {}
-    for filename, messages in contract.items():
+    for messages in contract.values():
         for key, info in messages.items():
             if key in flat:
                 raise ValueError(f"duplicate message id across FTL files: {key}")
@@ -315,8 +311,7 @@ def build_bundle(locale: str) -> tuple[FluentBundle | None, list[str]]:
     for path in sorted(locale_dir.glob("*.ftl")):
         resource = FluentResource(path.read_text(encoding="utf-8"))
         errors = bundle.add_resource(resource) or []
-        for error in errors:
-            failures.append(f"{path.relative_to(ROOT)}: {error}")
+        failures.extend(f"{path.relative_to(ROOT)}: {error}" for error in errors)
     return bundle, failures
 
 
@@ -346,16 +341,13 @@ def validate_telegram_html(text: str, *, location: str) -> list[str]:
             if not stack:
                 failures.append(f"{location}: closing tag </{raw_name}> without opening tag")
             elif stack[-1] != tag:
-                failures.append(
-                    f"{location}: closing tag </{raw_name}> does not match <{stack[-1]}>"
-                )
+                failures.append(f"{location}: closing tag </{raw_name}> does not match <{stack[-1]}>")
             else:
                 stack.pop()
         else:
             stack.append(tag)
 
-    for tag in reversed(stack):
-        failures.append(f"{location}: unclosed Telegram HTML tag <{tag}>")
+    failures.extend(f"{location}: unclosed Telegram HTML tag <{tag}>" for tag in reversed(stack))
 
     return failures
 
@@ -378,17 +370,14 @@ def check_primary_parity(
         missing_keys = sorted(set(en_messages) - set(ru_messages))
         extra_keys = sorted(set(ru_messages) - set(en_messages))
         if missing_keys or extra_keys:
-            failures.append(
-                f"ru/en key parity failed in {filename}: missing={missing_keys} extra={extra_keys}"
-            )
+            failures.append(f"ru/en key parity failed in {filename}: missing={missing_keys} extra={extra_keys}")
 
         for key in sorted(set(en_messages) & set(ru_messages)):
             expected = en_messages[key].variables
             actual = ru_messages[key].variables
             if actual != expected:
                 failures.append(
-                    f"ru/en variable parity failed in {filename}/{key}: "
-                    f"en={list(expected)} ru={list(actual)}"
+                    f"ru/en variable parity failed in {filename}/{key}: en={list(expected)} ru={list(actual)}"
                 )
 
     return failures
@@ -464,8 +453,7 @@ def check_runtime_and_tags(
         for filename, messages in sorted(contract.items()):
             for key, info in sorted(messages.items()):
                 text, format_errors = format_message(bundle, key, info.variables)
-                for error in format_errors:
-                    failures.append(f"{locale}/{filename}/{key}: runtime format error: {error}")
+                failures.extend(f"{locale}/{filename}/{key}: runtime format error: {error}" for error in format_errors)
                 if text is None:
                     continue
                 failures.extend(
@@ -487,9 +475,7 @@ def main() -> int:
         contracts[locale], locale_failures = locale_contract(locale)
         failures.extend(locale_failures)
 
-    for locale in PRIMARY_LOCALES:
-        if locale not in contracts:
-            failures.append(f"primary locale is missing: {locale}")
+    failures.extend(f"primary locale is missing: {locale}" for locale in PRIMARY_LOCALES if locale not in contracts)
 
     if all(locale in contracts for locale in PRIMARY_LOCALES):
         failures.extend(check_primary_parity(contracts))
@@ -515,27 +501,14 @@ def main() -> int:
     failures.extend(check_locale_visibility(locale_dirs))
     failures.extend(check_runtime_and_tags(contracts))
 
-    total_messages = sum(len(messages) for messages in contracts.get(CONTRACT_LOCALE, {}).values())
-    additional_locales = [locale for locale in locale_dirs if locale not in PRIMARY_LOCALES]
-
-    print("CyberVPN Telegram Bot i18n audit")
-    print(f"- locales visible: {len(locale_dirs)} ({', '.join(locale_dirs)})")
-    print(f"- primary locales: {', '.join(PRIMARY_LOCALES)}")
-    print(f"- en contract messages: {total_messages}")
-    print(f"- audited source keys: {len(used_keys)}")
-    print(f"- additional locales checked for syntax/runtime/placeholders: {len(additional_locales)}")
+    sum(len(messages) for messages in contracts.get(CONTRACT_LOCALE, {}).values())
+    [locale for locale in locale_dirs if locale not in PRIMARY_LOCALES]
 
     if failures:
-        print("\nFAIL")
-        for failure in failures:
-            print(f"- {failure}")
+        for _failure in failures:
+            pass
         return 1
 
-    print("\nPASS")
-    print("- ru/en FTL message IDs and Fluent variables match")
-    print("- used handler/keyboards i18n keys exist in ru/en")
-    print("- Fluent runtime formatting and Telegram HTML tags are valid")
-    print("- non-primary locale directories remain visible without v4 translation gating")
     return 0
 
 

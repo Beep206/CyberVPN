@@ -22,10 +22,10 @@ class CustomerOnboardingApplyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     code: str = Field(..., min_length=1, max_length=64)
-    flow_token: str | None = Field(None, min_length=16, max_length=240)
-    idempotency_key: str | None = Field(None, min_length=1, max_length=120)
+    flow_token: str | None = Field(default=None, min_length=16, max_length=240)
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=120)
     source_surface: Literal["web", "miniapp", "telegram_bot"] = "web"
-    telegram_id: int | None = Field(None, gt=0)
+    telegram_id: int | None = Field(default=None, gt=0)
 
 
 class CustomerOnboardingApplyResponse(BaseModel):
@@ -43,7 +43,7 @@ class CustomerOnboardingPreviewRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     code: str = Field(..., min_length=1, max_length=64)
-    flow_token: str | None = Field(None, min_length=16, max_length=240)
+    flow_token: str | None = Field(default=None, min_length=16, max_length=240)
 
 
 class CustomerOnboardingPreviewResponse(BaseModel):
@@ -75,8 +75,8 @@ class CustomerOnboardingPreviewResponse(BaseModel):
 class CustomerOnboardingSkipRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    flow_token: str | None = Field(None, min_length=16, max_length=240)
-    idempotency_key: str | None = Field(None, min_length=1, max_length=120)
+    flow_token: str | None = Field(default=None, min_length=16, max_length=240)
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class CustomerOnboardingSkipResponse(BaseModel):
@@ -95,8 +95,8 @@ class CustomerOnboardingConnectionInstructionStep(BaseModel):
 
 class CustomerOnboardingConnectionAppRecommendation(BaseModel):
     name: str = Field(..., min_length=1, max_length=80)
-    url: str | None = Field(None, max_length=500)
-    platform_store: str | None = Field(None, max_length=80)
+    url: str | None = Field(default=None, max_length=500)
+    platform_store: str | None = Field(default=None, max_length=80)
 
 
 class CustomerOnboardingConnectionInstruction(BaseModel):
@@ -144,8 +144,8 @@ class CustomerOnboardingConnectionBootstrapResponse(BaseModel):
     qr_payload: str | None = None
     config_profile_name: str | None = None
     expires_at: str | None = None
-    device_limit: int | None = Field(None, ge=0)
-    traffic_limit_bytes: int | None = Field(None, ge=0)
+    device_limit: int | None = Field(default=None, ge=0)
+    traffic_limit_bytes: int | None = Field(default=None, ge=0)
     instructions: list[CustomerOnboardingConnectionInstruction] = Field(default_factory=list)
     surface: Literal["web", "miniapp", "telegram_bot"] = "web"
     preferred_layout: Literal["desktop_panel", "mobile_panel", "bot_messages"] = "desktop_panel"
@@ -160,11 +160,11 @@ class MarkOnboardingConnectionConnectedRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     connection_session_id: str = Field(..., min_length=1, max_length=80)
-    flow_key: str | None = Field(None, min_length=1, max_length=80)
-    version: int | None = Field(None, ge=1)
+    flow_key: str | None = Field(default=None, min_length=1, max_length=80)
+    version: int | None = Field(default=None, ge=1)
     platform: Literal["ios", "android", "windows", "macos", "linux", "unknown"] | None = "unknown"
     source_surface: Literal["web", "miniapp", "telegram_bot"] = "web"
-    telegram_id: int | None = Field(None, gt=0)
+    telegram_id: int | None = Field(default=None, gt=0)
 
 
 class MarkOnboardingConnectionConnectedResponse(BaseModel):

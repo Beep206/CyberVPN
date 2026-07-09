@@ -16,6 +16,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { offersApi } from '@/lib/api/offers';
+import { invalidateAdminCommerceCatalogState } from '@/shared/lib/admin-query-invalidation';
 import {
   pricebooksApi,
   type AdminCommercialPricebookRecord,
@@ -162,9 +163,7 @@ export function PricebooksConsole() {
   const createMutation = useMutation({
     mutationFn: (payload: CreatePricebookRequest) => pricebooksApi.create(payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['commerce', 'pricebooks'],
-      });
+      await invalidateAdminCommerceCatalogState(queryClient);
       setIsCreateOpen(false);
       setErrorMessage(null);
     },
@@ -212,9 +211,7 @@ export function PricebooksConsole() {
       setActionTarget(null);
       setSelectedPricebookId(response.data.pricebook.id);
       setErrorMessage(null);
-      await queryClient.invalidateQueries({
-        queryKey: ['commerce', 'pricebooks'],
-      });
+      await invalidateAdminCommerceCatalogState(queryClient);
     },
     onError: (error) => {
       setErrorMessage(

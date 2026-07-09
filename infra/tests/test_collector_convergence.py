@@ -24,7 +24,7 @@ class CollectorConvergenceTests(unittest.TestCase):
             (repo_root / "services" / "foo").mkdir(parents=True, exist_ok=True)
             (repo_root / "docs" / "plans").mkdir(parents=True, exist_ok=True)
 
-            (repo_root / "infra" / "docker-compose.yml").write_text("promtail:\n  image: grafana/promtail:3.4.2\n", encoding="utf-8")
+            (repo_root / "infra" / "docker-compose.yml").write_text("promtail:\n  image: grafana/promtail:3.6.11\n", encoding="utf-8")
             (repo_root / "docs" / "plans" / "legacy.md").write_text("otel-collector remains here for legacy notes\n", encoding="utf-8")
             (repo_root / "services" / "foo" / "config.py").write_text("OTEL = 'http://otel-collector:4317'\n", encoding="utf-8")
 

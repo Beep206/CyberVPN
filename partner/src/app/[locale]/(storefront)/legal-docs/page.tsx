@@ -52,7 +52,7 @@ export default async function StorefrontLegalRoute({
       labels={{
         eyebrow: t('eyebrow'),
         title: t('title', { brandName: surfaceContext.brandName }),
-        subtitle: t('subtitle'),
+        subtitle: t.raw('subtitle') as string,
         required: t('required'),
         optional: t('optional'),
         checkoutCta: t('checkoutCta'),

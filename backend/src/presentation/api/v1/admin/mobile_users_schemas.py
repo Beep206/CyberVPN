@@ -55,11 +55,11 @@ class AdminMobileUserDetailResponse(AdminMobileUserListItemResponse):
 
 
 class AdminUpdateMobileUserRequest(BaseModel):
-    email: str | None = Field(None, max_length=255)
-    username: str | None = Field(None, max_length=50)
+    email: str | None = Field(default=None, max_length=255)
+    username: str | None = Field(default=None, max_length=50)
     telegram_id: int | None = None
-    telegram_username: str | None = Field(None, max_length=100)
-    referral_code: str | None = Field(None, max_length=12)
+    telegram_username: str | None = Field(default=None, max_length=100)
+    referral_code: str | None = Field(default=None, max_length=12)
     status: str | None = None
     is_active: bool | None = None
 

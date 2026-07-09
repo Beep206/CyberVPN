@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GrowthCampaignsConsole } from '../growth-campaigns-console';
@@ -113,11 +113,18 @@ describe('GrowthCampaignsConsole', () => {
     await screen.findByText('PR-PRO100-INV10');
     const createForm = getCreateForm();
 
-    await user.type(within(createForm).getByLabelText('campaigns.fields.campaignKey'), 'SUMMER-100');
-    await user.type(within(createForm).getByLabelText('campaigns.fields.name'), 'Summer promo');
-    await user.clear(within(createForm).getByLabelText('campaigns.fields.priority'));
-    await user.type(within(createForm).getByLabelText('campaigns.fields.priority'), '20');
-    await user.type(within(createForm).getByLabelText('campaigns.fields.stackingGroup'), 'summer');
+    fireEvent.change(within(createForm).getByLabelText('campaigns.fields.campaignKey'), {
+      target: { value: 'SUMMER-100' },
+    });
+    fireEvent.change(within(createForm).getByLabelText('campaigns.fields.name'), {
+      target: { value: 'Summer promo' },
+    });
+    fireEvent.change(within(createForm).getByLabelText('campaigns.fields.priority'), {
+      target: { value: '20' },
+    });
+    fireEvent.change(within(createForm).getByLabelText('campaigns.fields.stackingGroup'), {
+      target: { value: 'summer' },
+    });
     await user.click(within(createForm).getByRole('button', { name: /campaigns.createAction/ }));
 
     await waitFor(() => {

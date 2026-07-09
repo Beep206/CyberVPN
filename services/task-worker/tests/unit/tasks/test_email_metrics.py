@@ -115,9 +115,12 @@ async def test_send_otp_email_emits_success_metrics():
         status="success",
     )
 
-    with patch("src.tasks.email.send_otp.get_settings", return_value=settings), patch(
-        "src.tasks.email.send_otp.SmtpClient",
-        _SuccessfulSmtpClient,
+    with (
+        patch("src.tasks.email.send_otp.get_settings", return_value=settings),
+        patch(
+            "src.tasks.email.send_otp.SmtpClient",
+            _SuccessfulSmtpClient,
+        ),
     ):
         result = await send_otp_email.original_func(
             email="metrics@example.com",
@@ -168,10 +171,14 @@ async def test_send_otp_uses_resend_only_for_explicit_fallback_policy():
     settings.resend_api_key.get_secret_value.return_value = "ValidResendProviderToken"
     settings.magic_link_base_url = "https://cyber-vpn.net"
 
-    with patch("src.tasks.email.send_otp.get_settings", return_value=settings), patch(
-        "src.tasks.email.send_otp.ResendClient",
-        _SuccessfulResendClient,
-    ), patch("src.tasks.email.send_otp.SmtpClient", _UnexpectedApiClient):
+    with (
+        patch("src.tasks.email.send_otp.get_settings", return_value=settings),
+        patch(
+            "src.tasks.email.send_otp.ResendClient",
+            _SuccessfulResendClient,
+        ),
+        patch("src.tasks.email.send_otp.SmtpClient", _UnexpectedApiClient),
+    ):
         result = await send_otp_email.original_func(
             email="metrics@example.com",
             otp_code="123456",
@@ -193,10 +200,14 @@ async def test_send_otp_resend_request_stays_on_smtp_without_fallback_policy():
     settings.email_resend_fallback_enabled = False
     settings.magic_link_base_url = "https://cyber-vpn.net"
 
-    with patch("src.tasks.email.send_otp.get_settings", return_value=settings), patch(
-        "src.tasks.email.send_otp.SmtpClient",
-        _SuccessfulSmtpClient,
-    ), patch("src.tasks.email.send_otp.ResendClient", _UnexpectedApiClient):
+    with (
+        patch("src.tasks.email.send_otp.get_settings", return_value=settings),
+        patch(
+            "src.tasks.email.send_otp.SmtpClient",
+            _SuccessfulSmtpClient,
+        ),
+        patch("src.tasks.email.send_otp.ResendClient", _UnexpectedApiClient),
+    ):
         result = await send_otp_email.original_func(
             email="metrics@example.com",
             otp_code="123456",
@@ -379,9 +390,12 @@ async def test_send_magic_link_email_emits_success_metrics():
 
     magic_link_value = "magic-" + "token"
 
-    with patch("src.tasks.email.send_magic_link.get_settings", return_value=settings), patch(
-        "src.tasks.email.send_magic_link.SmtpClient",
-        _SuccessfulSmtpClient,
+    with (
+        patch("src.tasks.email.send_magic_link.get_settings", return_value=settings),
+        patch(
+            "src.tasks.email.send_magic_link.SmtpClient",
+            _SuccessfulSmtpClient,
+        ),
     ):
         result = await send_magic_link_email.original_func(
             email="metrics@example.com",
@@ -435,9 +449,12 @@ async def test_send_password_reset_email_emits_success_metrics():
         status="success",
     )
 
-    with patch("src.tasks.email.send_password_reset.get_settings", return_value=settings), patch(
-        "src.tasks.email.send_password_reset.SmtpClient",
-        _SuccessfulSmtpClient,
+    with (
+        patch("src.tasks.email.send_password_reset.get_settings", return_value=settings),
+        patch(
+            "src.tasks.email.send_password_reset.SmtpClient",
+            _SuccessfulSmtpClient,
+        ),
     ):
         result = await send_password_reset_email.original_func(
             email="metrics@example.com",
@@ -474,9 +491,12 @@ async def test_send_password_reset_email_uses_smtp_primary_outside_dev():
     settings = MagicMock()
     settings.email_dev_mode = False
 
-    with patch("src.tasks.email.send_password_reset.get_settings", return_value=settings), patch(
-        "src.tasks.email.send_password_reset.SmtpClient",
-        _SuccessfulSmtpClient,
+    with (
+        patch("src.tasks.email.send_password_reset.get_settings", return_value=settings),
+        patch(
+            "src.tasks.email.send_password_reset.SmtpClient",
+            _SuccessfulSmtpClient,
+        ),
     ):
         result = await send_password_reset_email.original_func(
             email="metrics@example.com",

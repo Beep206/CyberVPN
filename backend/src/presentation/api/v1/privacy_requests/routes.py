@@ -121,18 +121,20 @@ def _event_response(event) -> PrivacyRequestEventResponse:
 
 def _summary_response(detail: PrivacyRequestDetail) -> PrivacyRequestSummaryResponse:
     request = detail.request
-    return PrivacyRequestSummaryResponse(
-        privacy_request_reference=request.public_id,
-        ticket_reference=_ticket_reference(detail),
-        request_type=request.request_type,
-        status=request.status,
-        submitted_at=request.submitted_at,
-        updated_at=request.updated_at,
-        scheduled_for=request.scheduled_for,
-        fulfilled_at=request.fulfilled_at,
-        canceled_at=request.canceled_at,
-        manual_fulfillment_target_days=_manual_target_days(detail),
-        allowed_actions=_customer_allowed_actions(request.status),
+    return PrivacyRequestSummaryResponse.model_validate(
+        {
+            "privacy_request_reference": request.public_id,
+            "ticket_reference": _ticket_reference(detail),
+            "request_type": request.request_type,
+            "status": request.status,
+            "submitted_at": request.submitted_at,
+            "updated_at": request.updated_at,
+            "scheduled_for": request.scheduled_for,
+            "fulfilled_at": request.fulfilled_at,
+            "canceled_at": request.canceled_at,
+            "manual_fulfillment_target_days": _manual_target_days(detail),
+            "allowed_actions": _customer_allowed_actions(request.status),
+        }
     )
 
 
@@ -206,7 +208,7 @@ def _raise_http(exc: Exception) -> NoReturn:
             headers={"Retry-After": str(exc.retry_after_seconds)},
         ) from exc
     if isinstance(exc, ValueError):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
     raise exc
 
 
@@ -249,15 +251,17 @@ async def create_privacy_request(
     if result.existing:
         response.status_code = status.HTTP_200_OK
     detail = await _service(db).get_admin_request(reference=result.request.public_id)
-    return PrivacyRequestAcceptedResponse(
-        privacy_request_reference=result.request.public_id,
-        ticket_reference=result.support_ticket.public_id,
-        request_type=result.request.request_type,
-        status=result.request.status,
-        message=_message_for_request(result.request.request_type),
-        submitted_at=result.request.submitted_at,
-        manual_fulfillment_target_days=_manual_target_days(detail),
-        existing=result.existing,
+    return PrivacyRequestAcceptedResponse.model_validate(
+        {
+            "privacy_request_reference": result.request.public_id,
+            "ticket_reference": result.support_ticket.public_id,
+            "request_type": result.request.request_type,
+            "status": result.request.status,
+            "message": _message_for_request(result.request.request_type),
+            "submitted_at": result.request.submitted_at,
+            "manual_fulfillment_target_days": _manual_target_days(detail),
+            "existing": result.existing,
+        }
     )
 
 
@@ -514,7 +518,7 @@ async def execute_privacy_request(
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> AdminPrivacyRequestDetailResponse:
     if payload.confirm_text != "DELETE":
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Type DELETE to execute")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Type DELETE to execute")
     try:
         return _admin_detail_response(
             await _service(db).execute_account_deletion(

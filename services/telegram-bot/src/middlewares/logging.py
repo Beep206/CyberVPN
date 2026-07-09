@@ -7,12 +7,14 @@ Captures update type, user info, processing time, and outcome.
 from __future__ import annotations
 
 import time
-from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Update
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 logger = structlog.get_logger(__name__)
 

@@ -2383,7 +2383,7 @@
       "selectionRequired": "Select a setting before updating it.",
       "title": "Policy Surface",
       "updateSuccess": "Setting updated.",
-      "valuePlaceholder": "{\"enabled\": true}"
+      "valuePlaceholder": "'{\"enabled\": true}'"
     },
     "webhookLog": {
       "description": "Inspect callback validity, processing state, payloads, and provider-side failures.",
@@ -2507,6 +2507,7 @@
       "inactive": "Inactive",
       "missing": "Missing",
       "noExpiry": "No expiry",
+      "refresh": "Refresh",
       "reset": "Reset",
       "save": "Save",
       "unused": "Unused",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast
@@ -25,6 +26,7 @@ from src.application.use_cases.customer_onboarding import (
     GetCurrentCustomerOnboardingUseCase,
     SkipCustomerOnboardingUseCase,
 )
+from src.infrastructure.database.models.access_delivery_channel_model import AccessDeliveryChannelModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.customer_onboarding_model import (
     CustomerConnectionSessionModel,
@@ -39,6 +41,7 @@ from src.infrastructure.database.repositories.customer_onboarding_repo import (
     CustomerOnboardingStateSqlAlchemyRepository,
 )
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
+from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse, RemnawaveUserResponse
 from src.presentation.api.v1.customer_onboarding import routes as onboarding_routes
 from tests.integration.test_partner_commission_contracts_migration_postgres import (
     _create_database,
@@ -76,6 +79,74 @@ class RecordingOnboardingCodeApplier:
         )
 
 
+class _FakeOnboardingRemnawaveClient:
+    def __init__(self, *, subscription_url: str) -> None:
+        self.created_uuid = uuid.uuid4()
+        self.username = "cvpn_s_onboarding"
+        self.subscription_url = subscription_url
+        self.get_paths: list[str] = []
+        self.collection_paths: list[str] = []
+        self.post_payloads: list[dict[str, object]] = []
+        self.get_validated_paths: list[str] = []
+
+    async def get(self, path: str):
+        self.get_paths.append(path)
+        assert path.startswith("/api/users/by-telegram-id/")
+        return []
+
+    async def get_collection_validated(self, path: str, collection_key: str, item_schema):
+        self.collection_paths.append(path)
+        assert path == "/internal-squads"
+        assert collection_key == "internalSquads"
+        _ = item_schema
+        return [SimpleNamespace(uuid=str(uuid.uuid4()), name="Default-Squad")]
+
+    async def post_validated(self, path: str, schema, *, json=None):
+        assert path == "/api/users"
+        assert schema is RemnawaveUserResponse
+        payload = dict(json or {})
+        self.post_payloads.append(payload)
+        self.username = str(payload.get("username") or self.username)
+        now = datetime.now(UTC)
+        return RemnawaveUserResponse(
+            uuid=str(self.created_uuid),
+            username=self.username,
+            status="ACTIVE",
+            short_uuid=str(self.created_uuid)[:8],
+            created_at=now,
+            updated_at=now,
+            expire_at=payload.get("expireAt"),
+            subscription_url=self.subscription_url,
+            traffic_limit_bytes=payload.get("trafficLimitBytes"),
+            hwid_device_limit=payload.get("hwidDeviceLimit"),
+        )
+
+    async def get_validated(self, path: str, schema):
+        self.get_validated_paths.append(path)
+        assert path == f"/subscriptions/by-uuid/{self.created_uuid}"
+        assert schema is RemnawaveSubscriptionDetailsResponse
+        return RemnawaveSubscriptionDetailsResponse(
+            is_found=True,
+            user={
+                "shortUuid": str(self.created_uuid)[:8],
+                "username": self.username,
+                "userStatus": "ACTIVE",
+            },
+            links=[f"vless://{self.created_uuid}@vpn.example.test:443"],
+            subscription_url=self.subscription_url,
+        )
+
+
+@dataclass(frozen=True)
+class _ServiceAccessSnapshot:
+    identity_scope: str
+    subscription_key: str | None
+    provider_subject_ref: str | None
+    service_context: dict[str, object]
+    channel_type: str
+    delivery_payload: dict[str, object]
+
+
 @pytest.mark.asyncio
 async def test_postgres_customer_onboarding_state_restores_and_persists_idempotently(
     monkeypatch: pytest.MonkeyPatch,
@@ -101,12 +172,14 @@ async def test_postgres_customer_onboarding_state_restores_and_persists_idempote
                 clock=lambda: clock["now"],
             )
             telegram_id = 777_123_456
-            subscription_url = "https://sub.example/shared-web-bot-mini-token"
+            legacy_subscription_url = "https://sub.example/legacy-web-bot-mini-token"
+            subscription_url = "https://sub.example/provider-web-bot-mini-token"
+            remnawave_client = _FakeOnboardingRemnawaveClient(subscription_url=subscription_url)
             user_id = await _seed_onboarding_user(
                 maker,
                 email="onboarding-primary@example.test",
                 telegram_id=telegram_id,
-                subscription_url=subscription_url,
+                subscription_url=legacy_subscription_url,
             )
             other_user_id = await _seed_onboarding_user(maker, email="onboarding-other@example.test")
             skip_user_id = await _seed_onboarding_user(maker, email="onboarding-skip@example.test")
@@ -212,7 +285,7 @@ async def test_postgres_customer_onboarding_state_restores_and_persists_idempote
                             source=surface,
                         ),
                         db=session,
-                        remnawave_client=SimpleNamespace(),
+                        remnawave_client=remnawave_client,
                     )
 
             web_bootstrap = await fetch_bootstrap("web", "ios")
@@ -225,6 +298,28 @@ async def test_postgres_customer_onboarding_state_restores_and_persists_idempote
             assert web_bootstrap.subscription_url == subscription_url
             assert telegram_bootstrap.subscription_url == subscription_url
             assert miniapp_bootstrap.subscription_url == subscription_url
+            assert legacy_subscription_url not in {
+                web_bootstrap.subscription_url,
+                telegram_bootstrap.subscription_url,
+                miniapp_bootstrap.subscription_url,
+            }
+            assert len(remnawave_client.post_payloads) == 1
+            assert remnawave_client.post_payloads[0]["email"] == "onboarding-primary@example.test"
+            assert remnawave_client.collection_paths == ["/internal-squads"]
+            assert len(remnawave_client.get_validated_paths) == 3
+            service_access = await _selected_subscription_service_access_snapshot(
+                maker,
+                user_id=user_id,
+                provider_subject_ref=str(remnawave_client.created_uuid),
+            )
+            assert service_access.identity_scope == "subscription"
+            assert service_access.subscription_key is not None
+            assert service_access.subscription_key.startswith("grant:")
+            assert service_access.provider_subject_ref == str(remnawave_client.created_uuid)
+            assert service_access.service_context["subscription_url"] == subscription_url
+            assert service_access.channel_type == "shared_client"
+            assert service_access.delivery_payload["subscription_url"] == subscription_url
+            assert service_access.delivery_payload["subscription_key"] == service_access.subscription_key
             assert web_bootstrap.flow_key == runtime.flow_key
             assert telegram_bootstrap.flow_key == runtime.flow_key
             assert miniapp_bootstrap.flow_key == runtime.flow_key
@@ -244,14 +339,28 @@ async def test_postgres_customer_onboarding_state_restores_and_persists_idempote
             assert await _connection_session_count(maker, user_id=user_id) == 1
 
             old_connection_session_id = telegram_bootstrap.connection_session_id
+            updated_legacy_subscription_url = "https://sub.example/legacy-web-bot-mini-token-v2"
+            updated_subscription_url = "https://sub.example/provider-web-bot-mini-token-v2"
             await _update_subscription_url(
                 maker,
                 user_id=user_id,
-                subscription_url="https://sub.example/shared-web-bot-mini-token-v2",
+                subscription_url=updated_legacy_subscription_url,
             )
+            remnawave_client.subscription_url = updated_subscription_url
             fresh_bootstrap = await fetch_bootstrap("miniapp", "android")
             assert fresh_bootstrap.connection_session_id is not None
             assert fresh_bootstrap.connection_session_id != old_connection_session_id
+            assert fresh_bootstrap.subscription_url == updated_subscription_url
+            assert fresh_bootstrap.subscription_url != updated_legacy_subscription_url
+            assert len(remnawave_client.post_payloads) == 1
+            assert len(remnawave_client.get_validated_paths) == 4
+            refreshed_service_access = await _selected_subscription_service_access_snapshot(
+                maker,
+                user_id=user_id,
+                provider_subject_ref=str(remnawave_client.created_uuid),
+            )
+            assert refreshed_service_access.service_context["subscription_url"] == updated_subscription_url
+            assert refreshed_service_access.delivery_payload["subscription_url"] == updated_subscription_url
             assert await _connection_session_count(maker, user_id=user_id) == 2
             assert (
                 await _connection_session_status_by_id(
@@ -581,6 +690,38 @@ async def _connection_session_count(
             .where(CustomerConnectionSessionModel.mobile_user_id == user_id)
         )
         return int(value or 0)
+
+
+async def _selected_subscription_service_access_snapshot(
+    maker: async_sessionmaker[AsyncSession],
+    *,
+    user_id: uuid.UUID,
+    provider_subject_ref: str,
+) -> _ServiceAccessSnapshot:
+    async with maker() as session:
+        service_identity = await session.scalar(
+            select(ServiceIdentityModel).where(
+                ServiceIdentityModel.customer_account_id == user_id,
+                ServiceIdentityModel.identity_scope == "subscription",
+                ServiceIdentityModel.provider_subject_ref == provider_subject_ref,
+            )
+        )
+        assert service_identity is not None
+        channel = await session.scalar(
+            select(AccessDeliveryChannelModel).where(
+                AccessDeliveryChannelModel.service_identity_id == service_identity.id,
+                AccessDeliveryChannelModel.channel_type == "shared_client",
+            )
+        )
+        assert channel is not None
+        return _ServiceAccessSnapshot(
+            identity_scope=service_identity.identity_scope,
+            subscription_key=service_identity.subscription_key,
+            provider_subject_ref=service_identity.provider_subject_ref,
+            service_context=dict(service_identity.service_context or {}),
+            channel_type=channel.channel_type,
+            delivery_payload=dict(channel.delivery_payload or {}),
+        )
 
 
 async def _connection_session_status(

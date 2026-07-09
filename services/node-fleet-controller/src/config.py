@@ -29,7 +29,7 @@ class Settings(BaseSettings):
         ),
     )
 
-    api_host: str = "0.0.0.0"
+    api_host: str = "0.0.0.0"  # noqa: S104 - service bind address, exposure is controlled by deployment.
     api_port: int = 8085
 
     database_url: str = "sqlite+aiosqlite:///./node_fleet_controller.db"

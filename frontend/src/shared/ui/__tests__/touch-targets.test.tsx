@@ -29,6 +29,35 @@ describe('mobile touch target contract', () => {
     expect(source).toContain('.keyboard-safe-bottom');
     expect(source).toContain('.safe-area-dialog');
     expect(source).toContain('.safe-area-scroll-panel');
+    expect(source).toContain('@utility safe-inline-gutter');
+    expect(source).toContain('@utility custom-scrollbar');
+    expect(source).toContain('@utility no-scrollbar');
+    expect(source).toContain(':root[dir="rtl"]');
+    expect(source).toContain('--mobile-sidebar-hidden-x: 100%');
+    expect(source).toContain('scrollbar-gutter: stable');
+  });
+
+  it('keeps dashboard chrome on logical layout and stable scrollbars', async () => {
+    const layout = await readSource('app/[locale]/(dashboard)/layout.tsx');
+    const desktopSidebar = await readSource('widgets/cyber-sidebar.tsx');
+    const mobileSidebar = await readSource('widgets/mobile-sidebar.tsx');
+
+    expect(layout).toContain('md:ps-64');
+    expect(layout).toContain('safe-inline-gutter');
+    expect(layout).toContain('scrollbar-gutter-stable');
+    expect(layout).not.toContain('md:pl-64');
+
+    for (const source of [desktopSidebar, mobileSidebar]) {
+      expect(source).toContain('start-0');
+      expect(source).toContain('border-e');
+      expect(source).toContain('border-s-2');
+      expect(source).toContain('custom-scrollbar');
+      expect(source).toContain('scrollbar-gutter-stable');
+      expect(source).toContain('rtl:-translate-x-1');
+      expect(source).not.toContain('border-r ');
+    }
+
+    expect(mobileSidebar).toContain("x: 'var(--mobile-sidebar-hidden-x)'");
   });
 
   it('lets shared buttons opt into comfortable touch targets', () => {

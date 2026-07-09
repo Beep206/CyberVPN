@@ -1,6 +1,6 @@
 # Stage 1 uses the standard Next.js Node server path for admin/frontend images.
-# The image is intentionally workspace-scoped so the deployment can build a
-# single Next.js app without requiring a full monorepo runtime install.
+# The image installs the selected workspace from the root lockfile so CI,
+# local development, and Stage 1 deployment use the same dependency graph.
 FROM node:24-alpine
 
 ARG NEXT_WORKSPACE=admin
@@ -26,6 +26,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV NEXT_WORKSPACE=${NEXT_WORKSPACE}
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_STAGE1_ADDONS_ENABLED=${NEXT_PUBLIC_STAGE1_ADDONS_ENABLED}
@@ -49,15 +50,15 @@ WORKDIR /app
 
 RUN apk add --no-cache bash
 
-COPY ${NEXT_WORKSPACE}/package.json ${NEXT_WORKSPACE}/package-lock.json ./
-RUN npm ci --include=dev --no-fund --no-audit
+COPY package.json package-lock.json ./
+COPY ${NEXT_WORKSPACE}/ ./${NEXT_WORKSPACE}/
 
-COPY ${NEXT_WORKSPACE}/ ./
-RUN npm run build
-RUN npm prune --omit=dev --no-fund --no-audit
-RUN chown -R node:node /app/.next && chmod -R u+rwX /app/.next
+RUN npm ci --workspace "${NEXT_WORKSPACE}" --include-workspace-root --include=dev --no-fund --no-audit
+RUN npm run build -w "${NEXT_WORKSPACE}"
+RUN npm prune --workspace "${NEXT_WORKSPACE}" --include-workspace-root --omit=dev --no-fund --no-audit
+RUN chown -R node:node "/app/${NEXT_WORKSPACE}/.next" && chmod -R u+rwX "/app/${NEXT_WORKSPACE}/.next"
 USER node
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+CMD ["sh", "-c", "npm run start -w \"$NEXT_WORKSPACE\""]

@@ -30,7 +30,7 @@ class CreateAddonRequest(BaseModel):
     is_stackable: bool = True
     quantity_step: int = Field(default=1, ge=1, le=100)
     price_usd: float = Field(..., ge=0)
-    price_rub: float | None = Field(None, ge=0)
+    price_rub: float | None = Field(default=None, ge=0)
     max_quantity_by_plan: dict[str, int] = Field(default_factory=dict)
     delta_entitlements: dict[str, Any] = Field(default_factory=dict)
     requires_location: bool = False
@@ -39,12 +39,12 @@ class CreateAddonRequest(BaseModel):
 
 
 class UpdateAddonRequest(BaseModel):
-    display_name: str | None = Field(None, min_length=1, max_length=100)
-    duration_mode: str | None = Field(None, min_length=1, max_length=30)
+    display_name: str | None = Field(default=None, min_length=1, max_length=100)
+    duration_mode: str | None = Field(default=None, min_length=1, max_length=30)
     is_stackable: bool | None = None
-    quantity_step: int | None = Field(None, ge=1, le=100)
-    price_usd: float | None = Field(None, ge=0)
-    price_rub: float | None = Field(None, ge=0)
+    quantity_step: int | None = Field(default=None, ge=1, le=100)
+    price_usd: float | None = Field(default=None, ge=0)
+    price_rub: float | None = Field(default=None, ge=0)
     max_quantity_by_plan: dict[str, int] | None = None
     delta_entitlements: dict[str, Any] | None = None
     requires_location: bool | None = None

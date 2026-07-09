@@ -6,6 +6,7 @@ import structlog
 from aiogram import F, Router
 
 from src.states.admin import AdminPlanState
+from src.utils.telegram import callback_data, callback_message, message_text, message_user_id
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -58,11 +59,11 @@ async def plans_menu_handler(
             )
 
         builder.row(
-                InlineKeyboardButton(
-                    text="+ " + i18n.get("admin-plans-create"),
-                    callback_data="admin:plan:create",
-                )
+            InlineKeyboardButton(
+                text="+ " + i18n.get("admin-plans-create"),
+                callback_data="admin:plan:create",
             )
+        )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
@@ -70,7 +71,7 @@ async def plans_menu_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("admin-plans-title"),
             reply_markup=builder.as_markup(),
         )
@@ -92,7 +93,7 @@ async def plan_view_handler(
     settings: BotSettings,
 ) -> None:
     """View plan details."""
-    plan_id = callback.data.split(":")[3]
+    plan_id = callback_data(callback).split(":")[3]
 
     try:
         # Get plan details
@@ -167,7 +168,7 @@ async def plan_view_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=plan_text,
             reply_markup=builder.as_markup(),
         )
@@ -189,7 +190,7 @@ async def plan_toggle_handler(
     settings: BotSettings,
 ) -> None:
     """Toggle plan active status."""
-    plan_id = callback.data.split(":")[3]
+    plan_id = callback_data(callback).split(":")[3]
 
     try:
         # Toggle plan status
@@ -228,7 +229,7 @@ async def plan_create_name_handler(
     state: FSMContext,
 ) -> None:
     """Handle plan name input."""
-    plan_name = message.text.strip()
+    plan_name = message_text(message).strip()
 
     await state.update_data(plan_name=plan_name)
     await state.set_state(AdminPlanState.creating_price)
@@ -246,7 +247,7 @@ async def plan_create_price_handler(
 ) -> None:
     """Handle plan price input."""
     try:
-        price = float(message.text.strip())
+        price = float(message_text(message).strip())
 
         if price < 0:
             await message.answer(i18n.get("admin-plan-create-price-invalid"))
@@ -271,7 +272,7 @@ async def plan_create_description_handler(
     state: FSMContext,
 ) -> None:
     """Handle plan description input and create plan."""
-    plan_description = message.text.strip()
+    plan_description = message_text(message).strip()
 
     try:
         # Get stored data
@@ -307,13 +308,13 @@ async def plan_create_description_handler(
         await state.clear()
         logger.info(
             "admin_plan_created",
-            admin_id=message.from_user.id,
+            admin_id=message_user_id(message),
             plan_id=plan_id,
             plan_name=plan_name,
         )
 
     except Exception as e:
-        logger.error("admin_plan_creation_error", admin_id=message.from_user.id, error=str(e))
+        logger.error("admin_plan_creation_error", admin_id=message_user_id(message), error=str(e))
         await message.answer(i18n.get("error-generic"))
         await state.clear()
 

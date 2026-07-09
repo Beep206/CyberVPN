@@ -1,8 +1,9 @@
 """Host API schemas for Remnawave proxy."""
 
 import re
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 class CreateHostRequest(BaseModel):
@@ -23,11 +24,11 @@ class CreateHostRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Host display name")
     address: str = Field(..., min_length=1, max_length=255, description="Host address or IP")
     port: int = Field(..., ge=1, le=65535, description="Host port")
-    sni: str | None = Field(None, max_length=255, description="Server Name Indication")
-    host_header: str | None = Field(None, max_length=255, description="HTTP Host header")
+    sni: str | None = Field(default=None, max_length=255, description="Server Name Indication")
+    host_header: str | None = Field(default=None, max_length=255, description="HTTP Host header")
     is_disabled: bool = Field(False, description="Whether host is disabled")
-    path: str | None = Field(None, max_length=255, description="WebSocket path")
-    alpn: list[str] | None = Field(None, description="ALPN protocols")
+    path: str | None = Field(default=None, max_length=255, description="WebSocket path")
+    alpn: list[str] | None = Field(default=None, description="ALPN protocols")
 
     @field_validator("address")
     @classmethod
@@ -40,13 +41,13 @@ class CreateHostRequest(BaseModel):
 class UpdateHostRequest(BaseModel):
     """Request schema for updating a VPN host."""
 
-    name: str | None = Field(None, min_length=1, max_length=100)
-    address: str | None = Field(None, min_length=1, max_length=255)
-    port: int | None = Field(None, ge=1, le=65535)
-    sni: str | None = Field(None, max_length=255)
-    host_header: str | None = Field(None, max_length=255)
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    address: str | None = Field(default=None, min_length=1, max_length=255)
+    port: int | None = Field(default=None, ge=1, le=65535)
+    sni: str | None = Field(default=None, max_length=255)
+    host_header: str | None = Field(default=None, max_length=255)
     is_disabled: bool | None = None
-    path: str | None = Field(None, max_length=255)
+    path: str | None = Field(default=None, max_length=255)
     alpn: list[str] | None = None
 
     @field_validator("address")
@@ -60,14 +61,44 @@ class UpdateHostRequest(BaseModel):
 class HostResponse(BaseModel):
     """Expected response from Remnawave hosts API."""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
 
     uuid: str = Field(..., description="Host UUID")
-    name: str = Field(..., max_length=100, description="Host display name")
+    name: str = Field(
+        ...,
+        max_length=100,
+        validation_alias=AliasChoices("name", "remark"),
+        description="Host display name",
+    )
     address: str = Field(..., max_length=255, description="Host address")
     port: int = Field(..., description="Host port")
-    sni: str | None = Field(None, max_length=255, description="SNI")
-    host_header: str | None = Field(None, max_length=255, description="Host header")
-    is_disabled: bool = Field(..., description="Whether host is disabled")
-    path: str | None = Field(None, max_length=255, description="WebSocket path")
-    alpn: list[str] | None = Field(None, description="ALPN protocols")
+    sni: str | None = Field(default=None, max_length=255, description="SNI")
+    host_header: str | None = Field(
+        default=None,
+        max_length=255,
+        validation_alias=AliasChoices("host_header", "hostHeader", "host"),
+        description="Host header",
+    )
+    is_disabled: bool = Field(
+        ...,
+        validation_alias=AliasChoices("is_disabled", "isDisabled"),
+        description="Whether host is disabled",
+    )
+    path: str | None = Field(default=None, max_length=255, description="WebSocket path")
+    alpn: list[str] | None = Field(
+        default=None,
+        validation_alias=AliasChoices("alpn"),
+        description="ALPN protocols",
+    )
+
+    @field_validator("alpn", mode="before")
+    @classmethod
+    def normalize_alpn(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value

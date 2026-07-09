@@ -19,6 +19,7 @@ from src.services.telegram_registration import (
     requires_onboarding,
 )
 from src.utils.deep_links import decode_deep_link
+from src.utils.telegram import message_user_id
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -159,7 +160,7 @@ async def _handle_start(
         return
 
     is_new_user = user is None
-    user_id = message.from_user.id
+    user_id = message_user_id(message)
     username = message.from_user.username or ""
     first_name = message.from_user.first_name or ""
     last_name = message.from_user.last_name or ""
@@ -221,7 +222,7 @@ async def _handle_start(
                 username=username or None,
                 language_code=language_code,
             )
-            logger.info("magic_link_auth_success", user_id=user_id, token_subset=token[:6])
+            logger.info("magic_link_auth_success", user_id=user_id)
         except APIError as exc:
             logger.warning(
                 "magic_link_auth_failed",

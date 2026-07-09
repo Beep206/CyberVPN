@@ -69,7 +69,7 @@ class TestLoggingMiddleware:
         handler = AsyncMock(return_value=None)
         data = {}
 
-        with structlog.testing.capture_logs() as cap_logs:
+        with structlog.testing.capture_logs():
             await middleware(handler, update, data)
 
         assert handler.called
@@ -125,7 +125,7 @@ class TestLoggingMiddleware:
 
         data = {}
 
-        with pytest.raises(ValueError), structlog.testing.capture_logs() as cap_logs:
+        with pytest.raises(ValueError, match="Test error"), structlog.testing.capture_logs() as cap_logs:
             await middleware(failing_handler, update, data)
 
         # Should have logged the exception
@@ -150,7 +150,7 @@ class TestLoggingMiddleware:
         handler = AsyncMock()
         data = {}
 
-        with structlog.testing.capture_logs() as cap_logs:
+        with structlog.testing.capture_logs():
             await middleware(handler, update, data)
 
         # User ID should be in context
@@ -216,7 +216,7 @@ class TestLoggingMiddleware:
         handler = AsyncMock()
         data = {}
 
-        with structlog.testing.capture_logs() as cap_logs:
+        with structlog.testing.capture_logs():
             await middleware(handler, update, data)
 
         # Should identify as command

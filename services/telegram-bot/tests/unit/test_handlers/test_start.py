@@ -144,6 +144,49 @@ class TestStartHandler:
         assert call_args.args[0] == "telegram-auth-link-success"
         assert call_args.kwargs["reply_markup"] is not None
 
+    async def test_start_with_magic_link_logs_no_token_material(self, mock_simple_api_client, monkeypatch) -> None:
+        """Successful Telegram magic-link completion must not log token material."""
+        from src.handlers import start as start_module
+
+        telegram_user = User(
+            id=424242,
+            is_bot=False,
+            first_name="Alice",
+            last_name="Doe",
+            username="alice",
+            language_code="en",
+        )
+        raw_token = "s3cr3t_magic_token_123"
+
+        message = MagicMock(spec=Message)
+        message.from_user = telegram_user
+        message.answer = AsyncMock()
+
+        command = MagicMock()
+        command.args = f"auth_{raw_token}"
+
+        i18n = MagicMock()
+        i18n.side_effect = lambda key: key
+        i18n.get.side_effect = lambda key, **kwargs: key
+
+        safe_logger = MagicMock()
+        monkeypatch.setattr(start_module, "logger", safe_logger)
+
+        await start_handler(
+            message=message,
+            command=command,
+            i18n=i18n,
+            api_client=mock_simple_api_client,
+            user={"status": "active"},
+        )
+
+        for log_method in (safe_logger.info, safe_logger.warning, safe_logger.error, safe_logger.debug):
+            for call in log_method.call_args_list:
+                assert "token_subset" not in call.kwargs
+                assert raw_token not in repr(call.args)
+                assert raw_token not in repr(call.kwargs)
+                assert raw_token[:6] not in repr(call.kwargs)
+
     async def test_start_with_magic_link_failure_stops_without_registration(self, mock_simple_api_client) -> None:
         """Invalid /start auth_ link must not fall through to regular registration."""
         telegram_user = User(

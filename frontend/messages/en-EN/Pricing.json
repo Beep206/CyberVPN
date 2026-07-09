@@ -71,14 +71,16 @@
     "stealth": "Stealth",
     "manual_config": "Manual / Advanced",
     "dedicated_ip": "Dedicated IP",
-    "experimental": "Experimental"
+    "experimental": "Experimental",
+    "shared": "Shared"
   },
   "poolNames": {
     "shared": "Shared",
     "shared_plus": "Shared+",
     "premium_shared": "Premium Shared",
     "premium": "Premium",
-    "exclusive": "Exclusive"
+    "exclusive": "Exclusive",
+    "default": "Default"
   },
   "supportNames": {
     "standard": "Standard support",

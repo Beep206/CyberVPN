@@ -7,16 +7,27 @@ const replaceMock = vi.fn();
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'en-EN',
-  useTranslations: () => (key: string, values?: Record<string, string>) => {
+  useTranslations: () => {
     const messages: Record<string, string> = {
       noResults: 'No matching languages',
       searchLabel: 'Search languages',
       searchPlaceholder: 'Search language...',
       title: 'Select language',
-      triggerLabel: `Select language: ${values?.language ?? ''}`,
+      triggerLabel: 'Select language: {language}',
     };
 
-    return messages[key] ?? key;
+    const t = (key: string, values?: Record<string, string>) => {
+      const message = messages[key] ?? key;
+      return values
+        ? Object.entries(values).reduce(
+          (formatted, [name, value]) => formatted.replace(`{${name}}`, value),
+          message,
+        )
+        : message;
+    };
+    t.raw = (key: string) => messages[key] ?? key;
+
+    return t;
   },
 }));
 

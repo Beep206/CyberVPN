@@ -19,7 +19,7 @@ describe('Auth form SSR visibility contract', () => {
 
     expect(cardSource).toContain('initial={false}');
     expect(cardSource).not.toContain('initial={{ opacity: 0');
-    expect(inputSource).toContain('<motion.div\n                initial={false}');
-    expect(inputSource).not.toContain('<motion.div\n                initial={{ opacity: 0');
+    expect(inputSource).toMatch(/<motion\.div\s+initial=\{false\}/);
+    expect(inputSource).not.toMatch(/<motion\.div\s+initial=\{\{\s*opacity:\s*0/);
   });
 });

@@ -8,6 +8,43 @@ import {
 } from '@/shared/lib/structured-data';
 import { SITE_URL } from '@/shared/lib/site-metadata';
 
+const SENSITIVE_SCHEMA_VALUE_PATTERN =
+  /\b(?:Bearer\s+[A-Za-z0-9._-]+|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|access_token|refresh_token|customer_access_token|partner_access_token|vless:\/\/|vmess:\/\/|trojan:\/\/|ss:\/\/|wireguard:\/\/|https?:\/\/(?:localhost|127\.0\.0\.1|portal\.localhost|storefront\.localhost)(?::\d+)?)\b/i;
+const SENSITIVE_SCHEMA_KEY_PATTERN =
+  /^(?:accessToken|refreshToken|authorization|cookie|password|secret|session|jwt|credential|userId|customerId|partnerId|subscriptionUrl|vpnUrl)$/i;
+const PLACEHOLDER_SCHEMA_VALUES = new Set(['undefined', 'null', 'nan', '[object object]']);
+
+function expectStructuredDataSerializable(value: unknown) {
+  const serialized = JSON.stringify(value);
+  expect(serialized).toBeTruthy();
+
+  const parsed = JSON.parse(serialized) as unknown;
+
+  expectSchemaValueSafe(parsed);
+}
+
+function expectSchemaValueSafe(value: unknown) {
+  expect(value).not.toBeNull();
+
+  if (typeof value === 'string') {
+    expect(PLACEHOLDER_SCHEMA_VALUES.has(value.trim().toLowerCase())).toBe(false);
+    expect(value).not.toMatch(SENSITIVE_SCHEMA_VALUE_PATTERN);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach(expectSchemaValueSafe);
+    return;
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    for (const [key, entry] of Object.entries(value)) {
+      expect(key).not.toMatch(SENSITIVE_SCHEMA_KEY_PATTERN);
+      expectSchemaValueSafe(entry);
+    }
+  }
+}
+
 describe('structured-data helpers', () => {
   it('builds localized FAQPage structured data from server FAQ content', () => {
     const data = buildFaqPageStructuredData({
@@ -143,5 +180,47 @@ describe('structured-data helpers', () => {
         url: `${SITE_URL}/en-EN/pricing`,
       },
     ]);
+  });
+
+  it('serializes schema-dts payloads without placeholders or runtime secrets', () => {
+    const samples = [
+      buildBreadcrumbListStructuredData({
+        locale: 'en-EN',
+        items: [{ name: 'Home', path: '/' }],
+      }),
+      buildFaqPageStructuredData({
+        locale: 'en-EN',
+        path: '/help',
+        title: 'Help Center',
+        description: 'Public help answers.',
+        faqs: [{ question: 'How do I connect?', answer: 'Install the client.' }],
+      }),
+      buildTechArticleStructuredData({
+        locale: 'en-EN',
+        path: '/docs',
+        title: 'Docs',
+        description: 'Public documentation.',
+        sections: ['Setup'],
+      }),
+      buildOfferStructuredData({
+        locale: 'en-EN',
+        name: 'STEALTH',
+        description: 'Public plan summary.',
+        price: '0',
+        url: '/pricing',
+      }),
+      buildSoftwareApplicationStructuredData({
+        locale: 'en-EN',
+        path: '/download',
+        title: 'CyberVPN',
+        description: 'Install the client.',
+        applicationCategory: 'SecurityApplication',
+        operatingSystems: ['Windows'],
+        featureList: ['Reality masking'],
+        downloadPath: '/download',
+      }),
+    ];
+
+    samples.forEach(expectStructuredDataSerializable);
   });
 });

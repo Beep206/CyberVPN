@@ -20,6 +20,10 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Cache Revalidation
+
+The internal `POST /api/cache/revalidate` route requires `NEXT_CACHE_REVALIDATE_SECRET` and the `x-cache-revalidate-secret` header. It accepts only public cache tags such as `public-pricing-catalog` and public SEO tags; account, session, payment, subscription, admin, and partner-finance data must not be revalidated through this route.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

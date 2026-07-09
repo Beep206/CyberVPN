@@ -11,7 +11,7 @@ class ComponentStatus(BaseModel):
 
     status: Literal["healthy", "unhealthy"] = Field(..., description="Component health status")
     message: str = Field(..., max_length=500, description="Status message")
-    response_time_ms: float | None = Field(None, description="Response time in milliseconds")
+    response_time_ms: float | None = Field(default=None, description="Response time in milliseconds")
 
 
 class HealthResponse(BaseModel):
@@ -105,9 +105,9 @@ class RecapTotalsResponse(BaseModel):
     users: int = Field(..., description="Total users")
     nodes: int = Field(..., description="Total nodes")
     traffic_bytes: int = Field(..., description="Lifetime traffic in bytes")
-    nodes_ram: str | None = Field(None, description="Aggregate node RAM")
-    nodes_cpu_cores: int | None = Field(None, description="Aggregate node CPU cores")
-    distinct_countries: int | None = Field(None, description="Distinct node countries")
+    nodes_ram: str | None = Field(default=None, description="Aggregate node RAM")
+    nodes_cpu_cores: int | None = Field(default=None, description="Aggregate node CPU cores")
+    distinct_countries: int | None = Field(default=None, description="Distinct node countries")
 
 
 class RecapResponse(BaseModel):
@@ -115,10 +115,10 @@ class RecapResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    version: str | None = Field(None, description="Remnawave panel version")
-    init_date: datetime | None = Field(None, description="Panel initialization date")
+    version: str | None = Field(default=None, description="Remnawave panel version")
+    init_date: datetime | None = Field(default=None, description="Panel initialization date")
     total: RecapTotalsResponse
-    this_month: RecapPeriodResponse | None = Field(None, description="Current month recap")
+    this_month: RecapPeriodResponse | None = Field(default=None, description="Current month recap")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
@@ -141,34 +141,34 @@ FrontendWebVitalMetric = Literal["cls", "fcp", "inp", "lcp", "ttfb"]
 class FrontendRuntimeEventRequest(BaseModel):
     """Frontend runtime telemetry event forwarded from partner/admin apps."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     event: FrontendRuntimeEventName = Field(..., description="Frontend runtime event type")
     surface: FrontendRuntimeSurface = Field(..., description="Frontend surface that emitted the event")
     connection_type: str = Field(..., alias="connectionType", description="Browser connection type bucket")
     device_bucket: str = Field(..., alias="deviceBucket", description="Device bucket")
-    locale: str | None = Field(None, description="Resolved locale")
+    locale: str | None = Field(default=None, description="Resolved locale")
     path: str = Field(..., description="Current route pathname")
     reduced_motion: str = Field(..., alias="reducedMotion", description="Reduced motion preference bucket")
     route_group: FrontendRuntimeRouteGroup = Field(..., alias="routeGroup", description="Frontend route group")
     save_data: str = Field(..., alias="saveData", description="Save-Data preference bucket")
     viewport_bucket: str = Field(..., alias="viewportBucket", description="Viewport bucket")
-    blocked_reason: str | None = Field(None, alias="blockedReason", description="Route guard blocked reason")
-    duration_ms: float | None = Field(None, alias="durationMs", description="Observed duration in milliseconds")
+    blocked_reason: str | None = Field(default=None, alias="blockedReason", description="Route guard blocked reason")
+    duration_ms: float | None = Field(default=None, alias="durationMs", description="Observed duration in milliseconds")
     endpoint_template: str | None = Field(
-        None,
+        default=None,
         alias="endpointTemplate",
         description="Normalized API endpoint template",
     )
-    error_code: str | None = Field(None, alias="errorCode", description="Frontend error code bucket")
-    form_name: str | None = Field(None, alias="formName", description="Form name bucket")
-    lane: str | None = Field(None, description="Partner lane bucket")
-    method: str | None = Field(None, description="HTTP method bucket")
-    release_ring: str | None = Field(None, alias="releaseRing", description="Release ring bucket")
-    request_id: str | None = Field(None, alias="requestId", description="Browser request correlation id")
-    result: str | None = Field(None, description="Frontend result bucket")
+    error_code: str | None = Field(default=None, alias="errorCode", description="Frontend error code bucket")
+    form_name: str | None = Field(default=None, alias="formName", description="Form name bucket")
+    lane: str | None = Field(default=None, description="Partner lane bucket")
+    method: str | None = Field(default=None, description="HTTP method bucket")
+    release_ring: str | None = Field(default=None, alias="releaseRing", description="Release ring bucket")
+    request_id: str | None = Field(default=None, alias="requestId", description="Browser request correlation id")
+    result: str | None = Field(default=None, description="Frontend result bucket")
     workspace_status: str | None = Field(
-        None,
+        default=None,
         alias="workspaceStatus",
         description="Workspace status bucket",
     )
@@ -183,12 +183,12 @@ class FrontendRuntimeEventAck(BaseModel):
 class FrontendWebVitalEventRequest(BaseModel):
     """Frontend web-vitals event forwarded from partner/admin apps."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     surface: FrontendRuntimeSurface = Field(..., description="Frontend surface that emitted the metric")
     connection_type: str = Field(..., alias="connectionType", description="Browser connection type bucket")
     device_bucket: str = Field(..., alias="deviceBucket", description="Device bucket")
-    locale: str | None = Field(None, description="Resolved locale")
+    locale: str | None = Field(default=None, description="Resolved locale")
     metric: FrontendWebVitalMetric = Field(..., description="Web vital metric name")
     path: str = Field(..., description="Current route pathname")
     rating: str = Field(..., description="Web vital rating bucket")
@@ -197,7 +197,7 @@ class FrontendWebVitalEventRequest(BaseModel):
     save_data: str = Field(..., alias="saveData", description="Save-Data preference bucket")
     value: float = Field(..., description="Observed web vital value")
     viewport_bucket: str = Field(..., alias="viewportBucket", description="Viewport bucket")
-    request_id: str | None = Field(None, alias="requestId", description="Browser request correlation id")
+    request_id: str | None = Field(default=None, alias="requestId", description="Browser request correlation id")
 
 
 class FrontendWebVitalEventAck(BaseModel):

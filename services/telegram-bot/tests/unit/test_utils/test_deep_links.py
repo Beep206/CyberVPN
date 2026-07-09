@@ -103,7 +103,7 @@ class TestDecodeDeepLink:
         # Tamper with the encoded string
         tampered = encoded[:-5] + "XXXXX"
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid signature"):
             decode_deep_link(tampered, verify_signature=True)
 
     def test_decode_without_verification(self) -> None:

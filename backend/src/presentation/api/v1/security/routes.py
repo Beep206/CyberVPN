@@ -44,6 +44,7 @@ from .schemas import (
     EligibilityCheckResponse,
     GovernanceActionResponse,
     ResolveRiskReviewRequest,
+    RiskIdentifierResponse,
     RiskLinkResponse,
     RiskReviewAttachmentResponse,
     RiskReviewDetailResponse,
@@ -282,7 +283,7 @@ async def attach_risk_identifier(
     )
     route_operations_total.labels(route="security", action="attach_risk_identifier", status="success").inc()
     return AttachRiskIdentifierResponse(
-        identifier=identifier,
+        identifier=RiskIdentifierResponse.model_validate(identifier),
         links_created=[RiskLinkResponse.model_validate(link) for link in links_created],
     )
 

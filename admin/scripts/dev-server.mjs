@@ -1,13 +1,24 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, '..');
-const NEXT_BIN = path.join(PROJECT_ROOT, 'node_modules', 'next', 'dist', 'bin', 'next');
+const REPO_ROOT = path.resolve(PROJECT_ROOT, '..');
+const NEXT_BIN = [
+  path.join(PROJECT_ROOT, 'node_modules', 'next', 'dist', 'bin', 'next'),
+  path.join(REPO_ROOT, 'node_modules', 'next', 'dist', 'bin', 'next'),
+].find((candidate) => existsSync(candidate));
 const DEV_HOST = process.env.HOST ?? '0.0.0.0';
 const DEV_PORT = process.env.PORT ?? '3001';
+const DEV_BUNDLER = (process.env.NEXT_DEV_BUNDLER ?? 'webpack').toLowerCase();
+
+if (!NEXT_BIN) {
+  console.error('Unable to find Next.js. Run npm ci from the repository root before starting the admin dev server.');
+  process.exit(1);
+}
 
 const sharedEnv = {
   ...process.env,
@@ -20,7 +31,13 @@ const watcher = spawn(process.execPath, [path.join(__dirname, 'generate-message-
   stdio: 'inherit',
 });
 
-const nextDev = spawn(process.execPath, [NEXT_BIN, 'dev', '-p', DEV_PORT, '-H', DEV_HOST], {
+const bundlerArgs = DEV_BUNDLER === 'turbo' || DEV_BUNDLER === 'turbopack'
+  ? ['--turbo']
+  : DEV_BUNDLER === 'default'
+    ? []
+    : ['--webpack'];
+
+const nextDev = spawn(process.execPath, [NEXT_BIN, 'dev', ...bundlerArgs, '-p', DEV_PORT, '-H', DEV_HOST], {
   cwd: PROJECT_ROOT,
   env: sharedEnv,
   stdio: 'inherit',

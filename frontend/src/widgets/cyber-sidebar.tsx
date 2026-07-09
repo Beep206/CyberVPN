@@ -35,7 +35,7 @@ export function CyberSidebar() {
   return (
     <aside
       aria-label={labelFor('sidebar')}
-      className="fixed left-0 top-0 z-40 hidden h-dvh w-64 flex-col border-r border-grid-line/30 bg-terminal-surface/90 backdrop-blur-md md:flex"
+      className="fixed start-0 top-0 z-40 hidden h-dvh w-64 flex-col border-e border-grid-line/30 bg-terminal-surface/90 backdrop-blur-md md:flex"
     >
       <div className="flex h-16 items-center border-b border-grid-line/30 px-6">
         <div className="flex items-center gap-2 font-display text-xl tracking-wider text-neon-cyan drop-shadow-glow">
@@ -44,7 +44,7 @@ export function CyberSidebar() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-6 px-4">
+      <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-6 scrollbar-gutter-stable">
         <nav aria-label={labelFor('mainNavigation')} className="grid gap-5">
           {navSections.map((section) => (
             <div key={section.id}>
@@ -68,12 +68,12 @@ export function CyberSidebar() {
                       {isActive && (
                         <motion.div
                           layoutId="sidebar-active"
-                          className="absolute inset-0 bg-neon-cyan/10 border-l-2 border-neon-cyan"
+                          className="absolute inset-0 border-s-2 border-neon-cyan bg-neon-cyan/10"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan/20 to-transparent" />
+                          <div className="absolute inset-0 from-neon-cyan/20 to-transparent ltr:bg-gradient-to-r rtl:bg-gradient-to-l" />
                         </motion.div>
                       )}
 
@@ -81,8 +81,8 @@ export function CyberSidebar() {
                         className={cn(
                           'relative flex items-center gap-3 px-4 py-3 text-sm font-mono transition-all duration-300',
                           isActive
-                            ? 'text-neon-cyan translate-x-1'
-                            : 'text-muted-foreground group-hover:text-foreground group-hover:translate-x-1',
+                            ? 'text-neon-cyan ltr:translate-x-1 rtl:-translate-x-1'
+                            : 'text-muted-foreground group-hover:text-foreground group-hover:ltr:translate-x-1 group-hover:rtl:-translate-x-1',
                         )}
                       >
                         <Icon
@@ -102,13 +102,13 @@ export function CyberSidebar() {
                           />
                           <span
                             aria-hidden="true"
-                            className="absolute top-0 left-0 -translate-x-[2px] opacity-0 text-neon-pink mix-blend-screen group-hover:opacity-100 group-hover:animate-pulse"
+                            className="absolute start-0 top-0 opacity-0 text-neon-pink mix-blend-screen ltr:-translate-x-[2px] rtl:translate-x-[2px] group-hover:opacity-100 group-hover:animate-pulse"
                           >
                             {label}
                           </span>
                           <span
                             aria-hidden="true"
-                            className="absolute top-0 left-0 translate-x-[2px] opacity-0 text-neon-cyan mix-blend-screen group-hover:opacity-100 group-hover:animate-pulse animation-delay-75"
+                            className="animation-delay-75 absolute start-0 top-0 opacity-0 text-neon-cyan mix-blend-screen ltr:translate-x-[2px] rtl:-translate-x-[2px] group-hover:opacity-100 group-hover:animate-pulse"
                           >
                             {label}
                           </span>
@@ -118,7 +118,7 @@ export function CyberSidebar() {
                           <motion.span
                             aria-hidden="true"
                             layoutId="active-dot"
-                            className="absolute right-3 h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_8px_#00ffff]"
+                            className="absolute end-3 h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_8px_#00ffff]"
                           />
                         )}
                       </div>

@@ -6,6 +6,7 @@ import { Landmark, PencilLine, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { plansApi, type CreatePlanRequest, type PlanRecord, type UpdatePlanRequest } from '@/lib/api/plans';
+import { invalidateAdminCommerceCatalogState } from '@/shared/lib/admin-query-invalidation';
 import {
   formatCompactNumber,
   formatCurrencyAmount,
@@ -44,7 +45,7 @@ export function PlansConsole() {
   const createMutation = useMutation({
     mutationFn: (payload: CreatePlanRequest) => plansApi.create(payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['commerce', 'plans'] });
+      await invalidateAdminCommerceCatalogState(queryClient);
       setIsCreateOpen(false);
       setErrorMessage(null);
     },
@@ -57,7 +58,7 @@ export function PlansConsole() {
     mutationFn: ({ uuid, payload }: { uuid: string; payload: UpdatePlanRequest }) =>
       plansApi.update(uuid, payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['commerce', 'plans'] });
+      await invalidateAdminCommerceCatalogState(queryClient);
       setEditingPlan(null);
       setErrorMessage(null);
     },
@@ -69,7 +70,7 @@ export function PlansConsole() {
   const deleteMutation = useMutation({
     mutationFn: (uuid: string) => plansApi.remove(uuid),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['commerce', 'plans'] });
+      await invalidateAdminCommerceCatalogState(queryClient);
       setErrorMessage(null);
     },
     onError: (error) => {

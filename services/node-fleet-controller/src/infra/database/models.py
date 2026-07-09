@@ -208,7 +208,9 @@ class FailoverGuardrailPolicyModel(Base):
     node_class_allowlist: Mapped[list[object]] = mapped_column(JSON, nullable=False, default=list)
     provider_exclusion_window_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     traffic_canary_required: Mapped[bool] = mapped_column(nullable=False, default=True)
-    rollback_and_drain_policy: Mapped[str] = mapped_column(String(128), nullable=False, default="parallel_replace_then_drain")
+    rollback_and_drain_policy: Mapped[str] = mapped_column(
+        String(128), nullable=False, default="parallel_replace_then_drain"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

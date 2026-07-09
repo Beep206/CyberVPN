@@ -2369,7 +2369,7 @@
       "selectionRequired": "Выберите настройку перед обновлением.",
       "title": "Policy surface",
       "updateSuccess": "Настройка обновлена.",
-      "valuePlaceholder": "{\"enabled\": true}"
+      "valuePlaceholder": "'{\"enabled\": true}'"
     },
     "webhookLog": {
       "description": "Проверяйте валидность callback-ов, статус обработки, payload-ы и ошибки провайдеров.",
@@ -2493,6 +2493,7 @@
       "inactive": "Неактивен",
       "missing": "Отсутствует",
       "noExpiry": "Без срока",
+      "refresh": "Обновить",
       "reset": "Сбросить",
       "save": "Сохранить",
       "unused": "Не использован",

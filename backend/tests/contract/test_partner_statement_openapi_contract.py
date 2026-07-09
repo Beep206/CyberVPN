@@ -28,6 +28,10 @@ def test_partner_statement_and_settlement_period_routes_exist_in_openapi() -> No
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/reporting-summary" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/settlement-sandbox" in paths
     assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/ops-overview" in paths
+    assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/programs" in paths
+    assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/codes" in paths
+    assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/review-requests" in paths
+    assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/cases" in paths
     assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/payout-review-queue" in paths
     assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/codes/{{code_id}}/status" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/report-exports" in paths

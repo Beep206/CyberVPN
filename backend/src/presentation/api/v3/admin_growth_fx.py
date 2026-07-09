@@ -942,14 +942,14 @@ def _parse_positive_decimal(value: str, code: str) -> Decimal:
         parsed = Decimal(value)
     except (InvalidOperation, ValueError) as exc:
         raise _admin_growth_error(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             code,
             "admin.growth.fx.errors.amountInvalid",
             {"value": value},
         ) from exc
     if parsed <= 0:
         raise _admin_growth_error(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             code,
             "admin.growth.fx.errors.amountInvalid",
             {"value": value},

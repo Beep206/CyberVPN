@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 export const PROJECT_ROOT = path.resolve(__dirname, '..');
 export const MESSAGES_ROOT = path.join(PROJECT_ROOT, 'messages');
 export const OUTPUT_ROOT = path.join(PROJECT_ROOT, 'src', 'i18n', 'messages', 'generated');
+export const RETRYABLE_WRITE_ERROR_CODES = new Set(['EBUSY', 'EACCES', 'EPERM', 'UNKNOWN']);
 
 export const MESSAGE_FILE_NAMESPACE_MAP = {
   'header.json': 'Header',
@@ -107,6 +108,33 @@ export async function readMessageFile(locale, fileName) {
   }
 }
 
+function sleep(milliseconds) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
+export async function writeGeneratedFile(filePath, content) {
+  let lastError;
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      await writeFile(filePath, content, 'utf8');
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!RETRYABLE_WRITE_ERROR_CODES.has(error?.code)) {
+        throw error;
+      }
+
+      // Windows can briefly lock generated files while file watchers or indexing catch up.
+      await sleep(75 * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+}
+
 export async function buildLocaleBundle(locale) {
   const bundle = {};
 
@@ -142,13 +170,11 @@ export async function buildBundles() {
   const locales = await getLocaleDirectories();
   await removeStaleBundles(new Set(locales));
 
-  await Promise.all(
-    locales.map(async (locale) => {
-      const bundle = await buildLocaleBundle(locale);
-      const outputPath = path.join(OUTPUT_ROOT, `${locale}.json`);
-      await writeFile(outputPath, `${JSON.stringify(bundle, null, 2)}\n`, 'utf8');
-    }),
-  );
+  for (const locale of locales) {
+    const bundle = await buildLocaleBundle(locale);
+    const outputPath = path.join(OUTPUT_ROOT, `${locale}.json`);
+    await writeGeneratedFile(outputPath, `${JSON.stringify(bundle, null, 2)}\n`);
+  }
 
   process.stdout.write(`[i18n] Generated ${locales.length} locale bundles in ${path.relative(PROJECT_ROOT, OUTPUT_ROOT)}.\n`);
 }

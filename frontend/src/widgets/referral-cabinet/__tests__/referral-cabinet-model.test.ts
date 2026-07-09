@@ -23,7 +23,6 @@ const reward = (overrides: Partial<ReferralReward>): ReferralReward => ({
   currency: 'USD',
   hold_until: null,
   id: 'reward-1',
-  payment_id: null,
   referred_user_id: 'user-2',
   reversed_at: null,
   reward_amount: 10,

@@ -15,6 +15,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 from src.services.api_client import APIError
 from src.services.support_triage import Stage1SupportTriageService
+from src.utils.telegram import callback_message
 
 router = Router(name="support")
 logger = structlog.get_logger(__name__)
@@ -214,6 +215,6 @@ async def support_menu(
     reply_markup = _support_miniapp_keyboard(i18n, settings)
     text = _render_support_message(i18n, settings)
     if reply_markup is None:
-        await callback.message.edit_text(text)
+        await callback_message(callback).edit_text(text)
         return
-    await callback.message.edit_text(text, reply_markup=reply_markup)
+    await callback_message(callback).edit_text(text, reply_markup=reply_markup)

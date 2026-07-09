@@ -78,6 +78,7 @@ def _order_belongs_to_customer_realm(order, *, user_id: UUID, current_realm: Rea
     return order is not None and order.user_id == user_id and str(order.auth_realm_id) == current_realm.realm_id
 
 
+@router.post("", response_model=PaymentAttemptResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=PaymentAttemptResponse, status_code=status.HTTP_201_CREATED)
 async def create_payment_attempt(
     payload: CreatePaymentAttemptRequest,
@@ -107,6 +108,7 @@ async def create_payment_attempt(
     return _serialize_payment_attempt(result.payment_attempt, include_sensitive=True)
 
 
+@router.get("", response_model=list[PaymentAttemptResponse], include_in_schema=False)
 @router.get("/", response_model=list[PaymentAttemptResponse])
 async def list_payment_attempts(
     order_id: UUID = Query(..., description="Canonical order identifier"),

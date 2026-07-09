@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 def promos_list_keyboard(
     i18n: I18nContext,
-    promos: list[dict],
+    promos: list[dict[str, Any]],
     page: int,
     total_pages: int,
 ) -> InlineKeyboardMarkup:
@@ -56,7 +56,7 @@ def promos_list_keyboard(
     # Create new promo
     builder.row(
         InlineKeyboardButton(
-            text="➕ " + i18n.get("admin-promo-create-new"),
+            text="➕ " + i18n.get("admin-promo-create-new"),  # noqa: RUF001
             callback_data="admin:promo:create",
         )
     )

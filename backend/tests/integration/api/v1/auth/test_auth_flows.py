@@ -298,10 +298,10 @@ class TestMagicLinkFlow:
 
             # Generate a test token
             token = secrets.token_urlsafe(32)
-            await redis_client.setex(
+            await redis_client.set(
                 f"magic_link:{token}",
-                900,  # 15 minutes
                 user_email,
+                ex=900,  # 15 minutes
             )
             await redis_client.aclose()
 
@@ -341,10 +341,10 @@ class TestMagicLinkFlow:
 
         redis_client = redis.from_url(settings.redis_url, decode_responses=True)
         token = secrets.token_urlsafe(32)
-        await redis_client.setex(
+        await redis_client.set(
             f"magic_link:{token}",
-            900,
             new_email,
+            ex=900,
         )
         await redis_client.aclose()
 
@@ -401,10 +401,10 @@ class TestMagicLinkFlow:
 
         redis_client = redis.from_url(settings.redis_url, decode_responses=True)
         token = secrets.token_urlsafe(32)
-        await redis_client.setex(
+        await redis_client.set(
             f"magic_link:{token}",
-            900,
             user_email,
+            ex=900,
         )
         await redis_client.aclose()
 
@@ -415,21 +415,14 @@ class TestMagicLinkFlow:
         )
         assert first_response.status_code == 200
 
-        # Second verification is accepted once more during the short replay
-        # window to tolerate duplicate browser requests.
+        # Second verification fails because magic-link bearer tokens are
+        # single-use and must not issue another session on replay.
         second_response = await async_client.post(
             "/api/v1/auth/magic-link/verify",
             json={"token": token},
         )
-        assert second_response.status_code == 200
-
-        # Third verification fails after the replay allowance is consumed.
-        third_response = await async_client.post(
-            "/api/v1/auth/magic-link/verify",
-            json={"token": token},
-        )
-        assert third_response.status_code == 400
-        assert "Invalid or expired" in third_response.json()["detail"]
+        assert second_response.status_code == 400
+        assert "Invalid or expired" in second_response.json()["detail"]
 
 
 class TestPasswordResetFlow:

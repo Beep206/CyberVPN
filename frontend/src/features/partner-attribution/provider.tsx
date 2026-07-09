@@ -29,6 +29,11 @@ const TERMINAL_CODES = new Set([
   'PARTNER_OWNER_TYPE_INVALID',
 ]);
 
+type CookieBackedPartnerClaim = {
+  attributionId: string;
+  capturedAt: string;
+};
+
 function canUseSessionStorage(): boolean {
   if (typeof window === 'undefined') return false;
   try {
@@ -121,6 +126,7 @@ export function PartnerAttributionProvider() {
   const claimAttemptRef = useRef<string | null>(null);
   const transferInFlightRef = useRef<string | null>(null);
   const claimInFlightRef = useRef<string | null>(null);
+  const cookieBackedClaimRef = useRef<CookieBackedPartnerClaim | null>(null);
 
   useEffect(() => {
     const listener = () => setStorageVersion((value) => value + 1);
@@ -157,6 +163,10 @@ export function PartnerAttributionProvider() {
       partnerAttributionApi.consumeTransfer({ transfer_token: transferToken }),
     ).then((response) => {
       consumedLocationRef.current = locationKey;
+      cookieBackedClaimRef.current = {
+        attributionId: response.data.attribution_id,
+        capturedAt: response.data.captured_at,
+      };
       savePartnerAttribution({
         attributionId: response.data.attribution_id,
         capturedAt: response.data.captured_at,
@@ -166,10 +176,12 @@ export function PartnerAttributionProvider() {
         sourcePath: pathname || window.location.pathname,
         version: 1,
       });
+      setStorageVersion((value) => value + 1);
       removePartnerTransferQueryParam();
     }).catch((error) => {
       if (TERMINAL_CODES.has(getApiErrorCode(error) ?? '')) {
         consumedLocationRef.current = locationKey;
+        cookieBackedClaimRef.current = null;
         clearPartnerAttribution();
         removePartnerTransferQueryParam();
       }
@@ -181,9 +193,11 @@ export function PartnerAttributionProvider() {
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
     const snapshot = readPartnerAttribution();
+    const cookieBackedClaim = cookieBackedClaimRef.current;
+    if (!snapshot && !cookieBackedClaim) return;
     const claimKey = snapshot
       ? `${userId}:${snapshot.attributionId}:${snapshot.capturedAt}`
-      : `${userId}:partner-cookie-only`;
+      : `${userId}:cookie:${cookieBackedClaim?.attributionId}:${cookieBackedClaim?.capturedAt}`;
     if (claimAttemptRef.current === claimKey) return;
     if (claimInFlightRef.current === claimKey) return;
     if (isClaimSuppressed(claimKey)) return;
@@ -198,8 +212,9 @@ export function PartnerAttributionProvider() {
         response.data.status === 'already_claimed_same_owner' ||
         response.data.status === 'rejected_existing_owner' ||
         response.data.status === 'expired' ||
-        (response.data.status === 'no_pending' && snapshot)
+        response.data.status === 'no_pending'
       ) {
+        cookieBackedClaimRef.current = null;
         clearPartnerAttribution();
       }
     }).catch((error) => {
@@ -211,6 +226,7 @@ export function PartnerAttributionProvider() {
       suppressClaim(claimKey, suppressionMs);
       if (TERMINAL_CODES.has(code ?? '')) {
         claimAttemptRef.current = claimKey;
+        cookieBackedClaimRef.current = null;
         clearPartnerAttribution();
       }
     }).finally(() => {

@@ -4,12 +4,13 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
 
 from src.states.admin import AdminBroadcastState
+from src.utils.telegram import callback_data, callback_message, message_user_id
 
 if TYPE_CHECKING:
+    from aiogram.fsm.context import FSMContext
+    from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -26,7 +27,7 @@ async def broadcast_menu_handler(
     state: FSMContext,
 ) -> None:
     """Start broadcast flow."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-broadcast-compose-prompt"),
     )
 
@@ -100,7 +101,7 @@ async def broadcast_message_composed_handler(
     )
 
     await state.set_state(AdminBroadcastState.selecting_audience)
-    logger.info("admin_broadcast_message_composed", admin_id=message.from_user.id)
+    logger.info("admin_broadcast_message_composed", admin_id=message_user_id(message))
 
 
 @router.callback_query(AdminBroadcastState.selecting_audience, F.data.startswith("admin:broadcast:audience:"))
@@ -111,7 +112,7 @@ async def broadcast_audience_selected_handler(
     state: FSMContext,
 ) -> None:
     """Handle audience selection."""
-    audience_type = callback.data.split(":")[3]
+    audience_type = callback_data(callback).split(":")[3]
 
     # Store audience type
     await state.update_data(audience_type=audience_type)
@@ -139,7 +140,7 @@ async def broadcast_audience_selected_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get(
                 "admin-broadcast-confirm-prompt",
                 audience=i18n.get(f"admin-broadcast-audience-{audience_type}"),
@@ -185,15 +186,13 @@ async def broadcast_confirm_handler(
 
         # Create broadcast via API
         broadcast = await api_client.create_broadcast(
-            message_text=message_data.get("text"),
-            audience_type=audience_type,
-            photo_file_id=message_data.get("photo_file_id"),
-            video_file_id=message_data.get("video_file_id"),
+            message=str(message_data.get("text") or ""),
+            audience=str(audience_type),
         )
 
         broadcast_id = broadcast.get("id")
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get(
                 "admin-broadcast-sending",
                 broadcast_id=broadcast_id,
@@ -231,7 +230,7 @@ async def broadcast_cancel_handler(
 
     from src.keyboards.admin_main import admin_main_keyboard
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-broadcast-cancelled"),
         reply_markup=admin_main_keyboard(i18n),
     )
@@ -279,7 +278,7 @@ async def broadcast_history_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=history_text,
             reply_markup=builder.as_markup(),
         )

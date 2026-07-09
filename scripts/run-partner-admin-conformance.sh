@@ -5,6 +5,53 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="${REPO_ROOT}/backend"
 
+is_wsl() {
+  [[ -r /proc/version ]] && grep -qi microsoft /proc/version
+}
+
+prepend_wsl_windows_node_path() {
+  if ! is_wsl; then
+    return
+  fi
+
+  local windows_node_dir="/mnt/c/Program Files/nodejs"
+  if [[ -x "${windows_node_dir}/node.exe" && ( -x "${windows_node_dir}/npm" || -x "${windows_node_dir}/npm.cmd" ) ]]; then
+    PATH="${windows_node_dir}:${PATH}"
+    export PATH
+  fi
+}
+
+export_wsl_windows_env_bridge() {
+  if ! is_wsl; then
+    return
+  fi
+
+  local required_names=(
+    REMNAWAVE_TOKEN
+    JWT_SECRET
+    CRYPTOBOT_TOKEN
+    DATABASE_URL
+    REDIS_URL
+    CYBERVPN_TEST_POSTGRES_URL
+    CYBERVPN_TEST_REDIS_URL
+    SWAGGER_ENABLED
+    OAUTH_TOKEN_ENCRYPTION_KEY
+    TOTP_ENCRYPTION_KEY
+  )
+  local joined
+  joined="$(IFS=:; printf "%s" "${required_names[*]}")"
+
+  if [[ -n "${WSLENV:-}" ]]; then
+    WSLENV="${joined}:${WSLENV}"
+  else
+    WSLENV="${joined}"
+  fi
+  export WSLENV
+}
+
+prepend_wsl_windows_node_path
+export_wsl_windows_env_bridge
+
 mode="all"
 if [[ $# -gt 0 ]]; then
   mode="$1"
@@ -63,6 +110,11 @@ assert_file_unchanged() {
 python_runner() {
   if [[ -x "${BACKEND_DIR}/.venv/bin/python" ]]; then
     printf "%s" "${BACKEND_DIR}/.venv/bin/python"
+    return
+  fi
+
+  if [[ -x "${BACKEND_DIR}/.venv/Scripts/python.exe" ]]; then
+    printf "%s" "${BACKEND_DIR}/.venv/Scripts/python.exe"
     return
   fi
 

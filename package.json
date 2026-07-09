@@ -1,6 +1,7 @@
 {
   "name": "vpn-business",
   "private": true,
+  "packageManager": "npm@11.4.2",
   "workspaces": [
     "admin",
     "frontend",
@@ -16,6 +17,18 @@
     "build": "npm run build -w frontend",
     "build:admin": "npm run build -w admin",
     "build:partner": "npm run build -w partner",
+    "check:web-dependency-drift": "node scripts/check-web-workspace-dependency-drift.mjs",
+    "check:web-dependency-usage": "node scripts/check-web-workspace-dependency-usage.mjs",
+    "check:auth-browser-smoke:frontend": "npm run check:login-passkey-smoke -w frontend",
+    "check:auth-browser-smoke:admin": "npm run check:login-browser-smoke -w admin",
+    "check:auth-browser-smoke:partner": "npm run check:login-browser-smoke -w partner",
+    "check:auth-bff-cookie-smoke:frontend": "npm run check:bff-cookie-smoke -w frontend",
+    "check:auth-bff-cookie-smoke:admin": "npm run check:bff-cookie-smoke -w admin",
+    "check:auth-bff-cookie-smoke:partner": "npm run check:bff-cookie-smoke -w partner",
+    "check:web-route-browser-smoke": "npm run check:route-browser-smoke -w frontend && npm run check:route-browser-smoke -w admin && npm run check:route-browser-smoke -w partner",
+    "check:web-route-browser-smoke:frontend": "npm run check:route-browser-smoke -w frontend",
+    "check:web-route-browser-smoke:admin": "npm run check:route-browser-smoke -w admin",
+    "check:web-route-browser-smoke:partner": "npm run check:route-browser-smoke -w partner",
     "lint": "npm run lint -w frontend",
     "lint:admin": "npm run lint -w admin",
     "lint:partner": "npm run lint -w partner",
@@ -55,9 +68,13 @@
     "staging:customer-growth-reporting-governance:smoke": "bash ./scripts/run-customer-growth-reporting-governance-staging-smoke.sh"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
-  "dependencies": {
-    "framer-motion": "^12.38.0"
+  "overrides": {
+    "esbuild": "0.28.1",
+    "postcss": "8.5.16"
+  },
+  "devDependencies": {
+    "vite": "8.1.3"
   }
 }

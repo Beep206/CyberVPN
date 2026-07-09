@@ -1634,7 +1634,7 @@ def _build_partner_session_principal_response(
         id=user.id,
         login=user.login,
         email=user.email,
-        role=user.role,
+        role=AdminRole(user.role),
         is_active=user.is_active,
         is_email_verified=user.is_email_verified,
         auth_realm_id=current_realm.auth_realm.id,
@@ -4426,6 +4426,92 @@ async def get_admin_partner_workspace_ops_overview(
     overview = await _load_partner_admin_ops_overview(workspace_id=workspace_id, db=db)
     track_partner_operation(operation="get_admin_workspace_ops_overview")
     return overview
+
+
+@router.get(
+    "/admin/partner-workspaces/{workspace_id}/programs",
+    response_model=PartnerWorkspaceProgramsResponse,
+)
+async def get_admin_partner_workspace_programs(
+    workspace_id: UUID,
+    _current_user: AdminUserModel = Depends(require_role(AdminRole.SUPPORT)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceProgramsResponse:
+    partner_account_repo = PartnerAccountRepository(db)
+    workspace = await partner_account_repo.get_account_by_id(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner workspace not found")
+
+    programs = await BuildPartnerWorkspaceProgramsUseCase(db).execute(
+        partner_account_id=workspace.id,
+        workspace_status=workspace.status,
+        workspace_label=workspace.display_name,
+    )
+    track_partner_operation(operation="get_admin_workspace_programs")
+    return PartnerWorkspaceProgramsResponse(
+        canonical_source=programs.canonical_source,
+        primary_lane_key=programs.primary_lane_key,
+        lane_memberships=[_serialize_workspace_program_lane(item) for item in programs.lane_memberships],
+        readiness_items=[_serialize_workspace_program_readiness_item(item) for item in programs.readiness_items],
+        updated_at=_normalize_utc(programs.updated_at),
+    )
+
+
+@router.get(
+    "/admin/partner-workspaces/{workspace_id}/codes",
+    response_model=list[PartnerWorkspaceCodeResponse],
+)
+async def list_admin_partner_workspace_codes(
+    workspace_id: UUID,
+    _current_user: AdminUserModel = Depends(require_role(AdminRole.ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> list[PartnerWorkspaceCodeResponse]:
+    partner_account_repo = PartnerAccountRepository(db)
+    workspace = await partner_account_repo.get_account_by_id(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner workspace not found")
+
+    codes = await PartnerRepository(db).get_codes_by_account(workspace.id)
+    track_partner_operation(operation="list_admin_workspace_codes")
+    return [_serialize_workspace_code(code_model) for code_model in codes]
+
+
+@router.get(
+    "/admin/partner-workspaces/{workspace_id}/review-requests",
+    response_model=list[PartnerWorkspaceReviewRequestResponse],
+)
+async def list_admin_partner_workspace_review_requests(
+    workspace_id: UUID,
+    _current_user: AdminUserModel = Depends(require_role(AdminRole.SUPPORT)),
+    db: AsyncSession = Depends(get_db),
+) -> list[PartnerWorkspaceReviewRequestResponse]:
+    partner_account_repo = PartnerAccountRepository(db)
+    workspace = await partner_account_repo.get_account_by_id(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner workspace not found")
+
+    access = _build_internal_admin_read_workspace_access(workspace)
+    track_partner_operation(operation="list_admin_workspace_review_requests")
+    return await _load_workspace_review_requests(access=access, db=db)
+
+
+@router.get(
+    "/admin/partner-workspaces/{workspace_id}/cases",
+    response_model=list[PartnerWorkspaceCaseResponse],
+)
+async def list_admin_partner_workspace_cases(
+    workspace_id: UUID,
+    _current_user: AdminUserModel = Depends(require_role(AdminRole.SUPPORT)),
+    db: AsyncSession = Depends(get_db),
+) -> list[PartnerWorkspaceCaseResponse]:
+    partner_account_repo = PartnerAccountRepository(db)
+    workspace = await partner_account_repo.get_account_by_id(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner workspace not found")
+
+    access = _build_internal_admin_read_workspace_access(workspace)
+    track_partner_operation(operation="list_admin_workspace_cases")
+    return await _load_workspace_cases(access=access, db=db)
 
 
 @router.get(

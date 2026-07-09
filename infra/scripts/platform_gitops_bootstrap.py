@@ -12,7 +12,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -206,12 +206,12 @@ def command_render_repo(args: argparse.Namespace) -> int:
             cluster_name=args.cluster_name,
             flux_version=args.flux_version,
         ),
-        mode=0o750,
+        mode=0o700,
     )
     write_text(
         output_dir / "scripts" / f"check-{args.cluster_name}.sh",
         render_check_script(cluster_name=args.cluster_name),
-        mode=0o750,
+        mode=0o700,
     )
     write_text(
         output_dir / "versions.env",

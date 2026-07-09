@@ -50,7 +50,9 @@ class OperatorCommandService:
             node_class=node_class,
         )
         existing_pool = await self._repository.get_node_pool(pool_id)
-        desired_capacity = (existing_pool.desired_capacity if existing_pool is not None else 0) + requested_capacity_delta
+        desired_capacity = (
+            existing_pool.desired_capacity if existing_pool is not None else 0
+        ) + requested_capacity_delta
         pool_kwargs = {
             "node_pool_id": pool_id,
             "environment": environment,

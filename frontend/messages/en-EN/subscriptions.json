@@ -202,6 +202,7 @@
     "checkoutCodeLabel": "Checkout code",
     "checkoutCodePlaceholder": "SAVE20",
     "checkoutCodeRequired": "Please enter a checkout code",
+    "codeSetRejected": "This code cannot be applied to the selected plan or checkout context.",
     "expiredTitle": "Quote expired",
     "expiredBody": "Refresh the quote before checkout so backend totals, country and currency are current.",
     "commitError": "Failed to commit checkout",

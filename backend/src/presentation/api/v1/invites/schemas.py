@@ -75,7 +75,7 @@ class AdminCreateInviteRequest(BaseModel):
     user_id: UUID = Field(..., description="User who will own the invite codes")
     free_days: int = Field(..., gt=0, description="Number of free subscription days the code grants")
     count: int = Field(1, ge=1, le=100, description="Number of codes to generate")
-    plan_id: UUID | None = Field(None, description="Optional plan to associate with the codes")
+    plan_id: UUID | None = Field(default=None, description="Optional plan to associate with the codes")
     legacy_acknowledgement: bool = Field(
         False,
         description="Required when using the legacy manual invite endpoint for premium_smart_ru.",
@@ -324,20 +324,20 @@ class AdminInviteCampaignCreateRequest(BaseModel):
 
     campaign_key: str = Field(..., min_length=3, max_length=80, pattern=r"^[a-z0-9][a-z0-9_-]*$")
     name: str = Field(..., min_length=3, max_length=160)
-    description: str | None = Field(None, max_length=2_000)
-    owner_mode: str = Field("selected_user", max_length=30)
+    description: str | None = Field(default=None, max_length=2_000)
+    owner_mode: str = Field(default="selected_user", max_length=30)
     starts_at: datetime | None = None
     expires_at: datetime | None = None
     allowed_surfaces: list[str] = Field(default_factory=lambda: ["web", "miniapp", "telegram_bot"])
     allowed_geos: list[str] = Field(default_factory=list, max_length=200)
     allowed_markets: list[str] = Field(default_factory=list, max_length=200)
     allowed_segments: list[str] = Field(default_factory=list, max_length=200)
-    risk_policy_key: str | None = Field(None, max_length=120)
+    risk_policy_key: str | None = Field(default=None, max_length=120)
     grant_plan_id: UUID | None = None
-    grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
+    grant_plan_code: str | None = Field(default="premium_smart_ru", max_length=80)
     grant_duration_mode: InviteAccessDurationMode = "fixed_days"
     grant_duration_days: int | None = Field(365, ge=1, le=3_660)
-    grant_device_limit_override: int | None = Field(None, ge=1, le=200)
+    grant_device_limit_override: int | None = Field(default=None, ge=1, le=200)
     root_invite_expiry_mode: InviteCodeExpiryMode = "relative"
     root_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
     root_invite_expires_at: datetime | None = None
@@ -353,10 +353,10 @@ class AdminInviteCampaignCreateRequest(BaseModel):
     child_max_redemptions: int | None = Field(1, ge=1, le=1_000_000)
     child_per_user_redemption_cap: int = Field(1, ge=1, le=1)
     child_grant_plan_id: UUID | None = None
-    child_grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
+    child_grant_plan_code: str | None = Field(default="premium_smart_ru", max_length=80)
     child_grant_duration_mode: InviteAccessDurationMode = "fixed_days"
     child_grant_duration_days: int | None = Field(365, ge=1, le=3_660)
-    child_grant_device_limit_override: int | None = Field(None, ge=1, le=200)
+    child_grant_device_limit_override: int | None = Field(default=None, ge=1, le=200)
     max_generation_depth: int = Field(5, ge=0, le=12)
     require_no_active_access: bool = True
     block_self_redemption: bool = True
@@ -368,7 +368,7 @@ class AdminInviteCampaignCreateRequest(BaseModel):
     multi_use_acknowledgement: bool = False
     lifetime_campaign_acknowledgement: bool = False
     publish: bool = False
-    reason: str | None = Field(None, max_length=240)
+    reason: str | None = Field(default=None, max_length=240)
 
     @model_validator(mode="after")
     def _validate_lifetime_and_expiry_fields(self) -> "AdminInviteCampaignCreateRequest":
@@ -494,10 +494,10 @@ class AdminInviteCampaignActionRequest(BaseModel):
 
 class AdminInviteCampaignVersionCreateRequest(BaseModel):
     grant_plan_id: UUID | None = None
-    grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
+    grant_plan_code: str | None = Field(default="premium_smart_ru", max_length=80)
     grant_duration_mode: InviteAccessDurationMode = "fixed_days"
     grant_duration_days: int | None = Field(365, ge=1, le=3_660)
-    grant_device_limit_override: int | None = Field(None, ge=1, le=200)
+    grant_device_limit_override: int | None = Field(default=None, ge=1, le=200)
     root_invite_expiry_mode: InviteCodeExpiryMode = "relative"
     root_invite_expiry_days: int | None = Field(30, ge=1, le=3_660)
     root_invite_expires_at: datetime | None = None
@@ -513,10 +513,10 @@ class AdminInviteCampaignVersionCreateRequest(BaseModel):
     child_max_redemptions: int | None = Field(1, ge=1, le=1_000_000)
     child_per_user_redemption_cap: int = Field(1, ge=1, le=1)
     child_grant_plan_id: UUID | None = None
-    child_grant_plan_code: str | None = Field("premium_smart_ru", max_length=80)
+    child_grant_plan_code: str | None = Field(default="premium_smart_ru", max_length=80)
     child_grant_duration_mode: InviteAccessDurationMode = "fixed_days"
     child_grant_duration_days: int | None = Field(365, ge=1, le=3_660)
-    child_grant_device_limit_override: int | None = Field(None, ge=1, le=200)
+    child_grant_device_limit_override: int | None = Field(default=None, ge=1, le=200)
     max_generation_depth: int = Field(5, ge=0, le=12)
     require_no_active_access: bool = True
     block_self_redemption: bool = True
@@ -528,7 +528,7 @@ class AdminInviteCampaignVersionCreateRequest(BaseModel):
     multi_use_policy: dict[str, Any] = Field(default_factory=dict)
     multi_use_acknowledgement: bool = False
     lifetime_campaign_acknowledgement: bool = False
-    reason: str | None = Field(None, max_length=240)
+    reason: str | None = Field(default=None, max_length=240)
 
     @model_validator(mode="after")
     def _validate_lifetime_and_expiry_fields(self) -> "AdminInviteCampaignVersionCreateRequest":
@@ -559,13 +559,13 @@ class AdminInviteCampaignBatchCreateRequest(BaseModel):
     owner_user_ids: list[UUID] = Field(default_factory=list, max_length=1_000)
     count: int = Field(1, ge=1, le=1_000)
     version_id: UUID | None = None
-    idempotency_key: str | None = Field(None, min_length=3, max_length=200)
+    idempotency_key: str | None = Field(default=None, min_length=3, max_length=200)
     expiry_mode: AdminInviteBatchExpiryMode = "campaign_default"
     expires_at: datetime | None = None
-    expiry_days: int | None = Field(None, ge=1, le=3_660)
+    expiry_days: int | None = Field(default=None, ge=1, le=3_660)
     usage_mode: AdminInviteBatchUsageMode = "campaign_default"
-    max_redemptions_per_code: int | None = Field(None, ge=1, le=1_000_000)
-    per_user_redemption_cap: int | None = Field(None, ge=1, le=1)
+    max_redemptions_per_code: int | None = Field(default=None, ge=1, le=1_000_000)
+    per_user_redemption_cap: int | None = Field(default=None, ge=1, le=1)
     reason: str = Field(..., min_length=3, max_length=240)
 
     @model_validator(mode="after")

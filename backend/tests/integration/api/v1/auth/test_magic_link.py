@@ -69,7 +69,7 @@ class TestMagicLinkRoutes:
         token = secrets.token_urlsafe(32)
         redis_client = await get_redis_client()
         try:
-            await redis_client.setex(f"{MagicLinkService.PREFIX}{token}", 900, email)
+            await redis_client.set(f"{MagicLinkService.PREFIX}{token}", email, ex=900)
         finally:
             await redis_client.aclose()
 
@@ -100,14 +100,14 @@ class TestMagicLinkRoutes:
 
     @pytest.mark.integration
     async def test_token_is_single_use(self, async_client, monkeypatch):
-        """Magic link token supports one replay, then expires."""
+        """Magic link token is strictly single-use."""
         import secrets
 
         email = f"single-use-{secrets.token_hex(4)}@example.com"
         token = "single-use-token"
         redis_client = await get_redis_client()
         try:
-            await redis_client.setex(f"{MagicLinkService.PREFIX}{token}", 900, email)
+            await redis_client.set(f"{MagicLinkService.PREFIX}{token}", email, ex=900)
         finally:
             await redis_client.aclose()
 
@@ -115,11 +115,9 @@ class TestMagicLinkRoutes:
 
         response1 = await async_client.post("/api/v1/auth/magic-link/verify", json={"token": token})
         response2 = await async_client.post("/api/v1/auth/magic-link/verify", json={"token": token})
-        response3 = await async_client.post("/api/v1/auth/magic-link/verify", json={"token": token})
 
         assert response1.status_code == 200
-        assert response2.status_code == 200
-        assert response3.status_code == 400
+        assert response2.status_code == 400
 
     @pytest.mark.integration
     async def test_rate_limit_on_request(self, async_client):

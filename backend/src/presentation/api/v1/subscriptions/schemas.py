@@ -26,20 +26,20 @@ class CreateSubscriptionTemplateRequest(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=100, description="Template name")
     template_type: str = Field(..., min_length=1, max_length=50, description="VPN client template type")
-    host_uuid: str | None = Field(None, max_length=255, description="Host UUID")
-    inbound_tag: str | None = Field(None, max_length=100, description="Inbound tag")
-    flow: str | None = Field(None, max_length=50, description="Flow control method")
-    config_data: dict[str, Any] | None = Field(None, description="Additional config data")
+    host_uuid: str | None = Field(default=None, max_length=255, description="Host UUID")
+    inbound_tag: str | None = Field(default=None, max_length=100, description="Inbound tag")
+    flow: str | None = Field(default=None, max_length=50, description="Flow control method")
+    config_data: dict[str, Any] | None = Field(default=None, description="Additional config data")
 
 
 class UpdateSubscriptionTemplateRequest(BaseModel):
     """Request schema for updating a subscription template."""
 
-    name: str | None = Field(None, min_length=1, max_length=100)
-    template_type: str | None = Field(None, min_length=1, max_length=50)
-    host_uuid: str | None = Field(None, max_length=255)
-    inbound_tag: str | None = Field(None, max_length=100)
-    flow: str | None = Field(None, max_length=50)
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    template_type: str | None = Field(default=None, min_length=1, max_length=50)
+    host_uuid: str | None = Field(default=None, max_length=255)
+    inbound_tag: str | None = Field(default=None, max_length=100)
+    flow: str | None = Field(default=None, max_length=50)
     config_data: dict[str, Any] | None = None
 
 
@@ -51,10 +51,10 @@ class SubscriptionResponse(BaseModel):
     uuid: str = Field(..., description="Subscription UUID")
     name: str = Field(..., max_length=100, description="Template name")
     template_type: str = Field(..., max_length=50, description="Template type")
-    host_uuid: str | None = Field(None, description="Host UUID")
-    inbound_tag: str | None = Field(None, max_length=100, description="Inbound tag")
-    flow: str | None = Field(None, max_length=50, description="Flow control method")
-    config_data: dict[str, Any] | None = Field(None, description="Config data")
+    host_uuid: str | None = Field(default=None, description="Host UUID")
+    inbound_tag: str | None = Field(default=None, max_length=100, description="Inbound tag")
+    flow: str | None = Field(default=None, max_length=50, description="Flow control method")
+    config_data: dict[str, Any] | None = Field(default=None, description="Config data")
 
 
 class SubscriptionTemplateListResponse(BaseModel):
@@ -76,7 +76,7 @@ class SubscriptionConfigResponse(BaseModel):
     is_found: bool = Field(True, alias="isFound", description="Whether the upstream subscription exists")
     links: list[str] = Field(default_factory=list, description="All generated connection links")
     ss_conf_links: dict[str, str] = Field(default_factory=dict, alias="ssConfLinks", description="SS config links")
-    subscription_url: str | None = Field(None, max_length=5000, description="Subscription URL")
+    subscription_url: str | None = Field(default=None, max_length=5000, description="Subscription URL")
     xhttp_enabled: bool = Field(False, alias="xhttpEnabled", description="Whether XHTTP links are present")
     xhttp_links: list[str] = Field(default_factory=list, alias="xhttpLinks", description="XHTTP connection links")
 
@@ -87,10 +87,10 @@ class ActiveSubscriptionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     status: str = Field(..., description="Subscription status (active, expired, trial, cancelled, none)")
-    plan_name: str | None = Field(None, description="Name of the subscription plan")
-    expires_at: datetime | None = Field(None, description="Subscription expiration timestamp")
-    traffic_limit_bytes: int | None = Field(None, description="Traffic limit in bytes")
-    used_traffic_bytes: int | None = Field(None, description="Used traffic in bytes")
+    plan_name: str | None = Field(default=None, description="Name of the subscription plan")
+    expires_at: datetime | None = Field(default=None, description="Subscription expiration timestamp")
+    traffic_limit_bytes: int | None = Field(default=None, description="Traffic limit in bytes")
+    used_traffic_bytes: int | None = Field(default=None, description="Used traffic in bytes")
     auto_renew: bool = Field(False, description="Whether subscription auto-renews")
 
 
@@ -111,24 +111,24 @@ class CurrentEntitlementsResponse(BaseModel):
 
 class UpgradeSubscriptionRequest(BaseModel):
     target_plan_id: UUID = Field(..., description="Target subscription plan UUID")
-    promo_code: str | None = Field(None, max_length=50)
+    promo_code: str | None = Field(default=None, max_length=50)
     use_wallet: float = Field(0, ge=0)
-    currency: str = Field("USD", min_length=3, max_length=12)
-    channel: str = Field("web", min_length=1, max_length=30)
+    currency: str = Field(default="USD", min_length=3, max_length=12)
+    channel: str = Field(default="web", min_length=1, max_length=30)
 
 
 class SubscriptionAddonItemRequest(BaseModel):
     code: str = Field(..., min_length=1, max_length=50)
     qty: int = Field(default=1, ge=1, le=100)
-    location_code: str | None = Field(None, min_length=2, max_length=64)
+    location_code: str | None = Field(default=None, min_length=2, max_length=64)
 
 
 class PurchaseSubscriptionAddonsRequest(BaseModel):
     addons: list[SubscriptionAddonItemRequest] = Field(..., min_length=1)
-    promo_code: str | None = Field(None, max_length=50)
+    promo_code: str | None = Field(default=None, max_length=50)
     use_wallet: float = Field(0, ge=0)
-    currency: str = Field("USD", min_length=3, max_length=12)
-    channel: str = Field("web", min_length=1, max_length=30)
+    currency: str = Field(default="USD", min_length=3, max_length=12)
+    channel: str = Field(default="web", min_length=1, max_length=30)
 
 
 class CancelSubscriptionResponse(BaseModel):

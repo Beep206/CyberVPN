@@ -14,12 +14,12 @@ class CreateDeviceCredentialRequest(BaseModel):
     provisioning_profile_id: UUID | None = None
     credential_type: DeviceCredentialType
     subject_key: str = Field(..., min_length=1, max_length=160)
-    provider_credential_ref: str | None = Field(None, max_length=160)
+    provider_credential_ref: str | None = Field(default=None, max_length=160)
     credential_context: dict[str, Any] = Field(default_factory=dict)
 
 
 class DeviceCredentialTransitionRequest(BaseModel):
-    reason_code: str | None = Field(None, max_length=80)
+    reason_code: str | None = Field(default=None, max_length=80)
 
 
 class DeviceCredentialResponse(BaseModel):

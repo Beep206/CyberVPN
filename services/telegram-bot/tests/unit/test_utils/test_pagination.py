@@ -130,7 +130,7 @@ class TestPaginator:
         # even though items_per_page is clamped to 1, because the calculation
         # uses the parameter value instead of self.items_per_page
         with pytest.raises(ZeroDivisionError):
-            paginator = Paginator(items, items_per_page=0)
+            Paginator(items, items_per_page=0)
 
     def test_paginator_with_objects(self) -> None:
         """Test paginator with custom objects."""
@@ -153,9 +153,7 @@ class TestCreatePaginationKeyboard:
 
     def test_create_first_page_keyboard(self) -> None:
         """Test keyboard for first page."""
-        keyboard = create_pagination_keyboard(
-            current_page=0, total_pages=3, callback_prefix="test"
-        )
+        keyboard = create_pagination_keyboard(current_page=0, total_pages=3, callback_prefix="test")
 
         assert keyboard is not None
         assert len(keyboard.inline_keyboard) > 0
@@ -169,9 +167,7 @@ class TestCreatePaginationKeyboard:
 
     def test_create_middle_page_keyboard(self) -> None:
         """Test keyboard for middle page."""
-        keyboard = create_pagination_keyboard(
-            current_page=1, total_pages=3, callback_prefix="servers"
-        )
+        keyboard = create_pagination_keyboard(current_page=1, total_pages=3, callback_prefix="servers")
 
         bottom_row = keyboard.inline_keyboard[-1]
 
@@ -181,9 +177,7 @@ class TestCreatePaginationKeyboard:
 
     def test_create_last_page_keyboard(self) -> None:
         """Test keyboard for last page."""
-        keyboard = create_pagination_keyboard(
-            current_page=2, total_pages=3, callback_prefix="test"
-        )
+        keyboard = create_pagination_keyboard(current_page=2, total_pages=3, callback_prefix="test")
 
         bottom_row = keyboard.inline_keyboard[-1]
 
@@ -256,9 +250,7 @@ class TestCreatePaginationKeyboard:
 
     def test_single_page_no_navigation(self) -> None:
         """Test keyboard with single page."""
-        keyboard = create_pagination_keyboard(
-            current_page=0, total_pages=1, callback_prefix="test"
-        )
+        keyboard = create_pagination_keyboard(current_page=0, total_pages=1, callback_prefix="test")
 
         bottom_row = keyboard.inline_keyboard[-1]
 
@@ -319,9 +311,7 @@ class TestCreateItemKeyboard:
         servers = [{"id": i, "name": f"Server-{i}"} for i in range(3)]
 
         def button_factory(server: dict) -> InlineKeyboardButton:
-            return InlineKeyboardButton(
-                text=server["name"], callback_data=f"server:{server['id']}"
-            )
+            return InlineKeyboardButton(text=server["name"], callback_data=f"server:{server['id']}")
 
         keyboard = create_item_keyboard(
             items=servers,
@@ -343,9 +333,7 @@ class TestCreateItemKeyboard:
         items = [{"id": i, "name": f"Item-{i}"} for i in range(6)]
 
         def button_factory(item: dict) -> InlineKeyboardButton:
-            return InlineKeyboardButton(
-                text=item["name"], callback_data=f"item:{item['id']}"
-            )
+            return InlineKeyboardButton(text=item["name"], callback_data=f"item:{item['id']}")
 
         keyboard = create_item_keyboard(
             items=items,

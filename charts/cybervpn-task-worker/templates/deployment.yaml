@@ -16,19 +16,29 @@ spec:
         {{- include "cybervpn-task-worker.labels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "cybervpn-task-worker.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       imagePullSecrets:
         {{- range .Values.imagePullSecrets }}
         - name: {{ .name }}
         {{- end }}
-      {{- if .Values.prometheusMultiproc.enabled }}
+      {{- if or .Values.prometheusMultiproc.enabled .Values.exportScratch.enabled }}
       volumes:
+        {{- if .Values.exportScratch.enabled }}
+        - name: export-scratch
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.prometheusMultiproc.enabled }}
         - name: prometheus-multiproc
           emptyDir: {}
+        {{- end }}
       {{- end }}
       containers:
         - name: {{ .Values.workload.mode | default "worker" }}
           image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
             - name: metrics
               containerPort: {{ .Values.metrics.containerPort }}
@@ -39,9 +49,17 @@ spec:
           env:
             - name: PROMETHEUS_MULTIPROC_DIR
               value: {{ .Values.prometheusMultiproc.dir | quote }}
+          {{- end }}
+          {{- if or .Values.prometheusMultiproc.enabled .Values.exportScratch.enabled }}
           volumeMounts:
+            {{- if .Values.exportScratch.enabled }}
+            - name: export-scratch
+              mountPath: {{ .Values.exportScratch.dir | quote }}
+            {{- end }}
+            {{- if .Values.prometheusMultiproc.enabled }}
             - name: prometheus-multiproc
               mountPath: {{ .Values.prometheusMultiproc.dir | quote }}
+            {{- end }}
           {{- end }}
           command:
             {{- toYaml .Values.workload.command | nindent 12 }}

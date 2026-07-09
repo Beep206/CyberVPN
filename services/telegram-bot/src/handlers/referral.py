@@ -7,6 +7,7 @@ import structlog
 from aiogram import F, Router
 
 from src.keyboards.referral import referral_keyboard
+from src.utils.telegram import callback_message
 
 if TYPE_CHECKING:
     from aiogram.types import CallbackQuery
@@ -77,7 +78,7 @@ async def _render_referral_info(
                 link=referral_link,
             )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=stats_text,
             reply_markup=referral_keyboard(i18n, stats),
         )
@@ -148,7 +149,7 @@ async def share_referral_link_handler(
         )
     )
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=share_text,
         reply_markup=builder.as_markup(),
     )
@@ -182,7 +183,7 @@ async def withdraw_bonus_handler(
         # Create withdrawal request
         withdrawal = await api_client.withdraw_referral_points(user_id, available_balance)
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get(
                 "referral-withdraw-success",
                 amount=available_balance,

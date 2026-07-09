@@ -2,6 +2,10 @@
 
 from unittest.mock import patch
 
+from httpx import ASGITransport, AsyncClient
+from starlette.responses import Response
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
 from src import serve
 
 
@@ -55,3 +59,57 @@ class TestServeRuntimeConfig:
             trusted_proxy_ips=[],
         ):
             assert serve._forwarded_allow_ips() == "127.0.0.1"
+
+
+async def test_uvicorn_proxy_headers_accept_scheme_and_client_from_trusted_proxy() -> None:
+    captured: dict[str, object] = {}
+
+    async def app(scope, receive, send) -> None:
+        captured["scheme"] = scope["scheme"]
+        captured["client"] = scope["client"]
+        await Response(status_code=204)(scope, receive, send)
+
+    proxied_app = ProxyHeadersMiddleware(app, trusted_hosts=["10.0.0.10"])
+
+    async with AsyncClient(
+        transport=ASGITransport(app=proxied_app, client=("10.0.0.10", 52344)),
+        base_url="http://backend.internal",
+    ) as client:
+        response = await client.get(
+            "/",
+            headers={
+                "x-forwarded-proto": "https",
+                "x-forwarded-for": "203.0.113.20",
+            },
+        )
+
+    assert response.status_code == 204
+    assert captured["scheme"] == "https"
+    assert captured["client"] == ("203.0.113.20", 0)
+
+
+async def test_uvicorn_proxy_headers_ignore_scheme_and_client_from_untrusted_peer() -> None:
+    captured: dict[str, object] = {}
+
+    async def app(scope, receive, send) -> None:
+        captured["scheme"] = scope["scheme"]
+        captured["client"] = scope["client"]
+        await Response(status_code=204)(scope, receive, send)
+
+    proxied_app = ProxyHeadersMiddleware(app, trusted_hosts=["10.0.0.10"])
+
+    async with AsyncClient(
+        transport=ASGITransport(app=proxied_app, client=("203.0.113.10", 52344)),
+        base_url="http://backend.internal",
+    ) as client:
+        response = await client.get(
+            "/",
+            headers={
+                "x-forwarded-proto": "https",
+                "x-forwarded-for": "198.51.100.99",
+            },
+        )
+
+    assert response.status_code == 204
+    assert captured["scheme"] == "http"
+    assert captured["client"] == ("203.0.113.10", 52344)

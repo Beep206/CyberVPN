@@ -27,7 +27,7 @@ class CreateMerchantProfileRequest(BaseModel):
     legal_entity_name: str = Field(..., min_length=1, max_length=255)
     billing_descriptor: str = Field(..., min_length=1, max_length=64)
     invoice_profile_id: UUID | None = None
-    settlement_reference: str | None = Field(None, max_length=120)
+    settlement_reference: str | None = Field(default=None, max_length=120)
     supported_currencies: list[str] = Field(default_factory=list)
     tax_behavior: dict = Field(default_factory=dict)
     refund_responsibility_model: str = Field(default="merchant_of_record", min_length=1, max_length=50)

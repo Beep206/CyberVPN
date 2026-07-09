@@ -12,17 +12,17 @@ from src.domain.enums import AttributionTouchpointType, CommercialOwnerSource, C
 class RecordAttributionTouchpointRequest(BaseModel):
     touchpoint_type: AttributionTouchpointType
     auth_realm_id: UUID | None = None
-    auth_realm_key: str | None = Field(None, min_length=1, max_length=50)
+    auth_realm_key: str | None = Field(default=None, min_length=1, max_length=50)
     user_id: UUID | None = None
     storefront_id: UUID | None = None
     quote_session_id: UUID | None = None
     checkout_session_id: UUID | None = None
     order_id: UUID | None = None
-    partner_code: str | None = Field(None, max_length=30)
+    partner_code: str | None = Field(default=None, max_length=30)
     partner_code_id: UUID | None = None
-    sale_channel: str | None = Field(None, min_length=1, max_length=30)
-    source_host: str | None = Field(None, max_length=255)
-    source_path: str | None = Field(None, max_length=500)
+    sale_channel: str | None = Field(default=None, min_length=1, max_length=30)
+    source_host: str | None = Field(default=None, max_length=255)
+    source_path: str | None = Field(default=None, max_length=500)
     campaign_params: dict[str, Any] = Field(default_factory=dict)
     evidence_payload: dict[str, Any] = Field(default_factory=dict)
     occurred_at: datetime | None = None

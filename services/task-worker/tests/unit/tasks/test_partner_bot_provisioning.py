@@ -35,9 +35,7 @@ async def test_process_partner_bot_provisioning_jobs_marks_managed_bot_for_manua
 
     mock_backend = AsyncMock()
     mock_backend.enabled = True
-    mock_backend.claim_partner_bot_provisioning_job = AsyncMock(
-        side_effect=[{"bot": claimed_bot}, {"bot": None}]
-    )
+    mock_backend.claim_partner_bot_provisioning_job = AsyncMock(side_effect=[{"bot": claimed_bot}, {"bot": None}])
     mock_backend.finalize_partner_bot_provisioning_job = AsyncMock(return_value=finalized_bot)
 
     with (
@@ -45,9 +43,7 @@ async def test_process_partner_bot_provisioning_jobs_marks_managed_bot_for_manua
             "src.tasks.partner_bots.process_provisioning_jobs.get_settings",
             return_value=mock_settings,
         ),
-        patch(
-            "src.tasks.partner_bots.process_provisioning_jobs.BackendAPIClient"
-        ) as mock_backend_cls,
+        patch("src.tasks.partner_bots.process_provisioning_jobs.BackendAPIClient") as mock_backend_cls,
     ):
         mock_backend_cls.return_value.__aenter__ = AsyncMock(return_value=mock_backend)
         mock_backend_cls.return_value.__aexit__ = AsyncMock(return_value=False)
@@ -61,10 +57,7 @@ async def test_process_partner_bot_provisioning_jobs_marks_managed_bot_for_manua
     finalize_kwargs = mock_backend.finalize_partner_bot_provisioning_job.await_args.kwargs
     assert finalize_kwargs["provisioning_job_id"] == "job-1"
     assert finalize_kwargs["payload"]["job_status"] == "manual_intervention_required"
-    assert (
-        finalize_kwargs["payload"]["result_payload"]["reason_code"]
-        == "managed_bot_runtime_not_implemented"
-    )
+    assert finalize_kwargs["payload"]["result_payload"]["reason_code"] == "managed_bot_runtime_not_implemented"
 
 
 @pytest.mark.asyncio

@@ -23,12 +23,46 @@ const ROOT = resolve(__dirname, "..");
 
 const OPENAPI_SPEC = resolve(ROOT, "..", "backend", "docs", "api", "openapi.json");
 const OUTPUT_FILE = resolve(ROOT, "src", "lib", "api", "generated", "types.ts");
+const OPENAPI_TYPESCRIPT_CLI = resolve(
+  ROOT,
+  "..",
+  "node_modules",
+  "openapi-typescript",
+  "bin",
+  "cli.js",
+);
+const RETRYABLE_WRITE_ERROR_CODES = new Set(["EBUSY", "EACCES", "EPERM", "UNKNOWN"]);
 const REQUIRED_MARKERS = [
   "get_metadata_api_v1_monitoring_metadata_get",
   "get_recap_api_v1_monitoring_recap_get",
   "node_version?: string | null;",
   "active_plugin_uuid?: string | null;",
 ];
+
+function sleepSync(milliseconds) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+function writeGeneratedFile(filePath, content) {
+  let lastError;
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      writeFileSync(filePath, content, "utf-8");
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!RETRYABLE_WRITE_ERROR_CODES.has(error?.code)) {
+        throw error;
+      }
+
+      // Windows can briefly keep the just-generated file locked after the CLI exits.
+      sleepSync(75 * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+}
 
 // Validate the OpenAPI spec exists
 if (!existsSync(OPENAPI_SPEC)) {
@@ -43,9 +77,9 @@ if (!existsSync(outputDir)) {
   mkdirSync(outputDir, { recursive: true });
 }
 
-// Run openapi-typescript CLI using execFileSync (no shell injection risk)
+// Run the lockfile-backed openapi-typescript CLI using execFileSync (no shell injection risk)
 try {
-  execFileSync("npx", ["openapi-typescript", OPENAPI_SPEC, "-o", OUTPUT_FILE], {
+  execFileSync(process.execPath, [OPENAPI_TYPESCRIPT_CLI, OPENAPI_SPEC, "-o", OUTPUT_FILE], {
     cwd: ROOT,
     stdio: "inherit",
   });
@@ -76,4 +110,4 @@ for (const marker of REQUIRED_MARKERS) {
   }
 }
 
-writeFileSync(OUTPUT_FILE, generatedOutput, "utf-8");
+writeGeneratedFile(OUTPUT_FILE, generatedOutput);

@@ -4,6 +4,7 @@ from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveConfigProfileResponse
+from src.presentation.api.v1.remnawave_degraded import optional_remnawave_read
 from src.presentation.dependencies import get_current_active_user, get_remnawave_client, require_role
 
 from .schemas import CreateConfigProfileRequest
@@ -16,9 +17,16 @@ async def list_config_profiles(
     current_user=Depends(get_current_active_user), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """List available configuration profiles"""
-    result = await client.get_list_validated("/config-profiles", RemnawaveConfigProfileResponse)
-    route_operations_total.labels(route="config_profiles", action="list", status="success").inc()
-    return result
+    return await optional_remnawave_read(
+        route="config_profiles",
+        action="list",
+        fetch=lambda: client.get_collection_validated(
+            "/config-profiles",
+            "configProfiles",
+            RemnawaveConfigProfileResponse,
+        ),
+        fallback=[],
+    )
 
 
 @router.post("/", response_model=RemnawaveConfigProfileResponse)

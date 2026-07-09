@@ -240,7 +240,7 @@ class UpdateAdminCustomerSiteRuntimeConfigRequest(BaseModel):
     allowed_path_prefixes: list[str] = Field(default_factory=list, max_length=50)
     cabinet_allowed_prefixes: list[str] = Field(default_factory=list, max_length=100)
     cabinet_marketing_route_action: Literal["redirect_public", "allow", "not_found"] | None = None
-    public_marketing_destination_path: str | None = Field(None, min_length=1, max_length=160)
+    public_marketing_destination_path: str | None = Field(default=None, min_length=1, max_length=160)
     legal_path_prefixes: list[str] = Field(default_factory=list, max_length=50)
     operational_path_prefixes: list[str] = Field(default_factory=list, max_length=50)
     preserve_query_keys: list[str] = Field(default_factory=list, max_length=50)

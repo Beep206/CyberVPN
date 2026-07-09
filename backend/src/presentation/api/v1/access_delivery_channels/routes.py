@@ -17,6 +17,7 @@ from src.application.use_cases.service_access import (
 from src.domain.enums import AccessDeliveryChannelStatus, AccessDeliveryChannelType, AdminRole
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.presentation.api.v1.device_credentials.routes import _serialize_device_credential
+from src.presentation.api.v1.entitlements.schemas import CurrentEntitlementStateResponse
 from src.presentation.api.v1.provisioning_profiles.routes import _serialize_provisioning_profile
 from src.presentation.api.v1.service_identities.routes import _serialize_service_identity
 from src.presentation.dependencies.auth import get_current_mobile_user_id
@@ -178,7 +179,7 @@ async def get_current_service_state(
         customer_account_id=user_id,
         auth_realm_id=current_realm.auth_realm.id,
         provider_name=payload.provider_name,
-        entitlement_snapshot=result.entitlement_snapshot,
+        entitlement_snapshot=CurrentEntitlementStateResponse.model_validate(result.entitlement_snapshot),
         service_identity=(
             _serialize_service_identity(result.service_identity) if result.service_identity is not None else None
         ),

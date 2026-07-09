@@ -15,6 +15,7 @@ import { startPasskeyRegistration } from '@/features/auth/lib/passkey-webauthn';
 
 const PARTNER_PASSKEYS_PERSONAL_QUERY_KEY = ['partner', 'passkeys', 'personal'] as const;
 const PARTNER_PASSKEYS_POLICY_QUERY_KEY = ['partner', 'passkeys', 'policy'] as const;
+const PARTNER_PERSONAL_PASSKEYS_ENABLED = process.env.NEXT_PUBLIC_PASSKEY_PARTNER_ENABLED === 'true';
 
 function getWorkspacePolicyQueryKey(workspaceId: string | null) {
   return ['partner', 'passkeys', 'workspace-policy', workspaceId] as const;
@@ -83,6 +84,7 @@ export function OperatorPasskeysPanel({
       const response = await passkeysApi.listPasskeys();
       return response.data;
     },
+    enabled: PARTNER_PERSONAL_PASSKEYS_ENABLED,
     staleTime: 15_000,
   });
 
@@ -92,6 +94,7 @@ export function OperatorPasskeysPanel({
       const response = await passkeysApi.getAuthPolicy();
       return response.data;
     },
+    enabled: PARTNER_PERSONAL_PASSKEYS_ENABLED,
     staleTime: 30_000,
   });
 
@@ -122,8 +125,10 @@ export function OperatorPasskeysPanel({
   });
 
   async function refreshPasskeys() {
-    await queryClient.invalidateQueries({ queryKey: PARTNER_PASSKEYS_PERSONAL_QUERY_KEY });
-    await queryClient.invalidateQueries({ queryKey: PARTNER_PASSKEYS_POLICY_QUERY_KEY });
+    if (PARTNER_PERSONAL_PASSKEYS_ENABLED) {
+      await queryClient.invalidateQueries({ queryKey: PARTNER_PASSKEYS_PERSONAL_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: PARTNER_PASSKEYS_POLICY_QUERY_KEY });
+    }
     await queryClient.invalidateQueries({ queryKey: getWorkspacePolicyQueryKey(activeWorkspaceId) });
     await queryClient.invalidateQueries({ queryKey: getWorkspaceComplianceQueryKey(activeWorkspaceId) });
   }
@@ -210,7 +215,9 @@ export function OperatorPasskeysPanel({
     },
   });
 
-  const policy = policyQuery.data ?? workspacePolicyQuery.data?.policy;
+  const policy = PARTNER_PERSONAL_PASSKEYS_ENABLED
+    ? policyQuery.data ?? workspacePolicyQuery.data?.policy
+    : workspacePolicyQuery.data?.policy;
   const personalCredentials = personalQuery.data?.credentials ?? [];
   const activePersonalCredentials = personalCredentials.filter(
     (credential) => !credential.revokedAt && credential.status === 'active',
@@ -220,7 +227,10 @@ export function OperatorPasskeysPanel({
   const complianceCredentials = workspaceComplianceQuery.data?.credentials ?? [];
   const isMutating =
     registrationMutation.isPending || renameMutation.isPending || deleteMutation.isPending;
-  const canRegister = !isReadOnly && Boolean(policy?.registrationEnabled);
+  const canRegister =
+    PARTNER_PERSONAL_PASSKEYS_ENABLED
+    && !isReadOnly
+    && Boolean(policy?.registrationEnabled);
 
   return (
     <section className="space-y-5 rounded-2xl border border-grid-line/20 bg-terminal-surface/30 p-4">

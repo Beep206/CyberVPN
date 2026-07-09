@@ -11,13 +11,19 @@ const { redirect } = await import('next/navigation');
 
 describe('legacy admin routes layout', () => {
   it('keeps legacy admin routes retired even when proxy fallback is bypassed', async () => {
-    await expect(
-      LegacyAdminRoutesLayout({
+    let redirectError: unknown;
+
+    try {
+      await LegacyAdminRoutesLayout({
         children: <div>legacy admin content</div>,
         params: Promise.resolve({ locale: 'en-EN' }),
-      }),
-    ).rejects.toThrow('NEXT_REDIRECT');
+      });
+    } catch (error) {
+      redirectError = error;
+    }
 
+    expect(redirectError).toBeInstanceOf(Error);
+    expect((redirectError as Error).message).toBe('NEXT_REDIRECT');
     expect(redirect).toHaveBeenCalledWith('/en-EN/dashboard');
   });
 });

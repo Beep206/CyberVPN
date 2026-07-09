@@ -7,6 +7,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,6 +96,11 @@ def dashboard_query_text(payload: dict) -> str:
     return "\n".join(exprs)
 
 
+def target_hostname(target: str) -> str:
+    parsed = urlsplit(target)
+    return parsed.hostname or target.split(":", 1)[0]
+
+
 def names(kind: str, text: str) -> set[str]:
     return set(re.findall(rf"^\s*-\s*{kind}:\s*([^\s]+)\s*$", text, re.MULTILINE))
 
@@ -122,8 +128,9 @@ def main() -> int:
     targets = json.loads(read(TARGETS_PATH))
     target_values = [target for group in targets for target in group.get("targets", [])]
     assert target_values, "Stage 3 storefront targets are empty"
-    assert all("h.cyber-vpn.net" in target for target in target_values)
-    assert all("ozoxy.ru" not in target for target in target_values)
+    target_hosts = [target_hostname(target) for target in target_values]
+    assert all(host == "h.cyber-vpn.net" or host.endswith(".h.cyber-vpn.net") for host in target_hosts)
+    assert all(host != "ozoxy.ru" and not host.endswith(".ozoxy.ru") for host in target_hosts)
     assert "requires_dns_before_live_scrape" in json.dumps(targets)
 
     compose = read(COMPOSE_PATH)

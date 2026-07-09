@@ -338,15 +338,17 @@ def _build_launch_summary(
         launch_state=launch_state,
     )
 
-    return AdminMiniAppLaunchSummaryResponse(
-        launch_state=launch_state,
-        live_switch_allowed=live_switch_allowed,
-        next_action=next_action,
-        primary_action=primary_action,
-        available_actions=available_actions,
-        blockers=blockers,
-        runtime=_serialize_rollout(runtime),
-        readiness=_serialize_launch_readiness(readiness),
+    return AdminMiniAppLaunchSummaryResponse.model_validate(
+        {
+            "launch_state": launch_state,
+            "live_switch_allowed": live_switch_allowed,
+            "next_action": next_action,
+            "primary_action": primary_action,
+            "available_actions": available_actions,
+            "blockers": blockers,
+            "runtime": _serialize_rollout(runtime),
+            "readiness": _serialize_launch_readiness(readiness),
+        }
     )
 
 
@@ -382,18 +384,20 @@ def _serialize_launch_timeline_entry(
         resulting_runtime_mode = runtime_payload.get("mode")
         resulting_launch_state = summary_payload.get("launch_state")
 
-    return AdminMiniAppLaunchTimelineEntryResponse(
-        id=entry.id,
-        created_at=entry.created_at,
-        admin_id=entry.admin_id,
-        action=entry.action,
-        event_type=event_type,
-        action_name=action_name,
-        resulting_runtime_mode=resulting_runtime_mode,
-        resulting_launch_state=resulting_launch_state,
-        readiness_ready=readiness_ready,
-        change_reason=payload.get("change_reason"),
-        entity_id=entry.entity_id,
+    return AdminMiniAppLaunchTimelineEntryResponse.model_validate(
+        {
+            "id": entry.id,
+            "created_at": entry.created_at,
+            "admin_id": entry.admin_id,
+            "action": entry.action,
+            "event_type": event_type,
+            "action_name": action_name,
+            "resulting_runtime_mode": resulting_runtime_mode,
+            "resulting_launch_state": resulting_launch_state,
+            "readiness_ready": readiness_ready,
+            "change_reason": payload.get("change_reason"),
+            "entity_id": entry.entity_id,
+        }
     )
 
 

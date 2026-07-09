@@ -78,10 +78,10 @@ class CreatePlanRequest(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=100)
     catalog_visibility: str = Field(default="public", min_length=1, max_length=20)
     duration_days: int = Field(..., gt=0, le=3650)
-    traffic_limit_bytes: int | None = Field(None, ge=0)
+    traffic_limit_bytes: int | None = Field(default=None, ge=0)
     devices_included: int = Field(..., ge=1)
     price_usd: float = Field(..., ge=0)
-    price_rub: float | None = Field(None, ge=0)
+    price_rub: float | None = Field(default=None, ge=0)
     traffic_policy: TrafficPolicySchema = Field(default_factory=TrafficPolicySchema)
     connection_modes: list[str] = Field(default_factory=list)
     server_pool: list[str] = Field(default_factory=list)
@@ -96,23 +96,23 @@ class CreatePlanRequest(BaseModel):
 
 
 class UpdatePlanRequest(BaseModel):
-    name: str | None = Field(None, min_length=1, max_length=100)
-    plan_code: str | None = Field(None, min_length=1, max_length=20)
-    display_name: str | None = Field(None, min_length=1, max_length=100)
-    catalog_visibility: str | None = Field(None, min_length=1, max_length=20)
-    duration_days: int | None = Field(None, gt=0, le=3650)
-    traffic_limit_bytes: int | None = Field(None, ge=0)
-    devices_included: int | None = Field(None, ge=1)
-    price_usd: float | None = Field(None, ge=0)
-    price_rub: float | None = Field(None, ge=0)
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    plan_code: str | None = Field(default=None, min_length=1, max_length=20)
+    display_name: str | None = Field(default=None, min_length=1, max_length=100)
+    catalog_visibility: str | None = Field(default=None, min_length=1, max_length=20)
+    duration_days: int | None = Field(default=None, gt=0, le=3650)
+    traffic_limit_bytes: int | None = Field(default=None, ge=0)
+    devices_included: int | None = Field(default=None, ge=1)
+    price_usd: float | None = Field(default=None, ge=0)
+    price_rub: float | None = Field(default=None, ge=0)
     traffic_policy: TrafficPolicySchema | None = None
     connection_modes: list[str] | None = None
     server_pool: list[str] | None = None
-    support_sla: str | None = Field(None, min_length=1, max_length=20)
+    support_sla: str | None = Field(default=None, min_length=1, max_length=20)
     dedicated_ip: DedicatedIpSchema | None = None
     sale_channels: list[str] | None = None
     invite_bundle: InviteBundleSchema | None = None
     trial_eligible: bool | None = None
     features: dict[str, Any] | None = None
     is_active: bool | None = None
-    sort_order: int | None = Field(None, ge=0)
+    sort_order: int | None = Field(default=None, ge=0)

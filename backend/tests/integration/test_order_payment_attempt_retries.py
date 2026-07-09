@@ -204,7 +204,7 @@ async def test_payment_attempts_are_idempotent_and_support_retry_after_terminal_
                 adapter = SyncSessionAdapter(session)
                 webhook_use_case = ProcessPaymentWebhookUseCase(
                     adapter,
-                    CryptoBotWebhookHandler(api_token="test-token"),
+                    CryptoBotWebhookHandler(webhook_key_material="test-token"),
                 )
                 failed = await webhook_use_case._handle_invoice_failed("1001", "invoice_expired")
                 assert failed["status"] == "processed"

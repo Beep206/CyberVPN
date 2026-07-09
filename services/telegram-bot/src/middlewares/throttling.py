@@ -159,7 +159,7 @@ class ThrottlingMiddleware(BaseMiddleware):
                 results = await pipe.execute()
 
             # results[1] is the count before adding current request
-            current_count = results[1]
+            current_count = int(results[1])
             return current_count < max_requests
 
         except RedisError:

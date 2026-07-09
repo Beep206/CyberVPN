@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { addonsApi } from '@/lib/api/addons';
-import { paymentsApi } from '@/lib/api/payments';
+import { adminPaymentsApi } from '@/lib/api/payments';
 import { plansApi } from '@/lib/api/plans';
 import { pricebooksApi } from '@/lib/api/pricebooks';
 import { subscriptionsApi } from '@/lib/api/subscriptions';
@@ -31,11 +31,11 @@ function EmptyState({ label }: { label: string }) {
 function statusTone(status: string) {
   const normalized = status.toLowerCase();
 
-  if (normalized === 'completed' || normalized === 'approved') {
+  if (normalized === 'completed' || normalized === 'approved' || normalized === 'succeeded') {
     return 'success' as const;
   }
 
-  if (normalized === 'failed' || normalized === 'rejected') {
+  if (normalized === 'failed' || normalized === 'rejected' || normalized === 'cancelled' || normalized === 'expired') {
     return 'danger' as const;
   }
 
@@ -81,8 +81,8 @@ export function CommerceOverview() {
   const paymentsQuery = useQuery({
     queryKey: ['commerce', 'payments', { limit: 8 }],
     queryFn: async () => {
-      const response = await paymentsApi.getHistory({ offset: 0, limit: 8 });
-      return response.data.payments;
+      const response = await adminPaymentsApi.getPaymentAttempts({ offset: 0, limit: 8 });
+      return response.data.items;
     },
     staleTime: 30_000,
   });
@@ -227,7 +227,7 @@ export function CommerceOverview() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-lg font-display tracking-[0.12em] text-white">
-                        {formatCurrencyAmount(payment.amount, payment.currency)}
+                        {formatCurrencyAmount(payment.displayed_amount, payment.currency_code)}
                       </p>
                       <p className="mt-1 text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
                         {humanizeToken(payment.provider)} / #{shortId(payment.id)}

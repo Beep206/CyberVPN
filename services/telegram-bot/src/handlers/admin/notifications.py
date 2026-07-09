@@ -4,9 +4,11 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
+
+from src.utils.telegram import callback_data, callback_message
 
 if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -91,7 +93,7 @@ async def notifications_settings_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=settings_text,
             reply_markup=builder.as_markup(),
         )
@@ -112,7 +114,7 @@ async def notification_toggle_handler(
     api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle notification type."""
-    notification_type = callback.data.split(":")[3]
+    notification_type = callback_data(callback).split(":")[3]
 
     try:
         # Toggle notification setting

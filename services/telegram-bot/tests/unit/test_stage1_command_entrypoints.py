@@ -15,6 +15,8 @@ from src.handlers.start import start_handler
 from src.handlers.subscription import plans_command_handler
 from src.handlers.support import support_command
 from src.handlers.trial import activate_trial_command_handler
+from src.models.connection import ConnectionBootstrapResponse
+from src.services.cache_service import CacheService
 
 
 class _I18nStub:
@@ -31,28 +33,35 @@ class _I18nStub:
 def _message() -> Message:
     message = MagicMock(spec=Message)
     message.from_user = User(id=123456, is_bot=False, first_name="Test")
+    message.chat = SimpleNamespace(id=123456, type="private")
     message.text = "/start"
     message.answer = AsyncMock()
     return message
 
 
+def _available_bootstrap(url: str = "vless://private-secret-config") -> ConnectionBootstrapResponse:
+    return ConnectionBootstrapResponse(
+        status="available",
+        available=True,
+        subscription_url=url,
+        qr_payload=url,
+        config_profile_name="Primary profile",
+        flow_key="flow-stage1",
+        version=7,
+        connection_session_id="11111111-2222-4333-8444-555555555555",
+        telegram_payload={"bot_connection_session_id": "11111111-2222-4333-8444-555555555555"},
+    )
+
+
 def _callback_data(reply_markup: object) -> set[str]:
     keyboard = getattr(reply_markup, "inline_keyboard", [])
-    return {
-        button.callback_data
-        for row in keyboard
-        for button in row
-        if getattr(button, "callback_data", None)
-    }
+    return {button.callback_data for row in keyboard for button in row if getattr(button, "callback_data", None)}
 
 
 def _web_app_urls(reply_markup: object) -> list[str]:
     keyboard = getattr(reply_markup, "inline_keyboard", [])
     return [
-        str(button.web_app.url)
-        for row in keyboard
-        for button in row
-        if getattr(button, "web_app", None) is not None
+        str(button.web_app.url) for row in keyboard for button in row if getattr(button, "web_app", None) is not None
     ]
 
 
@@ -95,7 +104,9 @@ async def test_start_command_registers_user_and_shows_s1_onboarding_menu(mock_se
     callbacks = _callback_data(message.answer.await_args.kwargs["reply_markup"])
     assert {"trial:activate", "menu:vpn", "menu:subscription", "menu:growth", "menu:support"}.issubset(callbacks)
     assert "miniapp:unavailable" not in callbacks
-    assert _web_app_urls(message.answer.await_args.kwargs["reply_markup"]) == ["https://cyber-vpn.net/ru-RU/miniapp/home"]
+    assert _web_app_urls(message.answer.await_args.kwargs["reply_markup"]) == [
+        "https://cyber-vpn.net/ru-RU/miniapp/home"
+    ]
 
 
 @pytest.mark.asyncio
@@ -111,19 +122,18 @@ async def test_menu_command_opens_main_menu_without_registered_user() -> None:
 
 
 @pytest.mark.asyncio
-async def test_connect_command_opens_subscription_surface_for_inactive_user() -> None:
+async def test_connect_command_opens_connection_surface(fake_redis: object) -> None:
     message = _message()
+    cache = CacheService(fake_redis, key_prefix="stage1:")
     api_client = SimpleNamespace(
-        get_current_entitlements=AsyncMock(return_value={"status": "none"}),
-        get_current_service_state=AsyncMock(),
+        get_customer_connection_bootstrap=AsyncMock(return_value=_available_bootstrap()),
     )
 
-    await connect_command_handler(message, _I18nStub(), api_client)
+    await connect_command_handler(message, _I18nStub(), api_client, cache)
 
-    api_client.get_current_entitlements.assert_awaited_once_with(123456)
-    api_client.get_current_service_state.assert_not_awaited()
+    api_client.get_customer_connection_bootstrap.assert_awaited_once_with(123456, platform_hint="unknown")
     message.answer.assert_awaited_once()
-    assert message.answer.await_args.kwargs["text"] == "subscription-none"
+    assert message.answer.await_args.kwargs["text"].startswith("bot-onboarding-connection-ready")
     assert message.answer.await_args.kwargs["reply_markup"] is not None
 
 
@@ -214,6 +224,7 @@ async def test_config_link_handler_sends_subscription_url_not_direct_proxy_uri()
     callback = MagicMock(spec=CallbackQuery)
     callback.from_user = User(id=123456, is_bot=False, first_name="Test")
     callback.message = MagicMock()
+    callback.message.chat = SimpleNamespace(id=123456, type="private")
     callback.message.answer = AsyncMock()
     callback.answer = AsyncMock()
     api_client = SimpleNamespace(
@@ -224,7 +235,7 @@ async def test_config_link_handler_sends_subscription_url_not_direct_proxy_uri()
                 "client_type": "vless",
                 "subscription_url": "https://cyber-vpn.org/api/sub/redacted",
             }
-        )
+        ),
     )
 
     await send_config_link_handler(callback, _I18nStub(), api_client)
@@ -242,6 +253,7 @@ async def test_config_link_handler_rejects_direct_proxy_uri_without_subscription
     callback = MagicMock(spec=CallbackQuery)
     callback.from_user = User(id=123456, is_bot=False, first_name="Test")
     callback.message = MagicMock()
+    callback.message.chat = SimpleNamespace(id=123456, type="private")
     callback.message.answer = AsyncMock()
     callback.answer = AsyncMock()
     api_client = SimpleNamespace(
@@ -251,7 +263,7 @@ async def test_config_link_handler_rejects_direct_proxy_uri_without_subscription
                 "config_string": "vless://direct-proxy-uri",
                 "client_type": "vless",
             }
-        )
+        ),
     )
 
     await send_config_link_handler(callback, _I18nStub(), api_client)

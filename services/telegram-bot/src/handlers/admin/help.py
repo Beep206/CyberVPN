@@ -5,9 +5,11 @@ from typing import TYPE_CHECKING
 import structlog
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.types import Message
+
+from src.utils.telegram import message_user_id
 
 if TYPE_CHECKING:
+    from aiogram.types import Message
     from aiogram_i18n import I18nContext
 
 logger = structlog.get_logger(__name__)
@@ -79,4 +81,4 @@ async def admin_help_handler(
 
     await message.answer(text=help_text)
 
-    logger.info("admin_help_viewed", admin_id=message.from_user.id)
+    logger.info("admin_help_viewed", admin_id=message_user_id(message))

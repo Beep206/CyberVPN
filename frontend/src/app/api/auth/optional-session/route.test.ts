@@ -16,11 +16,12 @@ import { GET } from './route';
 const ORIGINAL_API_URL = process.env.API_URL;
 const ORIGINAL_NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-function createRequest(cookie = 'customer_access_token=token'): unknown {
+function createRequest(cookie = 'customer_access_token=token', forwardedHost = 'evil.example'): unknown {
   return {
     headers: new Headers({
       cookie,
       host: 'my.cyber-vpn.net',
+      'x-forwarded-host': forwardedHost,
       'x-forwarded-for': '203.0.113.10',
       'x-request-id': 'req-test',
     }),
@@ -76,6 +77,24 @@ describe('GET /api/auth/optional-session', () => {
     const headers = init?.headers as Headers;
     expect(headers.get('cookie')).toBe('customer_access_token=token');
     expect(headers.get('x-forwarded-host')).toBe('my.cyber-vpn.net');
+    expect(headers.get('x-forwarded-proto')).toBe('https');
+    expect(headers.get('x-forwarded-for')).toBeNull();
+  });
+
+  it('uses the browser-facing public host instead of an allowlisted spoofed forwarded host', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(null), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    }));
+
+    const response = await GET(createRequest('customer_access_token=token', 'localhost:3000') as never);
+
+    expect(response.status).toBe(200);
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    const headers = init?.headers as Headers;
+    expect(headers.get('x-forwarded-host')).toBe('my.cyber-vpn.net');
+    expect(headers.get('x-forwarded-proto')).toBe('https');
   });
 
   it('returns empty 200 for anonymous backend session without surfacing a browser 401', async () => {

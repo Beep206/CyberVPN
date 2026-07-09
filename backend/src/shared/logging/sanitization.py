@@ -3,9 +3,13 @@
 Removes sensitive information from URLs and headers before logging.
 """
 
+import hashlib
+import hmac
 import re
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+from src.config.settings import settings
 
 # Sensitive query parameter names to redact
 SENSITIVE_PARAMS = frozenset(
@@ -272,3 +276,17 @@ def sanitize_pii(data: dict[str, Any], *, fields: set[str] | None = None) -> dic
             sanitized[key] = value
 
     return sanitized
+
+
+def fingerprint_pii(value: str | None, *, namespace: str = "pii") -> str | None:
+    """Return a stable HMAC fingerprint for sensitive identifiers used in logs."""
+    if value is None:
+        return None
+
+    normalized = value.strip().lower()
+    if not normalized:
+        return None
+
+    secret = settings.jwt_secret.get_secret_value().encode("utf-8")
+    material = f"{namespace}:{normalized}".encode()
+    return hmac.new(secret, material, hashlib.sha256).hexdigest()[:32]

@@ -24,11 +24,11 @@ class CreatePartnerPayoutAccountRequest(BaseModel):
 
 
 class SuspendPartnerPayoutAccountRequest(BaseModel):
-    reason_code: str | None = Field(None, min_length=1, max_length=80)
+    reason_code: str | None = Field(default=None, min_length=1, max_length=80)
 
 
 class ArchivePartnerPayoutAccountRequest(BaseModel):
-    reason_code: str | None = Field(None, min_length=1, max_length=80)
+    reason_code: str | None = Field(default=None, min_length=1, max_length=80)
 
 
 class PartnerPayoutAccountResponse(BaseModel):

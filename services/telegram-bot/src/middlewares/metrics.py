@@ -7,12 +7,14 @@ Exposes metrics for scraping by Prometheus.
 from __future__ import annotations
 
 import time
-from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Update
 from prometheus_client import Counter, Histogram
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 # ── Metrics ──────────────────────────────────────────────────────────────
 

@@ -12,6 +12,8 @@ os.environ.setdefault("METRICS_PROTECT", "false")
 
 from src.services.helix_service import HelixService
 
+ADAPTER_HEADER_VALUE = "adapter-token"
+
 
 @pytest.mark.asyncio
 async def test_list_nodes_sends_internal_token_and_parses_response():
@@ -38,12 +40,12 @@ async def test_list_nodes_sends_internal_token_and_parses_response():
 
     async with HelixService(
         base_url="http://adapter.test",
-        token="adapter-token",
+        token=ADAPTER_HEADER_VALUE,
         transport=httpx.MockTransport(handler),
     ) as service:
         nodes = await service.list_nodes()
 
-    assert observed_header == "adapter-token"
+    assert observed_header == ADAPTER_HEADER_VALUE
     assert len(nodes) == 1
     assert nodes[0].remnawave_node_id == "node-1"
     assert nodes[0].transport_enabled is True
@@ -129,7 +131,7 @@ async def test_list_active_rollout_states_deduplicates_rollout_ids():
 
     async with HelixService(
         base_url="http://adapter.test",
-        token="adapter-token",
+        token=ADAPTER_HEADER_VALUE,
         transport=httpx.MockTransport(handler),
     ) as service:
         rollouts = await service.list_active_rollout_states()
@@ -203,7 +205,7 @@ async def test_get_rollout_canary_evidence_parses_formal_snapshot():
 
     async with HelixService(
         base_url="http://adapter.test",
-        token="adapter-token",
+        token=ADAPTER_HEADER_VALUE,
         transport=httpx.MockTransport(handler),
     ) as service:
         evidence = await service.get_rollout_canary_evidence("rollout-canary-1")

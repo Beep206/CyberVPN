@@ -39,6 +39,11 @@ const TERMINAL_CLAIM_CODES = new Set([
   'REFERRAL_ATTRIBUTION_EXPIRED',
 ]);
 
+type CookieBackedReferralClaim = {
+  capturedAt: string;
+  code: string;
+};
+
 function getApiErrorCode(error: unknown): string | null {
   const detail = (error as AxiosError<{ detail?: { code?: unknown } }>).response?.data?.detail;
   return typeof detail?.code === 'string' ? detail.code : null;
@@ -135,6 +140,7 @@ export function ReferralAttributionProvider() {
   const [storageVersion, setStorageVersion] = useState(0);
   const capturedLocationRef = useRef<string | null>(null);
   const claimAttemptRef = useRef<string | null>(null);
+  const cookieBackedClaimRef = useRef<CookieBackedReferralClaim | null>(null);
 
   useEffect(() => {
     const listener = () => setStorageVersion((value) => value + 1);
@@ -171,6 +177,10 @@ export function ReferralAttributionProvider() {
         campaign_params: collectCampaignParams(searchParams),
       }),
     ).then((response) => {
+      cookieBackedClaimRef.current = {
+        capturedAt: response.data.captured_at,
+        code: referralCode,
+      };
       saveReferralAttribution(createLocalSnapshot({
         attributionId: response.data.attribution_id,
         capturedAt: response.data.captured_at,
@@ -178,9 +188,11 @@ export function ReferralAttributionProvider() {
         expiresAt: response.data.expires_at,
         maskedCode: response.data.masked_code,
       }));
+      setStorageVersion((value) => value + 1);
       removeReferralQueryParams();
     }).catch((error) => {
       if (TERMINAL_CLAIM_CODES.has(getApiErrorCode(error) ?? '')) {
+        cookieBackedClaimRef.current = null;
         clearReferralAttribution();
       }
     });
@@ -192,9 +204,15 @@ export function ReferralAttributionProvider() {
     }
 
     const snapshot = readReferralAttribution();
+    const cookieBackedClaim = cookieBackedClaimRef.current;
+    if (!snapshot && !cookieBackedClaim) {
+      return;
+    }
+
+    const fallbackReferralCode = snapshot?.code ?? cookieBackedClaim?.code;
     const claimKey = snapshot
       ? `${userId}:${snapshot.code}:${snapshot.capturedAt}`
-      : `${userId}:cookie-only`;
+      : `${userId}:cookie:${cookieBackedClaim?.code}:${cookieBackedClaim?.capturedAt}`;
     if (claimAttemptRef.current === claimKey) {
       return;
     }
@@ -202,16 +220,19 @@ export function ReferralAttributionProvider() {
 
     void withReferralRetry(() =>
       referralApi.claimAttribution({
-        fallback_referral_code: snapshot?.code,
+        fallback_referral_code: fallbackReferralCode,
       }),
     ).then((response) => {
       if (response.data.status === 'claimed' || response.data.status === 'already_claimed') {
+        cookieBackedClaimRef.current = null;
         clearReferralAttribution();
-      } else if (response.data.status === 'no_pending' && snapshot) {
+      } else if (response.data.status === 'no_pending') {
+        cookieBackedClaimRef.current = null;
         clearReferralAttribution();
       }
     }).catch((error) => {
       if (TERMINAL_CLAIM_CODES.has(getApiErrorCode(error) ?? '')) {
+        cookieBackedClaimRef.current = null;
         clearReferralAttribution();
       }
     });

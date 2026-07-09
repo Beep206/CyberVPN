@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '@/stores/auth-store';
@@ -632,7 +632,9 @@ describe('Growth v6 operations consoles', () => {
     expect(await screen.findAllByText('v6.common.generatedWrapper')).not.toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'privateAccess.actions.openGrant' }));
     expect(mockGetPrivateCatalogGrant).toHaveBeenCalledWith('grant-1');
-    await user.type(screen.getByLabelText('privateAccess.fields.revokeReason'), 'support cleanup');
+    fireEvent.change(screen.getByLabelText('privateAccess.fields.revokeReason'), {
+      target: { value: 'support cleanup' },
+    });
     await user.click(screen.getByRole('button', { name: 'privateAccess.actions.revokeGrant' }));
     expect(mockRevokePrivateCatalogGrant).toHaveBeenCalledWith('grant-1', {
       reason: 'support cleanup',
@@ -651,7 +653,9 @@ describe('Growth v6 operations consoles', () => {
     expect(screen.getByText('/api/v3/admin/growth/onboarding/settings')).toBeInTheDocument();
     expect(await screen.findAllByText('v6.common.generatedWrapper')).not.toHaveLength(0);
     expect(screen.getByText('Promo, Invite, Gift')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('onboarding.fields.settingsReason'), 'support validation');
+    fireEvent.change(screen.getByLabelText('onboarding.fields.settingsReason'), {
+      target: { value: 'support validation' },
+    });
     await user.click(screen.getByRole('button', { name: 'onboarding.actions.updateSettings' }));
     expect(mockUpdateGrowthOnboardingSettings).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -660,7 +664,9 @@ describe('Growth v6 operations consoles', () => {
         change_reason: 'support validation',
       }),
     );
-    await user.type(screen.getByLabelText('onboarding.fields.resetReason'), 'retry support flow');
+    fireEvent.change(screen.getByLabelText('onboarding.fields.resetReason'), {
+      target: { value: 'retry support flow' },
+    });
     await user.click(screen.getByRole('button', { name: 'onboarding.actions.resetState' }));
     expect(mockResetGrowthOnboardingState).toHaveBeenCalledWith('state-1', {
       reason: 'retry support flow',
@@ -677,7 +683,9 @@ describe('Growth v6 operations consoles', () => {
     expect(await screen.findByText('risk.title')).toBeInTheDocument();
     expect(screen.getByText('/api/v3/admin/growth/risk/models')).toBeInTheDocument();
     expect(screen.getByText('/api/v3/admin/growth/risk/reviews/{id}/resolve')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('risk.fields.resolutionReason'), 'manual support allow');
+    fireEvent.change(screen.getByLabelText('risk.fields.resolutionReason'), {
+      target: { value: 'manual support allow' },
+    });
     await user.click(screen.getByRole('button', { name: 'risk.actions.resolveReview' }));
     expect(mockResolveGrowthRiskReview).toHaveBeenCalledWith('review-1', {
       decision: 'allow',

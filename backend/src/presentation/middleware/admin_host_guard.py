@@ -9,6 +9,8 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from src.presentation.dependencies.client_ip import LOOPBACK_TRUSTED_PROXY_IPS, is_trusted_proxy_peer
+
 ADMIN_PROTECTED_PATH_PREFIXES = ("/api/v1/admin",)
 ADMIN_INTERNAL_EXEMPT_PATH_PREFIXES = ("/api/v1/admin/growth-reporting/internal/",)
 LOCAL_DEVELOPMENT_ADMIN_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "testserver", "backend"})
@@ -51,10 +53,12 @@ class AdminHostGuardMiddleware(BaseHTTPMiddleware):
         allowed_hosts: Collection[str],
         environment: str,
         trust_proxy_headers: bool = False,
+        trusted_proxy_ips: Collection[str] | None = None,
     ) -> None:
         super().__init__(app)
         self.environment = environment.lower()
         self.trust_proxy_headers = trust_proxy_headers
+        self.trusted_proxy_ips = tuple(trusted_proxy_ips or LOOPBACK_TRUSTED_PROXY_IPS)
         self.allowed_hosts = frozenset(normalize_host(host) for host in allowed_hosts if normalize_host(host))
         if self.environment != "production":
             self.allowed_hosts = self.allowed_hosts | LOCAL_DEVELOPMENT_ADMIN_HOSTS
@@ -63,10 +67,16 @@ class AdminHostGuardMiddleware(BaseHTTPMiddleware):
         if not is_admin_host_protected_path(request.url.path):
             return await call_next(request)
 
-        candidate_host = request.headers.get("x-forwarded-host") if self.trust_proxy_headers else None
+        candidate_host = request.headers.get("x-forwarded-host") if self._can_trust_forwarded_host(request) else None
         request_host = normalize_host(candidate_host or request.headers.get("host"))
 
         if request_host not in self.allowed_hosts:
             return JSONResponse(status_code=404, content={"detail": "Not found"})
 
         return await call_next(request)
+
+    def _can_trust_forwarded_host(self, request: Request) -> bool:
+        if not self.trust_proxy_headers:
+            return False
+        direct_host = request.client.host if request.client else None
+        return is_trusted_proxy_peer(direct_host, self.trusted_proxy_ips)

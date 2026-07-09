@@ -6,10 +6,12 @@ and system health monitoring.
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class UserStatsDTO(BaseModel):
@@ -127,9 +129,7 @@ class ReferralStatsDTO(BaseModel):
     conversion_rate: Annotated[float, Field(ge=0, le=100, description="Conversion rate %")]
     total_rewards_given: Annotated[int, Field(ge=0, description="Total rewards distributed")]
     rewards_by_type: dict[str, int] = Field(default_factory=dict, description="Rewards by type")
-    top_referrers: list[tuple[int, int]] = Field(
-        default_factory=list, description="Top referrers (telegram_id, count)"
-    )
+    top_referrers: list[tuple[int, int]] = Field(default_factory=list, description="Top referrers (telegram_id, count)")
 
 
 class SystemHealthDTO(BaseModel):

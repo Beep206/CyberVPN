@@ -33,11 +33,10 @@ installBrowserApiMocks();
 // ---------------------------------------------------------------------------
 
 // Start the MSW server before all tests in a file.
-// onUnhandledRequest: 'bypass' lets real network requests (e.g. jsdom scripts)
-// pass through without failing, while still intercepting API calls that match
-// the registered handlers.
+// Real network calls make the suite nondeterministic in the sandbox, so any
+// unhandled request must be added to the MSW contract instead of bypassed.
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'bypass' });
+  server.listen({ onUnhandledRequest: 'error' });
 });
 
 beforeEach(() => {

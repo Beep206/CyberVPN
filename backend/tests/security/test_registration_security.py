@@ -516,9 +516,10 @@ class TestInviteTokenService:
         )
 
         # Verify token was stored
-        mock_redis.setex.assert_called_once()
-        call_args = mock_redis.setex.call_args
-        assert f"invite_token:{token}" == call_args[0][0]
+        mock_redis.set.assert_awaited_once()
+        call_args = mock_redis.set.await_args
+        assert f"invite_token:{token}" == call_args.args[0]
+        assert call_args.kwargs["ex"] == int(service.ttl.total_seconds())
 
     @pytest.mark.asyncio
     async def test_validate_returns_data_for_valid_token(self):

@@ -12,7 +12,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -560,9 +560,9 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
     data_protection_dir = output_dir / "infrastructure" / args.workload_cluster_name / "data-protection"
     templates_dir = data_protection_dir / "backup-policies" / "templates"
 
-    write_text(output_dir / "README.md", render_root_readme(workload_cluster_name=args.workload_cluster_name), mode=0o644)
-    write_text(cluster_dir / "README.md", render_cluster_readme(workload_cluster_name=args.workload_cluster_name), mode=0o644)
-    write_text(cluster_dir / "kustomization.yaml", render_cluster_kustomization(), mode=0o644)
+    write_text(output_dir / "README.md", render_root_readme(workload_cluster_name=args.workload_cluster_name), mode=0o600)
+    write_text(cluster_dir / "README.md", render_cluster_readme(workload_cluster_name=args.workload_cluster_name), mode=0o600)
+    write_text(cluster_dir / "kustomization.yaml", render_cluster_kustomization(), mode=0o600)
 
     cluster_kustomizations = {
         "platform-data-protection-sources.yaml": render_flux_kustomization(
@@ -596,12 +596,12 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
     }
 
     for file_name, content in cluster_kustomizations.items():
-        write_text(cluster_dir / file_name, content, mode=0o644)
+        write_text(cluster_dir / file_name, content, mode=0o600)
 
     write_text(
         data_protection_dir / "README.md",
         render_data_protection_readme(workload_cluster_name=args.workload_cluster_name),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "versions.env",
@@ -614,79 +614,79 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             database_cluster_name=args.database_cluster_name,
             objectstore_name=args.objectstore_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
-    write_text(output_dir / "scripts" / "check-data-protection.sh", render_check_script(), mode=0o750)
+    write_text(output_dir / "scripts" / "check-data-protection.sh", render_check_script(), mode=0o700)
 
     write_text(
         data_protection_dir / "sources" / "kustomization.yaml",
         render_simple_kustomization(resources=["cnpg-repository.yaml", "velero-repository.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "sources" / "cnpg-repository.yaml",
         render_helmrepository(name="cnpg-repository", url="https://cloudnative-pg.github.io/charts"),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "sources" / "velero-repository.yaml",
         render_helmrepository(name="velero-repository", url="https://vmware-tanzu.github.io/helm-charts"),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
         data_protection_dir / "namespaces" / "kustomization.yaml",
         render_simple_kustomization(resources=["namespaces.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
-    write_text(data_protection_dir / "namespaces" / "namespaces.yaml", render_namespace_objects(), mode=0o644)
+    write_text(data_protection_dir / "namespaces" / "namespaces.yaml", render_namespace_objects(), mode=0o600)
 
     write_text(
         data_protection_dir / "cnpg-operator" / "kustomization.yaml",
         render_simple_kustomization(resources=["helmrelease.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "cnpg-operator" / "helmrelease.yaml",
         render_cnpg_operator_helmrelease(cnpg_chart_version=args.cnpg_chart_version),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
         data_protection_dir / "barman-plugin" / "kustomization.yaml",
         render_simple_kustomization(resources=["manifest.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "barman-plugin" / "README.md",
         render_barman_plugin_readme(barman_plugin_version=args.barman_plugin_version),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "barman-plugin" / "upstream.env",
         render_barman_upstream_env(barman_plugin_version=args.barman_plugin_version),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "barman-plugin" / "manifest.yaml",
         render_barman_placeholder_manifest(),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "barman-plugin" / "sync-official-manifest.sh",
         render_barman_sync_script(),
-        mode=0o750,
+        mode=0o700,
     )
 
     write_text(
         data_protection_dir / "velero" / "kustomization.yaml",
         render_simple_kustomization(resources=["helmrelease.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "velero" / "helmrelease.yaml",
         render_velero_helmrelease(velero_chart_version=args.velero_chart_version),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
@@ -698,27 +698,27 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
                 "velero-schedule-platform-cluster-backup.yaml",
             ]
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "backup-policies" / "README.md",
         render_backup_policies_readme(workload_cluster_name=args.workload_cluster_name),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "backup-policies" / "backup-storage-location.yaml",
         render_backup_storage_location(workload_cluster_name=args.workload_cluster_name),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "backup-policies" / "volume-snapshot-location.yaml",
         render_volume_snapshot_location(),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         data_protection_dir / "backup-policies" / "velero-schedule-platform-cluster-backup.yaml",
         render_velero_schedule(data_namespace=args.database_namespace),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         templates_dir / "README.md",
@@ -726,7 +726,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             database_namespace=args.database_namespace,
             database_cluster_name=args.database_cluster_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         templates_dir / "cnpg-objectstore.yaml",
@@ -734,7 +734,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             database_namespace=args.database_namespace,
             objectstore_name=args.objectstore_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         templates_dir / "cnpg-scheduledbackup-plugin.yaml",
@@ -742,7 +742,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             database_namespace=args.database_namespace,
             database_cluster_name=args.database_cluster_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         templates_dir / "cnpg-scheduledbackup-volume-snapshot.yaml",
@@ -750,7 +750,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             database_namespace=args.database_namespace,
             database_cluster_name=args.database_cluster_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         templates_dir / "cnpg-cluster-backup-snippet.yaml",
@@ -761,7 +761,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             storage_class=args.storage_class_placeholder,
             snapshot_class=args.volume_snapshot_class_placeholder,
         ),
-        mode=0o644,
+        mode=0o600,
     )
 
     return 0

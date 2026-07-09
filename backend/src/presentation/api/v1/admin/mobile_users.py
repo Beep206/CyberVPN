@@ -29,6 +29,7 @@ from src.presentation.dependencies.roles import require_permission
 
 from .audit import write_required_admin_audit_entry
 from .mobile_users_schemas import (
+    AdminMobileDeviceResponse,
     AdminMobileUserDetailResponse,
     AdminMobileUserListItemResponse,
     AdminMobileUsersListResponse,
@@ -69,7 +70,7 @@ def _serialize_mobile_user_detail(user: MobileUserModel) -> AdminMobileUserDetai
         **_serialize_mobile_user_list_item(user, len(user.devices)).model_dump(),
         subscription_url=normalize_public_subscription_url(user.subscription_url),
         updated_at=user.updated_at,
-        devices=list(user.devices),
+        devices=[AdminMobileDeviceResponse.model_validate(device) for device in user.devices],
     )
 
 
@@ -336,7 +337,7 @@ async def update_mobile_user(
     if "email" in provided_fields:
         normalized_email = _normalize_optional_string(body.email)
         if normalized_email is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Email cannot be empty")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Email cannot be empty")
         normalized_email = normalized_email.lower()
         existing_user = await user_repo.get_by_email(normalized_email)
         if existing_user is not None and existing_user.id != user.id:

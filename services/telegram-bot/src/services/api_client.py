@@ -340,7 +340,16 @@ class CyberVPNAPIClient:
 
             if response.status_code == 204:
                 return {}
-            return response.json()
+            data: object = response.json()
+            if isinstance(data, dict):
+                return data
+            if isinstance(data, list):
+                return data
+            raise APIError(
+                message="Unexpected response format",
+                status_code=500,
+                detail=f"Expected JSON object or array for {method} {path}",
+            )
 
         except (httpx.TransportError, httpx.RemoteProtocolError) as exc:
             self._circuit.record_failure()
@@ -693,6 +702,8 @@ class CyberVPNAPIClient:
     async def get_plan(self, plan_id: str) -> dict[str, Any]:
         plans = await self.get_available_plans()
         for plan in plans:
+            if not isinstance(plan, dict):
+                continue
             if str(plan.get("id") or plan.get("uuid")) == str(plan_id):
                 return plan
             if str(plan.get("plan_code")) == str(plan_id):
@@ -919,7 +930,10 @@ class CyberVPNAPIClient:
         )
 
     async def create_payment(self, payload: dict[str, Any]) -> dict[str, Any]:
-        telegram_id = int(payload.get("telegram_id"))
+        raw_telegram_id = payload.get("telegram_id")
+        if raw_telegram_id is None:
+            raise APIError(message="telegram_id is required", status_code=400)
+        telegram_id = int(raw_telegram_id)
         commit_payload = {
             "plan_id": payload.get("plan_id"),
             "addons": payload.get("addons") or [],
@@ -1376,15 +1390,20 @@ class CyberVPNAPIClient:
     async def get_payment_gateways(self) -> list[dict[str, Any]]:
         data = await self.get_gateway_settings()
         if isinstance(data, dict):
-            if isinstance(data.get("gateways"), list):
-                return data["gateways"]
-            return list(data.get("items") or []) if isinstance(data.get("items"), list) else []
+            gateways = data.get("gateways")
+            if isinstance(gateways, list):
+                return [gateway for gateway in gateways if isinstance(gateway, dict)]
+            items = data.get("items")
+            if isinstance(items, list):
+                return [item for item in items if isinstance(item, dict)]
         return []
 
     async def get_payment_gateway(self, gateway_id: str) -> dict[str, Any]:
         data = await self.get_gateway_settings()
         if isinstance(data, dict):
             for gateway in data.get("gateways", []):
+                if not isinstance(gateway, dict):
+                    continue
                 if str(gateway.get("id")) == str(gateway_id):
                     return gateway
         return await self._request_dict("GET", f"/telegram/admin/settings/gateways/{gateway_id}")

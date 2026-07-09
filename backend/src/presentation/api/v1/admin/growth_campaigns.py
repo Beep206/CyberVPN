@@ -136,7 +136,7 @@ async def list_admin_growth_campaigns(
     campaign_key: str | None = None,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=100),
-    sort: str = Query(default="-created_at", pattern="^-?created_at$"),
+    sort: str = Query(default="-created_at", pattern="^-?(created_at|updated_at)$"),
     db: AsyncSession = Depends(get_db),
     _current_user: AdminUserModel = Depends(require_permission(Permission.GROWTH_CAMPAIGNS_READ)),
 ) -> AdminGrowthCampaignListResponse:
@@ -425,4 +425,4 @@ def _http_error(exc: Exception) -> HTTPException:
         )
     if isinstance(exc, CampaignTransitionError):
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=exc.code.upper())
-    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc).upper())
+    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc).upper())

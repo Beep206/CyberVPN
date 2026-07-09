@@ -10,6 +10,7 @@ import { server } from '@/test/mocks/server';
 import { paymentsApi } from '../payments';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
+import { expectAxiosErrorStatus } from './assertions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -217,13 +218,14 @@ describe('paymentsApi.createInvoice', () => {
     );
 
     // Act & Assert
-    await expect(
+    await expectAxiosErrorStatus(
       paymentsApi.createInvoice({
         user_uuid: 'user_001',
         plan_id: 'plan_monthly',
         currency: 'USD',
       }),
-    ).rejects.toThrow('Request failed with status code 401');
+      401,
+    );
   });
 
   it('test_create_invoice_with_refresh_token_retries_on_401', async () => {
@@ -353,9 +355,7 @@ describe('paymentsApi.getInvoiceStatus', () => {
     );
 
     // Act & Assert
-    await expect(paymentsApi.getInvoiceStatus('inv_001')).rejects.toThrow(
-      'Request failed with status code 401',
-    );
+    await expectAxiosErrorStatus(paymentsApi.getInvoiceStatus('inv_001'), 401);
   });
 
   it('test_get_invoice_status_rate_limited_rejects_with_rate_limit_error', async () => {
@@ -462,7 +462,7 @@ describe('paymentsApi.getHistory', () => {
     );
 
     // Act & Assert
-    await expect(paymentsApi.getHistory()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(paymentsApi.getHistory(), 401);
   });
 
   it('test_get_history_server_error_500_rejects', async () => {

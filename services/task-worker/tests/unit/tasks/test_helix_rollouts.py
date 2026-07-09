@@ -22,9 +22,7 @@ from src.tasks.sync.helix_rollouts import audit_helix_rollouts
 
 
 @pytest.mark.asyncio
-async def test_helix_rollout_audit_alerts_on_fallback_spike(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_rollout_audit_alerts_on_fallback_spike(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_rollout_min_connect_success_rate = 0.95
     mock_settings.helix_rollout_max_fallback_rate = 0.05
@@ -66,26 +64,22 @@ async def test_helix_rollout_audit_alerts_on_fallback_spike(
             "src.tasks.sync.helix_rollouts.get_redis_client",
             return_value=mock_redis,
         ),
-        patch("src.tasks.sync.helix_rollouts.CacheService") as MockCache,
-        patch(
-            "src.tasks.sync.helix_rollouts.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.sync.helix_rollouts.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.sync.helix_rollouts.CacheService") as mock_cache_cls,
+        patch("src.tasks.sync.helix_rollouts.HelixService") as mock_service_cls,
+        patch("src.tasks.sync.helix_rollouts.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value=None)
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [degraded_rollout]
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_rollouts()
 
@@ -96,9 +90,7 @@ async def test_helix_rollout_audit_alerts_on_fallback_spike(
 
 
 @pytest.mark.asyncio
-async def test_helix_rollout_audit_alerts_on_pause_recommendation(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_rollout_audit_alerts_on_pause_recommendation(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_rollout_min_connect_success_rate = 0.95
     mock_settings.helix_rollout_max_fallback_rate = 0.05
@@ -170,26 +162,22 @@ async def test_helix_rollout_audit_alerts_on_pause_recommendation(
             "src.tasks.sync.helix_rollouts.get_redis_client",
             return_value=mock_redis,
         ),
-        patch("src.tasks.sync.helix_rollouts.CacheService") as MockCache,
-        patch(
-            "src.tasks.sync.helix_rollouts.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.sync.helix_rollouts.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.sync.helix_rollouts.CacheService") as mock_cache_cls,
+        patch("src.tasks.sync.helix_rollouts.HelixService") as mock_service_cls,
+        patch("src.tasks.sync.helix_rollouts.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value=None)
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [advisory_rollout]
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_rollouts()
 
@@ -200,9 +188,7 @@ async def test_helix_rollout_audit_alerts_on_pause_recommendation(
 
 
 @pytest.mark.asyncio
-async def test_helix_rollout_audit_alerts_on_continuity_regression(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_rollout_audit_alerts_on_continuity_regression(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_rollout_min_connect_success_rate = 0.95
     mock_settings.helix_rollout_max_fallback_rate = 0.05
@@ -266,26 +252,22 @@ async def test_helix_rollout_audit_alerts_on_continuity_regression(
             "src.tasks.sync.helix_rollouts.get_redis_client",
             return_value=mock_redis,
         ),
-        patch("src.tasks.sync.helix_rollouts.CacheService") as MockCache,
-        patch(
-            "src.tasks.sync.helix_rollouts.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.sync.helix_rollouts.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.sync.helix_rollouts.CacheService") as mock_cache_cls,
+        patch("src.tasks.sync.helix_rollouts.HelixService") as mock_service_cls,
+        patch("src.tasks.sync.helix_rollouts.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value=None)
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [continuity_rollout]
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_rollouts()
 

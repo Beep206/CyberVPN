@@ -1166,6 +1166,7 @@
     },
     "buttons": {
       "create": "Create code",
+      "cancel": "Cancel",
       "copy": "Copy share link",
       "link": "Create deep link",
       "qr": "Generate QR",
@@ -1176,6 +1177,11 @@
     },
     "capabilities": {
       "title": "Lane capability posture",
+      "backendAction": "Backend action: {value}",
+      "write": "Write enabled",
+      "read": "Read only",
+      "loading": "Loading lane capabilities...",
+      "empty": "No backend-owned code actions are available for the current lane.",
       "items": {
         "starter_code": "Starter launch code",
         "additional_codes": "Additional code creation",
@@ -1189,7 +1195,8 @@
       "starter": "This lane can use a starter launch path now, but expansion tools stay gated behind early quality checks and readiness overlays.",
       "controlled": "This lane can operate, but code scale-out stays deliberately constrained by approval, governance, or storefront alignment.",
       "full": "This lane can use the full PP4 code surface for standard growth operations.",
-      "read_only": "The workspace can inspect existing code posture, but new launch actions stay blocked until the restriction clears."
+      "read_only": "The workspace can inspect existing code posture, but new launch actions stay blocked until the restriction clears.",
+      "review": "The workspace is in review: existing code posture remains visible while new code writes wait for partner operations approval."
     },
     "actions": {
       "title": "Action posture",
@@ -1197,6 +1204,25 @@
       "controlled": "This role can manage the controlled launch set, but certain code types still require extra approval or lane readiness.",
       "full": "This role can use the PP4 code surface as the current lane allows.",
       "readOnly": "This role or workspace state can inspect code posture, but create or expansion actions remain blocked."
+    },
+    "confirm": {
+      "subject": "Code lifecycle action",
+      "activate": {
+        "title": "Activate code",
+        "description": "The code becomes available for new attribution touchpoints after the backend accepts the lifecycle transition."
+      },
+      "pause": {
+        "title": "Pause code",
+        "description": "The code stops accepting new attribution touchpoints while historical reporting remains visible."
+      },
+      "revoke": {
+        "title": "Revoke code",
+        "description": "The code is permanently blocked from new attribution use. Existing reporting remains auditable."
+      },
+      "archive": {
+        "title": "Archive code",
+        "description": "The code leaves the active working set but remains available for audit and historical finance context."
+      }
     },
     "links": {
       "title": "Linked surfaces",
@@ -1242,6 +1268,7 @@
       }
     },
     "modes": {
+      "review": "Campaign assets stay review-bound while the workspace is still under partner operations review.",
       "starter": "The lane can use starter enablement assets, but campaign expansion remains measured and review-aware.",
       "controlled": "Campaign access exists, but submissions, approval, and library depth remain constrained by lane controls.",
       "full": "The lane can use the full PP4 campaigns surface for standard launch and enablement work.",
@@ -1495,7 +1522,15 @@
       "available": "Available earnings",
       "onHold": "On hold",
       "reserves": "Reserves",
-      "forecast": "Next payout forecast"
+      "forecast": "Next payout forecast",
+      "currencyBreakdown": "Currency breakdown",
+      "currencyBreakdownDescription": "Review available, held, reserve, paid, reversed, and total amounts by settlement currency.",
+      "source": "Source: {value}",
+      "paid": "Paid",
+      "reversed": "Reversed",
+      "total": "Total",
+      "events": "Events",
+      "notAvailable": "Not available"
     },
     "statements": {
       "title": "Statements",

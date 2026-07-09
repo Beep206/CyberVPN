@@ -1,5 +1,5 @@
 # ── Build stage ──────────────────────────────────────────────────────────
-FROM python:3.13.13-alpine AS builder
+FROM python:3.13.14-alpine AS builder
 
 WORKDIR /build
 
@@ -18,7 +18,7 @@ RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir --no-deps .
 
 # ── Runtime stage ────────────────────────────────────────────────────────
-FROM python:3.13.13-alpine AS runtime
+FROM python:3.13.14-alpine AS runtime
 
 # Security: create non-root user
 RUN addgroup -S botuser && \

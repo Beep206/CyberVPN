@@ -284,7 +284,7 @@ async def create_customer_staff_note(
     await _require_mobile_user(user_id, db)
     note_text = body.note.strip()
     if not note_text:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Note cannot be empty")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Note cannot be empty")
 
     notes_repo = CustomerStaffNoteRepository(db)
     note = await notes_repo.create(
@@ -747,12 +747,14 @@ async def reset_customer_password(
     )
 
     route_operations_total.labels(route="admin_customer_support", action="password_reset", status="success").inc()
-    return AdminCustomerPasswordResetResponse(
-        user_id=user_id,
-        password_mode=password_mode,
-        device_sessions_cleared=body.revoke_all_devices,
-        devices_revoked=devices_revoked,
-        generated_password=next_password if body.generate_temporary_password else None,
+    return AdminCustomerPasswordResetResponse.model_validate(
+        {
+            "user_id": user_id,
+            "password_mode": password_mode,
+            "device_sessions_cleared": body.revoke_all_devices,
+            "devices_revoked": devices_revoked,
+            "generated_password": next_password if body.generate_temporary_password else None,
+        }
     )
 
 

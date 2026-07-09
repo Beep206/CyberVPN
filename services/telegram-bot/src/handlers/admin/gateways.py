@@ -4,9 +4,11 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
+
+from src.utils.telegram import callback_data, callback_message
 
 if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -60,7 +62,7 @@ async def gateways_settings_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=gateway_text,
             reply_markup=builder.as_markup(),
         )
@@ -81,7 +83,7 @@ async def gateway_view_handler(
     api_client: CyberVPNAPIClient,
 ) -> None:
     """View gateway details."""
-    gateway_id = callback.data.split(":")[3]
+    gateway_id = callback_data(callback).split(":")[3]
 
     try:
         # Get gateway details
@@ -118,7 +120,7 @@ async def gateway_view_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=gateway_text,
             reply_markup=builder.as_markup(),
         )
@@ -139,7 +141,7 @@ async def gateway_toggle_handler(
     api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle gateway enabled status."""
-    gateway_id = callback.data.split(":")[3]
+    gateway_id = callback_data(callback).split(":")[3]
 
     try:
         # Toggle gateway status

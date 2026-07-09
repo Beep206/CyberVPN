@@ -10,13 +10,13 @@ import {
 } from '@/shared/lib/seo-route-policy';
 
 describe('seo-route-policy', () => {
-  it('treats public marketing routes as indexable and private routes as non-indexable', () => {
-    expect(isIndexableLocalizedPath('/en-EN')).toBe(true);
-    expect(isIndexableLocalizedPath('/en-EN/pricing')).toBe(true);
-    expect(isIndexableLocalizedPath('/en-EN/help')).toBe(true);
-    expect(isIndexableLocalizedPath('/en-EN/guides')).toBe(true);
+  it('treats admin, auth, and copied marketing routes as non-indexable', () => {
+    expect(isIndexableLocalizedPath('/en-EN')).toBe(false);
+    expect(isIndexableLocalizedPath('/en-EN/pricing')).toBe(false);
+    expect(isIndexableLocalizedPath('/en-EN/help')).toBe(false);
+    expect(isIndexableLocalizedPath('/en-EN/guides')).toBe(false);
     expect(isIndexableLocalizedPath('/en-EN/guides/how-to-bypass-dpi-with-vless-reality')).toBe(
-      true,
+      false,
     );
 
     expect(isIndexableLocalizedPath('/en-EN/analytics')).toBe(false);
@@ -62,17 +62,18 @@ describe('seo-route-policy', () => {
   });
 
   it('differentiates structurally public routes from rollout-eligible locales', () => {
-    expect(isRolloutIndexableLocalizedPath('/ru-RU/pricing')).toBe(true);
+    expect(isRolloutIndexableLocalizedPath('/ru-RU')).toBe(false);
+    expect(isRolloutIndexableLocalizedPath('/ru-RU/pricing')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/ru-RU/analytics')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/ru-RU/wallet')).toBe(false);
-    expect(isRolloutIndexableLocalizedPath('/ru-RU/guides')).toBe(true);
+    expect(isRolloutIndexableLocalizedPath('/ru-RU/guides')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/ja-JP/guides')).toBe(false);
-    expect(isRolloutIndexableLocalizedPath('/ru-RU/guides/how-to-bypass-dpi-with-vless-reality')).toBe(true);
+    expect(isRolloutIndexableLocalizedPath('/ru-RU/guides/how-to-bypass-dpi-with-vless-reality')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/zh-CN/compare/vless-reality-vs-wireguard')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/hi-IN/guides/how-to-bypass-dpi-with-vless-reality')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/ja-JP/devices/android-vpn-setup')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/fa-IR/guides/how-to-bypass-dpi-with-vless-reality')).toBe(false);
-    expect(isRolloutIndexableLocalizedPath('/en-EN/guides')).toBe(true);
+    expect(isRolloutIndexableLocalizedPath('/en-EN/guides')).toBe(false);
   });
 
   it('provides normalized path info for later metadata helpers', () => {

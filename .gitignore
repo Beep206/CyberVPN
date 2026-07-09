@@ -47,6 +47,9 @@ yarn-error.log*
 .artifacts/
 infra/artifacts/
 .tmp/
+.playwright-cli/
+qa-artifacts/
+security-artifacts/
 .codex-targets/
 apps/desktop-client/.artifacts/
 apps/desktop-client/src-tauri/target-policy-reaction-verify/
@@ -71,6 +74,7 @@ dev-debug.log
 .opencode/
 .taskmaster/
 .agent/
+.agents/
 .adal/
 .augment/
 .cline/

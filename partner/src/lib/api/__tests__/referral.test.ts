@@ -9,6 +9,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { referralApi } from '../referral';
 import { AxiosError } from 'axios';
+import { expectAxiosErrorStatus } from './assertions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -130,7 +131,7 @@ describe('referralApi.getStatus', () => {
     );
 
     // Act & Assert
-    await expect(referralApi.getStatus()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(referralApi.getStatus(), 401);
   });
 
   it('test_get_referral_status_server_error_500_rejects', async () => {
@@ -213,7 +214,7 @@ describe('referralApi.getCode', () => {
     );
 
     // Act & Assert
-    await expect(referralApi.getCode()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(referralApi.getCode(), 401);
   });
 
   it('test_get_referral_code_rate_limited_rejects_with_rate_limit_error', async () => {
@@ -294,7 +295,7 @@ describe('referralApi.getStats', () => {
     );
 
     // Act & Assert
-    await expect(referralApi.getStats()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(referralApi.getStats(), 401);
   });
 
   it('test_get_referral_stats_server_error_500_rejects', async () => {
@@ -388,9 +389,7 @@ describe('referralApi.getRecentCommissions', () => {
     );
 
     // Act & Assert
-    await expect(referralApi.getRecentCommissions()).rejects.toThrow(
-      'Request failed with status code 401',
-    );
+    await expectAxiosErrorStatus(referralApi.getRecentCommissions(), 401);
   });
 
   it('test_get_recent_commissions_server_error_500_rejects', async () => {

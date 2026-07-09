@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from aiogram.types import User
 
+type ClientInfoValue = str | bool
+
 
 class DeviceType(StrEnum):
     """Device type enumeration."""
@@ -78,7 +80,7 @@ def get_platform(user: User | None) -> Platform:
     return Platform.UNKNOWN
 
 
-def extract_client_info(user: User | None) -> dict[str, str]:
+def extract_client_info(user: User | None) -> dict[str, ClientInfoValue]:
     """Extract comprehensive client information.
 
     Combines device type, platform, and any other available metadata
@@ -206,8 +208,8 @@ def get_client_summary(user: User | None) -> str:
         return "Unknown Client"
 
     info = extract_client_info(user)
-    platform = info["platform"].title()
-    device_type = info["device_type"].title()
+    platform = str(info["platform"]).title()
+    device_type = str(info["device_type"]).title()
 
     if platform != "Unknown" and device_type != "Unknown":
         return f"{platform} {device_type}"

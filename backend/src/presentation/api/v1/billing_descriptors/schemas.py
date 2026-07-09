@@ -26,8 +26,8 @@ class CreateBillingDescriptorRequest(BaseModel):
     merchant_profile_id: UUID
     invoice_profile_id: UUID | None = None
     statement_descriptor: str = Field(..., min_length=1, max_length=64)
-    soft_descriptor: str | None = Field(None, max_length=64)
-    support_phone: str | None = Field(None, max_length=32)
-    support_url: str | None = Field(None, max_length=255)
+    soft_descriptor: str | None = Field(default=None, max_length=64)
+    support_phone: str | None = Field(default=None, max_length=32)
+    support_url: str | None = Field(default=None, max_length=255)
     is_default: bool = False
     status: str = Field(default="active", min_length=1, max_length=20)

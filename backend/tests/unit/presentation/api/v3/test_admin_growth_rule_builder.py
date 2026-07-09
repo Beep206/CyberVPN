@@ -42,7 +42,26 @@ async def _admin_user(db: AsyncSession) -> AdminUserModel:
 
 
 def _route_paths(router) -> set[str]:
-    return {route.path for route in router.routes if isinstance(route, APIRoute)}
+    paths: set[str] = set()
+
+    def collect(current_router) -> None:
+        for route in current_router.routes:
+            if isinstance(route, APIRoute):
+                paths.add(route.path)
+                continue
+
+            original_router = getattr(route, "original_router", None)
+            include_context = getattr(route, "include_context", None)
+            if original_router is None or include_context is None:
+                continue
+
+            prefix = include_context.prefix
+            for child_route in original_router.routes:
+                if isinstance(child_route, APIRoute):
+                    paths.add(f"{prefix}{child_route.path}")
+
+    collect(router)
+    return paths
 
 
 async def test_v3_rule_builder_exposes_canonical_paths_without_v1_backport(db: AsyncSession) -> None:

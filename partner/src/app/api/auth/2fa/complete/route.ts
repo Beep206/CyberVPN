@@ -6,7 +6,10 @@ import {
 } from '@/features/auth/lib/pending-twofa';
 import { PARTNER_PORTAL_REALM_KEY } from '@/features/auth/lib/partner-access';
 import { getDefaultPostLoginPath } from '@/features/auth/lib/redirect-path';
-import { resolvePartnerSurfaceContext } from '@/features/storefront-shell/lib/runtime';
+import {
+  isKnownPartnerSurfaceHost,
+  resolvePartnerSurfaceContext,
+} from '@/features/storefront-shell/lib/runtime';
 
 function getBackendBaseUrl(): string {
   const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
@@ -30,6 +33,18 @@ const APPROVED_LOCAL_STAGE_PARTNER_HOSTS = new Set([
   '127.0.0.1:3002',
   'localhost:3002',
 ]);
+const SET_COOKIE_BOUNDARY_NAMES = [
+  '__Host-cvpn_device_id',
+  '__Host-cvpn_private_catalog_session',
+  'access_token',
+  'customer_access_token',
+  'customer_refresh_token',
+  'cv_partner_attribution',
+  'cv_ref_attribution',
+  'partner_access_token',
+  'partner_refresh_token',
+  'refresh_token',
+];
 
 interface ForwardedAuthContext {
   authRealmKey: string;
@@ -37,11 +52,16 @@ interface ForwardedAuthContext {
 }
 
 function getRequestHost(request: NextRequest): string {
-  return request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? request.nextUrl.host;
+  return request.headers.get('host') ?? request.nextUrl.host;
 }
 
 function getForwardedAuthContext(request: NextRequest): ForwardedAuthContext {
-  const surfaceContext = resolvePartnerSurfaceContext(getRequestHost(request));
+  const requestHost = getRequestHost(request);
+  if (!isKnownPartnerSurfaceHost(requestHost)) {
+    throw new Error('UNKNOWN_PARTNER_SURFACE_HOST');
+  }
+
+  const surfaceContext = resolvePartnerSurfaceContext(requestHost);
 
   if (surfaceContext.family === 'portal') {
     return {
@@ -67,13 +87,9 @@ function buildForwardHeaders(request: NextRequest, token: string): Headers {
     'x-forwarded-proto': PARTNER_CANONICAL_FORWARDED_PROTO,
   });
 
-  const forwardedFor = request.headers.get('x-forwarded-for');
   const userAgent = request.headers.get('user-agent');
   const acceptLanguage = request.headers.get('accept-language');
 
-  if (forwardedFor) {
-    headers.set('x-forwarded-for', forwardedFor);
-  }
   if (userAgent) {
     headers.set('user-agent', userAgent);
   }
@@ -100,32 +116,20 @@ function getSetCookieHeaders(response: Response): string[] {
   return setCookie ? splitCombinedSetCookieHeader(setCookie) : [];
 }
 
-function isCookieHeaderBoundary(headerValue: string, commaIndex: number): boolean {
-  const remainder = headerValue.slice(commaIndex + 1).trimStart();
-  const equalsIndex = remainder.indexOf('=');
-  const semicolonIndex = remainder.indexOf(';');
-
-  if (equalsIndex <= 0) {
-    return false;
-  }
-
-  if (semicolonIndex !== -1 && semicolonIndex < equalsIndex) {
-    return false;
-  }
-
-  const cookieName = remainder.slice(0, equalsIndex).trim();
-  return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(cookieName);
-}
-
 function splitCombinedSetCookieHeader(headerValue: string): string[] {
   const headers: string[] = [];
   let start = 0;
 
   for (let index = 0; index < headerValue.length; index += 1) {
-    if (headerValue[index] === ',' && isCookieHeaderBoundary(headerValue, index)) {
-      headers.push(headerValue.slice(start, index).trim());
-      start = index + 1;
+    if (headerValue[index] !== ',') continue;
+
+    const candidate = headerValue.slice(index + 1).trimStart();
+    if (!SET_COOKIE_BOUNDARY_NAMES.some((name) => candidate.startsWith(`${name}=`))) {
+      continue;
     }
+
+    headers.push(headerValue.slice(start, index).trim());
+    start = index + 1;
   }
 
   headers.push(headerValue.slice(start).trim());
@@ -248,7 +252,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       headers: buildForwardHeaders(request, transaction.token),
       body: JSON.stringify({ code }),
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'UNKNOWN_PARTNER_SURFACE_HOST') {
+      return NextResponse.json(
+        { detail: { code: 'UNKNOWN_PARTNER_SURFACE_HOST', message: 'Unknown partner surface host.' } },
+        { status: 421 },
+      );
+    }
+
     return NextResponse.json({ detail: 'Authentication service is unavailable.' }, { status: 503 });
   }
 

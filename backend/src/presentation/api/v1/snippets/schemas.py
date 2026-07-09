@@ -21,7 +21,7 @@ class CreateSnippetRequest(BaseModel):
     snippet_type: str = Field(..., min_length=1, max_length=50, description="Snippet type")
     content: str = Field(..., min_length=1, max_length=50_000, description="Snippet content")
     is_active: bool = Field(True, description="Whether snippet is active")
-    order: int | None = Field(None, ge=0, description="Display/execution order")
+    order: int | None = Field(default=None, ge=0, description="Display/execution order")
 
 
 class SnippetResponse(BaseModel):
@@ -34,4 +34,4 @@ class SnippetResponse(BaseModel):
     snippet_type: str = Field(..., max_length=50, description="Snippet type")
     content: str = Field(..., description="Snippet content")
     is_active: bool = Field(..., description="Whether snippet is active")
-    order: int | None = Field(None, description="Display/execution order")
+    order: int | None = Field(default=None, description="Display/execution order")

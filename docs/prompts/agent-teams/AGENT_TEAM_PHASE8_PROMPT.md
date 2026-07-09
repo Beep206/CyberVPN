@@ -211,7 +211,7 @@ File: `cybervpn_mobile/lib/core/security/cert_pins.dart`
 
 ```
 infra/.env:36:### REMNASHOP ###
-infra/.env:37:REMNASHOP_REDIS_PASSWORD=Nd9gvHwjFU6Cs_oWCczraQ
+infra/.env:37:REMNASHOP_REDIS_PASSWORD=<redacted-remnashop-redis-password>
 infra/.env.example:36:### REMNASHOP ###
 infra/.env.example:37:REMNASHOP_REDIS_PASSWORD=CHANGE_ME_REDIS_PASSWORD
 ```
@@ -859,7 +859,7 @@ IS-1: Remove REMNASHOP variables from .env files (P1)
   Remove lines 36-37:
   ```
   ### REMNASHOP ###
-  REMNASHOP_REDIS_PASSWORD=Nd9gvHwjFU6Cs_oWCczraQ
+  REMNASHOP_REDIS_PASSWORD=<redacted-remnashop-redis-password>
   ```
 
   File 2: infra/.env.example

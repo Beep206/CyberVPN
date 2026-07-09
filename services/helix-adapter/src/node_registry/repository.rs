@@ -569,6 +569,7 @@ impl NodeRegistryRepository {
         let policy_candidates = transport_profiles
             .attach_policy_for_rollout(rollout_id, policy_candidates)
             .await?;
+        let all_policy_candidates = policy_candidates.clone();
         let observed_active_transport_profile_id = sqlx::query_scalar::<_, String>(
             r#"
             SELECT transport_profile_id
@@ -628,7 +629,7 @@ impl NodeRegistryRepository {
         let active_profile = observed_active_transport_profile_id
             .as_deref()
             .and_then(|transport_profile_id| {
-                prioritized_candidates
+                all_policy_candidates
                     .iter()
                     .find(|candidate| candidate.transport_profile_id == transport_profile_id)
                     .cloned()

@@ -105,4 +105,6 @@ class P32ServicesTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(node_after_enrollment.certificate_state, CertificateState.ACTIVE)
         self.assertEqual(node_after_rotation.current_lifecycle_state, LifecycleState.ROTATING)
         self.assertEqual(certificate_preview.auth_mount, self.settings.openbao_fleet_cert_auth_mount)
-        self.assertEqual(rotated_certificate.certificate.common_name, "node-fr-01-rotated.fleet.nonprod.internal.cybervpn")
+        self.assertEqual(
+            rotated_certificate.certificate.common_name, "node-fr-01-rotated.fleet.nonprod.internal.cybervpn"
+        )

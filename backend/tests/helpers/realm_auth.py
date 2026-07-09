@@ -132,14 +132,14 @@ class FakeRedis:
         self._expiry[key] = ttl_seconds
         return True
 
-    async def set(self, key: str, value: object) -> bool:
+    async def set(self, key: str, value: object, *, ex: int | None = None) -> bool:
         self._values[key] = value
+        if ex is not None:
+            self._expiry[key] = ex
         return True
 
     async def setex(self, key: str, ttl_seconds: int, value: object) -> bool:
-        self._values[key] = value
-        self._expiry[key] = ttl_seconds
-        return True
+        return await self.set(key, value, ex=ttl_seconds)
 
     async def get(self, key: str) -> object | None:
         return self._values.get(key)

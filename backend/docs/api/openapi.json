@@ -5104,11 +5104,6 @@
         ],
         "summary": "List Legal Documents",
         "operationId": "list_legal_documents_api_v1_legal_documents__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "document_type",
@@ -26204,6 +26199,210 @@
         }
       }
     },
+    "/api/v1/admin/partner-workspaces/{workspace_id}/programs": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Get Admin Partner Workspace Programs",
+        "operationId": "get_admin_partner_workspace_programs_api_v1_admin_partner_workspaces__workspace_id__programs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceProgramsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/partner-workspaces/{workspace_id}/codes": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "List Admin Partner Workspace Codes",
+        "operationId": "list_admin_partner_workspace_codes_api_v1_admin_partner_workspaces__workspace_id__codes_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PartnerWorkspaceCodeResponse"
+                  },
+                  "title": "Response List Admin Partner Workspace Codes Api V1 Admin Partner Workspaces  Workspace Id  Codes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/partner-workspaces/{workspace_id}/review-requests": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "List Admin Partner Workspace Review Requests",
+        "operationId": "list_admin_partner_workspace_review_requests_api_v1_admin_partner_workspaces__workspace_id__review_requests_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PartnerWorkspaceReviewRequestResponse"
+                  },
+                  "title": "Response List Admin Partner Workspace Review Requests Api V1 Admin Partner Workspaces  Workspace Id  Review Requests Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/partner-workspaces/{workspace_id}/cases": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "List Admin Partner Workspace Cases",
+        "operationId": "list_admin_partner_workspace_cases_api_v1_admin_partner_workspaces__workspace_id__cases_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PartnerWorkspaceCaseResponse"
+                  },
+                  "title": "Response List Admin Partner Workspace Cases Api V1 Admin Partner Workspaces  Workspace Id  Cases Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/partner-workspaces/{workspace_id}/payout-review-queue": {
       "get": {
         "tags": [
@@ -32324,7 +32523,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PublicNetworkDpiScoreResponse-Output"
+                  "$ref": "#/components/schemas/PublicNetworkDpiScoreResponse"
                 }
               }
             }
@@ -35207,7 +35406,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "pattern": "^-?created_at$",
+              "pattern": "^-?(created_at|updated_at)$",
               "default": "-created_at",
               "title": "Sort"
             }
@@ -85974,61 +86173,7 @@
         ],
         "title": "NodePluginCollectionResponse"
       },
-      "NodePluginConfigResponse-Input": {
-        "properties": {
-          "sharedLists": {
-            "items": {
-              "$ref": "#/components/schemas/SharedListResponse"
-            },
-            "type": "array",
-            "title": "Sharedlists"
-          },
-          "torrentBlocker": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TorrentBlockerPluginConfigResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "ingressFilter": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/IngressFilterPluginConfigResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "egressFilter": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EgressFilterPluginConfigResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "connectionDrop": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ConnectionDropPluginConfigResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "title": "NodePluginConfigResponse"
-      },
-      "NodePluginConfigResponse-Output": {
+      "NodePluginConfigResponse": {
         "properties": {
           "sharedLists": {
             "items": {
@@ -86099,7 +86244,7 @@
           "pluginConfig": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/NodePluginConfigResponse-Output"
+                "$ref": "#/components/schemas/NodePluginConfigResponse"
               },
               {
                 "additionalProperties": true,
@@ -98312,7 +98457,7 @@
             "title": "Source"
           },
           "snapshot": {
-            "$ref": "#/components/schemas/PublicNetworkDpiScoreResponse-Input"
+            "$ref": "#/components/schemas/PublicNetworkDpiScoreResponse"
           }
         },
         "type": "object",
@@ -98351,101 +98496,7 @@
         ],
         "title": "PublicNetworkDpiScorePublishResponse"
       },
-      "PublicNetworkDpiScoreResponse-Input": {
-        "properties": {
-          "schemaVersion": {
-            "type": "string",
-            "title": "Schemaversion"
-          },
-          "generatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Generatedat"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Expiresat"
-          },
-          "freshnessStatus": {
-            "type": "string",
-            "enum": [
-              "fresh",
-              "stale",
-              "degraded"
-            ],
-            "title": "Freshnessstatus"
-          },
-          "methodologyVersion": {
-            "type": "string",
-            "title": "Methodologyversion"
-          },
-          "measurementWindow": {
-            "$ref": "#/components/schemas/PublicNetworkDpiMeasurementWindowResponse"
-          },
-          "enabled": {
-            "type": "boolean",
-            "title": "Enabled"
-          },
-          "confidence": {
-            "type": "string",
-            "enum": [
-              "low",
-              "medium",
-              "high"
-            ],
-            "title": "Confidence"
-          },
-          "lastUpdatedAt": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lastupdatedat"
-          },
-          "reasonCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reasoncode"
-          },
-          "countriesTracked": {
-            "type": "integer",
-            "title": "Countriestracked"
-          },
-          "countries": {
-            "items": {
-              "$ref": "#/components/schemas/PublicNetworkDpiCountryResponse"
-            },
-            "type": "array",
-            "title": "Countries"
-          }
-        },
-        "type": "object",
-        "required": [
-          "schemaVersion",
-          "generatedAt",
-          "expiresAt",
-          "freshnessStatus",
-          "methodologyVersion",
-          "measurementWindow",
-          "enabled",
-          "confidence",
-          "countriesTracked"
-        ],
-        "title": "PublicNetworkDpiScoreResponse"
-      },
-      "PublicNetworkDpiScoreResponse-Output": {
+      "PublicNetworkDpiScoreResponse": {
         "properties": {
           "schemaVersion": {
             "type": "string",
@@ -100602,18 +100653,6 @@
               }
             ],
             "title": "Referred User Id"
-          },
-          "payment_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Payment Id"
           },
           "reward_amount": {
             "type": "number",
@@ -110753,7 +110792,7 @@
           "pluginConfig": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/NodePluginConfigResponse-Input"
+                "$ref": "#/components/schemas/NodePluginConfigResponse"
               },
               {
                 "additionalProperties": true,

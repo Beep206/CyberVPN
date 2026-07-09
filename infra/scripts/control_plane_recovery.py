@@ -14,7 +14,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -452,7 +452,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
 
     artifact_root = args.artifact_root.rstrip("/")
 
-    write_text(output_dir / "common" / "sync-to-s3.sh", render_sync_to_s3(), mode=0o750)
+    write_text(output_dir / "common" / "sync-to-s3.sh", render_sync_to_s3(), mode=0o700)
     write_text(
         output_dir / "openbao" / "snapshot-openbao.sh",
         render_openbao_backup_script(
@@ -460,12 +460,12 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             default_addr=derive_openbao_addr(openbao_nodes),
             artifact_root=artifact_root,
         ),
-        mode=0o750,
+        mode=0o700,
     )
     write_text(
         output_dir / "openbao" / "restore-openbao.md",
         render_openbao_restore_notes(args.openbao_cluster_id),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "nats" / "backup-nats-account.sh",
@@ -474,12 +474,12 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             default_url=derive_nats_url(nats_nodes),
             artifact_root=artifact_root,
         ),
-        mode=0o750,
+        mode=0o700,
     )
     write_text(
         output_dir / "nats" / "restore-nats.md",
         render_nats_restore_notes(args.nats_cluster_id),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "posthog" / "backup-posthog-over-ssh.sh",
@@ -488,12 +488,12 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             default_host=derive_posthog_host(posthog_nodes),
             artifact_root=artifact_root,
         ),
-        mode=0o750,
+        mode=0o700,
     )
     write_text(
         output_dir / "posthog" / "restore-posthog.md",
         render_posthog_restore_notes(args.posthog_instance_id),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "nonprod-mgmt" / "backup-etcd.sh",
@@ -502,17 +502,17 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             default_endpoint=talos_endpoints[0],
             artifact_root=artifact_root,
         ),
-        mode=0o750,
+        mode=0o700,
     )
     write_text(
         output_dir / "nonprod-mgmt" / "backup-machine-configs.sh",
         render_talos_machine_config_backup_script(endpoints=talos_endpoints, artifact_root=artifact_root),
-        mode=0o750,
+        mode=0o700,
     )
     write_text(
         output_dir / "nonprod-mgmt" / "restore-nonprod-mgmt.md",
         render_talos_restore_notes(args.management_cluster_id),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "README.md",
@@ -523,7 +523,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             posthog_instance_id=args.posthog_instance_id,
             management_cluster_id=args.management_cluster_id,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "versions.env",
@@ -534,7 +534,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             posthog_instance_id=args.posthog_instance_id,
             management_cluster_id=args.management_cluster_id,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     return 0
 

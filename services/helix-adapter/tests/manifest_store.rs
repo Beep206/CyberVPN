@@ -1,13 +1,7 @@
-use std::time::Duration;
-
-use sqlx::{
-    postgres::{PgConnectOptions, PgPoolOptions},
-    query, query_scalar, ConnectOptions, PgPool,
-};
+use sqlx::{query, query_scalar};
 use uuid::Uuid;
 
 use helix_adapter::{
-    db::pool::run_migrations,
     manifests::{
         model::ResolveManifestRequest, renderer::ManifestRenderer, signer::ManifestSigner,
         store::ManifestStore,
@@ -27,13 +21,16 @@ use helix_adapter::{
     },
 };
 
+mod support;
+
+use support::helix_db::IsolatedTestPool;
+
 #[tokio::test]
 async fn manifest_store_versions_signs_and_revokes_payloads() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -137,11 +134,10 @@ async fn manifest_store_versions_signs_and_revokes_payloads() {
 
 #[tokio::test]
 async fn manifest_store_rejects_incompatible_transport_profile_request() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -211,11 +207,10 @@ async fn manifest_store_rejects_incompatible_transport_profile_request() {
 
 #[tokio::test]
 async fn manifest_store_prefers_node_specific_transport_ports_when_present() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_primary = format!("node-{}", Uuid::new_v4().simple());
@@ -320,11 +315,10 @@ async fn manifest_store_prefers_node_specific_transport_ports_when_present() {
 
 #[tokio::test]
 async fn manifest_store_prefers_healthier_profile_over_newer_degraded_candidate() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -572,11 +566,10 @@ async fn manifest_store_prefers_healthier_profile_over_newer_degraded_candidate(
 
 #[tokio::test]
 async fn manifest_store_rejects_avoid_new_sessions_profile_for_new_desktop_sessions() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -727,11 +720,10 @@ async fn manifest_store_rejects_avoid_new_sessions_profile_for_new_desktop_sessi
 
 #[tokio::test]
 async fn manifest_store_allows_only_degraded_but_continuity_safe_profile_for_new_sessions() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -934,11 +926,10 @@ async fn manifest_store_allows_only_degraded_but_continuity_safe_profile_for_new
 
 #[tokio::test]
 async fn manifest_store_rejects_degraded_profile_when_continuity_guardrails_fail() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -1124,11 +1115,10 @@ async fn manifest_store_rejects_degraded_profile_when_continuity_guardrails_fail
 #[tokio::test]
 async fn manifest_store_can_issue_degraded_profile_when_it_is_only_compatible_option_and_continuity_remains_stable(
 ) {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -1324,11 +1314,10 @@ async fn manifest_store_can_issue_degraded_profile_when_it_is_only_compatible_op
 
 #[tokio::test]
 async fn manifest_store_honors_active_profile_suppression_window_for_new_sessions() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -1427,11 +1416,10 @@ async fn manifest_store_honors_active_profile_suppression_window_for_new_session
 
 #[tokio::test]
 async fn manifest_store_rejects_new_sessions_after_pause_channel_actuation() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -1579,24 +1567,6 @@ async fn manifest_store_rejects_new_sessions_after_pause_channel_actuation() {
     assert!(matches!(error, helix_adapter::error::AppError::NotFound(_)));
 }
 
-async fn maybe_test_pool() -> Option<PgPool> {
-    let database_url = std::env::var("TEST_DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://cybervpn:cybervpn@localhost:6767/cybervpn".to_string());
-    let options = database_url.parse::<PgConnectOptions>().ok()?;
-    let options = options
-        .application_name("helix-adapter-tests")
-        .disable_statement_logging();
-
-    match PgPoolOptions::new()
-        .max_connections(2)
-        .acquire_timeout(Duration::from_secs(2))
-        .connect_with(options)
-        .await
-    {
-        Ok(pool) => Some(pool),
-        Err(error) => {
-            eprintln!("Skipping DB-backed manifest store test: {error}");
-            None
-        }
-    }
+async fn maybe_test_pool() -> Option<IsolatedTestPool> {
+    support::helix_db::maybe_test_pool("helix-adapter-manifest-store-tests").await
 }

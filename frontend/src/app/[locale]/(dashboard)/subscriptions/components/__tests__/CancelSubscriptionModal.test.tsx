@@ -72,8 +72,10 @@ describe('CancelSubscriptionModal', () => {
         />
       );
 
+      const expectedDate = new Date(expiresAt).toLocaleDateString();
+
       expect(screen.getByText(/Your subscription will remain active until/i)).toBeInTheDocument();
-      expect(screen.getByText(/3\/15\/2026/i)).toBeInTheDocument();
+      expect(screen.getByText(expectedDate)).toBeInTheDocument();
     });
 
     it('test_close_button_calls_onClose', async () => {

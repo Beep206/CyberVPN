@@ -90,10 +90,7 @@ def test_docker_compose_bot_has_required_config(docker_compose_path: Path) -> No
     )
 
     # Check environment variables (should use .env or have env_file)
-    has_env_config = (
-        "environment" in bot_service or
-        "env_file" in bot_service
-    )
+    has_env_config = "environment" in bot_service or "env_file" in bot_service
     assert has_env_config, "Bot service must have environment or env_file configuration"
 
     # Check dependencies (bot should depend on Redis and Backend)
@@ -104,7 +101,7 @@ def test_docker_compose_bot_has_required_config(docker_compose_path: Path) -> No
         has_redis = any(dep in dependencies for dep in redis_deps)
         # Redis is recommended but not strictly required for testing
         if not has_redis:
-            print("Warning: Bot service does not depend on Redis")
+            pass
 
 
 @pytest.mark.e2e
@@ -123,14 +120,9 @@ def test_env_example_has_required_variables(env_example_path: Path) -> None:
         "REDIS_URL",
     ]
 
-    missing_vars = []
-    for var in required_vars:
-        if var not in env_content:
-            missing_vars.append(var)
+    missing_vars = [var for var in required_vars if var not in env_content]
 
-    assert not missing_vars, (
-        f"Missing required environment variables in .env.example: {missing_vars}"
-    )
+    assert not missing_vars, f"Missing required environment variables in .env.example: {missing_vars}"
 
 
 @pytest.mark.e2e
@@ -148,9 +140,7 @@ def test_env_example_syntax_valid(env_example_path: Path) -> None:
 
         # Check for key=value format
         if "=" not in line:
-            pytest.fail(
-                f".env.example line {line_num} has invalid syntax (missing '='): {line}"
-            )
+            pytest.fail(f".env.example line {line_num} has invalid syntax (missing '='): {line}")
 
 
 @pytest.mark.e2e
@@ -219,7 +209,7 @@ def test_docker_compose_profiles_defined(docker_compose_path: Path) -> None:
 
     # Profiles are optional but recommended
     if not has_profiles:
-        print("Info: No Docker Compose profiles found (optional feature)")
+        pass
 
 
 @pytest.mark.e2e
@@ -230,7 +220,7 @@ def test_docker_compose_networks_defined(docker_compose_path: Path) -> None:
 
     # Networks are optional but recommended
     if "networks" not in compose_config:
-        print("Info: No explicit networks defined (services will use default network)")
+        pass
 
 
 @pytest.mark.e2e
@@ -241,13 +231,12 @@ def test_docker_compose_volumes_for_persistence(docker_compose_path: Path) -> No
 
     # Check if volumes are defined (recommended for Redis, PostgreSQL)
     if "volumes" not in compose_config:
-        print("Info: No named volumes defined (data may not persist)")
+        pass
 
     services = compose_config.get("services", {})
 
     # Check if Redis/database services use volumes
     persistent_services = ["redis", "valkey", "postgres", "postgresql", "db"]
     for service_name, service_config in services.items():
-        if any(ps in service_name.lower() for ps in persistent_services):
-            if "volumes" not in service_config:
-                print(f"Warning: Service '{service_name}' does not define volumes for data persistence")
+        if any(ps in service_name.lower() for ps in persistent_services) and "volumes" not in service_config:
+            pass

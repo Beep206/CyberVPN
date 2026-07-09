@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from io import BytesIO
-from typing import Literal
+from typing import Any, Literal
 
 import qrcode
 import qrcode.constants
@@ -106,7 +106,7 @@ def generate_qr_code(
 
 def generate_subscription_qr(
     subscription_url: str,
-    **kwargs,
+    **kwargs: Any,
 ) -> BytesIO:
     """
     Generate a QR code for a VPN subscription configuration.
@@ -128,7 +128,7 @@ def generate_subscription_qr(
 
 def generate_referral_qr(
     referral_link: str,
-    **kwargs,
+    **kwargs: Any,
 ) -> BytesIO:
     """
     Generate a QR code for a referral link.

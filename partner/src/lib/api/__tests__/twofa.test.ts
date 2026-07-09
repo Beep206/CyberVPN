@@ -9,6 +9,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { twofaApi } from '../twofa';
 import { AxiosError } from 'axios';
+import { expectAxiosErrorStatus } from './assertions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -202,9 +203,7 @@ describe('twofaApi.setup', () => {
     );
 
     // Act & Assert
-    await expect(twofaApi.setup()).rejects.toThrow(
-      'Request failed with status code 401',
-    );
+    await expectAxiosErrorStatus(twofaApi.setup(), 401);
   });
 });
 
@@ -500,9 +499,7 @@ describe('twofaApi.disable', () => {
     );
 
     // Act & Assert
-    await expect(
-      twofaApi.disable({ password: 'my_password', code: '123456' }),
-    ).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(twofaApi.disable({ password: 'my_password', code: '123456' }), 401);
   });
 });
 
@@ -558,9 +555,7 @@ describe('twofaApi.getStatus', () => {
     );
 
     // Act & Assert
-    await expect(twofaApi.getStatus()).rejects.toThrow(
-      'Request failed with status code 401',
-    );
+    await expectAxiosErrorStatus(twofaApi.getStatus(), 401);
   });
 
   it('test_get_2fa_status_server_error_500_rejects', async () => {

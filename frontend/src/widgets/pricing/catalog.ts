@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { cacheLife, cacheTag } from 'next/cache';
 import { cookies } from 'next/headers';
 import type {
   PublicCatalogAddonResponse,
@@ -25,6 +26,19 @@ const DEFAULT_PERIODS = [30, 90, 180, 365];
 const COUNTRY_COOKIE_NAMES = ['cybervpn_country', 'country_code'];
 const CURRENCY_COOKIE_NAMES = ['cybervpn_currency', 'currency_code'];
 const COUNTRY_CODE_RE = /^[A-Z]{2}$/;
+export const PUBLIC_PRICING_CATALOG_CACHE_TAG = 'public-pricing-catalog';
+const PUBLIC_PRICING_CATALOG_CACHE_LIFE = {
+  stale: 300,
+  revalidate: 900,
+  expire: 3600,
+} as const;
+
+type PublicPricingCatalogCacheInput = {
+  baseUrl: string;
+  locale: string;
+  country: string | null;
+  currency: string | null;
+};
 
 function getApiBaseUrl(): string | null {
   const baseUrl =
@@ -63,7 +77,7 @@ async function readCommercialCookies() {
     .map((name) => normalizeCurrencyCode(cookieStore.get(name)?.value))
     .find((value): value is string => Boolean(value));
 
-  return { country, currency };
+  return { country: country ?? null, currency: currency ?? null };
 }
 
 function toNumber(value: unknown, fallback = 0): number {
@@ -297,6 +311,25 @@ export async function getPublicPricingCatalog({
   }
 
   const { country, currency } = await readCommercialCookies();
+
+  return getCachedPublicPricingCatalog({
+    baseUrl,
+    locale,
+    country,
+    currency,
+  });
+}
+
+async function getCachedPublicPricingCatalog({
+  baseUrl,
+  locale,
+  country,
+  currency,
+}: PublicPricingCatalogCacheInput): Promise<PricingCatalogData> {
+  'use cache';
+  cacheLife(PUBLIC_PRICING_CATALOG_CACHE_LIFE);
+  cacheTag(PUBLIC_PRICING_CATALOG_CACHE_TAG);
+
   const params = new URLSearchParams({
     channel: 'web',
     uiLocale: locale,

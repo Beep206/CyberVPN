@@ -1,106 +1,148 @@
 #!/usr/bin/env python3
-"""Generate cryptographically strong secrets for CyberVPN configuration.
+"""Generate cryptographically strong CyberVPN secret material.
 
-SEC-004: This script generates secure secrets for production deployment.
-Run: python scripts/generate_secrets.py
-
-Outputs secrets suitable for .env file or environment variables.
+The default command writes raw values to the approved local secret store under
+`.private/` with owner-only permissions and prints only static metadata. Do not
+redirect raw secrets through shell history or CI logs.
 """
 
+from __future__ import annotations
+
+import argparse
+import os
 import secrets
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_OUTPUT = REPO_ROOT / ".private" / "generated" / "backend-secrets.env"
+GENERATED_SECRET_NAMES = (
+    "JWT_SECRET",
+    "TOTP_ENCRYPTION_KEY",
+    "REMNAWAVE_TOKEN",
+    "REMNAWAVE_WEBHOOK_SECRET",
+)
 
 
 def generate_jwt_secret(length: int = 64) -> str:
-    """Generate a cryptographically secure JWT secret.
-
-    Args:
-        length: Number of bytes for the secret (default 64 = 512 bits)
-
-    Returns:
-        URL-safe base64-encoded secret string
-    """
+    """Generate a cryptographically secure JWT secret."""
     return secrets.token_urlsafe(length)
 
 
 def generate_encryption_key(length: int = 32) -> str:
-    """Generate a cryptographically secure AES-256 encryption key.
-
-    Args:
-        length: Number of bytes for the key (32 = 256 bits for AES-256)
-
-    Returns:
-        URL-safe base64-encoded key string
-    """
+    """Generate a cryptographically secure AES-256 encryption key."""
     return secrets.token_urlsafe(length)
 
 
 def generate_api_token(length: int = 32) -> str:
-    """Generate a cryptographically secure API token.
-
-    Args:
-        length: Number of bytes for the token
-
-    Returns:
-        URL-safe base64-encoded token string
-    """
+    """Generate a cryptographically secure API token."""
     return secrets.token_urlsafe(length)
 
 
+def generate_backend_secrets() -> dict[str, str]:
+    return {
+        GENERATED_SECRET_NAMES[0]: generate_jwt_secret(64),
+        GENERATED_SECRET_NAMES[1]: generate_encryption_key(32),
+        GENERATED_SECRET_NAMES[2]: generate_api_token(48),
+        GENERATED_SECRET_NAMES[3]: generate_api_token(48),
+    }
+
+
+def render_env_file(values: dict[str, str]) -> str:
+    lines = [
+        "# Generated CyberVPN backend secret material.",
+        "# Store this file securely, import it into the approved secret manager, then rotate/delete the local copy.",
+        "",
+    ]
+    lines.extend(f"{name}={value}" for name, value in values.items())
+    lines.extend(
+        [
+            "",
+            "# Provider-managed values to fill separately:",
+            "# CRYPTOBOT_TOKEN=<get-from-cryptobot-crypto-pay-app>",
+            "# CRYPTOBOT_NETWORK=mainnet",
+            "# TELEGRAM_BOT_TOKEN=<get-from-botfather>",
+            "# GITHUB_CLIENT_ID=<your-client-id>",
+            "# GITHUB_CLIENT_SECRET=<your-client-secret>",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def write_owner_only_file(path: Path, content: str, *, force: bool) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        path.parent.chmod(0o700)
+    except OSError:
+        # Windows may not fully support POSIX mode bits; os.open still applies
+        # owner-only semantics on platforms that do.
+        pass
+
+    flags = os.O_WRONLY | os.O_CREAT
+    if force:
+        flags |= os.O_TRUNC
+    else:
+        flags |= os.O_EXCL
+
+    file_descriptor = os.open(path, flags, 0o600)
+    try:
+        os.write(file_descriptor, content.encode("utf-8"))
+    finally:
+        os.close(file_descriptor)
+
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
+
+
+def resolve_raw_secret_output_path(path: Path, *, allow_outside_private: bool = False) -> Path:
+    output_path = path.expanduser()
+    if not output_path.is_absolute():
+        output_path = Path.cwd() / output_path
+
+    resolved_output = output_path.resolve(strict=False)
+    private_root = (REPO_ROOT / ".private").resolve(strict=False)
+    try:
+        resolved_output.relative_to(private_root)
+    except ValueError as exc:
+        if allow_outside_private:
+            return resolved_output
+        raise SystemExit(
+            "Raw secret output must stay under the repository .private directory; "
+            "pass --allow-outside-private only for an explicitly approved secret-store import path."
+        ) from exc
+    return resolved_output
+
+
 def main() -> None:
-    """Generate and print all required secrets."""
-    print("=" * 60)
-    print("CyberVPN Secret Generator")
-    print("SEC-004: Cryptographically Strong Secrets")
-    print("=" * 60)
-    print()
+    parser = argparse.ArgumentParser(description="Generate CyberVPN backend secret material.")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
+        help="Owner-only output file for raw secret values. Defaults to the repository .private/generated directory.",
+    )
+    parser.add_argument("--force", action="store_true", help="Overwrite the output file if it already exists.")
+    parser.add_argument(
+        "--allow-outside-private",
+        action="store_true",
+        help="Allow raw secret output outside .private for an explicitly approved secret-store import path.",
+    )
+    args = parser.parse_args()
 
-    # JWT Secret (minimum 32 chars required by settings validator)
-    jwt_secret = generate_jwt_secret(64)
-    print("# JWT Authentication")
-    print(f"JWT_SECRET={jwt_secret}")
-    print()
+    values = generate_backend_secrets()
+    output_path = resolve_raw_secret_output_path(args.output, allow_outside_private=args.allow_outside_private)
+    try:
+        write_owner_only_file(output_path, render_env_file(values), force=args.force)
+    except FileExistsError as exc:
+        raise SystemExit(f"{output_path} already exists; pass --force to replace it intentionally.") from exc
 
-    # TOTP Encryption Key (AES-256-GCM)
-    totp_key = generate_encryption_key(32)
-    print("# TOTP Secret Encryption (AES-256-GCM)")
-    print(f"TOTP_ENCRYPTION_KEY={totp_key}")
-    print()
-
-    # Remnawave API Token
-    remnawave_token = generate_api_token(48)
-    print("# Remnawave VPN Backend API")
-    print(f"REMNAWAVE_TOKEN={remnawave_token}")
-    print()
-
-    # Remnawave Webhook Secret
-    remnawave_webhook_secret = generate_api_token(48)
-    print("# Remnawave Webhook Signature Validation")
-    print(f"REMNAWAVE_WEBHOOK_SECRET={remnawave_webhook_secret}")
-    print()
-
-    # CryptoBot Payment Token (must come from Crypto Pay provider app)
-    print("# CryptoBot Payment Gateway")
-    print("# CRYPTOBOT_TOKEN=<get-from-cryptobot-crypto-pay-app>")
-    print("# CRYPTOBOT_NETWORK=mainnet")
-    print()
-
-    # Telegram Bot Token (note: real token comes from BotFather)
-    print("# Telegram Bot (get real token from @BotFather)")
-    print("# TELEGRAM_BOT_TOKEN=<get-from-botfather>")
-    print()
-
-    # GitHub OAuth (note: real values come from GitHub Developer Settings)
-    print("# GitHub OAuth (configure at github.com/settings/developers)")
-    print("# GITHUB_CLIENT_ID=<your-client-id>")
-    print("# GITHUB_CLIENT_SECRET=<your-client-secret>")
-    print()
-
-    print("=" * 60)
-    print("IMPORTANT: Store these secrets securely!")
-    print("- Never commit secrets to version control")
-    print("- Use environment variables or secret management")
-    print("- Rotate secrets periodically")
-    print("=" * 60)
+    print("CyberVPN backend secrets generated.")
+    print(f"raw_values_file={output_path}")
+    print("raw_values_printed=false")
+    print(f"generated_value_count={len(GENERATED_SECRET_NAMES)}")
+    print("Import the raw values into the approved secret manager and remove the local file when finished.")
 
 
 if __name__ == "__main__":

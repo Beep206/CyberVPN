@@ -62,12 +62,14 @@ def _serialize_rollout_window(model) -> PilotRolloutWindowResponse:
 
 
 def _serialize_shadow_evidence(payload: dict) -> PilotShadowEvidenceResponse:
-    return PilotShadowEvidenceResponse(
-        attribution_reference=str(payload.get("attribution_reference") or ""),
-        attribution_gate_status=str(payload.get("attribution_gate_status") or "red"),
-        settlement_reference=str(payload.get("settlement_reference") or ""),
-        settlement_gate_status=str(payload.get("settlement_gate_status") or "red"),
-        notes=list(payload.get("notes") or []),
+    return PilotShadowEvidenceResponse.model_validate(
+        {
+            "attribution_reference": str(payload.get("attribution_reference") or ""),
+            "attribution_gate_status": str(payload.get("attribution_gate_status") or "red"),
+            "settlement_reference": str(payload.get("settlement_reference") or ""),
+            "settlement_gate_status": str(payload.get("settlement_gate_status") or "red"),
+            "notes": list(payload.get("notes") or []),
+        }
     )
 
 
@@ -357,30 +359,32 @@ async def get_pilot_cohort_readiness(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     route_operations_total.labels(route="pilot_cohorts", action="readiness", status="success").inc()
-    return PilotCohortReadinessResponse(
-        cohort_id=readiness.cohort.id,
-        cohort_status=readiness.cohort.cohort_status,
-        activation_allowed=readiness.activation_allowed,
-        blocking_reason_codes=readiness.blocking_reason_codes,
-        warning_reason_codes=readiness.warning_reason_codes,
-        blocking_risk_review_ids=readiness.blocking_risk_review_ids,
-        blocking_governance_action_ids=readiness.blocking_governance_action_ids,
-        runbook_gate_status=readiness.runbook_gate_status,
-        required_owner_teams=readiness.required_owner_teams,
-        acknowledged_owner_teams=readiness.acknowledged_owner_teams,
-        missing_owner_teams=readiness.missing_owner_teams,
-        latest_rollback_drill_id=readiness.latest_rollback_drill.id if readiness.latest_rollback_drill else None,
-        latest_rollback_drill_status=(
-            readiness.latest_rollback_drill.drill_status if readiness.latest_rollback_drill else None
-        ),
-        latest_go_no_go_decision_id=(
-            readiness.latest_go_no_go_decision.id if readiness.latest_go_no_go_decision else None
-        ),
-        latest_go_no_go_status=(
-            readiness.latest_go_no_go_decision.decision_status if readiness.latest_go_no_go_decision else None
-        ),
-        live_monitoring_snapshot=readiness.live_monitoring_snapshot,
-        checked_at=readiness.checked_at,
+    return PilotCohortReadinessResponse.model_validate(
+        {
+            "cohort_id": readiness.cohort.id,
+            "cohort_status": readiness.cohort.cohort_status,
+            "activation_allowed": readiness.activation_allowed,
+            "blocking_reason_codes": readiness.blocking_reason_codes,
+            "warning_reason_codes": readiness.warning_reason_codes,
+            "blocking_risk_review_ids": readiness.blocking_risk_review_ids,
+            "blocking_governance_action_ids": readiness.blocking_governance_action_ids,
+            "runbook_gate_status": readiness.runbook_gate_status,
+            "required_owner_teams": readiness.required_owner_teams,
+            "acknowledged_owner_teams": readiness.acknowledged_owner_teams,
+            "missing_owner_teams": readiness.missing_owner_teams,
+            "latest_rollback_drill_id": readiness.latest_rollback_drill.id if readiness.latest_rollback_drill else None,
+            "latest_rollback_drill_status": (
+                readiness.latest_rollback_drill.drill_status if readiness.latest_rollback_drill else None
+            ),
+            "latest_go_no_go_decision_id": (
+                readiness.latest_go_no_go_decision.id if readiness.latest_go_no_go_decision else None
+            ),
+            "latest_go_no_go_status": (
+                readiness.latest_go_no_go_decision.decision_status if readiness.latest_go_no_go_decision else None
+            ),
+            "live_monitoring_snapshot": readiness.live_monitoring_snapshot,
+            "checked_at": readiness.checked_at,
+        }
     )
 
 

@@ -277,9 +277,11 @@ describe('TrialSection', () => {
 
       render(<TrialSection />, { wrapper: createWrapper() });
 
+      const expectedDate = futureDate.toLocaleDateString();
+
       await waitFor(() => {
         expect(screen.getByText(/Expires:/i)).toBeInTheDocument();
-        expect(screen.getByText(/3\/15\/2026/i)).toBeInTheDocument();
+        expect(screen.getByText(new RegExp(expectedDate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument();
       });
     });
 

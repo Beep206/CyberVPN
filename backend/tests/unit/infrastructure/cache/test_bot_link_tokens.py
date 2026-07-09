@@ -1,6 +1,7 @@
 """Unit tests for bot link token Redis helpers."""
 
 import json
+import logging
 from unittest.mock import AsyncMock
 
 import pytest
@@ -80,6 +81,20 @@ class TestConsumeBotLinkToken:
         result = await consume_bot_link_token(mock_redis, "bad_token")
 
         assert result is None
+
+    @pytest.mark.unit
+    async def test_invalid_token_data_logs_no_token_material(self, mock_redis, caplog):
+        mock_redis.getdel.return_value = "not-json"
+        raw_token = "secret_bot_link_token"
+
+        caplog.set_level(logging.WARNING, logger="src.infrastructure.cache.bot_link_tokens")
+
+        result = await consume_bot_link_token(mock_redis, raw_token)
+
+        assert result is None
+        assert raw_token not in caplog.text
+        assert raw_token[:8] not in caplog.text
+        assert all("token_prefix" not in record.__dict__ for record in caplog.records)
 
     @pytest.mark.unit
     async def test_returns_none_on_missing_telegram_id(self, mock_redis):

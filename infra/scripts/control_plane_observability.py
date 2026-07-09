@@ -28,7 +28,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -56,19 +56,19 @@ def render_loki_write(
     *,
     loki_url: str,
     basic_auth_username: str,
-    basic_auth_password: str,
-    bearer_token: str,
+    basic_auth_env_name: str,
+    bearer_env_name: str,
 ) -> str:
     auth_lines = ""
     if basic_auth_username:
         auth_lines = (
             "    basic_auth {\n"
             f'      username = "{basic_auth_username}"\n'
-            f'      password = "{basic_auth_password}"\n'
+            f'      password = env("{basic_auth_env_name}")\n'
             "    }\n"
         )
-    elif bearer_token:
-        auth_lines = f'    bearer_token = "{bearer_token}"\n'
+    elif bearer_env_name:
+        auth_lines = f'    bearer_token = env("{bearer_env_name}")\n'
 
     return (
         'loki.write "control_plane" {\n'
@@ -80,14 +80,14 @@ def render_loki_write(
     )
 
 
-def render_openbao_alloy(node: Node, *, loki_url: str, basic_auth_username: str, basic_auth_password: str, bearer_token: str) -> str:
+def render_openbao_alloy(node: Node, *, loki_url: str, basic_auth_username: str, basic_auth_env_name: str, bearer_env_name: str) -> str:
     return (
         'logging {\n  level = "info"\n  format = "logfmt"\n}\n\n'
         + render_loki_write(
             loki_url=loki_url,
             basic_auth_username=basic_auth_username,
-            basic_auth_password=basic_auth_password,
-            bearer_token=bearer_token,
+            basic_auth_env_name=basic_auth_env_name,
+            bearer_env_name=bearer_env_name,
         )
         + '\n'
         + 'loki.source.journal "openbao_service" {\n'
@@ -125,12 +125,12 @@ def render_openbao_alloy(node: Node, *, loki_url: str, basic_auth_username: str,
     )
 
 
-def render_nats_alloy(node: Node, *, loki_url: str, basic_auth_username: str, basic_auth_password: str, bearer_token: str) -> str:
+def render_nats_alloy(node: Node, *, loki_url: str, basic_auth_username: str, basic_auth_env_name: str, bearer_env_name: str) -> str:
     common = render_loki_write(
         loki_url=loki_url,
         basic_auth_username=basic_auth_username,
-        basic_auth_password=basic_auth_password,
-        bearer_token=bearer_token,
+        basic_auth_env_name=basic_auth_env_name,
+        bearer_env_name=bearer_env_name,
     )
     return (
         'logging {\n  level = "info"\n  format = "logfmt"\n}\n\n'
@@ -165,14 +165,14 @@ def render_nats_alloy(node: Node, *, loki_url: str, basic_auth_username: str, ba
     )
 
 
-def render_posthog_alloy(node: Node, *, loki_url: str, basic_auth_username: str, basic_auth_password: str, bearer_token: str) -> str:
+def render_posthog_alloy(node: Node, *, loki_url: str, basic_auth_username: str, basic_auth_env_name: str, bearer_env_name: str) -> str:
     return (
         'logging {\n  level = "info"\n  format = "logfmt"\n}\n\n'
         + render_loki_write(
             loki_url=loki_url,
             basic_auth_username=basic_auth_username,
-            basic_auth_password=basic_auth_password,
-            bearer_token=bearer_token,
+            basic_auth_env_name=basic_auth_env_name,
+            bearer_env_name=bearer_env_name,
         )
         + '\n'
         + 'local.file_match "docker_logs" {\n'
@@ -343,9 +343,16 @@ Default Alloy metrics port:
 
 
 def command_render_bundle(args: argparse.Namespace) -> int:
-    if bool(args.loki_basic_auth_username) != bool(args.loki_basic_auth_password):
-        raise SystemExit("Both --loki-basic-auth-username and --loki-basic-auth-password must be set together.")
-    if args.loki_basic_auth_username and args.loki_bearer_token:
+    if getattr(args, "deprecated_loki_basic_auth_password", "") or getattr(args, "loki_basic_auth_password", ""):
+        raise SystemExit("Do not pass raw Loki basic-auth material; use --loki-basic-auth-env.")
+    if getattr(args, "deprecated_loki_bearer_token", "") or getattr(args, "loki_bearer_token", ""):
+        raise SystemExit("Do not pass raw Loki bearer material; use --loki-bearer-env.")
+
+    basic_auth_env_name = str(getattr(args, "loki_basic_auth_env", "")).strip()
+    bearer_env_name = str(getattr(args, "loki_bearer_env", "")).strip()
+    if bool(args.loki_basic_auth_username) != bool(basic_auth_env_name):
+        raise SystemExit("Both --loki-basic-auth-username and --loki-basic-auth-env must be set together.")
+    if args.loki_basic_auth_username and bearer_env_name:
         raise SystemExit("Use either basic auth or bearer token for Loki, not both.")
 
     output_dir = Path(args.output_dir)
@@ -386,13 +393,13 @@ def command_render_bundle(args: argparse.Namespace) -> int:
                 node,
                 loki_url=args.loki_url,
                 basic_auth_username=args.loki_basic_auth_username,
-                basic_auth_password=args.loki_basic_auth_password,
-                bearer_token=args.loki_bearer_token,
+                basic_auth_env_name=basic_auth_env_name,
+                bearer_env_name=bearer_env_name,
             ),
             mode=0o600,
         )
-        write_text(node_dir / "cybervpn-alloy.service", render_alloy_service("/etc/alloy/config.alloy", "/var/lib/alloy/data", f"0.0.0.0:{args.alloy_http_port}"), mode=0o644)
-        write_text(node_dir / "install-alloy.sh", render_install_script("openbao"), mode=0o750)
+        write_text(node_dir / "cybervpn-alloy.service", render_alloy_service("/etc/alloy/config.alloy", "/var/lib/alloy/data", f"0.0.0.0:{args.alloy_http_port}"), mode=0o600)
+        write_text(node_dir / "install-alloy.sh", render_install_script("openbao"), mode=0o700)
 
     for node in nats_nodes:
         node_dir = output_dir / "hosts" / node.name
@@ -402,13 +409,13 @@ def command_render_bundle(args: argparse.Namespace) -> int:
                 node,
                 loki_url=args.loki_url,
                 basic_auth_username=args.loki_basic_auth_username,
-                basic_auth_password=args.loki_basic_auth_password,
-                bearer_token=args.loki_bearer_token,
+                basic_auth_env_name=basic_auth_env_name,
+                bearer_env_name=bearer_env_name,
             ),
             mode=0o600,
         )
-        write_text(node_dir / "cybervpn-alloy.service", render_alloy_service("/etc/alloy/config.alloy", "/var/lib/alloy/data", f"0.0.0.0:{args.alloy_http_port}"), mode=0o644)
-        write_text(node_dir / "install-alloy.sh", render_install_script("nats"), mode=0o750)
+        write_text(node_dir / "cybervpn-alloy.service", render_alloy_service("/etc/alloy/config.alloy", "/var/lib/alloy/data", f"0.0.0.0:{args.alloy_http_port}"), mode=0o600)
+        write_text(node_dir / "install-alloy.sh", render_install_script("nats"), mode=0o700)
 
     for node in posthog_nodes:
         node_dir = output_dir / "hosts" / node.name
@@ -418,13 +425,13 @@ def command_render_bundle(args: argparse.Namespace) -> int:
                 node,
                 loki_url=args.loki_url,
                 basic_auth_username=args.loki_basic_auth_username,
-                basic_auth_password=args.loki_basic_auth_password,
-                bearer_token=args.loki_bearer_token,
+                basic_auth_env_name=basic_auth_env_name,
+                bearer_env_name=bearer_env_name,
             ),
             mode=0o600,
         )
-        write_text(node_dir / "cybervpn-alloy.service", render_alloy_service("/etc/alloy/config.alloy", "/var/lib/alloy/data", f"0.0.0.0:{args.alloy_http_port}"), mode=0o644)
-        write_text(node_dir / "install-alloy.sh", render_install_script("posthog"), mode=0o750)
+        write_text(node_dir / "cybervpn-alloy.service", render_alloy_service("/etc/alloy/config.alloy", "/var/lib/alloy/data", f"0.0.0.0:{args.alloy_http_port}"), mode=0o600)
+        write_text(node_dir / "install-alloy.sh", render_install_script("posthog"), mode=0o700)
 
     openbao_metrics_addrs = {
         node_name: str(node_payload["metrics_addr"])
@@ -434,17 +441,17 @@ def command_render_bundle(args: argparse.Namespace) -> int:
     write_text(
         output_dir / "prometheus" / f"control-plane-alloy-{args.environment}.json",
         render_prometheus_targets(all_nodes, alloy_http_port=args.alloy_http_port),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "prometheus" / openbao_targets_file,
         render_openbao_targets(openbao_cluster_id, args.environment, openbao_metrics_addrs),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "README.md",
         render_readme(args.environment, args.alloy_http_port, openbao_targets_file),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "versions.env",
@@ -474,8 +481,10 @@ def build_parser() -> argparse.ArgumentParser:
     render_bundle.add_argument("--posthog-instance-id", default="posthog-nonprod")
     render_bundle.add_argument("--loki-url", default="http://loki:3100/loki/api/v1/push")
     render_bundle.add_argument("--loki-basic-auth-username", default="")
-    render_bundle.add_argument("--loki-basic-auth-password", default="")
-    render_bundle.add_argument("--loki-bearer-token", default="")
+    render_bundle.add_argument("--loki-basic-auth-env", default="")
+    render_bundle.add_argument("--loki-bearer-env", default="")
+    render_bundle.add_argument("--loki-basic-auth-password", dest="deprecated_loki_basic_auth_password", default="", help=argparse.SUPPRESS)
+    render_bundle.add_argument("--loki-bearer-token", dest="deprecated_loki_bearer_token", default="", help=argparse.SUPPRESS)
     render_bundle.add_argument("--alloy-http-port", type=int, default=9100)
     render_bundle.set_defaults(func=command_render_bundle)
 

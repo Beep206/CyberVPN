@@ -22,19 +22,19 @@ class TrialActivateResponse(BaseModel):
     trial_end: datetime = Field(description="When the trial period ends")
     message: str = Field(description="Human-readable status message")
     duration_days: int = Field(
-        STAGE1_TRIAL_DURATION_DAYS,
+        default=STAGE1_TRIAL_DURATION_DAYS,
         description="Canonical S1 trial duration in days",
     )
     device_limit: int = Field(
-        STAGE1_TRIAL_DEVICE_LIMIT,
+        default=STAGE1_TRIAL_DEVICE_LIMIT,
         description="Canonical S1 trial device limit",
     )
     traffic_limit_bytes: int = Field(
-        STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+        default=STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
         description="Canonical S1 trial traffic limit in bytes",
     )
     one_trial_per_account: bool = Field(
-        STAGE1_TRIAL_ONE_PER_ACCOUNT,
+        default=STAGE1_TRIAL_ONE_PER_ACCOUNT,
         description="Whether S1 allows only one trial per account",
     )
     policy_context: dict = Field(
@@ -49,24 +49,24 @@ class TrialStatusResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     is_trial_active: bool = Field(description="Whether user is currently on trial")
-    trial_start: datetime | None = Field(None, description="When trial started")
-    trial_end: datetime | None = Field(None, description="When trial ends/ended")
-    days_remaining: int = Field(0, description="Days remaining in trial")
+    trial_start: datetime | None = Field(default=None, description="When trial started")
+    trial_end: datetime | None = Field(default=None, description="When trial ends/ended")
+    days_remaining: int = Field(default=0, description="Days remaining in trial")
     is_eligible: bool = Field(description="Whether user is eligible for trial (hasn't used one)")
     duration_days: int = Field(
-        STAGE1_TRIAL_DURATION_DAYS,
+        default=STAGE1_TRIAL_DURATION_DAYS,
         description="Canonical S1 trial duration in days",
     )
     device_limit: int = Field(
-        STAGE1_TRIAL_DEVICE_LIMIT,
+        default=STAGE1_TRIAL_DEVICE_LIMIT,
         description="Canonical S1 trial device limit",
     )
     traffic_limit_bytes: int = Field(
-        STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+        default=STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
         description="Canonical S1 trial traffic limit in bytes",
     )
     one_trial_per_account: bool = Field(
-        STAGE1_TRIAL_ONE_PER_ACCOUNT,
+        default=STAGE1_TRIAL_ONE_PER_ACCOUNT,
         description="Whether S1 allows only one trial per account",
     )
     policy_context: dict = Field(

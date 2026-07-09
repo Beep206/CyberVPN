@@ -1,11 +1,15 @@
-FROM python:3.13.13-alpine
+FROM python:3.13.14-alpine
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir prometheus-client==0.22.1
+RUN addgroup -S metrics \
+    && adduser -S -D -H -G metrics metrics \
+    && pip install --no-cache-dir prometheus-client==0.22.1
 
-COPY auth-metrics-seed.py .
+COPY --chown=metrics:metrics auth-metrics-seed.py .
 
 EXPOSE 9099
+
+USER metrics:metrics
 
 CMD ["python", "auth-metrics-seed.py"]

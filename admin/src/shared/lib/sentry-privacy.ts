@@ -37,6 +37,7 @@ const SENSITIVE_FIELD_MARKERS = [
 
 const SENSITIVE_STRING_PATTERNS = [
   /\b(?:vless|vmess|trojan|wireguard|ss):\/\//i,
+  /(?:^|[?&#])(?:token|code|state|session|jwt|secret|password|hash)=/i,
   /(?:access[_-]?token|refresh[_-]?token|id[_-]?token|auth[_-]?code|otp|totp|secret|password|telegram[_-]?init[_-]?data|initdata|tgWebAppData)=/i,
   /\/api\/v1\/(?:vpn|xray|provisioning|subscriptions?)\/(?:config|credentials|subscription)/i,
 ] as const;
@@ -131,6 +132,34 @@ export function scrubSentryEvent(event: ErrorEvent): ErrorEvent {
 
   if (event.contexts) {
     scrubSensitiveMapping(event.contexts as Record<string, unknown>);
+  }
+
+  if (event.tags) {
+    scrubSensitiveMapping(event.tags as Record<string, unknown>);
+  }
+
+  if (event.breadcrumbs) {
+    event.breadcrumbs = event.breadcrumbs.map((breadcrumb) => {
+      if (breadcrumb.message && shouldFilterString(breadcrumb.message)) {
+        breadcrumb.message = '[Filtered]';
+      }
+
+      if (breadcrumb.category && shouldFilterString(breadcrumb.category)) {
+        breadcrumb.category = '[Filtered]';
+      }
+
+      if (breadcrumb.data) {
+        scrubSensitiveMapping(breadcrumb.data as Record<string, unknown>);
+      }
+
+      return breadcrumb;
+    });
+  }
+
+  if (event.fingerprint) {
+    event.fingerprint = event.fingerprint.map((item) => (
+      typeof item === 'string' && shouldFilterString(item) ? '[Filtered]' : item
+    ));
   }
 
   return event;

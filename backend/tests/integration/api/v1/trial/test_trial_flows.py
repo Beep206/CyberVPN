@@ -107,7 +107,7 @@ class TestTrialActivation:
         # Pre-set the Redis rate limit key to 3 (already at limit)
         redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
         rate_limit_key = f"trial_activate:{user_id}"
-        await redis_client.setex(rate_limit_key, 3600, "3")
+        await redis_client.set(rate_limit_key, "3", ex=3600)
 
         try:
             response = await async_client.post(

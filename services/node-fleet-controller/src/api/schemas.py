@@ -157,9 +157,7 @@ class ReconcilePreviewItemResponse(BaseModel):
         return cls(
             request=FleetRequestResponse.from_entity(item.request),
             operation_run=(
-                OperationRunResponse.from_entity(item.operation_run)
-                if item.operation_run is not None
-                else None
+                OperationRunResponse.from_entity(item.operation_run) if item.operation_run is not None else None
             ),
             planned_steps=[step.step_name for step in item.planned_steps],
         )
@@ -180,9 +178,7 @@ class ReconcileRunResultResponse(BaseModel):
         return cls(
             request=FleetRequestResponse.from_entity(item.request),
             operation_run=(
-                OperationRunResponse.from_entity(item.operation_run)
-                if item.operation_run is not None
-                else None
+                OperationRunResponse.from_entity(item.operation_run) if item.operation_run is not None else None
             ),
             executed_steps=list(item.executed_steps),
             blocked_on_external_dependency=item.blocked_on_external_dependency,
@@ -623,7 +619,9 @@ class OperatorCommandResponse(BaseModel):
         return cls(
             command_name=result.command_name,
             request=FleetRequestResponse.from_entity(result.request) if result.request is not None else None,
-            operation_run=OperationRunResponse.from_entity(result.operation_run) if result.operation_run is not None else None,
+            operation_run=OperationRunResponse.from_entity(result.operation_run)
+            if result.operation_run is not None
+            else None,
             node_pool=NodePoolResponse.from_entity(result.node_pool) if result.node_pool is not None else None,
             policy_evaluation=(
                 FailoverEvaluationResponse.from_entity(result.policy_evaluation)

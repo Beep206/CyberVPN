@@ -79,9 +79,7 @@ def build_canary_evidence(
 
 
 @pytest.mark.asyncio
-async def test_helix_canary_gate_alerts_no_go_on_applied_pause_channel(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_canary_gate_alerts_no_go_on_applied_pause_channel(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_alert_state_ttl_seconds = 3600
     mock_settings.helix_canary_min_connect_success_rate = 0.98
@@ -134,20 +132,14 @@ async def test_helix_canary_gate_alerts_no_go_on_applied_pause_channel(
             "src.tasks.monitoring.helix_canary_gates.get_redis_client",
             return_value=mock_redis,
         ),
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.CacheService"
-        ) as MockCache,
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.monitoring.helix_canary_gates.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.helix_canary_gates.HelixService") as mock_service_cls,
+        patch("src.tasks.monitoring.helix_canary_gates.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value=None)
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [rollout]
@@ -167,11 +159,11 @@ async def test_helix_canary_gate_alerts_no_go_on_applied_pause_channel(
             ],
             evidence_gaps=[],
         )
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_canary_gates()
 
@@ -182,9 +174,7 @@ async def test_helix_canary_gate_alerts_no_go_on_applied_pause_channel(
 
 
 @pytest.mark.asyncio
-async def test_helix_canary_gate_alerts_watch_when_evidence_is_incomplete(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_canary_gate_alerts_watch_when_evidence_is_incomplete(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_alert_state_ttl_seconds = 3600
     mock_settings.helix_canary_min_connect_success_rate = 0.98
@@ -244,20 +234,14 @@ async def test_helix_canary_gate_alerts_watch_when_evidence_is_incomplete(
             "src.tasks.monitoring.helix_canary_gates.get_redis_client",
             return_value=mock_redis,
         ),
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.CacheService"
-        ) as MockCache,
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.monitoring.helix_canary_gates.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.helix_canary_gates.HelixService") as mock_service_cls,
+        patch("src.tasks.monitoring.helix_canary_gates.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value=None)
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [rollout]
@@ -275,11 +259,11 @@ async def test_helix_canary_gate_alerts_watch_when_evidence_is_incomplete(
                 "Capture throughput evidence before changing exposure.",
             ],
         )
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_canary_gates()
 
@@ -293,9 +277,7 @@ async def test_helix_canary_gate_alerts_watch_when_evidence_is_incomplete(
 
 
 @pytest.mark.asyncio
-async def test_helix_canary_gate_resolves_when_rollout_returns_to_go(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_canary_gate_resolves_when_rollout_returns_to_go(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_alert_state_ttl_seconds = 3600
     mock_settings.helix_canary_min_connect_success_rate = 0.98
@@ -358,15 +340,9 @@ async def test_helix_canary_gate_resolves_when_rollout_returns_to_go(
             "src.tasks.monitoring.helix_canary_gates.get_redis_client",
             return_value=mock_redis,
         ),
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.CacheService"
-        ) as MockCache,
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.monitoring.helix_canary_gates.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.helix_canary_gates.HelixService") as mock_service_cls,
+        patch("src.tasks.monitoring.helix_canary_gates.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(
@@ -376,7 +352,7 @@ async def test_helix_canary_gate_resolves_when_rollout_returns_to_go(
             }
         )
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [rollout]
@@ -386,11 +362,11 @@ async def test_helix_canary_gate_resolves_when_rollout_returns_to_go(
             reasons=[],
             evidence_gaps=[],
         )
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_canary_gates()
 
@@ -401,9 +377,7 @@ async def test_helix_canary_gate_resolves_when_rollout_returns_to_go(
 
 
 @pytest.mark.asyncio
-async def test_helix_canary_gate_alerts_no_go_on_poor_throughput_evidence(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_canary_gate_alerts_no_go_on_poor_throughput_evidence(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_alert_state_ttl_seconds = 3600
     mock_settings.helix_canary_min_connect_success_rate = 0.98
@@ -466,20 +440,14 @@ async def test_helix_canary_gate_alerts_no_go_on_poor_throughput_evidence(
             "src.tasks.monitoring.helix_canary_gates.get_redis_client",
             return_value=mock_redis,
         ),
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.CacheService"
-        ) as MockCache,
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.monitoring.helix_canary_gates.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.monitoring.helix_canary_gates.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.helix_canary_gates.HelixService") as mock_service_cls,
+        patch("src.tasks.monitoring.helix_canary_gates.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value=None)
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [rollout]
@@ -489,11 +457,11 @@ async def test_helix_canary_gate_alerts_no_go_on_poor_throughput_evidence(
             reasons=["relative throughput ratio=0.81"],
             evidence_gaps=[],
         )
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_canary_gates()
 

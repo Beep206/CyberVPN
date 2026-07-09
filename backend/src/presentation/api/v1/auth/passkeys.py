@@ -315,13 +315,6 @@ async def _issue_session_for_passkey(
     cookie_namespace: str,
 ) -> PasskeyAuthenticationVerifyResponse:
     scope_family = get_scope_family_for_realm_key(credential.realm_key)
-    response_metadata = {
-        "auth_realm_id": credential.auth_realm_id,
-        "auth_realm_key": credential.realm_key,
-        "audience": credential.audience,
-        "principal_type": credential.principal_class,
-        "scope_family": scope_family,
-    }
 
     if user.totp_enabled:
         tfa_token, _, _ = auth_service.create_access_token(
@@ -341,7 +334,11 @@ async def _issue_session_for_passkey(
             cookie_namespace=cookie_namespace,
         )
         return PasskeyAuthenticationVerifyResponse(
-            **response_metadata,
+            auth_realm_id=credential.auth_realm_id,
+            auth_realm_key=credential.realm_key,
+            audience=credential.audience,
+            principal_type=credential.principal_class,
+            scope_family=scope_family,
             requires_2fa=True,
             tfa_token=tfa_token,
         )
@@ -383,7 +380,14 @@ async def _issue_session_for_passkey(
             cookie_namespace=cookie_namespace,
         )
     await sync_active_sessions(db)
-    return PasskeyAuthenticationVerifyResponse(**response_metadata, requires_2fa=False)
+    return PasskeyAuthenticationVerifyResponse(
+        auth_realm_id=credential.auth_realm_id,
+        auth_realm_key=credential.realm_key,
+        audience=credential.audience,
+        principal_type=credential.principal_class,
+        scope_family=scope_family,
+        requires_2fa=False,
+    )
 
 
 def get_scope_family_for_realm_key(realm_key: str) -> str:

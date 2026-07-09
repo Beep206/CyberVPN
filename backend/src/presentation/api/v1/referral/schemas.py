@@ -9,8 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class ReferralAttributionCaptureRequest(BaseModel):
     referral_code: str = Field(..., min_length=4, max_length=64)
-    source_host: str | None = Field(None, max_length=255)
-    source_path: str | None = Field(None, max_length=500)
+    source_host: str | None = Field(default=None, max_length=255)
+    source_path: str | None = Field(default=None, max_length=500)
     campaign_params: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -23,7 +23,7 @@ class ReferralAttributionCaptureResponse(BaseModel):
 
 
 class ReferralAttributionClaimRequest(BaseModel):
-    fallback_referral_code: str | None = Field(None, min_length=4, max_length=64)
+    fallback_referral_code: str | None = Field(default=None, min_length=4, max_length=64)
 
 
 class ReferralAttributionClaimResponse(BaseModel):
@@ -75,7 +75,6 @@ class ReferralCommissionResponse(BaseModel):
 class ReferralRewardResponse(BaseModel):
     id: UUID
     referred_user_id: UUID | None = None
-    payment_id: UUID | None = None
     reward_amount: float
     currency: str = "USD"
     reward_status: str

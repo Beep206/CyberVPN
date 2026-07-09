@@ -47,6 +47,7 @@ from src.presentation.api.v1.orders.explainability.routes import (
     _serialize_evaluation,
     _serialize_order_summary,
 )
+from src.presentation.api.v1.orders.explainability.schemas import OrderExplainabilityResponse
 from src.presentation.api.v1.partner_payout_accounts.routes import _serialize_payout_account
 from src.presentation.api.v1.partner_statements.routes import _serialize_adjustment, _serialize_statement
 from src.presentation.api.v1.payment_disputes.routes import _serialize_payment_dispute
@@ -179,13 +180,13 @@ async def _collect_customer_order_insights(
 
         order_insights.append(
             AdminCustomerOrderInsightResponse(
-                order_explainability={
-                    "order": _serialize_order_summary(explainability_result.order),
-                    "commissionability_evaluation": _serialize_evaluation(
+                order_explainability=OrderExplainabilityResponse(
+                    order=_serialize_order_summary(explainability_result.order),
+                    commissionability_evaluation=_serialize_evaluation(
                         explainability_result.commissionability_evaluation
                     ),
-                    "explainability": explainability_result.explainability_payload,
-                },
+                    explainability=explainability_result.explainability_payload,
+                ),
                 auth_realm_id=order.auth_realm_id,
                 storefront_id=order.storefront_id,
                 attribution_result=(

@@ -9,6 +9,7 @@ import { server } from '@/test/mocks/server';
 import { StorefrontLegalDocumentsShell } from './storefront-legal-documents-shell';
 
 const API_BASE = '*/api/v1';
+const OPTIONAL_SESSION = '*/api/auth/optional-session';
 
 const surfaceContext: StorefrontSurfaceContext = {
   family: 'storefront',
@@ -124,8 +125,8 @@ describe('StorefrontLegalDocumentsShell', () => {
           },
         ]),
       ),
-      http.get(`${API_BASE}/auth/session`, () =>
-        HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 }),
+      http.get(OPTIONAL_SESSION, () =>
+        HttpResponse.json(null),
       ),
     );
 
@@ -172,7 +173,7 @@ describe('StorefrontLegalDocumentsShell', () => {
           },
         ]),
       ),
-      http.get(`${API_BASE}/auth/session`, () =>
+      http.get(OPTIONAL_SESSION, () =>
         HttpResponse.json({
           id: 'usr_test_001',
           email: 'customer@example.com',

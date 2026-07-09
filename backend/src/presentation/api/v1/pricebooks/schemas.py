@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class PricebookEntryRequest(BaseModel):
     offer_id: UUID
     visible_price: float = Field(..., ge=0)
-    compare_at_price: float | None = Field(None, ge=0)
+    compare_at_price: float | None = Field(default=None, ge=0)
     included_addon_codes: list[str] = Field(default_factory=list)
     display_order: int = Field(default=0, ge=0)
 
@@ -50,7 +50,7 @@ class CreatePricebookRequest(BaseModel):
     storefront_id: UUID
     merchant_profile_id: UUID | None = None
     currency_code: str = Field(default="USD", min_length=3, max_length=3)
-    region_code: str | None = Field(None, min_length=2, max_length=16)
+    region_code: str | None = Field(default=None, min_length=2, max_length=16)
     discount_rules: dict = Field(default_factory=dict)
     renewal_pricing_policy: dict = Field(default_factory=dict)
     version_status: str = "active"

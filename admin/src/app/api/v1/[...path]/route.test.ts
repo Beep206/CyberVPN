@@ -6,6 +6,19 @@ import { NextRequest } from 'next/server';
 import { GET, POST } from './route';
 import { GET as GET_V3 } from '../../v3/[...path]/route';
 
+const SET_COOKIE_BOUNDARY_NAMES = [
+  '__Host-cvpn_device_id',
+  '__Host-cvpn_private_catalog_session',
+  'access_token',
+  'customer_access_token',
+  'customer_refresh_token',
+  'cv_partner_attribution',
+  'cv_ref_attribution',
+  'partner_access_token',
+  'partner_refresh_token',
+  'refresh_token',
+];
+
 function createContext(path: string[]) {
   return {
     params: Promise.resolve({ path }),
@@ -16,31 +29,60 @@ function getFetchInit() {
   return (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
 }
 
+function oversizedStreamingBody(): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(1_048_576));
+      controller.enqueue(new Uint8Array(1));
+      controller.close();
+    },
+  });
+}
+
 function readSetCookieHeaders(response: Response): string[] {
   const headers = response.headers as Headers & {
     getSetCookie?: () => string[];
   };
 
   if (typeof headers.getSetCookie === 'function') {
-    return headers.getSetCookie();
+    return headers.getSetCookie().flatMap(splitSetCookieHeader);
   }
 
   const setCookie = response.headers.get('set-cookie');
-  return setCookie ? [setCookie] : [];
+  return setCookie ? splitSetCookieHeader(setCookie) : [];
+}
+
+function splitSetCookieHeader(headerValue: string): string[] {
+  const cookies: string[] = [];
+  let start = 0;
+
+  for (let index = 0; index < headerValue.length; index += 1) {
+    if (headerValue[index] !== ',') continue;
+
+    const candidate = headerValue.slice(index + 1).trimStart();
+    if (!SET_COOKIE_BOUNDARY_NAMES.some((name) => candidate.startsWith(`${name}=`))) {
+      continue;
+    }
+
+    cookies.push(headerValue.slice(start, index).trim());
+    start = index + 1;
+  }
+
+  cookies.push(headerValue.slice(start).trim());
+  return cookies.filter(Boolean);
 }
 
 describe('admin API proxy route', () => {
-  const originalFetch = global.fetch;
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
   it('proxies browser API calls through the canonical admin host boundary', async () => {
     vi.stubEnv('API_INTERNAL_ORIGIN', 'http://backend.local');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ role: 'operator' }), {
         status: 200,
         headers: {
@@ -48,7 +90,7 @@ describe('admin API proxy route', () => {
           'set-cookie': 'access_token=next; Path=/api; HttpOnly',
         },
       }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://127.0.0.1:13001/api/v1/auth/session?probe=1', {
       headers: {
@@ -81,16 +123,42 @@ describe('admin API proxy route', () => {
     await expect(response.json()).resolves.toEqual({ role: 'operator' });
   });
 
+  it('preserves canonical trailing slashes for backend collection roots', async () => {
+    vi.stubEnv('API_INTERNAL_ORIGIN', 'http://backend.local');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ));
+
+    const request = new NextRequest('http://admin.localhost:3001/api/v1/hosts/?limit=20');
+
+    const response = await GET(request, createContext(['hosts']));
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://backend.local/api/v1/hosts/?limit=20',
+      expect.objectContaining({
+        method: 'GET',
+        cache: 'no-store',
+        redirect: 'manual',
+      }),
+    );
+    expect(response.status).toBe(200);
+  });
+
   it('does not forward browser-supplied internal service secret headers', async () => {
     vi.stubEnv('API_INTERNAL_ORIGIN', 'http://backend.local');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ role: 'operator' }), {
         status: 200,
         headers: {
           'content-type': 'application/json',
         },
       }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://127.0.0.1:13001/api/v1/auth/session', {
       headers: {
@@ -114,14 +182,14 @@ describe('admin API proxy route', () => {
 
   it('does not forward browser-supplied source IP or proxy identity headers', async () => {
     vi.stubEnv('API_INTERNAL_ORIGIN', 'http://backend.local');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ role: 'operator' }), {
         status: 200,
         headers: {
           'content-type': 'application/json',
         },
       }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://127.0.0.1:13001/api/v1/admin/growth/status', {
       headers: {
@@ -157,14 +225,14 @@ describe('admin API proxy route', () => {
 
   it('proxies v3 browser API calls through the same admin host boundary', async () => {
     vi.stubEnv('API_INTERNAL_ORIGIN', 'http://backend.local');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ status: 'healthy' }), {
         status: 200,
         headers: {
           'content-type': 'application/json',
         },
       }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://127.0.0.1:13001/api/v3/admin/growth/fx/status', {
       headers: {
@@ -195,9 +263,9 @@ describe('admin API proxy route', () => {
 
   it('forwards mutating request bodies with canonical realm and CSRF headers for approved local-stage admin', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal/');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(null, { status: 204 }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://127.0.0.1:13001/api/v1/auth/logout', {
       method: 'POST',
@@ -232,11 +300,59 @@ describe('admin API proxy route', () => {
     expect(response.status).toBe(204);
   });
 
+  it('rejects oversized mutating requests from content-length before forwarding upstream', async () => {
+    vi.stubEnv('API_URL', 'http://backend.internal/');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(null, { status: 204 }),
+    ));
+
+    const request = new NextRequest('http://127.0.0.1:13001/api/v1/auth/logout', {
+      method: 'POST',
+      headers: {
+        'content-length': '1048577',
+        'content-type': 'application/json',
+      },
+      body: '{}',
+    });
+
+    const response = await POST(request, createContext(['auth', 'logout']));
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      detail: {
+        code: 'REQUEST_BODY_TOO_LARGE',
+        message: 'Request body is too large.',
+      },
+    });
+  });
+
+  it('rejects oversized chunked mutating requests without content-length before forwarding upstream', async () => {
+    vi.stubEnv('API_URL', 'http://backend.internal/');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(null, { status: 204 }),
+    ));
+
+    const request = new NextRequest('http://127.0.0.1:13001/api/v1/auth/logout', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/octet-stream',
+      },
+      body: oversizedStreamingBody(),
+      duplex: 'half',
+    } as unknown as ConstructorParameters<typeof NextRequest>[1]);
+
+    const response = await POST(request, createContext(['auth', 'logout']));
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(response.status).toBe(413);
+  });
+
   it('canonicalizes approved local-stage source headers when served on the container port', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal/');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(null, { status: 204 }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://127.0.0.1:3000/api/v1/auth/logout', {
       method: 'POST',
@@ -259,9 +375,9 @@ describe('admin API proxy route', () => {
 
   it('canonicalizes localhost local-stage admin origins for backend CSRF allowlists', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal/');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(null, { status: 204 }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://localhost:13001/api/v1/auth/logout', {
       method: 'POST',
@@ -282,17 +398,42 @@ describe('admin API proxy route', () => {
     expect(response.status).toBe(204);
   });
 
+  it('canonicalizes admin.localhost dev origins for backend CSRF allowlists', async () => {
+    vi.stubEnv('API_URL', 'http://backend.internal/');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(null, { status: 204 }),
+    ));
+
+    const request = new NextRequest('http://admin.localhost:3001/api/v1/auth/logout', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: 'http://admin.localhost:3001',
+        referer: 'http://admin.localhost:3001/ru-RU/dashboard',
+      },
+      body: JSON.stringify({}),
+    });
+
+    const response = await POST(request, createContext(['auth', 'logout']));
+    const init = getFetchInit();
+    const headers = init.headers as Headers;
+
+    expect(headers.get('origin')).toBe('https://admin.cyber-vpn.net');
+    expect(headers.get('referer')).toBe('https://admin.cyber-vpn.net/ru-RU/dashboard');
+    expect(response.status).toBe(204);
+  });
+
 
   it('preserves local-stage Origin and Referer for passkey WebAuthn ceremonies', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal/');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ challengeId: 'synthetic-challenge' }), {
         status: 200,
         headers: {
           'content-type': 'application/json',
         },
       }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://localhost:13001/api/v1/auth/passkeys/registration/options', {
       method: 'POST',
@@ -315,9 +456,41 @@ describe('admin API proxy route', () => {
     expect(response.status).toBe(200);
   });
 
+  it('preserves admin.localhost dev Origin and Referer for passkey WebAuthn ceremonies', async () => {
+    vi.stubEnv('API_URL', 'http://backend.internal/');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ challengeId: 'synthetic-challenge' }), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    ));
+
+    const request = new NextRequest('http://admin.localhost:3001/api/v1/auth/passkeys/registration/options', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: 'http://admin.localhost:3001',
+        referer: 'http://admin.localhost:3001/ru-RU/security/passkeys',
+      },
+      body: JSON.stringify({ label: 'AC-18 admin.localhost synthetic' }),
+    });
+
+    const response = await POST(request, createContext(['auth', 'passkeys', 'registration', 'options']));
+    const init = getFetchInit();
+    const headers = init.headers as Headers;
+
+    expect(headers.get('x-forwarded-host')).toBe('admin.cyber-vpn.net');
+    expect(headers.get('x-forwarded-proto')).toBe('https');
+    expect(headers.get('origin')).toBe('http://admin.localhost:3001');
+    expect(headers.get('referer')).toBe('http://admin.localhost:3001/ru-RU/security/passkeys');
+    expect(response.status).toBe(200);
+  });
+
   it('strips Secure from passkey auth cookies for approved local-stage admin origin', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal/');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ requires_2fa: false }), {
         status: 200,
         headers: {
@@ -325,7 +498,7 @@ describe('admin API proxy route', () => {
           'set-cookie': 'access_token=backend_access; Path=/api; HttpOnly; Secure; SameSite=Lax',
         },
       }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://localhost:13001/api/v1/auth/passkeys/authentication/verify', {
       method: 'POST',
@@ -347,17 +520,17 @@ describe('admin API proxy route', () => {
 
   it('strips Secure from logout cleanup cookies for approved local-stage admin origin', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal/');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(null, {
         status: 204,
         headers: {
           'set-cookie': [
-            'access_token=; Max-Age=0; Path=/api; HttpOnly; Secure; SameSite=Lax',
+            'access_token=; Expires=Wed, 21 Oct 2037 07:28:00 GMT; Max-Age=0; Path=/api/a,b=c; HttpOnly; Secure; SameSite=Lax',
             'refresh_token=; Max-Age=0; Path=/api; HttpOnly; Secure; SameSite=Lax',
           ].join(', '),
         },
       }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://127.0.0.1:13001/api/v1/auth/logout', {
       method: 'POST',
@@ -371,10 +544,13 @@ describe('admin API proxy route', () => {
     request.cookies.set('refresh_token', 'current-refresh');
 
     const response = await POST(request, createContext(['auth', 'logout']));
-    const setCookieHeaders = readSetCookieHeaders(response).join('\n');
+    const setCookieHeadersList = readSetCookieHeaders(response);
+    const setCookieHeaders = setCookieHeadersList.join('\n');
 
     expect(response.status).toBe(204);
+    expect(setCookieHeadersList).toHaveLength(2);
     expect(setCookieHeaders).toContain('access_token=');
+    expect(setCookieHeaders).toContain('Path=/api/a,b=c');
     expect(setCookieHeaders).toContain('refresh_token=');
     expect(setCookieHeaders).toContain('Max-Age=0');
     expect(setCookieHeaders).not.toContain('Secure');
@@ -382,14 +558,14 @@ describe('admin API proxy route', () => {
 
   it('preserves foreign origins so backend CSRF can reject cross-site cookie requests', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ detail: 'CSRF origin validation failed' }), {
         status: 403,
         headers: {
           'content-type': 'application/json',
         },
       }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('http://127.0.0.1:13001/api/v1/auth/logout', {
       method: 'POST',
@@ -413,14 +589,14 @@ describe('admin API proxy route', () => {
 
   it('does not rewrite local-stage origins for production admin destinations', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal');
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ detail: 'CSRF origin validation failed' }), {
         status: 403,
         headers: {
           'content-type': 'application/json',
         },
       }),
-    ) as typeof fetch;
+    ));
 
     const request = new NextRequest('https://admin.cyber-vpn.net/api/v1/auth/logout', {
       method: 'POST',

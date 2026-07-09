@@ -14,6 +14,10 @@ import {
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
+import {
+  invalidatePartnerFinanceState,
+  invalidatePartnerPayoutAccountEligibility,
+} from '@/shared/lib/partner-query-invalidation';
 import { requestPasskeyFreshAuthGrant } from '@/features/auth/lib/passkey-fresh-auth';
 import { PartnerRouteGuard } from '@/features/partner-portal-state/components/partner-route-guard';
 import {
@@ -210,20 +214,7 @@ export function FinanceOperationsPage() {
       );
     },
     onSuccess: async (response) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['partner-portal', 'workspace-payout-accounts', workspaceId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['partner-portal', 'workspace-payout-history', workspaceId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['partner-portal', 'workspace-notifications'],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['partner-portal', 'session-bootstrap'],
-        }),
-      ]);
+      await invalidatePartnerFinanceState(queryClient, workspaceId);
 
       setSelectedAccountId(response.data.id);
       setFormState((current) => ({
@@ -251,23 +242,8 @@ export function FinanceOperationsPage() {
     },
     onSuccess: async (response) => {
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['partner-portal', 'workspace-payout-accounts', workspaceId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: [
-            'partner-portal',
-            'workspace-payout-account-eligibility',
-            workspaceId,
-            response.data.id,
-          ],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['partner-portal', 'workspace-notifications'],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['partner-portal', 'session-bootstrap'],
-        }),
+        invalidatePartnerFinanceState(queryClient, workspaceId),
+        invalidatePartnerPayoutAccountEligibility(queryClient, workspaceId, response.data.id),
       ]);
 
       setSelectedAccountId(response.data.id);

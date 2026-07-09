@@ -16,12 +16,21 @@ const PARTNER_ALLOWED_PUBLIC_ORIGINS = [
     .filter(Boolean)),
 ];
 const PARTNER_LOCAL_ORIGINS = [
+  "localhost",
+  "127.0.0.1",
+  "portal.localhost",
+  "storefront.localhost",
   "localhost:3002",
   "127.0.0.1:3002",
   "portal.localhost:3002",
   "storefront.localhost:3002",
 ];
 const DEFAULT_PARTNER_API_ORIGIN = "http://127.0.0.1:18080";
+const configuredBuildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? "", 10);
+const buildWorkerCount =
+  Number.isFinite(configuredBuildCpus) && configuredBuildCpus > 0
+    ? configuredBuildCpus
+    : 4;
 
 type NextConfigWithCompiler = NextConfig & {
   cacheComponents?: boolean;
@@ -64,6 +73,10 @@ const cspDirectives = [
 const config: NextConfigWithCompiler = {
   experimental: {
     globalNotFound: true,
+    cpus: buildWorkerCount,
+    staticGenerationRetryCount: 1,
+    staticGenerationMaxConcurrency: Math.min(buildWorkerCount, 4),
+    staticGenerationMinPagesPerWorker: 200,
     serverActions: {
       allowedOrigins: PARTNER_ALLOWED_PUBLIC_ORIGINS,
     },

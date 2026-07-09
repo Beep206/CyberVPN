@@ -72,7 +72,7 @@ def _pipeline(execute_return: list) -> MagicMock:
     pipe.execute = AsyncMock(return_value=execute_return)
     pipe.incr = MagicMock(return_value=pipe)
     pipe.ttl = MagicMock(return_value=pipe)
-    pipe.setex = MagicMock(return_value=pipe)
+    pipe.set = MagicMock(return_value=pipe)
     return pipe
 
 
@@ -146,11 +146,11 @@ async def test_stage1_magic_link_otp_generation_uses_secrets_randbelow(
 
     assert token == "t" * 64
     assert otp_code == "100000"
-    assert pipe.setex.call_args_list[2].args == (
+    assert pipe.set.call_args_list[2].args == (
         "magic_link_otp:stage1@example.com",
-        MagicLinkService.TTL_SECONDS,
         "100000",
     )
+    assert pipe.set.call_args_list[2].kwargs == {"ex": MagicLinkService.TTL_SECONDS}
 
 
 @pytest.mark.integration

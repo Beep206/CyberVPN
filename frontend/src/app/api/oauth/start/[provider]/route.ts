@@ -5,12 +5,16 @@ import {
   OAUTH_ERROR_CODES,
 } from '@/features/auth/lib/oauth-error-codes';
 import {
-  createOAuthTransactionCookieValue,
+  createProviderTransactionCookieValue,
   isSupportedWebOAuthProvider,
   OAUTH_TRANSACTION_COOKIE,
   oauthTransactionCookieOptions,
 } from '@/features/auth/lib/oauth-transaction';
-import { buildAppUrl } from '@/features/auth/lib/request-origin';
+import {
+  buildAppUrl,
+  getTrustedForwardedHost,
+  getTrustedForwardedProto,
+} from '@/features/auth/lib/request-origin';
 import { normalizeAuthLocale } from '@/features/auth/lib/redirect-path';
 
 function getBackendBaseUrl(): string {
@@ -27,16 +31,11 @@ function buildForwardHeaders(request: NextRequest): Headers {
     accept: 'application/json',
   });
 
-  const forwardedFor = request.headers.get('x-forwarded-for');
   const userAgent = request.headers.get('user-agent');
   const acceptLanguage = request.headers.get('accept-language');
 
-  if (forwardedFor) {
-    headers.set('x-forwarded-for', forwardedFor);
-  }
-  
-  // Local environment workaround for ProxyCheckMiddleware
-  headers.set('x-forwarded-proto', 'https');
+  headers.set('x-forwarded-host', getTrustedForwardedHost(request));
+  headers.set('x-forwarded-proto', getTrustedForwardedProto(request));
 
   if (userAgent) {
     headers.set('user-agent', userAgent);
@@ -84,7 +83,7 @@ export async function GET(
 
   let transaction;
   try {
-    transaction = createOAuthTransactionCookieValue(
+    transaction = createProviderTransactionCookieValue(
       provider,
       locale,
       request.nextUrl.searchParams.get('return_to'),

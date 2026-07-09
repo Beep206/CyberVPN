@@ -14,6 +14,7 @@ Dependencies:
 
 import logging
 import os
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -73,9 +74,10 @@ class TestPrometheusMetrics:
             assert response.status_code == 200
             body = response.text
 
-            # Check for default Python/process metrics (always present)
-            assert "process_cpu_seconds_total" in body.lower()
-            assert "process_resident_memory_bytes" in body.lower()
+            # Default process metrics are platform-dependent in prometheus-client.
+            if sys.platform != "win32":
+                assert "process_cpu_seconds_total" in body.lower()
+                assert "process_resident_memory_bytes" in body.lower()
             assert "python_info" in body.lower()
 
     @pytest.mark.integration

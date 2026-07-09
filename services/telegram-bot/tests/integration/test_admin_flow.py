@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import pytest
-from aiogram import Bot
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import User
 
@@ -17,6 +16,8 @@ from src.states.admin import BroadcastStates, UserManagementStates
 from tests.conftest import create_fsm_context
 
 if TYPE_CHECKING:
+    from aiogram import Bot
+
     from src.config import BotSettings
 
 
@@ -66,7 +67,7 @@ async def test_admin_dashboard_navigation(
     7. Navigate to logs
     """
     storage = MemoryStorage()
-    state = create_fsm_context(storage, mock_bot.id, admin_user.id, admin_user.id)
+    create_fsm_context(storage, mock_bot.id, admin_user.id, admin_user.id)
 
     # Configure mock return values
     mock_simple_api_client.get_admin_stats.side_effect = lambda section: {
@@ -160,10 +161,12 @@ async def test_admin_broadcast_creation_flow(
 
     # Step 4: Confirm and create broadcast
     data = await state.get_data()
-    broadcast = await mock_simple_api_client.create_broadcast({
-        "audience": data["audience"],
-        "message": data["message"],
-    })
+    broadcast = await mock_simple_api_client.create_broadcast(
+        {
+            "audience": data["audience"],
+            "message": data["message"],
+        }
+    )
 
     assert broadcast["id"] == "broadcast_123"
     assert broadcast["audience"] == "active"
@@ -273,7 +276,7 @@ async def test_admin_access_denied_for_regular_user(
 ) -> None:
     """Test that regular users cannot access admin panel."""
     storage = MemoryStorage()
-    state = create_fsm_context(storage, mock_bot.id, regular_user.id, regular_user.id)
+    create_fsm_context(storage, mock_bot.id, regular_user.id, regular_user.id)
 
     # Regular user ID not in admin_ids
     assert regular_user.id not in mock_settings.admin_ids

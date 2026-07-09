@@ -39,9 +39,7 @@ async def test_remnawave_client_get_users_normalizes_aliases():
         mock_response = MagicMock()
         mock_response.is_success = True
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "users": [user_payload]
-        }
+        mock_response.json.return_value = {"users": [user_payload]}
         mock_client.request.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
@@ -67,9 +65,7 @@ async def test_remnawave_client_get_nodes_normalizes_aliases():
         mock_response = MagicMock()
         mock_response.is_success = True
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "nodes": [node_payload]
-        }
+        mock_response.json.return_value = {"nodes": [node_payload]}
         mock_client.request.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
@@ -93,9 +89,7 @@ async def test_remnawave_client_get_inbounds_returns_inbound_list():
         mock_response = MagicMock()
         mock_response.is_success = True
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "inbounds": [{"uuid": "inbound-1", "protocol": "vless", "port": 443}]
-        }
+        mock_response.json.return_value = {"inbounds": [{"uuid": "inbound-1", "protocol": "vless", "port": 443}]}
         mock_client.request.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
@@ -265,9 +259,10 @@ async def test_telegram_client_send_message():
 @pytest.mark.asyncio
 async def test_telegram_client_send_admin_alert():
     """Test TelegramClient send_admin_alert broadcasts to admins."""
-    with patch("src.services.telegram_client.httpx.AsyncClient") as mock_client_cls, \
-         patch("src.services.telegram_client.get_settings") as mock_settings:
-
+    with (
+        patch("src.services.telegram_client.httpx.AsyncClient") as mock_client_cls,
+        patch("src.services.telegram_client.get_settings") as mock_settings,
+    ):
         mock_settings.return_value.admin_telegram_ids = [111, 222]
 
         mock_client = AsyncMock()
@@ -287,9 +282,10 @@ async def test_telegram_client_send_admin_alert():
 @pytest.mark.asyncio
 async def test_telegram_client_rate_limit_retry():
     """Test TelegramClient retries on 429 error."""
-    with patch("src.services.telegram_client.httpx.AsyncClient") as mock_client_cls, \
-         patch("src.services.telegram_client.asyncio.sleep") as mock_sleep:
-
+    with (
+        patch("src.services.telegram_client.httpx.AsyncClient") as mock_client_cls,
+        patch("src.services.telegram_client.asyncio.sleep") as mock_sleep,
+    ):
         mock_client = AsyncMock()
         mock_error_response = MagicMock()
         mock_error_response.status_code = 429

@@ -16,7 +16,7 @@ async def test_bulk_disable_users_success():
         patch("src.tasks.bulk.bulk_operations.get_redis_client") as mock_redis_fn,
         patch("src.tasks.bulk.bulk_operations.CacheService") as mock_cache_cls,
         patch("src.tasks.bulk.bulk_operations.get_settings") as mock_settings,
-        patch("src.tasks.bulk.bulk_operations.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.bulk.bulk_operations.publish_event", new_callable=AsyncMock),
     ):
         mock_settings.return_value.bulk_batch_size = 10
 
@@ -55,7 +55,7 @@ async def test_bulk_disable_users_partial_failure():
         patch("src.tasks.bulk.bulk_operations.get_redis_client") as mock_redis_fn,
         patch("src.tasks.bulk.bulk_operations.CacheService") as mock_cache_cls,
         patch("src.tasks.bulk.bulk_operations.get_settings") as mock_settings,
-        patch("src.tasks.bulk.bulk_operations.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.bulk.bulk_operations.publish_event", new_callable=AsyncMock),
     ):
         mock_settings.return_value.bulk_batch_size = 10
 
@@ -95,7 +95,7 @@ async def test_bulk_enable_users_success():
         patch("src.tasks.bulk.bulk_operations.get_redis_client") as mock_redis_fn,
         patch("src.tasks.bulk.bulk_operations.CacheService") as mock_cache_cls,
         patch("src.tasks.bulk.bulk_operations.get_settings") as mock_settings,
-        patch("src.tasks.bulk.bulk_operations.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.bulk.bulk_operations.publish_event", new_callable=AsyncMock),
     ):
         mock_settings.return_value.bulk_batch_size = 10
 
@@ -130,9 +130,10 @@ async def test_bulk_broadcast_queuing():
     with (
         patch("src.tasks.bulk.broadcast.get_session_factory") as mock_factory,
         patch("src.tasks.bulk.broadcast.get_redis_client") as mock_redis_fn,
-        patch("src.tasks.bulk.broadcast.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.bulk.broadcast.publish_event", new_callable=AsyncMock),
     ):
         mock_session = AsyncMock()
+        mock_session.add_all = MagicMock()
         mock_factory.return_value.return_value.__aenter__.return_value = mock_session
 
         mock_redis = AsyncMock()
@@ -157,9 +158,10 @@ async def test_bulk_broadcast_large_batch():
     with (
         patch("src.tasks.bulk.broadcast.get_session_factory") as mock_factory,
         patch("src.tasks.bulk.broadcast.get_redis_client") as mock_redis_fn,
-        patch("src.tasks.bulk.broadcast.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.bulk.broadcast.publish_event", new_callable=AsyncMock),
     ):
         mock_session = AsyncMock()
+        mock_session.add_all = MagicMock()
         mock_factory.return_value.return_value.__aenter__.return_value = mock_session
 
         mock_redis = AsyncMock()

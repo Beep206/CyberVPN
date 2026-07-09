@@ -1,9 +1,8 @@
 'use client';
 
-import { AxiosError } from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@/i18n/navigation';
-import { authApi } from '@/lib/api/auth';
+import type { User } from '@/lib/api/auth';
 import { storefrontApi } from '@/lib/api/storefront';
 import { buildInternalLoginHref } from '@/features/auth/lib/session';
 import type { StorefrontSurfaceContext } from '@/features/storefront-shell/lib/runtime';
@@ -19,6 +18,22 @@ type StorefrontLegalLabels = {
   loading: string;
   empty: string;
 };
+
+async function fetchOptionalCustomerSession(): Promise<User | null> {
+  const response = await fetch('/api/auth/optional-session', {
+    cache: 'no-store',
+    credentials: 'include',
+    headers: {
+      accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Optional session probe failed with status ${response.status}.`);
+  }
+
+  return await response.json() as User | null;
+}
 
 export function StorefrontLegalDocumentsShell({
   surfaceContext,
@@ -50,17 +65,7 @@ export function StorefrontLegalDocumentsShell({
 
   const sessionQuery = useQuery({
     queryKey: ['storefront', surfaceContext.storefrontKey, 'customer-session'],
-    queryFn: async () => {
-      try {
-        const response = await authApi.session();
-        return response.data;
-      } catch (error) {
-        if (error instanceof AxiosError && error.response?.status === 401) {
-          return null;
-        }
-        throw error;
-      }
-    },
+    queryFn: fetchOptionalCustomerSession,
     retry: false,
   });
 

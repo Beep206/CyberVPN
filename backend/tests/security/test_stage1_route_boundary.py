@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Iterable
+from dataclasses import dataclass
 
 from fastapi.dependencies.models import Dependant
 from fastapi.routing import APIRoute, APIWebSocketRoute
@@ -40,6 +41,11 @@ PUBLIC_EXACT_PATHS = {
     "/api/v3/growth/code-sets/preflight",
 }
 
+PUBLIC_GET_EXACT_PATHS = {
+    "/api/v1/legal-documents",
+    "/api/v1/legal-documents/",
+}
+
 PUBLIC_PREFIXES = (
     "/api/v1/auth",
     "/api/v1/mobile/auth",
@@ -67,6 +73,20 @@ WEBSOCKET_AUTH_DEPENDENCIES = {
 }
 
 
+@dataclass(frozen=True)
+class RouteBoundary:
+    path: str
+    methods: frozenset[str]
+    dependency_names: set[str]
+    source: str
+
+
+@dataclass(frozen=True)
+class WebSocketBoundary:
+    path: str
+    dependency_names: set[str]
+
+
 def _dependency_names(dependencies: Iterable[Dependant]) -> set[str]:
     names: set[str] = set()
     pending = list(dependencies)
@@ -85,16 +105,84 @@ def _websocket_dependency_names(route: APIWebSocketRoute) -> set[str]:
     return _dependency_names(route.dependant.dependencies)
 
 
-def _route_source(route: APIRoute) -> str:
+def _endpoint_source(endpoint: object) -> str:
     try:
-        return inspect.getsource(route.endpoint)
+        return inspect.getsource(endpoint)
     except OSError:
         return ""
 
 
-def classify_route_boundary(route: APIRoute) -> str:
-    dependency_names = _route_dependency_names(route)
-    source = _route_source(route)
+def _route_boundary(
+    route: APIRoute,
+    *,
+    path: str | None = None,
+    dependant: Dependant | None = None,
+    endpoint: object | None = None,
+    methods: Iterable[str] | None = None,
+) -> RouteBoundary:
+    route_dependant = dependant or route.dependant
+    route_endpoint = endpoint or route.endpoint
+    route_methods = methods or route.methods or ()
+    return RouteBoundary(
+        path=path or route.path,
+        methods=frozenset(str(method) for method in route_methods),
+        dependency_names=_dependency_names(route_dependant.dependencies),
+        source=_endpoint_source(route_endpoint),
+    )
+
+
+def _iter_route_boundaries() -> Iterable[RouteBoundary]:
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            yield _route_boundary(route)
+            continue
+
+        effective_route_contexts = getattr(route, "effective_route_contexts", None)
+        if effective_route_contexts is None:
+            continue
+
+        for context in effective_route_contexts():
+            original_route = getattr(context, "original_route", None)
+            if not isinstance(original_route, APIRoute):
+                continue
+            context_dependant = getattr(context, "dependant", None)
+            context_path = getattr(context, "path_format", "") or getattr(context, "path", "") or original_route.path
+            yield _route_boundary(
+                original_route,
+                path=context_path,
+                dependant=context_dependant if isinstance(context_dependant, Dependant) else None,
+                endpoint=getattr(context, "endpoint", None),
+                methods=getattr(context, "methods", None),
+            )
+
+
+def _iter_websocket_boundaries() -> Iterable[WebSocketBoundary]:
+    for route in app.routes:
+        if isinstance(route, APIWebSocketRoute):
+            yield WebSocketBoundary(
+                path=route.path,
+                dependency_names=_websocket_dependency_names(route),
+            )
+            continue
+
+        effective_route_contexts = getattr(route, "effective_route_contexts", None)
+        if effective_route_contexts is None:
+            continue
+
+        for context in effective_route_contexts():
+            context_route = getattr(context, "starlette_route", None) or getattr(context, "original_route", None)
+            if not isinstance(context_route, APIWebSocketRoute):
+                continue
+            context_path = getattr(context_route, "path", None) or getattr(context, "path_format", "") or ""
+            yield WebSocketBoundary(
+                path=context_path,
+                dependency_names=_websocket_dependency_names(context_route),
+            )
+
+
+def classify_route_boundary(route: RouteBoundary) -> str:
+    dependency_names = route.dependency_names
+    source = route.source
 
     if dependency_names & PRINCIPAL_DEPENDENCIES:
         return "principal-protected"
@@ -111,6 +199,8 @@ def classify_route_boundary(route: APIRoute) -> str:
         return "principal-protected"
     if route.path.startswith("/api/v1/webhooks") and ("signature" in source or "webhook_secret" in source):
         return "webhook-signature-protected"
+    if route.path in PUBLIC_GET_EXACT_PATHS and route.methods <= {"GET", "HEAD"}:
+        return "public-allowlisted"
     if route.path in PUBLIC_EXACT_PATHS or any(route.path.startswith(prefix) for prefix in PUBLIC_PREFIXES):
         return "public-allowlisted"
     return "needs-review"
@@ -118,9 +208,9 @@ def classify_route_boundary(route: APIRoute) -> str:
 
 def test_stage1_routes_have_explicit_boundary_classification():
     unclassified = [
-        f"{','.join(sorted(route.methods or []))} {route.path}"
-        for route in app.routes
-        if isinstance(route, APIRoute) and classify_route_boundary(route) == "needs-review"
+        f"{','.join(sorted(route.methods))} {route.path}"
+        for route in _iter_route_boundaries()
+        if classify_route_boundary(route) == "needs-review"
     ]
 
     assert unclassified == []
@@ -128,18 +218,16 @@ def test_stage1_routes_have_explicit_boundary_classification():
 
 def test_stage1_internal_routes_are_not_public_allowlisted():
     internal_public = [
-        f"{','.join(sorted(route.methods or []))} {route.path}"
-        for route in app.routes
-        if isinstance(route, APIRoute)
-        and "/internal/" in route.path
-        and classify_route_boundary(route) == "public-allowlisted"
+        f"{','.join(sorted(route.methods))} {route.path}"
+        for route in _iter_route_boundaries()
+        if "/internal/" in route.path and classify_route_boundary(route) == "public-allowlisted"
     ]
 
     assert internal_public == []
 
 
 def test_stage1_route_boundary_expected_categories_exist():
-    categories = {classify_route_boundary(route) for route in app.routes if isinstance(route, APIRoute)}
+    categories = {classify_route_boundary(route) for route in _iter_route_boundaries()}
 
     assert categories == {
         "header-secret-protected",
@@ -153,9 +241,8 @@ def test_stage1_route_boundary_expected_categories_exist():
 def test_stage1_websocket_routes_depend_on_ws_authenticate():
     unauthenticated_websockets = [
         route.path
-        for route in app.routes
-        if isinstance(route, APIWebSocketRoute)
-        and not (_websocket_dependency_names(route) & WEBSOCKET_AUTH_DEPENDENCIES)
+        for route in _iter_websocket_boundaries()
+        if not (route.dependency_names & WEBSOCKET_AUTH_DEPENDENCIES)
     ]
 
     assert unauthenticated_websockets == []

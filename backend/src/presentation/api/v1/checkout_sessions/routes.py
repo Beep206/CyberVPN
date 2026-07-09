@@ -82,6 +82,7 @@ def _build_checkout_session_response(model) -> CheckoutSessionResponse:
     )
 
 
+@router.post("", response_model=CheckoutSessionResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=CheckoutSessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_checkout_session(
     payload: CreateCheckoutSessionRequest,

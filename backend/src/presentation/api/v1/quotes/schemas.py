@@ -11,23 +11,23 @@ from src.presentation.api.v1.payments.schemas import (
 
 class QuoteCodeBasketItemRequest(BaseModel):
     code: str = Field(..., min_length=1, max_length=64)
-    client_slot_id: str | None = Field(None, min_length=1, max_length=80)
+    client_slot_id: str | None = Field(default=None, min_length=1, max_length=80)
 
 
 class CreateQuoteSessionRequest(BaseModel):
-    storefront_key: str | None = Field(None, min_length=1, max_length=50)
-    pricebook_key: str | None = Field(None, min_length=1, max_length=60)
-    offer_key: str | None = Field(None, min_length=1, max_length=60)
+    storefront_key: str | None = Field(default=None, min_length=1, max_length=50)
+    pricebook_key: str | None = Field(default=None, min_length=1, max_length=60)
+    offer_key: str | None = Field(default=None, min_length=1, max_length=60)
     plan_id: UUID
     addons: list[CheckoutAddonRequest] = Field(default_factory=list)
-    code_input: str | None = Field(None, max_length=64)
-    promo_code: str | None = Field(None, max_length=50)
-    partner_code: str | None = Field(None, max_length=30)
+    code_input: str | None = Field(default=None, max_length=64)
+    promo_code: str | None = Field(default=None, max_length=50)
+    partner_code: str | None = Field(default=None, max_length=30)
     codes: list["QuoteCodeBasketItemRequest"] = Field(default_factory=list, max_length=5)
     private_catalog_grant_id: UUID | None = None
     use_wallet: float = Field(0, ge=0)
-    currency: str = Field("USD", min_length=3, max_length=12)
-    channel: str = Field("web", min_length=1, max_length=30)
+    currency: str = Field(default="USD", min_length=3, max_length=12)
+    channel: str = Field(default="web", min_length=1, max_length=30)
 
     @field_validator("currency")
     @classmethod

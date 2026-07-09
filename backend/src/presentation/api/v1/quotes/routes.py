@@ -79,6 +79,7 @@ def _build_quote_session_response(model) -> QuoteSessionResponse:
     )
 
 
+@router.post("", response_model=QuoteSessionResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=QuoteSessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_quote_session(
     payload: CreateQuoteSessionRequest,

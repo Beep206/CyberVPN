@@ -229,7 +229,7 @@ async def list_customer_support_tickets(
     )
     return PublicSupportTicketListResponse(
         tickets=[_public_summary_response(ticket) for ticket in result.tickets],
-        next_cursor=result.next_cursor,
+        nextCursor=result.next_cursor,
     )
 
 
@@ -341,7 +341,7 @@ async def list_partner_support_tickets(
     )
     return PublicSupportTicketListResponse(
         tickets=[_public_summary_response(ticket) for ticket in result.tickets],
-        next_cursor=result.next_cursor,
+        nextCursor=result.next_cursor,
     )
 
 
@@ -473,7 +473,7 @@ async def list_admin_support_tickets(
     )
     return SupportTicketListResponse(
         tickets=[_summary_response(ticket) for ticket in result.tickets],
-        next_cursor=result.next_cursor,
+        nextCursor=result.next_cursor,
     )
 
 

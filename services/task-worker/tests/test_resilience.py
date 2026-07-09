@@ -61,7 +61,7 @@ class TestCircuitBreaker:
             raise ValueError("API error")
 
         # Should fail 3 times before opening
-        for i in range(3):
+        for _i in range(3):
             with pytest.raises(ValueError):
                 await breaker.call(failing_func)
 
@@ -75,12 +75,7 @@ class TestCircuitBreaker:
     @pytest.mark.asyncio
     async def test_circuit_breaker_half_open_recovery(self):
         """Test circuit transitions to half-open after timeout."""
-        breaker = CircuitBreaker(
-            name="test",
-            failure_threshold=2,
-            recovery_timeout=0.1,
-            half_open_max_calls=1
-        )
+        breaker = CircuitBreaker(name="test", failure_threshold=2, recovery_timeout=0.1, half_open_max_calls=1)
 
         async def failing_func():
             raise ValueError("API error")
@@ -89,7 +84,7 @@ class TestCircuitBreaker:
             return "recovered"
 
         # Open the circuit
-        for i in range(2):
+        for _i in range(2):
             with pytest.raises(ValueError):
                 await breaker.call(failing_func)
 

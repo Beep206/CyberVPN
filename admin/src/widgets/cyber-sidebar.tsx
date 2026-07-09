@@ -72,12 +72,12 @@ export function CyberSidebar() {
                 {isActive && (
                     <motion.div
                         layoutId="sidebar-active"
-                        className="absolute inset-0 border-l-2 border-neon-cyan bg-neon-cyan/10"
+                        className="absolute inset-0 border-s-2 border-neon-cyan bg-neon-cyan/10"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan/20 to-transparent" />
+                        <div className="absolute inset-0 from-neon-cyan/20 to-transparent ltr:bg-gradient-to-r rtl:bg-gradient-to-l" />
                     </motion.div>
                 )}
 
@@ -85,8 +85,8 @@ export function CyberSidebar() {
                     className={cn(
                         'relative flex items-start gap-3 px-3 py-2.5 text-sm font-mono transition-all duration-300',
                         isActive
-                            ? 'translate-x-1 text-neon-cyan'
-                            : 'text-muted-foreground group-hover:translate-x-1 group-hover:text-foreground',
+                            ? 'text-neon-cyan ltr:translate-x-1 rtl:-translate-x-1'
+                            : 'text-muted-foreground group-hover:ltr:translate-x-1 group-hover:rtl:-translate-x-1 group-hover:text-foreground',
                         isDisabled
                             ? 'cursor-not-allowed opacity-50 group-hover:translate-x-0 group-hover:text-muted-foreground'
                             : '',
@@ -113,13 +113,13 @@ export function CyberSidebar() {
                                 <>
                                     <span
                                         aria-hidden="true"
-                                        className="absolute left-0 top-0 -translate-x-[2px] text-neon-pink opacity-0 mix-blend-screen group-hover:animate-pulse group-hover:opacity-100"
+                                        className="absolute start-0 top-0 text-neon-pink opacity-0 mix-blend-screen ltr:-translate-x-[2px] rtl:translate-x-[2px] group-hover:animate-pulse group-hover:opacity-100"
                                     >
                                         {label}
                                     </span>
                                     <span
                                         aria-hidden="true"
-                                        className="animation-delay-75 absolute left-0 top-0 translate-x-[2px] text-neon-cyan opacity-0 mix-blend-screen group-hover:animate-pulse group-hover:opacity-100"
+                                        className="animation-delay-75 absolute start-0 top-0 text-neon-cyan opacity-0 mix-blend-screen ltr:translate-x-[2px] rtl:-translate-x-[2px] group-hover:animate-pulse group-hover:opacity-100"
                                     >
                                         {label}
                                     </span>
@@ -157,7 +157,7 @@ export function CyberSidebar() {
                         <motion.span
                             aria-hidden="true"
                             layoutId="active-dot"
-                            className="absolute right-3 h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_8px_#00ffff]"
+                            className="absolute end-3 h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_8px_#00ffff]"
                         />
                     )}
                 </div>
@@ -196,7 +196,7 @@ export function CyberSidebar() {
     return (
         <aside
             aria-label={labelFor('sidebar')}
-            className="fixed left-0 top-0 z-40 hidden h-dvh w-64 flex-col border-r border-grid-line/30 bg-terminal-surface/90 backdrop-blur-md md:flex"
+            className="fixed start-0 top-0 z-40 hidden h-dvh w-64 flex-col border-e border-grid-line/30 bg-terminal-surface/90 backdrop-blur-md md:flex"
         >
             <div className="flex h-16 items-center border-b border-grid-line/30 px-6">
                 <div className="flex items-center gap-3">
@@ -214,7 +214,7 @@ export function CyberSidebar() {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto py-6 px-4">
+            <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-6 scrollbar-gutter-stable">
                 <nav aria-label={labelFor('mainNavigation')} className="grid gap-3">
                     {navigationGroups.map((group) => {
                         const isActiveGroup = isAdminNavGroupActive(pathname, group);
@@ -251,7 +251,7 @@ export function CyberSidebar() {
                                             {groupHint}
                                         </span>
                                     </span>
-                                    <span className="ml-2 flex shrink-0 items-center gap-2">
+                                    <span className="ms-2 flex shrink-0 items-center gap-2">
                                         {groupBadgeLabel ? (
                                             <span
                                                 aria-label={`${groupLabel}: ${groupBadgeLabel}`}
@@ -271,7 +271,7 @@ export function CyberSidebar() {
                                 </button>
 
                                 {isExpanded ? (
-                                    <div id={contentId} className="grid gap-1 pl-2">
+                                    <div id={contentId} className="grid gap-1 ps-2">
                                         {group.items.map((item) => renderNavItem(item))}
                                     </div>
                                 ) : null}

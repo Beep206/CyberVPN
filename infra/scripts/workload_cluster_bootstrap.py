@@ -12,7 +12,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -241,7 +241,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             workload_cluster_name=args.workload_cluster_name,
             management_cluster_name=args.management_cluster_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         management_dir / "README.md",
@@ -249,7 +249,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             workload_cluster_name=args.workload_cluster_name,
             management_cluster_name=args.management_cluster_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         management_dir / "workload-cluster-inputs.env",
@@ -263,27 +263,27 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             worker_machine_type=args.worker_machine_type,
             talos_version=args.talos_version,
         ),
-        mode=0o640,
+        mode=0o600,
     )
     write_text(
         management_dir / "render-workload-cluster.sh",
         render_generate_cluster_script(workload_cluster_name=args.workload_cluster_name),
-        mode=0o750,
+        mode=0o700,
     )
-    write_text(cluster_dir / "README.md", render_workload_cluster_readme(workload_cluster_name=args.workload_cluster_name), mode=0o644)
-    write_text(apps_dir / "README.md", render_apps_readme(workload_cluster_name=args.workload_cluster_name), mode=0o644)
+    write_text(cluster_dir / "README.md", render_workload_cluster_readme(workload_cluster_name=args.workload_cluster_name), mode=0o600)
+    write_text(apps_dir / "README.md", render_apps_readme(workload_cluster_name=args.workload_cluster_name), mode=0o600)
     write_text(
         infrastructure_dir / "README.md",
         render_network_readme(
             workload_cluster_name=args.workload_cluster_name,
             gateway_class_name=args.gateway_class_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
-    write_text(infrastructure_dir / "edge-baseline.env", render_edge_baseline_env(gateway_class_name=args.gateway_class_name), mode=0o644)
-    write_text(infrastructure_dir / "cilium-values.yaml", render_cilium_values(), mode=0o644)
-    write_text(infrastructure_dir / "cert-manager-values.yaml", render_cert_manager_values(), mode=0o644)
-    write_text(infrastructure_dir / "trust-manager-values.yaml", render_trust_manager_values(), mode=0o644)
+    write_text(infrastructure_dir / "edge-baseline.env", render_edge_baseline_env(gateway_class_name=args.gateway_class_name), mode=0o600)
+    write_text(infrastructure_dir / "cilium-values.yaml", render_cilium_values(), mode=0o600)
+    write_text(infrastructure_dir / "cert-manager-values.yaml", render_cert_manager_values(), mode=0o600)
+    write_text(infrastructure_dir / "trust-manager-values.yaml", render_trust_manager_values(), mode=0o600)
     write_text(
         output_dir / "versions.env",
         render_versions_env(
@@ -296,7 +296,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             worker_replicas=args.worker_replicas,
             talos_version=args.talos_version,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     return 0
 

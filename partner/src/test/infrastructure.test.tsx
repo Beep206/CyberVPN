@@ -8,7 +8,7 @@
  * 4. Path aliases (@/*) resolve correctly
  * 5. MSW intercepts API calls and returns mock data
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from './mocks/server';
@@ -234,5 +234,28 @@ describe('MSW API Mocking', () => {
 
     const data = await response.json();
     expect(data.id).toBe(MOCK_USER.id);
+  });
+
+  it('test_msw_unhandled_api_request_fails_closed', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    try {
+      await expect(
+        fetch('http://localhost:8000/api/v1/__missing_msw_contract_probe__'),
+      ).rejects.toBeDefined();
+
+      const diagnostic = consoleError.mock.calls
+        .flat()
+        .map(String)
+        .join('\n');
+      expect(diagnostic).toContain(
+        'intercepted a request without a matching request handler',
+      );
+      expect(diagnostic).toContain('__missing_msw_contract_probe__');
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });

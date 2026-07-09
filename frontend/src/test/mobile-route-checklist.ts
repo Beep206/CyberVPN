@@ -29,9 +29,11 @@ export const MOBILE_ROUTE_CHECKLIST: MobileRouteChecklistEntry[] = [
     mustContain: [
       'min-h-dvh',
       '<TerminalHeader performanceMode="always" showMobileSidebar />',
-      'md:pl-64',
+      'md:ps-64',
+      'safe-inline-gutter',
+      'scrollbar-gutter-stable',
     ],
-    mustNotContain: ['h-screen', 'overflow-hidden'],
+    mustNotContain: ['h-screen', 'overflow-hidden', 'md:pl-64'],
     viewports: ['iphoneSafari', 'androidChrome', 'tabletLandscape', 'telegramWebView'],
   },
   {

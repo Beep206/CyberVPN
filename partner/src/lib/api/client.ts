@@ -162,7 +162,7 @@ const apiClientConfig: CreateAxiosDefaults = {
 
 if (isVitestRuntime()) {
   apiClientConfig.baseURL = resolveConfiguredApiBaseUrl();
-  apiClientConfig.adapter = axios.getAdapter('http');
+  apiClientConfig.adapter = 'http';
 }
 
 export const apiClient = axios.create(apiClientConfig);
@@ -335,7 +335,11 @@ apiClient.interceptors.response.use(
         }
         throw new Error('Refresh failed');
       } catch (refreshError) {
-        processQueue(refreshError as AxiosError);
+        const terminalAuthError = axios.isAxiosError(refreshError)
+          ? refreshError
+          : error;
+
+        processQueue(terminalAuthError);
         // Clear any legacy localStorage tokens
         tokenStorage.clearTokens();
         const isNonBlockingAuthRequest =
@@ -357,7 +361,7 @@ apiClient.interceptors.response.use(
         reportApiResponseTelemetry(originalRequest, {
           errorCode: sanitizeFrontendObservabilityToken(
             String(
-              (refreshError as AxiosError).response?.status
+              terminalAuthError.response?.status
               ?? error.response?.status
               ?? error.code
               ?? 'request_failed',
@@ -365,7 +369,7 @@ apiClient.interceptors.response.use(
           ),
           result: 'failure',
         });
-        return Promise.reject(refreshError);
+        return Promise.reject(terminalAuthError);
       } finally {
         isRefreshing = false;
       }

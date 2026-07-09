@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class PublicNetworkEnvelope(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     schema_version: str = Field(..., alias="schemaVersion")
     generated_at: datetime = Field(..., alias="generatedAt")
@@ -16,7 +16,7 @@ class PublicNetworkEnvelope(BaseModel):
 
 
 class PublicNetworkOverviewGlobalResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     status: Literal["online", "degraded", "major_outage"] = Field(...)
     total_users: int = Field(..., alias="totalUsers")
@@ -36,7 +36,7 @@ class PublicNetworkOverviewResponse(PublicNetworkEnvelope):
 
 
 class PublicNetworkRegionResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     id: str
     country_code: str = Field(..., alias="countryCode")
@@ -65,7 +65,7 @@ class PublicNetworkLeaderboardResponse(PublicNetworkEnvelope):
 
 
 class PublicNetworkUptimeSummaryResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     status: Literal["online", "degraded", "major_outage"] = Field(...)
     current_availability_pct: float = Field(..., alias="currentAvailabilityPct")
@@ -75,7 +75,7 @@ class PublicNetworkUptimeSummaryResponse(BaseModel):
 
 
 class PublicNetworkUptimeHistoryDayResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     date: str
     status: Literal["nominal", "warning", "outage", "maintenance"]
@@ -87,7 +87,7 @@ class PublicNetworkUptimeResponse(PublicNetworkEnvelope):
 
 
 class PublicNetworkIncidentResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     id: str
     severity: Literal["minor", "major", "critical"]
@@ -96,7 +96,7 @@ class PublicNetworkIncidentResponse(BaseModel):
     public_summary: str = Field(..., alias="publicSummary")
     affected_regions: list[str] = Field(default_factory=list, alias="affectedRegions")
     started_at: datetime = Field(..., alias="startedAt")
-    resolved_at: datetime | None = Field(None, alias="resolvedAt")
+    resolved_at: datetime | None = Field(default=None, alias="resolvedAt")
 
 
 class PublicNetworkIncidentsResponse(PublicNetworkEnvelope):
@@ -104,7 +104,7 @@ class PublicNetworkIncidentsResponse(PublicNetworkEnvelope):
 
 
 class PublicNetworkWidgetSummaryResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     status: Literal["online", "degraded", "major_outage"] = Field(...)
     current_availability_pct: float = Field(..., alias="currentAvailabilityPct")
@@ -120,36 +120,36 @@ class PublicNetworkWidgetResponse(PublicNetworkEnvelope):
     theme_variant: Literal["cyber", "matrix", "graphite"] = Field(..., alias="themeVariant")
     recommended_height: int = Field(..., alias="recommendedHeight")
     summary: PublicNetworkWidgetSummaryResponse
-    focus_region: PublicNetworkRegionResponse | None = Field(None, alias="focusRegion")
+    focus_region: PublicNetworkRegionResponse | None = Field(default=None, alias="focusRegion")
     top_regions: list[PublicNetworkLeaderboardEntryResponse] = Field(default_factory=list, alias="topRegions")
 
 
 class PublicNetworkDpiMeasurementWindowResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     hours: int
     minimum_probe_count: int = Field(..., alias="minimumProbeCount")
 
 
 class PublicNetworkDpiProtocolResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     protocol: str
     success_rate: float = Field(..., alias="successRate")
-    median_handshake_ms: int | None = Field(None, alias="medianHandshakeMs")
-    https_baseline_success_rate: float | None = Field(None, alias="httpsBaselineSuccessRate")
-    median_https_baseline_ms: int | None = Field(None, alias="medianHttpsBaselineMs")
-    last_probe_at: datetime | None = Field(None, alias="lastProbeAt")
+    median_handshake_ms: int | None = Field(default=None, alias="medianHandshakeMs")
+    https_baseline_success_rate: float | None = Field(default=None, alias="httpsBaselineSuccessRate")
+    median_https_baseline_ms: int | None = Field(default=None, alias="medianHttpsBaselineMs")
+    last_probe_at: datetime | None = Field(default=None, alias="lastProbeAt")
 
 
 class PublicNetworkDpiCountryResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     country_code: str = Field(..., alias="countryCode")
     public_name: str = Field(..., alias="publicName")
     score: int
     confidence: Literal["low", "medium", "high"]
-    last_updated_at: datetime | None = Field(None, alias="lastUpdatedAt")
+    last_updated_at: datetime | None = Field(default=None, alias="lastUpdatedAt")
     protocols: list[PublicNetworkDpiProtocolResponse] = Field(default_factory=list)
 
 
@@ -158,21 +158,21 @@ class PublicNetworkDpiScoreResponse(PublicNetworkEnvelope):
     measurement_window: PublicNetworkDpiMeasurementWindowResponse = Field(..., alias="measurementWindow")
     enabled: bool
     confidence: Literal["low", "medium", "high"]
-    last_updated_at: datetime | None = Field(None, alias="lastUpdatedAt")
-    reason_code: str | None = Field(None, alias="reasonCode")
+    last_updated_at: datetime | None = Field(default=None, alias="lastUpdatedAt")
+    reason_code: str | None = Field(default=None, alias="reasonCode")
     countries_tracked: int = Field(..., alias="countriesTracked")
     countries: list[PublicNetworkDpiCountryResponse] = Field(default_factory=list)
 
 
 class PublicNetworkDpiScorePublishRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     source: str
     snapshot: PublicNetworkDpiScoreResponse
 
 
 class PublicNetworkDpiScorePublishResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     published: bool
     source: str

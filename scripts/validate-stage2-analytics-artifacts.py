@@ -7,6 +7,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -172,6 +173,11 @@ def _alert_names(text: str) -> set[str]:
     return set(re.findall(r"^\s*-\s*alert:\s*([A-Za-z0-9_]+)\s*$", text, re.MULTILINE))
 
 
+def _target_netloc(target: str) -> str:
+    parsed = urlsplit(target)
+    return parsed.netloc or target
+
+
 def main() -> int:
     for filename, expected in REQUIRED_DASHBOARDS.items():
         path = DASHBOARD_DIR / filename
@@ -202,7 +208,11 @@ def main() -> int:
 
     targets = json.loads(_read(TARGETS_PATH))
     assert targets and targets[0].get("targets"), "Stage 2 public endpoint target list is empty"
-    assert all("ozoxy.ru" not in target for item in targets for target in item.get("targets", []))
+    assert all(
+        _target_netloc(target) != "ozoxy.ru" and not _target_netloc(target).endswith(".ozoxy.ru")
+        for item in targets
+        for target in item.get("targets", [])
+    )
     target_text = "\n".join(target for item in targets for target in item.get("targets", []))
     for fragment in (
         "https://cyber-vpn.net/",
@@ -221,9 +231,9 @@ def main() -> int:
     assert "delivery_domain_expected" in json.dumps(subscription_targets)
 
     vpn_targets = json.loads(_read(VPN_NODE_TARGETS_PATH))
-    vpn_text = "\n".join(target for item in vpn_targets for target in item.get("targets", []))
-    assert "de-1.cyber-vpn.org:443" in vpn_text
-    assert "de-1.cyber-vpn.org:8443" in vpn_text
+    vpn_netlocs = {_target_netloc(target) for item in vpn_targets for target in item.get("targets", [])}
+    required_vpn_netlocs = {"de-1.cyber-vpn.org:443", "de-1.cyber-vpn.org:8443"}
+    assert not required_vpn_netlocs.difference(vpn_netlocs)
 
     blackbox = _read(BLACKBOX_CONFIG_PATH)
     assert "http_2xx" in blackbox

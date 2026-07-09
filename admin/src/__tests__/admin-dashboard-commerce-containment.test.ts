@@ -21,7 +21,7 @@ describe('admin dashboard commerce mobile containment contracts', () => {
       'flex min-h-dvh w-full max-w-full overflow-x-clip',
     );
     expect(dashboardLayout).toContain(
-      'relative flex min-h-dvh min-w-0 max-w-full flex-1 flex-col overflow-x-clip md:pl-64',
+      'relative flex min-h-dvh min-w-0 max-w-full flex-1 flex-col overflow-x-clip md:ps-64',
     );
     expect(dashboardLayout).toContain(
       'relative z-10 min-w-0 max-w-full flex-1 overflow-x-clip',

@@ -25,7 +25,9 @@ class OpenTofuExecutor:
         self._settings = settings
 
     def build_plan_preview(self, *, request: FleetRequestRecord, plan_input: ExecutorPlanInput) -> ExecutionPreview:
-        stack_dir = str(PurePosixPath(self._settings.opentofu_default_stack_root) / request.environment / plan_input.stack_slug)
+        stack_dir = str(
+            PurePosixPath(self._settings.opentofu_default_stack_root) / request.environment / plan_input.stack_slug
+        )
         artifact_ref = f"artifacts/opentofu/{plan_input.workspace_key}/{plan_input.operation_run_id}.plan.json"
         command_preview = (
             self._settings.opentofu_binary,
@@ -67,4 +69,3 @@ class OpenTofuExecutor:
             else:
                 redacted[key] = value
         return redacted
-

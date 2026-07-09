@@ -28,7 +28,7 @@ class PlatformServicesBootstrapTests(unittest.TestCase):
                     "openbao_server": "https://openbao-nonprod.example.internal:8200",
                     "cert_manager_version": "v1.20.2",
                     "trust_manager_version": "v0.15.0",
-                    "external_secrets_version": "2.3.0",
+                    "eso_chart_version": "2.3.0",
                     "kube_prometheus_stack_version": "83.6.0",
                     "loki_version": "6.46.0",
                     "tempo_version": "1.24.4",

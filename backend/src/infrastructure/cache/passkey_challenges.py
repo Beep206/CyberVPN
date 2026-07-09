@@ -96,10 +96,10 @@ class PasskeyChallengeStore:
             issued_at=issued_at.isoformat(),
             expires_at=expires_at.isoformat(),
         )
-        await self._redis.setex(
+        await self._redis.set(
             self._key(challenge_id),
-            effective_ttl_seconds,
             json.dumps(asdict(record), separators=(",", ":")),
+            ex=effective_ttl_seconds,
         )
         return record
 

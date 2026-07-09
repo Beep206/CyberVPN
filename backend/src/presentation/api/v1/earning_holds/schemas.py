@@ -10,7 +10,7 @@ from src.domain.enums import EarningHoldReasonType, EarningHoldStatus
 
 
 class ReleaseEarningHoldRequest(BaseModel):
-    release_reason_code: str | None = Field(None, min_length=1, max_length=80)
+    release_reason_code: str | None = Field(default=None, min_length=1, max_length=80)
     force: bool = False
 
 

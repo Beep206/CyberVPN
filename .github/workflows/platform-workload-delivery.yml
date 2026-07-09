@@ -160,7 +160,7 @@ jobs:
       GITOPS_BASE_REF: ${{ github.event.inputs.gitops_base_ref }}
     steps:
       - name: Download release manifests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           pattern: platform-workload-release-*
           path: artifacts/releases

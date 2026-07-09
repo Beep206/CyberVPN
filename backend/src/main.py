@@ -61,6 +61,7 @@ from src.presentation.middleware.csrf import CSRFMiddleware
 from src.presentation.middleware.logging import LoggingMiddleware
 from src.presentation.middleware.partner_disabled_boundary import PartnerDisabledBoundaryMiddleware
 from src.presentation.middleware.rate_limit import RateLimitMiddleware
+from src.presentation.middleware.request_body_limit import RequestBodyLimitMiddleware
 from src.presentation.middleware.request_id import RequestIDMiddleware
 from src.presentation.middleware.security_headers import SecurityHeadersMiddleware
 from src.shared.observability import before_send, before_send_transaction
@@ -437,11 +438,16 @@ if settings.admin_host_protection_enabled:
         allowed_hosts=settings.admin_allowed_hosts,
         environment=settings.environment,
         trust_proxy_headers=settings.trust_proxy_headers,
+        trusted_proxy_ips=settings.trusted_proxy_ips,
     )
 
 # S3-STAGE-05: keep partner self-serve surfaces deployable but externally gated.
 # Admin preview routes keep using their existing host/auth/RBAC boundary.
 app.add_middleware(PartnerDisabledBoundaryMiddleware)
+
+# Bound untrusted request bodies before route handlers allocate or parse them.
+if settings.request_body_limit_enabled:
+    app.add_middleware(RequestBodyLimitMiddleware, max_body_bytes=settings.max_request_body_bytes)
 
 
 def register_exception_handler(exc: type[Exception], handler: Callable[..., Any]) -> None:

@@ -6,6 +6,7 @@ import structlog
 from aiogram import F, Router
 
 from src.keyboards.menu import main_menu_keyboard
+from src.utils.telegram import callback_message
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -43,7 +44,7 @@ async def navigation_handler(
     except Exception as e:
         logger.warning("navigation_user_fetch_failed", user_id=callback.from_user.id, error=str(e))
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("menu-main-title"),
         reply_markup=main_menu_keyboard(i18n, user, settings=settings),
     )

@@ -717,7 +717,7 @@
       "inventory": {
         "intro": "The inventory is based on current product flows and deployed evidence expectations. Browser inventory should be refreshed when login, checkout, analytics, Telegram Mini App or admin flows change.",
         "items": {
-          "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as {realm}_access_token and {realm}_refresh_token for web API sessions. Production behavior should be HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days unless production configuration changes and evidence is updated.",
+          "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as realm_access_token and realm_refresh_token for web API sessions. Production behavior should be HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days unless production configuration changes and evidence is updated.",
           "locale": "Language and routing state: next-intl may use a locale cookie such as NEXT_LOCALE where enabled to remember the selected language/locale. The exact production cookie name, domain, path and lifetime should match browser cookie inventory evidence.",
           "observability": "Operational observability may include Sentry error/performance events, Web Vitals, internal traffic analytics and Telegram Mini App runtime analytics. Sentry is configured with sendDefaultPii=false, text/media replay masking and beforeSend PII scrubbing where enabled.",
           "referralAttribution": "Реферальная атрибуция: cookie cv_ref_attribution с HttpOnly и SameSite=Lax сохраняет приглашение между регистрацией и редиректами авторизации. Browser localStorage key cybervpn.referral_attribution.v2 хранит masked referral code fallback, когда cookie недоступна.",
@@ -2056,6 +2056,7 @@
           "generic": "Код не удалось применить.",
           "inactive": "Код неактивен.",
           "inviteSelfRedemption": "Нельзя активировать собственный инвайт-код.",
+          "namespaceAmbiguous": "Этот код совпадает с несколькими типами. Используйте нужную поверхность или обратитесь в поддержку.",
           "notEligibleForSku": "Код не подходит для выбранной корзины checkout.",
           "notEligibleForSurface": "Код недоступен на текущей поверхности.",
           "notFound": "Код не найден.",
@@ -2986,6 +2987,7 @@
       "dedicated_ip": "Выделенный IP",
       "experimental": "Экспериментальный",
       "manual_config": "Ручной / расширенный",
+      "shared": "Общий",
       "standard": "Стандартный",
       "stealth": "Stealth"
     },
@@ -3002,6 +3004,7 @@
       "term": "Доступный срок"
     },
     "poolNames": {
+      "default": "По умолчанию",
       "exclusive": "Эксклюзивный",
       "premium": "Премиум",
       "premium_shared": "Премиальный общий",
@@ -4307,6 +4310,7 @@
       "checkoutCodeLabel": "Код для checkout",
       "checkoutCodePlaceholder": "PROMO2026",
       "checkoutCodeRequired": "Введите код для checkout",
+      "codeSetRejected": "Этот код нельзя применить к выбранному тарифу или checkout-контексту.",
       "commitError": "Не удалось подтвердить checkout",
       "connectionModes": "Режимы подключения",
       "devices": "Устройства",

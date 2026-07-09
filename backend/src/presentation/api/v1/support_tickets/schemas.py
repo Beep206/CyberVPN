@@ -97,10 +97,10 @@ class SupportTicketDetailResponse(SupportTicketSummaryResponse):
 
 
 class SupportTicketListResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     tickets: list[SupportTicketSummaryResponse]
-    next_cursor: str | None = Field(None, alias="nextCursor")
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
 
 
 class PublicSupportTicketMessageResponse(BaseModel):
@@ -139,7 +139,7 @@ class PublicSupportTicketDetailResponse(PublicSupportTicketSummaryResponse):
 
 
 class PublicSupportTicketListResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     tickets: list[PublicSupportTicketSummaryResponse]
-    next_cursor: str | None = Field(None, alias="nextCursor")
+    next_cursor: str | None = Field(default=None, alias="nextCursor")

@@ -26,6 +26,10 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3001
 NEXT_PUBLIC_SITE_URL=https://admin.ozoxy.ru
 ```
 
+## Cache Revalidation
+
+The internal `POST /api/cache/revalidate` route requires `NEXT_CACHE_REVALIDATE_SECRET` and the `x-cache-revalidate-secret` header. It accepts only public SEO cache tags; account, session, payment, subscription, admin, and partner-finance data must not be revalidated through this route.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -37,18 +37,17 @@ function responseWithSetCookie(
 }
 
 describe('OAuth web flow route integration', () => {
-  const originalFetch = global.fetch;
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    vi.unstubAllGlobals();
   });
 
   it('completes start and callback flow with transaction cookie and forwarded auth cookies', async () => {
-    global.fetch = vi
+    vi.stubGlobal('fetch', vi
       .fn()
       .mockResolvedValueOnce(
         new Response(
@@ -82,7 +81,7 @@ describe('OAuth web flow route integration', () => {
           },
           'access_token=abc; Path=/; HttpOnly',
         ),
-      ) as typeof fetch;
+      ));
 
     const startRequest = new NextRequest(
       'http://localhost:3000/api/oauth/start/github?locale=ru-RU&return_to=%2Fru-RU%2Fdashboard%2Fservers',
@@ -117,7 +116,7 @@ describe('OAuth web flow route integration', () => {
   });
 
   it('maps backend collisions to a stable login error redirect', async () => {
-    global.fetch = vi
+    vi.stubGlobal('fetch', vi
       .fn()
       .mockResolvedValueOnce(
         new Response(
@@ -140,7 +139,7 @@ describe('OAuth web flow route integration', () => {
             headers: { 'content-type': 'application/json' },
           },
         ),
-      ) as typeof fetch;
+      ));
 
     const startRequest = new NextRequest(
       'http://localhost:3000/api/oauth/start/google?locale=ru-RU&return_to=%2Fru-RU%2Fdashboard',

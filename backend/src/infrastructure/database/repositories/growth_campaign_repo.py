@@ -74,9 +74,14 @@ class SqlAlchemyGrowthCampaignRepository:
         query = select(GrowthCampaignModel).where(*predicates)
         count_result = await self._session.execute(select(func.count()).select_from(query.subquery()))
         total = int(count_result.scalar_one())
-        order_by = (
-            GrowthCampaignModel.created_at.asc() if sort == "created_at" else GrowthCampaignModel.created_at.desc()
-        )
+        sort_desc = sort.startswith("-")
+        sort_field = sort[1:] if sort_desc else sort
+        sort_columns = {
+            "created_at": GrowthCampaignModel.created_at,
+            "updated_at": GrowthCampaignModel.updated_at,
+        }
+        sort_column = sort_columns.get(sort_field, GrowthCampaignModel.created_at)
+        order_by = sort_column.desc() if sort_desc else sort_column.asc()
         result = await self._session.execute(query.order_by(order_by).offset(offset).limit(limit))
         return GrowthCampaignListResult(
             items=tuple(_record(model) for model in result.scalars().all()),

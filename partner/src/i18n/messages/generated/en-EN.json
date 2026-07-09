@@ -3508,6 +3508,7 @@
         "controlled": "Campaign access exists, but submissions, approval, and library depth remain constrained by lane controls.",
         "full": "The lane can use the full PP4 campaigns surface for standard launch and enablement work.",
         "read_only": "The workspace can review current assets and approval posture, but cannot advance campaign operations right now.",
+        "review": "Campaign assets stay review-bound while the workspace is still under partner operations review.",
         "starter": "The lane can use starter enablement assets, but campaign expansion remains measured and review-aware."
       },
       "submission": {
@@ -3631,6 +3632,7 @@
       "buttons": {
         "activate": "Activate",
         "archive": "Archive",
+        "cancel": "Cancel",
         "copy": "Copy share link",
         "create": "Create code",
         "link": "Create deep link",
@@ -3639,6 +3641,8 @@
         "revoke": "Revoke"
       },
       "capabilities": {
+        "backendAction": "Backend action: {value}",
+        "empty": "No backend-owned code actions are available for the current lane.",
         "items": {
           "additional_codes": "Additional code creation",
           "deep_links": "Deep-link builder",
@@ -3647,7 +3651,29 @@
           "sub_id_macros": "Sub ID / click ID macros",
           "vanity_links": "Vanity links"
         },
-        "title": "Lane capability posture"
+        "loading": "Loading lane capabilities...",
+        "read": "Read only",
+        "title": "Lane capability posture",
+        "write": "Write enabled"
+      },
+      "confirm": {
+        "activate": {
+          "description": "The code becomes available for new attribution touchpoints after the backend accepts the lifecycle transition.",
+          "title": "Activate code"
+        },
+        "archive": {
+          "description": "The code leaves the active working set but remains available for audit and historical finance context.",
+          "title": "Archive code"
+        },
+        "pause": {
+          "description": "The code stops accepting new attribution touchpoints while historical reporting remains visible.",
+          "title": "Pause code"
+        },
+        "revoke": {
+          "description": "The code is permanently blocked from new attribution use. Existing reporting remains auditable.",
+          "title": "Revoke code"
+        },
+        "subject": "Code lifecycle action"
       },
       "create": {
         "title": "Create code"
@@ -3680,6 +3706,7 @@
         "controlled": "This lane can operate, but code scale-out stays deliberately constrained by approval, governance, or storefront alignment.",
         "full": "This lane can use the full PP4 code surface for standard growth operations.",
         "read_only": "The workspace can inspect existing code posture, but new launch actions stay blocked until the restriction clears.",
+        "review": "The workspace is in review: existing code posture remains visible while new code writes wait for partner operations approval.",
         "starter": "This lane can use a starter launch path now, but expansion tools stay gated behind early quality checks and readiness overlays."
       },
       "subtitle": "PP4 opens the first real commercial operating loop: starter codes, vanity links, QR packs, and attribution-ready macros now appear with lane-aware launch limits.",
@@ -3959,9 +3986,17 @@
       },
       "snapshot": {
         "available": "Available earnings",
+        "currencyBreakdown": "Currency breakdown",
+        "currencyBreakdownDescription": "Review available, held, reserve, paid, reversed, and total amounts by settlement currency.",
+        "events": "Events",
         "forecast": "Next payout forecast",
+        "notAvailable": "Not available",
         "onHold": "On hold",
-        "reserves": "Reserves"
+        "paid": "Paid",
+        "reserves": "Reserves",
+        "reversed": "Reversed",
+        "source": "Source: {value}",
+        "total": "Total"
       },
       "statements": {
         "available": "Available",

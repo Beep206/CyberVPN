@@ -96,6 +96,7 @@ from .schemas import (
     CustomerOnboardingSkipResponse,
     MarkOnboardingConnectionConnectedRequest,
     MarkOnboardingConnectionConnectedResponse,
+    TelegramConnectionPayloadResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -170,10 +171,7 @@ async def apply_customer_onboarding_growth_code(
                     source_channel="telegram_bot",
                     auth_channel="telegram_bot",
                 )
-                logger.info(
-                    "customer_onboarding_state_auto_created",
-                    extra={"source_surface": trusted_source_surface, "flow_key": runtime_config.flow_key},
-                )
+                logger.info("customer_onboarding_state_auto_created")
             allow_without_prompt = True
 
         result = await ApplyCustomerOnboardingGrowthCodeUseCase(
@@ -471,7 +469,11 @@ def _connection_bootstrap_response(
         preferred_layout=result.preferred_layout,
         supported_actions=list(result.supported_actions),
         connection_session_id=result.connection_session_id,
-        telegram_payload=result.telegram_payload,
+        telegram_payload=(
+            TelegramConnectionPayloadResponse.model_validate(result.telegram_payload)
+            if result.telegram_payload is not None
+            else None
+        ),
         flow_key=result.flow_key,
         version=result.version,
     )
@@ -482,7 +484,7 @@ def _parse_connection_session_id(value: str) -> UUID:
         return UUID(value)
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "INVALID_CONNECTION_SESSION_ID",
                 "message_key": "onboarding.connection.invalid_session",
@@ -544,7 +546,7 @@ async def _resolve_customer_onboarding_actor(
         _require_telegram_bot_secret(telegram_bot_secret)
         if telegram_id is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "code": "TELEGRAM_ID_REQUIRED",
                     "message": "telegram_id is required for telegram_bot onboarding requests.",
@@ -627,7 +629,7 @@ async def _resolve_connection_config(
         try:
             result = await GenerateConfigUseCase(remnawave_client).execute(mobile_user.remnawave_uuid)
         except HTTPException as exc:
-            if exc.status_code not in {status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_ENTITY}:
+            if exc.status_code not in {status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_CONTENT}:
                 raise
         else:
             return _connection_snapshot_from_result(
@@ -643,7 +645,7 @@ async def _resolve_connection_config(
             try:
                 result = await GenerateConfigUseCase(remnawave_client).execute(remnawave_user.uuid)
             except HTTPException as exc:
-                if exc.status_code not in {status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_ENTITY}:
+                if exc.status_code not in {status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_CONTENT}:
                     raise
             else:
                 return _connection_snapshot_from_result(

@@ -25,14 +25,17 @@ class PostHogBootstrapTests(unittest.TestCase):
             posthog_repo_ref="HEAD",
             registry_url="posthog/posthog",
             opt_out_capture=True,
-            trusted_proxies="127.0.0.1",
+            proxy_cidrs="127.0.0.1",
             disable_secure_ssl_redirect=True,
-            posthog_secret="secret",
-            encryption_salt_keys="salt",
         )
 
         self.assertIn("DOMAIN=posthog-nonprod.example.com", rendered)
         self.assertIn("IS_BEHIND_PROXY=True", rendered)
+        self.assertIn("POSTHOG_SECRET=${POSTHOG_SECRET:?Set POSTHOG_SECRET from the approved secret store}", rendered)
+        self.assertIn(
+            "ENCRYPTION_SALT_KEYS=${ENCRYPTION_SALT_KEYS:?Set ENCRYPTION_SALT_KEYS from the approved secret store}",
+            rendered,
+        )
         self.assertIn("TRUSTED_PROXIES=127.0.0.1", rendered)
         self.assertIn("DISABLE_SECURE_SSL_REDIRECT=True", rendered)
         self.assertIn("OPT_OUT_CAPTURE=true", rendered)
@@ -52,9 +55,12 @@ class PostHogBootstrapTests(unittest.TestCase):
                     "posthog_repo_ref": "HEAD",
                     "registry_url": "posthog/posthog",
                     "basic_auth_username": "cyberops",
+                    "basic_auth_env": "POSTHOG_BASIC_AUTH_PASSWORD",
+                    "runtime_key_env": "POSTHOG_SECRET",
+                    "encryption_keys_env": "ENCRYPTION_SALT_KEYS",
                     "tls_email": "ops@example.com",
                     "auth_realm": "CyberVPN PostHog nonprod",
-                    "trusted_proxies": "127.0.0.1",
+                    "proxy_cidrs": "127.0.0.1",
                     "backup_retention_days": 7,
                     "opt_out_capture": True,
                     "disable_secure_ssl_redirect": True,
@@ -73,6 +79,10 @@ class PostHogBootstrapTests(unittest.TestCase):
             self.assertTrue((output_dir / "nginx" / "posthog-https.conf").exists())
             credentials = json.loads((output_dir / "credentials.json").read_text(encoding="utf-8"))
             self.assertEqual(credentials["basic_auth"]["username"], "cyberops")
+            self.assertEqual(credentials["basic_auth"]["auth_env"], "POSTHOG_BASIC_AUTH_PASSWORD")
+            self.assertNotIn("password", credentials["basic_auth"])
+            self.assertEqual(credentials["runtime_key_env"], "POSTHOG_SECRET")
+            self.assertEqual(credentials["encryption_keys_env"], "ENCRYPTION_SALT_KEYS")
             self.assertEqual(credentials["domain"], "posthog-nonprod.example.com")
             self.assertIn("tls_email", credentials)
 

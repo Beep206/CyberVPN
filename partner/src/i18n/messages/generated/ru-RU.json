@@ -3508,6 +3508,7 @@
         "controlled": "Доступ к campaigns есть, но submissions, approvals и глубина library остаются ограниченными правилами lane.",
         "full": "Lane может использовать полный PP4 campaigns surface для стандартной launch и enablement работы.",
         "read_only": "Рабочая область может просматривать текущие assets и approval posture, но не может двигать campaign operations дальше.",
+        "review": "Campaign assets остаются review-bound, пока рабочая область находится на проверке partner operations.",
         "starter": "Lane может использовать стартовые enablement assets, но расширение campaign scope остаётся осторожным и review-aware."
       },
       "submission": {
@@ -3631,6 +3632,7 @@
       "buttons": {
         "activate": "Активировать",
         "archive": "Архивировать",
+        "cancel": "Отмена",
         "copy": "Скопировать ссылку",
         "create": "Создать код",
         "link": "Создать deep link",
@@ -3639,6 +3641,8 @@
         "revoke": "Отозвать"
       },
       "capabilities": {
+        "backendAction": "Backend action: {value}",
+        "empty": "Для текущего lane нет backend-owned действий с кодами.",
         "items": {
           "additional_codes": "Создание дополнительных кодов",
           "deep_links": "Deep-link builder",
@@ -3647,7 +3651,29 @@
           "sub_id_macros": "Sub ID / click ID макросы",
           "vanity_links": "Vanity links"
         },
-        "title": "Capability posture по lane"
+        "loading": "Загружаем lane capabilities...",
+        "read": "Только чтение",
+        "title": "Capability posture по lane",
+        "write": "Запись включена"
+      },
+      "confirm": {
+        "activate": {
+          "description": "Код станет доступен для новых attribution touchpoints после принятия lifecycle transition backend.",
+          "title": "Активировать код"
+        },
+        "archive": {
+          "description": "Код уйдёт из активного рабочего набора, но останется доступен для audit и исторического finance context.",
+          "title": "Архивировать код"
+        },
+        "pause": {
+          "description": "Код перестанет принимать новые attribution touchpoints, а историческая отчётность останется видимой.",
+          "title": "Поставить код на паузу"
+        },
+        "revoke": {
+          "description": "Код будет навсегда заблокирован для нового attribution use. Историческая отчётность останется auditable.",
+          "title": "Отозвать код"
+        },
+        "subject": "Lifecycle action для кода"
       },
       "create": {
         "title": "Создать код"
@@ -3680,6 +3706,7 @@
         "controlled": "Lane уже может работать, но scale-out по кодам намеренно ограничен approval, governance или storefront alignment.",
         "full": "Для этого lane доступен полный PP4 code surface для стандартных growth-операций.",
         "read_only": "Рабочая область может видеть текущую posture по кодам, но новые launch actions останутся заблокированными, пока restriction не снят.",
+        "review": "Рабочая область находится на review: текущая posture по кодам видна, а новые write actions ждут approval от partner operations.",
         "starter": "Для этого lane уже доступен стартовый launch path, но инструменты расширения всё ещё зависят от quality checks и readiness overlays."
       },
       "subtitle": "PP4 открывает первый реальный commercial loop: стартовые коды, vanity links, QR-паки и attribution-ready макросы теперь живут в отдельной lane-aware surface.",
@@ -3959,9 +3986,17 @@
       },
       "snapshot": {
         "available": "Доступный earnings",
+        "currencyBreakdown": "Разбивка по currency",
+        "currencyBreakdownDescription": "Проверьте available, hold, reserve, paid, reversed и total суммы по settlement currency.",
+        "events": "События",
         "forecast": "Прогноз следующего payout",
+        "notAvailable": "Недоступно",
         "onHold": "На холде",
-        "reserves": "Резервы"
+        "paid": "Выплачено",
+        "reserves": "Резервы",
+        "reversed": "Отменено",
+        "source": "Источник: {value}",
+        "total": "Итого"
       },
       "statements": {
         "available": "Доступно",
@@ -5162,7 +5197,7 @@
         "pending_support": "Ожидает support",
         "resolved": "Resolved"
       },
-      "subtitle": "Создавайте и ведите support tickets только для {рабочей области}. Internal support notes и tickets других рабочей области не отображаются в этой partner surface.",
+      "subtitle": "Создавайте и ведите support tickets только для {workspace}. Internal support notes и tickets других рабочих областей не отображаются в этой partner surface.",
       "summary": {
         "visibleTickets": "Видимые tickets",
         "workspace": "Рабочая область",

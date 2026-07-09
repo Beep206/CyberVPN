@@ -939,12 +939,12 @@ export const partnerPortalApi = {
     ),
 
   listPartnerBots: (params: ListPartnerBotsParams) =>
-    apiClient.get<ListPartnerBotsResponse>('/partner-bots', {
+    apiClient.get<ListPartnerBotsResponse>('/partner-bots/', {
       params,
     }),
 
   createPartnerBot: (payload: CreatePartnerBotPayload) =>
-    apiClient.post<PartnerBotResponse>('/partner-bots', payload),
+    apiClient.post<PartnerBotResponse>('/partner-bots/', payload),
 
   requestPartnerBotProvisioning: (
     partnerBotId: string,

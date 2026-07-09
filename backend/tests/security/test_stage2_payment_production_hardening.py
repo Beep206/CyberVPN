@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import hmac
 import json
 from typing import Any
@@ -10,7 +9,7 @@ from typing import Any
 import pytest
 
 from src.application.use_cases.payments.payment_webhook import ProcessPaymentWebhookUseCase
-from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
+from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler, derive_cryptobot_webhook_key
 from tests.helpers.realm_auth import FakeRedis
 
 
@@ -23,26 +22,26 @@ class _FakeSession:
 
 
 class _MarkSpyCryptoBotWebhookHandler(CryptoBotWebhookHandler):
-    def __init__(self, api_token: str) -> None:
-        super().__init__(api_token)
+    def __init__(self, webhook_key_material: str) -> None:
+        super().__init__(webhook_key_material)
         self.marked: list[str] = []
 
     async def mark_invoice_processed(self, invoice_id: str) -> None:
         self.marked.append(invoice_id)
 
 
-def _signed_body(token: str, payload: dict[str, Any]) -> tuple[bytes, str]:
+def _signed_body(webhook_key_material: str, payload: dict[str, Any]) -> tuple[bytes, str]:
     body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-    secret = hashlib.sha256(token.encode("utf-8")).digest()
-    signature = hmac.new(secret, body, hashlib.sha256).hexdigest()
+    secret = derive_cryptobot_webhook_key(webhook_key_material)
+    signature = hmac.new(secret, body, "sha256").hexdigest()
     return body, signature
 
 
 @pytest.mark.asyncio
 async def test_s2_cryptobot_webhook_rejects_invalid_invoice_id_before_side_effects() -> None:
-    token = "test-webhook-token"
+    webhook_key_material = "test-webhook-material"
     body, signature = _signed_body(
-        token,
+        webhook_key_material,
         {
             "update_type": "invoice_paid",
             "payload": {"invoice_id": "bad-invoice-id"},
@@ -51,7 +50,7 @@ async def test_s2_cryptobot_webhook_rejects_invalid_invoice_id_before_side_effec
     session = _FakeSession()
     use_case = ProcessPaymentWebhookUseCase(  # type: ignore[arg-type]
         session=session,
-        webhook_handler=CryptoBotWebhookHandler(token),
+        webhook_handler=CryptoBotWebhookHandler(webhook_key_material),
     )
 
     result = await use_case.execute(provider="cryptobot", body=body, signature=signature)
@@ -67,13 +66,13 @@ async def test_s2_cryptobot_webhook_rejects_invalid_invoice_id_before_side_effec
 
 @pytest.mark.asyncio
 async def test_s2_cryptobot_webhook_duplicate_invoice_returns_without_side_effects() -> None:
-    token = "test-webhook-token"
+    webhook_key_material = "test-webhook-material"
     redis_client = FakeRedis()
-    handler = CryptoBotWebhookHandler(token, redis_client=redis_client)  # type: ignore[arg-type]
+    handler = CryptoBotWebhookHandler(webhook_key_material, redis_client=redis_client)  # type: ignore[arg-type]
     await handler.mark_invoice_processed("123456789")
 
     body, signature = _signed_body(
-        token,
+        webhook_key_material,
         {
             "update_type": "invoice_paid",
             "payload": {"invoice_id": "123456789"},
@@ -91,7 +90,7 @@ async def test_s2_cryptobot_webhook_duplicate_invoice_returns_without_side_effec
 
 @pytest.mark.asyncio
 async def test_s2_payment_not_found_warning_does_not_close_orphan_invoice_idempotency() -> None:
-    handler = _MarkSpyCryptoBotWebhookHandler("test-webhook-token")
+    handler = _MarkSpyCryptoBotWebhookHandler("test-webhook-material")
     use_case = ProcessPaymentWebhookUseCase(  # type: ignore[arg-type]
         session=_FakeSession(),
         webhook_handler=handler,

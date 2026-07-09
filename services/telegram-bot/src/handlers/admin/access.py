@@ -4,12 +4,13 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
 
 from src.states.admin import AdminAccessState
+from src.utils.telegram import callback_message, message_text, message_user_id
 
 if TYPE_CHECKING:
+    from aiogram.fsm.context import FSMContext
+    from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -47,13 +48,13 @@ async def access_settings_handler(
 
         builder.row(
             InlineKeyboardButton(
-                text="➕ " + i18n.get("admin-access-add"),
+                text="➕ " + i18n.get("admin-access-add"),  # noqa: RUF001
                 callback_data="admin:access:add",
             )
         )
         builder.row(
             InlineKeyboardButton(
-                text="➖ " + i18n.get("admin-access-remove"),
+                text="➖ " + i18n.get("admin-access-remove"),  # noqa: RUF001
                 callback_data="admin:access:remove",
             )
         )
@@ -64,7 +65,7 @@ async def access_settings_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=admin_text,
             reply_markup=builder.as_markup(),
         )
@@ -85,7 +86,7 @@ async def access_add_prompt_handler(
     state: FSMContext,
 ) -> None:
     """Prompt to add new admin."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-access-add-prompt"),
     )
 
@@ -104,7 +105,7 @@ async def access_add_handler(
 ) -> None:
     """Add new admin."""
     try:
-        new_admin_id = int(message.text.strip())
+        new_admin_id = int(message_text(message).strip())
 
         # Add admin via API
         result = await api_client.add_admin(new_admin_id)
@@ -118,12 +119,12 @@ async def access_add_handler(
         )
 
         await state.clear()
-        logger.info("admin_access_added", admin_id=message.from_user.id, new_admin_id=new_admin_id)
+        logger.info("admin_access_added", admin_id=message_user_id(message), new_admin_id=new_admin_id)
 
     except ValueError:
         await message.answer(i18n.get("admin-access-invalid-id"))
     except Exception as e:
-        logger.error("admin_access_add_error", admin_id=message.from_user.id, error=str(e))
+        logger.error("admin_access_add_error", admin_id=message_user_id(message), error=str(e))
         await message.answer(i18n.get("error-generic"))
         await state.clear()
 
@@ -135,7 +136,7 @@ async def access_remove_prompt_handler(
     state: FSMContext,
 ) -> None:
     """Prompt to remove admin."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-access-remove-prompt"),
     )
 
@@ -154,10 +155,10 @@ async def access_remove_handler(
 ) -> None:
     """Remove admin."""
     try:
-        remove_admin_id = int(message.text.strip())
+        remove_admin_id = int(message_text(message).strip())
 
         # Prevent self-removal
-        if remove_admin_id == message.from_user.id:
+        if remove_admin_id == message_user_id(message):
             await message.answer(i18n.get("admin-access-cannot-remove-self"))
             await state.clear()
             return
@@ -168,11 +169,11 @@ async def access_remove_handler(
         await message.answer(i18n.get("admin-access-removed", admin_id=remove_admin_id))
 
         await state.clear()
-        logger.info("admin_access_removed", admin_id=message.from_user.id, removed_admin_id=remove_admin_id)
+        logger.info("admin_access_removed", admin_id=message_user_id(message), removed_admin_id=remove_admin_id)
 
     except ValueError:
         await message.answer(i18n.get("admin-access-invalid-id"))
     except Exception as e:
-        logger.error("admin_access_remove_error", admin_id=message.from_user.id, error=str(e))
+        logger.error("admin_access_remove_error", admin_id=message_user_id(message), error=str(e))
         await message.answer(i18n.get("error-generic"))
         await state.clear()

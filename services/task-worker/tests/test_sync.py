@@ -13,10 +13,11 @@ async def test_sync_nodes_caching():
         {"uuid": "node-2", "name": "Server 2"},
     ]
 
-    with patch("src.tasks.sync.sync_nodes.RemnawaveClient") as mock_rw_cls, \
-         patch("src.tasks.sync.sync_nodes.get_redis_client") as mock_redis_fn, \
-         patch("src.tasks.sync.sync_nodes.CacheService") as mock_cache_cls:
-
+    with (
+        patch("src.tasks.sync.sync_nodes.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.sync.sync_nodes.get_redis_client") as mock_redis_fn,
+        patch("src.tasks.sync.sync_nodes.CacheService") as mock_cache_cls,
+    ):
         mock_rw = AsyncMock()
         mock_rw.get_nodes.return_value = mock_nodes
         mock_rw_cls.return_value.__aenter__.return_value = mock_rw
@@ -43,10 +44,11 @@ async def test_sync_geolocations_upsert():
         {"uuid": "650e8400-e29b-41d4-a716-446655440001", "country_code": "GB", "city": "London"},
     ]
 
-    with patch("src.tasks.sync.geolocations.RemnawaveClient") as mock_rw_cls, \
-         patch("src.tasks.sync.geolocations.get_session_factory") as mock_factory, \
-         patch("src.tasks.sync.geolocations.COUNTRY_COORDS", {"US": (37.0902, -95.7129), "GB": (51.5074, -0.1278)}):
-
+    with (
+        patch("src.tasks.sync.geolocations.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.sync.geolocations.get_session_factory") as mock_factory,
+        patch("src.tasks.sync.geolocations.COUNTRY_COORDS", {"US": (37.0902, -95.7129), "GB": (51.5074, -0.1278)}),
+    ):
         mock_rw = AsyncMock()
         mock_rw.get_nodes.return_value = mock_nodes
         mock_rw_cls.return_value.__aenter__.return_value = mock_rw
@@ -71,10 +73,11 @@ async def test_sync_geolocations_unknown_country():
         {"uuid": "650e8400-e29b-41d4-a716-446655440001", "country_code": "US", "city": "New York"},
     ]
 
-    with patch("src.tasks.sync.geolocations.RemnawaveClient") as mock_rw_cls, \
-         patch("src.tasks.sync.geolocations.get_session_factory") as mock_factory, \
-         patch("src.tasks.sync.geolocations.COUNTRY_COORDS", {"US": (37.0902, -95.7129)}):
-
+    with (
+        patch("src.tasks.sync.geolocations.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.sync.geolocations.get_session_factory") as mock_factory,
+        patch("src.tasks.sync.geolocations.COUNTRY_COORDS", {"US": (37.0902, -95.7129)}),
+    ):
         mock_rw = AsyncMock()
         mock_rw.get_nodes.return_value = mock_nodes
         mock_rw_cls.return_value.__aenter__.return_value = mock_rw
@@ -110,10 +113,11 @@ async def test_sync_user_stats_aggregation():
         },
     ]
 
-    with patch("src.tasks.sync.user_stats.RemnawaveClient") as mock_rw_cls, \
-         patch("src.tasks.sync.user_stats.get_redis_client") as mock_redis_fn, \
-         patch("src.tasks.sync.user_stats.CacheService") as mock_cache_cls:
-
+    with (
+        patch("src.tasks.sync.user_stats.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.sync.user_stats.get_redis_client") as mock_redis_fn,
+        patch("src.tasks.sync.user_stats.CacheService") as mock_cache_cls,
+    ):
         mock_rw = AsyncMock()
         mock_rw.get_users.return_value = mock_users
         mock_rw_cls.return_value.__aenter__.return_value = mock_rw
@@ -140,10 +144,11 @@ async def test_sync_user_stats_aggregation():
 @pytest.mark.asyncio
 async def test_sync_user_stats_no_users():
     """Test user stats sync with empty user list."""
-    with patch("src.tasks.sync.user_stats.RemnawaveClient") as mock_rw_cls, \
-         patch("src.tasks.sync.user_stats.get_redis_client") as mock_redis_fn, \
-         patch("src.tasks.sync.user_stats.CacheService") as mock_cache_cls:
-
+    with (
+        patch("src.tasks.sync.user_stats.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.sync.user_stats.get_redis_client") as mock_redis_fn,
+        patch("src.tasks.sync.user_stats.CacheService") as mock_cache_cls,
+    ):
         mock_rw = AsyncMock()
         mock_rw.get_users.return_value = []
         mock_rw_cls.return_value.__aenter__.return_value = mock_rw
@@ -169,10 +174,11 @@ async def test_sync_node_configurations_ttl():
         {"uuid": "node-1", "name": "Server 1"},
     ]
 
-    with patch("src.tasks.sync.node_configs.RemnawaveClient") as mock_rw_cls, \
-         patch("src.tasks.sync.node_configs.get_redis_client") as mock_redis_fn, \
-         patch("src.tasks.sync.node_configs.CacheService") as mock_cache_cls:
-
+    with (
+        patch("src.tasks.sync.node_configs.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.sync.node_configs.get_redis_client") as mock_redis_fn,
+        patch("src.tasks.sync.node_configs.CacheService") as mock_cache_cls,
+    ):
         mock_rw = AsyncMock()
         mock_rw.get_nodes.return_value = mock_nodes
         mock_rw_cls.return_value.__aenter__.return_value = mock_rw

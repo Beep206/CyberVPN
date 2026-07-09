@@ -37,7 +37,7 @@ class AdminCreateCustomerStaffNoteRequest(BaseModel):
 
 
 class AdminCustomerSupportActionRequest(BaseModel):
-    reason: str | None = Field(None, max_length=1000)
+    reason: str | None = Field(default=None, max_length=1000)
 
 
 class AdminCustomerCredentialRegenerationRequest(BaseModel):
@@ -47,17 +47,17 @@ class AdminCustomerCredentialRegenerationRequest(BaseModel):
 
 class AdminCustomerManualSubscriptionRequest(BaseModel):
     reason: str = Field(..., min_length=3, max_length=1000)
-    plan_code: str | None = Field(None, min_length=1, max_length=20)
+    plan_code: str | None = Field(default=None, min_length=1, max_length=20)
     duration_days: int = Field(..., ge=1, le=365)
     device_limit: int = Field(1, ge=1, le=10)
-    traffic_limit_bytes: int | None = Field(None, gt=0)
+    traffic_limit_bytes: int | None = Field(default=None, gt=0)
 
 
 class AdminCustomerPasswordResetRequest(BaseModel):
-    new_password: str | None = Field(None, min_length=12, max_length=128)
+    new_password: str | None = Field(default=None, min_length=12, max_length=128)
     generate_temporary_password: bool = False
     revoke_all_devices: bool = True
-    reason: str | None = Field(None, max_length=1000)
+    reason: str | None = Field(default=None, max_length=1000)
 
     @field_validator("new_password")
     @classmethod

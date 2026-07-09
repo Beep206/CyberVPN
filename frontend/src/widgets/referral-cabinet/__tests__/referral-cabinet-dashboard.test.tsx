@@ -74,7 +74,6 @@ const {
         currency: 'USD',
         hold_until: null,
         id: 'reward-available',
-        payment_id: 'payment-1',
         referred_user_id: 'user-2',
         reversed_at: null,
         reward_amount: 12,

@@ -7,7 +7,12 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from src.application.services.auth_service import AuthService
-from src.application.services.auth_session_issuer import hash_device_key
+from src.application.services.auth_session_issuer import (
+    AuthSessionIssuer,
+    AuthSessionIssueRequest,
+    _legacy_hash_device_key_for_upgrade,
+    hash_device_key,
+)
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -462,6 +467,81 @@ async def test_repeated_admin_login_reuses_browser_device_and_replaces_session()
                 assert refresh_tokens[1].revoked_at is None
     finally:
         app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.integration
+async def test_admin_session_upgrades_legacy_device_key_hash_before_device_limit_check() -> None:
+    auth_service = AuthService()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    try:
+        user_id, admin_realm_id = await _seed_admin_realm_user(
+            sessionmaker,
+            auth_service,
+            login="realm_legacy_device_admin",
+            email="realm-legacy-device@example.com",
+            password="RealmLegacyDeviceP@ssword123!",
+        )
+        device_key = "legacy-device-cookie-id"
+        legacy_device_hash = _legacy_hash_device_key_for_upgrade(device_key)
+
+        with sessionmaker() as db:
+            admin_realm = db.get(AuthRealmModel, admin_realm_id)
+            assert admin_realm is not None
+            legacy_device = UserDeviceModel(
+                auth_realm_id=admin_realm.id,
+                principal_subject=str(user_id),
+                principal_class="admin",
+                audience=admin_realm.audience,
+                device_key_hash=legacy_device_hash,
+                platform="web",
+                ip_address="192.0.2.10",
+                user_agent="LegacyDevice/1.0",
+            )
+            db.add(legacy_device)
+            db.commit()
+            legacy_device_id = legacy_device.id
+            audience = admin_realm.audience
+
+        with sessionmaker() as db:
+            issued = await AuthSessionIssuer(
+                auth_service=auth_service,
+                session=SyncSessionAdapter(db),
+            ).issue_auth_session(
+                AuthSessionIssueRequest(
+                    user_id=user_id,
+                    role="admin",
+                    device_key=device_key,
+                    auth_realm_id=admin_realm_id,
+                    auth_realm_key="admin",
+                    audience=audience,
+                    principal_class="admin",
+                    scope_family="admin",
+                    device_limit=1,
+                    platform="web",
+                    ip_address="192.0.2.11",
+                    user_agent="LegacyDevice/2.0",
+                    replace_existing_device_sessions=False,
+                )
+            )
+            db.commit()
+
+        assert issued.user_device_id == legacy_device_id
+
+        with sessionmaker() as db:
+            devices_result = await SyncSessionAdapter(db).execute(
+                select(UserDeviceModel).where(UserDeviceModel.principal_subject == str(user_id))
+            )
+            devices = list(devices_result.scalars().all())
+            assert len(devices) == 1
+            assert devices[0].id == legacy_device_id
+            assert devices[0].device_key_hash == hash_device_key(device_key)
+            assert devices[0].device_key_hash != legacy_device_hash
+            assert devices[0].last_user_agent == "LegacyDevice/2.0"
+    finally:
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)
 

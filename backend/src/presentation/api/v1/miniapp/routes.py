@@ -47,7 +47,7 @@ from src.application.use_cases.trial.stage1_trial_policy import (
 from src.application.use_cases.trial.stage1_trial_provisioning import Stage1TrialProvisioningGateway
 from src.config.settings import settings
 from src.domain.entities.user import User
-from src.domain.enums import CatalogVisibility
+from src.domain.enums import CatalogVisibility, PaymentProvider, PaymentStatus
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
@@ -94,6 +94,8 @@ from src.presentation.api.v1.plans.schemas import (
     TrafficPolicySchema,
 )
 from src.presentation.api.v1.subscriptions.routes import _serialize_subscription_quote
+from src.presentation.api.v1.subscriptions.schemas import CurrentEntitlementsResponse
+from src.presentation.api.v1.trial.schemas import TrialStatusResponse
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import get_request_customer_realm
 from src.presentation.dependencies.database import get_db
@@ -407,6 +409,8 @@ def _build_config_response_from_remnawave_result(
         isFound=bool(result.get("is_found", True)),
         links=list(result.get("links", [])),
         ssConfLinks=dict(result.get("ss_conf_links", {})),
+        xhttpEnabled=bool(result.get("xhttp_enabled", False) or result.get("xhttp_links")),
+        xhttpLinks=list(result.get("xhttp_links", [])),
         source="remnawave_generated",
         subscriptionUrl=str(subscription_url) if subscription_url else None,
         generatedAt=datetime.now(UTC),
@@ -478,6 +482,8 @@ def _build_legacy_config_response(subscription_url: str) -> MiniAppConfigRespons
         isFound=True,
         links=[normalized_subscription_url],
         ssConfLinks={},
+        xhttpEnabled=False,
+        xhttpLinks=[],
         source="legacy_subscription_url",
         subscriptionUrl=normalized_subscription_url,
         generatedAt=datetime.now(UTC),
@@ -829,16 +835,18 @@ async def get_miniapp_bootstrap(
                 url=_build_support_url(),
                 paysupportCommandAvailable=bool(settings.telegram_bot_username.strip()),
             ),
-            rollout=MiniAppBootstrapRolloutResponse(
-                enabled=rollout.enabled,
-                mode=rollout.mode,
-                trialEnabled=rollout.trial_enabled,
-                checkoutEnabled=rollout.checkout_enabled,
-                configEnabled=rollout.config_enabled,
-                accessGranted=rollout_access.allowed,
-                isCanaryUser=rollout_access.is_canary_user,
-                gateReasonCode=rollout_access.gate_reason_code,
-                maintenanceMessage=rollout.maintenance_message,
+            rollout=MiniAppBootstrapRolloutResponse.model_validate(
+                {
+                    "enabled": rollout.enabled,
+                    "mode": rollout.mode,
+                    "trialEnabled": rollout.trial_enabled,
+                    "checkoutEnabled": rollout.checkout_enabled,
+                    "configEnabled": rollout.config_enabled,
+                    "accessGranted": rollout_access.allowed,
+                    "isCanaryUser": rollout_access.is_canary_user,
+                    "gateReasonCode": rollout_access.gate_reason_code,
+                    "maintenanceMessage": rollout.maintenance_message,
+                }
             ),
             featureFlags={
                 "miniapp_bootstrap_v1": True,
@@ -906,8 +914,8 @@ async def get_miniapp_offers(
                     enabled=settings.stage1_addons_enabled,
                 )
             ],
-            trial=trial_status,
-            currentEntitlements=current_entitlements,
+            trial=TrialStatusResponse.model_validate(trial_status),
+            currentEntitlements=CurrentEntitlementsResponse.model_validate(current_entitlements),
             freshness=MiniAppBootstrapFreshnessResponse(generatedAt=datetime.now(UTC)),
         )
     except Exception as exc:
@@ -1277,8 +1285,8 @@ async def get_miniapp_payment_status(
         track_miniapp_payment_status_check(provider=str(payment.provider), payment_status=str(payment.status))
         return MiniAppPaymentStatusResponse(
             payment_id=payment.id,
-            status=payment.status,
-            provider=payment.provider,
+            status=PaymentStatus(payment.status),
+            provider=PaymentProvider(payment.provider),
             external_id=payment.external_id,
             amount=float(payment.amount),
             currency=payment.currency,

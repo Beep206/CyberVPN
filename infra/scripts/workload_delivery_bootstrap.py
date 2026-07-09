@@ -12,7 +12,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -180,7 +180,7 @@ metadata:
 """
 
 
-def render_externalsecret_tpl() -> str:
+def render_external_runtime_reference_tpl() -> str:
     return """{{- if .Values.externalSecret.enabled }}
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -861,10 +861,10 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             gitops_repo_name=args.gitops_repo_name,
             workload_cluster_name=args.workload_cluster_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
-    write_text(source_repo_dir / "README.md", render_source_repo_readme(), mode=0o644)
-    write_text(gitops_repo_dir / "README.md", render_gitops_repo_readme(workload_cluster_name=args.workload_cluster_name), mode=0o644)
+    write_text(source_repo_dir / "README.md", render_source_repo_readme(), mode=0o600)
+    write_text(gitops_repo_dir / "README.md", render_gitops_repo_readme(workload_cluster_name=args.workload_cluster_name), mode=0o600)
     write_text(
         output_dir / "versions.env",
         render_versions_env(
@@ -873,19 +873,19 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             gitops_repo_name=args.gitops_repo_name,
             workload_cluster_name=args.workload_cluster_name,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "scripts" / "check-workload-delivery.sh",
         render_check_script(workload_cluster_name=args.workload_cluster_name),
-        mode=0o750,
+        mode=0o700,
     )
 
-    write_text(source_repo_dir / "charts" / "README.md", render_chart_readme(), mode=0o644)
+    write_text(source_repo_dir / "charts" / "README.md", render_chart_readme(), mode=0o600)
     write_text(
         source_repo_dir / ".github" / "workflows" / "platform-workload-delivery.yml",
         render_workflow(),
-        mode=0o644,
+        mode=0o600,
     )
 
     backend_chart_dir = source_repo_dir / "charts" / "cybervpn-backend"
@@ -909,27 +909,27 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             "",
         ),
     ):
-        write_text(chart_dir / "Chart.yaml", render_chart_yaml(chart_name=chart_name, description=description), mode=0o644)
-        write_text(chart_dir / "values.yaml", values_content, mode=0o644)
-        write_text(chart_dir / "templates" / "_helpers.tpl", render_helpers_tpl(), mode=0o644)
-        write_text(chart_dir / "templates" / "serviceaccount.yaml", render_serviceaccount_tpl(), mode=0o644)
-        write_text(chart_dir / "templates" / "externalsecret.yaml", render_externalsecret_tpl(), mode=0o644)
-        write_text(chart_dir / "templates" / "deployment.yaml", deployment_content, mode=0o644)
+        write_text(chart_dir / "Chart.yaml", render_chart_yaml(chart_name=chart_name, description=description), mode=0o600)
+        write_text(chart_dir / "values.yaml", values_content, mode=0o600)
+        write_text(chart_dir / "templates" / "_helpers.tpl", render_helpers_tpl(), mode=0o600)
+        write_text(chart_dir / "templates" / "serviceaccount.yaml", render_serviceaccount_tpl(), mode=0o600)
+        write_text(chart_dir / "templates" / "externalsecret.yaml", render_external_runtime_reference_tpl(), mode=0o600)
+        write_text(chart_dir / "templates" / "deployment.yaml", deployment_content, mode=0o600)
         if service_content:
-            write_text(chart_dir / "templates" / "service.yaml", service_content, mode=0o644)
+            write_text(chart_dir / "templates" / "service.yaml", service_content, mode=0o600)
 
     write_text(
         workload_cluster_dir / "platform-workloads.yaml",
         render_cluster_flux_kustomization(workload_cluster_name=args.workload_cluster_name),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         apps_dir / "README.md",
         render_apps_readme(workload_cluster_name=args.workload_cluster_name),
-        mode=0o644,
+        mode=0o600,
     )
-    write_text(apps_dir / "kustomization.yaml", render_apps_kustomization(), mode=0o644)
-    write_text(apps_dir / "namespace.yaml", render_platform_apps_namespace(), mode=0o644)
+    write_text(apps_dir / "kustomization.yaml", render_apps_kustomization(), mode=0o600)
+    write_text(apps_dir / "namespace.yaml", render_platform_apps_namespace(), mode=0o600)
 
     workload_entries = (
         (
@@ -948,7 +948,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
 
     for workload_name, chart_repo_name, chart_name, helmrelease in workload_entries:
         workload_dir = apps_dir / workload_name
-        write_text(workload_dir / "kustomization.yaml", render_workload_kustomization(), mode=0o644)
+        write_text(workload_dir / "kustomization.yaml", render_workload_kustomization(), mode=0o600)
         write_text(
             workload_dir / "ocirepository.yaml",
             render_workload_ocirepository(
@@ -956,9 +956,9 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
                 chart_name=chart_name,
                 source_repository_slug=args.source_repository_slug,
             ),
-            mode=0o644,
+            mode=0o600,
         )
-        write_text(workload_dir / "helmrelease.yaml", helmrelease, mode=0o644)
+        write_text(workload_dir / "helmrelease.yaml", helmrelease, mode=0o600)
 
     return 0
 

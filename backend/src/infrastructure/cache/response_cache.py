@@ -45,7 +45,7 @@ class ResponseCache:
         result = await fetch_fn()
 
         try:
-            await client.setex(full_key, ttl, json.dumps(result, default=str))
+            await client.set(full_key, json.dumps(result, default=str), ex=ttl)
         except Exception:
             logger.warning("Cache write failed for %s", full_key)
 
@@ -69,7 +69,7 @@ class ResponseCache:
         full_key = f"{self._PREFIX}{key}"
         client = self._get_redis()
         try:
-            await client.setex(full_key, ttl, json.dumps(value, default=str))
+            await client.set(full_key, json.dumps(value, default=str), ex=ttl)
         except Exception:
             logger.warning("Cache direct write failed for %s", full_key)
 

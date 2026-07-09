@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { LayoutDashboard, LogOut } from 'lucide-react';
+import { LayoutDashboard, LogOut, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
@@ -43,6 +43,22 @@ export function UserMenu() {
         : user?.login?.substring(0, 2).toUpperCase() || 'U';
     const primaryIdentity = user?.login || user?.email?.split('@')[0] || 'ADMIN';
     const roleLabel = formatRoleLabel(user?.role);
+    const menuItems = [
+        {
+            href: '/dashboard',
+            icon: LayoutDashboard,
+            label: navigationT('dashboard'),
+            description: navigationT('secureSession'),
+            iconClassName: 'border-neon-cyan/20 bg-neon-cyan/10 text-neon-cyan',
+        },
+        {
+            href: '/security/sessions',
+            icon: Shield,
+            label: navigationT('item.sessions'),
+            description: navigationT('item.sessionsHint'),
+            iconClassName: 'border-matrix-green/20 bg-matrix-green/10 text-matrix-green',
+        },
+    ];
 
     return (
         <div className="relative z-50" ref={dropdownRef}>
@@ -50,6 +66,8 @@ export function UserMenu() {
                 <button
                     type="button"
                     onClick={() => setIsOpen((current) => !current)}
+                    aria-expanded={isOpen}
+                    aria-haspopup="menu"
                     aria-label={navigationT('adminConsole')}
                     className={[
                         'group relative flex items-center gap-2 overflow-hidden rounded-full border p-1 pl-2 pr-1 transition-all duration-300',
@@ -106,30 +124,35 @@ export function UserMenu() {
                             </div>
                         </div>
 
-                        <div className="p-2">
-                            <Link
-                                href="/dashboard"
-                                onClick={() => setIsOpen(false)}
-                                className="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors hover:bg-white/5"
-                            >
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-neon-cyan/20 bg-neon-cyan/10 text-neon-cyan">
-                                    <LayoutDashboard className="h-4 w-4" />
-                                </div>
+                        <div className="p-2" role="menu">
+                            {menuItems.map((item) => (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    role="menuitem"
+                                    onClick={() => setIsOpen(false)}
+                                    className="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors hover:bg-white/5"
+                                >
+                                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${item.iconClassName}`}>
+                                        <item.icon className="h-4 w-4" />
+                                    </div>
 
-                                <div className="min-w-0 flex-1">
-                                    <div className="font-medium text-foreground">
-                                        {navigationT('dashboard')}
+                                    <div className="min-w-0 flex-1">
+                                        <div className="font-medium text-foreground">
+                                            {item.label}
+                                        </div>
+                                        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                                            {item.description}
+                                        </div>
                                     </div>
-                                    <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                                        {navigationT('secureSession')}
-                                    </div>
-                                </div>
-                            </Link>
+                                </Link>
+                            ))}
                         </div>
 
                         <div className="border-t border-grid-line/20 p-2">
                             <button
                                 type="button"
+                                role="menuitem"
                                 onClick={handleLogout}
                                 className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200"
                             >

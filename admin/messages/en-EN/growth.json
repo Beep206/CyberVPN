@@ -36,6 +36,7 @@
     "blocked": "Blocked",
     "missing": "Missing",
     "backendLimited": "Backend limited",
+    "refresh": "Refresh",
     "noExpiry": "No expiry"
   },
   "v6": {

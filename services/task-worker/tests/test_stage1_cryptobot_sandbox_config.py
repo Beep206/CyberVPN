@@ -13,6 +13,7 @@ def _settings(**overrides: object) -> Settings:
         "remnawave_api_token": SecretStr("remnawave-token-for-s1-pay-002"),
         "telegram_bot_token": SecretStr("123456:telegram-token-for-s1-pay-002"),
         "cryptobot_token": SecretStr("cryptobot-token-for-s1-pay-002"),
+        "cryptobot_network": "mainnet",
         "backend_api_url": "https://api.cyber-vpn.net/api/v1",
         "backend_internal_secret": SecretStr("InternalBackendCredentialForChecksOnly"),
         "telegram_bot_internal_secret": SecretStr("TelegramBotInternalCredentialForChecksOnly"),
@@ -21,10 +22,12 @@ def _settings(**overrides: object) -> Settings:
         "resend_api_key": None,
         "brevo_api_key": None,
         "email_resend_fallback_enabled": False,
+        "smtp_starttls": True,
+        "smtp_use_ssl": False,
         "metrics_protect": False,
     }
     values.update(overrides)
-    return Settings(**values)
+    return Settings(_env_file=None, **values)
 
 
 def test_task_worker_allows_cryptobot_testnet_outside_production() -> None:

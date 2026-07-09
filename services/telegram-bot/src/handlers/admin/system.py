@@ -4,9 +4,11 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
+
+from src.utils.telegram import callback_message
 
 if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -52,7 +54,7 @@ async def system_menu_handler(
         )
     )
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-system-title"),
         reply_markup=builder.as_markup(),
     )
@@ -126,7 +128,7 @@ async def system_health_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=health_text,
             reply_markup=builder.as_markup(),
         )
@@ -165,7 +167,7 @@ async def system_logs_handler(
             level_emoji = {
                 "ERROR": "❌",
                 "WARNING": "⚠️",
-                "INFO": "ℹ️",
+                "INFO": "ℹ️",  # noqa: RUF001
                 "DEBUG": "🐛",
             }.get(level, "📝")
 
@@ -188,7 +190,7 @@ async def system_logs_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=logs_text,
             reply_markup=builder.as_markup(),
         )
@@ -245,7 +247,7 @@ async def system_cache_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=cache_text,
             reply_markup=builder.as_markup(),
         )

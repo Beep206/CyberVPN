@@ -4,7 +4,14 @@ Periodic task that tracks RSS and VMS memory usage of the worker process
 and exposes them as Prometheus metrics for resource monitoring and alerting.
 """
 
-import resource
+from typing import Protocol, cast
+
+try:
+    import resource as _resource_module
+except ImportError:  # pragma: no cover - Windows local development fallback
+    _resource: object | None = None
+else:
+    _resource = _resource_module
 
 import structlog
 from prometheus_client import Gauge
@@ -16,6 +23,16 @@ logger = structlog.get_logger(__name__)
 # Prometheus metrics for memory usage
 MEMORY_RSS = Gauge("cybervpn_worker_memory_rss_bytes", "Worker RSS (resident set size) memory in bytes")
 MEMORY_VMS = Gauge("cybervpn_worker_memory_vms_bytes", "Worker VMS (virtual memory size) memory in bytes")
+
+
+class _ResourceUsage(Protocol):
+    ru_maxrss: int
+
+
+class _ResourceModule(Protocol):
+    RUSAGE_SELF: int
+
+    def getrusage(self, who: int) -> _ResourceUsage: ...
 
 
 @broker.task(task_name="monitor_worker_memory", queue="monitoring")
@@ -34,7 +51,19 @@ async def monitor_worker_memory() -> dict:
         This implementation assumes Linux (converts KB to bytes).
     """
     try:
+        if _resource is None:
+            memory_stats = {
+                "rss_bytes": 0,
+                "rss_mb": 0.0,
+                "max_rss_kb": 0,
+                "degraded": True,
+            }
+            MEMORY_RSS.set(0)
+            logger.warning("worker_memory_resource_unavailable", **memory_stats)
+            return memory_stats
+
         # Get resource usage for current process
+        resource = cast(_ResourceModule, _resource)
         usage = resource.getrusage(resource.RUSAGE_SELF)
 
         # Convert maxrss from kilobytes to bytes (Linux convention)

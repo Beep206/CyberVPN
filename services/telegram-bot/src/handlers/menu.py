@@ -11,6 +11,7 @@ from aiogram.filters import Command
 from src.keyboards.menu import main_menu_keyboard, profile_kb
 from src.keyboards.referral import invite_codes_keyboard
 from src.keyboards.subscription import subscription_keyboard
+from src.utils.telegram import callback_message, message_user_id
 
 if TYPE_CHECKING:
     from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
@@ -67,7 +68,7 @@ def _render_invite_items(invites: list[dict[str, object]], i18n: I18nContext) ->
     items: list[str] = []
     for invite in invites[:10]:
         code = escape(str(invite.get("code") or "N/A"))
-        free_days = int(invite.get("free_days") or 0)
+        free_days = int(str(invite.get("free_days") or 0))
         status = i18n.get(_invite_status_key(invite))
         expires = _format_invite_date(invite.get("expires_at"))
         created = _format_invite_date(invite.get("created_at"))
@@ -148,9 +149,9 @@ async def main_menu_command_handler(
 
     user = None
     try:
-        user = await api_client.get_user(message.from_user.id)
+        user = await api_client.get_user(message_user_id(message))
     except Exception as e:
-        logger.warning("menu_command_user_fetch_failed", user_id=message.from_user.id, error=str(e))
+        logger.warning("menu_command_user_fetch_failed", user_id=message_user_id(message), error=str(e))
 
     await message.answer(
         text=i18n.get("menu-main-title"),
@@ -172,7 +173,7 @@ async def main_menu_handler(
     except Exception as e:
         logger.warning("menu_user_fetch_failed", user_id=callback.from_user.id, error=str(e))
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("menu-main-title"),
         reply_markup=main_menu_keyboard(i18n, user, settings=settings),
     )
@@ -226,7 +227,7 @@ async def invite_menu_handler(
             api_client=api_client,
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=text,
             reply_markup=reply_markup,
         )
@@ -258,7 +259,7 @@ async def invite_codes_command_handler(
     if message.from_user is None:
         return
 
-    user_id = message.from_user.id
+    user_id = message_user_id(message)
     try:
         text, reply_markup = await _build_my_invites_response(
             user_id=user_id,
@@ -297,7 +298,7 @@ async def profile_menu_handler(
             registered=user.get("created_at", "N/A"),
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=text,
             reply_markup=profile_kb(i18n),
         )
@@ -320,7 +321,7 @@ async def support_menu_handler(
     contact = support_username if support_username.startswith("@") else f"@{support_username}"
     support_text = i18n.get("support-message", contact=contact)
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=support_text,
     )
     await callback.answer()

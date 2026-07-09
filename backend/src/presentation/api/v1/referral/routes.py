@@ -106,12 +106,10 @@ def _clear_attribution_cookie(response: Response) -> None:
 
 def _serialize_referral_reward(model) -> ReferralRewardResponse:
     reward_payload = dict(model.reward_payload or {})
-    payment_id = reward_payload.get("payment_id")
     referred_user_id = reward_payload.get("referred_user_id")
     return ReferralRewardResponse(
         id=model.id,
         referred_user_id=referred_user_id,
-        payment_id=payment_id,
         reward_amount=float(model.quantity),
         currency=model.currency_code or "USD",
         reward_status=model.allocation_status,
@@ -124,7 +122,6 @@ def _serialize_referral_reward(model) -> ReferralRewardResponse:
 
 def _serialize_referral_reward_compat(model) -> ReferralCommissionResponse:
     reward_payload = dict(model.reward_payload or {})
-    payment_id = reward_payload.get("payment_id")
     referred_user_id = reward_payload.get("referred_user_id")
     commission_rate = float(
         reward_payload.get("legacy_commission_rate") or reward_payload.get("friend_discount_value") or 0
@@ -132,7 +129,6 @@ def _serialize_referral_reward_compat(model) -> ReferralCommissionResponse:
     return ReferralCommissionResponse(
         id=model.id,
         referred_user_id=referred_user_id,
-        payment_id=payment_id,
         commission_amount=float(model.quantity),
         base_amount=float(reward_payload.get("base_amount") or 0),
         commission_rate=commission_rate,
@@ -237,10 +233,12 @@ async def claim_referral_attribution(
         response.headers["Cache-Control"] = "no-store"
 
     track_referral_operation(operation=f"attribution_{result.status}")
-    return ReferralAttributionClaimResponse(
-        status=result.status,
-        referrer_user_id=result.referrer_user_id,
-        claimed_at=result.claimed_at,
+    return ReferralAttributionClaimResponse.model_validate(
+        {
+            "status": result.status,
+            "referrer_user_id": result.referrer_user_id,
+            "claimed_at": result.claimed_at,
+        }
     )
 
 
@@ -342,7 +340,6 @@ async def get_recent_commissions(
             ReferralCommissionResponse(
                 id=commission.id,
                 referred_user_id=commission.referred_user_id,
-                payment_id=commission.payment_id,
                 commission_amount=float(commission.commission_amount),
                 base_amount=float(commission.base_amount),
                 commission_rate=float(commission.commission_rate),

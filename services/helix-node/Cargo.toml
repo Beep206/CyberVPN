@@ -7,7 +7,7 @@ description = "CyberVPN Helix node daemon"
 [dependencies]
 axum = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
-prometheus = "0.13"
+prometheus = "0.14"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 sentry = { version = "0.47", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tracing"] }
 sentry-tower = { version = "0.47", features = ["http"] }

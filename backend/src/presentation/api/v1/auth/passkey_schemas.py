@@ -36,7 +36,7 @@ class PasskeyPolicyResponse(BaseModel):
 
 
 class UpdateAdminPasskeyPolicyRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     enabled: bool | None = None
     registration_enabled: bool | None = Field(
@@ -173,7 +173,7 @@ class PartnerWorkspacePasskeyComplianceResponse(PartnerWorkspacePasskeyPolicyRes
 
 
 class UpdatePartnerWorkspacePasskeyPolicyRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     prefer_passkeys: bool | None = Field(
         default=None,
@@ -197,7 +197,7 @@ class UpdatePartnerWorkspacePasskeyPolicyRequest(BaseModel):
 
 
 class PasskeyOptionsResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     challenge_id: str = Field(serialization_alias="challengeId")
     public_key: dict[str, Any] = Field(serialization_alias="publicKey")
@@ -205,7 +205,7 @@ class PasskeyOptionsResponse(BaseModel):
 
 
 class PasskeyRegistrationOptionsRequest(BaseModel):
-    label: str | None = Field(None, min_length=1, max_length=120)
+    label: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class PasskeyRegistrationVerifyRequest(BaseModel):
@@ -216,11 +216,11 @@ class PasskeyRegistrationVerifyRequest(BaseModel):
         validation_alias=AliasChoices("challengeId", "challenge_id"),
     )
     credential: dict[str, Any]
-    label: str | None = Field(None, min_length=1, max_length=120)
+    label: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class PasskeyAuthenticationOptionsRequest(BaseModel):
-    identifier: str | None = Field(None, min_length=1, max_length=255)
+    identifier: str | None = Field(default=None, min_length=1, max_length=255)
     conditional: bool = False
 
 

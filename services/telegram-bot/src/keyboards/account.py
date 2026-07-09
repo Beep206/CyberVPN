@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from aiogram.types import InlineKeyboardMarkup
 
 
 def account_keyboard(i18n: Callable[..., str]) -> InlineKeyboardMarkup:

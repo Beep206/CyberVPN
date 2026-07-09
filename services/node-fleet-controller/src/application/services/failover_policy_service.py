@@ -280,7 +280,10 @@ class FailoverPolicyService:
             blocked_reasons.append("confidence_below_threshold")
         if independent_signal_sources < guardrail_policy.minimum_independent_signal_sources:
             blocked_reasons.append("insufficient_signal_sources")
-        if budget_policy.monthly_limit > 0 and budget_policy.current_month_spend + budget_impact > budget_policy.monthly_limit:
+        if (
+            budget_policy.monthly_limit > 0
+            and budget_policy.current_month_spend + budget_impact > budget_policy.monthly_limit
+        ):
             blocked_reasons.append("monthly_budget_exceeded")
         if budget_policy.burst_limit > 0 and budget_impact > budget_policy.burst_limit:
             blocked_reasons.append("burst_budget_exceeded")
@@ -333,7 +336,10 @@ class FailoverPolicyService:
         if approval_policy.require_human_above_threshold:
             if risk_score >= approval_policy.risk_threshold:
                 requires_human_approval = True
-            if approval_policy.budget_approval_threshold > 0 and budget_impact >= approval_policy.budget_approval_threshold:
+            if (
+                approval_policy.budget_approval_threshold > 0
+                and budget_impact >= approval_policy.budget_approval_threshold
+            ):
                 requires_human_approval = True
         if approval_mode == "manual" or approval_policy.approval_mode == "manual":
             requires_human_approval = True

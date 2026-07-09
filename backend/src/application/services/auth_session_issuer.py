@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -208,18 +210,21 @@ class AuthSessionIssuer:
 
         now = datetime.now(UTC)
         device_key_hash = hash_device_key(request.device_key)
-        result = await self._session.execute(
-            select(UserDeviceModel)
-            .where(
-                UserDeviceModel.auth_realm_id == request.auth_realm_id,
-                UserDeviceModel.principal_class == request.principal_class,
-                UserDeviceModel.principal_subject == principal_subject,
-                UserDeviceModel.device_key_hash == device_key_hash,
-                UserDeviceModel.revoked_at.is_(None),
-            )
-            .with_for_update()
+        user_device = await self._load_active_user_device(
+            request=request,
+            principal_subject=principal_subject,
+            device_key_hash=device_key_hash,
         )
-        user_device = result.scalar_one_or_none()
+        if user_device is None:
+            legacy_device_key_hash = _legacy_hash_device_key_for_upgrade(request.device_key)
+            user_device = await self._load_active_user_device(
+                request=request,
+                principal_subject=principal_subject,
+                device_key_hash=legacy_device_key_hash,
+            )
+            if user_device is not None:
+                user_device.device_key_hash = device_key_hash
+
         if user_device:
             previous_user_agent = user_device.user_agent
             user_device.audience = request.audience
@@ -263,6 +268,26 @@ class AuthSessionIssuer:
         self._session.add(user_device)
         await self._session.flush()
         return user_device
+
+    async def _load_active_user_device(
+        self,
+        *,
+        request: AuthSessionIssueRequest,
+        principal_subject: str,
+        device_key_hash: str,
+    ) -> UserDeviceModel | None:
+        result = await self._session.execute(
+            select(UserDeviceModel)
+            .where(
+                UserDeviceModel.auth_realm_id == request.auth_realm_id,
+                UserDeviceModel.principal_class == request.principal_class,
+                UserDeviceModel.principal_subject == principal_subject,
+                UserDeviceModel.device_key_hash == device_key_hash,
+                UserDeviceModel.revoked_at.is_(None),
+            )
+            .with_for_update()
+        )
+        return result.scalar_one_or_none()
 
     async def _enforce_device_limit(
         self,
@@ -344,7 +369,17 @@ class AuthSessionIssuer:
 
 
 def hash_device_key(device_key: str) -> str:
-    return sha256((device_key + _device_cookie_pepper()).encode("utf-8")).hexdigest()
+    return hmac.new(
+        _device_cookie_pepper().encode("utf-8"),
+        device_key.encode("utf-8"),
+        sha256,
+    ).hexdigest()
+
+
+def _legacy_hash_device_key_for_upgrade(device_key: str) -> str:
+    """Return the pre-HMAC digest only to find and upgrade existing device rows."""
+    legacy_material = (device_key + _device_cookie_pepper()).encode("utf-8")
+    return hashlib.new("sha256", legacy_material).hexdigest()
 
 
 def _hash_device_key(device_key: str) -> str:

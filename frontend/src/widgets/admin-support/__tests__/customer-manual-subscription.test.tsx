@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -41,15 +41,12 @@ describe('CustomerManualSubscription', () => {
     const user = userEvent.setup();
     const { onApply } = renderPanel();
 
-    await user.clear(screen.getByLabelText('Duration days'));
-    await user.type(screen.getByLabelText('Duration days'), '30');
-    await user.clear(screen.getByLabelText('Device limit'));
-    await user.type(screen.getByLabelText('Device limit'), '3');
-    await user.type(screen.getByLabelText('Traffic GB'), '2');
-    await user.type(
-      screen.getByLabelText('Operator reason'),
-      'payment provider failed; manual access approved',
-    );
+    fireEvent.change(screen.getByLabelText('Duration days'), { target: { value: '30' } });
+    fireEvent.change(screen.getByLabelText('Device limit'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Traffic GB'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Operator reason'), {
+      target: { value: 'payment provider failed; manual access approved' },
+    });
     await user.click(screen.getByRole('button', { name: 'Apply access' }));
 
     await waitFor(() => {
@@ -74,7 +71,9 @@ describe('CustomerManualSubscription', () => {
     const user = userEvent.setup();
     const { onApply } = renderPanel();
 
-    await user.type(screen.getByLabelText('Operator reason'), 'manual beta access approved');
+    fireEvent.change(screen.getByLabelText('Operator reason'), {
+      target: { value: 'manual beta access approved' },
+    });
     await user.click(screen.getByRole('button', { name: 'Apply access' }));
 
     await waitFor(() => {
@@ -104,9 +103,10 @@ describe('CustomerManualSubscription', () => {
     const user = userEvent.setup();
     const { onApply } = renderPanel();
 
-    await user.clear(screen.getByLabelText('Duration days'));
-    await user.type(screen.getByLabelText('Duration days'), '366');
-    await user.type(screen.getByLabelText('Operator reason'), 'manual beta access approved');
+    fireEvent.change(screen.getByLabelText('Duration days'), { target: { value: '366' } });
+    fireEvent.change(screen.getByLabelText('Operator reason'), {
+      target: { value: 'manual beta access approved' },
+    });
     await user.click(screen.getByRole('button', { name: 'Apply access' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -123,7 +123,9 @@ describe('CustomerManualSubscription', () => {
     const onApply = vi.fn().mockRejectedValue(rawSecretError);
     renderPanel({ onApply });
 
-    await user.type(screen.getByLabelText('Operator reason'), 'manual beta access approved');
+    fireEvent.change(screen.getByLabelText('Operator reason'), {
+      target: { value: 'manual beta access approved' },
+    });
     await user.click(screen.getByRole('button', { name: 'Apply access' }));
 
     const alert = await screen.findByRole('alert');

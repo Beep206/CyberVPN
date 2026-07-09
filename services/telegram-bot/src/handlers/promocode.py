@@ -6,6 +6,7 @@ import structlog
 from aiogram import F, Router
 
 from src.states.promocode import PromoCodeState
+from src.utils.telegram import message_text, message_user_id
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -71,8 +72,8 @@ async def promocode_entered_handler(
         await state.clear()
         return
 
-    user_id = message.from_user.id
-    code = message.text.strip()
+    user_id = message_user_id(message)
+    code = message_text(message).strip()
     from src.handlers.connection import apply_code_and_open_connection, code_fingerprint, telegram_user_fingerprint
 
     await apply_code_and_open_connection(

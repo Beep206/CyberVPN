@@ -4,6 +4,7 @@ from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveSettingResponse
+from src.presentation.api.v1.remnawave_degraded import optional_remnawave_read
 from src.presentation.dependencies import get_remnawave_client, require_role
 
 from .schemas import CreateSettingRequest, UpdateSettingRequest
@@ -16,9 +17,12 @@ async def get_settings(
     current_user=Depends(require_role(AdminRole.ADMIN)), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """Get system settings (admin only)"""
-    result = await client.get_list_validated("/settings", RemnawaveSettingResponse)
-    route_operations_total.labels(route="settings", action="list", status="success").inc()
-    return result
+    return await optional_remnawave_read(
+        route="settings",
+        action="list",
+        fetch=lambda: client.get_list_validated("/settings", RemnawaveSettingResponse),
+        fallback=[],
+    )
 
 
 @router.post("/", response_model=RemnawaveSettingResponse)

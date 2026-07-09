@@ -27,6 +27,7 @@ from src.services.telegram_registration import (
     message_key_for_registration_error,
     miniapp_url_from_registration_error,
 )
+from src.utils.telegram import callback_message, message_user_id
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
@@ -54,14 +55,14 @@ _SUPPORTED_PLATFORMS: set[str] = {"ios", "android", "windows", "macos", "linux",
 
 
 def _i18n_get(i18n: I18nContext, key: str, **kwargs: object) -> str:
-    return cast("str", i18n.get(key, **kwargs))
+    return str(i18n.get(key, **kwargs))
 
 
 def _callback_message(callback: CallbackQuery) -> Message | None:
-    message = callback.message
-    if message is None or not hasattr(message, "answer"):
+    try:
+        return callback_message(callback)
+    except RuntimeError:
         return None
-    return cast("Message", message)
 
 
 def _is_private_chat(target: Message | CallbackQuery) -> bool:
@@ -274,13 +275,13 @@ async def _send_bootstrap_message(
     try:
         bootstrap = await _bootstrap_connection(
             api_client,
-            telegram_id=message.from_user.id,
+            telegram_id=message_user_id(message),
             platform_hint=platform_hint,
         )
     except Exception as exc:
         logger.warning(
             "telegram_connection_bootstrap_failed",
-            telegram_user_fingerprint=telegram_user_fingerprint(message.from_user.id),
+            telegram_user_fingerprint=telegram_user_fingerprint(message_user_id(message)),
             action="message",
             **_safe_error_context(exc),
         )
@@ -295,7 +296,7 @@ async def _send_bootstrap_message(
 
     session = await _create_connection_session(
         cache,
-        telegram_id=message.from_user.id,
+        telegram_id=message_user_id(message),
         bootstrap=bootstrap,
         platform_hint=platform_hint,
     )
@@ -409,7 +410,7 @@ async def apply_code_and_open_connection(
 
     try:
         await api_client.register_user(
-            telegram_id=message.from_user.id,
+            telegram_id=message_user_id(message),
             username=message.from_user.username or None,
             first_name=message.from_user.first_name or None,
             language=message.from_user.language_code or "en",
@@ -419,7 +420,7 @@ async def apply_code_and_open_connection(
         if is_expected_registration_error(exc):
             logger.warning(
                 "telegram_onboarding_user_bootstrap_blocked",
-                telegram_user_fingerprint=telegram_user_fingerprint(message.from_user.id),
+                telegram_user_fingerprint=telegram_user_fingerprint(message_user_id(message)),
                 code_fingerprint=code_fingerprint(normalized_code),
                 status_code=exc.status_code,
                 message_key=message_key_for_registration_error(exc),
@@ -436,7 +437,7 @@ async def apply_code_and_open_connection(
             return
         logger.warning(
             "telegram_onboarding_user_bootstrap_failed",
-            telegram_user_fingerprint=telegram_user_fingerprint(message.from_user.id),
+            telegram_user_fingerprint=telegram_user_fingerprint(message_user_id(message)),
             code_fingerprint=code_fingerprint(normalized_code),
             **_safe_error_context(exc),
         )
@@ -446,10 +447,10 @@ async def apply_code_and_open_connection(
 
     try:
         apply_result = await api_client.apply_telegram_onboarding_code(
-            message.from_user.id,
+            message_user_id(message),
             normalized_code,
             idempotency_key=onboarding_code_idempotency_key(
-                telegram_id=message.from_user.id,
+                telegram_id=message_user_id(message),
                 code=normalized_code,
                 message_id=message.message_id,
             ),
@@ -457,7 +458,7 @@ async def apply_code_and_open_connection(
     except Exception as exc:
         logger.warning(
             "telegram_onboarding_code_apply_failed",
-            telegram_user_fingerprint=telegram_user_fingerprint(message.from_user.id),
+            telegram_user_fingerprint=telegram_user_fingerprint(message_user_id(message)),
             code_fingerprint=code_fingerprint(normalized_code),
             **_safe_error_context(exc),
         )

@@ -21,7 +21,7 @@ class CreateConfigProfileRequest(BaseModel):
     profile_type: str = Field(..., min_length=1, max_length=50, description="Profile type")
     content: str = Field(..., min_length=1, max_length=100_000, description="Profile content/template")
     is_default: bool = Field(False, description="Whether this is the default profile")
-    description: str | None = Field(None, max_length=500, description="Profile description")
+    description: str | None = Field(default=None, max_length=500, description="Profile description")
 
 
 class ConfigProfileResponse(BaseModel):
@@ -34,4 +34,4 @@ class ConfigProfileResponse(BaseModel):
     profile_type: str = Field(..., max_length=50, description="Profile type")
     content: str = Field(..., description="Profile content/template")
     is_default: bool = Field(..., description="Whether this is the default profile")
-    description: str | None = Field(None, max_length=500, description="Profile description")
+    description: str | None = Field(default=None, max_length=500, description="Profile description")

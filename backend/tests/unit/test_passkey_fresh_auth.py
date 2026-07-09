@@ -32,7 +32,10 @@ class FakeRedisWithoutGetdel:
         self.commands: list[tuple[object, ...]] = []
 
     async def setex(self, key: str, ttl_seconds: int, value: object) -> bool:
-        return await self._delegate.setex(key, ttl_seconds, value)
+        return await self._delegate.set(key, value, ex=ttl_seconds)
+
+    async def set(self, key: str, value: object, *, ex: int | None = None) -> bool:
+        return await self._delegate.set(key, value, ex=ex)
 
     async def get(self, key: str) -> object | None:
         return await self._delegate.get(key)
@@ -52,7 +55,10 @@ class FakeRedisWithUnsupportedGetdel:
         self.eval_called = False
 
     async def setex(self, key: str, ttl_seconds: int, value: object) -> bool:
-        return await self._delegate.setex(key, ttl_seconds, value)
+        return await self._delegate.set(key, value, ex=ttl_seconds)
+
+    async def set(self, key: str, value: object, *, ex: int | None = None) -> bool:
+        return await self._delegate.set(key, value, ex=ex)
 
     async def get(self, key: str) -> object | None:
         return await self._delegate.get(key)
@@ -115,7 +121,7 @@ async def test_consume_expired_fresh_auth_grant_rejects_and_consumes() -> None:
         expires_at=(datetime.now(UTC) - timedelta(seconds=1)).isoformat(),
     )
     key = f"{store.key_prefix}{grant_id}"
-    await redis.setex(key, 300, json.dumps(asdict(record), separators=(",", ":")))
+    await redis.set(key, json.dumps(asdict(record), separators=(",", ":")), ex=300)
 
     with pytest.raises(PasskeyFreshAuthGrantError, match="passkey_fresh_auth_expired"):
         await _consume(store, grant_id)
@@ -178,7 +184,7 @@ async def test_consume_wrong_endpoint_scope_fresh_auth_grant_rejects_and_consume
         expires_at=(datetime.now(UTC) + timedelta(minutes=5)).isoformat(),
     )
     key = f"{store.key_prefix}{grant_id}"
-    await redis.setex(key, 300, json.dumps(asdict(record), separators=(",", ":")))
+    await redis.set(key, json.dumps(asdict(record), separators=(",", ":")), ex=300)
 
     with pytest.raises(PasskeyFreshAuthGrantError, match="passkey_fresh_auth_mismatch"):
         await _consume(store, grant_id)

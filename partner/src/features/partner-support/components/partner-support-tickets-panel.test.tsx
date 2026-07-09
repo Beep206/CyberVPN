@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
@@ -43,6 +43,10 @@ function renderPanel(options: RenderPanelOptions = {}) {
       result.rerender(renderPanelNode(nextOptions));
     },
   };
+}
+
+function setFieldValue(field: HTMLElement, value: string) {
+  fireEvent.change(field, { target: { value } });
 }
 
 function ticketPayload(overrides: Record<string, unknown> = {}) {
@@ -249,9 +253,12 @@ describe('PartnerSupportTicketsPanel', () => {
     const user = userEvent.setup();
     renderPanel();
 
-    await user.type(screen.getByLabelText('create.subjectLabel'), 'New partner issue');
+    setFieldValue(screen.getByLabelText('create.subjectLabel'), 'New partner issue');
     await user.selectOptions(screen.getByLabelText('create.categoryLabel'), 'setup');
-    await user.type(screen.getByLabelText('create.messageLabel'), 'Synthetic only support request.');
+    setFieldValue(
+      screen.getByLabelText('create.messageLabel'),
+      'Synthetic only support request.',
+    );
     await user.click(screen.getByRole('button', { name: 'create.submit' }));
 
     await waitFor(() => {
@@ -271,7 +278,7 @@ describe('PartnerSupportTicketsPanel', () => {
     const detailPanel = screen.getByText('detail.title').closest('section');
     expect(detailPanel).not.toBeNull();
 
-    await user.type(
+    setFieldValue(
       within(detailPanel as HTMLElement).getByLabelText('detail.replyLabel'),
       'Partner reply for support.',
     );

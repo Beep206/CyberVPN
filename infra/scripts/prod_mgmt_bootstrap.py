@@ -12,7 +12,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -157,7 +157,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             cabpt_version=args.cabpt_version,
             cacppt_version=args.cacppt_version,
         ),
-        mode=0o750,
+        mode=0o700,
     )
     write_text(
         output_dir / "install-caph.sh",
@@ -166,7 +166,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             caph_branch=args.caph_branch,
             caph_components_url=args.caph_components_url,
         ),
-        mode=0o750,
+        mode=0o700,
     )
     write_text(
         output_dir / "versions.env",

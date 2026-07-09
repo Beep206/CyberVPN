@@ -10,6 +10,7 @@ import { server } from '@/test/mocks/server';
 import { subscriptionsApi } from '../subscriptions';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
+import { expectAxiosErrorStatus } from './assertions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -158,7 +159,7 @@ describe('subscriptionsApi.list', () => {
     );
 
     // Act & Assert -- cookie-based auth now bubbles the refresh 401 response.
-    await expect(subscriptionsApi.list()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(subscriptionsApi.list(), 401);
   });
 
   it('test_list_subscriptions_server_error_500_rejects', async () => {
@@ -267,7 +268,7 @@ describe('subscriptionsApi.get', () => {
     );
 
     // Act & Assert
-    await expect(subscriptionsApi.get(uuid)).rejects.toThrow();
+    await expectAxiosErrorStatus(subscriptionsApi.get(uuid), 401);
   });
 
   it('test_get_subscription_with_refresh_token_retries_on_401', async () => {
@@ -422,7 +423,7 @@ describe('subscriptionsApi.getConfig', () => {
     );
 
     // Act & Assert
-    await expect(subscriptionsApi.getConfig('user_001')).rejects.toThrow();
+    await expectAxiosErrorStatus(subscriptionsApi.getConfig('user_001'), 401);
   });
 
   it('test_get_config_server_error_500_rejects', async () => {

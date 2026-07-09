@@ -126,6 +126,10 @@ describe('subscription cabinet model', () => {
         connection_modes: ['standard', '', null, 'stealth'],
       },
     }, 'connection_modes')).toEqual(['standard', 'stealth']);
+    expect(readEntitlementNumber({
+      ...entitlement,
+      effective_entitlements: undefined as unknown as CurrentEntitlement['effective_entitlements'],
+    }, 'device_limit')).toBeNull();
     expect(readEntitlementStringArray(entitlement, 'missing')).toEqual([]);
     expect(getDaysUntilExpiry(entitlement, new Date('2026-04-24T00:00:00Z'))).toBe(3);
     expect(getDaysUntilExpiry({ ...entitlement, expires_at: null })).toBeNull();

@@ -6,7 +6,7 @@ Rules and best practices for the CyberVPN FastAPI backend.
 
 | Library | Version | Purpose |
 |---------|---------|---------|
-| Python | 3.13.13 | Runtime baseline (Docker/CI/WSL) |
+| Python | 3.13.14 | Runtime baseline (Docker/CI/WSL) |
 | FastAPI | ≥0.128.0 | Web framework |
 | Uvicorn | standard | ASGI server |
 | Pydantic | ≥2.0 | Validation & schemas |
@@ -60,7 +60,7 @@ presentation/  → application/  → domain/  ← infrastructure/
 
 ---
 
-## Python 3.13.13
+## Python 3.13.14
 
 ### Type Hints
 - **`TypeIs`** for type narrowing (replaces `TypeGuard` where applicable):
@@ -407,7 +407,7 @@ known-first-party = ["src"]
 - **Always run both `ruff check` and `ruff format`** — they complement each other
 - **`I` rules** handle import sorting (replaces isort)
 - **`B` rules** catch common bugs (bugbear)
-- **`UP` rules** modernize syntax to the Python 3.13.13 baseline
+- **`UP` rules** modernize syntax to the Python 3.13.14 baseline
 - **`S` rules** catch security issues (bandit)
 - **`ASYNC` rules** catch async anti-patterns
 
@@ -430,7 +430,7 @@ known-first-party = ["src"]
 
 ### Dockerfile
 ```dockerfile
-FROM python:3.13.13-slim-bookworm
+FROM python:3.13.14-slim-bookworm
 WORKDIR /app
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir -e .

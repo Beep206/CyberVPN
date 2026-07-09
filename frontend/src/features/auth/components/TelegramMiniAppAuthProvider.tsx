@@ -15,6 +15,7 @@ import {
 } from '@/features/customer-onboarding/routing';
 import { installMiniAppClientErrorListeners, reportMiniAppClientError } from '@/features/miniapp-runtime/lib/client-error-telemetry';
 import { replaceMiniAppPath } from '@/features/miniapp-runtime/lib/navigation';
+import { resetMiniAppPrivateAuthQueries } from '@/shared/lib/customer-query-invalidation';
 import { Loader2, AlertCircle, Shield, RotateCcw, Send, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -168,12 +169,7 @@ export function TelegramMiniAppAuthProvider({
     }, []);
 
     const refreshMiniAppQueriesAfterAuthRecovery = useCallback(async () => {
-        await queryClient.resetQueries({
-            predicate: (query) => {
-                const [queryKey] = query.queryKey;
-                return typeof queryKey === 'string' && queryKey.startsWith('miniapp-');
-            },
-        });
+        await resetMiniAppPrivateAuthQueries(queryClient);
     }, [queryClient]);
 
     const resolveMiniAppOnboardingFromCurrentState = useCallback(async (): Promise<MiniAppOnboardingLookupResult> => {

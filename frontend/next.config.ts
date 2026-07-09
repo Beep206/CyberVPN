@@ -14,6 +14,11 @@ const publicSentryRelease =
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
 const sentryOrg = process.env.SENTRY_ORG?.trim();
 const sentryProject = process.env.SENTRY_PROJECT?.trim();
+const configuredBuildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? "", 10);
+const buildWorkerCount =
+  Number.isFinite(configuredBuildCpus) && configuredBuildCpus > 0
+    ? configuredBuildCpus
+    : 4;
 const FRONTEND_PRIMARY_ORIGIN = "cyber-vpn.net";
 const FRONTEND_WWW_ORIGIN = "www.cyber-vpn.net";
 const FRONTEND_CABINET_ORIGIN = "my.cyber-vpn.net";
@@ -56,16 +61,12 @@ const cspDirectives = [
 const config: NextConfigWithCompiler = {
   experimental: {
     globalNotFound: true,
+    cpus: buildWorkerCount,
+    staticGenerationRetryCount: 1,
+    staticGenerationMaxConcurrency: Math.min(buildWorkerCount, 4),
+    staticGenerationMinPagesPerWorker: 200,
     // Avoid WSL CPU/RAM spikes from Turbopack dev filesystem-cache compaction.
     turbopackFileSystemCacheForDev: false,
-    ...(process.env.CI
-      ? {
-          cpus: 4,
-          staticGenerationRetryCount: 1,
-          staticGenerationMaxConcurrency: 4,
-          staticGenerationMinPagesPerWorker: 200,
-        }
-      : {}),
     serverActions: {
             allowedOrigins: [
                 FRONTEND_PRIMARY_ORIGIN,

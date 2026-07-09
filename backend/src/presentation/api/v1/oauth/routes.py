@@ -897,7 +897,7 @@ async def create_telegram_magic_link(
             detail="Telegram bot is not configured.",
         )
 
-    await redis_client.setex(_get_magic_link_key(token), 300, "pending")
+    await redis_client.set(_get_magic_link_key(token), "pending", ex=300)
 
     bot_url = f"https://t.me/{bot_username}?start=auth_{token}"
     deep_link_url = f"tg://resolve?domain={bot_username}&start=auth_{token}"
@@ -973,10 +973,10 @@ async def create_telegram_account_link_magic_link(
         )
 
     payload = _build_account_link_session_payload(user_id=user_id, current_realm=current_realm)
-    await redis_client.setex(
+    await redis_client.set(
         _get_account_link_key(token),
-        _TELEGRAM_ACCOUNT_LINK_TTL_SECONDS,
         json.dumps(payload),
+        ex=_TELEGRAM_ACCOUNT_LINK_TTL_SECONDS,
     )
 
     logger.info(

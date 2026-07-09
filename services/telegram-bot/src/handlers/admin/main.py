@@ -5,11 +5,12 @@ from typing import TYPE_CHECKING
 import structlog
 from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import CallbackQuery, Message
 
 from src.keyboards.admin_main import admin_main_keyboard
+from src.utils.telegram import callback_message, message_user_id
 
 if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
 logger = structlog.get_logger(__name__)
@@ -28,7 +29,7 @@ async def admin_panel_handler(
         reply_markup=admin_main_keyboard(i18n),
     )
 
-    logger.info("admin_panel_opened", admin_id=message.from_user.id)
+    logger.info("admin_panel_opened", admin_id=message_user_id(message))
 
 
 @router.callback_query(F.data == "admin:menu")
@@ -37,7 +38,7 @@ async def admin_menu_callback_handler(
     i18n: I18nContext,
 ) -> None:
     """Handle admin menu callback."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-panel-title"),
         reply_markup=admin_main_keyboard(i18n),
     )
@@ -87,7 +88,7 @@ async def admin_settings_handler(
         )
     )
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-settings-title"),
         reply_markup=builder.as_markup(),
     )

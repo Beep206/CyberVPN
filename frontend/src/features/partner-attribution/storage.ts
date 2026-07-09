@@ -60,9 +60,23 @@ export function isPartnerAttributionExpired(snapshot: PartnerAttributionSnapshot
 
 export function readPartnerAttribution(): PartnerAttributionSnapshot | null {
   if (!canUseStorage()) return null;
-  const snapshot = parseSnapshot(window.localStorage.getItem(PARTNER_ATTRIBUTION_STORAGE_KEY));
+
+  let raw: string | null;
+  try {
+    raw = window.localStorage.getItem(PARTNER_ATTRIBUTION_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+
+  const snapshot = parseSnapshot(raw);
   if (!snapshot) {
-    clearPartnerAttribution();
+    if (raw !== null) {
+      try {
+        window.localStorage.removeItem(PARTNER_ATTRIBUTION_STORAGE_KEY);
+      } catch {
+        // Ignore blocked storage.
+      }
+    }
     return null;
   }
   if (isPartnerAttributionExpired(snapshot)) {
@@ -85,8 +99,11 @@ export function savePartnerAttribution(snapshot: PartnerAttributionSnapshot): vo
 export function clearPartnerAttribution(): void {
   if (!canUseStorage()) return;
   try {
+    const hadSnapshot = window.localStorage.getItem(PARTNER_ATTRIBUTION_STORAGE_KEY) !== null;
     window.localStorage.removeItem(PARTNER_ATTRIBUTION_STORAGE_KEY);
-    emitChanged();
+    if (hadSnapshot) {
+      emitChanged();
+    }
   } catch {
     // Ignore blocked storage.
   }

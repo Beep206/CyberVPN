@@ -34,6 +34,10 @@ Browser API calls use same-origin `/api/v1` and the Next.js rewrite in
 NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
 ```
 
+## Cache Revalidation
+
+The internal `POST /api/cache/revalidate` route requires `NEXT_CACHE_REVALIDATE_SECRET` and the `x-cache-revalidate-secret` header. It accepts only public SEO cache tags; account, session, payment, subscription, admin, and partner-finance data must not be revalidated through this route.
+
 ## Product Intelligence Environment
 
 `P3.6` introduces the first governed PostHog server-side bridge and typed feature-flag wrapper path.

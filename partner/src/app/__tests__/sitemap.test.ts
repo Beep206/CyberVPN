@@ -1,7 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getComparisonEntries } from '@/content/seo/comparisons';
-import { getDeviceEntries } from '@/content/seo/devices';
-import { getGuideEntries } from '@/content/seo/guides';
 import { getIndexableLocalesForPath } from '@/shared/lib/locale-rollout-policy';
 import sitemap from '../sitemap';
 import {
@@ -16,21 +13,10 @@ vi.mock('next/cache', () => ({
 }));
 
 describe('sitemap', () => {
-  it('includes only rollout-eligible public routes on the canonical domain', async () => {
-    const [entries, guideEntries, comparisonEntries, deviceEntries] = await Promise.all([
-      sitemap(),
-      getGuideEntries(),
-      getComparisonEntries(),
-      getDeviceEntries(),
-    ]);
+  it('includes only storefront public routes on the canonical domain', async () => {
+    const entries = await sitemap();
     const urls = new Set(entries.map((entry) => entry.url));
-    const allIndexedRoutes = [
-      ...INDEXABLE_MARKETING_PATHS,
-      ...guideEntries.map((entry) => entry.path),
-      ...comparisonEntries.map((entry) => entry.path),
-      ...deviceEntries.map((entry) => entry.path),
-    ];
-    const expectedCount = allIndexedRoutes.reduce(
+    const expectedCount = INDEXABLE_MARKETING_PATHS.reduce(
       (count, route) => count + getIndexableLocalesForPath(route).length,
       0,
     );
@@ -40,12 +26,11 @@ describe('sitemap', () => {
 
     const expectedPublicUrls = [
       `${SITE_URL}/en-EN`,
-      `${SITE_URL}/ru-RU/pricing`,
-      `${SITE_URL}/ru-RU/guides`,
-      `${SITE_URL}/ru-RU/guides/how-to-bypass-dpi-with-vless-reality`,
-      `${SITE_URL}/ru-RU/devices/android-vpn-setup`,
-      `${SITE_URL}/en-EN/trust`,
-      `${SITE_URL}/en-EN/audits`,
+      `${SITE_URL}/ru-RU`,
+      `${SITE_URL}/en-EN/checkout`,
+      `${SITE_URL}/ru-RU/checkout`,
+      `${SITE_URL}/en-EN/legal-docs`,
+      `${SITE_URL}/ru-RU/support`,
     ];
 
     for (const expectedUrl of expectedPublicUrls) {
@@ -60,6 +45,12 @@ describe('sitemap', () => {
         `${SITE_URL}/en-EN/oauth/callback`,
         `${SITE_URL}/en-EN/test-animation`,
         `${SITE_URL}/en-EN/test-error`,
+        `${SITE_URL}/en-EN/pricing`,
+        `${SITE_URL}/ru-RU/guides`,
+        `${SITE_URL}/ru-RU/guides/how-to-bypass-dpi-with-vless-reality`,
+        `${SITE_URL}/ru-RU/devices/android-vpn-setup`,
+        `${SITE_URL}/en-EN/trust`,
+        `${SITE_URL}/en-EN/audits`,
         `${SITE_URL}/fa-IR/pricing`,
         `${SITE_URL}/fa-IR/guides`,
         `${SITE_URL}/fa-IR/guides/how-to-bypass-dpi-with-vless-reality`,

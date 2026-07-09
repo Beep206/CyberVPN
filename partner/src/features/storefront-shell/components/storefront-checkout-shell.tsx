@@ -2,7 +2,7 @@
 
 import { useLocale } from 'next-intl';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
 import { Link } from '@/i18n/navigation';
@@ -58,6 +58,31 @@ type CheckoutCatalogItem = {
   includedAddonCodes: string[];
 };
 
+type StorefrontCheckoutAttempt = {
+  attemptKey: string;
+  checkoutIdempotencyKey: string;
+  paymentAttemptIdempotencyKey: string;
+  quoteSessionId: string | null;
+  checkoutSessionId: string | null;
+  orderId: string | null;
+  order: OrderResponse | null;
+};
+
+function getStorefrontCheckoutAttemptKey(
+  surfaceContext: StorefrontSurfaceContext,
+  item: CheckoutCatalogItem,
+): string {
+  return [
+    surfaceContext.storefrontKey,
+    surfaceContext.saleChannel,
+    surfaceContext.defaultCurrency,
+    item.offerId,
+    item.offerKey,
+    item.planId,
+    item.pricebookKey,
+  ].join(':');
+}
+
 function readErrorMessage(error: unknown, fallback: string): string {
   const axiosError = error as AxiosError<{ detail?: unknown }>;
   const detail = axiosError.response?.data?.detail;
@@ -89,6 +114,7 @@ export function StorefrontCheckoutShell({
     order: OrderResponse;
     paymentAttempt: PaymentAttemptResponse;
   } | null>(null);
+  const checkoutAttemptRef = useRef<StorefrontCheckoutAttempt | null>(null);
 
   const offersQuery = useQuery({
     queryKey: ['storefront', surfaceContext.storefrontKey, 'offers'],
@@ -125,6 +151,7 @@ export function StorefrontCheckoutShell({
       const response = await entitlementsApi.getCurrent();
       return response.data;
     },
+    enabled: Boolean(user?.id),
     retry: false,
   });
 
@@ -136,6 +163,7 @@ export function StorefrontCheckoutShell({
       );
       return response.data;
     },
+    enabled: Boolean(user?.id),
     retry: false,
   });
 
@@ -167,36 +195,71 @@ export function StorefrontCheckoutShell({
 
   const checkoutMutation = useMutation({
     mutationFn: async (item: CheckoutCatalogItem) => {
-      const quoteResponse = await commerceApi.createQuoteSession({
-        storefront_key: surfaceContext.storefrontKey,
-        pricebook_key: item.pricebookKey,
-        offer_key: item.offerKey,
-        plan_id: item.planId,
-        currency: surfaceContext.defaultCurrency,
-        channel: surfaceContext.saleChannel,
-        use_wallet: 0,
-      });
+      const attemptKey = getStorefrontCheckoutAttemptKey(surfaceContext, item);
+      let attempt = checkoutAttemptRef.current;
 
-      const checkoutResponse = await commerceApi.createCheckoutSession(
-        { quote_session_id: quoteResponse.data.id },
-        createClientIdempotencyKey(`${surfaceContext.storefrontKey}-checkout`),
-      );
+      if (!attempt || attempt.attemptKey !== attemptKey) {
+        attempt = {
+          attemptKey,
+          checkoutIdempotencyKey: createClientIdempotencyKey(`${surfaceContext.storefrontKey}-checkout`),
+          paymentAttemptIdempotencyKey: createClientIdempotencyKey(
+            `${surfaceContext.storefrontKey}-payment-attempt`,
+          ),
+          quoteSessionId: null,
+          checkoutSessionId: null,
+          orderId: null,
+          order: null,
+        };
+        checkoutAttemptRef.current = attempt;
+      }
 
-      const orderResponse = await commerceApi.commitOrder({
-        checkout_session_id: checkoutResponse.data.id,
-      });
+      if (!attempt.quoteSessionId) {
+        const quoteResponse = await commerceApi.createQuoteSession({
+          storefront_key: surfaceContext.storefrontKey,
+          pricebook_key: item.pricebookKey,
+          offer_key: item.offerKey,
+          plan_id: item.planId,
+          currency: surfaceContext.defaultCurrency,
+          channel: surfaceContext.saleChannel,
+          use_wallet: 0,
+        });
+        attempt.quoteSessionId = quoteResponse.data.id;
+      }
+
+      if (!attempt.checkoutSessionId) {
+        const checkoutResponse = await commerceApi.createCheckoutSession(
+          { quote_session_id: attempt.quoteSessionId },
+          attempt.checkoutIdempotencyKey,
+        );
+        attempt.checkoutSessionId = checkoutResponse.data.id;
+      }
+
+      if (!attempt.order) {
+        const orderResponse = await commerceApi.commitOrder({
+          checkout_session_id: attempt.checkoutSessionId,
+        });
+        attempt.orderId = orderResponse.data.id;
+        attempt.order = orderResponse.data;
+      }
+
+      const order = attempt.order;
+      const orderId = attempt.orderId;
+      if (!order || !orderId) {
+        throw new Error('Storefront checkout order was not created before payment attempt.');
+      }
 
       const paymentAttemptResponse = await commerceApi.createPaymentAttempt(
-        { order_id: orderResponse.data.id },
-        createClientIdempotencyKey(`${surfaceContext.storefrontKey}-payment-attempt`),
+        { order_id: orderId },
+        attempt.paymentAttemptIdempotencyKey,
       );
 
       return {
-        order: orderResponse.data,
+        order,
         paymentAttempt: paymentAttemptResponse.data,
       };
     },
     onSuccess: async (result) => {
+      checkoutAttemptRef.current = null;
       setCheckoutResult(result);
       if (user?.id) {
         sendProductAnalyticsEvent(buildCheckoutStepCompletedCapture({

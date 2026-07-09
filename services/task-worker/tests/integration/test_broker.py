@@ -79,7 +79,6 @@ class TestBrokerLifecycle:
             patch("src.broker.start_metrics_server") as mock_start_metrics,
             patch("httpx.AsyncClient"),
         ):
-
             mock_engine = AsyncMock()
             mock_session_factory = MagicMock()
             mock_get_engine.return_value = mock_engine
@@ -176,7 +175,6 @@ class TestBrokerLifecycle:
             patch("src.broker.get_engine") as mock_get_engine,
             patch("src.broker.start_metrics_server"),
         ):
-
             mock_get_engine.side_effect = Exception("Database connection failed")
 
             from src.broker import startup_event

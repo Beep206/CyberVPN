@@ -10,14 +10,18 @@ import {
 import {
   isSupportedWebOAuthProvider,
   OAUTH_TRANSACTION_COOKIE,
-  parseOAuthTransactionCookieValue,
+  parseProviderTransactionCookieValue,
 } from '@/features/auth/lib/oauth-transaction';
 import {
   createPendingTwoFactorCookieValue,
   pendingTwoFactorCookieOptions,
   PENDING_2FA_COOKIE,
 } from '@/features/auth/lib/pending-twofa';
-import { buildAppUrl } from '@/features/auth/lib/request-origin';
+import {
+  buildAppUrl,
+  getTrustedForwardedHost,
+  getTrustedForwardedProto,
+} from '@/features/auth/lib/request-origin';
 import { getDefaultPostLoginPath, normalizeAuthLocale } from '@/features/auth/lib/redirect-path';
 import {
   oauthResultCookieOptions,
@@ -39,16 +43,11 @@ function buildForwardHeaders(request: NextRequest): Headers {
     'content-type': 'application/json',
   });
 
-  const forwardedFor = request.headers.get('x-forwarded-for');
   const userAgent = request.headers.get('user-agent');
   const acceptLanguage = request.headers.get('accept-language');
 
-  if (forwardedFor) {
-    headers.set('x-forwarded-for', forwardedFor);
-  }
-  
-  // Local environment workaround for ProxyCheckMiddleware
-  headers.set('x-forwarded-proto', 'https');
+  headers.set('x-forwarded-host', getTrustedForwardedHost(request));
+  headers.set('x-forwarded-proto', getTrustedForwardedProto(request));
 
   if (userAgent) {
     headers.set('user-agent', userAgent);
@@ -129,7 +128,7 @@ export async function GET(
     );
   }
 
-  const transaction = parseOAuthTransactionCookieValue(
+  const transaction = parseProviderTransactionCookieValue(
     request.cookies.get(OAUTH_TRANSACTION_COOKIE)?.value,
   );
   const locale = transaction?.locale ?? fallbackLocale;

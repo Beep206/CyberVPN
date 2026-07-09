@@ -243,6 +243,8 @@ class Settings(BaseSettings):
     uvicorn_timeout_graceful_shutdown: int = 30
     uvicorn_limit_concurrency: int | None = None
     uvicorn_limit_max_requests: int | None = None
+    request_body_limit_enabled: bool = True
+    max_request_body_bytes: int = 1_048_576
 
     # Rate limiting
     rate_limit_enabled: bool = True
@@ -341,10 +343,12 @@ class Settings(BaseSettings):
         "http://localhost:3001",
         "http://localhost:3002",
         "http://localhost:3004",
+        "http://admin.localhost:3001",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
         "http://127.0.0.1:3002",
         "http://127.0.0.1:3004",
+        "http://127.0.0.1:9464",
     ]
     passkey_challenge_ttl_seconds: int = 300
     passkey_browser_timeout_ms: int = 60000
@@ -557,6 +561,15 @@ class Settings(BaseSettings):
         if normalized in {"debug", "dev", "development"}:
             return True
 
+        return v
+
+    @field_validator("max_request_body_bytes", mode="after")
+    @classmethod
+    def validate_max_request_body_bytes(cls, v: int) -> int:
+        if v < 1024:
+            raise ValueError("MAX_REQUEST_BODY_BYTES must be at least 1024 bytes.")
+        if v > 10 * 1024 * 1024:
+            raise ValueError("MAX_REQUEST_BODY_BYTES must be at most 10485760 bytes.")
         return v
 
     @field_validator("oauth_web_base_url", mode="before")

@@ -86,16 +86,7 @@ class OAuthStateService:
             code_challenge = self._generate_code_challenge(code_verifier)
             data["code_verifier"] = code_verifier
 
-        await self._redis.setex(key, self.TTL_SECONDS, json.dumps(data))
-
-        logger.debug(
-            "OAuth state generated",
-            extra={
-                "provider": provider,
-                "state_prefix": state[:8],
-                "pkce_enabled": pkce,
-            },
-        )
+        await self._redis.set(key, json.dumps(data), ex=self.TTL_SECONDS)
 
         return state, code_challenge
 
@@ -130,7 +121,7 @@ class OAuthStateService:
         if not data:
             logger.warning(
                 "Invalid or expired OAuth state used",
-                extra={"state_prefix": state[:8] if len(state) >= 8 else state},
+                extra={"state_present": bool(state)},
             )
             return None
 
@@ -173,7 +164,6 @@ class OAuthStateService:
             "OAuth state validated and consumed",
             extra={
                 "provider": provider,
-                "state_prefix": state[:8],
                 "has_pkce": "code_verifier" in state_data,
             },
         )

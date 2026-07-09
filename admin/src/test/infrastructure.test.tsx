@@ -235,4 +235,10 @@ describe('MSW API Mocking', () => {
     const data = await response.json();
     expect(data.id).toBe(MOCK_USER.id);
   });
+
+  it('test_msw_unhandled_api_request_fails_closed', async () => {
+    await expect(
+      fetch('http://localhost:8000/api/v1/__missing_msw_contract_probe__'),
+    ).rejects.toThrow(/Cannot bypass a request when using the "error" strategy/);
+  });
 });

@@ -13,7 +13,7 @@ from src.config.settings import settings
 
 ClientIpSource = Literal["direct", "x_forwarded_for", "x_real_ip", "unknown"]
 
-_LOOPBACK_TRUSTED_PROXY_IPS = ("127.0.0.1", "::1")
+LOOPBACK_TRUSTED_PROXY_IPS = ("127.0.0.1", "::1")
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,9 +40,9 @@ def resolve_client_ip(
 
     trusted_entries = tuple(settings.trusted_proxy_ips if trusted_proxy_ips is None else trusted_proxy_ips)
     if not trusted_entries:
-        trusted_entries = _LOOPBACK_TRUSTED_PROXY_IPS
+        trusted_entries = LOOPBACK_TRUSTED_PROXY_IPS
 
-    if not _is_trusted_proxy_peer(direct_ip, trusted_entries):
+    if not is_trusted_proxy_peer(direct_ip, trusted_entries):
         return _store_result(request, ClientIpResult(ip=direct_ip, ip_source="direct", proxy_peer=direct_ip))
 
     real_ip = _validated_header_ip(request.headers.get("x-real-ip"))
@@ -66,7 +66,10 @@ def _store_result(request: Request, result: ClientIpResult) -> ClientIpResult:
     return result
 
 
-def _is_trusted_proxy_peer(peer_ip: str, trusted_proxy_ips: Iterable[str]) -> bool:
+def is_trusted_proxy_peer(peer_ip: str | None, trusted_proxy_ips: Iterable[str]) -> bool:
+    if peer_ip is None:
+        return False
+
     try:
         peer = ip_address(peer_ip)
     except ValueError:

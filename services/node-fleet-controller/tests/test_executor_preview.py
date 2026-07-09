@@ -10,9 +10,7 @@ from src.infra.execution.opentofu_executor import ExecutorPlanInput, OpenTofuExe
 
 class ExecutorPreviewTests(unittest.TestCase):
     def test_preview_redacts_sensitive_variables_and_requires_locking(self) -> None:
-        executor = OpenTofuExecutor(
-            Settings(opentofu_default_stack_root="infra/terraform/live", environment="test")
-        )
+        executor = OpenTofuExecutor(Settings(opentofu_default_stack_root="infra/terraform/live", environment="test"))
         request = FleetRequestRecord(
             request_id="req_exec_1",
             request_type=RequestType.PROVISIONING,

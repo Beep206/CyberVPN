@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Shield, Navigation, Monitor, Settings, Wrench, Activity, Skull, Paintbrush, Globe, Database, Unplug, ScanEye, Zap, Bell, Flag, Languages, Palette, Terminal, Layers, DatabaseZap, Wand2, Smartphone } from 'lucide-react';
+import { ActivityDevTabPanel } from "./activity-dev-tab-panel";
 import { DevButton } from "./dev-button";
 import { useTheme } from "@/app/providers/theme-provider";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,29 @@ import { XRayTab } from './tabs/xray-tab';
 import { QueryTab } from './tabs/query-tab';
 import { AutofillTab } from './tabs/autofill-tab';
 import { ToolsTab } from "./tabs/tools-tab";
+
+type DevPanelTabId =
+    | "nav"
+    | "auth"
+    | "system"
+    | "browser"
+    | "performance"
+    | "network"
+    | "flags"
+    | "chaos"
+    | "i18n"
+    | "theme"
+    | "tools"
+    | "storage"
+    | "mocker"
+    | "a11y"
+    | "render"
+    | "events"
+    | "twa"
+    | "console"
+    | "xray"
+    | "query"
+    | "autofill";
 
 // ----------------------------------------------------------------------
 // Mini FPS Graph for Header
@@ -86,7 +110,8 @@ interface DevPanelProps {
 
 export function DevPanel({ defaultOpen = false }: DevPanelProps) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
-    const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "network" | "flags" | "chaos" | "i18n" | "theme" | "tools" | "storage" | "mocker" | "a11y" | "render" | "events" | "twa" | "console" | "xray" | "query" | "autofill">("nav");
+    const [activeTab, setActiveTab] = useState<DevPanelTabId>("nav");
+    const [visitedTabs, setVisitedTabs] = useState<DevPanelTabId[]>(["nav"]);
     const [bypassAuth, setBypassAuth] = useState(false);
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -108,9 +133,61 @@ export function DevPanel({ defaultOpen = false }: DevPanelProps) {
         }
     };
 
+    const activateTab = (tabId: DevPanelTabId) => {
+        setActiveTab(tabId);
+        setVisitedTabs((current) => current.includes(tabId) ? current : [...current, tabId]);
+    };
+
     if (!mounted) return <DevButton onClick={() => setIsOpen(true)} />;
 
     const isDark = resolvedTheme === 'dark';
+
+    const renderTabContent = (tabId: DevPanelTabId) => {
+        switch (tabId) {
+            case "nav":
+                return <NavigationTab onClose={() => setIsOpen(false)} isDark={isDark} />;
+            case "auth":
+                return <AuthTab enabled={bypassAuth} onToggle={toggleAuthBypass} isDark={isDark} />;
+            case "browser":
+                return <BrowserTab isDark={isDark} />;
+            case "system":
+                return <SystemTab isDark={isDark} />;
+            case "performance":
+                return <PerformanceTab isDark={isDark} />;
+            case "network":
+                return <NetworkTab isDark={isDark} />;
+            case "flags":
+                return <FlagsTab isDark={isDark} />;
+            case "chaos":
+                return <ChaosTab isDark={isDark} />;
+            case "i18n":
+                return <I18nTab isDark={isDark} />;
+            case "theme":
+                return <ThemeTab isDark={isDark} />;
+            case "tools":
+                return <ToolsTab isDark={isDark} />;
+            case "storage":
+                return <StorageTab isDark={isDark} />;
+            case "mocker":
+                return <MockerTab isDark={isDark} />;
+            case "a11y":
+                return <A11yTab isDark={isDark} />;
+            case "render":
+                return <RenderTab isDark={isDark} />;
+            case "events":
+                return <EventsTab isDark={isDark} />;
+            case "twa":
+                return <TwaTab isDark={isDark} />;
+            case "console":
+                return <ConsoleTab isDark={isDark} />;
+            case "xray":
+                return <XRayTab isDark={isDark} />;
+            case "query":
+                return <QueryTab isDark={isDark} />;
+            case "autofill":
+                return <AutofillTab isDark={isDark} />;
+        }
+    };
 
     return (
         <>
@@ -210,7 +287,7 @@ export function DevPanel({ defaultOpen = false }: DevPanelProps) {
                                     ] as const).map((tab) => (
                                         <button
                                             key={tab.id}
-                                            onClick={() => setActiveTab(tab.id)}
+                                            onClick={() => activateTab(tab.id)}
                                             className={cn(
                                                 "w-full px-4 flex items-center justify-start gap-3 py-3.5 text-sm font-black font-mono uppercase tracking-tight transition-all relative overflow-hidden text-left border-l-2",
                                                 activeTab === tab.id
@@ -239,37 +316,26 @@ export function DevPanel({ defaultOpen = false }: DevPanelProps) {
                                     "flex-1 p-6 overflow-y-auto font-mono space-y-6",
                                     isDark ? "bg-black/40" : "bg-slate-50/50"
                                 )}>
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key={activeTab}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        transition={{ duration: 0.2 }}
-                                    >
-                                        {activeTab === "nav" && <NavigationTab onClose={() => setIsOpen(false)} isDark={isDark} />}
-                                        {activeTab === "auth" && <AuthTab enabled={bypassAuth} onToggle={toggleAuthBypass} isDark={isDark} />}
-                                        {activeTab === "browser" && <BrowserTab isDark={isDark} />}
-                                        {activeTab === "system" && <SystemTab isDark={isDark} />}
-                                        {activeTab === "performance" && <PerformanceTab isDark={isDark} />}
-                                        {activeTab === "network" && <NetworkTab isDark={isDark} />}
-                                        {activeTab === "flags" && <FlagsTab isDark={isDark} />}
-                                        {activeTab === "chaos" && <ChaosTab isDark={isDark} />}
-                                        {activeTab === "i18n" && <I18nTab isDark={isDark} />}
-                                        {activeTab === "theme" && <ThemeTab isDark={isDark} />}
-                                        {activeTab === "tools" && <ToolsTab isDark={isDark} />}
-                                        {activeTab === "storage" && <StorageTab isDark={isDark} />}
-                                        {activeTab === "mocker" && <MockerTab isDark={isDark} />}
-                                        {activeTab === "a11y" && <A11yTab isDark={isDark} />}
-                                        {activeTab === "render" && <RenderTab isDark={isDark} />}
-                                        {activeTab === "events" && <EventsTab isDark={isDark} />}
-                                        {activeTab === "twa" && <TwaTab isDark={isDark} />}
-                                        {activeTab === "console" && <ConsoleTab isDark={isDark} />}
-                                        {activeTab === "xray" && <XRayTab isDark={isDark} />}
-                                        {activeTab === "query" && <QueryTab isDark={isDark} />}
-                                        {activeTab === "autofill" && <AutofillTab isDark={isDark} />}
-                                    </motion.div>
-                                </AnimatePresence>
+                                <div className="min-h-full">
+                                    {visitedTabs.map((tabId) => (
+                                        <ActivityDevTabPanel
+                                            key={tabId}
+                                            active={activeTab === tabId}
+                                            tabId={tabId}
+                                        >
+                                            <motion.div
+                                                initial={false}
+                                                animate={{
+                                                    opacity: activeTab === tabId ? 1 : 0,
+                                                    y: activeTab === tabId ? 0 : 10,
+                                                }}
+                                                transition={{ duration: 0.2 }}
+                                            >
+                                                {renderTabContent(tabId)}
+                                            </motion.div>
+                                        </ActivityDevTabPanel>
+                                    ))}
+                                </div>
                                 </div>
                             </div>
                         </motion.div>

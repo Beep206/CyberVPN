@@ -52,6 +52,10 @@ import type { PricingTierCode } from '@/widgets/pricing/types';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
 import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
+import {
+  invalidateCustomerSettlementState,
+  invalidateMiniAppAccessState,
+} from '@/shared/lib/customer-query-invalidation';
 
 type PlanFamily = {
   code: PricingTierCode;
@@ -892,34 +896,11 @@ export default function MiniAppPlansPage() {
   };
 
   async function refreshMiniAppAccessState() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] }),
-      queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] }),
-      queryClient.resetQueries({ queryKey: ['miniapp-config'], exact: true }),
-      queryClient.invalidateQueries({ queryKey: ['usage'] }),
-      queryClient.invalidateQueries({ queryKey: ['miniapp-profile-invites'] }),
-    ]);
+    await invalidateMiniAppAccessState(queryClient);
   }
 
   async function refreshCompletedMiniAppSettlementState() {
-    await Promise.all([
-      refreshMiniAppAccessState(),
-      queryClient.invalidateQueries({ queryKey: ['orders'] }),
-      queryClient.invalidateQueries({ queryKey: ['payments', 'history'] }),
-      queryClient.invalidateQueries({ queryKey: ['payments-history'] }),
-      queryClient.invalidateQueries({ queryKey: ['miniapp-pricing-quote'] }),
-      queryClient.invalidateQueries({ queryKey: ['current-entitlements'] }),
-      queryClient.invalidateQueries({ queryKey: ['current-service-state'] }),
-      queryClient.invalidateQueries({ queryKey: ['subscriptions'] }),
-      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions'] }),
-      queryClient.invalidateQueries({ queryKey: ['growth', 'invites'] }),
-      queryClient.invalidateQueries({ queryKey: ['growth', 'gifts'] }),
-      queryClient.invalidateQueries({ queryKey: ['growth', 'rewards'] }),
-      queryClient.invalidateQueries({ queryKey: ['growth', 'notifications'] }),
-      queryClient.invalidateQueries({
-        queryKey: ['growth', 'notifications', 'counters'],
-      }),
-    ]);
+    await invalidateCustomerSettlementState(queryClient, { includeMiniApp: true });
   }
 
   async function commitZeroGatewayCheckoutViaCommerce(
@@ -1010,11 +991,7 @@ export default function MiniAppPlansPage() {
     },
     onSuccess: async (data, payload) => {
       hapticNotification('success');
-      queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] });
-      queryClient.invalidateQueries({ queryKey: ['miniapp-config'] });
-      queryClient.invalidateQueries({ queryKey: ['usage'] });
-      queryClient.invalidateQueries({ queryKey: ['payments-history'] });
-      queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] });
+      void refreshMiniAppAccessState();
 
       void emitMiniAppRuntimeEvent({
         event: 'miniapp_checkout_completed',
@@ -1062,13 +1039,7 @@ export default function MiniAppPlansPage() {
           if (status === 'paid') {
             if (data.invoice?.currency === 'XTR' && data.payment_id) {
               const finalStatus = await waitForPaymentCompletion(String(data.payment_id));
-              await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] }),
-                queryClient.invalidateQueries({ queryKey: ['miniapp-config'] }),
-                queryClient.invalidateQueries({ queryKey: ['usage'] }),
-                queryClient.invalidateQueries({ queryKey: ['payments-history'] }),
-                queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] }),
-              ]);
+              await refreshCompletedMiniAppSettlementState();
 
               void emitMiniAppRuntimeEvent({
                 event: 'miniapp_payment_status_resolved',
@@ -1102,7 +1073,7 @@ export default function MiniAppPlansPage() {
               subscriptionStatus: currentEntitlements?.status ?? 'none',
             });
             webApp?.showAlert(t('paymentSuccess'));
-            void refreshMiniAppAccessState();
+            void refreshCompletedMiniAppSettlementState();
           } else if (status === 'cancelled') {
             void emitMiniAppRuntimeEvent({
               event: 'miniapp_payment_status_resolved',

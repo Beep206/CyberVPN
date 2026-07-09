@@ -25,7 +25,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -262,7 +262,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
     write_text(output_dir / "README.md", render_root_readme())
     write_text(output_dir / "versions.env", render_versions_env())
     write_text(output_dir / "spec-manifest.yaml", render_spec_manifest())
-    write_text(output_dir / "scripts" / "check-realtime-delivery.sh", render_check_script(), mode=0o750)
+    write_text(output_dir / "scripts" / "check-realtime-delivery.sh", render_check_script(), mode=0o700)
 
     write_text(output_dir / "backend" / "realtime-gateway" / "README.md", render_gateway_readme())
     write_text(output_dir / "backend" / "realtime-gateway" / "channel-registry.yaml", render_channel_registry())

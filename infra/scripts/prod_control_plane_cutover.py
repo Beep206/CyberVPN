@@ -16,9 +16,9 @@ DATA_NAMESPACE = "platform-data"
 FLAGGER_NAMESPACE = "flagger-system"
 GATEWAY_NAMESPACE = "networking"
 GATEWAY_NAME = "platform-public-gateway"
-BACKEND_SECRET_KEY = "kv-apps/data/prod/platform/backend"
-TASK_WORKER_SECRET_KEY = "kv-apps/data/prod/platform/task-worker"
-POSTGRES_SECRET_KEY = "kv-apps/data/prod/platform/postgres"
+BACKEND_OPENBAO_EXTRACT_PATH = "kv-apps/data/prod/platform/backend"
+TASK_WORKER_OPENBAO_EXTRACT_PATH = "kv-apps/data/prod/platform/task-worker"
+POSTGRES_OPENBAO_EXTRACT_PATH = "kv-apps/data/prod/platform/postgres"
 SOURCE_REPOSITORY_SLUG = "beep/vpnbussiness"
 
 REQUIRED_ANCHORS: dict[str, tuple[str, ...]] = {
@@ -29,7 +29,7 @@ REQUIRED_ANCHORS: dict[str, tuple[str, ...]] = {
     ),
     "infra/scripts/control_plane_workload_migration.py": (
         "WORKLOAD_CLUSTER_NAME = \"nonprod-hetzner-hel1-core\"",
-        "BACKEND_SECRET_KEY = \"kv-apps/data/nonprod/platform/backend\"",
+        "BACKEND_OPENBAO_PATH = \"kv-apps/data/nonprod/platform/backend\"",
     ),
     "infra/scripts/platform_services_bootstrap.py": (
         "External Secrets Operator",
@@ -61,7 +61,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -162,9 +162,9 @@ DATA_NAMESPACE={DATA_NAMESPACE}
 FLAGGER_NAMESPACE={FLAGGER_NAMESPACE}
 GATEWAY_NAMESPACE={GATEWAY_NAMESPACE}
 GATEWAY_NAME={GATEWAY_NAME}
-BACKEND_SECRET_KEY={BACKEND_SECRET_KEY}
-TASK_WORKER_SECRET_KEY={TASK_WORKER_SECRET_KEY}
-POSTGRES_SECRET_KEY={POSTGRES_SECRET_KEY}
+BACKEND_OPENBAO_EXTRACT_PATH={BACKEND_OPENBAO_EXTRACT_PATH}
+TASK_WORKER_OPENBAO_EXTRACT_PATH={TASK_WORKER_OPENBAO_EXTRACT_PATH}
+POSTGRES_OPENBAO_EXTRACT_PATH={POSTGRES_OPENBAO_EXTRACT_PATH}
 FIRST_PROGRESSIVE_RELEASE=backend
 FIRST_PRODUCTION_RUNTIME_SET=backend,task-worker,task-scheduler
 """
@@ -192,10 +192,10 @@ dataAuthority:
   clusterName: cybervpn-control-plane-db
   scheduledBackup: cybervpn-control-plane-db-daily
 secretContracts:
-  backend: {BACKEND_SECRET_KEY}
-  task-worker: {TASK_WORKER_SECRET_KEY}
-  task-scheduler: {TASK_WORKER_SECRET_KEY}
-  postgres: {POSTGRES_SECRET_KEY}
+  backend: {BACKEND_OPENBAO_EXTRACT_PATH}
+  task-worker: {TASK_WORKER_OPENBAO_EXTRACT_PATH}
+  task-scheduler: {TASK_WORKER_OPENBAO_EXTRACT_PATH}
+  postgres: {POSTGRES_OPENBAO_EXTRACT_PATH}
 """
 
 
@@ -341,7 +341,7 @@ metadata:
 """
 
 
-def render_postgres_app_secret() -> str:
+def render_postgres_app_external_reference() -> str:
     return f"""apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -357,11 +357,11 @@ spec:
     creationPolicy: Owner
   dataFrom:
     - extract:
-        key: {POSTGRES_SECRET_KEY}
+        key: {POSTGRES_OPENBAO_EXTRACT_PATH}
 """
 
 
-def render_postgres_superuser_secret() -> str:
+def render_postgres_superuser_external_reference() -> str:
     return f"""apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -377,7 +377,7 @@ spec:
     creationPolicy: Owner
   dataFrom:
     - extract:
-        key: {POSTGRES_SECRET_KEY}
+        key: {POSTGRES_OPENBAO_EXTRACT_PATH}
 """
 
 
@@ -574,7 +574,7 @@ spec:
       digest: sha256:REPLACE_ME_BACKEND_IMAGE_DIGEST
     externalSecret:
       targetName: backend-runtime
-      extractKey: {BACKEND_SECRET_KEY}
+      extractKey: {BACKEND_OPENBAO_EXTRACT_PATH}
     service:
       enabled: true
       type: ClusterIP
@@ -676,7 +676,7 @@ spec:
       digest: {digest_placeholder}
     externalSecret:
       targetName: {target_name}
-      extractKey: {TASK_WORKER_SECRET_KEY}
+      extractKey: {TASK_WORKER_OPENBAO_EXTRACT_PATH}
     workload:
       mode: {mode}
       command:
@@ -710,7 +710,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
     write_text(output_dir / "README.md", render_root_readme())
     write_text(output_dir / "versions.env", render_versions_env())
     write_text(output_dir / "spec-manifest.yaml", render_spec_manifest())
-    write_text(output_dir / "scripts" / "check-prod-control-plane-cutover.sh", render_check_script(), mode=0o750)
+    write_text(output_dir / "scripts" / "check-prod-control-plane-cutover.sh", render_check_script(), mode=0o700)
 
     write_text(platform_gitops_dir / "README.md", render_platform_gitops_readme())
     write_text(cluster_dir / "README.md", render_cluster_readme())
@@ -816,8 +816,8 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
         ),
     )
     write_text(data_dir / "namespace.yaml", render_data_namespace())
-    write_text(data_dir / "cnpg" / "postgres-app-secret.yaml", render_postgres_app_secret())
-    write_text(data_dir / "cnpg" / "postgres-superuser-secret.yaml", render_postgres_superuser_secret())
+    write_text(data_dir / "cnpg" / "postgres-app-secret.yaml", render_postgres_app_external_reference())
+    write_text(data_dir / "cnpg" / "postgres-superuser-secret.yaml", render_postgres_superuser_external_reference())
     write_text(data_dir / "cnpg" / "cluster.yaml", render_cnpg_cluster())
     write_text(data_dir / "cnpg" / "podmonitor.yaml", render_cnpg_podmonitor())
     write_text(data_dir / "cnpg" / "scheduledbackup.yaml", render_cnpg_scheduledbackup())

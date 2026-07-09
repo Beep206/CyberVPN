@@ -19,12 +19,7 @@ class _FakeRedis:
                     '"labels":{"queue":"email","retry_policy":"email_delivery"}}'
                 )
             },
-            "101-0": {
-                "data": (
-                    '{"task_id":"2","task_name":"send_daily_report",'
-                    '"labels":{"queue":"reports"}}'
-                )
-            },
+            "101-0": {"data": ('{"task_id":"2","task_name":"send_daily_report","labels":{"queue":"reports"}}')},
             "102-0": {
                 "data": (
                     '{"task_id":"3","task_name":"send_magic_link_email",'

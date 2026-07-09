@@ -2,7 +2,7 @@ name: cybervpn-h-partner-lab
 
 services:
   partner-postgres:
-    image: postgres:17.7-alpine
+    image: postgres:17.10-alpine
     container_name: cybervpn-partner-postgres-nonprod
     profiles:
       - manual
@@ -32,7 +32,7 @@ services:
       - no-new-privileges:true
 
   partner-nats:
-    image: nats:2.12.7-alpine
+    image: nats:2.14.3-alpine
     container_name: cybervpn-partner-nats-nonprod
     profiles:
       - manual
@@ -59,7 +59,7 @@ services:
       - no-new-privileges:true
 
   partner-nats-box:
-    image: natsio/nats-box:0.18.0
+    image: natsio/nats-box:0.19.7
     container_name: cybervpn-partner-nats-box
     profiles:
       - manual
@@ -78,7 +78,7 @@ services:
       - no-new-privileges:true
 
   partner-webhook-test-receiver:
-    image: python:3.13-alpine
+    image: python:3.13.14-alpine
     container_name: cybervpn-partner-webhook-test-receiver
     profiles:
       - manual

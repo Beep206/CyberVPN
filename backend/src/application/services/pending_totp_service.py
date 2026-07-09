@@ -60,7 +60,7 @@ class PendingTOTPService:
         }
 
         ttl_seconds = self.TTL_MINUTES * 60
-        await self._redis.setex(key, ttl_seconds, json.dumps(data))
+        await self._redis.set(key, json.dumps(data), ex=ttl_seconds)
 
         logger.info(
             "Pending TOTP secret generated",

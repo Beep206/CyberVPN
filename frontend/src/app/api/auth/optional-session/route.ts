@@ -1,5 +1,10 @@
 import { connection, NextResponse, type NextRequest } from 'next/server';
 
+import {
+  getTrustedForwardedHost,
+  getTrustedForwardedProto,
+} from '@/features/auth/lib/request-origin';
+
 const SESSION_PATH = '/api/v1/auth/session';
 
 function getBackendBaseUrl(): string | null {
@@ -24,13 +29,8 @@ function buildForwardHeaders(request: NextRequest): Headers {
     headers.set('x-request-id', requestId);
   }
 
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor) {
-    headers.set('x-forwarded-for', forwardedFor);
-  }
-
-  headers.set('x-forwarded-host', request.headers.get('host') ?? request.nextUrl.host);
-  headers.set('x-forwarded-proto', request.nextUrl.protocol.replace(':', '') || 'https');
+  headers.set('x-forwarded-host', getTrustedForwardedHost(request));
+  headers.set('x-forwarded-proto', getTrustedForwardedProto(request));
 
   return headers;
 }

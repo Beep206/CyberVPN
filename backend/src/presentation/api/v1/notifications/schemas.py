@@ -21,8 +21,8 @@ class NotificationPreferencesUpdateRequest(BaseModel):
     All fields are optional - only provided fields will be updated.
     """
 
-    email_security: bool | None = Field(None, description="Security alerts via email")
-    email_marketing: bool | None = Field(None, description="Marketing communications via email")
-    push_connection: bool | None = Field(None, description="VPN connection status push notifications")
-    push_payment: bool | None = Field(None, description="Payment and subscription push notifications")
-    push_subscription: bool | None = Field(None, description="Subscription expiry push notifications")
+    email_security: bool | None = Field(default=None, description="Security alerts via email")
+    email_marketing: bool | None = Field(default=None, description="Marketing communications via email")
+    push_connection: bool | None = Field(default=None, description="VPN connection status push notifications")
+    push_payment: bool | None = Field(default=None, description="Payment and subscription push notifications")
+    push_subscription: bool | None = Field(default=None, description="Subscription expiry push notifications")

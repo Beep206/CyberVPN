@@ -560,40 +560,52 @@ describe('SubscriptionCabinetDashboard', () => {
   });
 
   it('quotes and commits a plan upgrade through backend subscription endpoints', async () => {
-    renderWithQueryClient(<SubscriptionCabinetDashboard />);
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
 
-    const maxPlanCard = (await screen.findByText('Max Plan')).closest('article');
-    expect(maxPlanCard).not.toBeNull();
+    try {
+      renderWithQueryClient(<SubscriptionCabinetDashboard />);
 
-    fireEvent.click(within(maxPlanCard as HTMLElement).getByRole('button', { name: /planActions\.quote/i }));
+      const maxPlanCard = (await screen.findByText('Max Plan')).closest('article');
+      expect(maxPlanCard).not.toBeNull();
 
-    await waitFor(() => {
-      expect(quoteUpgradeMock).toHaveBeenCalledWith('grant:test-grant', {
-        channel: 'web',
-        currency: 'USD',
-        promo_code: null,
-        target_plan_id: 'plan-max',
-        use_wallet: 0,
+      fireEvent.click(within(maxPlanCard as HTMLElement).getByRole('button', { name: /planActions\.quote/i }));
+
+      await waitFor(() => {
+        expect(quoteUpgradeMock).toHaveBeenCalledWith('grant:test-grant', {
+          channel: 'web',
+          currency: 'USD',
+          promo_code: null,
+          target_plan_id: 'plan-max',
+          use_wallet: 0,
+        });
       });
-    });
 
-    fireEvent.click(within(maxPlanCard as HTMLElement).getByRole('button', { name: /planActions\.commitCta/i }));
+      fireEvent.click(within(maxPlanCard as HTMLElement).getByRole('button', { name: /planActions\.commitCta/i }));
 
-    await waitFor(() => {
-      expect(commitUpgradeMock).toHaveBeenCalled();
-      expect(commitUpgradeMock).toHaveBeenCalledWith('grant:test-grant', {
-        channel: 'web',
-        currency: 'USD',
-        promo_code: null,
-        target_plan_id: 'plan-max',
-        use_wallet: 0,
+      await waitFor(() => {
+        expect(commitUpgradeMock).toHaveBeenCalled();
+        expect(commitUpgradeMock).toHaveBeenCalledWith('grant:test-grant', {
+          channel: 'web',
+          currency: 'USD',
+          promo_code: null,
+          target_plan_id: 'plan-max',
+          use_wallet: 0,
+        });
+        expect(openMock).toHaveBeenCalledWith(
+          'https://pay.example/invoice-1',
+          '_blank',
+          'noopener,noreferrer',
+        );
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['payments', 'history'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['payments-history'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['current-entitlements'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['current-service-state'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['customer-subscriptions'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['wallet'] });
       });
-      expect(openMock).toHaveBeenCalledWith(
-        'https://pay.example/invoice-1',
-        '_blank',
-        'noopener,noreferrer',
-      );
-    });
+    } finally {
+      invalidateSpy.mockRestore();
+    }
   });
 
   it('activates eligible trial and refreshes backend-backed state', async () => {
@@ -636,45 +648,54 @@ describe('SubscriptionCabinetDashboard', () => {
   });
 
   it('quotes and purchases an add-on through backend subscription endpoints', async () => {
-    renderWithQueryClient(<SubscriptionCabinetDashboard />);
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
 
-    await screen.findByText('Extra device');
-    fireEvent.click(screen.getByRole('button', { name: /addons\.quote/i }));
+    try {
+      renderWithQueryClient(<SubscriptionCabinetDashboard />);
 
-    await waitFor(() => {
-      expect(quoteAddonsMock).toHaveBeenCalledWith('grant:test-grant', {
-        addons: [
-          {
-            code: 'extra-device',
-            qty: 1,
-          },
-        ],
-        channel: 'web',
-        currency: 'USD',
-        promo_code: null,
-        use_wallet: 0,
+      await screen.findByText('Extra device');
+      fireEvent.click(screen.getByRole('button', { name: /addons\.quote/i }));
+
+      await waitFor(() => {
+        expect(quoteAddonsMock).toHaveBeenCalledWith('grant:test-grant', {
+          addons: [
+            {
+              code: 'extra-device',
+              qty: 1,
+            },
+          ],
+          channel: 'web',
+          currency: 'USD',
+          promo_code: null,
+          use_wallet: 0,
+        });
       });
-    });
-    expect(await screen.findByText('addons.quoteReady $5')).toBeInTheDocument();
+      expect(await screen.findByText('addons.quoteReady $5')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /addons\.purchaseCta/i }));
+      fireEvent.click(screen.getByRole('button', { name: /addons\.purchaseCta/i }));
 
-    await waitFor(() => {
-      expect(purchaseAddonsMock).toHaveBeenCalledWith('grant:test-grant', {
-        addons: [
-          {
-            code: 'extra-device',
-            qty: 1,
-          },
-        ],
-        channel: 'web',
-        currency: 'USD',
-        promo_code: null,
-        use_wallet: 0,
+      await waitFor(() => {
+        expect(purchaseAddonsMock).toHaveBeenCalledWith('grant:test-grant', {
+          addons: [
+            {
+              code: 'extra-device',
+              qty: 1,
+            },
+          ],
+          channel: 'web',
+          currency: 'USD',
+          promo_code: null,
+          use_wallet: 0,
+        });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['payments', 'history'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['current-entitlements'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['customer-subscriptions'] });
       });
-    });
-    expect(await screen.findByText('addons.purchase.completed')).toBeInTheDocument();
-    expect(openMock).not.toHaveBeenCalled();
+      expect(await screen.findByText('addons.purchase.completed')).toBeInTheDocument();
+      expect(openMock).not.toHaveBeenCalled();
+    } finally {
+      invalidateSpy.mockRestore();
+    }
   });
 
   it('shows add-on quote failure feedback and keeps purchase disabled', async () => {

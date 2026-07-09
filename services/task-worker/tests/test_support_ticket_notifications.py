@@ -20,14 +20,17 @@ from src.utils.constants import NOTIFICATION_TYPE_SUPPORT_TICKET_UPDATE, STATUS_
 
 
 def test_support_ticket_notification_contract_allows_public_update_events_only() -> None:
-    assert frozenset(
-        {
-            "public_reply_added",
-            "status_changed",
-            "closed",
-            "reopened",
-        }
-    ) == SUPPORT_TICKET_NOTIFICATION_EVENT_TYPES
+    assert (
+        frozenset(
+            {
+                "public_reply_added",
+                "status_changed",
+                "closed",
+                "reopened",
+            }
+        )
+        == SUPPORT_TICKET_NOTIFICATION_EVENT_TYPES
+    )
 
     with pytest.raises(ValueError, match="Unsupported support ticket notification event type"):
         build_support_ticket_telegram_notification(

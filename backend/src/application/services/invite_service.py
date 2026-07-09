@@ -11,6 +11,7 @@ from uuid import uuid4
 import redis.asyncio as redis
 
 from src.config.settings import settings
+from src.shared.logging import fingerprint_pii
 
 logger = logging.getLogger(__name__)
 
@@ -116,10 +117,10 @@ class InviteTokenService:
             "created_at": datetime.now(UTC).isoformat(),
         }
 
-        await self._redis.setex(
+        await self._redis.set(
             key,
-            int(self.ttl.total_seconds()),
             json.dumps(data),
+            ex=int(self.ttl.total_seconds()),
         )
 
         logger.info(
@@ -127,7 +128,8 @@ class InviteTokenService:
             extra={
                 "created_by": created_by,
                 "role": role,
-                "email_hint": email_hint,
+                "email_hint_present": email_hint is not None,
+                "email_hint_fingerprint": fingerprint_pii(email_hint, namespace="invite_email_hint"),
                 "expires_in_hours": settings.invite_token_expiry_hours,
             },
         )

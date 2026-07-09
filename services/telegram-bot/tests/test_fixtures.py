@@ -7,17 +7,21 @@ can be imported, instantiated, and used properly.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 import pytest
 import respx
-from aiogram import Bot, Dispatcher
 from pydantic import SecretStr
 
-from src.config import BotSettings
-from src.middlewares.i18n import FluentTranslator
 from src.models.subscription import PlanType, SubscriptionPlan
 from src.models.user import UserDTO, UserStatus
-from src.services.api_client import CyberVPNAPIClient
+
+if TYPE_CHECKING:
+    from aiogram import Bot, Dispatcher
+
+    from src.config import BotSettings
+    from src.middlewares.i18n import FluentTranslator
+    from src.services.api_client import CyberVPNAPIClient
 
 
 class TestMockBot:

@@ -301,16 +301,18 @@ def _serialize_version(pricebook: PricebookModel) -> AdminPricebookVersionRespon
 
 
 def _serialize_context_options(options: dict, *, source: str) -> CommercialContextOptionsResponse:
-    return CommercialContextOptionsResponse(
-        countries=[
-            CommercialContextCountryOptionResponse(**country)
-            for country in options.get("countries", [])
-            if country.get("is_enabled", True)
-        ],
-        currencies=[
-            CommercialContextCurrencyOptionResponse(**currency)
-            for currency in options.get("currencies", [])
-            if currency.get("is_enabled", True)
-        ],
-        source=source,
+    return CommercialContextOptionsResponse.model_validate(
+        {
+            "countries": [
+                CommercialContextCountryOptionResponse(**country)
+                for country in options.get("countries", [])
+                if country.get("is_enabled", True)
+            ],
+            "currencies": [
+                CommercialContextCurrencyOptionResponse(**currency)
+                for currency in options.get("currencies", [])
+                if currency.get("is_enabled", True)
+            ],
+            "source": source,
+        }
     )

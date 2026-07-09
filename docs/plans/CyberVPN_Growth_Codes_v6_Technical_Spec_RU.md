@@ -134,7 +134,7 @@ ba5b0737eda79463e718172b06ed7088bbedb9cf
 
 ### Backend runtime/toolchain
 
-- Python: `3.13.13` в GitHub Actions backend jobs.
+- Python: `3.13.14` в GitHub Actions backend jobs.
 - Project requirement: Python `>=3.13`.
 - Dependencies для CI устанавливаются командой:
 

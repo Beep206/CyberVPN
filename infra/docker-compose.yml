@@ -16,7 +16,7 @@ x-env: &env
 
 services:
   remnawave:
-    image: remnawave/backend:2.7.4
+    image: remnawave/backend:2.8.0
     container_name: remnawave
     hostname: remnawave
     <<: [*common, *logging, *env]
@@ -49,7 +49,7 @@ services:
           cpus: "0.25"
 
   remnawave-db:
-    image: postgres:17.7
+    image: postgres:17.10
     container_name: remnawave-db
     hostname: remnawave-db
     <<: [*common, *logging, *env]
@@ -90,7 +90,7 @@ services:
           cpus: "0.25"
 
   remnawave-redis:
-    image: valkey/valkey:8.1-alpine
+    image: valkey/valkey:8.1.8-alpine
     container_name: remnawave-redis
     hostname: remnawave-redis
     <<: [*common, *logging]
@@ -124,7 +124,7 @@ services:
           cpus: "0.10"
 
   db-backup:
-    image: prodrigestivill/postgres-backup-local:17
+    image: prodrigestivill/postgres-backup-local:17-debian-d257e5d
     container_name: db-backup
     hostname: db-backup
     <<: [*common, *logging]
@@ -358,7 +358,7 @@ services:
           cpus: "0.10"
 
   helix-bench-target:
-    image: nginx:1.29-alpine
+    image: nginx:1.31.2-alpine
     container_name: helix-bench-target
     hostname: helix-bench-target
     profiles: ["helix-lab"]
@@ -385,7 +385,7 @@ services:
           cpus: "0.05"
 
   helix-stable-http-proxy:
-    image: python:3.13.13-slim-bookworm
+    image: python:3.13.14-slim-bookworm
     container_name: helix-stable-http-proxy
     hostname: helix-stable-http-proxy
     profiles: ["helix-lab"]
@@ -473,7 +473,7 @@ services:
           cpus: "0.10"
 
   caddy:
-    image: caddy:2.9
+    image: caddy:2.11.4
     container_name: caddy
     hostname: caddy
     profiles: ["proxy"]
@@ -497,7 +497,7 @@ services:
       start_period: 10s
 
   remnawave-subscription-page:
-    image: remnawave/subscription-page:latest@sha256:5327ed32e3f2ba24b85aa64bf60c4f256da9540bc08bf573e8d15c2b095865f9
+    image: remnawave/subscription-page:7.2.6@sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c
     container_name: remnawave-subscription-page
     hostname: remnawave-subscription-page
     profiles: ["subscription"]
@@ -601,7 +601,7 @@ services:
           cpus: "0.05"
 
   prometheus:
-    image: prom/prometheus:v3.2.1
+    image: prom/prometheus:v3.13.0
     container_name: prometheus
     profiles: ["monitoring"]
     restart: unless-stopped
@@ -629,7 +629,7 @@ services:
       - cybervpn-backend
 
   blackbox-exporter:
-    image: prom/blackbox-exporter:v0.25.0
+    image: prom/blackbox-exporter:v0.28.0
     container_name: blackbox-exporter
     profiles: ["monitoring"]
     restart: unless-stopped
@@ -647,7 +647,7 @@ services:
       - cybervpn-monitoring
 
   grafana:
-    image: grafana/grafana:11.5.2
+    image: grafana/grafana:13.1.0
     container_name: grafana
     profiles: ["monitoring"]
     restart: unless-stopped
@@ -672,7 +672,7 @@ services:
       - cybervpn-monitoring
 
   alertmanager:
-    image: prom/alertmanager:v0.28.1
+    image: prom/alertmanager:v0.33.1
     container_name: alertmanager
     profiles: ["monitoring"]
     restart: unless-stopped
@@ -708,7 +708,7 @@ services:
       - cybervpn-monitoring
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.121.0
+    image: otel/opentelemetry-collector-contrib:0.155.0
     container_name: otel-collector
     hostname: otel-collector
     profiles: ["monitoring"]
@@ -744,7 +744,7 @@ services:
           cpus: "0.10"
 
   tempo:
-    image: grafana/tempo:2.7.2
+    image: grafana/tempo:3.0.2
     container_name: tempo
     hostname: tempo
     profiles: ["monitoring"]
@@ -778,7 +778,7 @@ services:
           cpus: "0.25"
 
   loki:
-    image: grafana/loki:3.4.2
+    image: grafana/loki:3.7.3
     container_name: loki
     hostname: loki
     profiles: ["monitoring"]
@@ -808,7 +808,7 @@ services:
           cpus: "0.10"
 
   promtail:
-    image: grafana/promtail:3.4.2
+    image: grafana/promtail:3.6.11
     container_name: promtail
     hostname: promtail
     profiles: ["monitoring"]
@@ -844,7 +844,7 @@ services:
           cpus: "0.10"
 
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:v0.17.0
+    image: prometheuscommunity/postgres-exporter:v0.20.0
     container_name: postgres-exporter
     hostname: postgres-exporter
     profiles: ["monitoring"]
@@ -877,7 +877,7 @@ services:
           cpus: "0.05"
 
   redis-exporter:
-    image: oliver006/redis_exporter:v1.67.0-alpine
+    image: oliver006/redis_exporter:v1.86.0-alpine
     container_name: redis-exporter
     hostname: redis-exporter
     profiles: ["monitoring"]
@@ -909,7 +909,7 @@ services:
           cpus: "0.05"
 
   node-exporter:
-    image: prom/node-exporter:v1.9.1
+    image: prom/node-exporter:v1.11.1
     container_name: node-exporter
     hostname: node-exporter
     profiles: ["monitoring"]
@@ -944,7 +944,7 @@ services:
           cpus: "0.05"
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    image: ghcr.io/google/cadvisor:v0.60.3
     container_name: cadvisor
     hostname: cadvisor
     profiles: ["monitoring"]
@@ -986,7 +986,7 @@ services:
   # Enable with: docker compose --profile email-test up -d
 
   mailpit-1:
-    image: axllent/mailpit:v1.22
+    image: axllent/mailpit:v1.30.3
     container_name: mailpit-1
     hostname: mailpit-1
     profiles: ["email-test"]
@@ -1012,7 +1012,7 @@ services:
       - cybervpn-backend
 
   mailpit-2:
-    image: axllent/mailpit:v1.22
+    image: axllent/mailpit:v1.30.3
     container_name: mailpit-2
     hostname: mailpit-2
     profiles: ["email-test"]
@@ -1038,7 +1038,7 @@ services:
       - cybervpn-backend
 
   mailpit-3:
-    image: axllent/mailpit:v1.22
+    image: axllent/mailpit:v1.30.3
     container_name: mailpit-3
     hostname: mailpit-3
     profiles: ["email-test"]

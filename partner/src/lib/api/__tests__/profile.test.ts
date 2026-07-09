@@ -10,6 +10,7 @@ import { server } from '@/test/mocks/server';
 import { profileApi } from '../profile';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
+import { expectAxiosErrorStatus } from './assertions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -88,7 +89,7 @@ describe('profileApi.getProfile', () => {
     );
 
     // Act & Assert
-    await expect(profileApi.getProfile()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(profileApi.getProfile(), 401);
   });
 
   it('test_get_profile_with_refresh_token_retries_on_401', async () => {
@@ -276,9 +277,7 @@ describe('profileApi.updateProfile', () => {
     );
 
     // Act & Assert
-    await expect(
-      profileApi.updateProfile({ display_name: 'Test' }),
-    ).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(profileApi.updateProfile({ display_name: 'Test' }), 401);
   });
 
   it('test_update_profile_server_error_500_rejects', async () => {

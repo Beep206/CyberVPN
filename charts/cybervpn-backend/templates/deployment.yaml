@@ -16,6 +16,8 @@ spec:
         {{- include "cybervpn-backend.labels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "cybervpn-backend.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       imagePullSecrets:
         {{- range .Values.imagePullSecrets }}
         - name: {{ .name }}
@@ -24,6 +26,8 @@ spec:
         - name: backend
           image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}

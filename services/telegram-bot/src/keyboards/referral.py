@@ -5,7 +5,7 @@ Provides referral link sharing, stats viewing, and promotional tools.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from aiogram.types import InlineKeyboardMarkup
 
 
-def referral_keyboard(i18n: Callable[[str], str], _stats: dict | None = None) -> InlineKeyboardMarkup:
+def referral_keyboard(i18n: Callable[[str], str], _stats: dict[str, Any] | None = None) -> InlineKeyboardMarkup:
     """Build referral program main keyboard.
 
     Args:

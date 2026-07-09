@@ -262,7 +262,9 @@ BenefitConfig = (
 
 
 class GrowthBenefitSnapshot(BaseModel):
-    model_config = ConfigDict(extra="ignore", frozen=True, populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", frozen=True, populate_by_name=True, validate_by_name=True, validate_by_alias=True
+    )
 
     benefit_id: UUID = Field(validation_alias=AliasChoices("benefit_id", "id"))
     benefit_type: BenefitType = Field(validation_alias=AliasChoices("benefit_type", "type"))

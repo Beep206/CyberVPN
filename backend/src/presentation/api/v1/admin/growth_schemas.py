@@ -121,10 +121,10 @@ class AdminGrowthCodeLookupRequest(BaseModel):
     code: str = Field(..., min_length=1, max_length=64)
     action_context: GrowthCodeActionContext = GrowthCodeActionContext.CHECKOUT
     lookup_user_id: UUID | None = None
-    storefront_key: str | None = Field(None, min_length=1, max_length=50)
+    storefront_key: str | None = Field(default=None, min_length=1, max_length=50)
     plan_id: UUID | None = None
-    amount: float | None = Field(None, ge=0)
-    channel: str = Field("web", min_length=1, max_length=30)
+    amount: float | None = Field(default=None, ge=0)
+    channel: str = Field(default="web", min_length=1, max_length=30)
     existing_partner_code_present: bool = False
     existing_promo_present: bool = False
 
@@ -401,14 +401,14 @@ class AdminGrowthReportingDeliveryResponse(BaseModel):
 
 
 class AdminGrowthReportingRecipientPolicyRequest(BaseModel):
-    template_key: str | None = Field(None, min_length=2, max_length=48)
-    template_locale: str = Field("en-EN", min_length=2, max_length=16)
-    email_subject_prefix: str | None = Field(None, max_length=120)
-    title_override: str | None = Field(None, max_length=160)
-    recipient_domain_policy: str = Field("allow_any", min_length=2, max_length=24)
+    template_key: str | None = Field(default=None, min_length=2, max_length=48)
+    template_locale: str = Field(default="en-EN", min_length=2, max_length=16)
+    email_subject_prefix: str | None = Field(default=None, max_length=120)
+    title_override: str | None = Field(default=None, max_length=160)
+    recipient_domain_policy: str = Field(default="allow_any", min_length=2, max_length=24)
     allowed_recipient_domains: list[str] = Field(default_factory=list, max_length=20)
     suppressed_until: datetime | None = None
-    suppression_reason_code: str | None = Field(None, max_length=80)
+    suppression_reason_code: str | None = Field(default=None, max_length=80)
 
 
 class AdminGrowthReportingSubscriptionsResponse(BaseModel):
@@ -429,33 +429,33 @@ class AdminGrowthReportingDeliveriesResponse(BaseModel):
 
 class AdminCreateGrowthReportingSubscriptionRequest(BaseModel):
     recipient_email: str = Field(..., min_length=3, max_length=320)
-    recipient_name: str | None = Field(None, max_length=160)
+    recipient_name: str | None = Field(default=None, max_length=160)
     audience_key: str = Field(..., min_length=2, max_length=32)
     cadence: str = Field(..., min_length=5, max_length=20)
     report_window_days: int = Field(30, ge=1, le=90)
     policy: AdminGrowthReportingRecipientPolicyRequest = Field(
-        default_factory=AdminGrowthReportingRecipientPolicyRequest
+        default_factory=lambda: AdminGrowthReportingRecipientPolicyRequest()
     )
 
 
 class AdminUpdateGrowthReportingSubscriptionRequest(BaseModel):
     recipient_email: str = Field(..., min_length=3, max_length=320)
-    recipient_name: str | None = Field(None, max_length=160)
+    recipient_name: str | None = Field(default=None, max_length=160)
     audience_key: str = Field(..., min_length=2, max_length=32)
     cadence: str = Field(..., min_length=5, max_length=20)
     report_window_days: int = Field(30, ge=1, le=90)
     policy: AdminGrowthReportingRecipientPolicyRequest = Field(
-        default_factory=AdminGrowthReportingRecipientPolicyRequest
+        default_factory=lambda: AdminGrowthReportingRecipientPolicyRequest()
     )
-    reason_code: str | None = Field(None, min_length=2, max_length=120)
+    reason_code: str | None = Field(default=None, min_length=2, max_length=120)
 
 
 class AdminUpdateGrowthReportingSubscriptionStatusRequest(BaseModel):
-    reason_code: str | None = Field(None, min_length=2, max_length=120)
+    reason_code: str | None = Field(default=None, min_length=2, max_length=120)
 
 
 class AdminUpdateGrowthReportingGovernanceFollowupRequest(BaseModel):
-    reason_code: str | None = Field(None, min_length=2, max_length=120)
+    reason_code: str | None = Field(default=None, min_length=2, max_length=120)
 
 
 class AdminGrowthReportingDeliveryArtifactExportResponse(BaseModel):
@@ -496,9 +496,9 @@ class InternalClaimGrowthReportingDeliveriesResponse(BaseModel):
 
 class InternalCompleteGrowthReportingDeliveryRequest(BaseModel):
     delivery_status: str = Field(..., min_length=4, max_length=20)
-    provider_name: str | None = Field(None, max_length=40)
-    provider_message_id: str | None = Field(None, max_length=255)
-    failure_message: str | None = Field(None, max_length=1000)
+    provider_name: str | None = Field(default=None, max_length=40)
+    provider_message_id: str | None = Field(default=None, max_length=255)
+    failure_message: str | None = Field(default=None, max_length=1000)
 
 
 class InternalCleanupGrowthReportingArtifactsResponse(BaseModel):
@@ -629,15 +629,15 @@ class AdminGrowthNotificationDeliveryExportResponse(BaseModel):
 
 
 class AdminGrowthNotificationDeliveryActionRequest(BaseModel):
-    reason_code: str | None = Field(None, max_length=120)
+    reason_code: str | None = Field(default=None, max_length=120)
 
 
 class AdminManualGrowthNotificationRequest(BaseModel):
     mobile_user_id: UUID
     title: str = Field(..., min_length=1, max_length=200)
     message: str = Field(..., min_length=1, max_length=1000)
-    route_slug: str = Field("/referral", min_length=1, max_length=200)
-    locale: str = Field("en-EN", min_length=2, max_length=16)
+    route_slug: str = Field(default="/referral", min_length=1, max_length=200)
+    locale: str = Field(default="en-EN", min_length=2, max_length=16)
     notes: list[str] = Field(default_factory=list, max_length=6)
     channels: list[str] = Field(default_factory=lambda: ["in_app", "email", "telegram"])
 
@@ -678,10 +678,10 @@ class AdminListGiftCodesResponse(BaseModel):
 class AdminIssueGiftCodeRequest(BaseModel):
     owner_user_id: UUID
     plan_id: UUID
-    recipient_hint: str | None = Field(None, max_length=160)
-    gift_message: str | None = Field(None, max_length=500)
-    reason_code: str | None = Field(None, max_length=80)
-    admin_note: str | None = Field(None, max_length=1000)
+    recipient_hint: str | None = Field(default=None, max_length=160)
+    gift_message: str | None = Field(default=None, max_length=500)
+    reason_code: str | None = Field(default=None, max_length=80)
+    admin_note: str | None = Field(default=None, max_length=1000)
 
 
 class AdminIssueGiftCodeResponse(BaseModel):
@@ -692,10 +692,10 @@ class AdminIssueGiftCodeBatchRequest(BaseModel):
     owner_user_id: UUID
     plan_id: UUID
     count: int = Field(1, ge=1, le=100)
-    recipient_hint: str | None = Field(None, max_length=160)
-    gift_message: str | None = Field(None, max_length=500)
-    reason_code: str | None = Field(None, max_length=80)
-    admin_note: str | None = Field(None, max_length=1000)
+    recipient_hint: str | None = Field(default=None, max_length=160)
+    gift_message: str | None = Field(default=None, max_length=500)
+    reason_code: str | None = Field(default=None, max_length=80)
+    admin_note: str | None = Field(default=None, max_length=1000)
 
 
 class AdminIssueGiftCodeBatchResponse(BaseModel):

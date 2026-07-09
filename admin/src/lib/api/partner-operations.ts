@@ -14,7 +14,7 @@ type PartnerApplicationReviewRequestDetailResponse =
   components['schemas']['PartnerApplicationReviewRequestDetailResponse'];
 type PartnerLaneApplicationResponse = components['schemas']['PartnerLaneApplicationResponse'];
 type PartnerWorkspaceProgramsResponse = components['schemas']['PartnerWorkspaceProgramsResponse'];
-type PartnerCodeResponse = components['schemas']['PartnerCodeResponse'];
+type PartnerWorkspaceCodeResponse = components['schemas']['PartnerWorkspaceCodeResponse'];
 type PartnerWorkspaceReviewRequestResponse =
   components['schemas']['PartnerWorkspaceReviewRequestResponse'];
 type PartnerWorkspaceCaseResponse = components['schemas']['PartnerWorkspaceCaseResponse'];
@@ -157,27 +157,33 @@ export const partnerOperationsApi = {
     ),
 
   getWorkspacePrograms: (workspaceId: string) =>
-    apiClient.get<PartnerWorkspaceProgramsResponse>(`/partner-workspaces/${workspaceId}/programs`),
+    apiClient.get<PartnerWorkspaceProgramsResponse>(
+      `/admin/partner-workspaces/${workspaceId}/programs`,
+    ),
 
   listWorkspaceCodes: (workspaceId: string) =>
-    apiClient.get<PartnerCodeResponse[]>(`/partner-workspaces/${workspaceId}/codes`),
+    apiClient.get<PartnerWorkspaceCodeResponse[]>(
+      `/admin/partner-workspaces/${workspaceId}/codes`,
+    ),
 
   listWorkspaceReviewRequests: (workspaceId: string) =>
     apiClient.get<PartnerWorkspaceReviewRequestResponse[]>(
-      `/partner-workspaces/${workspaceId}/review-requests`,
+      `/admin/partner-workspaces/${workspaceId}/review-requests`,
     ),
 
   listWorkspaceCases: (workspaceId: string) =>
-    apiClient.get<PartnerWorkspaceCaseResponse[]>(`/partner-workspaces/${workspaceId}/cases`),
+    apiClient.get<PartnerWorkspaceCaseResponse[]>(
+      `/admin/partner-workspaces/${workspaceId}/cases`,
+    ),
 
   listTrafficDeclarations: (params: AdminTrafficDeclarationsParams) =>
-    apiClient.get<TrafficDeclarationResponse[]>('/traffic-declarations', { params }),
+    apiClient.get<TrafficDeclarationResponse[]>('/traffic-declarations/', { params }),
 
   listCreativeApprovals: (params?: AdminCreativeApprovalsParams) =>
-    apiClient.get<CreativeApprovalResponse[]>('/creative-approvals', { params }),
+    apiClient.get<CreativeApprovalResponse[]>('/creative-approvals/', { params }),
 
   listPayoutAccounts: (params: AdminPartnerPayoutAccountsParams) =>
-    apiClient.get<PartnerPayoutAccountResponse[]>('/partner-payout-accounts', { params }),
+    apiClient.get<PartnerPayoutAccountResponse[]>('/partner-payout-accounts/', { params }),
 
   verifyPayoutAccount: (payoutAccountId: string) =>
     apiClient.post<PartnerPayoutAccountResponse>(
@@ -240,10 +246,10 @@ export type {
   PartnerApplicationAdminSummaryResponse,
   PartnerApplicationReviewDecisionRequest,
   PartnerApplicationReviewRequestDetailResponse,
-  PartnerCodeResponse,
   PartnerLaneApplicationResponse,
   PartnerPayoutAccountResponse,
   PartnerWorkspaceCaseResponse,
+  PartnerWorkspaceCodeResponse,
   PartnerWorkspaceProgramsResponse,
   PartnerWorkspaceResponse,
   PartnerWorkspaceReviewRequestResponse,

@@ -12,6 +12,23 @@ serviceAccount:
   create: true
   name: ""
 
+podSecurityContext:
+  fsGroup: 10001
+  fsGroupChangePolicy: OnRootMismatch
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsGroup: 10001
+  runAsUser: 10001
+
 externalSecret:
   enabled: true
   refreshInterval: 1h
@@ -40,6 +57,10 @@ metrics:
 prometheusMultiproc:
   enabled: true
   dir: /tmp/prometheus-multiproc
+
+exportScratch:
+  enabled: true
+  dir: /tmp/exports
 
 pdb:
   enabled: true

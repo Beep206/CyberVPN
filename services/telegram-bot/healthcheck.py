@@ -8,6 +8,16 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import urllib.request
+
+
+def _metrics_endpoint_healthy(prometheus_port: int) -> bool:
+    req = urllib.request.Request(
+        f"http://localhost:{prometheus_port}/metrics",
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=3) as resp:  # noqa: S310
+        return resp.status == 200
 
 
 async def check_health() -> bool:
@@ -34,20 +44,13 @@ async def check_health() -> bool:
     if prometheus_enabled:
         prometheus_port = int(os.getenv("PROMETHEUS_PORT", "9092"))
         try:
-            import urllib.request
-
-            req = urllib.request.Request(
-                f"http://localhost:{prometheus_port}/metrics",
-                method="GET",
-            )
-            with urllib.request.urlopen(req, timeout=3) as resp:  # noqa: S310
-                if resp.status != 200:
-                    print("UNHEALTHY: Metrics endpoint returned non-200")  # noqa: T201
-                    checks_passed = False
-        except Exception:
+            if not await asyncio.to_thread(_metrics_endpoint_healthy, prometheus_port):
+                print("UNHEALTHY: Metrics endpoint returned non-200")  # noqa: T201
+                checks_passed = False
+        except Exception as exc:
             # Metrics endpoint may not be up yet in polling mode;
             # don't fail the healthcheck for this alone.
-            pass
+            print(f"WARNING: Metrics endpoint health skipped: {exc}")  # noqa: T201
 
     return checks_passed
 

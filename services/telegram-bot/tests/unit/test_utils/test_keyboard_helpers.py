@@ -33,4 +33,3 @@ class TestIconButton:
         assert button.callback_data == "account:profile"
         assert button.icon_custom_emoji_id == "987654321"
         assert button.style == "primary"
-

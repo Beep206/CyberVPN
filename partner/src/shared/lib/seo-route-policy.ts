@@ -24,27 +24,12 @@ export type LocalizedPathInfo = {
 
 export const INDEXABLE_MARKETING_PATHS = [
   '/',
-  '/api',
-  '/audits',
-  '/compare',
-  '/contact',
-  '/devices',
-  '/docs',
-  '/download',
-  '/features',
-  '/guides',
-  '/help',
-  '/network',
-  '/pricing',
-  '/privacy',
-  '/privacy-policy',
-  '/security',
-  '/status',
-  '/terms',
-  '/trust',
+  '/checkout',
+  '/legal-docs',
+  '/support',
 ] as const;
 
-export const INDEXABLE_MARKETING_PREFIXES = ['/compare', '/devices', '/guides'] as const;
+export const INDEXABLE_MARKETING_PREFIXES = [] as const;
 
 export const CLIENT_PORTAL_PATH_PREFIXES = [
   '/analytics',

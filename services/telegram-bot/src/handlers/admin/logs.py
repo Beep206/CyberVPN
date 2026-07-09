@@ -4,9 +4,11 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
+
+from src.utils.telegram import callback_message
 
 if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -39,7 +41,7 @@ async def logs_handler(
             user_id = log.get("user_id", "N/A")
 
             level_emoji = {
-                "INFO": "ℹ️",
+                "INFO": "ℹ️",  # noqa: RUF001
                 "WARNING": "⚠️",
                 "ERROR": "❌",
                 "CRITICAL": "🔴",
@@ -71,7 +73,7 @@ async def logs_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=logs_text,
             reply_markup=builder.as_markup(),
         )
@@ -101,9 +103,10 @@ async def logs_export_handler(
         # Send as text file
         from aiogram.types import BufferedInputFile
 
-        logs_file = BufferedInputFile(logs_data.encode("utf-8"), filename="bot_logs.txt")
+        logs_text = logs_data if isinstance(logs_data, str) else str(logs_data)
+        logs_file = BufferedInputFile(logs_text.encode("utf-8"), filename="bot_logs.txt")
 
-        await callback.message.answer_document(
+        await callback_message(callback).answer_document(
             document=logs_file,
             caption=i18n.get("admin-logs-export-completed"),
         )

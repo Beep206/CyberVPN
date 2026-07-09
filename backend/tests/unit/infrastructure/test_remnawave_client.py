@@ -85,6 +85,20 @@ async def test_get_collection_validated_accepts_response_envelope(monkeypatch):
 
 
 @pytest.mark.unit
+async def test_get_collection_validated_accepts_response_keyed_collection_envelope(monkeypatch):
+    client = RemnawaveClient()
+    monkeypatch.setattr(
+        client,
+        "get",
+        AsyncMock(return_value={"response": {"total": 1, "configProfiles": [{"uuid": "profile-1"}]}}),
+    )
+
+    result = await client.get_collection_validated("/config-profiles", "configProfiles", _CollectionItem)
+
+    assert [item.uuid for item in result] == ["profile-1"]
+
+
+@pytest.mark.unit
 async def test_get_collection_validated_accepts_bare_list(monkeypatch):
     client = RemnawaveClient()
     monkeypatch.setattr(

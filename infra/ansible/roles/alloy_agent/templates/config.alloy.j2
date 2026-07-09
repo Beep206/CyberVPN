@@ -49,9 +49,9 @@ loki.write "edge" {
   }
 
   external_labels = {
-    project     = "{{ alloy_agent_project }}"
-    environment = "{{ alloy_agent_environment }}"
-    instance    = "{{ inventory_hostname }}"
+    project     = "{{ alloy_agent_project }}",
+    environment = "{{ alloy_agent_environment }}",
+    instance    = "{{ inventory_hostname }}",
   }
 }
 

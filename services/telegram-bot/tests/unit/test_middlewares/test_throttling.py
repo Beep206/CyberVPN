@@ -221,9 +221,7 @@ class TestThrottlingMiddleware:
         fake_redis: fakeredis.aioredis.FakeRedis,
     ) -> None:
         """Test handling events with no user."""
-        middleware = ThrottlingMiddleware(
-            settings=mock_settings, redis=fake_redis
-        )
+        middleware = ThrottlingMiddleware(settings=mock_settings, redis=fake_redis)
 
         # Event with no user
         event = MagicMock()
@@ -308,9 +306,7 @@ class TestThrottlingMiddleware:
         from redis.exceptions import RedisError
 
         object.__setattr__(mock_settings, "telegram_throttle_fail_open", True)
-        middleware = ThrottlingMiddleware(
-            settings=mock_settings, redis=fake_redis
-        )
+        middleware = ThrottlingMiddleware(settings=mock_settings, redis=fake_redis)
 
         user = User(id=123, is_bot=False, first_name="Test")
         message = MagicMock(spec=Message)

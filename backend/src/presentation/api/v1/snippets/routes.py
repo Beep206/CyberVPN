@@ -4,6 +4,7 @@ from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveSnippetResponse
+from src.presentation.api.v1.remnawave_degraded import optional_remnawave_read
 from src.presentation.dependencies import get_remnawave_client, require_role
 
 from .schemas import CreateSnippetRequest
@@ -16,9 +17,12 @@ async def list_snippets(
     current_user=Depends(require_role(AdminRole.ADMIN)), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """List configuration snippets (admin only)"""
-    result = await client.get_list_validated("/snippets", RemnawaveSnippetResponse)
-    route_operations_total.labels(route="snippets", action="list", status="success").inc()
-    return result
+    return await optional_remnawave_read(
+        route="snippets",
+        action="list",
+        fetch=lambda: client.get_collection_validated("/snippets", "snippets", RemnawaveSnippetResponse),
+        fallback=[],
+    )
 
 
 @router.post("/", response_model=RemnawaveSnippetResponse)

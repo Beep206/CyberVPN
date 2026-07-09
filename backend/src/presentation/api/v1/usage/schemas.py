@@ -22,7 +22,7 @@ class UsageResponse(BaseModel):
     )
     usage_source: UsageSource = Field(description="Authoritative source for this usage snapshot")
     usage_unavailable_reason: UsageUnavailableReason | None = Field(
-        None,
+        default=None,
         description="Reason usage is unavailable when usage_available is false",
     )
     bandwidth_used_bytes: int = Field(description="Total bandwidth consumed in bytes")
@@ -31,5 +31,5 @@ class UsageResponse(BaseModel):
     connections_limit: int = Field(description="Maximum allowed concurrent connections")
     period_start: datetime = Field(description="Start of the current billing period")
     period_end: datetime = Field(description="End of the current billing period")
-    last_connection_at: datetime | None = Field(None, description="Timestamp of last VPN connection")
+    last_connection_at: datetime | None = Field(default=None, description="Timestamp of last VPN connection")
     generated_at: datetime = Field(description="Timestamp when this usage snapshot was generated")

@@ -13,6 +13,7 @@ from src.keyboards.subscription import (
     plans_keyboard,
 )
 from src.states.subscription import SubscriptionState
+from src.utils.telegram import callback_data, callback_message, message_user_id
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -58,7 +59,9 @@ def _extract_telegram_stars_amount(features: dict[str, Any] | None) -> int:
     ]
 
     for candidate in candidates:
-        if candidate in (None, ""):
+        if candidate is None or candidate == "":
+            continue
+        if not isinstance(candidate, int | float | str):
             continue
         try:
             value = int(candidate)
@@ -121,6 +124,8 @@ def _find_plan_group(plan_catalog: list[dict[str, Any]], plan_code: str) -> dict
 
 def _find_duration_option(plan_group: dict[str, Any], duration_days: int) -> dict[str, Any] | None:
     for duration in plan_group.get("durations") or []:
+        if not isinstance(duration, dict):
+            continue
         if int(duration.get("duration_days") or 0) == duration_days:
             return duration
     return None
@@ -245,7 +250,7 @@ async def _render_payment_step(
         text += f"\nTraffic package: {selected_traffic_addon_code}"
 
     await state.update_data(checkout_payload=payload, checkout_quote=quote)
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=text,
         reply_markup=payment_methods_keyboard(
             i18n,
@@ -325,7 +330,7 @@ async def buy_subscription_handler(
 
         await state.clear()
         await state.update_data(plan_catalog=plan_catalog)
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("subscription-select-plan"),
             reply_markup=plans_keyboard(i18n, plan_catalog),
         )
@@ -349,7 +354,7 @@ async def plans_command_handler(
     if message.from_user is None:
         return
 
-    user_id = message.from_user.id
+    user_id = message_user_id(message)
     try:
         plans = await api_client.get_plans()
         plan_catalog = _group_plan_catalog(
@@ -390,7 +395,7 @@ async def plan_selected_handler(
         await state.clear()
         return
 
-    plan_code = callback.data.split(":")[-1]
+    plan_code = callback_data(callback).split(":")[-1]
     data = await state.get_data()
     plan_catalog = data.get("plan_catalog") or []
     plan_group = _find_plan_group(plan_catalog, plan_code)
@@ -405,7 +410,7 @@ async def plan_selected_handler(
         plan_name=plan_group.get("display_name"),
         plan_group=plan_group,
     )
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("subscription-select-duration"),
         reply_markup=duration_keyboard(i18n, plan=plan_group, durations=plan_group.get("durations")),
     )
@@ -426,7 +431,7 @@ async def duration_selected_handler(
         await state.clear()
         return
 
-    parts = callback.data.split(":")
+    parts = callback_data(callback).split(":")
     if len(parts) < 4:
         await state.clear()
         return
@@ -463,7 +468,7 @@ async def duration_selected_handler(
     )
 
     if extra_device_limit > 0 or traffic_addons:
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=_addons_summary_text(
                 plan_name=str(plan_group.get("display_name") or "Plan"),
                 duration_days=duration_days,
@@ -549,7 +554,7 @@ async def addon_selection_handler(
         extra_device_qty=extra_device_qty,
         selected_traffic_addon_code=selected_traffic_addon_code,
     )
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=_addons_summary_text(
             plan_name=plan_name,
             duration_days=duration_days,
@@ -586,7 +591,7 @@ async def subscription_back_handler(
             traffic_addons = data.get("traffic_addons") or []
             selected_traffic_addon_code = str(data.get("selected_traffic_addon_code") or "") or None
             if extra_device_limit > 0 or traffic_addons:
-                await callback.message.edit_text(
+                await callback_message(callback).edit_text(
                     text=_addons_summary_text(
                         plan_name=str(data.get("plan_name") or "Plan"),
                         duration_days=int(data.get("duration_days") or 0),
@@ -608,7 +613,7 @@ async def subscription_back_handler(
                 return
 
             plan_group = data.get("plan_group")
-            await callback.message.edit_text(
+            await callback_message(callback).edit_text(
                 text=i18n.get("subscription-select-duration"),
                 reply_markup=duration_keyboard(i18n, plan=plan_group, durations=(plan_group or {}).get("durations")),
             )
@@ -619,7 +624,7 @@ async def subscription_back_handler(
         if current_state == SubscriptionState.selecting_addons.state:
             data = await state.get_data()
             plan_group = data.get("plan_group")
-            await callback.message.edit_text(
+            await callback_message(callback).edit_text(
                 text=i18n.get("subscription-select-duration"),
                 reply_markup=duration_keyboard(i18n, plan=plan_group, durations=(plan_group or {}).get("durations")),
             )
@@ -643,7 +648,7 @@ async def subscription_back_handler(
                 )
                 await state.update_data(plan_catalog=plan_catalog)
 
-            await callback.message.edit_text(
+            await callback_message(callback).edit_text(
                 text=i18n.get("subscription-select-plan"),
                 reply_markup=plans_keyboard(i18n, plan_catalog),
             )
@@ -659,7 +664,7 @@ async def subscription_back_handler(
     await state.clear()
     from src.keyboards.menu import main_menu_keyboard
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("menu-main-title"),
         reply_markup=main_menu_keyboard(i18n),
     )
@@ -676,7 +681,7 @@ async def cancel_subscription_handler(
 
     from src.keyboards.menu import main_menu_keyboard
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("subscription-cancelled"),
         reply_markup=main_menu_keyboard(i18n),
     )

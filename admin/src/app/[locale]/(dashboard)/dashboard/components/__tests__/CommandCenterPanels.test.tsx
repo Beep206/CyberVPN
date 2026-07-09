@@ -240,6 +240,13 @@ function getSectionCard(label: string) {
   return card;
 }
 
+function textEqualsIgnoringFormatSpaces(expected: string) {
+  const normalizedExpected = expected.replace(/\s+/g, ' ').trim();
+
+  return (_content: string, element: Element | null) =>
+    (element?.textContent ?? '').replace(/\s+/g, ' ').trim() === normalizedExpected;
+}
+
 describe('CommandCenterPanels', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -248,6 +255,11 @@ describe('CommandCenterPanels', () => {
 
   it('renders section links and live operational streams for enabled admin sections', () => {
     render(<CommandCenterPanels />);
+    const expectedWithdrawalAmount = new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2,
+    }).format(120);
 
     expect(screen.getByLabelText('Command center operations')).toBeInTheDocument();
     expect(screen.getByText('ACTION QUEUES')).toBeInTheDocument();
@@ -263,7 +275,9 @@ describe('CommandCenterPanels', () => {
       'href',
       '/commerce',
     );
-    expect(screen.getByText('$120.00')).toBeInTheDocument();
+    expect(
+      screen.getAllByText(textEqualsIgnoringFormatSpaces(expectedWithdrawalAmount)).length,
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText(/Cryptobot/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Provider: Stripe/i)).toBeInTheDocument();
     expect(screen.getByText('Approve Withdrawal')).toBeInTheDocument();

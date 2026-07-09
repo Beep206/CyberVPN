@@ -1,5 +1,16 @@
+const MAX_PARTICLE_COUNT = 10_000;
+
 self.onmessage = (e: MessageEvent<{ count: number }>) => {
-    const { count } = e.data;
+    if (e.origin && e.origin !== self.location.origin) {
+        return;
+    }
+
+    const requestedCount = Math.trunc(Number(e.data?.count));
+    if (!Number.isFinite(requestedCount) || requestedCount <= 0) {
+        return;
+    }
+
+    const count = Math.min(requestedCount, MAX_PARTICLE_COUNT);
     const positions = new Float32Array(count * 3);
     const velocities = new Float32Array(count * 3);
     const phases = new Float32Array(count);

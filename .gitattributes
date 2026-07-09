@@ -1,3 +1,26 @@
 
+.gitattributes text eol=lf
+
 # Use bd merge for beads JSONL files
 .beads/issues.jsonl merge=beads
+
+# i18n generators emit deterministic LF JSON bundles on every platform.
+frontend/src/i18n/messages/generated/*.json text eol=lf
+admin/src/i18n/messages/generated/*.json text eol=lf
+partner/src/i18n/messages/generated/*.json text eol=lf
+
+# Release and container entrypoints should stay LF on Windows workstations.
+*.sh text eol=lf
+*.bash text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.yml.template text eol=lf
+Dockerfile text eol=lf
+**/Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+**/Dockerfile.* text eol=lf
+*.Dockerfile text eol=lf
+Cargo.lock text eol=lf
+**/Cargo.lock text eol=lf
+Cargo.toml text eol=lf
+**/Cargo.toml text eol=lf

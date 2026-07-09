@@ -7,13 +7,13 @@ from src.presentation.api.v1.payments.schemas import CheckoutQuoteResponse, Invo
 
 
 class GiftPurchaseQuoteRequest(BaseModel):
-    storefront_key: str | None = Field(None, min_length=1, max_length=50)
+    storefront_key: str | None = Field(default=None, min_length=1, max_length=50)
     plan_id: UUID
     use_wallet: float = Field(0, ge=0)
-    currency: str = Field("USD", min_length=3, max_length=12)
-    channel: str = Field("web", min_length=1, max_length=30)
-    recipient_hint: str | None = Field(None, max_length=160)
-    gift_message: str | None = Field(None, max_length=500)
+    currency: str = Field(default="USD", min_length=3, max_length=12)
+    channel: str = Field(default="web", min_length=1, max_length=30)
+    recipient_hint: str | None = Field(default=None, max_length=160)
+    gift_message: str | None = Field(default=None, max_length=500)
 
 
 class GiftPurchaseCommitRequest(GiftPurchaseQuoteRequest):

@@ -38,4 +38,3 @@ class BootstrapService:
             )
         )
         return updated_node, preview
-

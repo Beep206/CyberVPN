@@ -99,9 +99,7 @@ class TestPaymentHandlers:
         if is_valid:
             await pre_checkout.answer(ok=True)
         else:
-            await pre_checkout.answer(
-                ok=False, error_message="Invalid payment"
-            )
+            await pre_checkout.answer(ok=False, error_message="Invalid payment")
 
         pre_checkout.answer.assert_called_once()
         call_kwargs = pre_checkout.answer.call_args[1]
@@ -125,9 +123,7 @@ class TestPaymentHandlers:
     async def test_payment_verification_failure(self) -> None:
         """Test failed payment verification."""
         payment_service = MagicMock()
-        payment_service.verify_payment = AsyncMock(
-            return_value={"status": "failed", "error": "Payment declined"}
-        )
+        payment_service.verify_payment = AsyncMock(return_value={"status": "failed", "error": "Payment declined"})
 
         result = await payment_service.verify_payment(invoice_id="INV456")
 
@@ -142,13 +138,11 @@ class TestPaymentHandlers:
         callback.answer = AsyncMock()
 
         # Parse invoice ID
-        invoice_id = callback.data.split(":")[1]
+        callback.data.split(":")[1]
 
         # Simulate successful payment
         await callback.answer("Payment successful!", show_alert=True)
-        await callback.message.edit_text(
-            "✅ Payment confirmed! Your subscription is now active."
-        )
+        await callback.message.edit_text("✅ Payment confirmed! Your subscription is now active.")
 
         callback.answer.assert_called_once()
         assert "successful" in callback.answer.call_args[0][0].lower()
@@ -170,9 +164,7 @@ class TestPaymentHandlers:
     async def test_payment_gateway_unavailable(self) -> None:
         """Test handling unavailable payment gateway."""
         payment_service = MagicMock()
-        payment_service.create_invoice = AsyncMock(
-            side_effect=ValueError("YooKassa is not enabled")
-        )
+        payment_service.create_invoice = AsyncMock(side_effect=ValueError("YooKassa is not enabled"))
 
         with pytest.raises(ValueError, match="not enabled"):
             await payment_service.create_invoice(
@@ -227,13 +219,9 @@ class TestPaymentHandlers:
         # 4. User pays (external)
 
         # 5. Verify payment
-        payment_service.verify_payment = AsyncMock(
-            return_value={"status": "paid"}
-        )
+        payment_service.verify_payment = AsyncMock(return_value={"status": "paid"})
 
-        result = await payment_service.verify_payment(
-            invoice_id=invoice["invoice_id"]
-        )
+        result = await payment_service.verify_payment(invoice_id=invoice["invoice_id"])
 
         assert result["status"] == "paid"
 

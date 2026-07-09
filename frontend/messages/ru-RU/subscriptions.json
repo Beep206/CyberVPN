@@ -46,6 +46,7 @@
     "checkoutCodeLabel": "Код для checkout",
     "checkoutCodePlaceholder": "PROMO2026",
     "checkoutCodeRequired": "Введите код для checkout",
+    "codeSetRejected": "Этот код нельзя применить к выбранному тарифу или checkout-контексту.",
     "commitError": "Не удалось подтвердить checkout",
     "connectionModes": "Режимы подключения",
     "devices": "Устройства",

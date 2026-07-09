@@ -17,7 +17,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 class NatsBootstrapTests(unittest.TestCase):
-    def test_render_accounts_block_generates_passwords(self) -> None:
+    def test_render_accounts_block_uses_auth_env_references(self) -> None:
         credentials: dict[str, dict[str, str]] = {}
         block = MODULE.render_accounts_block(
             {
@@ -43,10 +43,32 @@ class NatsBootstrapTests(unittest.TestCase):
 
         self.assertIn("accounts {", block)
         self.assertIn("ops-admin", block)
+        self.assertIn("password: $NATS_SYS_OPS_ADMIN_AUTH", block)
         self.assertIn("permissions", block)
         self.assertIn("SYS", credentials)
         self.assertIn("ops-admin", credentials["SYS"])
-        self.assertTrue(credentials["SYS"]["ops-admin"])
+        self.assertEqual(credentials["SYS"]["ops-admin"], "NATS_SYS_OPS_ADMIN_AUTH")
+
+    def test_render_accounts_block_rejects_raw_passwords(self) -> None:
+        credentials: dict[str, dict[str, str]] = {}
+        with self.assertRaises(SystemExit):
+            MODULE.render_accounts_block(
+                {
+                    "system_account": "SYS",
+                    "accounts": [
+                        {
+                            "name": "SYS",
+                            "users": [
+                                {
+                                    "username": "ops-admin",
+                                    "password": "raw-secret",
+                                }
+                            ],
+                        }
+                    ],
+                },
+                credentials,
+            )
 
     @mock.patch.object(MODULE, "build_ca_bundle")
     @mock.patch.object(MODULE, "build_node_cert")
@@ -114,6 +136,7 @@ class NatsBootstrapTests(unittest.TestCase):
                     "cluster_port": 6222,
                     "monitor_port": 8222,
                     "exporter_port": 7777,
+                    "route_auth_env": "NATS_ROUTE_SYNC_AUTH",
                     "jetstream_store_dir": "/var/lib/nats/jetstream",
                     "jetstream_max_file_store": 21474836480,
                     "jetstream_max_memory_store": 268435456,

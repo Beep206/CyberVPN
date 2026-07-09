@@ -17,7 +17,7 @@ class CreateReserveRequest(BaseModel):
     reserve_scope: ReserveScope
     reserve_reason_type: ReserveReasonType
     source_earning_event_id: UUID | None = None
-    reason_code: str | None = Field(None, min_length=1, max_length=80)
+    reason_code: str | None = Field(default=None, min_length=1, max_length=80)
     reserve_payload: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("currency_code")
@@ -27,7 +27,7 @@ class CreateReserveRequest(BaseModel):
 
 
 class ReleaseReserveRequest(BaseModel):
-    release_reason_code: str | None = Field(None, min_length=1, max_length=80)
+    release_reason_code: str | None = Field(default=None, min_length=1, max_length=80)
 
 
 class ReserveResponse(BaseModel):

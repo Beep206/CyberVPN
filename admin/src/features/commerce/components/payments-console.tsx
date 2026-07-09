@@ -6,7 +6,7 @@ import { CreditCard, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { paymentsApi } from '@/lib/api/payments';
+import { adminPaymentsApi } from '@/lib/api/payments';
 import { CommercePageShell } from '@/features/commerce/components/commerce-page-shell';
 import { StatusChip } from '@/features/commerce/components/status-chip';
 import {
@@ -35,11 +35,11 @@ export function PaymentsConsole() {
   const paymentsQuery = useQuery({
     queryKey: ['commerce', 'payments', { limit: 100 }],
     queryFn: async () => {
-      const response = await paymentsApi.getHistory({
+      const response = await adminPaymentsApi.getPaymentAttempts({
         offset: 0,
         limit: 100,
       });
-      return response.data.payments;
+      return response.data.items;
     },
     staleTime: 30_000,
   });
@@ -60,12 +60,14 @@ export function PaymentsConsole() {
 
   const providers = Array.from(new Set(payments.map((payment) => payment.provider)));
   const statuses = Array.from(new Set(payments.map((payment) => payment.status)));
-  const totalVolume = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const completedPayments = filteredPayments.filter((payment) => payment.status === 'completed').length;
+  const totalVolume = filteredPayments.reduce((sum, payment) => sum + payment.displayed_amount, 0);
+  const completedPayments = filteredPayments.filter((payment) => payment.status === 'succeeded').length;
 
   function statusTone(status: string) {
-    if (status === 'completed') return 'success' as const;
-    if (status === 'failed' || status === 'refunded') return 'danger' as const;
+    if (status === 'succeeded') return 'success' as const;
+    if (status === 'failed' || status === 'cancelled' || status === 'expired' || status === 'refunded') {
+      return 'danger' as const;
+    }
     return 'info' as const;
   }
 
@@ -96,7 +98,7 @@ export function PaymentsConsole() {
         },
         {
           label: t('payments.metrics.volume'),
-          value: formatCurrencyAmount(totalVolume, filteredPayments[0]?.currency ?? 'USD'),
+          value: formatCurrencyAmount(totalVolume, filteredPayments[0]?.currency_code ?? 'USD'),
           hint: t('payments.metrics.volumeHint'),
           tone: 'warning',
         },
@@ -222,7 +224,7 @@ export function PaymentsConsole() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>{formatCurrencyAmount(payment.amount, payment.currency)}</TableCell>
+                    <TableCell>{formatCurrencyAmount(payment.displayed_amount, payment.currency_code)}</TableCell>
                     <TableCell>{humanizeToken(payment.provider)}</TableCell>
                     <TableCell>
                       <StatusChip

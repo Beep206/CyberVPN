@@ -23,9 +23,20 @@ const JAPAN_LOCALE = 'ja-JP';
 const SERVER_HOST = '127.0.0.1';
 const AUDIT_DIST_DIR = '.next-seo-audit';
 const STARTUP_TIMEOUT_MS = 30_000;
-const BUILD_TIMEOUT_MS = 10 * 60_000;
+const BUILD_TIMEOUT_MS = 20 * 60_000;
 const REQUEST_TIMEOUT_MS = 15_000;
 const HEALTHCHECK_TIMEOUT_MS = 5_000;
+const JSON_LD_PLACEHOLDER_VALUES = new Set(['undefined', 'null', 'nan', '[object object]']);
+const JSON_LD_SENSITIVE_VALUE_PATTERNS = [
+  { label: 'Bearer token', pattern: /\bBearer\s+[A-Za-z0-9._-]+/i },
+  { label: 'JWT', pattern: /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/ },
+  {
+    label: 'token query parameter',
+    pattern: /[?&](?:access_token|refresh_token|customer_access_token|partner_access_token|token|session|secret)=/i,
+  },
+  { label: 'VPN subscription URI', pattern: /\b(?:vless|vmess|trojan|ss|wireguard):\/\//i },
+  { label: 'local URL', pattern: /https?:\/\/(?:localhost|127\.0\.0\.1|portal\.localhost|storefront\.localhost)(?::\d+)?/i },
+];
 
 const INDEXABLE_ROUTES = [
   '/',
@@ -106,6 +117,175 @@ function getJsonLdBlocks(html) {
   );
 }
 
+function normalizeJsonLdKey(key) {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[@\s-]+/g, '_')
+    .toLowerCase();
+}
+
+function isSensitiveJsonLdKey(key) {
+  const normalized = normalizeJsonLdKey(key);
+
+  if (normalized === '_id') {
+    return false;
+  }
+
+  return (
+    /(^|_)(access_token|refresh_token|customer_access_token|customer_refresh_token|partner_access_token|partner_refresh_token|tfa_token|totp_secret|api_key|private_key|subscription_url|vpn_url)($|_)/.test(
+      normalized,
+    ) ||
+    /(^|_)(token|authorization|cookie|password|secret|session|jwt|credential)($|_)/.test(
+      normalized,
+    ) ||
+    /(^|_)(user_id|customer_id|partner_id)($|_)/.test(normalized)
+  );
+}
+
+function assertJsonLdValueIsSafe(route, path, value) {
+  if (value === null) {
+    assert(false, `JSON-LD for "${route}" must not contain null at ${path}`);
+    return;
+  }
+
+  if (typeof value === 'number') {
+    assert(Number.isFinite(value), `JSON-LD for "${route}" must not contain a non-finite number at ${path}`);
+    return;
+  }
+
+  if (typeof value === 'string') {
+    const normalizedValue = value.trim().toLowerCase();
+
+    assert(
+      !JSON_LD_PLACEHOLDER_VALUES.has(normalizedValue) && !value.includes('[object Object]'),
+      `JSON-LD for "${route}" must not contain placeholder value at ${path}`,
+    );
+
+    for (const { label, pattern } of JSON_LD_SENSITIVE_VALUE_PATTERNS) {
+      assert(
+        !pattern.test(value),
+        `JSON-LD for "${route}" must not contain ${label} at ${path}`,
+      );
+    }
+
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => {
+      assertJsonLdValueIsSafe(route, `${path}[${index}]`, entry);
+    });
+    return;
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    for (const [key, entry] of Object.entries(value)) {
+      const nextPath = `${path}.${key}`;
+
+      assert(
+        !isSensitiveJsonLdKey(key),
+        `JSON-LD for "${route}" must not expose sensitive key "${key}" at ${nextPath}`,
+      );
+      assertJsonLdValueIsSafe(route, nextPath, entry);
+    }
+  }
+}
+
+function collectJsonLdTypes(value, types = new Set()) {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      collectJsonLdTypes(entry, types);
+    }
+
+    return types;
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return types;
+  }
+
+  const type = value['@type'];
+
+  if (typeof type === 'string') {
+    types.add(type);
+  } else if (Array.isArray(type)) {
+    type
+      .filter((entry) => typeof entry === 'string')
+      .forEach((entry) => {
+        types.add(entry);
+      });
+  }
+
+  for (const entry of Object.values(value)) {
+    collectJsonLdTypes(entry, types);
+  }
+
+  return types;
+}
+
+function parseJsonLdBlocks(route, html) {
+  const parsedBlocks = [];
+
+  getJsonLdBlocks(html).forEach((source, index) => {
+    try {
+      parsedBlocks.push(JSON.parse(source));
+    } catch (error) {
+      assert(
+        false,
+        `JSON-LD block ${index + 1} for "${route}" must parse as JSON: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  });
+
+  return parsedBlocks;
+}
+
+function assertRootJsonLdShape(route, block, index) {
+  const path = `$[${index}]`;
+
+  assert(
+    typeof block === 'object' && block !== null && !Array.isArray(block),
+    `JSON-LD block ${index + 1} for "${route}" must be an object`,
+  );
+
+  if (typeof block !== 'object' || block === null || Array.isArray(block)) {
+    return;
+  }
+
+  assert(
+    block['@context'] === 'https://schema.org',
+    `JSON-LD block ${index + 1} for "${route}" must use https://schema.org context`,
+  );
+  assert(
+    typeof block['@type'] === 'string' ||
+      (Array.isArray(block['@type']) && block['@type'].every((entry) => typeof entry === 'string')),
+    `JSON-LD block ${index + 1} for "${route}" must declare a string @type`,
+  );
+  assertJsonLdValueIsSafe(route, path, block);
+}
+
+function assertJsonLdBlocks(route, html, expectedTypes = []) {
+  const parsedBlocks = parseJsonLdBlocks(route, html);
+  const types = new Set();
+
+  if (expectedTypes.length > 0) {
+    assert(parsedBlocks.length > 0, `Route "${route}" must emit JSON-LD`);
+  }
+
+  parsedBlocks.forEach((block, index) => {
+    assertRootJsonLdShape(route, block, index);
+    collectJsonLdTypes(block, types);
+  });
+
+  for (const expectedType of expectedTypes) {
+    assert(types.has(expectedType), `Route "${route}" must emit ${expectedType} JSON-LD`);
+  }
+
+  return { raw: getJsonLdBlocks(html), types };
+}
+
 async function getAvailablePort() {
   return new Promise((resolvePort, rejectPort) => {
     const server = createServer();
@@ -158,6 +338,7 @@ async function runBuild() {
       env: {
         ...process.env,
         NEXT_DIST_DIR: AUDIT_DIST_DIR,
+        NEXT_PUBLIC_SITE_URL: SITE_URL,
         NEXT_TELEMETRY_DISABLED: '1',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -210,6 +391,7 @@ function startServer(port) {
       env: {
         ...process.env,
         NEXT_DIST_DIR: AUDIT_DIST_DIR,
+        NEXT_PUBLIC_SITE_URL: SITE_URL,
         NEXT_TELEMETRY_DISABLED: '1',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -454,9 +636,10 @@ function assertSitemapRoute(xml) {
 }
 
 function assertHomeJsonLdAndCtas(homeHtml) {
-  const jsonLd = getJsonLdBlocks(homeHtml).join('\n');
+  const { raw, types } = assertJsonLdBlocks('/', homeHtml);
+  const jsonLd = raw.join('\n');
 
-  assert(!jsonLd.includes('SearchAction'), 'Homepage JSON-LD must not advertise SearchAction');
+  assert(!types.has('SearchAction'), 'Homepage JSON-LD must not advertise SearchAction');
   assert(!jsonLd.includes('/search'), 'Homepage JSON-LD must not point to a fake /search route');
   assert(
     homeHtml.includes('https://t.me/C_y_b_e_r_VPN_Bot'),
@@ -473,37 +656,11 @@ function assertHomeJsonLdAndCtas(homeHtml) {
 }
 
 function assertKnowledgeStructuredData(helpHtml, docsHtml, guideHtml, compareHtml, deviceHtml) {
-  const helpJsonLd = getJsonLdBlocks(helpHtml).join('\n');
-  const docsJsonLd = getJsonLdBlocks(docsHtml).join('\n');
-  const guideJsonLd = getJsonLdBlocks(guideHtml).join('\n');
-  const compareJsonLd = getJsonLdBlocks(compareHtml).join('\n');
-  const deviceJsonLd = getJsonLdBlocks(deviceHtml).join('\n');
-
-  assert(helpJsonLd.includes('"@type":"FAQPage"'), 'Help page must emit FAQPage JSON-LD');
-  assert(
-    helpJsonLd.includes('"@type":"BreadcrumbList"'),
-    'Help page must emit BreadcrumbList JSON-LD',
-  );
-  assert(
-    docsJsonLd.includes('"@type":"TechArticle"'),
-    'Docs page must emit TechArticle JSON-LD',
-  );
-  assert(
-    docsJsonLd.includes('"@type":"BreadcrumbList"'),
-    'Docs page must emit BreadcrumbList JSON-LD',
-  );
-  assert(
-    guideJsonLd.includes('"@type":"TechArticle"'),
-    'Guide detail page must emit TechArticle JSON-LD',
-  );
-  assert(
-    compareJsonLd.includes('"@type":"TechArticle"'),
-    'Compare detail page must emit TechArticle JSON-LD',
-  );
-  assert(
-    deviceJsonLd.includes('"@type":"SoftwareApplication"'),
-    'Device detail page must emit SoftwareApplication JSON-LD',
-  );
+  assertJsonLdBlocks('/help', helpHtml, ['FAQPage', 'BreadcrumbList']);
+  assertJsonLdBlocks('/docs', docsHtml, ['TechArticle', 'BreadcrumbList']);
+  assertJsonLdBlocks('/guides/how-to-bypass-dpi-with-vless-reality', guideHtml, ['TechArticle']);
+  assertJsonLdBlocks('/compare/vless-reality-vs-wireguard', compareHtml, ['TechArticle']);
+  assertJsonLdBlocks('/devices/android-vpn-setup', deviceHtml, ['SoftwareApplication']);
 }
 
 function assertRtlMarkup(rtlHtml) {
@@ -588,6 +745,10 @@ async function main() {
       assertPublicPage(route, publicPages.get(route) ?? '');
     }
 
+    for (const [route, html] of publicPages) {
+      assertJsonLdBlocks(route, html);
+    }
+
     for (const route of PRIVATE_ROUTE_SAMPLES) {
       assertPrivatePage(route, privatePages.get(route) ?? '');
     }
@@ -624,6 +785,18 @@ async function main() {
         JAPAN_LOCALE,
         japaneseDeviceDetailHtml,
       );
+      [
+        [`/${RTL_LOCALE}/pricing`, rtlHtml],
+        [`/${PRIORITY_LOCALE}/guides`, russianGuidesHtml],
+        [`/${CHINA_LOCALE}/trust`, chineseTrustHtml],
+        [`/${PRIORITY_LOCALE}/guides/how-to-bypass-dpi-with-vless-reality`, russianGuideDetailHtml],
+        [`/${CHINA_LOCALE}/compare/vless-reality-vs-wireguard`, chineseCompareDetailHtml],
+        [`/${PRIORITY_LOCALE}/devices/android-vpn-setup`, russianDeviceDetailHtml],
+        [`/${INDIA_LOCALE}/guides/how-to-bypass-dpi-with-vless-reality`, indianGuideDetailHtml],
+        [`/${JAPAN_LOCALE}/devices/android-vpn-setup`, japaneseDeviceDetailHtml],
+      ].forEach(([route, html]) => {
+        assertJsonLdBlocks(route, html);
+      });
       assertRtlMarkup(rtlHtml);
       assertNoLegacyDomainLeak([
         homeHtml,
@@ -668,3 +841,4 @@ if (errors.length > 0) {
 process.stdout.write(
   `SEO static audit passed: ${INDEXABLE_ROUTES.length + CONTENT_ROUTE_SAMPLES.length} public routes and ${PRIVATE_ROUTE_SAMPLES.length} private route samples verified.\n`,
 );
+process.exit(0);

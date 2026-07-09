@@ -37,6 +37,8 @@ class RemnawaveBaseResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
         populate_by_name=True,
+        validate_by_name=True,
+        validate_by_alias=True,
         extra="ignore",
     )
 
@@ -78,7 +80,7 @@ class StatusMessageResponse(RemnawaveBaseResponse):
     """Generic status + message response returned by many mutating endpoints."""
 
     status: str = Field(..., description="Operation status")
-    message: str | None = Field(None, max_length=1000, description="Status message")
+    message: str | None = Field(default=None, max_length=1000, description="Status message")
 
 
 class RemnawaveDeleteResponse(RemnawaveBaseResponse):
@@ -94,6 +96,8 @@ class RemnawaveDeleteResponse(RemnawaveBaseResponse):
     model_config = ConfigDict(
         from_attributes=True,
         populate_by_name=True,
+        validate_by_name=True,
+        validate_by_alias=True,
         extra="forbid",
     )
 
@@ -115,29 +119,31 @@ class RemnawaveUserResponse(RemnawaveBaseResponse):
     uuid: str = Field(..., description="User UUID")
     username: str = Field(..., description="Unique username")
     status: str = Field(..., description="User status (active/disabled/limited/expired)")
-    short_uuid: str = Field("", alias="shortUuid", description="Short UUID for display")
+    short_uuid: str = Field(default="", alias="shortUuid", description="Short UUID for display")
     created_at: datetime = Field(..., alias="createdAt", description="Creation timestamp")
     updated_at: datetime = Field(..., alias="updatedAt", description="Last update timestamp")
 
     # Subscription
-    subscription_uuid: str | None = Field(None, alias="subscriptionUuid", description="Linked subscription UUID")
-    subscription_url: str | None = Field(None, alias="subscriptionUrl", description="User subscription URL")
-    expire_at: datetime | None = Field(None, alias="expireAt", description="Expiration timestamp")
+    subscription_uuid: str | None = Field(
+        default=None, alias="subscriptionUuid", description="Linked subscription UUID"
+    )
+    subscription_url: str | None = Field(default=None, alias="subscriptionUrl", description="User subscription URL")
+    expire_at: datetime | None = Field(default=None, alias="expireAt", description="Expiration timestamp")
 
     # Traffic counters
     traffic_limit_bytes: int | None = Field(
-        None, alias="trafficLimitBytes", description="Traffic limit in bytes (None = unlimited)"
+        default=None, alias="trafficLimitBytes", description="Traffic limit in bytes (None = unlimited)"
     )
     used_traffic_bytes: int | None = Field(
-        None,
+        default=None,
         alias="usedTrafficBytes",
         validation_alias=AliasChoices("usedTrafficBytes", AliasPath("userTraffic", "usedTrafficBytes")),
         description="Current period used traffic",
     )
-    download_bytes: int | None = Field(None, alias="downloadBytes", description="Download traffic in bytes")
-    upload_bytes: int | None = Field(None, alias="uploadBytes", description="Upload traffic in bytes")
+    download_bytes: int | None = Field(default=None, alias="downloadBytes", description="Download traffic in bytes")
+    upload_bytes: int | None = Field(default=None, alias="uploadBytes", description="Upload traffic in bytes")
     lifetime_used_traffic_bytes: int | None = Field(
-        None,
+        default=None,
         alias="lifetimeUsedTrafficBytes",
         validation_alias=AliasChoices(
             "lifetimeUsedTrafficBytes",
@@ -148,36 +154,42 @@ class RemnawaveUserResponse(RemnawaveBaseResponse):
 
     # Connectivity and subscription state
     online_at: datetime | None = Field(
-        None,
+        default=None,
         alias="onlineAt",
         validation_alias=AliasChoices("onlineAt", AliasPath("userTraffic", "onlineAt")),
         description="Last online timestamp",
     )
-    sub_last_user_agent: str | None = Field(None, alias="subLastUserAgent", description="Last subscription user-agent")
-    sub_revoked_at: datetime | None = Field(None, alias="subRevokedAt", description="Subscription revocation timestamp")
+    sub_last_user_agent: str | None = Field(
+        default=None, alias="subLastUserAgent", description="Last subscription user-agent"
+    )
+    sub_revoked_at: datetime | None = Field(
+        default=None, alias="subRevokedAt", description="Subscription revocation timestamp"
+    )
     last_traffic_reset_at: datetime | None = Field(
-        None, alias="lastTrafficResetAt", description="Last traffic counter reset"
+        default=None, alias="lastTrafficResetAt", description="Last traffic counter reset"
     )
 
     # External identifiers
-    telegram_id: int | None = Field(None, alias="telegramId", description="Linked Telegram user ID")
-    email: str | None = Field(None, description="User email address")
+    telegram_id: int | None = Field(default=None, alias="telegramId", description="Linked Telegram user ID")
+    email: str | None = Field(default=None, description="User email address")
     remnawave_numeric_id: int | None = Field(
-        None,
+        default=None,
         alias="id",
         validation_alias=AliasChoices("id", "userId", "numericId"),
         description="Optional numeric identifier returned by newer Remnawave APIs",
     )
     used_traffic_percentage: float | None = Field(
-        None,
+        default=None,
         alias="usedTrafficPercentage",
         description="Optional upstream traffic usage percentage",
     )
 
     # Device management
-    hwid_device_limit: int | None = Field(None, alias="hwidDeviceLimit", description="Max hardware-ID bound devices")
+    hwid_device_limit: int | None = Field(
+        default=None, alias="hwidDeviceLimit", description="Max hardware-ID bound devices"
+    )
     hwid_active: int | bool | None = Field(
-        None,
+        default=None,
         alias="hwidActive",
         validation_alias=AliasChoices("hwidActive", "hwidDevicesActive", "activeHwidDevices"),
         description="Remnawave 2.8 active HWID device signal when included in payloads",
@@ -185,7 +197,7 @@ class RemnawaveUserResponse(RemnawaveBaseResponse):
 
     # Nested relationships (present in some response variants)
     active_user_inbounds: list[dict[str, Any]] | None = Field(
-        None, alias="activeUserInbounds", description="Active inbound assignments"
+        default=None, alias="activeUserInbounds", description="Active inbound assignments"
     )
 
 
@@ -193,7 +205,7 @@ class RemnawaveUserListResponse(RemnawaveBaseResponse):
     """Wrapper returned by ``GET /api/users`` when the upstream paginates."""
 
     response: list[RemnawaveUserResponse] = Field(default_factory=list, description="List of users")
-    total: int | None = Field(None, description="Total user count")
+    total: int | None = Field(default=None, description="Total user count")
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +218,7 @@ class RemnawaveNodeResponse(RemnawaveBaseResponse):
 
     uuid: str = Field(..., description="Node UUID")
     name: str = Field(..., description="Node display name")
-    address: str = Field("", description="Node address or hostname")
+    address: str = Field(default="", description="Node address or hostname")
     port: int = Field(0, description="Node port")
     is_connected: bool = Field(False, alias="isConnected", description="Connection status")
     is_disabled: bool = Field(False, alias="isDisabled", description="Disabled flag")
@@ -215,46 +227,48 @@ class RemnawaveNodeResponse(RemnawaveBaseResponse):
     updated_at: datetime = Field(..., alias="updatedAt", description="Last update timestamp")
 
     # Optional metadata
-    country_code: str | None = Field(None, alias="countryCode", description="ISO country code")
-    traffic_limit_bytes: int | None = Field(None, alias="trafficLimitBytes", description="Node traffic limit")
+    country_code: str | None = Field(default=None, alias="countryCode", description="ISO country code")
+    traffic_limit_bytes: int | None = Field(default=None, alias="trafficLimitBytes", description="Node traffic limit")
     used_traffic_bytes: int | None = Field(
-        None,
+        default=None,
         alias="usedTrafficBytes",
         validation_alias=AliasChoices("usedTrafficBytes", "trafficUsedBytes"),
         description="Node used traffic",
     )
-    inbound_count: int | None = Field(None, alias="inboundCount", description="Number of inbound configs")
-    users_online: int | None = Field(None, alias="usersOnline", description="Currently connected users")
+    inbound_count: int | None = Field(default=None, alias="inboundCount", description="Number of inbound configs")
+    users_online: int | None = Field(default=None, alias="usersOnline", description="Currently connected users")
     xray_version: str | None = Field(
-        None,
+        default=None,
         alias="xrayVersion",
         validation_alias=AliasChoices("xrayVersion", AliasPath("versions", "xray")),
         description="Running Xray version",
     )
     node_version: str | None = Field(
-        None,
+        default=None,
         alias="nodeVersion",
         validation_alias=AliasChoices("nodeVersion", AliasPath("versions", "node")),
         description="Running Remnawave node version",
     )
-    vpn_protocol: str | None = Field(None, alias="vpnProtocol", description="Primary VPN protocol")
-    active_plugin_uuid: str | None = Field(None, alias="activePluginUuid", description="Active governance plugin UUID")
+    vpn_protocol: str | None = Field(default=None, alias="vpnProtocol", description="Primary VPN protocol")
+    active_plugin_uuid: str | None = Field(
+        default=None, alias="activePluginUuid", description="Active governance plugin UUID"
+    )
     consumption_multiplier: float | None = Field(
-        None,
+        default=None,
         alias="consumptionMultiplier",
         validation_alias=AliasChoices("consumptionMultiplier", "nodeConsumptionMultiplier"),
         description="Traffic consumption multiplier",
     )
     node_consumption_multiplier: float | None = Field(
-        None,
+        default=None,
         alias="nodeConsumptionMultiplier",
         description="Remnawave 2.8 node consumption multiplier",
     )
-    note: str | None = Field(None, description="Operator note")
-    proxy_url: str | None = Field(None, alias="proxyUrl", description="Optional upstream node proxy URL")
+    note: str | None = Field(default=None, description="Operator note")
+    proxy_url: str | None = Field(default=None, alias="proxyUrl", description="Optional upstream node proxy URL")
     tags: list[str] = Field(default_factory=list, description="Node tags when returned by upstream")
     cpu_load_1m: float | None = Field(
-        None,
+        default=None,
         alias="cpuLoad1m",
         validation_alias=AliasChoices(
             "cpuLoad1m",
@@ -265,7 +279,7 @@ class RemnawaveNodeResponse(RemnawaveBaseResponse):
         description="Remnawave 2.8 node CPU load average over 1 minute",
     )
     cpu_load_5m: float | None = Field(
-        None,
+        default=None,
         alias="cpuLoad5m",
         validation_alias=AliasChoices(
             "cpuLoad5m",
@@ -276,7 +290,7 @@ class RemnawaveNodeResponse(RemnawaveBaseResponse):
         description="Remnawave 2.8 node CPU load average over 5 minutes",
     )
     cpu_load_15m: float | None = Field(
-        None,
+        default=None,
         alias="cpuLoad15m",
         validation_alias=AliasChoices(
             "cpuLoad15m",
@@ -286,7 +300,9 @@ class RemnawaveNodeResponse(RemnawaveBaseResponse):
         ),
         description="Remnawave 2.8 node CPU load average over 15 minutes",
     )
-    notification_enabled: bool | None = Field(None, alias="notificationEnabled", description="Notification flag")
+    notification_enabled: bool | None = Field(
+        default=None, alias="notificationEnabled", description="Notification flag"
+    )
 
 
 class RemnawaveNodeListResponse(RemnawaveBaseResponse):
@@ -311,29 +327,29 @@ class RemnawaveInboundResponse(RemnawaveBaseResponse):
         description="Protocol (vless, vmess, trojan, shadowsocks, etc.)",
     )
     port: int = Field(..., description="Listening port")
-    network: str | None = Field(None, description="Transport network type (tcp, ws, grpc, etc.)")
-    transport: str | None = Field(None, description="Transport identifier when returned separately")
-    security: str | None = Field(None, description="Security type (tls, reality, none)")
-    tls: str | None = Field(None, description="TLS mode")
+    network: str | None = Field(default=None, description="Transport network type (tcp, ws, grpc, etc.)")
+    transport: str | None = Field(default=None, description="Transport identifier when returned separately")
+    security: str | None = Field(default=None, description="Security type (tls, reality, none)")
+    tls: str | None = Field(default=None, description="TLS mode")
     settings: dict[str, Any] | None = Field(
-        None,
+        default=None,
         validation_alias=AliasChoices("settings", AliasPath("rawInbound", "settings")),
         description="Raw protocol settings",
     )
     stream_settings: dict[str, Any] | None = Field(
-        None,
+        default=None,
         alias="streamSettings",
         validation_alias=AliasChoices("streamSettings", AliasPath("rawInbound", "streamSettings")),
         description="Stream/transport settings",
     )
     sniffing: dict[str, Any] | None = Field(
-        None,
+        default=None,
         validation_alias=AliasChoices("sniffing", AliasPath("rawInbound", "sniffing")),
         description="Sniffing configuration",
     )
 
     # Node association
-    node_uuid: str | None = Field(None, alias="nodeUuid", description="Parent node UUID")
+    node_uuid: str | None = Field(default=None, alias="nodeUuid", description="Parent node UUID")
     tags: list[str] = Field(default_factory=list, description="Inbound tags when returned by upstream")
 
     @field_validator("settings", "stream_settings", "sniffing", mode="before")
@@ -357,51 +373,51 @@ class RemnawaveHostResponse(RemnawaveBaseResponse):
     """Host entry from the Remnawave ``/api/hosts`` endpoints."""
 
     uuid: str = Field(..., description="Host UUID")
-    inbound_uuid: str | None = Field(None, alias="inboundUuid", description="Associated inbound UUID")
-    remark: str | None = Field(None, description="Host remark/display name")
-    address: str = Field("", description="Host address")
-    port: int | None = Field(None, description="Host port (overrides inbound port)")
-    sni: str | None = Field(None, description="Server Name Indication")
-    host: str | None = Field(None, description="HTTP Host header value")
-    path: str | None = Field(None, description="WebSocket / HTTP path")
-    alpn: list[str] | None = Field(None, description="ALPN protocols")
-    fingerprint: str | None = Field(None, description="TLS fingerprint profile")
+    inbound_uuid: str | None = Field(default=None, alias="inboundUuid", description="Associated inbound UUID")
+    remark: str | None = Field(default=None, description="Host remark/display name")
+    address: str = Field(default="", description="Host address")
+    port: int | None = Field(default=None, description="Host port (overrides inbound port)")
+    sni: str | None = Field(default=None, description="Server Name Indication")
+    host: str | None = Field(default=None, description="HTTP Host header value")
+    path: str | None = Field(default=None, description="WebSocket / HTTP path")
+    alpn: list[str] | None = Field(default=None, description="ALPN protocols")
+    fingerprint: str | None = Field(default=None, description="TLS fingerprint profile")
     is_disabled: bool = Field(False, alias="isDisabled", description="Disabled flag")
-    security: str | None = Field(None, description="Security layer (tls/reality/none)")
-    reality_public_key: str | None = Field(None, alias="realityPublicKey", description="REALITY public key")
-    reality_short_id: str | None = Field(None, alias="realityShortId", description="REALITY short ID")
-    reality_private_key: str | None = Field(None, alias="realityPrivateKey", description="REALITY private key")
-    tag: str | None = Field(None, description="Legacy single Remnawave host tag")
+    security: str | None = Field(default=None, description="Security layer (tls/reality/none)")
+    reality_public_key: str | None = Field(default=None, alias="realityPublicKey", description="REALITY public key")
+    reality_short_id: str | None = Field(default=None, alias="realityShortId", description="REALITY short ID")
+    reality_private_key: str | None = Field(default=None, alias="realityPrivateKey", description="REALITY private key")
+    tag: str | None = Field(default=None, description="Legacy single Remnawave host tag")
     tags: list[str] = Field(default_factory=list, description="Remnawave 2.8 multiple host tags")
     verify_peer_cert_by_name: bool | None = Field(
-        None,
+        default=None,
         alias="verifyPeerCertByName",
         description="Remnawave 2.8 peer certificate name verification flag",
     )
     mihomo_ip_version: str | None = Field(
-        None,
+        default=None,
         alias="mihomoIpVersion",
         description="Mihomo IP version selector",
     )
     pinned_peer_cert_sha256: str | None = Field(
-        None,
+        default=None,
         alias="pinnedPeerCertSha256",
         description="Pinned upstream peer certificate SHA-256",
     )
     allow_insecure: bool | None = Field(
-        None,
+        default=None,
         alias="allowInsecure",
         description="Legacy compatibility for pre-2.8 allowInsecure hosts",
     )
     xhttp_extra_params: dict[str, Any] | None = Field(
-        None,
+        default=None,
         alias="xhttpExtraParams",
         validation_alias=AliasChoices("xhttpExtraParams", "xhttp", "xhttpOpts", "xhttpOptions"),
         description="XHTTP transport options when Remnawave exposes them on hosts",
     )
-    ech: dict[str, Any] | None = Field(None, description="ECH settings when exposed by Remnawave")
+    ech: dict[str, Any] | None = Field(default=None, description="ECH settings when exposed by Remnawave")
     exclude_hosts_by_tags: list[str] | None = Field(
-        None,
+        default=None,
         alias="excludeHostsByTags",
         description="Response-rule host tag exclusion policy when embedded",
     )
@@ -430,15 +446,17 @@ class RemnawaveSubscriptionResponse(RemnawaveBaseResponse):
     uuid: str = Field(..., description="Subscription template UUID")
     name: str = Field(..., description="Template display name")
     template_type: str = Field(..., alias="templateType", description="VPN client template type")
-    host_uuid: str | None = Field(None, alias="hostUuid", description="Associated host UUID")
-    inbound_tag: str | None = Field(None, alias="inboundTag", description="Inbound tag reference")
-    flow: str | None = Field(None, description="Flow control method (xtls-rprx-vision, etc.)")
-    config_data: dict[str, Any] | None = Field(None, alias="configData", description="Additional config blob")
-    description: str | None = Field(None, alias="description", description="Template description/DESCRIPTION key")
-    client_type: str | None = Field(None, alias="clientType", description="Subscription client family")
-    xhttp: dict[str, Any] | None = Field(None, description="XHTTP template metadata when returned")
-    hysteria2: dict[str, Any] | None = Field(None, description="Hysteria2 template metadata when returned")
-    v2plus: dict[str, Any] | None = Field(None, description="v2plus fallback metadata when returned")
+    host_uuid: str | None = Field(default=None, alias="hostUuid", description="Associated host UUID")
+    inbound_tag: str | None = Field(default=None, alias="inboundTag", description="Inbound tag reference")
+    flow: str | None = Field(default=None, description="Flow control method (xtls-rprx-vision, etc.)")
+    config_data: dict[str, Any] | None = Field(default=None, alias="configData", description="Additional config blob")
+    description: str | None = Field(
+        default=None, alias="description", description="Template description/DESCRIPTION key"
+    )
+    client_type: str | None = Field(default=None, alias="clientType", description="Subscription client family")
+    xhttp: dict[str, Any] | None = Field(default=None, description="XHTTP template metadata when returned")
+    hysteria2: dict[str, Any] | None = Field(default=None, description="Hysteria2 template metadata when returned")
+    v2plus: dict[str, Any] | None = Field(default=None, description="v2plus fallback metadata when returned")
 
 
 class RemnawaveSubscriptionUserSummary(RemnawaveBaseResponse):
@@ -446,17 +464,17 @@ class RemnawaveSubscriptionUserSummary(RemnawaveBaseResponse):
 
     short_uuid: str = Field(..., alias="shortUuid", description="User short UUID")
     username: str = Field(..., description="Username")
-    days_left: int | None = Field(None, alias="daysLeft", description="Days left until expiration")
-    expires_at: datetime | None = Field(None, alias="expiresAt", description="Expiration timestamp")
-    is_active: bool | None = Field(None, alias="isActive", description="Whether subscription is active")
-    user_status: str | None = Field(None, alias="userStatus", description="Remnawave user status")
+    days_left: int | None = Field(default=None, alias="daysLeft", description="Days left until expiration")
+    expires_at: datetime | None = Field(default=None, alias="expiresAt", description="Expiration timestamp")
+    is_active: bool | None = Field(default=None, alias="isActive", description="Whether subscription is active")
+    user_status: str | None = Field(default=None, alias="userStatus", description="Remnawave user status")
 
 
 class RemnawaveSubscriptionDetailsResponse(RemnawaveBaseResponse):
     """Validated response for ``GET /api/subscriptions/by-uuid/{uuid}``."""
 
     is_found: bool = Field(..., alias="isFound", description="Whether the subscription record exists")
-    user: RemnawaveSubscriptionUserSummary | None = Field(None, description="Embedded user summary")
+    user: RemnawaveSubscriptionUserSummary | None = Field(default=None, description="Embedded user summary")
     links: list[str] = Field(default_factory=list, description="Generated connection links")
     ss_conf_links: dict[str, str] = Field(
         default_factory=dict,
@@ -464,12 +482,12 @@ class RemnawaveSubscriptionDetailsResponse(RemnawaveBaseResponse):
         description="Shadowsocks config links keyed by remark",
     )
     subscription_url: str | None = Field(
-        None,
+        default=None,
         alias="subscriptionUrl",
         max_length=5000,
         description="Subscription URL for VPN clients",
     )
-    headers: dict[str, Any] | None = Field(None, description="Optional upstream response headers snapshot")
+    headers: dict[str, Any] | None = Field(default=None, description="Optional upstream response headers snapshot")
     xhttp_links: list[str] = Field(default_factory=list, alias="xhttpLinks", description="XHTTP links when returned")
     hysteria2_links: list[str] = Field(
         default_factory=list,
@@ -490,7 +508,7 @@ class RemnawaveSubscriptionConfigResponse(RemnawaveBaseResponse):
         description="Shadowsocks config links keyed by remark",
     )
     subscription_url: str | None = Field(
-        None,
+        default=None,
         alias="subscriptionUrl",
         max_length=5000,
         description="Subscription URL for VPN clients",
@@ -498,7 +516,7 @@ class RemnawaveSubscriptionConfigResponse(RemnawaveBaseResponse):
     xhttp_enabled: bool = Field(False, alias="xhttpEnabled", description="Whether XHTTP links are present")
     xhttp_links: list[str] = Field(default_factory=list, alias="xhttpLinks", description="XHTTP connection links")
     x_hwid_active: str | int | bool | None = Field(
-        None,
+        default=None,
         alias="xHwidActive",
         validation_alias=AliasChoices("xHwidActive", "x-hwid-active", "x-hwid-limit"),
         description="Remnawave 2.8 HWID active signal with legacy header compatibility",
@@ -511,18 +529,18 @@ class RemnawaveCursorPage(RemnawaveBaseResponse):
     response: list[dict[str, Any]] = Field(default_factory=list, description="Raw cursor page items")
     users: list[dict[str, Any]] = Field(default_factory=list, description="Alternate users key")
     next_cursor: str | None = Field(
-        None,
+        default=None,
         alias="nextCursor",
         validation_alias=AliasChoices("nextCursor", "cursor", "next"),
         description="Cursor for the next page",
     )
     has_next_page: bool | None = Field(
-        None,
+        default=None,
         alias="hasNextPage",
         validation_alias=AliasChoices("hasNextPage", "hasMore", "hasNext"),
         description="Whether more items are available",
     )
-    total: int | None = Field(None, description="Total users when reported by upstream")
+    total: int | None = Field(default=None, description="Total users when reported by upstream")
 
     @property
     def items(self) -> list[dict[str, Any]]:
@@ -542,9 +560,9 @@ class RemnavwavePlanResponse(RemnawaveBaseResponse):
     price: float = Field(..., description="Plan price")
     currency: str = Field(..., description="Currency code (ISO 4217)")
     duration_days: int = Field(..., alias="durationDays", description="Plan duration in days")
-    data_limit_gb: int | None = Field(None, alias="dataLimitGb", description="Data limit in gigabytes")
-    max_devices: int | None = Field(None, alias="maxDevices", description="Max simultaneous devices")
-    features: list[str] | None = Field(None, description="Plan feature list")
+    data_limit_gb: int | None = Field(default=None, alias="dataLimitGb", description="Data limit in gigabytes")
+    max_devices: int | None = Field(default=None, alias="maxDevices", description="Max simultaneous devices")
+    features: list[str] | None = Field(default=None, description="Plan feature list")
     is_active: bool = Field(True, alias="isActive", description="Plan active flag")
 
 
@@ -559,7 +577,7 @@ class RemnawaveSettingResponse(RemnawaveBaseResponse):
     id: int = Field(..., description="Setting ID")
     key: str = Field(..., description="Setting key")
     value: Any = Field(..., description="Setting value (any JSON type)")
-    description: str | None = Field(None, description="Setting description")
+    description: str | None = Field(default=None, description="Setting description")
     is_public: bool = Field(False, alias="isPublic", description="Public visibility flag")
 
 
@@ -578,7 +596,7 @@ class RemnavwaveBandwidthStatsResponse(RemnawaveBaseResponse):
 
     bytes_in: int = Field(0, alias="bytesIn", description="Incoming bytes")
     bytes_out: int = Field(0, alias="bytesOut", description="Outgoing bytes")
-    total_bytes: int | None = Field(None, alias="totalBytes", description="Total bytes (in + out)")
+    total_bytes: int | None = Field(default=None, alias="totalBytes", description="Total bytes (in + out)")
 
 
 class RemnawaveBandwidthWindowResponse(RemnawaveBaseResponse):
@@ -643,18 +661,18 @@ class RemnawaveRecapTotalResponse(RemnawaveBaseResponse):
     users: int = Field(0, description="Total users")
     nodes: int = Field(0, description="Total nodes")
     traffic: int = Field(0, description="Lifetime traffic")
-    nodes_ram: str | None = Field(None, alias="nodesRam")
-    nodes_cpu_cores: int | None = Field(None, alias="nodesCpuCores")
-    distinct_countries: int | None = Field(None, alias="distinctCountries")
+    nodes_ram: str | None = Field(default=None, alias="nodesRam")
+    nodes_cpu_cores: int | None = Field(default=None, alias="nodesCpuCores")
+    distinct_countries: int | None = Field(default=None, alias="distinctCountries")
 
 
 class RemnawaveRecapResponse(RemnawaveBaseResponse):
     """Raw Remnawave recap payload used by monitoring use cases."""
 
     total: RemnawaveRecapTotalResponse
-    this_month: RemnawaveRecapPeriodResponse | None = Field(None, alias="thisMonth")
+    this_month: RemnawaveRecapPeriodResponse | None = Field(default=None, alias="thisMonth")
     version: str | None = None
-    init_date: datetime | None = Field(None, alias="initDate")
+    init_date: datetime | None = Field(default=None, alias="initDate")
 
 
 class RemnawaveMetadataBuildResponse(RemnawaveBaseResponse):
@@ -697,9 +715,11 @@ class RemnawaveMetadataResponse(RemnawaveBaseResponse):
 class RemnawaveCreatedSubscriptionResponse(RemnawaveBaseResponse):
     """Create-subscription acknowledgement returned by Remnawave."""
 
-    id: str | int | None = Field(None, description="Subscription identifier")
-    uuid: str | None = Field(None, description="Subscription UUID")
-    expires_at: datetime | None = Field(None, alias="expiresAt", description="Subscription expiration timestamp")
+    id: str | int | None = Field(default=None, description="Subscription identifier")
+    uuid: str | None = Field(default=None, description="Subscription UUID")
+    expires_at: datetime | None = Field(
+        default=None, alias="expiresAt", description="Subscription expiration timestamp"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -710,12 +730,12 @@ class RemnawaveCreatedSubscriptionResponse(RemnawaveBaseResponse):
 class RemnawaveXrayConfigResponse(RemnawaveBaseResponse):
     """Xray-core configuration blob from Remnawave ``/api/xray/config``."""
 
-    log: dict[str, Any] | None = Field(None, description="Xray log configuration")
-    inbounds: list[dict[str, Any]] | None = Field(None, description="Xray inbound listeners")
-    outbounds: list[dict[str, Any]] | None = Field(None, description="Xray outbound proxies")
-    routing: dict[str, Any] | None = Field(None, description="Xray routing rules")
-    dns: dict[str, Any] | None = Field(None, description="Xray DNS configuration")
-    policy: dict[str, Any] | None = Field(None, description="Xray policy configuration")
+    log: dict[str, Any] | None = Field(default=None, description="Xray log configuration")
+    inbounds: list[dict[str, Any]] | None = Field(default=None, description="Xray inbound listeners")
+    outbounds: list[dict[str, Any]] | None = Field(default=None, description="Xray outbound proxies")
+    routing: dict[str, Any] | None = Field(default=None, description="Xray routing rules")
+    dns: dict[str, Any] | None = Field(default=None, description="Xray DNS configuration")
+    policy: dict[str, Any] | None = Field(default=None, description="Xray policy configuration")
 
 
 # ---------------------------------------------------------------------------
@@ -731,8 +751,8 @@ class RemnavwaveBillingRecordResponse(RemnawaveBaseResponse):
     amount: float = Field(..., description="Payment amount")
     currency: str = Field(..., description="Currency code (ISO 4217)")
     status: str = Field(..., description="Payment status")
-    payment_method: str | None = Field(None, alias="paymentMethod", description="Payment method")
-    created_at: datetime | None = Field(None, alias="createdAt", description="Creation timestamp")
+    payment_method: str | None = Field(default=None, alias="paymentMethod", description="Payment method")
+    created_at: datetime | None = Field(default=None, alias="createdAt", description="Creation timestamp")
 
 
 # ---------------------------------------------------------------------------
@@ -748,7 +768,22 @@ class RemnawaveConfigProfileResponse(RemnawaveBaseResponse):
     profile_type: str = Field(..., alias="profileType", description="Profile type (clash/v2ray/etc.)")
     content: str = Field(..., description="Profile template content")
     is_default: bool = Field(False, alias="isDefault", description="Default profile flag")
-    description: str | None = Field(None, description="Profile description")
+    description: str | None = Field(default=None, description="Profile description")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_remnawave_2_8_profile(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+
+        normalized = dict(value)
+        if "profileType" not in normalized and "profile_type" not in normalized:
+            normalized["profileType"] = "xray" if isinstance(normalized.get("config"), dict) else "unknown"
+        if "content" not in normalized:
+            normalized["content"] = ""
+        if "isDefault" not in normalized and "is_default" not in normalized:
+            normalized["isDefault"] = False
+        return normalized
 
 
 # ---------------------------------------------------------------------------
@@ -764,7 +799,7 @@ class RemnawaveSnippetResponse(RemnawaveBaseResponse):
     snippet_type: str = Field(..., alias="snippetType", description="Snippet type")
     content: str = Field(..., description="Snippet content")
     is_active: bool = Field(True, alias="isActive", description="Active flag")
-    order: int | None = Field(None, description="Display/execution order")
+    order: int | None = Field(default=None, description="Display/execution order")
 
 
 # ---------------------------------------------------------------------------
@@ -778,16 +813,16 @@ class RemnawaveSquadResponse(RemnawaveBaseResponse):
     uuid: str = Field(..., description="Squad UUID")
     name: str = Field(..., description="Squad name")
     squad_type: str = Field(..., alias="squadType", description="Squad type (internal/external)")
-    max_members: int | None = Field(None, alias="maxMembers", description="Maximum squad members")
+    max_members: int | None = Field(default=None, alias="maxMembers", description="Maximum squad members")
     is_active: bool = Field(True, alias="isActive", description="Active flag")
-    description: str | None = Field(None, description="Squad description")
-    member_count: int | None = Field(None, alias="memberCount", description="Current member count")
+    description: str | None = Field(default=None, description="Squad description")
+    member_count: int | None = Field(default=None, alias="memberCount", description="Current member count")
 
 
 class RemnawaveRawSquadInfoResponse(RemnawaveBaseResponse):
     """Nested info object returned by the upstream squads endpoints."""
 
-    members_count: int | None = Field(None, alias="membersCount", description="Current member count")
+    members_count: int | None = Field(default=None, alias="membersCount", description="Current member count")
 
 
 class RemnawaveRawSquadResponse(RemnawaveBaseResponse):
@@ -795,7 +830,7 @@ class RemnawaveRawSquadResponse(RemnawaveBaseResponse):
 
     uuid: str = Field(..., description="Squad UUID")
     name: str = Field(..., description="Squad name")
-    info: RemnawaveRawSquadInfoResponse | None = Field(None, description="Additional squad info")
+    info: RemnawaveRawSquadInfoResponse | None = Field(default=None, description="Additional squad info")
 
 
 # ---------------------------------------------------------------------------
@@ -807,14 +842,14 @@ class RemnawavePublicKeyResponse(RemnawaveBaseResponse):
     """Public key response from Remnawave ``/api/keygen``."""
 
     public_key: str = Field(..., alias="publicKey", description="Public key in PEM format")
-    algorithm: str = Field("RS256", description="Key algorithm")
+    algorithm: str = Field(default="RS256", description="Key algorithm")
 
 
 class RemnawaveSignPayloadResponse(RemnawaveBaseResponse):
     """Signed payload response from Remnawave ``/api/keygen``."""
 
     signature: str = Field(..., description="Generated digital signature")
-    algorithm: str = Field("RS256", description="Signing algorithm used")
+    algorithm: str = Field(default="RS256", description="Signing algorithm used")
 
 
 # ---------------------------------------------------------------------------
@@ -826,5 +861,5 @@ class RemnawaveHealthResponse(RemnawaveBaseResponse):
     """Health check response from Remnawave ``/api/health``."""
 
     status: str = Field(..., description="Health status")
-    version: str | None = Field(None, description="Remnawave version")
-    uptime: int | None = Field(None, description="Uptime in seconds")
+    version: str | None = Field(default=None, description="Remnawave version")
+    uptime: int | None = Field(default=None, description="Uptime in seconds")

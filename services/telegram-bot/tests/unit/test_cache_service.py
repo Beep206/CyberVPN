@@ -26,9 +26,7 @@ class TestCacheServiceBasicOperations:
 
         assert result == "myvalue"
 
-    async def test_get_nonexistent_returns_none(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_get_nonexistent_returns_none(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test that getting non-existent key returns None."""
         cache = CacheService(redis=fake_redis)
 
@@ -71,9 +69,7 @@ class TestCacheServiceTTL:
         assert ttl > 0
         assert ttl <= 60
 
-    async def test_set_without_ttl_no_expiry(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_set_without_ttl_no_expiry(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test setting value without TTL doesn't expire."""
         cache = CacheService(redis=fake_redis)
 
@@ -88,9 +84,7 @@ class TestCacheServiceTTL:
 class TestCacheServiceJSON:
     """Test JSON serialization operations."""
 
-    async def test_set_get_json_dict(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_set_get_json_dict(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test storing and retrieving JSON dict."""
         cache = CacheService(redis=fake_redis)
 
@@ -100,9 +94,7 @@ class TestCacheServiceJSON:
         result = await cache.get_json("user_data")
         assert result == data
 
-    async def test_set_get_json_list(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_set_get_json_list(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test storing and retrieving JSON list."""
         cache = CacheService(redis=fake_redis)
 
@@ -112,18 +104,14 @@ class TestCacheServiceJSON:
         result = await cache.get_json("list_data")
         assert result == data
 
-    async def test_get_json_nonexistent_returns_none(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_get_json_nonexistent_returns_none(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test getting non-existent JSON key returns None."""
         cache = CacheService(redis=fake_redis)
 
         result = await cache.get_json("missing")
         assert result is None
 
-    async def test_get_json_invalid_json_returns_none(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_get_json_invalid_json_returns_none(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test that invalid JSON returns None."""
         cache = CacheService(redis=fake_redis)
 
@@ -133,9 +121,7 @@ class TestCacheServiceJSON:
         result = await cache.get_json("bad_json")
         assert result is None
 
-    async def test_set_json_with_ttl(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_set_json_with_ttl(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test setting JSON with TTL."""
         cache = CacheService(redis=fake_redis)
 
@@ -170,18 +156,14 @@ class TestCacheServiceUserOperations:
 
         assert result == user_data
 
-    async def test_get_user_cache_miss(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_get_user_cache_miss(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test cache miss for user data."""
         cache = CacheService(redis=fake_redis)
 
         result = await cache.get_user(999999)
         assert result is None
 
-    async def test_invalidate_user(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_invalidate_user(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test invalidating user cache."""
         cache = CacheService(redis=fake_redis)
 
@@ -228,18 +210,14 @@ class TestCacheServicePlansOperations:
 
         assert result == plans
 
-    async def test_get_plans_cache_miss(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_get_plans_cache_miss(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test cache miss for plans."""
         cache = CacheService(redis=fake_redis)
 
         result = await cache.get_plans()
         assert result is None
 
-    async def test_invalidate_plans(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_invalidate_plans(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test invalidating plans cache."""
         cache = CacheService(redis=fake_redis)
 
@@ -260,9 +238,7 @@ class TestCacheServicePlansOperations:
 class TestCacheServiceBotConfig:
     """Test bot configuration cache operations."""
 
-    async def test_set_get_bot_config(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_set_get_bot_config(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test caching bot configuration."""
         cache = CacheService(redis=fake_redis)
 
@@ -277,9 +253,7 @@ class TestCacheServiceBotConfig:
 
         assert result == config
 
-    async def test_invalidate_bot_config(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_invalidate_bot_config(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test invalidating bot config."""
         cache = CacheService(redis=fake_redis)
 
@@ -295,9 +269,7 @@ class TestCacheServiceBotConfig:
 class TestCacheServiceErrorHandling:
     """Test graceful error handling when Redis fails."""
 
-    async def test_get_error_returns_none(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_get_error_returns_none(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test that Redis errors on get return None."""
         cache = CacheService(redis=fake_redis)
 
@@ -316,9 +288,7 @@ class TestCacheServiceErrorHandling:
         # Restore
         fake_redis.get = original_get  # type: ignore[method-assign]
 
-    async def test_set_error_silent_fail(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_set_error_silent_fail(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test that Redis errors on set fail silently."""
         cache = CacheService(redis=fake_redis)
 
@@ -335,9 +305,7 @@ class TestCacheServiceErrorHandling:
         # Restore
         fake_redis.set = original_set  # type: ignore[method-assign]
 
-    async def test_delete_error_silent_fail(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_delete_error_silent_fail(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test that Redis errors on delete fail silently."""
         cache = CacheService(redis=fake_redis)
 
@@ -452,9 +420,7 @@ class TestCacheServiceIntegration:
         await cache.invalidate_plans()
         assert await cache.get_plans() is None
 
-    async def test_multiple_cache_instances_share_data(
-        self, fake_redis: fakeredis.aioredis.FakeRedis
-    ) -> None:
+    async def test_multiple_cache_instances_share_data(self, fake_redis: fakeredis.aioredis.FakeRedis) -> None:
         """Test that multiple cache instances share the same Redis."""
         cache1 = CacheService(redis=fake_redis, key_prefix="shared:")
         cache2 = CacheService(redis=fake_redis, key_prefix="shared:")

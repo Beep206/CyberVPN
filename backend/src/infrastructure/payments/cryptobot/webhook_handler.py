@@ -14,6 +14,7 @@ import re
 from typing import Any
 
 import redis.asyncio as redis
+from cryptography.hazmat.primitives import hashes
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +29,13 @@ class CryptoBotWebhookHandler:
     PROCESSED_PREFIX = "cryptobot:processed:"
     PROCESSED_TTL = 86400 * 7  # 7 days
 
-    def __init__(self, api_token: str, redis_client: redis.Redis | None = None) -> None:
-        self._secret = hashlib.sha256(api_token.encode()).digest()
+    def __init__(self, webhook_key_material: str, redis_client: redis.Redis | None = None) -> None:
+        self._hmac_key = derive_cryptobot_webhook_key(webhook_key_material)
         self._redis = redis_client
 
     def validate_signature(self, body: bytes, signature: str) -> bool:
         """Validate HMAC signature of webhook payload."""
-        computed = hmac.new(self._secret, body, hashlib.sha256).hexdigest()
+        computed = hmac.new(self._hmac_key, body, hashlib.sha256).hexdigest()
         return hmac.compare_digest(computed, signature)
 
     def parse_payload(self, body: bytes) -> dict[str, Any]:
@@ -99,7 +100,7 @@ class CryptoBotWebhookHandler:
 
         key = f"{self.PROCESSED_PREFIX}{invoice_id}"
         try:
-            await self._redis.setex(key, self.PROCESSED_TTL, "processed")
+            await self._redis.set(key, "processed", ex=self.PROCESSED_TTL)
         except redis.RedisError:
             logger.exception(
                 "Payment idempotency mark failed; database terminal-state guard remains authoritative",
@@ -163,3 +164,12 @@ def _provider_reference_fingerprint(value: str | None) -> str | None:
     if not normalized:
         return None
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def derive_cryptobot_webhook_key(webhook_key_material: str) -> bytes:
+    """Derive the HMAC key exactly as required by the Crypto Pay webhook contract."""
+
+    digest = hashes.Hash(hashes.SHA256())
+    # Crypto Pay defines the webhook HMAC key as SHA-256 of the API token.
+    digest.update(webhook_key_material.encode("utf-8"))
+    return digest.finalize()

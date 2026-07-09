@@ -32,6 +32,8 @@ This document describes all security-related configuration options for the Cyber
 | `RATE_LIMIT_REQUESTS` | `100` | Requests per window |
 | `RATE_LIMIT_WINDOW` | `60` | Window size in seconds |
 | `RATE_LIMIT_FAIL_OPEN` | `false` | Allow requests when Redis unavailable (development only) |
+| `REQUEST_BODY_LIMIT_ENABLED` | `true` | Reject oversized HTTP request bodies before route parsing |
+| `MAX_REQUEST_BODY_BYTES` | `1048576` | Maximum accepted HTTP request body size in bytes |
 
 ### Proxy Configuration (MED-8)
 
@@ -129,6 +131,7 @@ Progressive lockout after failed attempts:
 
 - Fail-closed by default (503 when Redis unavailable)
 - Circuit breaker after 3 consecutive failures
+- HTTP request bodies are bounded before JSON/form parsing; align `MAX_REQUEST_BODY_BYTES` with ingress limits.
 
 ### 7. Security Headers (MED-2)
 
@@ -150,5 +153,6 @@ Automatically added to all responses:
 - [ ] Set `SWAGGER_ENABLED=false` in production
 - [ ] Set `DEBUG=false`
 - [ ] Set `RATE_LIMIT_FAIL_OPEN=false`
+- [ ] Keep `REQUEST_BODY_LIMIT_ENABLED=true` and align `MAX_REQUEST_BODY_BYTES` with ingress limits
 - [ ] Configure `TRUSTED_PROXY_IPS` if behind load balancer
 - [ ] Ensure Redis is available for rate limiting

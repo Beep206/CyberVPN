@@ -14,6 +14,7 @@ Dependencies:
 
 import json
 import logging
+import sys
 from io import StringIO
 
 import pytest
@@ -54,7 +55,8 @@ class TestPrometheusMetricsE2E:
 
             body = response.text
 
-            # Expected core metrics from BOB-2 and BOB-3
+            # Expected core metrics from BOB-2 and BOB-3. Prometheus process
+            # metrics are not emitted by the default collector on Windows.
             expected_metrics = [
                 "http_requests_total",
                 "http_request_duration_seconds",
@@ -63,13 +65,15 @@ class TestPrometheusMetricsE2E:
                 "cache_operations_total",
                 "subscriptions_activated_total",
                 "payments_total",
-                "process_cpu_seconds_total",
-                "process_resident_memory_bytes",
                 "python_info",
             ]
 
             for metric in expected_metrics:
                 assert metric in body, f"Expected metric '{metric}' not found in /metrics"
+
+            if sys.platform != "win32":
+                for metric in ("process_cpu_seconds_total", "process_resident_memory_bytes"):
+                    assert metric in body, f"Expected non-Windows process metric '{metric}' not found in /metrics"
 
     @pytest.mark.e2e
     async def test_metrics_includes_help_and_type_comments(self, async_client: AsyncClient):

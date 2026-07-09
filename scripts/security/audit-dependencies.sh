@@ -6,20 +6,41 @@ ARTIFACT_DIR="${SECURITY_ARTIFACT_DIR:-${ROOT_DIR}/security-artifacts}"
 SCOPE="${PHASE20_DEPENDENCY_SCOPE:-${1:-all}}"
 mkdir -p "${ARTIFACT_DIR}/npm" "${ARTIFACT_DIR}/python"
 
+run_npm() {
+  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    npm "$@"
+    return
+  fi
+
+  if command -v cmd.exe >/dev/null 2>&1; then
+    cmd.exe /D /C npm.cmd "$@"
+    return
+  fi
+
+  npm "$@"
+}
+
 run_npm_audit() {
   cd "${ROOT_DIR}"
   local failed=0
   local project safe json text rc
+  local -a audit_args
 
   for project in . admin frontend partner; do
-    if [[ ! -f "${ROOT_DIR}/${project}/package.json" || ! -f "${ROOT_DIR}/${project}/package-lock.json" ]]; then
+    if [[ "${project}" == "." ]]; then
+      if [[ ! -f "${ROOT_DIR}/package.json" || ! -f "${ROOT_DIR}/package-lock.json" ]]; then
+        continue
+      fi
+    elif [[ ! -f "${ROOT_DIR}/${project}/package.json" ]]; then
       continue
     fi
 
     if [[ "${project}" == "." ]]; then
       safe="root"
+      audit_args=(--workspaces --audit-level=high)
     else
       safe="${project#./}"
+      audit_args=(--workspace "${project}" --audit-level=high)
     fi
     safe="${safe//\//__}"
     json="${ARTIFACT_DIR}/npm/${safe}.npm-audit-high.json"
@@ -27,12 +48,12 @@ run_npm_audit() {
 
     rc=0
     (
-      cd "${ROOT_DIR}/${project}"
-      npm audit --omit=dev --audit-level=high --json > "${json}"
+      cd "${ROOT_DIR}"
+      run_npm audit "${audit_args[@]}" --json > "${json}"
     ) || rc=$?
     (
-      cd "${ROOT_DIR}/${project}"
-      npm audit --omit=dev --audit-level=high > "${text}" 2>&1
+      cd "${ROOT_DIR}"
+      run_npm audit "${audit_args[@]}" > "${text}" 2>&1
     ) || true
     printf 'exit_code=%s\n' "${rc}" >> "${text}"
     if [[ "${rc}" -ne 0 ]]; then
@@ -48,7 +69,7 @@ run_python_audit() {
   local failed=0
   local project safe req json text rc
 
-  for project in backend services/telegram-bot services/task-worker; do
+  for project in backend services/telegram-bot services/task-worker services/node-fleet-controller services/vpn-test-agent; do
     safe="${project//\//__}"
     safe="${safe//-/_}"
     req="${ARTIFACT_DIR}/python/${safe}.requirements.txt"

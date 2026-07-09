@@ -61,7 +61,7 @@ services:
   cybervpn-caddy:
     <<: *runtime-defaults
     profiles: ["container-edge"]
-    image: caddy:2.9-alpine
+    image: caddy:2.11.4-alpine
     ports:
       - "80:80"
       - "443:443"
@@ -443,7 +443,7 @@ services:
 
   cybervpn-remnawave-postgres:
     <<: *runtime-defaults
-    image: postgres:17.7-alpine
+    image: postgres:17.10-alpine
     env_file:
       - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave-panel.env
         required: true
@@ -477,7 +477,7 @@ services:
 
   cybervpn-remnawave-valkey:
     <<: *runtime-defaults
-    image: valkey/valkey:8.1-alpine
+    image: valkey/valkey:8.1.8-alpine
     command: >
       valkey-server
       --save ""
@@ -737,7 +737,7 @@ services:
   cybervpn-postgres:
     <<: *runtime-defaults
     profiles: ["local-data"]
-    image: postgres:17.7-alpine
+    image: postgres:17.10-alpine
     environment:
       POSTGRES_DB: ${CYBERVPN_POSTGRES_DB:-cybervpn}
       POSTGRES_USER: ${CYBERVPN_POSTGRES_USER:-cybervpn}
@@ -774,7 +774,7 @@ services:
   cybervpn-valkey:
     <<: *runtime-defaults
     profiles: ["local-data"]
-    image: valkey/valkey:8.1-alpine
+    image: valkey/valkey:8.1.8-alpine
     command: >
       valkey-server
       --save ""
@@ -803,7 +803,7 @@ services:
   cybervpn-postgres-exporter:
     <<: *runtime-defaults
     profiles: ["local-data"]
-    image: prometheuscommunity/postgres-exporter:v0.17.0
+    image: prometheuscommunity/postgres-exporter:v0.20.0
     environment:
       DATA_SOURCE_NAME: postgresql://${CYBERVPN_POSTGRES_USER:-cybervpn}:${CYBERVPN_POSTGRES_PASSWORD:-replace-before-live}@cybervpn-postgres:5432/${CYBERVPN_POSTGRES_DB:-cybervpn}?sslmode=disable
     expose:
@@ -838,7 +838,7 @@ services:
   cybervpn-redis-exporter:
     <<: *runtime-defaults
     profiles: ["local-data"]
-    image: oliver006/redis_exporter:v1.67.0-alpine
+    image: oliver006/redis_exporter:v1.86.0-alpine
     environment:
       REDIS_ADDR: redis://cybervpn-valkey:6379
     expose:
@@ -872,7 +872,7 @@ services:
 
   cybervpn-nats:
     <<: *runtime-defaults
-    image: nats:2.12.7-alpine
+    image: nats:2.14.3-alpine
     command:
       - -js
       - -sd

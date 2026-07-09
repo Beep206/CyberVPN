@@ -23,7 +23,7 @@ class SetAntiPhishingCodeRequest(BaseModel):
 class AntiPhishingCodeResponse(BaseModel):
     """Response with anti-phishing code."""
 
-    code: str | None = Field(None, description="User's anti-phishing code (null if not set)")
+    code: str | None = Field(default=None, description="User's anti-phishing code (null if not set)")
 
 
 class DeleteAntiPhishingCodeResponse(BaseModel):
@@ -33,7 +33,9 @@ class DeleteAntiPhishingCodeResponse(BaseModel):
 
 
 class RiskSubjectResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    model_config = ConfigDict(
+        from_attributes=True, populate_by_name=True, validate_by_name=True, validate_by_alias=True
+    )
 
     id: UUID
     principal_class: str
@@ -126,7 +128,9 @@ class CreateRiskReviewRequest(BaseModel):
 
 
 class RiskReviewAttachmentResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    model_config = ConfigDict(
+        from_attributes=True, populate_by_name=True, validate_by_name=True, validate_by_alias=True
+    )
 
     id: UUID
     risk_review_id: UUID
@@ -156,7 +160,9 @@ class ResolveRiskReviewRequest(BaseModel):
 
 
 class GovernanceActionResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    model_config = ConfigDict(
+        from_attributes=True, populate_by_name=True, validate_by_name=True, validate_by_alias=True
+    )
 
     id: UUID
     risk_subject_id: UUID

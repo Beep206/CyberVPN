@@ -24,27 +24,27 @@ class CreateAccessDeliveryChannelRequest(BaseModel):
 
 
 class AccessDeliveryChannelTransitionRequest(BaseModel):
-    reason_code: str | None = Field(None, max_length=80)
+    reason_code: str | None = Field(default=None, max_length=80)
 
 
 class ResolveCurrentAccessDeliveryChannelRequest(BaseModel):
-    provider_name: str = Field("remnawave", min_length=1, max_length=40)
+    provider_name: str = Field(default="remnawave", min_length=1, max_length=40)
     channel_type: AccessDeliveryChannelType
-    channel_subject_ref: str | None = Field(None, min_length=1, max_length=160)
-    provisioning_profile_key: str | None = Field(None, min_length=1, max_length=120)
+    channel_subject_ref: str | None = Field(default=None, min_length=1, max_length=160)
+    provisioning_profile_key: str | None = Field(default=None, min_length=1, max_length=120)
     credential_type: DeviceCredentialType | None = None
-    credential_subject_key: str | None = Field(None, min_length=1, max_length=160)
+    credential_subject_key: str | None = Field(default=None, min_length=1, max_length=160)
     credential_context: dict[str, Any] = Field(default_factory=dict)
     delivery_context: dict[str, Any] = Field(default_factory=dict)
 
 
 class GetCurrentServiceStateRequest(BaseModel):
-    provider_name: str = Field("remnawave", min_length=1, max_length=40)
+    provider_name: str = Field(default="remnawave", min_length=1, max_length=40)
     channel_type: AccessDeliveryChannelType | None = None
-    channel_subject_ref: str | None = Field(None, min_length=1, max_length=160)
-    provisioning_profile_key: str | None = Field(None, min_length=1, max_length=120)
+    channel_subject_ref: str | None = Field(default=None, min_length=1, max_length=160)
+    provisioning_profile_key: str | None = Field(default=None, min_length=1, max_length=120)
     credential_type: DeviceCredentialType | None = None
-    credential_subject_key: str | None = Field(None, min_length=1, max_length=160)
+    credential_subject_key: str | None = Field(default=None, min_length=1, max_length=160)
 
 
 class AccessDeliveryChannelResponse(BaseModel):

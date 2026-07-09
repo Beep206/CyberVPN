@@ -635,8 +635,14 @@ describe('MiniAppPlansPage', () => {
 
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['orders'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['payments', 'history'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['payments-history'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['miniapp-order-history'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['current-entitlements'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['current-service-state'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['customer-subscriptions'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['subscriptions'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['wallet'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['wallet-transactions'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['growth', 'invites'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['growth', 'rewards'] });
       expect(runtimeAnalyticsMocks.emitMiniAppRuntimeEvent).toHaveBeenCalledWith(
@@ -651,6 +657,81 @@ describe('MiniAppPlansPage', () => {
     } finally {
       invalidateSpy.mockRestore();
       windowOpenSpy.mockRestore();
+    }
+  });
+
+  it('refreshes Mini App money and entitlement caches after a paid Telegram Stars invoice settles', async () => {
+    const user = userEvent.setup();
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    const resetSpy = vi.spyOn(QueryClient.prototype, 'resetQueries');
+
+    try {
+      server.use(
+        http.get(`${API_BASE}/miniapp/offers`, () =>
+          HttpResponse.json(createOffers({
+            plans: [
+              basicPlan,
+              {
+                ...plusPlan,
+                features: { telegram_stars_amount: 750 },
+              },
+            ],
+          })),
+        ),
+        http.post(`${API_BASE}/miniapp/checkout/commit`, async ({ request }) => {
+          requests.push({ url: request.url, body: await request.json() });
+          return HttpResponse.json({
+            status: 'pending',
+            payment_id: 'payment-stars-1',
+            invoice: {
+              payment_url: 'https://t.me/invoice/stars_ABC123',
+              currency: 'XTR',
+            },
+          });
+        }),
+        http.get(`${API_BASE}/miniapp/payments/payment-stars-1`, () =>
+          HttpResponse.json({ status: 'completed' }),
+        ),
+      );
+
+      render(<PlansPage />, { wrapper: createWrapper() });
+
+      const openPaymentButton = await screen.findByRole('button', { name: /Open payment/ });
+      await waitFor(() => expect(openPaymentButton).toBeEnabled());
+      await user.click(openPaymentButton);
+
+      await waitFor(() => {
+        expect(telegramMock.openInvoice).toHaveBeenCalledWith(
+          'https://t.me/invoice/stars_ABC123',
+          expect.any(Function),
+        );
+      });
+
+      const openInvoiceMock = telegramMock.openInvoice;
+      expect(openInvoiceMock).toBeDefined();
+      const statusCallback = openInvoiceMock?.mock.calls[0]?.[1] as
+        | ((status: 'paid' | 'cancelled' | 'failed' | 'pending') => void)
+        | undefined;
+      expect(statusCallback).toBeDefined();
+      statusCallback?.('paid');
+
+      await waitFor(() => {
+        expect(telegramMock.showAlert).toHaveBeenCalledWith('paymentSuccess');
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['miniapp-order-history'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['orders'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['payments', 'history'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['payments-history'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['current-entitlements'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['current-service-state'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['customer-subscriptions'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['subscriptions'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['wallet'] });
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['wallet-transactions'] });
+        expect(resetSpy).toHaveBeenCalledWith({ queryKey: ['miniapp-config'], exact: true });
+      });
+    } finally {
+      invalidateSpy.mockRestore();
+      resetSpy.mockRestore();
     }
   });
 

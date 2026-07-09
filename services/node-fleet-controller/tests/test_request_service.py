@@ -94,4 +94,3 @@ class RequestServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(first_request.request_id, second_request.request_id)
         self.assertEqual(first_operation.operation_run_id, second_operation.operation_run_id)
-

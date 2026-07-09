@@ -1484,10 +1484,37 @@ class TestRemnawaveConfigProfileResponse:
         assert profile.is_default is True
 
     @pytest.mark.unit
-    def test_validation_rejects_missing_required_content(self):
-        """Test that missing required 'content' raises ValidationError."""
-        with pytest.raises(ValidationError):
-            RemnawaveConfigProfileResponse(uuid="p-1", name="Test", profile_type="clash")
+    def test_accepts_remnawave_2_8_config_profile_shape_without_raw_config_exposure(self):
+        """Test that Remnawave 2.8 profile list entries normalize without exposing raw configs."""
+        profile = RemnawaveConfigProfileResponse.model_validate(
+            {
+                "uuid": "profile-2",
+                "viewPosition": 1,
+                "name": "Default XRay",
+                "config": {
+                    "inbounds": [
+                        {
+                            "settings": {"clients": [{"id": "client-secret-id"}]},
+                            "streamSettings": {"realitySettings": {"privateKey": "server-private-key"}},
+                        }
+                    ]
+                },
+                "inbounds": [{"uuid": "inbound-1"}],
+                "nodes": [{"uuid": "node-1"}],
+                "createdAt": "2026-07-08T00:00:00Z",
+                "updatedAt": "2026-07-08T00:01:00Z",
+            }
+        )
+        dumped = profile.model_dump(by_alias=True)
+
+        assert profile.profile_type == "xray"
+        assert profile.content == ""
+        assert dumped["profileType"] == "xray"
+        assert "config" not in dumped
+        assert "inbounds" not in dumped
+        assert "nodes" not in dumped
+        assert "client-secret-id" not in repr(dumped)
+        assert "server-private-key" not in repr(dumped)
 
 
 # ---------------------------------------------------------------------------

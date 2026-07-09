@@ -45,13 +45,7 @@ def _parse_messages(path: Path) -> dict[str, tuple[str, ...]]:
             continue
 
         if isinstance(entry, ast.Message):
-            variables = sorted(
-                {
-                    item.id.name
-                    for item in _walk(entry)
-                    if isinstance(item, ast.VariableReference)
-                }
-            )
+            variables = sorted({item.id.name for item in _walk(entry) if isinstance(item, ast.VariableReference)})
             messages[entry.id.name] = tuple(variables)
 
     assert not junk_entries, f"{path} contains invalid Fluent entries: {junk_entries}"
@@ -61,10 +55,7 @@ def _parse_messages(path: Path) -> dict[str, tuple[str, ...]]:
 def _locale_contract(locale: str) -> dict[str, dict[str, tuple[str, ...]]]:
     locale_dir = LOCALES_DIR / locale
     assert locale_dir.is_dir(), f"Locale directory is missing: {locale}"
-    return {
-        path.name: _parse_messages(path)
-        for path in sorted(locale_dir.glob("*.ftl"))
-    }
+    return {path.name: _parse_messages(path) for path in sorted(locale_dir.glob("*.ftl"))}
 
 
 def test_primary_locale_files_and_keys_match_english_contract() -> None:
@@ -77,17 +68,13 @@ def test_primary_locale_files_and_keys_match_english_contract() -> None:
         extra_files = sorted(set(actual) - set(contract))
 
         if missing_files or extra_files:
-            failures.append(
-                f"{locale}: missing_files={missing_files} extra_files={extra_files}"
-            )
+            failures.append(f"{locale}: missing_files={missing_files} extra_files={extra_files}")
 
         for filename in sorted(set(contract) & set(actual)):
             missing_keys = sorted(set(contract[filename]) - set(actual[filename]))
             extra_keys = sorted(set(actual[filename]) - set(contract[filename]))
             if missing_keys or extra_keys:
-                failures.append(
-                    f"{locale}/{filename}: missing_keys={missing_keys} extra_keys={extra_keys}"
-                )
+                failures.append(f"{locale}/{filename}: missing_keys={missing_keys} extra_keys={extra_keys}")
 
     assert not failures, "FTL key parity failed:\n" + "\n".join(failures[:80])
 
@@ -129,9 +116,7 @@ def test_locale_variables_match_english_contract_where_keys_exist() -> None:
 
 def test_trial_offer_formats_without_raw_placeholders_for_all_locales() -> None:
     manager = I18nManager(LOCALES_DIR, locales=SUPPORTED_LOCALES)
-    missing_bundles = [
-        locale for locale in SUPPORTED_LOCALES if manager.get_bundle(locale) is None
-    ]
+    missing_bundles = [locale for locale in SUPPORTED_LOCALES if manager.get_bundle(locale) is None]
 
     assert not missing_bundles, f"Locale bundles failed to load: {missing_bundles}"
 

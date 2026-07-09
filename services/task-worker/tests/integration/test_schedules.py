@@ -19,6 +19,7 @@ class TestScheduleRegistration:
         # This will fail if there are syntax errors or import issues
         try:
             import src.schedules.definitions
+
             assert src.schedules.definitions is not None
         except AttributeError as e:
             # Known issue: TaskIQ version may not support .with_labels()
@@ -31,6 +32,7 @@ class TestScheduleRegistration:
         """Verify register_schedules function exists."""
         try:
             from src.schedules.definitions import register_schedules
+
             assert register_schedules is not None
             assert callable(register_schedules)
         except (ImportError, AttributeError) as e:

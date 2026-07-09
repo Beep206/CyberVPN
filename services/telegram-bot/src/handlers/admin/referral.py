@@ -4,11 +4,12 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
 
 from src.keyboards.admin_referral import referral_settings_keyboard
+from src.utils.telegram import callback_message
 
 if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -28,7 +29,7 @@ async def referral_settings_handler(
     try:
         settings = await api_client.get_referral_settings()
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("admin-referral-settings-title"),
             reply_markup=referral_settings_keyboard(i18n, settings),
         )
@@ -180,7 +181,7 @@ async def referral_stats_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=stats_text,
             reply_markup=builder.as_markup(),
         )

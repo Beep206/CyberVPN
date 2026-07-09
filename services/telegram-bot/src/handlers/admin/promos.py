@@ -4,12 +4,13 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
 
 from src.states.admin import AdminPromoState
+from src.utils.telegram import callback_data, callback_message, message_text, message_user_id
 
 if TYPE_CHECKING:
+    from aiogram.fsm.context import FSMContext
+    from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -53,7 +54,7 @@ async def promos_menu_handler(
 
         builder.row(
             InlineKeyboardButton(
-                text="➕ " + i18n.get("admin-promos-create"),
+                text="➕ " + i18n.get("admin-promos-create"),  # noqa: RUF001
                 callback_data="admin:promo:create",
             )
         )
@@ -64,7 +65,7 @@ async def promos_menu_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("admin-promos-title"),
             reply_markup=builder.as_markup(),
         )
@@ -85,7 +86,7 @@ async def promo_view_handler(
     api_client: CyberVPNAPIClient,
 ) -> None:
     """View promocode details."""
-    promo_id = callback.data.split(":")[3]
+    promo_id = callback_data(callback).split(":")[3]
 
     try:
         # Get promo details
@@ -123,7 +124,7 @@ async def promo_view_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=promo_text,
             reply_markup=builder.as_markup(),
         )
@@ -144,7 +145,7 @@ async def promo_toggle_handler(
     api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle promocode active status."""
-    promo_id = callback.data.split(":")[3]
+    promo_id = callback_data(callback).split(":")[3]
 
     try:
         # Toggle promo status
@@ -173,7 +174,7 @@ async def promo_create_prompt_handler(
     state: FSMContext,
 ) -> None:
     """Prompt for new promocode creation."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-promo-create-code-prompt"),
     )
 
@@ -190,7 +191,7 @@ async def promo_create_code_handler(
     state: FSMContext,
 ) -> None:
     """Handle promo code input."""
-    promo_code = message.text.strip().upper()
+    promo_code = message_text(message).strip().upper()
 
     if len(promo_code) < 3 or len(promo_code) > 20:
         await message.answer(i18n.get("admin-promo-create-code-invalid-length"))
@@ -212,7 +213,7 @@ async def promo_create_discount_handler(
 ) -> None:
     """Handle promo discount value input."""
     try:
-        discount_value = int(message.text.strip())
+        discount_value = int(message_text(message).strip())
 
         if discount_value <= 0 or discount_value > 100:
             await message.answer(i18n.get("admin-promo-create-discount-invalid-range"))
@@ -238,7 +239,7 @@ async def promo_create_limit_handler(
 ) -> None:
     """Handle promo usage limit input and create promocode."""
     try:
-        usage_limit_text = message.text.strip().lower()
+        usage_limit_text = message_text(message).strip().lower()
 
         # Allow "unlimited" or a number
         if usage_limit_text in ["unlimited", "0", "none", "-"]:
@@ -285,7 +286,7 @@ async def promo_create_limit_handler(
         await state.clear()
         logger.info(
             "admin_promo_created",
-            admin_id=message.from_user.id,
+            admin_id=message_user_id(message),
             promo_id=promo_id,
             promo_code=promo_code,
         )
@@ -293,6 +294,6 @@ async def promo_create_limit_handler(
     except ValueError:
         await message.answer(i18n.get("admin-promo-create-limit-invalid-number"))
     except Exception as e:
-        logger.error("admin_promo_creation_error", admin_id=message.from_user.id, error=str(e))
+        logger.error("admin_promo_creation_error", admin_id=message_user_id(message), error=str(e))
         await message.answer(i18n.get("error-generic"))
         await state.clear()

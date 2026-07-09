@@ -6,6 +6,8 @@ import structlog
 from aiogram import F, Router
 from aiogram.filters import Command
 
+from src.utils.telegram import callback_message, message_user_id
+
 if TYPE_CHECKING:
     from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
@@ -40,7 +42,7 @@ async def activate_trial_command_handler(
     if message.from_user is None:
         return
 
-    user_id = message.from_user.id
+    user_id = message_user_id(message)
 
     try:
         eligibility = await api_client.check_trial_eligibility(user_id)
@@ -100,7 +102,7 @@ async def activate_trial_handler(
         trial_duration = int(trial.get("duration_days", 7) or 7)
         expires_at = trial.get("expires_at") or trial.get("trial_end") or "N/A"
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get(
                 "trial-activated",
                 duration=trial_duration,
@@ -111,7 +113,7 @@ async def activate_trial_handler(
         # Show config delivery options
         from src.keyboards.config import config_delivery_keyboard
 
-        await callback.message.answer(
+        await callback_message(callback).answer(
             text=i18n.get("config-delivery-prompt"),
             reply_markup=config_delivery_keyboard(i18n),
         )

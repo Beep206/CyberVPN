@@ -22,7 +22,7 @@ pytestmark = [pytest.mark.integration]
 
 PREVIOUS_REVISION = "20260626_onboard_idem"
 REGISTRATION_ACCESS_IDEMPOTENCY_REVISION = "20260626_reg_access_idem"
-CURRENT_HEAD_REVISION = "20260627_growth_v62_db"
+CURRENT_HEAD_REVISION = "20260701_invite_source_len"
 
 
 @pytest.mark.asyncio

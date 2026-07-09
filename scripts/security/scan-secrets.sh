@@ -7,6 +7,20 @@ SNAPSHOT_DIR="${GITLEAKS_SNAPSHOT_DIR:-/scan}"
 BASELINE_PATH="${ROOT_DIR}/.gitleaks.s1.current-tree.baseline.json"
 REPORT_PATH="${EVIDENCE_DIR}/gitleaks-s1-current-tree-redacted.json"
 GITLEAKS_EXIT_CODE="${GITLEAKS_EXIT_CODE:-1}"
+GITLEAKS_VERSION="${GITLEAKS_VERSION:-8.30.1}"
+GITLEAKS_IMAGE="${GITLEAKS_IMAGE:-ghcr.io/gitleaks/gitleaks:v${GITLEAKS_VERSION}}"
+PYTHON_BIN="${PYTHON_BIN:-}"
+
+if [[ -z "${PYTHON_BIN}" ]]; then
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN=python3
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN=python
+  else
+    echo "ERROR: python3 or python is required to summarize gitleaks evidence" >&2
+    exit 1
+  fi
+fi
 
 mkdir -p "${EVIDENCE_DIR}"
 if ! rm -rf "${SNAPSHOT_DIR}" 2>/dev/null || ! mkdir -p "${SNAPSHOT_DIR}" 2>/dev/null; then
@@ -56,7 +70,7 @@ else
     -v "${SNAPSHOT_DIR}:/scan:ro"
     -v "${EVIDENCE_DIR}:/out"
     -v "${ROOT_DIR}:/repo:ro"
-    ghcr.io/gitleaks/gitleaks:latest
+    "${GITLEAKS_IMAGE}"
     detect
     --source /scan
     --no-git
@@ -84,3 +98,48 @@ if command -v jq >/dev/null 2>&1; then
 else
   printf 'jq unavailable; see %s\n' "${REPORT_PATH}" > "${EVIDENCE_DIR}/gitleaks-s1-current-tree-summary.txt"
 fi
+
+BASELINE_FINDING_COUNT=0
+if [[ -f "${BASELINE_PATH}" ]]; then
+  BASELINE_FINDING_COUNT="$(
+    "${PYTHON_BIN}" - "${BASELINE_PATH}" <<'PY'
+import json
+import sys
+
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+except FileNotFoundError:
+    data = []
+print(len(data) if isinstance(data, list) else 0)
+PY
+  )"
+fi
+
+REPORT_FINDING_COUNT="$(
+  "${PYTHON_BIN}" - "${REPORT_PATH}" <<'PY'
+import json
+import sys
+
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+except FileNotFoundError:
+    data = []
+print(len(data) if isinstance(data, list) else 0)
+PY
+)"
+
+{
+  printf 'scanner=gitleaks\n'
+  printf 'gitleaks_version=%s\n' "${GITLEAKS_VERSION}"
+  printf 'report_findings=%s\n' "${REPORT_FINDING_COUNT}"
+  if [[ -f "${BASELINE_PATH}" ]]; then
+    printf 'baseline_path=%s\n' "${BASELINE_PATH}"
+    printf 'baseline_findings=%s\n' "${BASELINE_FINDING_COUNT}"
+    printf 'result=no_new_findings_beyond_baseline\n'
+    printf 'note=baseline findings are suppressed; this is not evidence that the full current tree has zero historical findings\n'
+  else
+    printf 'baseline_path=\n'
+    printf 'baseline_findings=0\n'
+    printf 'result=no_findings\n'
+  fi
+} > "${EVIDENCE_DIR}/gitleaks-s1-current-tree-status.txt"

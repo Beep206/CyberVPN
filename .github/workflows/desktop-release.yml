@@ -199,7 +199,7 @@ jobs:
           echo "release=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Download desktop Sentry proof manifests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           pattern: desktop-sentry-proof-*
           merge-multiple: true

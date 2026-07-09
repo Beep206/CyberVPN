@@ -381,7 +381,8 @@
         "notEligibleForSurface": "This code is not available on the current surface.",
         "blockedByRisk": "This code needs additional verification before it can be used.",
         "requiresAuth": "Sign in again to use this code.",
-        "generic": "Code could not be applied."
+        "generic": "Code could not be applied.",
+        "namespaceAmbiguous": "This code matches more than one code type. Use the right surface or contact support."
       },
       "unsupported": {
         "partnerUnavailable": "Partner codes are not available on this checkout surface.",

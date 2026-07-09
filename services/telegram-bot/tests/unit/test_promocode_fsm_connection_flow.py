@@ -45,6 +45,7 @@ async def test_promocode_fsm_text_uses_connection_flow_without_discount_copy_or_
     cache = CacheService(fake_redis, key_prefix="fsm:")
     private_url = "vless://fsm-private-config"
     api_client = SimpleNamespace(
+        register_user=AsyncMock(return_value={"telegram_id": 123456}),
         apply_telegram_onboarding_code=AsyncMock(
             return_value={
                 "status": "completed",
@@ -73,6 +74,7 @@ async def test_promocode_fsm_text_uses_connection_flow_without_discount_copy_or_
 
     await promocode_entered_handler(message, _I18nStub(), api_client, state, cache)
 
+    api_client.register_user.assert_awaited_once()
     api_client.apply_telegram_onboarding_code.assert_awaited_once_with(
         123456,
         "GiftSecret42",

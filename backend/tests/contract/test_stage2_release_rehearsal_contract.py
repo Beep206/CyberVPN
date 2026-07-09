@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -45,8 +46,10 @@ def test_stage2_release_rehearsal_preserves_domain_and_node_boundaries() -> None
     runbook = (root / "docs/runbooks/STAGE2_RELEASE_REHEARSAL.md").read_text(encoding="utf-8")
     evidence = (root / "docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md").read_text(encoding="utf-8")
 
+    org_domain_pattern = re.compile(r"(?<![A-Za-z0-9.-])cyber-vpn\.org(?![A-Za-z0-9.-])")
+
     for content in (stage_doc, runbook, evidence):
-        assert "cyber-vpn.org" in content
+        assert org_domain_pattern.search(content)
         assert "VPN node" in content
         assert "node-only" in content
 

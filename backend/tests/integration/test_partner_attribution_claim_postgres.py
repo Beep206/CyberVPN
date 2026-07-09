@@ -511,15 +511,16 @@ async def test_capture_same_browser_link_can_reclick_after_expiry(
                 current_realm=current_realm,
             )
         )
+        expired_at = datetime.now(UTC) - timedelta(seconds=5)
         await session.execute(
             text(
                 """
                 update partner_attribution_sessions
-                set expires_at = now() - interval '1 second'
+                set expires_at = :expired_at
                 where id = :session_id
                 """
             ),
-            {"session_id": first_capture.attribution_id},
+            {"expired_at": expired_at, "session_id": first_capture.attribution_id},
         )
         await session.commit()
 
@@ -594,15 +595,16 @@ async def test_capture_same_browser_link_can_reclick_after_transfer_token_expiry
                 current_realm=current_realm,
             )
         )
+        expired_at = datetime.now(UTC) - timedelta(seconds=5)
         await session.execute(
             text(
                 """
                 update partner_attribution_sessions
-                set transfer_expires_at = now() - interval '1 second'
+                set transfer_expires_at = :expired_at
                 where id = :session_id
                 """
             ),
-            {"session_id": first_capture.attribution_id},
+            {"expired_at": expired_at, "session_id": first_capture.attribution_id},
         )
         await session.commit()
 

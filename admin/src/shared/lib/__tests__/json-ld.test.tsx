@@ -17,7 +17,13 @@ describe('JsonLd', () => {
     const script = container.querySelector('script');
 
     expect(script).not.toBeNull();
+    expect(script?.type).toBe('application/ld+json');
     expect(script?.innerHTML).toContain('\\u003cunsafe>');
     expect(script?.innerHTML).not.toContain('<unsafe>');
+    expect(JSON.parse(script?.innerHTML ?? '{}')).toMatchObject({
+      '@context': 'https://schema.org',
+      '@type': 'Thing',
+      name: '<unsafe>',
+    });
   });
 });

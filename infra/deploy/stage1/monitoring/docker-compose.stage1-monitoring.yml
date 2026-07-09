@@ -2,7 +2,7 @@ name: cybervpn-stage1-monitoring
 
 services:
   prometheus:
-    image: prom/prometheus:v3.2.1
+    image: prom/prometheus:v3.13.0
     container_name: cybervpn-stage1-prometheus
     restart: unless-stopped
     ports:
@@ -33,7 +33,7 @@ services:
     pids_limit: 256
 
   grafana:
-    image: grafana/grafana:11.5.2
+    image: grafana/grafana:13.1.0
     container_name: cybervpn-stage1-grafana
     restart: unless-stopped
     ports:
@@ -65,7 +65,7 @@ services:
     pids_limit: 256
 
   alertmanager:
-    image: prom/alertmanager:v0.28.1
+    image: prom/alertmanager:v0.33.1
     container_name: cybervpn-stage1-alertmanager
     restart: unless-stopped
     ports:

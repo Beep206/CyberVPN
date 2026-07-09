@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   ArrowRight,
@@ -45,6 +45,7 @@ import type { CurrentEntitlementStateResponse } from '@/lib/api/service-access';
 import { CancelSubscriptionModal } from '@/app/[locale]/(dashboard)/subscriptions/components/CancelSubscriptionModal';
 import { CodesSection } from '@/app/[locale]/(dashboard)/subscriptions/components/CodesSection';
 import { PurchaseConfirmModal } from '@/app/[locale]/(dashboard)/subscriptions/components/PurchaseConfirmModal';
+import { invalidateCustomerSettlementState } from '@/shared/lib/customer-query-invalidation';
 import {
   formatDate,
   formatBytes,
@@ -291,6 +292,7 @@ function getAddonCapabilityGuardMessage(locale: string): string {
 export function SubscriptionCabinetDashboard() {
   const t = useTranslations('Subscriptions');
   const locale = useLocale();
+  const queryClient = useQueryClient();
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const capabilitiesQuery = useClientCapabilities();
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -495,12 +497,19 @@ export function SubscriptionCabinetDashboard() {
       ordersQuery.refetch(),
     ]);
 
+  const refreshAfterSubscriptionMutation = async () => {
+    await Promise.all([
+      refetchCore(),
+      invalidateCustomerSettlementState(queryClient),
+    ]);
+  };
+
   const handleActivateTrial = async () => {
     setTrialState('loading');
 
     try {
       await trialApi.activate();
-      await refetchCore();
+      await refreshAfterSubscriptionMutation();
       setTrialState('success');
     } catch {
       setTrialState('error');
@@ -583,7 +592,7 @@ export function SubscriptionCabinetDashboard() {
         buildUpgradeRequest(plan, price.currency, checkoutCodeForRequest),
       );
       openInvoiceIfPresent(response.data);
-      await refetchCore();
+      await refreshAfterSubscriptionMutation();
       setUpgradeState({
         id: plan.uuid,
         message: t(`planActions.commit.${response.data.status === 'completed' ? 'completed' : 'pending'}`),
@@ -692,7 +701,7 @@ export function SubscriptionCabinetDashboard() {
         buildAddonRequest(addon, currency, checkoutCodeForRequest),
       );
       openInvoiceIfPresent(response.data);
-      await refetchCore();
+      await refreshAfterSubscriptionMutation();
       setAddonState({
         id: addon.uuid,
         message: t(`addons.purchase.${response.data.status === 'completed' ? 'completed' : 'pending'}`),

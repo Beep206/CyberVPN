@@ -19,12 +19,12 @@ class UpdateXrayConfigRequest(BaseModel):
         }
     )
 
-    log: dict[str, Any] | None = Field(None, description="Xray log configuration")
-    inbounds: list[dict[str, Any]] | None = Field(None, description="Inbound configurations")
-    outbounds: list[dict[str, Any]] | None = Field(None, description="Outbound configurations")
-    routing: dict[str, Any] | None = Field(None, description="Routing rules")
-    dns: dict[str, Any] | None = Field(None, description="DNS configuration")
-    policy: dict[str, Any] | None = Field(None, description="Policy configuration")
+    log: dict[str, Any] | None = Field(default=None, description="Xray log configuration")
+    inbounds: list[dict[str, Any]] | None = Field(default=None, description="Inbound configurations")
+    outbounds: list[dict[str, Any]] | None = Field(default=None, description="Outbound configurations")
+    routing: dict[str, Any] | None = Field(default=None, description="Routing rules")
+    dns: dict[str, Any] | None = Field(default=None, description="DNS configuration")
+    policy: dict[str, Any] | None = Field(default=None, description="Policy configuration")
 
 
 class XrayConfigResponse(BaseModel):
@@ -32,9 +32,9 @@ class XrayConfigResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    log: dict[str, Any] | None = Field(None, description="Xray log configuration")
-    inbounds: list[dict[str, Any]] | None = Field(None, description="Inbound configurations")
-    outbounds: list[dict[str, Any]] | None = Field(None, description="Outbound configurations")
-    routing: dict[str, Any] | None = Field(None, description="Routing rules")
-    dns: dict[str, Any] | None = Field(None, description="DNS configuration")
-    policy: dict[str, Any] | None = Field(None, description="Policy configuration")
+    log: dict[str, Any] | None = Field(default=None, description="Xray log configuration")
+    inbounds: list[dict[str, Any]] | None = Field(default=None, description="Inbound configurations")
+    outbounds: list[dict[str, Any]] | None = Field(default=None, description="Outbound configurations")
+    routing: dict[str, Any] | None = Field(default=None, description="Routing rules")
+    dns: dict[str, Any] | None = Field(default=None, description="DNS configuration")
+    policy: dict[str, Any] | None = Field(default=None, description="Policy configuration")

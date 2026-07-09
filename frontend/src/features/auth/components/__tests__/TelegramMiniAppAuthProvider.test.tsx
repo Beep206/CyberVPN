@@ -106,11 +106,13 @@ function renderProvider(children: React.ReactNode) {
     },
   });
 
-  return render(
+  const result = render(
     <QueryClientProvider client={queryClient}>
       <TelegramMiniAppAuthProvider>{children}</TelegramMiniAppAuthProvider>
     </QueryClientProvider>,
   );
+
+  return { ...result, queryClient };
 }
 
 describe('TelegramMiniAppAuthProvider', () => {
@@ -416,7 +418,12 @@ describe('TelegramMiniAppAuthProvider', () => {
       is_new_user: false,
     });
 
-    renderProvider(<div>Mini App Child</div>);
+    const { queryClient } = renderProvider(<div>Mini App Child</div>);
+    queryClient.setQueryData(['miniapp-bootstrap'], { user: 'old-miniapp-user' });
+    queryClient.setQueryData(['wallet'], { balance: 100 });
+    queryClient.setQueryData(['active-devices'], [{ id: 'old-device' }]);
+    queryClient.setQueryData(['twofa-status'], { enabled: true });
+    queryClient.setQueryData(['settings', 'profile'], { email: 'kept@example.test' });
 
     window.dispatchEvent(new CustomEvent(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT));
 
@@ -424,5 +431,12 @@ describe('TelegramMiniAppAuthProvider', () => {
       expect(mockFetchUser).toHaveBeenCalled();
     });
     expect(mockTelegramMiniAppAuth).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData(['miniapp-bootstrap'])).toBeUndefined();
+    expect(queryClient.getQueryData(['wallet'])).toBeUndefined();
+    expect(queryClient.getQueryData(['active-devices'])).toBeUndefined();
+    expect(queryClient.getQueryData(['twofa-status'])).toBeUndefined();
+    expect(queryClient.getQueryData(['settings', 'profile'])).toEqual({
+      email: 'kept@example.test',
+    });
   });
 });

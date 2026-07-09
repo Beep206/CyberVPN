@@ -7,37 +7,37 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ResolveCatalogContextRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
-    url_locale: str | None = Field(None, alias="urlLocale", max_length=20)
-    browser_language: str | None = Field(None, alias="browserLanguage", max_length=255)
-    telegram_language_code: str | None = Field(None, alias="telegramLanguageCode", max_length=20)
-    explicit_ui_locale: str | None = Field(None, alias="explicitUiLocale", max_length=20)
-    explicit_country_code: str | None = Field(None, alias="explicitCountryCode", min_length=2, max_length=2)
+    url_locale: str | None = Field(default=None, alias="urlLocale", max_length=20)
+    browser_language: str | None = Field(default=None, alias="browserLanguage", max_length=255)
+    telegram_language_code: str | None = Field(default=None, alias="telegramLanguageCode", max_length=20)
+    explicit_ui_locale: str | None = Field(default=None, alias="explicitUiLocale", max_length=20)
+    explicit_country_code: str | None = Field(default=None, alias="explicitCountryCode", min_length=2, max_length=2)
     explicit_display_country_code: str | None = Field(
-        None,
+        default=None,
         alias="explicitDisplayCountryCode",
         min_length=2,
         max_length=2,
     )
     explicit_pricing_country_code: str | None = Field(
-        None,
+        default=None,
         alias="explicitPricingCountryCode",
         min_length=2,
         max_length=2,
     )
-    explicit_currency_code: str | None = Field(None, alias="explicitCurrencyCode", min_length=3, max_length=3)
-    session_country_code: str | None = Field(None, alias="sessionCountryCode", min_length=2, max_length=2)
-    session_currency_code: str | None = Field(None, alias="sessionCurrencyCode", min_length=3, max_length=3)
-    cookie_country_code: str | None = Field(None, alias="cookieCountryCode", min_length=2, max_length=2)
-    cookie_currency_code: str | None = Field(None, alias="cookieCurrencyCode", min_length=3, max_length=3)
-    channel_key: str | None = Field(None, alias="channelKey", min_length=1, max_length=80)
-    channel_default_locale: str | None = Field(None, alias="channelDefaultLocale", max_length=20)
-    fallback_country_code: str = Field("US", alias="fallbackCountryCode", min_length=2, max_length=2)
+    explicit_currency_code: str | None = Field(default=None, alias="explicitCurrencyCode", min_length=3, max_length=3)
+    session_country_code: str | None = Field(default=None, alias="sessionCountryCode", min_length=2, max_length=2)
+    session_currency_code: str | None = Field(default=None, alias="sessionCurrencyCode", min_length=3, max_length=3)
+    cookie_country_code: str | None = Field(default=None, alias="cookieCountryCode", min_length=2, max_length=2)
+    cookie_currency_code: str | None = Field(default=None, alias="cookieCurrencyCode", min_length=3, max_length=3)
+    channel_key: str | None = Field(default=None, alias="channelKey", min_length=1, max_length=80)
+    channel_default_locale: str | None = Field(default=None, alias="channelDefaultLocale", max_length=20)
+    fallback_country_code: str = Field(default="US", alias="fallbackCountryCode", min_length=2, max_length=2)
 
 
 class PaymentMethodAvailabilityResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     available_methods: list[str] = Field(alias="availableMethods")
     web_checkout: bool = Field(alias="webCheckout")
@@ -48,7 +48,7 @@ class PaymentMethodAvailabilityResponse(BaseModel):
 
 
 class PublicCatalogContextResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     ui_locale: str = Field(alias="uiLocale")
     display_country: str = Field(alias="displayCountry")
@@ -64,7 +64,7 @@ class PublicCatalogContextResponse(BaseModel):
 
 
 class PublicCatalogMoneyResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     amount: str
     currency: str
@@ -72,7 +72,7 @@ class PublicCatalogMoneyResponse(BaseModel):
 
 
 class PublicCatalogQuoteHandoffResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     plan_id: UUID = Field(alias="planId")
     plan_code: str = Field(alias="planCode")
@@ -83,7 +83,7 @@ class PublicCatalogQuoteHandoffResponse(BaseModel):
 
 
 class PublicCatalogBillingPeriodResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     plan_id: UUID = Field(alias="planId")
     catalog_item_key: str = Field(alias="catalogItemKey")
@@ -97,7 +97,7 @@ class PublicCatalogBillingPeriodResponse(BaseModel):
 
 
 class PublicCatalogPlanResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     plan_code: str = Field(alias="planCode")
     display_name: str = Field(alias="displayName")
@@ -117,7 +117,7 @@ class PublicCatalogPlanResponse(BaseModel):
 
 
 class PublicCatalogAddonResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     addon_id: UUID = Field(alias="addonId")
     code: str
@@ -134,7 +134,7 @@ class PublicCatalogAddonResponse(BaseModel):
 
 
 class PublicCatalogMetadataResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     policy_ids: list[str] = Field(alias="policyIds")
     source: str
@@ -147,7 +147,7 @@ class PublicCatalogMetadataResponse(BaseModel):
 
 
 class PublicCommercialCatalogResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     catalog_version: str = Field(alias="catalogVersion")
     cache_key: str = Field(alias="cacheKey")

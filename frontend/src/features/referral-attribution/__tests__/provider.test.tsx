@@ -195,4 +195,52 @@ describe('ReferralAttributionProvider', () => {
       expect(window.localStorage.getItem(REFERRAL_ATTRIBUTION_STORAGE_KEY)).toBeNull();
     });
   });
+
+  it('does not claim after login when no pending referral exists locally', async () => {
+    authMock.pathname = '/en-EN/dashboard';
+    authMock.state = {
+      isAuthenticated: true,
+      user: { id: 'user-1' },
+    };
+    setBrowserPath('/en-EN/dashboard');
+
+    render(<ReferralAttributionProvider />);
+
+    await Promise.resolve();
+    expect(referralApiMock.claimAttribution).not.toHaveBeenCalled();
+  });
+
+  it('claims a cookie-backed referral capture after login when local storage is blocked', async () => {
+    const localStorageSpy = vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new Error('local storage blocked');
+    });
+    authMock.pathname = '/en-EN/register';
+    authMock.state = {
+      isAuthenticated: true,
+      user: { id: 'user-1' },
+    };
+    referralApiMock.claimAttribution.mockResolvedValue({
+      data: { status: 'claimed' },
+    });
+    setBrowserPath('/en-EN/register?ref=cyber42&utm_source=affiliate');
+
+    render(<ReferralAttributionProvider />);
+
+    await waitFor(() => {
+      expect(referralApiMock.captureAttribution).toHaveBeenCalledWith({
+        referral_code: 'CYBER42',
+        source_host: 'localhost:3000',
+        source_path: '/en-EN/register',
+        campaign_params: {
+          utm_source: 'affiliate',
+        },
+      });
+    });
+    await waitFor(() => {
+      expect(referralApiMock.claimAttribution).toHaveBeenCalledWith({
+        fallback_referral_code: 'CYBER42',
+      });
+    });
+    expect(localStorageSpy).toHaveBeenCalled();
+  });
 });

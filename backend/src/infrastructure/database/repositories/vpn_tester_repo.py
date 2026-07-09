@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import delete, func, or_, select
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -36,24 +39,33 @@ class VpnTesterRepository:
         return result.scalars().first()
 
     async def upsert_suite(self, payload: dict) -> VpnTestSuiteModel:
-        suite = await self.get_suite(str(payload["suite_key"]), str(payload.get("version") or "v1"))
+        suite_key = str(payload["suite_key"])
+        version = str(payload.get("version") or "v1")
+        suite = await self.get_suite(suite_key, version)
         if suite is None:
-            suite = VpnTestSuiteModel(
-                suite_key=str(payload["suite_key"]),
-                version=str(payload.get("version") or "v1"),
-                display_name=str(payload.get("display_name") or payload["suite_key"]),
-                mode=str(payload.get("mode") or "contract"),
-                description=str(payload.get("description") or ""),
-                spec=dict(payload),
-                enabled=True,
-            )
-            self._session.add(suite)
-        else:
-            suite.display_name = str(payload.get("display_name") or suite.display_name)
-            suite.mode = str(payload.get("mode") or suite.mode)
-            suite.description = str(payload.get("description") or suite.description)
-            suite.spec = dict(payload)
-            suite.enabled = True
+            try:
+                async with self._session.begin_nested():
+                    suite = VpnTestSuiteModel(
+                        suite_key=suite_key,
+                        version=version,
+                        display_name=str(payload.get("display_name") or payload["suite_key"]),
+                        mode=str(payload.get("mode") or "contract"),
+                        description=str(payload.get("description") or ""),
+                        spec=dict(payload),
+                        enabled=True,
+                    )
+                    self._session.add(suite)
+                    await self._session.flush()
+            except IntegrityError:
+                suite = await self.get_suite(suite_key, version)
+                if suite is None:
+                    raise
+
+        suite.display_name = str(payload.get("display_name") or suite.display_name)
+        suite.mode = str(payload.get("mode") or suite.mode)
+        suite.description = str(payload.get("description") or suite.description)
+        suite.spec = dict(payload)
+        suite.enabled = True
         await self._session.flush()
         return suite
 
@@ -298,7 +310,8 @@ class VpnTesterRepository:
             )
         )
         await self._session.flush()
-        return int(result.rowcount or 0)
+        cursor_result = cast(CursorResult, result)
+        return int(cursor_result.rowcount or 0)
 
     async def create_balancer_recommendation(
         self,

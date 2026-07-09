@@ -83,6 +83,7 @@ def _serialize_summary(item) -> CustomerSubscriptionSummaryResponse:
     )
 
 
+@router.get("", response_model=CustomerSubscriptionListResponse, include_in_schema=False)
 @router.get("/", response_model=CustomerSubscriptionListResponse)
 async def list_customer_subscriptions(
     selected_subscription_key: str | None = Query(None, min_length=1, max_length=220),

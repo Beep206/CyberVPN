@@ -13,7 +13,10 @@ class FakeRedisWithoutGetdel:
         self.commands: list[tuple[object, ...]] = []
 
     async def setex(self, key: str, ttl_seconds: int, value: object) -> bool:
-        return await self._delegate.setex(key, ttl_seconds, value)
+        return await self._delegate.set(key, value, ex=ttl_seconds)
+
+    async def set(self, key: str, value: object, *, ex: int | None = None) -> bool:
+        return await self._delegate.set(key, value, ex=ex)
 
     async def get(self, key: str) -> object | None:
         return await self._delegate.get(key)
@@ -33,7 +36,10 @@ class FakeRedisWithUnsupportedGetdel:
         self.eval_called = False
 
     async def setex(self, key: str, ttl_seconds: int, value: object) -> bool:
-        return await self._delegate.setex(key, ttl_seconds, value)
+        return await self._delegate.set(key, value, ex=ttl_seconds)
+
+    async def set(self, key: str, value: object, *, ex: int | None = None) -> bool:
+        return await self._delegate.set(key, value, ex=ex)
 
     async def get(self, key: str) -> object | None:
         return await self._delegate.get(key)
@@ -52,6 +58,9 @@ class FakeRedisWithUnsupportedGetdel:
 
 
 class FakeRedisWithoutAtomicConsume:
+    async def set(self, _key: str, _value: object, *, ex: int | None = None) -> bool:
+        return True
+
     async def setex(self, _key: str, _ttl_seconds: int, _value: object) -> bool:
         return True
 

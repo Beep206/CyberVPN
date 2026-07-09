@@ -4,6 +4,7 @@ from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveInboundResponse
+from src.presentation.api.v1.remnawave_degraded import optional_remnawave_read
 from src.presentation.dependencies import get_remnawave_client, require_role
 
 router = APIRouter(prefix="/inbounds", tags=["inbounds"])
@@ -14,13 +15,16 @@ async def list_inbounds(
     current_user=Depends(require_role(AdminRole.ADMIN)), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """List all inbound configurations (admin only)"""
-    result = await client.get_collection_validated(
-        "/config-profiles/inbounds",
-        "inbounds",
-        RemnawaveInboundResponse,
+    return await optional_remnawave_read(
+        route="inbounds",
+        action="list",
+        fetch=lambda: client.get_collection_validated(
+            "/config-profiles/inbounds",
+            "inbounds",
+            RemnawaveInboundResponse,
+        ),
+        fallback=[],
     )
-    route_operations_total.labels(route="inbounds", action="list", status="success").inc()
-    return result
 
 
 @router.get("/{uuid}", response_model=RemnawaveInboundResponse)

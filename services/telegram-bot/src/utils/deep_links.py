@@ -111,7 +111,10 @@ def decode_deep_link(encoded: str, verify_signature: bool = True) -> dict[str, A
                     "deep_link_signature_invalid",
                     encoded=encoded,
                 )
-                raise ValueError("Deep link signature verification failed")
+                raise ValueError("Invalid signature")
+
+            if not isinstance(payload, dict):
+                raise ValueError("Signed deep link payload must be an object")
 
             logger.debug("decoded_deep_link", payload=payload, verified=True)
             return payload
@@ -120,6 +123,11 @@ def decode_deep_link(encoded: str, verify_signature: bool = True) -> dict[str, A
         logger.debug("decoded_deep_link", payload=data, verified=False)
         return data if isinstance(data, dict) else {"value": data}
 
+    except UnicodeDecodeError as e:
+        if verify_signature:
+            raise ValueError("Invalid signature") from e
+        logger.error("deep_link_decode_failed", error=str(e), encoded=encoded)
+        raise ValueError(f"Failed to decode deep link: {e}") from e
     except (ValueError, json.JSONDecodeError, KeyError) as e:
         logger.error("deep_link_decode_failed", error=str(e), encoded=encoded)
         raise ValueError(f"Failed to decode deep link: {e}") from e
@@ -141,12 +149,21 @@ def create_referral_link(bot_username: str, user_id: int, source: str | None = N
         >>> create_referral_link("cybervpn_bot", 12345, "promo")
         "https://t.me/cybervpn_bot?start=..."
     """
-    payload = {"ref": user_id, "type": "referral"}
+    payload: dict[str, Any] = {"ref": user_id, "type": "referral"}
     if source:
         payload["source"] = source
 
     encoded = encode_deep_link(payload)
     return f"https://t.me/{bot_username}?start={encoded}"
+
+
+def encode_referral_payload(user_id: int, source: str | None = None) -> str:
+    """Encode the referral payload used in Telegram /start links."""
+
+    payload: dict[str, Any] = {"ref": user_id, "type": "referral"}
+    if source:
+        payload["source"] = source
+    return encode_deep_link(payload)
 
 
 def create_subscription_link(
@@ -169,7 +186,7 @@ def create_subscription_link(
         >>> create_subscription_link("cybervpn_bot", "premium", 30)
         "https://t.me/cybervpn_bot?start=..."
     """
-    payload = {"type": "subscribe", "plan": plan_id}
+    payload: dict[str, Any] = {"type": "subscribe", "plan": plan_id}
     if duration_days:
         payload["days"] = duration_days
 

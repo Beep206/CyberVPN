@@ -4,12 +4,13 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
 
 from src.states.admin import AdminReferralSettingsState
+from src.utils.telegram import callback_message, message_text, message_user_id
 
 if TYPE_CHECKING:
+    from aiogram.fsm.context import FSMContext
+    from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -72,7 +73,7 @@ async def referral_settings_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=settings_text,
             reply_markup=builder.as_markup(),
         )
@@ -120,7 +121,7 @@ async def referral_edit_bonus_prompt_handler(
     state: FSMContext,
 ) -> None:
     """Prompt to edit referral bonus percent."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-referral-edit-bonus-prompt"),
     )
 
@@ -139,7 +140,7 @@ async def referral_edit_bonus_handler(
 ) -> None:
     """Update referral bonus percent."""
     try:
-        bonus_percent = int(message.text.strip())
+        bonus_percent = int(message_text(message).strip())
 
         if bonus_percent < 0 or bonus_percent > 100:
             await message.answer(i18n.get("admin-referral-bonus-invalid-range"))
@@ -151,12 +152,12 @@ async def referral_edit_bonus_handler(
         await message.answer(i18n.get("admin-referral-bonus-updated", bonus=bonus_percent))
 
         await state.clear()
-        logger.info("admin_referral_bonus_updated", admin_id=message.from_user.id, new_bonus=bonus_percent)
+        logger.info("admin_referral_bonus_updated", admin_id=message_user_id(message), new_bonus=bonus_percent)
 
     except ValueError:
         await message.answer(i18n.get("admin-referral-bonus-invalid-number"))
     except Exception as e:
-        logger.error("admin_referral_bonus_update_error", admin_id=message.from_user.id, error=str(e))
+        logger.error("admin_referral_bonus_update_error", admin_id=message_user_id(message), error=str(e))
         await message.answer(i18n.get("error-generic"))
         await state.clear()
 
@@ -168,7 +169,7 @@ async def referral_edit_withdrawal_prompt_handler(
     state: FSMContext,
 ) -> None:
     """Prompt to edit minimum withdrawal amount."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-referral-edit-withdrawal-prompt"),
     )
 
@@ -187,7 +188,7 @@ async def referral_edit_withdrawal_handler(
 ) -> None:
     """Update minimum withdrawal amount."""
     try:
-        min_withdrawal = float(message.text.strip())
+        min_withdrawal = float(message_text(message).strip())
 
         if min_withdrawal < 0:
             await message.answer(i18n.get("admin-referral-withdrawal-invalid"))
@@ -199,11 +200,11 @@ async def referral_edit_withdrawal_handler(
         await message.answer(i18n.get("admin-referral-withdrawal-updated", amount=min_withdrawal))
 
         await state.clear()
-        logger.info("admin_referral_withdrawal_updated", admin_id=message.from_user.id, new_min=min_withdrawal)
+        logger.info("admin_referral_withdrawal_updated", admin_id=message_user_id(message), new_min=min_withdrawal)
 
     except ValueError:
         await message.answer(i18n.get("admin-referral-withdrawal-invalid-number"))
     except Exception as e:
-        logger.error("admin_referral_withdrawal_update_error", admin_id=message.from_user.id, error=str(e))
+        logger.error("admin_referral_withdrawal_update_error", admin_id=message_user_id(message), error=str(e))
         await message.answer(i18n.get("error-generic"))
         await state.clear()

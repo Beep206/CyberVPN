@@ -11,19 +11,36 @@ distributor:
         http:
           endpoint: 0.0.0.0:4318
 
-ingester:
-  max_block_duration: 5m
-  max_block_bytes: 524288000  # 500MB
-  complete_block_timeout: 5m
+backend_scheduler:
+  provider:
+    compaction:
+      compaction:
+        block_retention: 168h  # 7 days
+        compacted_block_retention: 1h
+        compaction_window: 1h
+        max_block_bytes: 107374182400  # 100GB
+        retention_concurrency: 10
 
-compactor:
+backend_worker:
   compaction:
     block_retention: 168h  # 7 days
     compacted_block_retention: 1h
     compaction_window: 1h
-    max_compaction_objects: 1000000
     max_block_bytes: 107374182400  # 100GB
     retention_concurrency: 10
+
+cache:
+  caches:
+    - roles:
+        - bloom
+        - trace-id-index
+        - parquet-footer
+        - parquet-column-idx
+        - parquet-offset-idx
+        - frontend-search
+      redis:
+        endpoint: remnawave-redis:6379
+        timeout: 100ms
 
 storage:
   trace:
@@ -32,10 +49,6 @@ storage:
       path: /var/tempo/traces
     wal:
       path: /var/tempo/wal
-    cache: redis
-    redis:
-      endpoint: remnawave-redis:6379
-      timeout: 100ms
 
 querier:
   max_concurrent_queries: 20

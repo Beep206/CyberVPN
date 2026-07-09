@@ -181,7 +181,7 @@ async def test_update_realtime_metrics_caching():
         assert result["total_users"] == 2
         assert result["current_bandwidth"] == 1000
         mock_redis.set.assert_called_once()
-        args, kwargs = mock_redis.set.call_args
+        args, _kwargs = mock_redis.set.call_args
         assert json.loads(args[1])["online_users"] == 1
 
 

@@ -232,6 +232,6 @@ class TestFormatDatetime:
 
     def test_naive_datetime(self) -> None:
         """Test formatting naive datetime."""
-        dt = datetime(2024, 12, 25, 18, 0)
+        dt = datetime(2024, 12, 25, 18, 0)  # noqa: DTZ001
         result = format_datetime(dt, "en")
         assert result == "2024-12-25 18:00"

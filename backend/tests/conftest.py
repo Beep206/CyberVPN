@@ -28,6 +28,7 @@ TEST_ENV_DEFAULTS = {
     "ENVIRONMENT": "test",
     "CORS_ORIGINS": "http://localhost:3000",
     "ENABLE_METRICS": "true",
+    "REDIS_URL": "redis://localhost:6379/15",
     _test_env_name("REMNAWAVE", "TOKEN"): _non_secret_test_value("remnawave"),
     _test_env_name("JWT", "SECRET"): _non_secret_test_value("jwt"),
     _test_env_name("CRYPTOBOT", "TOKEN"): _non_secret_test_value("cryptobot"),
@@ -141,6 +142,478 @@ def ensure_repo_schema(test_settings) -> None:
         pool_pre_ping=True,
     )
 
+    async def _table_columns(conn, table_name: str) -> set[str]:
+        return {
+            row[0]
+            for row in (
+                await conn.execute(
+                    text(
+                        """
+                        select column_name
+                        from information_schema.columns
+                        where table_schema = 'public'
+                          and table_name = :table_name
+                        """
+                    ),
+                    {"table_name": table_name},
+                )
+            ).all()
+        }
+
+    async def _add_column_if_missing(
+        conn,
+        columns: set[str],
+        table_name: str,
+        column_name: str,
+        column_definition: str,
+    ) -> None:
+        if column_name in columns:
+            return
+
+        await conn.execute(text(f"alter table {table_name} add column {column_definition}"))
+        columns.add(column_name)
+
+    async def _sync_table_columns(
+        conn,
+        table_name: str,
+        column_specs: tuple[tuple[str, str], ...],
+    ) -> set[str]:
+        columns = await _table_columns(conn, table_name)
+        for column_name, column_definition in column_specs:
+            await _add_column_if_missing(conn, columns, table_name, column_name, column_definition)
+        return columns
+
+    async def _create_missing_indexes(
+        conn,
+        table_name: str,
+        index_specs: tuple[tuple[str, str], ...],
+    ) -> None:
+        for index_name, columns_sql in index_specs:
+            await conn.execute(text(f"create index if not exists {index_name} on {table_name} ({columns_sql})"))
+
+    async def _sync_growth_v62_fx_schema(conn, existing_tables: set[str]) -> None:
+        """Backfill v6.2 FX columns on legacy local test databases."""
+
+        if "fx_rate_snapshots" not in existing_tables:
+            return
+
+        fx_rate_snapshot_columns = await _table_columns(conn, "fx_rate_snapshots")
+        if "provider_config_id" not in fx_rate_snapshot_columns:
+            await conn.execute(text("alter table fx_rate_snapshots add column provider_config_id uuid"))
+        if "provider_priority" not in fx_rate_snapshot_columns:
+            await conn.execute(
+                text("alter table fx_rate_snapshots add column provider_priority integer not null default 100")
+            )
+        if "approval_state" not in fx_rate_snapshot_columns:
+            await conn.execute(
+                text("alter table fx_rate_snapshots add column approval_state varchar(20) not null default 'pending'")
+            )
+        if "approved_by_admin_id" not in fx_rate_snapshot_columns:
+            await conn.execute(text("alter table fx_rate_snapshots add column approved_by_admin_id uuid"))
+        if "approved_at" not in fx_rate_snapshot_columns:
+            await conn.execute(text("alter table fx_rate_snapshots add column approved_at timestamp with time zone"))
+        if "rejection_reason" not in fx_rate_snapshot_columns:
+            await conn.execute(text("alter table fx_rate_snapshots add column rejection_reason varchar(500)"))
+        if "checksum" not in fx_rate_snapshot_columns:
+            await conn.execute(text("alter table fx_rate_snapshots add column checksum varchar(128)"))
+        if "raw_provider_payload_hash" not in fx_rate_snapshot_columns:
+            await conn.execute(text("alter table fx_rate_snapshots add column raw_provider_payload_hash varchar(128)"))
+
+        await conn.execute(
+            text(
+                "create index if not exists ix_fx_rate_snapshots_provider_config_id "
+                "on fx_rate_snapshots (provider_config_id)"
+            )
+        )
+        await conn.execute(
+            text("create index if not exists ix_fx_rate_snapshots_approval_state on fx_rate_snapshots (approval_state)")
+        )
+        await conn.execute(
+            text("create index if not exists ix_fx_rate_snapshots_checksum on fx_rate_snapshots (checksum)")
+        )
+        await conn.execute(
+            text(
+                "create index if not exists ix_fx_rate_snapshots_approved_by_admin_id "
+                "on fx_rate_snapshots (approved_by_admin_id)"
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                do $$
+                begin
+                    if not exists (
+                        select 1 from pg_constraint
+                        where conname = 'ck_fx_rate_snapshots_provider_priority_non_negative'
+                    ) then
+                        alter table fx_rate_snapshots
+                        add constraint ck_fx_rate_snapshots_provider_priority_non_negative
+                        check (provider_priority >= 0);
+                    end if;
+                    if not exists (
+                        select 1 from pg_constraint
+                        where conname = 'ck_fx_rate_snapshots_approval_state'
+                    ) then
+                        alter table fx_rate_snapshots
+                        add constraint ck_fx_rate_snapshots_approval_state
+                        check (approval_state in ('pending','approved','rejected','expired'));
+                    end if;
+                end $$;
+                """
+            )
+        )
+
+        if "fx_provider_configs" in existing_tables:
+            await conn.execute(
+                text(
+                    """
+                    do $$
+                    begin
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'fk_fx_rate_snapshots_provider_config_id_fx_provider_configs'
+                        ) then
+                            alter table fx_rate_snapshots
+                            add constraint fk_fx_rate_snapshots_provider_config_id_fx_provider_configs
+                            foreign key (provider_config_id)
+                            references fx_provider_configs(id)
+                            on delete set null;
+                        end if;
+                    end $$;
+                    """
+                )
+            )
+        if "admin_users" in existing_tables:
+            await conn.execute(
+                text(
+                    """
+                    do $$
+                    begin
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'fk_fx_rate_snapshots_approved_by_admin_id_admin_users'
+                        ) then
+                            alter table fx_rate_snapshots
+                            add constraint fk_fx_rate_snapshots_approved_by_admin_id_admin_users
+                            foreign key (approved_by_admin_id)
+                            references admin_users(id)
+                            on delete set null;
+                        end if;
+                    end $$;
+                    """
+                )
+            )
+
+    async def _sync_invite_v7_schema(conn, existing_tables: set[str]) -> None:
+        """Backfill invite v7+ columns on legacy local test databases."""
+
+        if "invite_codes" in existing_tables:
+            await conn.execute(text("alter table invite_codes alter column owner_user_id drop not null"))
+            await _sync_table_columns(
+                conn,
+                "invite_codes",
+                (
+                    ("campaign_id", "campaign_id uuid"),
+                    ("campaign_version_id", "campaign_version_id uuid"),
+                    ("root_invite_code_id", "root_invite_code_id uuid"),
+                    ("parent_invite_code_id", "parent_invite_code_id uuid"),
+                    ("source_redemption_id", "source_redemption_id uuid"),
+                    ("generation_depth", "generation_depth integer not null default 0"),
+                    ("usage_mode", "usage_mode varchar(20) not null default 'single_use'"),
+                    ("max_redemptions", "max_redemptions integer"),
+                    ("redeemed_count", "redeemed_count integer not null default 0"),
+                    ("active_redemptions_count", "active_redemptions_count integer not null default 0"),
+                    ("reversed_redemptions_count", "reversed_redemptions_count integer not null default 0"),
+                    ("first_redeemed_at", "first_redeemed_at timestamp with time zone"),
+                    ("last_redeemed_at", "last_redeemed_at timestamp with time zone"),
+                    ("exhausted_at", "exhausted_at timestamp with time zone"),
+                    ("per_user_redemption_cap", "per_user_redemption_cap integer not null default 1"),
+                    ("multi_use_policy", "multi_use_policy json not null default '{}'::json"),
+                    ("grant_mode", "grant_mode varchar(30) not null default 'legacy_invite_access'"),
+                    ("grant_plan_id", "grant_plan_id uuid"),
+                    ("grant_duration_mode", "grant_duration_mode varchar(20) not null default 'fixed_days'"),
+                    ("grant_duration_days", "grant_duration_days integer"),
+                    ("grant_device_limit_override", "grant_device_limit_override integer"),
+                    ("grant_snapshot", "grant_snapshot json not null default '{}'::json"),
+                    ("child_grant_plan_id", "child_grant_plan_id uuid"),
+                    (
+                        "child_grant_duration_mode",
+                        "child_grant_duration_mode varchar(20) not null default 'fixed_days'",
+                    ),
+                    ("child_grant_duration_days", "child_grant_duration_days integer"),
+                    ("child_grant_device_limit_override", "child_grant_device_limit_override integer"),
+                    (
+                        "child_invite_expiry_mode",
+                        "child_invite_expiry_mode varchar(20) not null default 'relative'",
+                    ),
+                    ("child_policy", "child_policy json not null default '{}'::json"),
+                    ("risk_policy", "risk_policy json not null default '{}'::json"),
+                    ("redemption_policy", "redemption_policy json not null default '{}'::json"),
+                    ("issue_policy", "issue_policy json not null default '{}'::json"),
+                ),
+            )
+            await conn.execute(text("alter table invite_codes alter column source type varchar(40)"))
+            await _create_missing_indexes(
+                conn,
+                "invite_codes",
+                (
+                    ("ix_invite_codes_campaign_id", "campaign_id"),
+                    ("ix_invite_codes_campaign_version_id", "campaign_version_id"),
+                    ("ix_invite_codes_root_invite_code_id", "root_invite_code_id"),
+                    ("ix_invite_codes_parent_invite_code_id", "parent_invite_code_id"),
+                    ("ix_invite_codes_source_redemption_id", "source_redemption_id"),
+                    ("ix_invite_codes_generation_depth", "generation_depth"),
+                    ("ix_invite_codes_usage_mode", "usage_mode"),
+                    ("ix_invite_codes_grant_plan_id", "grant_plan_id"),
+                    ("ix_invite_codes_child_grant_plan_id", "child_grant_plan_id"),
+                ),
+            )
+            await conn.execute(
+                text(
+                    """
+                    do $$
+                    begin
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_grant_mode'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_grant_mode
+                            check (grant_mode in ('legacy_invite_access','plan_snapshot','custom_snapshot'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_generation_depth_non_negative'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_generation_depth_non_negative
+                            check (generation_depth >= 0);
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_usage_mode'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_usage_mode
+                            check (usage_mode in ('single_use','multi_use'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_max_redemptions_positive'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_max_redemptions_positive
+                            check (max_redemptions is null or max_redemptions > 0);
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_redemption_counts_non_negative'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_redemption_counts_non_negative
+                            check (
+                                redeemed_count >= 0
+                                and active_redemptions_count >= 0
+                                and reversed_redemptions_count >= 0
+                            );
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_per_user_cap_positive'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_per_user_cap_positive
+                            check (per_user_redemption_cap >= 1);
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_grant_duration_mode'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_grant_duration_mode
+                            check (grant_duration_mode in ('fixed_days','lifetime'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_child_grant_duration_mode'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_child_grant_duration_mode
+                            check (child_grant_duration_mode in ('fixed_days','lifetime'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_child_expiry_mode'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_child_expiry_mode
+                            check (child_invite_expiry_mode in ('relative','absolute','none'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_codes_device_override_positive'
+                        ) then
+                            alter table invite_codes
+                            add constraint ck_invite_codes_device_override_positive
+                            check (
+                                (grant_device_limit_override is null or grant_device_limit_override > 0)
+                                and (
+                                    child_grant_device_limit_override is null
+                                    or child_grant_device_limit_override > 0
+                                )
+                            );
+                        end if;
+                    end $$;
+                    """
+                )
+            )
+
+        if "invite_batches" in existing_tables:
+            await conn.execute(text("alter table invite_batches alter column owner_user_id drop not null"))
+            await _sync_table_columns(
+                conn,
+                "invite_batches",
+                (
+                    ("invite_campaign_id", "invite_campaign_id uuid"),
+                    ("invite_campaign_version_id", "invite_campaign_version_id uuid"),
+                    ("root_invite_code_id", "root_invite_code_id uuid"),
+                    ("parent_invite_code_id", "parent_invite_code_id uuid"),
+                    ("source_redemption_id", "source_redemption_id uuid"),
+                    ("root_owner_user_id", "root_owner_user_id uuid"),
+                    ("generation_depth", "generation_depth integer not null default 0"),
+                    ("batch_kind", "batch_kind varchar(40) not null default 'legacy'"),
+                    ("usage_mode", "usage_mode varchar(20) not null default 'single_use'"),
+                    ("max_redemptions_per_code", "max_redemptions_per_code integer"),
+                    ("per_user_redemption_cap", "per_user_redemption_cap integer not null default 1"),
+                    ("multi_use_policy", "multi_use_policy jsonb not null default '{}'::jsonb"),
+                    ("grant_mode", "grant_mode varchar(30) not null default 'legacy_invite_access'"),
+                    ("grant_plan_id", "grant_plan_id uuid"),
+                    ("grant_duration_mode", "grant_duration_mode varchar(20) not null default 'fixed_days'"),
+                    ("grant_duration_days", "grant_duration_days integer"),
+                    ("grant_device_limit_override", "grant_device_limit_override integer"),
+                    ("grant_snapshot", "grant_snapshot jsonb not null default '{}'::jsonb"),
+                    ("child_grant_plan_id", "child_grant_plan_id uuid"),
+                    (
+                        "child_grant_duration_mode",
+                        "child_grant_duration_mode varchar(20) not null default 'fixed_days'",
+                    ),
+                    ("child_grant_duration_days", "child_grant_duration_days integer"),
+                    ("child_grant_device_limit_override", "child_grant_device_limit_override integer"),
+                    (
+                        "child_invite_expiry_mode",
+                        "child_invite_expiry_mode varchar(20) not null default 'relative'",
+                    ),
+                    ("child_policy", "child_policy jsonb not null default '{}'::jsonb"),
+                    ("risk_policy", "risk_policy jsonb not null default '{}'::jsonb"),
+                    ("redemption_policy", "redemption_policy jsonb not null default '{}'::jsonb"),
+                    ("issue_policy", "issue_policy jsonb not null default '{}'::jsonb"),
+                ),
+            )
+            await _create_missing_indexes(
+                conn,
+                "invite_batches",
+                (
+                    ("ix_invite_batches_invite_campaign_id", "invite_campaign_id"),
+                    ("ix_invite_batches_invite_campaign_version_id", "invite_campaign_version_id"),
+                    ("ix_invite_batches_root_invite_code_id", "root_invite_code_id"),
+                    ("ix_invite_batches_parent_invite_code_id", "parent_invite_code_id"),
+                    ("ix_invite_batches_source_redemption_id", "source_redemption_id"),
+                    ("ix_invite_batches_root_owner_user_id", "root_owner_user_id"),
+                    ("ix_invite_batches_generation_depth", "generation_depth"),
+                    ("ix_invite_batches_batch_kind", "batch_kind"),
+                    ("ix_invite_batches_usage_mode", "usage_mode"),
+                    ("ix_invite_batches_grant_plan_id", "grant_plan_id"),
+                    ("ix_invite_batches_child_grant_plan_id", "child_grant_plan_id"),
+                ),
+            )
+            await conn.execute(
+                text(
+                    """
+                    do $$
+                    begin
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_batches_generation_depth_non_negative'
+                        ) then
+                            alter table invite_batches
+                            add constraint ck_invite_batches_generation_depth_non_negative
+                            check (generation_depth >= 0);
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_batches_grant_mode'
+                        ) then
+                            alter table invite_batches
+                            add constraint ck_invite_batches_grant_mode
+                            check (grant_mode in ('legacy_invite_access','plan_snapshot','custom_snapshot'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_batches_usage_mode'
+                        ) then
+                            alter table invite_batches
+                            add constraint ck_invite_batches_usage_mode
+                            check (usage_mode in ('single_use','multi_use'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_batches_max_redemptions_positive'
+                        ) then
+                            alter table invite_batches
+                            add constraint ck_invite_batches_max_redemptions_positive
+                            check (max_redemptions_per_code is null or max_redemptions_per_code > 0);
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_batches_per_user_cap_positive'
+                        ) then
+                            alter table invite_batches
+                            add constraint ck_invite_batches_per_user_cap_positive
+                            check (per_user_redemption_cap >= 1);
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_batches_grant_duration_mode'
+                        ) then
+                            alter table invite_batches
+                            add constraint ck_invite_batches_grant_duration_mode
+                            check (grant_duration_mode in ('fixed_days','lifetime'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_batches_child_grant_duration_mode'
+                        ) then
+                            alter table invite_batches
+                            add constraint ck_invite_batches_child_grant_duration_mode
+                            check (child_grant_duration_mode in ('fixed_days','lifetime'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_batches_child_expiry_mode'
+                        ) then
+                            alter table invite_batches
+                            add constraint ck_invite_batches_child_expiry_mode
+                            check (child_invite_expiry_mode in ('relative','absolute','none'));
+                        end if;
+                        if not exists (
+                            select 1 from pg_constraint
+                            where conname = 'ck_invite_batches_device_override_positive'
+                        ) then
+                            alter table invite_batches
+                            add constraint ck_invite_batches_device_override_positive
+                            check (
+                                (grant_device_limit_override is null or grant_device_limit_override > 0)
+                                and (
+                                    child_grant_device_limit_override is null
+                                    or child_grant_device_limit_override > 0
+                                )
+                            );
+                        end if;
+                    end $$;
+                    """
+                )
+            )
+
     async def _sync_schema() -> None:
         try:
             async with schema_engine.begin() as conn:
@@ -153,24 +626,18 @@ def ensure_repo_schema(test_settings) -> None:
                 missing_tables_exist = any(table_name not in existing_tables for table_name in Base.metadata.tables)
                 if missing_tables_exist:
                     await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, checkfirst=True))
+                    existing_tables = set(
+                        (await conn.execute(text("select tablename from pg_tables where schemaname = 'public'")))
+                        .scalars()
+                        .all()
+                    )
+
+                await _sync_growth_v62_fx_schema(conn, existing_tables)
+                await _sync_invite_v7_schema(conn, existing_tables)
 
                 admin_users_exists = "admin_users" in existing_tables
                 if admin_users_exists:
-                    admin_user_columns = {
-                        row[0]
-                        for row in (
-                            await conn.execute(
-                                text(
-                                    """
-                                    select column_name
-                                    from information_schema.columns
-                                    where table_schema = 'public'
-                                      and table_name = 'admin_users'
-                                    """
-                                )
-                            )
-                        ).all()
-                    }
+                    admin_user_columns = await _table_columns(conn, "admin_users")
                     if "auth_realm_id" not in admin_user_columns:
                         await conn.execute(text("alter table admin_users add column auth_realm_id uuid"))
                         await conn.execute(
@@ -198,21 +665,7 @@ def ensure_repo_schema(test_settings) -> None:
 
                 mobile_users_exists = "mobile_users" in existing_tables
                 if mobile_users_exists:
-                    mobile_user_columns = {
-                        row[0]
-                        for row in (
-                            await conn.execute(
-                                text(
-                                    """
-                                    select column_name
-                                    from information_schema.columns
-                                    where table_schema = 'public'
-                                      and table_name = 'mobile_users'
-                                    """
-                                )
-                            )
-                        ).all()
-                    }
+                    mobile_user_columns = await _table_columns(conn, "mobile_users")
                     if "auth_realm_id" not in mobile_user_columns:
                         await conn.execute(text("alter table mobile_users add column auth_realm_id uuid"))
                         await conn.execute(

@@ -375,7 +375,8 @@ describe('CustomerDetail VPN credential regeneration', () => {
     });
 
     const reasonField = within(dialog).getByRole('textbox', { name: 'detail.dialogs.reasonLabel' });
-    await user.type(reasonField, 'Verified stolen-device recovery with customer');
+    await user.click(reasonField);
+    await user.paste('Verified stolen-device recovery with customer');
     expect(reasonField).toHaveValue('Verified stolen-device recovery with customer');
     await user.click(within(dialog).getByRole('checkbox', { name: 'detail.revokeOnlyVpnPasswords' }));
     const confirmButton = within(dialog).getByRole('button', { name: 'detail.regenerateVpnCredentials' });

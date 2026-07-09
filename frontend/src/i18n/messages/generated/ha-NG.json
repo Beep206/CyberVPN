@@ -309,7 +309,7 @@
       "inventory": {
         "intro": "The inventory is based on current product flows and deployed evidence expectations. Browser inventory should be refreshed when login, checkout, analytics, Telegram Mini App or admin flows change.",
         "items": {
-          "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as {realm}_access_token and {realm}_refresh_token for web API sessions. Production behavior should be HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days unless production configuration changes and evidence is updated.",
+          "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as realm_access_token and realm_refresh_token for web API sessions. Production behavior should be HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days unless production configuration changes and evidence is updated.",
           "locale": "Language and routing state: next-intl may use a locale cookie such as NEXT_LOCALE where enabled to remember the selected language/locale. The exact production cookie name, domain, path and lifetime should match browser cookie inventory evidence.",
           "observability": "Operational observability may include Sentry error/performance events, Web Vitals, internal traffic analytics and Telegram Mini App runtime analytics. Sentry is configured with sendDefaultPii=false, text/media replay masking and beforeSend PII scrubbing where enabled.",
           "telegram": "Telegram Mini App flows may receive Telegram initData and Telegram WebView/runtime information. Cookies or storage controlled by Telegram itself are governed by Telegram, not by CyberVPN.",
@@ -1185,6 +1185,7 @@
           "generic": "Code could not be applied.",
           "inactive": "Code is inactive.",
           "inviteSelfRedemption": "You cannot redeem your own invite code.",
+          "namespaceAmbiguous": "This code matches more than one code type. Use the right surface or contact support.",
           "notEligibleForSku": "This code does not apply to the selected checkout basket.",
           "notEligibleForSurface": "This code is not available on the current surface.",
           "notFound": "Code not found.",
@@ -1591,6 +1592,7 @@
       "dedicated_ip": "Dedicated IP",
       "experimental": "Experimental",
       "manual_config": "Manual / Advanced",
+      "shared": "Shared",
       "standard": "Standard",
       "stealth": "Stealth"
     },
@@ -1607,6 +1609,7 @@
       "term": "Selectable term"
     },
     "poolNames": {
+      "default": "Default",
       "exclusive": "Exclusive",
       "premium": "Premium",
       "premium_shared": "Premium Shared",

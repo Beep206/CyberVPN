@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class WSSubscribeMessage(BaseModel):
     """Client message to subscribe to monitoring topics."""
 
-    type: Literal["subscribe"] = Field("subscribe", description="Message type")
+    type: Literal["subscribe"] = Field(default="subscribe", description="Message type")
     topics: list[str] = Field(..., max_length=20, description="List of topics to subscribe to")
 
 

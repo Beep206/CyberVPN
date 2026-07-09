@@ -183,7 +183,7 @@ async def _create_realtime_ticket(
         principal_type=principal_type,
         scope=MESSAGING_REALTIME_TICKET_SCOPE,
     )
-    return MessagingRealtimeTicketResponse(ticket=ticket, expires_in=WebSocketTicketService.TTL_SECONDS)
+    return MessagingRealtimeTicketResponse(ticket=ticket, expiresIn=WebSocketTicketService.TTL_SECONDS)
 
 
 async def _authenticate_messaging_ws_ticket(
@@ -343,7 +343,7 @@ def _raise_http(exc: Exception) -> None:
     if isinstance(exc, MessagingForbiddenError):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     if isinstance(exc, ValueError):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
     raise exc
 
 
@@ -491,7 +491,7 @@ async def list_customer_conversations(
     )
     return CustomerConversationListResponse(
         conversations=[_customer_summary_response(conversation) for conversation in result.conversations],
-        next_cursor=result.next_cursor,
+        nextCursor=result.next_cursor,
     )
 
 
@@ -579,7 +579,7 @@ async def list_customer_notifications(
             for view in result.notifications
             if view.delivery.status != SiteNotificationDeliveryStatus.DISMISSED
         ],
-        next_cursor=result.next_cursor,
+        nextCursor=result.next_cursor,
     )
 
 
@@ -740,7 +740,7 @@ async def list_admin_conversations(
     )
     return AdminConversationListResponse(
         conversations=[_admin_summary_response(conversation) for conversation in result.conversations],
-        next_cursor=result.next_cursor,
+        nextCursor=result.next_cursor,
     )
 
 

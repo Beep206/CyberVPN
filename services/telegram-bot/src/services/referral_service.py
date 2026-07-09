@@ -5,12 +5,13 @@ Business logic for referral links, stats, and reward withdrawal.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
-from src.services.api_client import CyberVPNAPIClient
-from src.services.cache_service import CacheService
+if TYPE_CHECKING:
+    from src.services.api_client import CyberVPNAPIClient
+    from src.services.cache_service import CacheService
 
 logger = structlog.get_logger(__name__)
 
@@ -43,7 +44,7 @@ class ReferralService:
         """
         cache_key = f"referral_stats:{telegram_id}"
         cached = await self._cache.get_json(cache_key)
-        if cached is not None:
+        if isinstance(cached, dict):
             return cached
 
         stats = await self._api.get_referral_stats(telegram_id)

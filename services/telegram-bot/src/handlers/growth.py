@@ -9,6 +9,7 @@ from aiogram import F, Router
 
 from src.keyboards.growth import growth_menu_keyboard, has_growth_actions
 from src.keyboards.miniapp import miniapp_open_keyboard
+from src.utils.telegram import callback_message
 
 if TYPE_CHECKING:
     from aiogram.types import CallbackQuery
@@ -41,14 +42,14 @@ async def growth_menu_handler(
     """Open the unified Rewards menu."""
     capabilities = await get_safe_client_capabilities(api_client)
     if not has_growth_actions(capabilities):
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("growth-disabled"),
             reply_markup=miniapp_open_keyboard(i18n, settings, path="/rewards"),
         )
         await callback.answer()
         return
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("growth-menu-title"),
         reply_markup=growth_menu_keyboard(i18n, settings=settings, capabilities=capabilities),
     )
@@ -62,7 +63,7 @@ async def finance_menu_handler(
     settings: BotSettings | None = None,
 ) -> None:
     """Open finance entry points without starting payment-side effects."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("finance-menu-title"),
         reply_markup=miniapp_open_keyboard(i18n, settings, path="/wallet", text_key="btn-finance-open"),
     )

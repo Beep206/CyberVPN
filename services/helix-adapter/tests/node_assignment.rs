@@ -1,14 +1,8 @@
-use std::time::Duration;
-
-use sqlx::{
-    postgres::{PgConnectOptions, PgPoolOptions},
-    query, ConnectOptions, PgPool,
-};
+use sqlx::query;
 use uuid::Uuid;
 
 use helix_adapter::{
     assignments::store::NodeAssignmentStore,
-    db::pool::run_migrations,
     manifests::signer::ManifestSigner,
     node_registry::{
         model::{
@@ -25,13 +19,16 @@ use helix_adapter::{
     },
 };
 
+mod support;
+
+use support::helix_db::IsolatedTestPool;
+
 #[tokio::test]
 async fn node_assignment_resolves_from_same_profile_policy_as_manifests() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -134,11 +131,10 @@ async fn node_assignment_resolves_from_same_profile_policy_as_manifests() {
 
 #[tokio::test]
 async fn node_assignment_prefers_healthier_profile_over_newer_degraded_candidate() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -349,11 +345,10 @@ async fn node_assignment_prefers_healthier_profile_over_newer_degraded_candidate
 #[tokio::test]
 async fn node_assignment_can_still_resolve_degraded_profile_when_manifest_guardrails_block_new_sessions(
 ) {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -554,11 +549,10 @@ async fn node_assignment_can_still_resolve_degraded_profile_when_manifest_guardr
 
 #[tokio::test]
 async fn node_assignment_can_still_resolve_avoid_new_sessions_profile_for_existing_rollout_nodes() {
-    let Some(pool) = maybe_test_pool().await else {
+    let Some(test_pool) = maybe_test_pool().await else {
         return;
     };
-
-    run_migrations(&pool).await.expect("migrations");
+    let pool = test_pool.pool();
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let node_id = format!("node-{}", Uuid::new_v4().simple());
@@ -700,24 +694,6 @@ async fn node_assignment_can_still_resolve_avoid_new_sessions_profile_for_existi
     );
 }
 
-async fn maybe_test_pool() -> Option<PgPool> {
-    let database_url = std::env::var("TEST_DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://cybervpn:cybervpn@localhost:6767/cybervpn".to_string());
-    let options = database_url.parse::<PgConnectOptions>().ok()?;
-    let options = options
-        .application_name("helix-adapter-node-assignment-tests")
-        .disable_statement_logging();
-
-    match PgPoolOptions::new()
-        .max_connections(2)
-        .acquire_timeout(Duration::from_secs(2))
-        .connect_with(options)
-        .await
-    {
-        Ok(pool) => Some(pool),
-        Err(error) => {
-            eprintln!("Skipping DB-backed node assignment test: {error}");
-            None
-        }
-    }
+async fn maybe_test_pool() -> Option<IsolatedTestPool> {
+    support::helix_db::maybe_test_pool("helix-adapter-node-assignment-tests").await
 }

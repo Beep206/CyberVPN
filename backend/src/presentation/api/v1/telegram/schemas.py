@@ -46,9 +46,11 @@ class TelegramUserResponse(BaseModel):
     username: str = Field(..., max_length=100, description="Username")
     status: str = Field(..., max_length=50, description="User account status")
     data_usage: int = Field(..., description="Current data usage in bytes")
-    data_limit: int | None = Field(None, description="Data limit in bytes")
-    expires_at: datetime | None = Field(None, description="Subscription expiration date")
-    subscription_url: str | None = Field(None, max_length=5000, description="VPN subscription configuration URL")
+    data_limit: int | None = Field(default=None, description="Data limit in bytes")
+    expires_at: datetime | None = Field(default=None, description="Subscription expiration date")
+    subscription_url: str | None = Field(
+        default=None, max_length=5000, description="VPN subscription configuration URL"
+    )
 
 
 class CreateSubscriptionRequest(BaseModel):
@@ -73,8 +75,8 @@ class CreateSubscriptionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     status: str = Field(default="success", description="Operation status")
-    subscription_id: str | int | None = Field(None, description="Created subscription identifier")
-    expires_at: datetime | None = Field(None, description="Subscription expiration date")
+    subscription_id: str | int | None = Field(default=None, description="Created subscription identifier")
+    expires_at: datetime | None = Field(default=None, description="Subscription expiration date")
 
 
 class ConfigResponse(BaseModel):
@@ -92,11 +94,11 @@ class ConfigResponse(BaseModel):
     config_string: str = Field(..., max_length=5000, description="Primary VPN subscription URL or fallback config")
     client_type: str = Field(..., max_length=50, description="VPN client type (vless, vmess, etc.)")
     subscription_url: str | None = Field(
-        None,
+        default=None,
         max_length=5000,
         description="Canonical subscription URL when available",
     )
-    subscription_key: str | None = Field(None, max_length=220, description="Selected customer subscription key")
+    subscription_key: str | None = Field(default=None, max_length=220, description="Selected customer subscription key")
 
 
 class NotifyRequest(BaseModel):
@@ -115,7 +117,7 @@ class NotifyRequest(BaseModel):
     telegram_id: int = Field(..., description="Telegram user ID")
     message: str = Field(..., min_length=1, max_length=4096, description="Notification message")
     notification_type: str | None = Field(
-        None,
+        default=None,
         max_length=50,
         description="Type of notification (info, warning, error)",
     )

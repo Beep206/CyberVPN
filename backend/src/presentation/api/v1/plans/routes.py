@@ -15,7 +15,14 @@ from src.presentation.api.v1.admin.audit import write_required_commercial_catalo
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_permission
 
-from .schemas import CreatePlanRequest, PlanResponse, UpdatePlanRequest
+from .schemas import (
+    CreatePlanRequest,
+    DedicatedIpSchema,
+    InviteBundleSchema,
+    PlanResponse,
+    TrafficPolicySchema,
+    UpdatePlanRequest,
+)
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -32,13 +39,17 @@ def _serialize_plan(plan: SubscriptionPlanModel) -> PlanResponse:
         devices_included=plan.device_limit,
         price_usd=float(plan.price_usd),
         price_rub=float(plan.price_rub) if plan.price_rub is not None else None,
-        traffic_policy=plan.traffic_policy or {"mode": "fair_use", "display_label": "Unlimited"},
+        traffic_policy=TrafficPolicySchema.model_validate(
+            plan.traffic_policy or {"mode": "fair_use", "display_label": "Unlimited"}
+        ),
         connection_modes=plan.connection_modes or [],
         server_pool=plan.server_pool or [],
         support_sla=plan.support_sla,
-        dedicated_ip=plan.dedicated_ip or {"included": 0, "eligible": False},
+        dedicated_ip=DedicatedIpSchema.model_validate(plan.dedicated_ip or {"included": 0, "eligible": False}),
         sale_channels=plan.sale_channels or [],
-        invite_bundle=plan.invite_bundle or {"count": 0, "friend_days": 0, "expiry_days": 0},
+        invite_bundle=InviteBundleSchema.model_validate(
+            plan.invite_bundle or {"count": 0, "friend_days": 0, "expiry_days": 0}
+        ),
         trial_eligible=plan.trial_eligible,
         features=plan.features or {},
         is_active=plan.is_active,

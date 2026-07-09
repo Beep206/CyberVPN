@@ -154,7 +154,8 @@ class RemnawaveResponseValidator:
         if isinstance(data, dict):
             collection = data.get(collection_key)
             if collection is None and "response" in data:
-                collection = data["response"]
+                response = data["response"]
+                collection = response.get(collection_key) if isinstance(response, dict) else response
 
             if isinstance(collection, list):
                 return RemnawaveResponseValidator.validate_list(collection, schema, endpoint)

@@ -67,7 +67,10 @@ const PARTNER_PORTAL_LOCAL_HOSTS = [
   '127.0.0.1:3004',
   'portal.localhost:3004',
 ] as const;
-const DEFAULT_STOREFRONT_HOST = 'storefront.localhost:3002';
+const DEFAULT_STOREFRONT_LOCAL_HOSTS = [
+  'storefront.localhost:3002',
+  'storefront.localhost:3004',
+] as const;
 const DEFAULT_STOREFRONT_PUBLIC_HOST =
   process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_HOST?.trim() || 'storefront.cyber-vpn.net';
 const DEFAULT_STOREFRONT_KEY =
@@ -127,7 +130,7 @@ function getPortalSurfaceHosts(): Set<string> {
 
 function getStorefrontSurfaceHosts(): Set<string> {
   return new Set<string>([
-    DEFAULT_STOREFRONT_HOST,
+    ...DEFAULT_STOREFRONT_LOCAL_HOSTS,
     DEFAULT_STOREFRONT_PUBLIC_HOST,
     ...readCsvHosts(process.env.NEXT_PUBLIC_PARTNER_STOREFRONT_HOSTS),
   ]);

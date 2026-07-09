@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import secrets
 from pathlib import Path
 
 
@@ -48,7 +47,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -56,6 +55,10 @@ def write_text(path: Path, content: str, mode: int = 0o640) -> None:
 
 def quoted_yaml(value: str) -> str:
     return json.dumps(value)
+
+
+def shell_required_env_ref(name: str) -> str:
+    return "${" + name + ":?Set " + name + " from the approved secret store}"
 
 
 def render_env(
@@ -67,10 +70,10 @@ def render_env(
     posthog_repo_ref: str,
     registry_url: str,
     opt_out_capture: bool,
-    trusted_proxies: str,
+    proxy_cidrs: str,
     disable_secure_ssl_redirect: bool,
-    posthog_secret: str,
-    encryption_salt_keys: str,
+    runtime_key_env_name: str = "POSTHOG_SECRET",
+    encryption_keys_env_name: str = "ENCRYPTION_SALT_KEYS",
 ) -> str:
     allowed_hosts = f"{domain},127.0.0.1,localhost"
     lines = [
@@ -80,11 +83,11 @@ def render_env(
         f"POSTHOG_NODE_TAG={posthog_node_tag}",
         f"POSTHOG_REPO_REF={posthog_repo_ref}",
         f"REGISTRY_URL={registry_url}",
-        f"POSTHOG_SECRET={posthog_secret}",
-        f"ENCRYPTION_SALT_KEYS={encryption_salt_keys}",
+        f"POSTHOG_SECRET={shell_required_env_ref(runtime_key_env_name)}",
+        f"ENCRYPTION_SALT_KEYS={shell_required_env_ref(encryption_keys_env_name)}",
         f"OPT_OUT_CAPTURE={'true' if opt_out_capture else 'false'}",
         "IS_BEHIND_PROXY=True",
-        f"TRUSTED_PROXIES={trusted_proxies}",
+        f"TRUSTED_PROXIES={proxy_cidrs}",
         f"ALLOWED_HOSTS={allowed_hosts}",
         f"DISABLE_SECURE_SSL_REDIRECT={'True' if disable_secure_ssl_redirect else 'False'}",
         "",
@@ -270,9 +273,10 @@ def render_install_script(
     domain: str,
     posthog_repo_ref: str,
     basic_auth_username: str,
-    basic_auth_password: str,
+    basic_auth_env_name: str,
     tls_email: str | None,
 ) -> str:
+    basic_auth_ref = shell_required_env_ref(basic_auth_env_name)
     tls_section = ""
     if tls_email:
         tls_section = f"""
@@ -322,7 +326,8 @@ install -m 0750 "$$bundle_dir/compose/start" "$$deploy_dir/compose/start"
 install -m 0750 "$$bundle_dir/compose/wait" "$$deploy_dir/compose/wait"
 install -m 0750 "$$bundle_dir/compose/temporal-django-worker" "$$deploy_dir/compose/temporal-django-worker"
 
-printf '%s:%s\\n' {json.dumps(basic_auth_username)} "$$(openssl passwd -apr1 {json.dumps(basic_auth_password)})" > /etc/nginx/posthog.htpasswd
+: "{basic_auth_ref}"
+printf '%s:%s\\n' {json.dumps(basic_auth_username)} "$$(openssl passwd -apr1 "$${basic_auth_env_name}")" > /etc/nginx/posthog.htpasswd
 chmod 0640 /etc/nginx/posthog.htpasswd
 
 install -m 0644 "$$bundle_dir/nginx/posthog-http.conf" /etc/nginx/sites-available/posthog.conf
@@ -349,10 +354,6 @@ def command_render_bundle(args: argparse.Namespace) -> int:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    basic_auth_password = secrets.token_urlsafe(18)
-    posthog_secret = secrets.token_hex(28)
-    encryption_salt_keys = secrets.token_hex(16)
-
     write_text(
         output_dir / ".env",
         render_env(
@@ -363,10 +364,10 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             posthog_repo_ref=args.posthog_repo_ref,
             registry_url=args.registry_url,
             opt_out_capture=args.opt_out_capture,
-            trusted_proxies=args.trusted_proxies,
+            proxy_cidrs=args.proxy_cidrs,
             disable_secure_ssl_redirect=args.disable_secure_ssl_redirect,
-            posthog_secret=posthog_secret,
-            encryption_salt_keys=encryption_salt_keys,
+            runtime_key_env_name=args.runtime_key_env,
+            encryption_keys_env_name=args.encryption_keys_env,
         ),
         mode=0o600,
     )
@@ -374,31 +375,31 @@ def command_render_bundle(args: argparse.Namespace) -> int:
     write_text(
         output_dir / "nginx" / "posthog-http.conf",
         render_nginx_http_conf(args.domain, args.admin_cidrs, args.auth_realm),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "nginx" / "posthog-https.conf",
         render_nginx_https_conf(args.domain, args.admin_cidrs, args.auth_realm),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         output_dir / "posthog-local-backup.sh",
         render_backup_script(args.backup_retention_days),
-        mode=0o750,
+        mode=0o700,
     )
-    write_text(output_dir / "compose" / "start", render_compose_start_script(), mode=0o750)
-    write_text(output_dir / "compose" / "wait", render_compose_wait_script(), mode=0o750)
-    write_text(output_dir / "compose" / "temporal-django-worker", render_temporal_worker_script(), mode=0o750)
+    write_text(output_dir / "compose" / "start", render_compose_start_script(), mode=0o700)
+    write_text(output_dir / "compose" / "wait", render_compose_wait_script(), mode=0o700)
+    write_text(output_dir / "compose" / "temporal-django-worker", render_temporal_worker_script(), mode=0o700)
     write_text(
         output_dir / "install-node.sh",
         render_install_script(
             domain=args.domain,
             posthog_repo_ref=args.posthog_repo_ref,
             basic_auth_username=args.basic_auth_username,
-            basic_auth_password=basic_auth_password,
+            basic_auth_env_name=args.basic_auth_env,
             tls_email=args.tls_email,
         ),
-        mode=0o750,
+        mode=0o700,
     )
 
     credentials = {
@@ -406,15 +407,15 @@ def command_render_bundle(args: argparse.Namespace) -> int:
         "project_name": args.project_name,
         "basic_auth": {
             "username": args.basic_auth_username,
-            "password": basic_auth_password,
+            "auth_env": args.basic_auth_env,
         },
-        "posthog_secret": posthog_secret,
-        "encryption_salt_keys": encryption_salt_keys,
+        "runtime_key_env": args.runtime_key_env,
+        "encryption_keys_env": args.encryption_keys_env,
         "posthog_app_tag": args.posthog_app_tag,
         "posthog_node_tag": args.posthog_node_tag,
         "posthog_repo_ref": args.posthog_repo_ref,
         "registry_url": args.registry_url,
-        "trusted_proxies": args.trusted_proxies,
+        "proxy_cidrs": args.proxy_cidrs,
         "disable_secure_ssl_redirect": args.disable_secure_ssl_redirect,
     }
     if args.tls_email:
@@ -436,9 +437,12 @@ def build_parser() -> argparse.ArgumentParser:
     render_bundle.add_argument("--posthog-repo-ref", default="HEAD")
     render_bundle.add_argument("--registry-url", default="posthog/posthog")
     render_bundle.add_argument("--basic-auth-username", default="cyberops")
+    render_bundle.add_argument("--basic-auth-env", default="POSTHOG_BASIC_AUTH_PASSWORD")
+    render_bundle.add_argument("--runtime-key-env", default="POSTHOG_SECRET")
+    render_bundle.add_argument("--encryption-keys-env", default="ENCRYPTION_SALT_KEYS")
     render_bundle.add_argument("--tls-email")
     render_bundle.add_argument("--auth-realm", default="CyberVPN PostHog nonprod")
-    render_bundle.add_argument("--trusted-proxies", default="127.0.0.1")
+    render_bundle.add_argument("--trusted-proxies", dest="proxy_cidrs", default="127.0.0.1")
     render_bundle.add_argument("--backup-retention-days", type=int, default=7)
     render_bundle.add_argument("--opt-out-capture", action=argparse.BooleanOptionalAction, default=True)
     render_bundle.add_argument("--disable-secure-ssl-redirect", action=argparse.BooleanOptionalAction, default=True)

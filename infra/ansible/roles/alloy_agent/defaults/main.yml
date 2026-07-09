@@ -36,4 +36,7 @@ alloy_agent_loki_bearer_token: ""
 
 alloy_agent_apt_repo: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
 alloy_agent_apt_repo_filename: grafana
-
+alloy_agent_apt_repo_uri: https://apt.grafana.com
+alloy_agent_apt_repo_suite: stable
+alloy_agent_apt_repo_components:
+  - main

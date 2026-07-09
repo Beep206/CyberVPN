@@ -6,13 +6,15 @@ configurations.
 
 from __future__ import annotations
 
-from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from .subscription import PlanAvailability
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class PromocodeType(StrEnum):

@@ -55,7 +55,7 @@ export default async function StorefrontCheckoutRoute({
         checkoutAction: t('checkoutAction'),
         checkoutPending: t('checkoutPending'),
         signInCta: t('signInCta'),
-        legalNotice: t('legalNotice'),
+        legalNotice: t.raw('legalNotice') as string,
         currentEntitlementLabel: t('currentEntitlementLabel'),
         currentServiceStateLabel: t('currentServiceStateLabel'),
         orderReadyLabel: t('orderReadyLabel'),
@@ -65,7 +65,7 @@ export default async function StorefrontCheckoutRoute({
         legalLinkLabel: t('legalLinkLabel'),
         supportLinkLabel: t('supportLinkLabel'),
         pricebookLabel: t('pricebookLabel'),
-        includedAddonsLabel: t('includedAddonsLabel'),
+        includedAddonsLabel: t.raw('includedAddonsLabel') as string,
       }}
     />
   );

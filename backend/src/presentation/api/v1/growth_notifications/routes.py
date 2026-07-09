@@ -56,6 +56,7 @@ from src.presentation.dependencies.database import get_db
 from .schemas import (
     GrowthNotificationCountersResponse,
     GrowthNotificationDeliveryDetailResponse,
+    GrowthNotificationDeliveryEventResponse,
     GrowthNotificationDetailResponse,
     GrowthNotificationFeedItemResponse,
     GrowthNotificationPreferencesResponse,
@@ -486,11 +487,11 @@ async def _build_growth_notification_detail_response(
                 planned_at=delivery_view.delivery.planned_at,
                 delivered_at=delivery_view.delivery.delivered_at,
                 events=[
-                    {
-                        "event_type": event.event_type,
-                        "occurred_at": event.occurred_at,
-                        "summary": event.summary,
-                    }
+                    GrowthNotificationDeliveryEventResponse(
+                        event_type=event.event_type,
+                        occurred_at=event.occurred_at,
+                        summary=event.summary,
+                    )
                     for event in delivery_view.events
                 ],
             )

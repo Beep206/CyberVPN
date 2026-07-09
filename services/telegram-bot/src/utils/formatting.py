@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 import structlog
@@ -120,9 +120,23 @@ def format_duration(
     """
     # Simple i18n mappings (in production, use proper i18n library)
     units_long = {
-        "en": {"day": "day", "days": "days", "hour": "hour", "hours": "hours", "minute": "minute", "minutes": "minutes"},
+        "en": {
+            "day": "day",
+            "days": "days",
+            "hour": "hour",
+            "hours": "hours",
+            "minute": "minute",
+            "minutes": "minutes",
+        },
         "ru": {"day": "день", "days": "дней", "hour": "час", "hours": "часов", "minute": "минута", "minutes": "минут"},
-        "uk": {"day": "день", "days": "днів", "hour": "година", "hours": "годин", "minute": "хвилина", "minutes": "хвилин"},
+        "uk": {
+            "day": "день",
+            "days": "днів",
+            "hour": "година",
+            "hours": "годин",
+            "minute": "хвилина",
+            "minutes": "хвилин",
+        },
     }
 
     units_short = {
@@ -171,7 +185,13 @@ def format_duration(
             minute_unit = units["minute"] if minutes_count == 1 else units["minutes"]
             parts.append(f"{minutes_count} {minute_unit}")
 
-    return " ".join(parts) if parts else "0" + units_short["m"] if short else f"0 {units_long.get(locale, units_long['en'])['minutes']}"
+    return (
+        " ".join(parts)
+        if parts
+        else "0" + units_short["m"]
+        if short
+        else f"0 {units_long.get(locale, units_long['en'])['minutes']}"
+    )
 
 
 def format_money(
@@ -213,7 +233,7 @@ def format_money(
 
     # Split into integer and decimal parts
     integer_part = int(amount)
-    decimal_part = int(round((amount - integer_part) * 100))
+    decimal_part = round((amount - integer_part) * 100)
 
     # Format integer part with thousand separators
     integer_str = f"{integer_part:,}".replace(",", thousand_sep)
@@ -266,7 +286,7 @@ def format_datetime(
         date_format = date_format.split(" ")[0] if " " in date_format else date_format
 
     if relative:
-        now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+        now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now(UTC).replace(tzinfo=None)
         diff = now - dt
 
         # If less than 24 hours, show relative

@@ -139,18 +139,12 @@ class TestMenuHandlers:
 
         # Create new keyboard
         builder = InlineKeyboardBuilder()
-        builder.add(
-            InlineKeyboardButton(text="Server 1", callback_data="server_1")
-        )
-        builder.add(
-            InlineKeyboardButton(text="Back", callback_data="back")
-        )
+        builder.add(InlineKeyboardButton(text="Server 1", callback_data="server_1"))
+        builder.add(InlineKeyboardButton(text="Back", callback_data="back"))
         keyboard = builder.as_markup()
 
         if callback.data == "show_servers":
-            await callback.message.edit_text(
-                "Select server:", reply_markup=keyboard
-            )
+            await callback.message.edit_text("Select server:", reply_markup=keyboard)
             await callback.answer()
 
         call_kwargs = callback.message.edit_text.call_args[1]
@@ -224,9 +218,7 @@ class TestMenuHandlers:
         # Simulate language change
         if callback.data.startswith("language_"):
             lang = callback.data.split("_")[1]
-            await callback.answer(
-                f"Language changed to {lang}", show_alert=False
-            )
+            await callback.answer(f"Language changed to {lang}", show_alert=False)
 
             assert lang == "ru"
 

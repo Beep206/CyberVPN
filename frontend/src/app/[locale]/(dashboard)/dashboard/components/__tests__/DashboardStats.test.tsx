@@ -32,6 +32,13 @@ function renderWithQueryClient(ui: ReactElement) {
   );
 }
 
+function textEqualsIgnoringFormatSpaces(expected: string) {
+  const normalizedExpected = expected.replace(/\s+/g, ' ').trim();
+
+  return (_content: string, element: Element | null) =>
+    (element?.textContent ?? '').replace(/\s+/g, ' ').trim() === normalizedExpected;
+}
+
 describe('DashboardStats', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -91,11 +98,17 @@ describe('DashboardStats', () => {
     renderWithQueryClient(<DashboardStats />);
 
     expect(screen.getByText('networkRecap')).toBeInTheDocument();
-    expect(screen.getByText('2,048')).toBeInTheDocument();
+    expect(
+      screen.getByText(textEqualsIgnoringFormatSpaces((2048).toLocaleString())),
+    ).toBeInTheDocument();
     expect(screen.getByText('18')).toBeInTheDocument();
     expect(screen.getByText('9.0 TB')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
-    expect(screen.getByText(/thisMonth: 120 \/ 1.0 TB/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textEqualsIgnoringFormatSpaces(`thisMonth: ${(120).toLocaleString()} / 1.0 TB`),
+      ),
+    ).toBeInTheDocument();
   });
 
   it('marks VPN usage unavailable when backend has no authoritative snapshot', async () => {

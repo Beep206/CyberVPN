@@ -20,41 +20,41 @@ from src.presentation.api.v1.trial.schemas import TrialActivateResponse, TrialSt
 
 class MiniAppBootstrapSessionResponse(BaseModel):
     authenticated: bool
-    user_id: str | None = Field(None, alias="userId")
-    public_uid: int | None = Field(None, alias="publicUid")
-    telegram_user_id: str | None = Field(None, alias="telegramUserId")
+    user_id: str | None = Field(default=None, alias="userId")
+    public_uid: int | None = Field(default=None, alias="publicUid")
+    telegram_user_id: str | None = Field(default=None, alias="telegramUserId")
     auth_realm: Literal["customer", "partner_customer"] = Field(..., alias="authRealm")
 
 
 class MiniAppBootstrapRuntimeTenantResponse(BaseModel):
     kind: Literal["platform", "partner"]
-    partner_id: str | None = Field(None, alias="partnerId")
-    workspace_id: str | None = Field(None, alias="workspaceId")
-    storefront_id: str | None = Field(None, alias="storefrontId")
-    bot_id: str | None = Field(None, alias="botId")
+    partner_id: str | None = Field(default=None, alias="partnerId")
+    workspace_id: str | None = Field(default=None, alias="workspaceId")
+    storefront_id: str | None = Field(default=None, alias="storefrontId")
+    bot_id: str | None = Field(default=None, alias="botId")
 
 
 class MiniAppBootstrapRuntimeBrandResponse(BaseModel):
     name: str
-    logo_url: str | None = Field(None, alias="logoUrl")
-    primary_color: str | None = Field(None, alias="primaryColor")
-    support_url: str | None = Field(None, alias="supportUrl")
-    legal_name: str | None = Field(None, alias="legalName")
+    logo_url: str | None = Field(default=None, alias="logoUrl")
+    primary_color: str | None = Field(default=None, alias="primaryColor")
+    support_url: str | None = Field(default=None, alias="supportUrl")
+    legal_name: str | None = Field(default=None, alias="legalName")
 
 
 class MiniAppBootstrapRuntimeCommercialPolicyResponse(BaseModel):
     pricing_policy_id: str = Field(..., alias="pricingPolicyId")
     currency_policy: str = Field(..., alias="currencyPolicy")
-    revenue_share_policy_id: str | None = Field(None, alias="revenueSharePolicyId")
-    trial_policy_id: str | None = Field(None, alias="trialPolicyId")
+    revenue_share_policy_id: str | None = Field(default=None, alias="revenueSharePolicyId")
+    trial_policy_id: str | None = Field(default=None, alias="trialPolicyId")
 
 
 class MiniAppBootstrapRuntimeAttributionResponse(BaseModel):
     source: str
     surface: str
-    referral_code: str | None = Field(None, alias="referralCode")
+    referral_code: str | None = Field(default=None, alias="referralCode")
     campaign: str | None = None
-    start_param: str | None = Field(None, alias="startParam")
+    start_param: str | None = Field(default=None, alias="startParam")
 
 
 class MiniAppBootstrapRuntimeResponse(BaseModel):
@@ -66,28 +66,28 @@ class MiniAppBootstrapRuntimeResponse(BaseModel):
 
 
 class MiniAppBootstrapUserResponse(BaseModel):
-    public_uid: int | None = Field(None, alias="publicUid")
-    first_name: str | None = Field(None, alias="firstName")
+    public_uid: int | None = Field(default=None, alias="publicUid")
+    first_name: str | None = Field(default=None, alias="firstName")
     username: str | None = None
-    photo_url: str | None = Field(None, alias="photoUrl")
+    photo_url: str | None = Field(default=None, alias="photoUrl")
     locale: str
     rtl: bool
 
 
 class MiniAppBootstrapSubscriptionResponse(BaseModel):
     status: str
-    plan_id: str | None = Field(None, alias="planId")
-    plan_name: str | None = Field(None, alias="planName")
-    expires_at: str | None = Field(None, alias="expiresAt")
+    plan_id: str | None = Field(default=None, alias="planId")
+    plan_name: str | None = Field(default=None, alias="planName")
+    expires_at: str | None = Field(default=None, alias="expiresAt")
     auto_renew: bool = Field(False, alias="autoRenew")
 
 
 class MiniAppBootstrapTrialResponse(BaseModel):
     eligible: bool
     reason: str | None = None
-    duration_days: int | None = Field(None, alias="durationDays")
-    trial_start: datetime | None = Field(None, alias="trialStart")
-    trial_end: datetime | None = Field(None, alias="trialEnd")
+    duration_days: int | None = Field(default=None, alias="durationDays")
+    trial_start: datetime | None = Field(default=None, alias="trialStart")
+    trial_end: datetime | None = Field(default=None, alias="trialEnd")
     days_remaining: int = Field(0, alias="daysRemaining")
 
 
@@ -107,20 +107,20 @@ class MiniAppBootstrapUsageResponse(BaseModel):
     usage_available: bool = Field(..., alias="usageAvailable")
     usage_source: Literal["remnawave", "unavailable"] = Field(..., alias="usageSource")
     usage_unavailable_reason: Literal["upstream_user_not_found", "upstream_unavailable"] | None = Field(
-        None, alias="usageUnavailableReason"
+        default=None, alias="usageUnavailableReason"
     )
     bandwidth_used_bytes: int = Field(..., alias="bandwidthUsedBytes")
     bandwidth_limit_bytes: int = Field(..., alias="bandwidthLimitBytes")
     connections_active: int = Field(..., alias="connectionsActive")
     connections_limit: int = Field(..., alias="connectionsLimit")
-    period_start: datetime | None = Field(None, alias="periodStart")
-    period_end: datetime | None = Field(None, alias="periodEnd")
-    last_connection_at: datetime | None = Field(None, alias="lastConnectionAt")
+    period_start: datetime | None = Field(default=None, alias="periodStart")
+    period_end: datetime | None = Field(default=None, alias="periodEnd")
+    last_connection_at: datetime | None = Field(default=None, alias="lastConnectionAt")
 
 
 class MiniAppBootstrapServiceStateResponse(BaseModel):
-    provider_name: str | None = Field(None, alias="providerName")
-    channel_type: str | None = Field(None, alias="channelType")
+    provider_name: str | None = Field(default=None, alias="providerName")
+    channel_type: str | None = Field(default=None, alias="channelType")
 
 
 class MiniAppBootstrapRecommendedServerResponse(BaseModel):
@@ -128,12 +128,12 @@ class MiniAppBootstrapRecommendedServerResponse(BaseModel):
     country_code: str = Field(..., alias="countryCode")
     city: str | None = None
     public_name: str = Field(..., alias="publicName")
-    latency_ms: int | None = Field(None, alias="latencyMs")
-    speed_mbps: float | None = Field(None, alias="speedMbps")
-    uptime_pct_30d: float | None = Field(None, alias="uptimePct30d")
-    dpi_score: int | None = Field(None, alias="dpiScore")
+    latency_ms: int | None = Field(default=None, alias="latencyMs")
+    speed_mbps: float | None = Field(default=None, alias="speedMbps")
+    uptime_pct_30d: float | None = Field(default=None, alias="uptimePct30d")
+    dpi_score: int | None = Field(default=None, alias="dpiScore")
     status: Literal["online", "degraded", "offline"]
-    recommended_reason: str | None = Field(None, alias="recommendedReason")
+    recommended_reason: str | None = Field(default=None, alias="recommendedReason")
 
 
 class MiniAppBootstrapPrimaryCtaResponse(BaseModel):
@@ -143,13 +143,13 @@ class MiniAppBootstrapPrimaryCtaResponse(BaseModel):
 
 class MiniAppBootstrapReferralResponse(BaseModel):
     code: str | None = None
-    invite_url: str | None = Field(None, alias="inviteUrl")
-    share_text: str | None = Field(None, alias="shareText")
+    invite_url: str | None = Field(default=None, alias="inviteUrl")
+    share_text: str | None = Field(default=None, alias="shareText")
 
 
 class MiniAppBootstrapPaymentResponse(BaseModel):
-    unresolved_payment_id: str | None = Field(None, alias="unresolvedPaymentId")
-    last_status: Literal["pending", "paid", "cancelled", "failed"] | None = Field(None, alias="lastStatus")
+    unresolved_payment_id: str | None = Field(default=None, alias="unresolvedPaymentId")
+    last_status: Literal["pending", "paid", "cancelled", "failed"] | None = Field(default=None, alias="lastStatus")
 
 
 class MiniAppBootstrapSupportResponse(BaseModel):
@@ -167,8 +167,8 @@ class MiniAppBootstrapRolloutResponse(BaseModel):
     is_canary_user: bool = Field(False, alias="isCanaryUser")
     gate_reason_code: (
         Literal["runtime_disabled", "maintenance", "rollback", "feature_disabled", "canary_not_allowed"] | None
-    ) = Field(None, alias="gateReasonCode")
-    maintenance_message: str | None = Field(None, alias="maintenanceMessage")
+    ) = Field(default=None, alias="gateReasonCode")
+    maintenance_message: str | None = Field(default=None, alias="maintenanceMessage")
 
 
 class MiniAppBootstrapFreshnessResponse(BaseModel):
@@ -185,7 +185,9 @@ class MiniAppBootstrapResponse(BaseModel):
     devices: MiniAppBootstrapDevicesResponse
     usage: MiniAppBootstrapUsageResponse
     service_state: MiniAppBootstrapServiceStateResponse = Field(..., alias="serviceState")
-    recommended_server: MiniAppBootstrapRecommendedServerResponse | None = Field(None, alias="recommendedServer")
+    recommended_server: MiniAppBootstrapRecommendedServerResponse | None = Field(
+        default=None, alias="recommendedServer"
+    )
     primary_cta: MiniAppBootstrapPrimaryCtaResponse = Field(..., alias="primaryCta")
     referral: MiniAppBootstrapReferralResponse
     payment: MiniAppBootstrapPaymentResponse
@@ -207,28 +209,28 @@ class MiniAppConfigResponse(SubscriptionConfigResponse):
     config_string: str = Field(..., alias="configString")
     client_type: str = Field(..., alias="clientType")
     source: Literal["remnawave_generated", "legacy_subscription_url"] = Field(..., alias="source")
-    subscription_url: str | None = Field(None, alias="subscriptionUrl")
+    subscription_url: str | None = Field(default=None, alias="subscriptionUrl")
     generated_at: datetime = Field(..., alias="generatedAt")
 
 
 class MiniAppCheckoutRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     flow: Literal["checkout", "upgrade", "addons"] = "checkout"
-    subscription_key: str | None = Field(None, alias="subscriptionKey", min_length=1, max_length=220)
-    plan_id: UUID | None = Field(None, alias="planId")
+    subscription_key: str | None = Field(default=None, alias="subscriptionKey", min_length=1, max_length=220)
+    plan_id: UUID | None = Field(default=None, alias="planId")
     addons: list[CheckoutAddonRequest] = Field(default_factory=list)
-    code_input: str | None = Field(None, alias="codeInput", max_length=64)
-    promo_code: str | None = Field(None, alias="promoCode", max_length=50)
-    partner_code: str | None = Field(None, alias="partnerCode", max_length=30)
+    code_input: str | None = Field(default=None, alias="codeInput", max_length=64)
+    promo_code: str | None = Field(default=None, alias="promoCode", max_length=50)
+    partner_code: str | None = Field(default=None, alias="partnerCode", max_length=30)
     private_catalog_grant_id: UUID | None = Field(
-        None,
+        default=None,
         validation_alias=AliasChoices("private_catalog_grant_id", "privateCatalogGrantId"),
         serialization_alias="private_catalog_grant_id",
         description="Private catalog grant from code-set preflight.",
     )
     use_wallet: float = Field(0, alias="useWallet", ge=0)
-    currency: str = Field("USD", min_length=3, max_length=12)
+    currency: str = Field(default="USD", min_length=3, max_length=12)
 
 
 MiniAppCheckoutQuoteResponse = CheckoutQuoteResponse

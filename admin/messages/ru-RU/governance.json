@@ -198,7 +198,7 @@
     "gapDescription": "Первый выделенный `system_config` API контроля уже появился для `miniapp.runtime`. Более широкие семейства системной конфигурации и настоящий admin directory всё ещё нужно вынести с общего слоя `/settings`.",
     "keyPlaceholder": "registration_mode",
     "descriptionPlaceholder": "Короткое операторское пояснение",
-    "valuePlaceholder": "{\"enabled\": true}",
+    "valuePlaceholder": "'{\"enabled\": true}'",
     "publicToggle": "Показывать эту настройку как публичную",
     "resetEditor": "Сбросить редактор",
     "createSuccess": "Настройка создана.",

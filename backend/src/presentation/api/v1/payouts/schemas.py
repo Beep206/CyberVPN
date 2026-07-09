@@ -25,12 +25,12 @@ class CreatePayoutExecutionRequest(BaseModel):
 
 
 class SubmitPayoutExecutionRequest(BaseModel):
-    external_reference: str | None = Field(None, min_length=1, max_length=255)
+    external_reference: str | None = Field(default=None, min_length=1, max_length=255)
     submission_payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class CompletePayoutExecutionRequest(BaseModel):
-    external_reference: str | None = Field(None, min_length=1, max_length=255)
+    external_reference: str | None = Field(default=None, min_length=1, max_length=255)
     completion_payload: dict[str, Any] = Field(default_factory=dict)
 
 

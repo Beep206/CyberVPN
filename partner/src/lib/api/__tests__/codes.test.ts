@@ -10,6 +10,7 @@ import { server } from '@/test/mocks/server';
 import { codesApi } from '../codes';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
+import { expectAxiosErrorStatus } from './assertions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -229,13 +230,14 @@ describe('codesApi.validate', () => {
     );
 
     // Act & Assert - 401 interceptor tries refresh, finds no token
-    await expect(
+    await expectAxiosErrorStatus(
       codesApi.validate({
         code: 'TEST',
         plan_id: 'plan_monthly',
         amount: 50.0,
       }),
-    ).rejects.toThrow('Request failed with status code 401');
+      401,
+    );
   });
 
   it('test_validate_promo_with_refresh_token_retries_on_401', async () => {

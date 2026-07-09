@@ -3,8 +3,8 @@
 # Runtime secrets are read from files created by docker-entrypoint.sh:
 # - SMTP password
 #
-# Alertmanager v0.28.1 does not support telegram bot_token_file/chat_id_file,
-# so Telegram token and chat id are rendered into the ephemeral runtime config.
+# Telegram token and chat id are rendered into the ephemeral runtime config so
+# the checked-in template never contains live receiver secrets.
 #
 # Local validation uses placeholders. Staging/production must set
 # ALERTMANAGER_REQUIRE_LIVE_RECEIVERS=true and provide real Telegram/SMTP values

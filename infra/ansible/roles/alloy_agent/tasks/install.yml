@@ -34,14 +34,33 @@
       - /tmp/grafana-alloy.gpg.key
     creates: /etc/apt/keyrings/grafana.gpg
   register: alloy_agent_gpg_key
-  changed_when: alloy_agent_gpg_key.rc == 0
+
+- name: Alloy | Remove legacy Grafana APT repository list
+  ansible.builtin.file:
+    path: "/etc/apt/sources.list.d/{{ alloy_agent_apt_repo_filename }}.list"
+    state: absent
+  register: alloy_agent_legacy_apt_repository
 
 - name: Alloy | Configure Grafana APT repository
-  ansible.builtin.apt_repository:
-    repo: "{{ alloy_agent_apt_repo }}"
-    filename: "{{ alloy_agent_apt_repo_filename }}"
+  ansible.builtin.deb822_repository:
+    name: "{{ alloy_agent_apt_repo_filename }}"
+    types:
+      - deb
+    uris:
+      - "{{ alloy_agent_apt_repo_uri }}"
+    suites:
+      - "{{ alloy_agent_apt_repo_suite }}"
+    components: "{{ alloy_agent_apt_repo_components }}"
+    signed_by: /etc/apt/keyrings/grafana.gpg
     state: present
+    mode: "0644"
+    install_python_debian: true
+  register: alloy_agent_apt_repository
+
+- name: Alloy | Refresh apt cache after repository change
+  ansible.builtin.apt:
     update_cache: true
+  when: alloy_agent_legacy_apt_repository is changed or alloy_agent_apt_repository is changed
 
 - name: Alloy | Install Grafana Alloy package
   ansible.builtin.apt:

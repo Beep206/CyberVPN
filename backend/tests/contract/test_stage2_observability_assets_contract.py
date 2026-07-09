@@ -159,17 +159,18 @@ def test_stage2_synthetic_targets_keep_customer_route_and_org_node_roles_separat
     subscription_targets = json.loads((target_dir / "stage2-subscription-route.json").read_text(encoding="utf-8"))
     vpn_targets = json.loads((target_dir / "stage2-vpn-node-tcp.json").read_text(encoding="utf-8"))
 
-    public_target_text = "\n".join(target for item in public_targets for target in item.get("targets", []))
-    subscription_target_text = "\n".join(target for item in subscription_targets for target in item.get("targets", []))
-    vpn_target_text = "\n".join(target for item in vpn_targets for target in item.get("targets", []))
+    public_target_set = {target for item in public_targets for target in item.get("targets", [])}
+    subscription_target_set = {target for item in subscription_targets for target in item.get("targets", [])}
+    vpn_target_set = {target for item in vpn_targets for target in item.get("targets", [])}
 
-    assert "https://cyber-vpn.net/" in public_target_text
-    assert "https://api.cyber-vpn.net/health" in public_target_text
-    assert "https://cyber-vpn.net/ru-RU/miniapp/home" in public_target_text
-    assert "https://gitlab.h.cyber-vpn.net/users/sign_in" in public_target_text
-    assert "https://cyber-vpn.net/api/sub/" in subscription_target_text
-    assert "de-1.cyber-vpn.org:443" in vpn_target_text
-    assert "de-1.cyber-vpn.org:8443" in vpn_target_text
+    assert {
+        "https://cyber-vpn.net/",
+        "https://api.cyber-vpn.net/health",
+        "https://cyber-vpn.net/ru-RU/miniapp/home",
+        "https://gitlab.h.cyber-vpn.net/users/sign_in",
+    } <= public_target_set
+    assert {"https://cyber-vpn.net/api/sub/stage2-observability-synthetic-probe"} <= subscription_target_set
+    assert {"de-1.cyber-vpn.org:443", "de-1.cyber-vpn.org:8443"} <= vpn_target_set
 
 
 def test_stage2_observability_docs_and_runbooks_describe_privacy_boundaries() -> None:

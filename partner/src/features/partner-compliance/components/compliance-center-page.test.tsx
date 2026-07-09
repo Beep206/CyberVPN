@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -131,6 +131,10 @@ function renderPage() {
   );
 }
 
+function setFieldValue(field: HTMLElement, value: string) {
+  fireEvent.change(field, { target: { value } });
+}
+
 describe('ComplianceCenterPage', () => {
   beforeEach(() => {
     submitWorkspaceTrafficDeclaration.mockReset();
@@ -162,11 +166,8 @@ describe('ComplianceCenterPage', () => {
       screen.getByLabelText('actions.traffic.kindLabel'),
       'postback_readiness',
     );
-    await user.type(
-      screen.getByLabelText('actions.traffic.scopeLabel'),
-      'Tracking and postback handoff',
-    );
-    await user.type(
+    setFieldValue(screen.getByLabelText('actions.traffic.scopeLabel'), 'Tracking and postback handoff');
+    setFieldValue(
       screen.getByLabelText('actions.traffic.detailsLabel'),
       'Webhook destination prepared for review.',
     );
@@ -185,15 +186,9 @@ describe('ComplianceCenterPage', () => {
 
     expect(await screen.findByText('actions.traffic.success')).toBeInTheDocument();
 
-    await user.type(
-      screen.getByLabelText('actions.creative.scopeLabel'),
-      'Creative and claims posture',
-    );
-    await user.type(
-      screen.getByLabelText('actions.creative.referenceLabel'),
-      'banner-001',
-    );
-    await user.type(
+    setFieldValue(screen.getByLabelText('actions.creative.scopeLabel'), 'Creative and claims posture');
+    setFieldValue(screen.getByLabelText('actions.creative.referenceLabel'), 'banner-001');
+    setFieldValue(
       screen.getByLabelText('actions.creative.detailsLabel'),
       'Creative requires claims validation.',
     );

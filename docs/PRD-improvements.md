@@ -18,7 +18,7 @@ CyberVPN -- VPN-платформа с кибепанк-тематикой, вк�
 | Компонент | Стек | Состояние |
 |-----------|------|-----------|
 | Frontend (admin) | Next.js 16, React 19, TypeScript 5.9, Tailwind 4, Three.js | Активная разработка, 7 тестов |
-| Backend | Python 3.13.13, FastAPI 0.128+, SQLAlchemy 2.0, PostgreSQL 17.7 | Активная разработка, 60+ тестов |
+| Backend | Python 3.13.14, FastAPI 0.128+, SQLAlchemy 2.0, PostgreSQL 17.7 | Активная разработка, 60+ тестов |
 | Mobile | Flutter (Dart 3.10), Riverpod, go_router, V2Ray | Активная разработка, 195 тестов |
 | Infrastructure | Docker Compose, PostgreSQL, Valkey/Redis, Prometheus/Grafana | Рабочее состояние |
 

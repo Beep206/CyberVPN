@@ -152,7 +152,9 @@ from .growth_schemas import (
     AdminListGrowthNotificationDeliveriesResponse,
     AdminManualGrowthNotificationRequest,
     AdminManualGrowthNotificationResponse,
+    AdminPartnerCodeResponse,
     AdminPartnerDetailResponse,
+    AdminPartnerEarningResponse,
     AdminPartnerListItemResponse,
     AdminPartnersListResponse,
     AdminReferralCommissionRecord,
@@ -165,6 +167,7 @@ from .growth_schemas import (
     InternalClaimGrowthReportingDeliveriesResponse,
     InternalCleanupGrowthReportingArtifactsResponse,
     InternalCompleteGrowthReportingDeliveryRequest,
+    InternalGrowthReportingDeliveryDispatchResponse,
     InternalProcessGrowthReportingGovernanceFollowupsResponse,
 )
 
@@ -762,18 +765,18 @@ def _serialize_growth_reporting_delivery_claims(
 ) -> InternalClaimGrowthReportingDeliveriesResponse:
     return InternalClaimGrowthReportingDeliveriesResponse(
         deliveries=[
-            {
-                "delivery_id": item.delivery_id,
-                "recipient_email": item.recipient_email,
-                "recipient_name": item.recipient_name,
-                "audience_key": item.audience_key,
-                "delivery_channel": item.delivery_channel,
-                "subject": item.subject,
-                "title": item.title,
-                "message": item.message,
-                "notes": list(item.notes),
-                "locale": item.locale,
-            }
+            InternalGrowthReportingDeliveryDispatchResponse(
+                delivery_id=item.delivery_id,
+                recipient_email=item.recipient_email,
+                recipient_name=item.recipient_name,
+                audience_key=item.audience_key,
+                delivery_channel=item.delivery_channel,
+                subject=item.subject,
+                title=item.title,
+                message=item.message,
+                notes=list(item.notes),
+                locale=item.locale,
+            )
             for item in payload.deliveries
         ],
         claimed_count=payload.claimed_count,
@@ -1605,7 +1608,7 @@ async def internal_refresh_growth_fx_rates(
             )
         route_operations_total.labels(route="admin_growth_fx", action="internal_refresh", status="failure").inc()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": exc.code, "context": exc.context},
         ) from exc
 
@@ -1905,8 +1908,8 @@ async def get_partner_detail(
     route_operations_total.labels(route="admin_partners", action="detail", status="success").inc()
     return AdminPartnerDetailResponse(
         **_serialize_partner_list_item(user, stats).model_dump(),
-        codes=[code for code in codes],
-        recent_earnings=[earning for earning in earnings],
+        codes=[AdminPartnerCodeResponse.model_validate(code) for code in codes],
+        recent_earnings=[AdminPartnerEarningResponse.model_validate(earning) for earning in earnings],
     )
 
 

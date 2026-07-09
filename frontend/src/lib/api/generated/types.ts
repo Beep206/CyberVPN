@@ -7287,6 +7287,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/partner-workspaces/{workspace_id}/programs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Partner Workspace Programs */
+        get: operations["get_admin_partner_workspace_programs_api_v1_admin_partner_workspaces__workspace_id__programs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partner-workspaces/{workspace_id}/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Partner Workspace Codes */
+        get: operations["list_admin_partner_workspace_codes_api_v1_admin_partner_workspaces__workspace_id__codes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partner-workspaces/{workspace_id}/review-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Partner Workspace Review Requests */
+        get: operations["list_admin_partner_workspace_review_requests_api_v1_admin_partner_workspaces__workspace_id__review_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partner-workspaces/{workspace_id}/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Partner Workspace Cases */
+        get: operations["list_admin_partner_workspace_cases_api_v1_admin_partner_workspaces__workspace_id__cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/partner-workspaces/{workspace_id}/payout-review-queue": {
         parameters: {
             query?: never;
@@ -27691,18 +27759,7 @@ export interface components {
             [key: string]: unknown;
         };
         /** NodePluginConfigResponse */
-        "NodePluginConfigResponse-Input": {
-            /** Sharedlists */
-            sharedLists?: components["schemas"]["SharedListResponse"][];
-            torrentBlocker?: components["schemas"]["TorrentBlockerPluginConfigResponse"] | null;
-            ingressFilter?: components["schemas"]["IngressFilterPluginConfigResponse"] | null;
-            egressFilter?: components["schemas"]["EgressFilterPluginConfigResponse"] | null;
-            connectionDrop?: components["schemas"]["ConnectionDropPluginConfigResponse"] | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /** NodePluginConfigResponse */
-        "NodePluginConfigResponse-Output": {
+        NodePluginConfigResponse: {
             /** Sharedlists */
             sharedLists?: components["schemas"]["SharedListResponse"][];
             torrentBlocker?: components["schemas"]["TorrentBlockerPluginConfigResponse"] | null;
@@ -27721,7 +27778,7 @@ export interface components {
             /** Name */
             name: string;
             /** Pluginconfig */
-            pluginConfig?: components["schemas"]["NodePluginConfigResponse-Output"] | {
+            pluginConfig?: components["schemas"]["NodePluginConfigResponse"] | {
                 [key: string]: unknown;
             } | null;
         } & {
@@ -32690,7 +32747,7 @@ export interface components {
         PublicNetworkDpiScorePublishRequest: {
             /** Source */
             source: string;
-            snapshot: components["schemas"]["PublicNetworkDpiScoreResponse-Input"];
+            snapshot: components["schemas"]["PublicNetworkDpiScoreResponse"];
         };
         /** PublicNetworkDpiScorePublishResponse */
         PublicNetworkDpiScorePublishResponse: {
@@ -32707,45 +32764,7 @@ export interface components {
             expiresAt: string;
         };
         /** PublicNetworkDpiScoreResponse */
-        "PublicNetworkDpiScoreResponse-Input": {
-            /** Schemaversion */
-            schemaVersion: string;
-            /**
-             * Generatedat
-             * Format: date-time
-             */
-            generatedAt: string;
-            /**
-             * Expiresat
-             * Format: date-time
-             */
-            expiresAt: string;
-            /**
-             * Freshnessstatus
-             * @enum {string}
-             */
-            freshnessStatus: "fresh" | "stale" | "degraded";
-            /** Methodologyversion */
-            methodologyVersion: string;
-            measurementWindow: components["schemas"]["PublicNetworkDpiMeasurementWindowResponse"];
-            /** Enabled */
-            enabled: boolean;
-            /**
-             * Confidence
-             * @enum {string}
-             */
-            confidence: "low" | "medium" | "high";
-            /** Lastupdatedat */
-            lastUpdatedAt?: string | null;
-            /** Reasoncode */
-            reasonCode?: string | null;
-            /** Countriestracked */
-            countriesTracked: number;
-            /** Countries */
-            countries?: components["schemas"]["PublicNetworkDpiCountryResponse"][];
-        };
-        /** PublicNetworkDpiScoreResponse */
-        "PublicNetworkDpiScoreResponse-Output": {
+        PublicNetworkDpiScoreResponse: {
             /** Schemaversion */
             schemaVersion: string;
             /**
@@ -33618,8 +33637,6 @@ export interface components {
             id: string;
             /** Referred User Id */
             referred_user_id?: string | null;
-            /** Payment Id */
-            payment_id?: string | null;
             /** Reward Amount */
             reward_amount: number;
             /**
@@ -37929,7 +37946,7 @@ export interface components {
             /** Name */
             name?: string | null;
             /** Pluginconfig */
-            pluginConfig?: components["schemas"]["NodePluginConfigResponse-Input"] | {
+            pluginConfig?: components["schemas"]["NodePluginConfigResponse"] | {
                 [key: string]: unknown;
             } | null;
         } & {
@@ -54847,6 +54864,130 @@ export interface operations {
             };
         };
     };
+    get_admin_partner_workspace_programs_api_v1_admin_partner_workspaces__workspace_id__programs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceProgramsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_partner_workspace_codes_api_v1_admin_partner_workspaces__workspace_id__codes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCodeResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_partner_workspace_review_requests_api_v1_admin_partner_workspaces__workspace_id__review_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceReviewRequestResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_partner_workspace_cases_api_v1_admin_partner_workspaces__workspace_id__cases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceCaseResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_admin_partner_workspace_payout_review_queue_api_v1_admin_partner_workspaces__workspace_id__payout_review_queue_get: {
         parameters: {
             query?: never;
@@ -58455,7 +58596,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PublicNetworkDpiScoreResponse-Output"];
+                    "application/json": components["schemas"]["PublicNetworkDpiScoreResponse"];
                 };
             };
         };

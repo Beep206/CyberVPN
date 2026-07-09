@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import secrets
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,7 +32,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -92,10 +92,18 @@ def ensure_account_spec(payload: Any) -> dict[str, Any]:
     return payload
 
 
-def ensure_password(value: str | None) -> str:
-    if value and value.strip():
-        return value.strip()
-    return secrets.token_urlsafe(24)
+def default_auth_env_name(*, account_name: str, user_name: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9]+", "_", f"NATS_{account_name}_{user_name}_AUTH").strip("_")
+    return token.upper()
+
+
+def resolve_auth_env_name(user: dict[str, Any], *, account_name: str, user_name: str) -> str:
+    if str(user.get("password", "")).strip():
+        raise SystemExit("Raw NATS account passwords are not accepted in bundle inputs; use auth_env.")
+    value = str(user.get("auth_env", "")).strip()
+    if value:
+        return value
+    return default_auth_env_name(account_name=account_name, user_name=user_name)
 
 
 def quoted_list(values: Iterable[str]) -> str:
@@ -138,14 +146,14 @@ def render_accounts_block(accounts_spec: dict[str, Any], credential_manifest: di
             user_name = str(user.get("username", user.get("name", ""))).strip()
             if not user_name:
                 raise SystemExit(f"account {account_name!r} contains a user without username")
-            password = ensure_password(user.get("password"))
-            credential_manifest.setdefault(account_name, {})[user_name] = password
+            auth_env_name = resolve_auth_env_name(user, account_name=account_name, user_name=user_name)
+            credential_manifest.setdefault(account_name, {})[user_name] = auth_env_name
             permissions = render_permissions(user.get("permissions"))
             if permissions:
                 rendered_users.append(
                     "{\n"
                     f"  user: {json.dumps(user_name)}\n"
-                    f"  password: {json.dumps(password)}\n"
+                    f"  password: ${auth_env_name}\n"
                     f"  {permissions.replace(chr(10), chr(10) + '  ')}\n"
                     "}"
                 )
@@ -153,7 +161,7 @@ def render_accounts_block(accounts_spec: dict[str, Any], credential_manifest: di
                 rendered_users.append(
                     "{\n"
                     f"  user: {json.dumps(user_name)}\n"
-                    f"  password: {json.dumps(password)}\n"
+                    f"  password: ${auth_env_name}\n"
                     "}"
                 )
 
@@ -167,9 +175,9 @@ def render_accounts_block(accounts_spec: dict[str, Any], credential_manifest: di
     return "accounts {\n" + "\n".join("  " + account.replace("\n", "\n  ") for account in rendered_accounts) + "\n}\n"
 
 
-def render_routes(self_node: Node, nodes: list[Node], route_user: str, route_password: str) -> str:
+def render_routes(self_node: Node, nodes: list[Node], route_user: str, route_auth_env_name: str) -> str:
     routes = [
-        f"nats-route://{route_user}:{route_password}@{node.ipv4_address}:{node.cluster_port}"
+        f"nats-route://{route_user}:${route_auth_env_name}@{node.ipv4_address}:{node.cluster_port}"
         for node in nodes
         if node.name != self_node.name
     ]
@@ -183,7 +191,7 @@ def render_server_config(
     node: Node,
     nodes: list[Node],
     route_user: str,
-    route_password: str,
+    route_auth_env_name: str,
     jetstream_store_dir: str,
     jetstream_max_file_store: int,
     jetstream_max_memory_store: int,
@@ -213,7 +221,7 @@ def render_server_config(
         f"  advertise: {json.dumps(f'{node.ipv4_address}:{node.cluster_port}')}\n"
         "  authorization {\n"
         f"    user: {json.dumps(route_user)}\n"
-        f"    password: {json.dumps(route_password)}\n"
+        f"    password: ${route_auth_env_name}\n"
         "    timeout: 2\n"
         "  }\n"
         "  tls {\n"
@@ -222,7 +230,7 @@ def render_server_config(
         '    ca_file: "/etc/nats/tls/ca.crt"\n'
         "    timeout: 2\n"
         "  }\n"
-        f"  routes: {render_routes(self_node=node, nodes=nodes, route_user=route_user, route_password=route_password)}\n"
+        f"  routes: {render_routes(self_node=node, nodes=nodes, route_user=route_user, route_auth_env_name=route_auth_env_name)}\n"
         "}\n"
     )
 
@@ -306,7 +314,7 @@ def build_ca_bundle(output_dir: Path, cluster_name: str) -> tuple[Path, Path]:
     run_openssl(["genrsa", "-out", str(ca_key), "4096"])
     run_openssl(["req", "-x509", "-new", "-nodes", "-key", str(ca_key), "-sha256", "-days", "3650", "-out", str(ca_crt), "-config", str(ca_conf)])
     os.chmod(ca_key, 0o600)
-    os.chmod(ca_crt, 0o644)
+    os.chmod(ca_crt, 0o600)
     return ca_key, ca_crt
 
 
@@ -363,9 +371,9 @@ def build_node_cert(node_dir: Path, node: Node, ca_key: Path, ca_crt: Path) -> N
             str(conf_path),
         ]
     )
-    write_text(tls_dir / "ca.crt", ca_crt.read_text(encoding="utf-8"), mode=0o644)
+    write_text(tls_dir / "ca.crt", ca_crt.read_text(encoding="utf-8"), mode=0o600)
     os.chmod(key_path, 0o600)
-    os.chmod(crt_path, 0o644)
+    os.chmod(crt_path, 0o600)
 
 
 def command_render_bundle(args: argparse.Namespace) -> int:
@@ -383,7 +391,9 @@ def command_render_bundle(args: argparse.Namespace) -> int:
 
     credentials: dict[str, dict[str, str]] = {}
     route_user = "route-sync"
-    route_password = secrets.token_urlsafe(24)
+    route_auth_env_name = str(args.route_auth_env).strip()
+    if not route_auth_env_name:
+        raise SystemExit("--route-auth-env must not be empty")
     accounts_block = render_accounts_block(accounts_spec, credentials)
 
     ca_key, ca_crt = build_ca_bundle(output_dir, args.cluster_name)
@@ -393,7 +403,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
       "system_account": accounts_spec["system_account"],
       "route_credentials": {
         "username": route_user,
-        "password": route_password,
+        "auth_env": route_auth_env_name,
       },
       "accounts": credentials,
       "nodes": {
@@ -409,7 +419,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
     }
 
     write_text(output_dir / "credentials.json", json.dumps(manifest, indent=2) + "\n", mode=0o600)
-    write_text(output_dir / "prometheus" / f"{args.cluster_name}-targets.json", render_prometheus_targets(args.cluster_name, nodes), mode=0o644)
+    write_text(output_dir / "prometheus" / f"{args.cluster_name}-targets.json", render_prometheus_targets(args.cluster_name, nodes), mode=0o600)
 
     for node in nodes:
         node_dir = output_dir / node.name
@@ -423,7 +433,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
                 node=node,
                 nodes=nodes,
                 route_user=route_user,
-                route_password=route_password,
+                route_auth_env_name=route_auth_env_name,
                 jetstream_store_dir=args.jetstream_store_dir,
                 jetstream_max_file_store=args.jetstream_max_file_store,
                 jetstream_max_memory_store=args.jetstream_max_memory_store,
@@ -431,7 +441,7 @@ def command_render_bundle(args: argparse.Namespace) -> int:
             ),
         )
         write_text(node_dir / "nats-exporter.env", render_exporter_env(node))
-        write_text(node_dir / "install-node.sh", render_install_script(node), mode=0o750)
+        write_text(node_dir / "install-node.sh", render_install_script(node), mode=0o700)
 
     return 0
 
@@ -449,6 +459,7 @@ def build_parser() -> argparse.ArgumentParser:
     render_bundle.add_argument("--cluster-port", type=int, default=6222)
     render_bundle.add_argument("--monitor-port", type=int, default=8222)
     render_bundle.add_argument("--exporter-port", type=int, default=7777)
+    render_bundle.add_argument("--route-auth-env", default="NATS_ROUTE_SYNC_AUTH")
     render_bundle.add_argument("--jetstream-store-dir", default="/var/lib/nats/jetstream")
     render_bundle.add_argument("--jetstream-max-file-store", type=int, default=21474836480)
     render_bundle.add_argument("--jetstream-max-memory-store", type=int, default=268435456)

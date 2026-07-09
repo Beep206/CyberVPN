@@ -12,7 +12,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -265,7 +265,7 @@ spec:
 """
 
 
-def render_external_secrets_helmrelease(*, external_secrets_version: str) -> str:
+def render_eso_helmrelease(*, eso_chart_version: str) -> str:
     return f"""apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -276,7 +276,7 @@ spec:
   chart:
     spec:
       chart: external-secrets
-      version: "{external_secrets_version}"
+      version: "{eso_chart_version}"
       sourceRef:
         kind: HelmRepository
         name: external-secrets
@@ -395,7 +395,7 @@ spec:
 """
 
 
-def render_clustersecretstore_openbao_apps(*, workload_cluster_name: str, openbao_server: str) -> str:
+def render_openbao_apps_access_store(*, workload_cluster_name: str, openbao_server: str) -> str:
     return f"""apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
@@ -421,7 +421,7 @@ spec:
 """
 
 
-def render_external_secret_openbao_server_ca() -> str:
+def render_openbao_server_ca_reference() -> str:
     return """apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -443,7 +443,7 @@ spec:
 """
 
 
-def render_external_secret_openbao_k8s_ca() -> str:
+def render_openbao_k8s_ca_reference() -> str:
     return """apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -829,7 +829,7 @@ def render_versions_env(
     openbao_server: str,
     cert_manager_version: str,
     trust_manager_version: str,
-    external_secrets_version: str,
+    eso_chart_version: str,
     kube_prometheus_stack_version: str,
     loki_version: str,
     tempo_version: str,
@@ -847,7 +847,7 @@ def render_versions_env(
         "CERT_MANAGER_ISSUER=openbao-k8s-internal\n"
         f"CERT_MANAGER_CHART_TAG={cert_manager_version}\n"
         f"TRUST_MANAGER_CHART_TAG={trust_manager_version}\n"
-        f"EXTERNAL_SECRETS_CHART_VERSION={external_secrets_version}\n"
+        f"EXTERNAL_SECRETS_CHART_VERSION={eso_chart_version}\n"
         f"KUBE_PROMETHEUS_STACK_CHART_TAG={kube_prometheus_stack_version}\n"
         f"LOKI_CHART_TAG={loki_version}\n"
         f"TEMPO_CHART_TAG={tempo_version}\n"
@@ -888,10 +888,10 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             management_cluster_name=args.management_cluster_name,
             openbao_server=args.openbao_server,
         ),
-        mode=0o644,
+        mode=0o600,
     )
-    write_text(cluster_dir / "README.md", render_cluster_readme(workload_cluster_name=args.workload_cluster_name), mode=0o644)
-    write_text(cluster_dir / "kustomization.yaml", render_cluster_kustomization(), mode=0o644)
+    write_text(cluster_dir / "README.md", render_cluster_readme(workload_cluster_name=args.workload_cluster_name), mode=0o600)
+    write_text(cluster_dir / "kustomization.yaml", render_cluster_kustomization(), mode=0o600)
 
     cluster_kustomizations = {
         "platform-sources.yaml": render_flux_kustomization(
@@ -945,9 +945,9 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
     }
 
     for file_name, content in cluster_kustomizations.items():
-        write_text(cluster_dir / file_name, content, mode=0o644)
+        write_text(cluster_dir / file_name, content, mode=0o600)
 
-    write_text(platform_services_dir / "README.md", render_platform_services_readme(workload_cluster_name=args.workload_cluster_name), mode=0o644)
+    write_text(platform_services_dir / "README.md", render_platform_services_readme(workload_cluster_name=args.workload_cluster_name), mode=0o600)
     write_text(
         platform_services_dir / "versions.env",
         render_versions_env(
@@ -956,18 +956,18 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             openbao_server=args.openbao_server,
             cert_manager_version=args.cert_manager_version,
             trust_manager_version=args.trust_manager_version,
-            external_secrets_version=args.external_secrets_version,
+            eso_chart_version=args.eso_chart_version,
             kube_prometheus_stack_version=args.kube_prometheus_stack_version,
             loki_version=args.loki_version,
             tempo_version=args.tempo_version,
             alloy_chart_version=args.alloy_chart_version,
             alloy_image_tag=args.alloy_image_tag,
         ),
-        mode=0o644,
+        mode=0o600,
     )
-    write_text(output_dir / "scripts" / "check-platform-services.sh", render_check_script(workload_cluster_name=args.workload_cluster_name), mode=0o750)
+    write_text(output_dir / "scripts" / "check-platform-services.sh", render_check_script(workload_cluster_name=args.workload_cluster_name), mode=0o700)
 
-    write_text(platform_services_dir / "sources" / "kustomization.yaml", render_sources_kustomization(), mode=0o644)
+    write_text(platform_services_dir / "sources" / "kustomization.yaml", render_sources_kustomization(), mode=0o600)
     write_text(
         platform_services_dir / "sources" / "cert-manager-chart.yaml",
         render_ocirepository(
@@ -975,7 +975,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             url="oci://quay.io/jetstack/charts/cert-manager",
             tag=args.cert_manager_version,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "sources" / "trust-manager-chart.yaml",
@@ -984,12 +984,12 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             url="oci://quay.io/jetstack/charts/trust-manager",
             tag=args.trust_manager_version,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "sources" / "external-secrets-repository.yaml",
         render_helmrepository(name="external-secrets", url="https://charts.external-secrets.io"),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "sources" / "kube-prometheus-stack-chart.yaml",
@@ -998,7 +998,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             url="oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack",
             tag=args.kube_prometheus_stack_version,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "sources" / "loki-chart.yaml",
@@ -1007,7 +1007,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             url="oci://ghcr.io/grafana/helm-charts/loki",
             tag=args.loki_version,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "sources" / "tempo-chart.yaml",
@@ -1016,41 +1016,41 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             url="oci://ghcr.io/grafana/helm-charts/tempo",
             tag=args.tempo_version,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "sources" / "alloy-repository.yaml",
         render_helmrepository(name="alloy-repository", url="https://grafana.github.io/helm-charts"),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
         platform_services_dir / "namespaces" / "kustomization.yaml",
         render_simple_kustomization(resources=["namespaces.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
-    write_text(platform_services_dir / "namespaces" / "namespaces.yaml", render_namespace_objects(), mode=0o644)
+    write_text(platform_services_dir / "namespaces" / "namespaces.yaml", render_namespace_objects(), mode=0o600)
 
     write_text(
         platform_services_dir / "cert-manager" / "kustomization.yaml",
         render_simple_kustomization(resources=["helmrelease.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "cert-manager" / "helmrelease.yaml",
         render_cert_manager_helmrelease(cert_manager_version=args.cert_manager_version),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
         platform_services_dir / "external-secrets" / "kustomization.yaml",
         render_simple_kustomization(resources=["helmrelease.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "external-secrets" / "helmrelease.yaml",
-        render_external_secrets_helmrelease(external_secrets_version=args.external_secrets_version),
-        mode=0o644,
+        render_eso_helmrelease(eso_chart_version=args.eso_chart_version),
+        mode=0o600,
     )
 
     write_text(
@@ -1066,35 +1066,35 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
                 "clusterissuer-openbao-internal.yaml",
             ]
         ),
-        mode=0o644,
+        mode=0o600,
     )
-    write_text(platform_services_dir / "openbao-integration" / "eso-jwt-rbac.yaml", render_eso_jwt_rbac(), mode=0o644)
-    write_text(platform_services_dir / "openbao-integration" / "cert-manager-jwt-rbac.yaml", render_cert_manager_jwt_rbac(), mode=0o644)
+    write_text(platform_services_dir / "openbao-integration" / "eso-jwt-rbac.yaml", render_eso_jwt_rbac(), mode=0o600)
+    write_text(platform_services_dir / "openbao-integration" / "cert-manager-jwt-rbac.yaml", render_cert_manager_jwt_rbac(), mode=0o600)
     write_text(
         platform_services_dir / "openbao-integration" / "clustersecretstore-openbao-shared.yaml",
         render_clustersecretstore_openbao_shared(
             workload_cluster_name=args.workload_cluster_name,
             openbao_server=args.openbao_server,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "openbao-integration" / "clustersecretstore-openbao-apps.yaml",
-        render_clustersecretstore_openbao_apps(
+        render_openbao_apps_access_store(
             workload_cluster_name=args.workload_cluster_name,
             openbao_server=args.openbao_server,
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "openbao-integration" / "externalsecret-openbao-server-ca.yaml",
-        render_external_secret_openbao_server_ca(),
-        mode=0o644,
+        render_openbao_server_ca_reference(),
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "openbao-integration" / "externalsecret-openbao-k8s-ca.yaml",
-        render_external_secret_openbao_k8s_ca(),
-        mode=0o644,
+        render_openbao_k8s_ca_reference(),
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "openbao-integration" / "clusterissuer-openbao-internal.yaml",
@@ -1102,62 +1102,62 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             workload_cluster_name=args.workload_cluster_name,
             openbao_server=args.openbao_server,
         ),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
         platform_services_dir / "trust-manager" / "kustomization.yaml",
         render_simple_kustomization(resources=["helmrelease.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "trust-manager" / "helmrelease.yaml",
         render_trust_manager_helmrelease(trust_manager_version=args.trust_manager_version),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
         platform_services_dir / "trust-bundles" / "kustomization.yaml",
         render_simple_kustomization(resources=["bundle-openbao-k8s-ca.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "trust-bundles" / "bundle-openbao-k8s-ca.yaml",
         render_bundle_openbao_k8s_ca(),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
         platform_services_dir / "kube-prometheus-stack" / "kustomization.yaml",
         render_simple_kustomization(resources=["helmrelease.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "kube-prometheus-stack" / "helmrelease.yaml",
         render_kube_prometheus_stack_helmrelease(kube_prometheus_stack_version=args.kube_prometheus_stack_version),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
         platform_services_dir / "observability-backends" / "kustomization.yaml",
         render_simple_kustomization(resources=["loki-helmrelease.yaml", "tempo-helmrelease.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "observability-backends" / "loki-helmrelease.yaml",
         render_loki_helmrelease(loki_version=args.loki_version),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "observability-backends" / "tempo-helmrelease.yaml",
         render_tempo_helmrelease(tempo_version=args.tempo_version),
-        mode=0o644,
+        mode=0o600,
     )
 
     write_text(
         platform_services_dir / "alloy" / "kustomization.yaml",
         render_simple_kustomization(resources=["daemonset-helmrelease.yaml", "otlp-gateway-helmrelease.yaml"]),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "alloy" / "daemonset-helmrelease.yaml",
@@ -1166,7 +1166,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             alloy_image_tag=args.alloy_image_tag,
             loki_url="http://loki.observability.svc.cluster.local:3100/loki/api/v1/push",
         ),
-        mode=0o644,
+        mode=0o600,
     )
     write_text(
         platform_services_dir / "alloy" / "otlp-gateway-helmrelease.yaml",
@@ -1176,7 +1176,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             loki_url="http://loki.observability.svc.cluster.local:3100/loki/api/v1/push",
             tempo_endpoint="tempo.observability.svc.cluster.local:4317",
         ),
-        mode=0o644,
+        mode=0o600,
     )
     return 0
 
@@ -1192,7 +1192,7 @@ def build_parser() -> argparse.ArgumentParser:
     render_scaffold.add_argument("--openbao-server", default="https://openbao-nonprod.example.internal:8200")
     render_scaffold.add_argument("--cert-manager-version", default="v1.20.2")
     render_scaffold.add_argument("--trust-manager-version", default="v0.15.0")
-    render_scaffold.add_argument("--external-secrets-version", default="2.3.0")
+    render_scaffold.add_argument("--external-secrets-version", dest="eso_chart_version", default="2.3.0")
     render_scaffold.add_argument("--kube-prometheus-stack-version", default="83.6.0")
     render_scaffold.add_argument("--loki-version", default="6.46.0")
     render_scaffold.add_argument("--tempo-version", default="1.24.4")

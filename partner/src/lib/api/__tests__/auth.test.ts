@@ -20,6 +20,7 @@ import { MOCK_USER, MOCK_TOKENS, MOCK_WEB_LOGIN_RESPONSE } from '@/test/mocks/ha
 import { authApi } from '../auth';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
+import { expectAxiosErrorStatus } from './assertions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -81,7 +82,7 @@ describe('authApi.login', () => {
     const credentials = { email: 'testuser@cybervpn.io', password: 'wrong_password' };
 
     // Act & Assert
-    await expect(authApi.login(credentials)).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(authApi.login(credentials), 401);
   });
 
   it('test_login_invalid_credentials_with_refresh_token_retries_and_gets_401', async () => {
@@ -741,7 +742,7 @@ describe('apiClient 401 interceptor', () => {
     );
 
     // Act & Assert
-    await expect(authApi.logout()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(authApi.logout(), 401);
   });
 
   it('test_401_with_refresh_token_retries_original_request', async () => {
@@ -811,7 +812,7 @@ describe('authApi.telegramWidget', () => {
     };
 
     // Act & Assert
-    await expect(authApi.telegramWidget(data)).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(authApi.telegramWidget(data), 401);
   });
 
   it('test_telegram_widget_invalid_hash_with_refresh_token_gets_401', async () => {
@@ -963,7 +964,7 @@ describe('authApi.telegramMiniApp', () => {
 
   it('test_telegram_miniapp_invalid_data_rejects', async () => {
     // Arrange -- 'invalid_init_data' triggers 401 and refresh also fails.
-    await expect(authApi.telegramMiniApp('invalid_init_data')).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(authApi.telegramMiniApp('invalid_init_data'), 401);
   });
 
   it('test_telegram_miniapp_empty_string_rejects_with_422', async () => {
@@ -1380,9 +1381,7 @@ describe('authApi.telegramLinkAuthorize', () => {
     );
 
     // Act & Assert -- the 401 interceptor will try to refresh and bubble the 401
-    await expect(
-      authApi.telegramLinkAuthorize('https://cybervpn.io/link'),
-    ).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(authApi.telegramLinkAuthorize('https://cybervpn.io/link'), 401);
   });
 
   it('test_telegram_link_authorize_server_error_500_rejects', async () => {
@@ -1655,7 +1654,7 @@ describe('authApi.unlinkProvider', () => {
     );
 
     // Act & Assert
-    await expect(authApi.unlinkProvider('telegram')).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(authApi.unlinkProvider('telegram'), 401);
   });
 
   it('test_unlink_provider_rate_limited_rejects_with_rate_limit_error', async () => {

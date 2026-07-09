@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import structlog
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -11,12 +10,15 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from .constants import ITEMS_PER_PAGE, MAX_PAGES
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
 logger = structlog.get_logger(__name__)
 
 T = TypeVar("T")
 
 
-class Paginator(Generic[T]):
+class Paginator[T]:
     """
     Generic paginator for splitting data into pages.
 
@@ -214,7 +216,7 @@ def parse_pagination_callback(
         return None
 
 
-def create_item_keyboard(
+def create_item_keyboard[T](
     items: Sequence[T],
     current_page: int,
     total_pages: int,

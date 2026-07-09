@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 
 import { GET } from './route';
 import {
-  createOAuthTransactionCookieValue,
+  createProviderTransactionCookieValue,
   OAUTH_TRANSACTION_COOKIE,
 } from '@/features/auth/lib/oauth-transaction';
 import {
@@ -44,18 +44,17 @@ function responseWithSetCookie(
 }
 
 describe('GET /api/oauth/callback/[provider]', () => {
-  const originalFetch = global.fetch;
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    vi.unstubAllGlobals();
   });
 
   it('forwards callback to backend, propagates cookies, and redirects new users to welcome flow', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       responseWithSetCookie(
         {
           access_token: 'access_token_value',
@@ -76,9 +75,9 @@ describe('GET /api/oauth/callback/[provider]', () => {
         },
         'access_token=abc; Path=/; HttpOnly',
       ),
-    ) as typeof fetch;
+    ));
 
-    const transaction = createOAuthTransactionCookieValue('google', 'ru-RU', null);
+    const transaction = createProviderTransactionCookieValue('google', 'ru-RU', null);
     const request = new NextRequest(
       'http://localhost:3000/api/oauth/callback/google?code=auth_code&state=csrf123',
     );
@@ -96,6 +95,11 @@ describe('GET /api/oauth/callback/[provider]', () => {
         method: 'POST',
       }),
     );
+    const [, fetchInit] = vi.mocked(fetch).mock.calls[0] ?? [];
+    const fetchHeaders = fetchInit?.headers as Headers;
+    expect(fetchHeaders.get('x-forwarded-for')).toBeNull();
+    expect(fetchHeaders.get('x-forwarded-host')).toBe('localhost:3000');
+    expect(fetchHeaders.get('x-forwarded-proto')).toBe('http');
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe('http://localhost:3000/ru-RU/dashboard?welcome=true');
     expect(readSetCookieHeaders(response).join('\n')).toContain('access_token=abc');
@@ -103,7 +107,7 @@ describe('GET /api/oauth/callback/[provider]', () => {
   });
 
   it('redirects 2FA responses back to localized login page', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           access_token: '',
@@ -129,9 +133,9 @@ describe('GET /api/oauth/callback/[provider]', () => {
           },
         },
       ),
-    ) as typeof fetch;
+    ));
 
-    const transaction = createOAuthTransactionCookieValue('discord', 'ru-RU', '/ru-RU/dashboard/servers');
+    const transaction = createProviderTransactionCookieValue('discord', 'ru-RU', '/ru-RU/dashboard/servers');
     const request = new NextRequest(
       'http://localhost:3000/api/oauth/callback/discord?code=auth_code&state=csrf123',
     );
@@ -154,7 +158,7 @@ describe('GET /api/oauth/callback/[provider]', () => {
   });
 
   it('maps backend state failures to a stable login error code', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({ detail: 'Invalid or expired OAuth state.' }),
         {
@@ -164,9 +168,9 @@ describe('GET /api/oauth/callback/[provider]', () => {
           },
         },
       ),
-    ) as typeof fetch;
+    ));
 
-    const transaction = createOAuthTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
+    const transaction = createProviderTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
     const request = new NextRequest(
       'http://localhost:3000/api/oauth/callback/google?code=auth_code&state=csrf123',
     );
@@ -182,7 +186,7 @@ describe('GET /api/oauth/callback/[provider]', () => {
   });
 
   it('maps backend upstream outages to oauth_upstream_unavailable', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({ detail: 'Google OAuth provider is temporarily unavailable' }),
         {
@@ -192,9 +196,9 @@ describe('GET /api/oauth/callback/[provider]', () => {
           },
         },
       ),
-    ) as typeof fetch;
+    ));
 
-    const transaction = createOAuthTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
+    const transaction = createProviderTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
     const request = new NextRequest(
       'http://localhost:3000/api/oauth/callback/google?code=auth_code&state=csrf123',
     );
@@ -210,7 +214,7 @@ describe('GET /api/oauth/callback/[provider]', () => {
   });
 
   it('maps provider-denied callbacks to provider_denied', async () => {
-    const transaction = createOAuthTransactionCookieValue('github', 'ru-RU', '/ru-RU/dashboard');
+    const transaction = createProviderTransactionCookieValue('github', 'ru-RU', '/ru-RU/dashboard');
     const request = new NextRequest(
       'http://localhost:3000/api/oauth/callback/github?error=access_denied',
     );
@@ -225,8 +229,8 @@ describe('GET /api/oauth/callback/[provider]', () => {
     expect(location.searchParams.get(OAUTH_PROVIDER_QUERY_PARAM)).toBe('github');
   });
 
-  it('uses forwarded host headers for proxied callback redirects', async () => {
-    const transaction = createOAuthTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
+  it('ignores allowlisted forwarded host headers for callback redirects when the browser-facing host is not trusted', async () => {
+    const transaction = createProviderTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
     const request = new NextRequest(
       'http://0.0.0.0:9001/api/oauth/callback/google?error=access_denied',
       {
@@ -244,7 +248,77 @@ describe('GET /api/oauth/callback/[provider]', () => {
     });
 
     expect(response.headers.get('location')).toBe(
-      'https://cyber-vpn.net/ru-RU/login?oauth_error=provider_denied&oauth_provider=google',
+      'https://my.cyber-vpn.net/ru-RU/login?oauth_error=provider_denied&oauth_provider=google',
+    );
+  });
+
+  it('uses the browser-facing public host instead of an allowlisted spoofed forwarded host for callbacks', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      responseWithSetCookie(
+        {
+          access_token: 'access_token_value',
+          refresh_token: 'refresh_token_value',
+          token_type: 'bearer',
+          expires_in: 3600,
+          user: {
+            id: 'usr_1',
+            login: 'neo',
+            email: 'neo@cybervpn.io',
+            is_active: true,
+            is_email_verified: true,
+            created_at: '2026-03-31T00:00:00Z',
+          },
+          is_new_user: false,
+          requires_2fa: false,
+          tfa_token: null,
+        },
+        'access_token=abc; Path=/; HttpOnly',
+      ),
+    ));
+
+    const transaction = createProviderTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
+    const request = new NextRequest(
+      'https://my.cyber-vpn.net/api/oauth/callback/google?code=auth_code&state=csrf123',
+      {
+        headers: new Headers({
+          host: 'my.cyber-vpn.net',
+          'x-forwarded-host': 'cyber-vpn.net',
+          'x-forwarded-proto': 'http',
+        }),
+      },
+    );
+    request.cookies.set(OAUTH_TRANSACTION_COOKIE, transaction.cookieValue);
+
+    await GET(request, {
+      params: Promise.resolve({ provider: 'google' }),
+    });
+
+    const [, fetchInit] = vi.mocked(fetch).mock.calls[0] ?? [];
+    const fetchHeaders = fetchInit?.headers as Headers;
+    expect(fetchHeaders.get('x-forwarded-host')).toBe('my.cyber-vpn.net');
+    expect(fetchHeaders.get('x-forwarded-proto')).toBe('https');
+  });
+
+  it('ignores untrusted forwarded host headers for callback redirects', async () => {
+    const transaction = createProviderTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
+    const request = new NextRequest(
+      'http://0.0.0.0:9001/api/oauth/callback/google?error=access_denied',
+      {
+        headers: new Headers({
+          host: '0.0.0.0:9001',
+          'x-forwarded-host': 'evil.example',
+          'x-forwarded-proto': 'http',
+        }),
+      },
+    );
+    request.cookies.set(OAUTH_TRANSACTION_COOKIE, transaction.cookieValue);
+
+    const response = await GET(request, {
+      params: Promise.resolve({ provider: 'google' }),
+    });
+
+    expect(response.headers.get('location')).toBe(
+      'https://my.cyber-vpn.net/ru-RU/login?oauth_error=provider_denied&oauth_provider=google',
     );
   });
 });

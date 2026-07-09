@@ -32,4 +32,3 @@ class AuditTrailService:
             },
         )
         return await self._repository.append_audit_entry(entry)
-

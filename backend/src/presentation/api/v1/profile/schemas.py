@@ -13,24 +13,24 @@ class ProfileUpdateRequest(BaseModel):
     """
 
     display_name: str | None = Field(
-        None,
+        default=None,
         min_length=1,
         max_length=100,
         description="Human-readable display name",
     )
     avatar_url: str | None = Field(
-        None,
+        default=None,
         max_length=2048,
         description="URL to the user avatar image",
     )
     language: str | None = Field(
-        None,
+        default=None,
         min_length=2,
         max_length=10,
         description="BCP-47 language tag (e.g. 'en', 'ru', 'ja')",
     )
     timezone: str | None = Field(
-        None,
+        default=None,
         max_length=50,
         description="IANA timezone identifier (e.g. 'Europe/Moscow')",
     )
@@ -76,11 +76,11 @@ class ProfileResponse(BaseModel):
         description="Email address associated with the account",
     )
     display_name: str | None = Field(
-        None,
+        default=None,
         description="Human-readable display name",
     )
     avatar_url: str | None = Field(
-        None,
+        default=None,
         description="URL to the user avatar image",
     )
     language: str = Field(

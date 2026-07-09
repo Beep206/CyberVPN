@@ -42,7 +42,7 @@ async def circuit_breaker_example():
         name="payment_api",
         failure_threshold=5,  # Open after 5 failures
         recovery_timeout=30.0,  # Wait 30s before retry
-        half_open_max_calls=2  # Need 2 successes to close
+        half_open_max_calls=2,  # Need 2 successes to close
     )
 
     async def call_payment_api(amount: float):
@@ -78,12 +78,7 @@ async def process_payment(payment_id: int, amount: float, currency: str = "USD")
     # Simulate payment processing
     await asyncio.sleep(0.1)
 
-    return {
-        "payment_id": payment_id,
-        "amount": amount,
-        "currency": currency,
-        "status": "completed"
-    }
+    return {"payment_id": payment_id, "amount": amount, "currency": currency, "status": "completed"}
 
 
 async def idempotency_example():
@@ -120,9 +115,9 @@ async def rate_limiting_example():
             try:
                 # Rate limiter ensures we don't exceed 10 req/s
                 health = await client.health_check()
-                logger.info("health_check", attempt=i+1, healthy=health)
+                logger.info("health_check", attempt=i + 1, healthy=health)
             except Exception as e:
-                logger.error("health_check_failed", attempt=i+1, error=str(e))
+                logger.error("health_check_failed", attempt=i + 1, error=str(e))
 
     finally:
         await client._client.aclose()
@@ -134,11 +129,7 @@ async def resilient_payment_processing():
     logger.info("=== Combined Resilience Example ===")
 
     # 1. Setup circuit breaker
-    payment_breaker = CircuitBreaker(
-        name="payment_service",
-        failure_threshold=3,
-        recovery_timeout=60.0
-    )
+    payment_breaker = CircuitBreaker(name="payment_service", failure_threshold=3, recovery_timeout=60.0)
 
     # 2. Setup rate limiter
     rate_limiter = AsyncTokenBucket(rate=5.0, capacity=10)  # 5 payments/sec max
@@ -230,7 +221,7 @@ if __name__ == "__main__":
         processors=[
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso"),
-            structlog.dev.ConsoleRenderer()
+            structlog.dev.ConsoleRenderer(),
         ]
     )
 

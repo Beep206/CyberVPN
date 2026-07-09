@@ -1,8 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getPublicPricingCatalog } from '../catalog';
+import {
+  PUBLIC_PRICING_CATALOG_CACHE_TAG,
+  getPublicPricingCatalog,
+} from '../catalog';
 
 const headersMock = vi.hoisted(() => ({
   cookieValues: new Map<string, string>(),
+}));
+const nextCacheMock = vi.hoisted(() => ({
+  cacheLife: vi.fn(),
+  cacheTag: vi.fn(),
 }));
 
 vi.mock('next/headers', () => ({
@@ -14,11 +21,18 @@ vi.mock('next/headers', () => ({
   })),
 }));
 
+vi.mock('next/cache', () => ({
+  cacheLife: nextCacheMock.cacheLife,
+  cacheTag: nextCacheMock.cacheTag,
+}));
+
 const originalApiUrl = process.env.API_URL;
 const originalPublicApiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 afterEach(() => {
   headersMock.cookieValues.clear();
+  nextCacheMock.cacheLife.mockReset();
+  nextCacheMock.cacheTag.mockReset();
   vi.unstubAllGlobals();
   process.env.API_URL = originalApiUrl;
   process.env.NEXT_PUBLIC_API_URL = originalPublicApiUrl;
@@ -245,6 +259,12 @@ describe('public pricing catalog adapter', () => {
 
     const catalog = await getPublicPricingCatalog({ locale: 'de-DE' });
 
+    expect(nextCacheMock.cacheLife).toHaveBeenCalledWith({
+      stale: 300,
+      revalidate: 900,
+      expire: 3600,
+    });
+    expect(nextCacheMock.cacheTag).toHaveBeenCalledWith(PUBLIC_PRICING_CATALOG_CACHE_TAG);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const requestedUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
     expect(requestedUrl.origin).toBe('https://backend.cybervpn.test');

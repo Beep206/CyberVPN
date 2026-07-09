@@ -29,6 +29,13 @@ function renderWithQueryClient(ui: ReactElement) {
   );
 }
 
+function textEqualsIgnoringFormatSpaces(expected: string) {
+  const normalizedExpected = expected.replace(/\s+/g, ' ').trim();
+
+  return (_content: string, element: Element | null) =>
+    (element?.textContent ?? '').replace(/\s+/g, ' ').trim() === normalizedExpected;
+}
+
 const DEFAULT_HEALTH = {
   status: 'healthy',
   timestamp: '2026-04-12T10:00:00Z',
@@ -168,7 +175,9 @@ describe('MonitoringClient', () => {
 
     await waitFor(() => {
       expect(screen.getAllByText('2.7.4').length).toBeGreaterThan(0);
-      expect(screen.getByText('2,048')).toBeInTheDocument();
+      expect(
+        screen.getByText(textEqualsIgnoringFormatSpaces((2048).toLocaleString())),
+      ).toBeInTheDocument();
       expect(screen.getByText('18')).toBeInTheDocument();
       expect(screen.getByText('42')).toBeInTheDocument();
       expect(screen.getByText('145')).toBeInTheDocument();

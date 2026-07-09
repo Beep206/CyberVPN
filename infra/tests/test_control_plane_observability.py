@@ -72,8 +72,8 @@ class ControlPlaneObservabilityTests(unittest.TestCase):
                     "posthog_instance_id": "posthog-nonprod",
                     "loki_url": "http://loki:3100/loki/api/v1/push",
                     "loki_basic_auth_username": "",
-                    "loki_basic_auth_password": "",
-                    "loki_bearer_token": "",
+                    "loki_basic_auth_env": "",
+                    "loki_bearer_env": "",
                     "alloy_http_port": 9100,
                 },
             )()
@@ -137,8 +137,8 @@ class ControlPlaneObservabilityTests(unittest.TestCase):
                     "posthog_instance_id": "posthog-nonprod",
                     "loki_url": "http://loki:3100/loki/api/v1/push",
                     "loki_basic_auth_username": "ops",
-                    "loki_basic_auth_password": "",
-                    "loki_bearer_token": "",
+                    "loki_basic_auth_env": "",
+                    "loki_bearer_env": "",
                     "alloy_http_port": 9100,
                 },
             )()

@@ -43,11 +43,7 @@ class CacheService:
         """
         redis = Redis.from_url(
             settings.dsn,
-            password=(
-                settings.password.get_secret_value()
-                if settings.password
-                else None
-            ),
+            password=(settings.password.get_secret_value() if settings.password else None),
             decode_responses=True,
         )
         return cls(redis=redis, key_prefix=settings.key_prefix)
@@ -68,7 +64,10 @@ class CacheService:
             Cached value or None on miss/error.
         """
         try:
-            return await self._redis.get(self._key(key))
+            value = await self._redis.get(self._key(key))
+            if isinstance(value, bytes):
+                return value.decode("utf-8")
+            return value
         except RedisError:
             logger.exception("cache_get_error", key=key)
             return None

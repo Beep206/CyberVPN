@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 from src.application.use_cases.growth_campaigns.admin_lifecycle import (
     CampaignTransitionError,
+    GrowthCampaignListResult,
     GrowthCampaignRecord,
 )
 from src.domain.enums import AdminRole
@@ -68,6 +69,28 @@ def _record(*, status: str = "draft", version: int = 1) -> GrowthCampaignRecord:
         created_at=NOW,
         updated_at=NOW,
     )
+
+
+@pytest.mark.asyncio
+async def test_list_admin_growth_campaigns_accepts_updated_at_sort(monkeypatch) -> None:
+    class FakeUseCase:
+        async def list_campaigns(self, **kwargs):
+            assert kwargs["sort"] == "-updated_at"
+            return GrowthCampaignListResult(items=(_record(),), total=1, offset=0, limit=50)
+
+    monkeypatch.setattr(growth_campaigns, "_use_case", lambda _db: FakeUseCase())
+
+    response = await growth_campaigns.list_admin_growth_campaigns(
+        status_filter=None,
+        offset=0,
+        limit=50,
+        sort="-updated_at",
+        db=RecordingDB(),
+        _current_user=_admin(),
+    )
+
+    assert response.total == 1
+    assert response.items[0].id == CAMPAIGN_ID
 
 
 @pytest.mark.asyncio

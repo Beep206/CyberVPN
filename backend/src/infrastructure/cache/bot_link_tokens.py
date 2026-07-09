@@ -76,6 +76,6 @@ async def consume_bot_link_token(
         if telegram_id is not None:
             return int(telegram_id)
     except (json.JSONDecodeError, ValueError, TypeError):
-        logger.warning("Invalid bot link token data", extra={"token_prefix": token[:8]})
+        logger.warning("Invalid bot link token data")
 
     return None

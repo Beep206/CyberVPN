@@ -20,15 +20,15 @@ class CreateSettingRequest(BaseModel):
 
     key: str = Field(..., min_length=1, max_length=100, description="Setting key")
     value: Any = Field(..., description="Setting value (any JSON type)")
-    description: str | None = Field(None, max_length=500, description="Setting description")
+    description: str | None = Field(default=None, max_length=500, description="Setting description")
     is_public: bool = Field(False, description="Whether setting is publicly readable")
 
 
 class UpdateSettingRequest(BaseModel):
     """Request schema for updating a system setting."""
 
-    value: Any | None = Field(None, description="New setting value")
-    description: str | None = Field(None, max_length=500)
+    value: Any | None = Field(default=None, description="New setting value")
+    description: str | None = Field(default=None, max_length=500)
     is_public: bool | None = None
 
 
@@ -40,5 +40,5 @@ class SettingResponse(BaseModel):
     id: int = Field(..., description="Setting ID")
     key: str = Field(..., max_length=100, description="Setting key")
     value: Any = Field(..., description="Setting value")
-    description: str | None = Field(None, max_length=500, description="Description")
+    description: str | None = Field(default=None, max_length=500, description="Description")
     is_public: bool = Field(..., description="Whether setting is publicly readable")

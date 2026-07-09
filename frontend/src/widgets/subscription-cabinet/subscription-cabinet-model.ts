@@ -55,7 +55,7 @@ function readEntitlementValue(
   entitlement: CurrentEntitlement | null | undefined,
   key: string,
 ): unknown {
-  return entitlement?.effective_entitlements[key];
+  return entitlement?.effective_entitlements?.[key];
 }
 
 function normalizeText(value: string | null | undefined): string | null {

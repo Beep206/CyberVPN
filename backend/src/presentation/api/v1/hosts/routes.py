@@ -12,6 +12,7 @@ from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveDeleteResponse, StatusMessageResponse
+from src.presentation.api.v1.remnawave_degraded import optional_remnawave_read
 from src.presentation.dependencies import get_remnawave_client, require_role
 
 from .schemas import CreateHostRequest, HostResponse, UpdateHostRequest
@@ -25,9 +26,12 @@ async def list_hosts(
     client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> list[HostResponse]:
     """List all VPN hosts (admin only)"""
-    result = await client.get_list_validated("/hosts", HostResponse)
-    route_operations_total.labels(route="hosts", action="list", status="success").inc()
-    return result
+    return await optional_remnawave_read(
+        route="hosts",
+        action="list",
+        fetch=lambda: client.get_collection_validated("/hosts", "hosts", HostResponse),
+        fallback=[],
+    )
 
 
 @router.post("/", response_model=HostResponse)

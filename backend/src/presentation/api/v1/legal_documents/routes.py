@@ -25,11 +25,11 @@ from .schemas import (
 router = APIRouter(prefix="/legal-documents", tags=["legal-documents"])
 
 
+@router.get("", response_model=list[LegalDocumentResponse], include_in_schema=False)
 @router.get("/", response_model=list[LegalDocumentResponse])
 async def list_legal_documents(
     document_type: str | None = Query(None),
     locale: str | None = Query(None),
-    _current_user: AdminUserModel = Depends(require_role(AdminRole.ADMIN)),
     db: AsyncSession = Depends(get_db),
 ) -> list[LegalDocumentResponse]:
     use_case = ListLegalDocumentsUseCase(db)

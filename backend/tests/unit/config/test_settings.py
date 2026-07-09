@@ -312,6 +312,20 @@ class TestS1CorsAndCookieSettings:
                 cookie_secure=False,
             )
 
+    def test_development_passkey_dev_origins_include_admin_localhost_smoke_origin(self) -> None:
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+        )
+
+        assert {
+            "http://admin.localhost:3001",
+            "http://127.0.0.1:9464",
+        } <= set(settings.passkey_dev_allowed_origins)
+
     def test_s1_production_accepts_host_only_cookie_domain(self) -> None:
         settings = self._production_settings(cookie_domain="")
 

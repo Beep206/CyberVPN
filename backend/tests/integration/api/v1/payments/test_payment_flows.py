@@ -28,6 +28,7 @@ from src.application.dto.payment_dto import InvoiceResponseDTO
 from src.application.services.auth_service import AuthService
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.payment_model import PaymentModel
+from src.infrastructure.payments.cryptobot.webhook_handler import derive_cryptobot_webhook_key
 from src.main import app
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.services import get_crypto_client
@@ -226,10 +227,10 @@ class TestCryptobotWebhook:
         """
         Test POST /api/v1/webhooks/cryptobot with valid HMAC signature -> 200.
 
-        Computes a valid HMAC-SHA256 signature using a test API token.
+        Computes a valid HMAC-SHA256 signature using test webhook key material.
         """
-        test_api_token = "test-webhook-token"
-        hmac_secret = hashlib.sha256(test_api_token.encode()).digest()
+        test_webhook_key_material = "test-webhook-material"
+        hmac_secret = derive_cryptobot_webhook_key(test_webhook_key_material)
 
         body_dict = {
             "update_type": "invoice_paid",
@@ -240,7 +241,7 @@ class TestCryptobotWebhook:
 
         with patch("src.presentation.api.v1.webhooks.routes.settings") as mock_settings:
             mock_token = MagicMock()
-            mock_token.get_secret_value.return_value = test_api_token
+            mock_token.get_secret_value.return_value = test_webhook_key_material
             mock_settings.cryptobot_token = mock_token
             mock_settings.remnawave_token = MagicMock()
 
@@ -269,7 +270,7 @@ class TestCryptobotWebhook:
 
         S1 payment webhooks fail closed before payment/provisioning side effects.
         """
-        test_api_token = "test-webhook-token"
+        test_webhook_key_material = "test-webhook-material"
 
         body_dict = {
             "update_type": "invoice_paid",
@@ -280,7 +281,7 @@ class TestCryptobotWebhook:
 
         with patch("src.presentation.api.v1.webhooks.routes.settings") as mock_settings:
             mock_token = MagicMock()
-            mock_token.get_secret_value.return_value = test_api_token
+            mock_token.get_secret_value.return_value = test_webhook_key_material
             mock_settings.cryptobot_token = mock_token
             mock_settings.remnawave_token = MagicMock()
 

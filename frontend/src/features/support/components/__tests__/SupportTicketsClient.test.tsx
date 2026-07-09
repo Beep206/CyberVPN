@@ -1,6 +1,6 @@
 import type React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SupportTicketsClient } from '../SupportTicketsClient';
@@ -137,6 +137,10 @@ function renderWithProviders(ui: React.ReactElement) {
   );
 }
 
+function setFieldValue(field: HTMLElement, value: string) {
+  fireEvent.change(field, { target: { value } });
+}
+
 const ticketSummary = {
   public_id: 'SUP-20260529-010',
   status: 'pending_support',
@@ -249,11 +253,8 @@ describe('SupportTicketsClient', () => {
     renderWithProviders(<SupportTicketsClient variant="miniapp" />);
 
     await user.selectOptions(screen.getByLabelText('Category'), 'billing');
-    await user.type(
-      screen.getByLabelText('Subject'),
-      'Payment confirmed but VPN missing',
-    );
-    await user.type(
+    setFieldValue(screen.getByLabelText('Subject'), 'Payment confirmed but VPN missing');
+    setFieldValue(
       screen.getByLabelText('Message'),
       'Payment is final but the VPN profile is still missing.',
     );
@@ -275,7 +276,7 @@ describe('SupportTicketsClient', () => {
 
     await screen.findByText('We are checking the access channel.');
 
-    await user.type(screen.getByLabelText('Reply'), 'Here is a safe follow-up.');
+    setFieldValue(screen.getByLabelText('Reply'), 'Here is a safe follow-up.');
     await user.click(screen.getByRole('button', { name: 'Send reply' }));
 
     await waitFor(() => {

@@ -100,7 +100,7 @@ def test_stage2_security_abuse_privacy_records_dependency_blocker_fix() -> None:
     task_worker_dependencies = pyproject_data["project"]["dependencies"]
 
     for fragment in (
-        "idna>=3.15",
+        "idna>=3.18",
         "urllib3>=2.7.0",
     ):
         assert fragment in pyproject

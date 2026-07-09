@@ -145,6 +145,8 @@ async def _measure_email_queue_backlog(redis: Redis) -> int:
             max="+",
             count=lag_total,
         )
+        if unread_entries is None:
+            unread_entries = []
         for _, fields in unread_entries:
             if _extract_queue_name(fields) == EMAIL_QUEUE_NAME:
                 backlog += 1

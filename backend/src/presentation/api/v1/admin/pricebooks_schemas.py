@@ -12,18 +12,18 @@ from src.presentation.api.v1.pricebooks.schemas import PricebookEntryRequest, Pr
 
 
 class UpdateAdminPricebookRequest(BaseModel):
-    display_name: str | None = Field(None, min_length=1, max_length=120)
+    display_name: str | None = Field(default=None, min_length=1, max_length=120)
     merchant_profile_id: UUID | None = None
-    currency_code: str | None = Field(None, min_length=3, max_length=3)
-    region_code: str | None = Field(None, min_length=2, max_length=16)
+    currency_code: str | None = Field(default=None, min_length=3, max_length=3)
+    region_code: str | None = Field(default=None, min_length=2, max_length=16)
     discount_rules: dict[str, Any] | None = None
     renewal_pricing_policy: dict[str, Any] | None = None
-    version_status: str | None = Field(None, min_length=1, max_length=20)
+    version_status: str | None = Field(default=None, min_length=1, max_length=20)
     effective_from: datetime | None = None
     effective_to: datetime | None = None
     is_active: bool | None = None
-    entries: list[PricebookEntryRequest] | None = Field(None, min_length=1)
-    change_reason: str | None = Field(None, max_length=500)
+    entries: list[PricebookEntryRequest] | None = Field(default=None, min_length=1)
+    change_reason: str | None = Field(default=None, max_length=500)
 
     @model_validator(mode="after")
     def require_mutation_field(self) -> UpdateAdminPricebookRequest:
@@ -35,17 +35,17 @@ class UpdateAdminPricebookRequest(BaseModel):
 
 class PublishAdminPricebookRequest(BaseModel):
     effective_from: datetime | None = None
-    change_reason: str | None = Field(None, max_length=500)
+    change_reason: str | None = Field(default=None, max_length=500)
 
 
 class ScheduleAdminPricebookRequest(BaseModel):
     scheduled_for: datetime
-    change_reason: str | None = Field(None, max_length=500)
+    change_reason: str | None = Field(default=None, max_length=500)
 
 
 class RollbackAdminPricebookRequest(BaseModel):
     target_pricebook_id: UUID | None = None
-    change_reason: str | None = Field(None, max_length=500)
+    change_reason: str | None = Field(default=None, max_length=500)
 
 
 class AdminPricebookLifecycleResponse(BaseModel):
@@ -106,7 +106,7 @@ class UpdateCommercialContextCountryOptionRequest(BaseModel):
     country_code: str = Field(..., min_length=2, max_length=2)
     default_currency_code: str = Field(..., min_length=3, max_length=3)
     supported_currency_codes: list[str] = Field(..., min_length=1)
-    payment_country_code: str | None = Field(None, min_length=2, max_length=2)
+    payment_country_code: str | None = Field(default=None, min_length=2, max_length=2)
     is_enabled: bool = True
 
 
@@ -119,4 +119,4 @@ class UpdateCommercialContextCurrencyOptionRequest(BaseModel):
 class UpdateCommercialContextOptionsRequest(BaseModel):
     countries: list[UpdateCommercialContextCountryOptionRequest] = Field(..., min_length=1)
     currencies: list[UpdateCommercialContextCurrencyOptionRequest] = Field(default_factory=list)
-    change_reason: str | None = Field(None, max_length=500)
+    change_reason: str | None = Field(default=None, max_length=500)

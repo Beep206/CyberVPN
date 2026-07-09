@@ -16,6 +16,7 @@ import { server } from '@/test/mocks/server';
 import { vpnApi } from '../vpn';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
+import { expectAxiosErrorStatus } from './assertions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -96,7 +97,7 @@ describe('vpnApi.getUsage', () => {
     );
 
     // Act & Assert - 401 interceptor tries to refresh, finds no token
-    await expect(vpnApi.getUsage()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(vpnApi.getUsage(), 401);
   });
 
   it('test_get_usage_with_refresh_token_retries_on_401', async () => {

@@ -53,6 +53,7 @@ from src.presentation.api.v1.payments.schemas import (
     EntitlementsSnapshotResponse,
     InvoiceResponse,
 )
+from src.presentation.api.v1.remnawave_degraded import optional_remnawave_read
 from src.presentation.dependencies import get_current_active_user, get_remnawave_client, require_role
 from src.presentation.dependencies.auth import get_current_active_web_user, get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import get_request_customer_realm, get_request_web_auth_realm
@@ -386,10 +387,16 @@ async def list_subscription_templates(
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """List all subscription templates (admin only)"""
-    templates = await client.get_collection_validated(
-        "/subscription-templates",
-        "templates",
-        RemnawaveSubscriptionResponse,
+    empty_templates: list[RemnawaveSubscriptionResponse] = []
+    templates: list[RemnawaveSubscriptionResponse] = await optional_remnawave_read(
+        route="subscriptions",
+        action="list_templates",
+        fetch=lambda: client.get_collection_validated(
+            "/subscription-templates",
+            "templates",
+            RemnawaveSubscriptionResponse,
+        ),
+        fallback=empty_templates,
     )
     return SubscriptionTemplateListResponse(total=len(templates), templates=templates)
 

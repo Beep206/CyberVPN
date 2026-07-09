@@ -25,11 +25,17 @@ from src.config import BotSettings, get_settings
 from src.stage1_surface import apply_stage1_telegram_surface
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from aiogram import Bot, Dispatcher
+    from aiohttp import web
+    from pydantic import SecretStr
+    from sentry_sdk.types import Event
 
 logger = structlog.get_logger(__name__)
 SERVICE_NAME = "cybervpn-telegram-bot"
 RUNTIME_SURFACE = "telegram-bot"
+type IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 
 SENSITIVE_HEADER_NAMES = {
     "authorization",
@@ -126,7 +132,7 @@ def _strip_url_query(url: Any) -> Any:
     return parsed._replace(query="", fragment="").geturl()
 
 
-def _before_send(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any] | None:
+def _before_send(event: Event, _hint: dict[str, Any]) -> Event | None:
     request = event.get("request")
     if isinstance(request, dict):
         _scrub_request_headers(request.get("headers"))
@@ -150,7 +156,7 @@ def _before_send(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any]
 
 
 def is_observability_authorized(
-    configured_secret,
+    configured_secret: SecretStr | None,
     provided_secret: str | None,
 ) -> bool:
     if configured_secret is None:
@@ -269,8 +275,8 @@ async def run_polling(bot: Bot, dp: Dispatcher) -> None:
     )
 
 
-def _build_allowed_networks(allowed_ips: list[str]) -> list[ipaddress._BaseNetwork]:
-    networks: list[ipaddress._BaseNetwork] = []
+def _build_allowed_networks(allowed_ips: list[str]) -> list[IPNetwork]:
+    networks: list[IPNetwork] = []
     for raw in allowed_ips:
         try:
             networks.append(ipaddress.ip_network(raw, strict=False))
@@ -280,10 +286,10 @@ def _build_allowed_networks(allowed_ips: list[str]) -> list[ipaddress._BaseNetwo
 
 
 def _get_client_ip(
-    request,
+    request: web.Request,
     *,
     trust_proxy: bool,
-    trusted_proxy_networks: list[ipaddress._BaseNetwork],
+    trusted_proxy_networks: list[IPNetwork],
 ) -> str | None:
     remote = request.remote
     if not trust_proxy:
@@ -310,12 +316,12 @@ def _get_client_ip(
 
 
 def _get_request_scheme(
-    request,
+    request: web.Request,
     *,
     trust_proxy: bool,
-    trusted_proxy_networks: list[ipaddress._BaseNetwork],
+    trusted_proxy_networks: list[IPNetwork],
 ) -> str:
-    scheme = request.scheme
+    scheme = str(request.scheme)
     if not trust_proxy:
         return scheme
 
@@ -350,7 +356,7 @@ def _parse_basic_auth(auth_header: str) -> tuple[str, str] | None:
     return username, password
 
 
-def _build_metrics_handler(settings: BotSettings):
+def _build_metrics_handler(settings: BotSettings) -> Callable[[web.Request], Awaitable[web.Response]]:
     from aiohttp import web
     from prometheus_client import generate_latest
 
@@ -406,7 +412,7 @@ def _build_metrics_handler(settings: BotSettings):
     return metrics_handler
 
 
-async def _start_metrics_server(settings: BotSettings):
+async def _start_metrics_server(settings: BotSettings) -> web.AppRunner:
     from aiohttp import web
 
     app = web.Application()
@@ -426,7 +432,7 @@ async def _start_metrics_server(settings: BotSettings):
     return runner
 
 
-async def _stop_metrics_server(runner) -> None:
+async def _stop_metrics_server(runner: web.AppRunner | None) -> None:
     if runner is None:
         return
     await runner.cleanup()
@@ -454,7 +460,7 @@ def run_webhook(bot: Bot, dp: Dispatcher, settings: BotSettings) -> None:
     )
 
 
-def create_webhook_app(bot: Bot, dp: Dispatcher, settings: BotSettings):
+def create_webhook_app(bot: Bot, dp: Dispatcher, settings: BotSettings) -> web.Application:
     from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
     from aiohttp import web
 

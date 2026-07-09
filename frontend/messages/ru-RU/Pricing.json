@@ -73,14 +73,16 @@
     "stealth": "Stealth",
     "manual_config": "Ручной / расширенный",
     "dedicated_ip": "Выделенный IP",
-    "experimental": "Экспериментальный"
+    "experimental": "Экспериментальный",
+    "shared": "Общий"
   },
   "poolNames": {
     "shared": "Общий",
     "shared_plus": "Shared+",
     "premium_shared": "Премиальный общий",
     "premium": "Премиум",
-    "exclusive": "Эксклюзивный"
+    "exclusive": "Эксклюзивный",
+    "default": "По умолчанию"
   },
   "supportNames": {
     "standard": "Стандартная поддержка",

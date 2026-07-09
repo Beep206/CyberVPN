@@ -76,9 +76,7 @@ def build_canary_evidence(
 
 
 @pytest.mark.asyncio
-async def test_helix_actuation_audit_alerts_when_reaction_first_applied(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_actuation_audit_alerts_when_reaction_first_applied(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_alert_state_ttl_seconds = 3600
     mock_settings.helix_actuation_escalation_seconds = 900
@@ -117,20 +115,14 @@ async def test_helix_actuation_audit_alerts_when_reaction_first_applied(
             "src.tasks.monitoring.helix_actuations.get_redis_client",
             return_value=mock_redis,
         ),
-        patch(
-            "src.tasks.monitoring.helix_actuations.CacheService"
-        ) as MockCache,
-        patch(
-            "src.tasks.monitoring.helix_actuations.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.monitoring.helix_actuations.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.monitoring.helix_actuations.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.helix_actuations.HelixService") as mock_service_cls,
+        patch("src.tasks.monitoring.helix_actuations.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value=None)
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [rollout]
@@ -143,11 +135,11 @@ async def test_helix_actuation_audit_alerts_when_reaction_first_applied(
                 "Validate replacement profile readiness.",
             ],
         )
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_actuations()
 
@@ -162,9 +154,7 @@ async def test_helix_actuation_audit_alerts_when_reaction_first_applied(
 
 
 @pytest.mark.asyncio
-async def test_helix_actuation_audit_escalates_pending_rotation(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_actuation_audit_escalates_pending_rotation(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_alert_state_ttl_seconds = 3600
     mock_settings.helix_actuation_escalation_seconds = 900
@@ -205,15 +195,9 @@ async def test_helix_actuation_audit_escalates_pending_rotation(
             "src.tasks.monitoring.helix_actuations.get_redis_client",
             return_value=mock_redis,
         ),
-        patch(
-            "src.tasks.monitoring.helix_actuations.CacheService"
-        ) as MockCache,
-        patch(
-            "src.tasks.monitoring.helix_actuations.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.monitoring.helix_actuations.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.monitoring.helix_actuations.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.helix_actuations.HelixService") as mock_service_cls,
+        patch("src.tasks.monitoring.helix_actuations.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(
@@ -225,7 +209,7 @@ async def test_helix_actuation_audit_escalates_pending_rotation(
             }
         )
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [rollout]
@@ -233,11 +217,11 @@ async def test_helix_actuation_audit_escalates_pending_rotation(
             rollout_id=rollout.rollout_id,
             decision="no-go",
         )
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_actuations()
 
@@ -251,9 +235,7 @@ async def test_helix_actuation_audit_escalates_pending_rotation(
 
 
 @pytest.mark.asyncio
-async def test_helix_actuation_audit_alerts_when_reaction_clears(
-    mock_redis, mock_telegram, mock_settings
-):
+async def test_helix_actuation_audit_alerts_when_reaction_clears(mock_redis, mock_telegram, mock_settings):
     mock_settings.helix_enabled = True
     mock_settings.helix_alert_state_ttl_seconds = 3600
     mock_settings.helix_actuation_escalation_seconds = 900
@@ -290,15 +272,9 @@ async def test_helix_actuation_audit_alerts_when_reaction_clears(
             "src.tasks.monitoring.helix_actuations.get_redis_client",
             return_value=mock_redis,
         ),
-        patch(
-            "src.tasks.monitoring.helix_actuations.CacheService"
-        ) as MockCache,
-        patch(
-            "src.tasks.monitoring.helix_actuations.HelixService"
-        ) as MockService,
-        patch(
-            "src.tasks.monitoring.helix_actuations.TelegramClient"
-        ) as MockTelegram,
+        patch("src.tasks.monitoring.helix_actuations.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.helix_actuations.HelixService") as mock_service_cls,
+        patch("src.tasks.monitoring.helix_actuations.TelegramClient") as mock_telegram_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(
@@ -310,7 +286,7 @@ async def test_helix_actuation_audit_alerts_when_reaction_clears(
             }
         )
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_service = AsyncMock()
         mock_service.list_active_rollout_states.return_value = [rollout]
@@ -318,11 +294,11 @@ async def test_helix_actuation_audit_alerts_when_reaction_clears(
             rollout_id=rollout.rollout_id,
             decision="go",
         )
-        MockService.return_value.__aenter__ = AsyncMock(return_value=mock_service)
-        MockService.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_service_cls.return_value.__aenter__ = AsyncMock(return_value=mock_service)
+        mock_service_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTelegram.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTelegram.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_telegram_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_telegram_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await audit_helix_actuations()
 

@@ -15,7 +15,7 @@ class CreateProvisioningProfileRequest(BaseModel):
     target_channel: str = Field(..., min_length=1, max_length=40)
     delivery_method: str = Field(..., min_length=1, max_length=40)
     profile_status: ProvisioningProfileStatus = ProvisioningProfileStatus.ACTIVE
-    provider_profile_ref: str | None = Field(None, min_length=1, max_length=160)
+    provider_profile_ref: str | None = Field(default=None, min_length=1, max_length=160)
     provisioning_payload: dict[str, Any] = Field(default_factory=dict)
 
 

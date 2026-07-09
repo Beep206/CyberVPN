@@ -475,7 +475,7 @@ describe('partnerPortalApi', () => {
   it('lists partner bots from the canonical partner-bots family with workspace params', async () => {
     let capturedQuery: string | null = null;
     server.use(
-      http.get(`${API_BASE}/partner-bots`, ({ request }) => {
+      http.get(`${API_BASE}/partner-bots/`, ({ request }) => {
         const url = new URL(request.url);
         capturedQuery = url.search;
         return HttpResponse.json([
@@ -533,7 +533,7 @@ describe('partnerPortalApi', () => {
     } = {};
 
     server.use(
-      http.post(`${API_BASE}/partner-bots`, async ({ request }) => {
+      http.post(`${API_BASE}/partner-bots/`, async ({ request }) => {
         captured.createBody = await request.json();
         return HttpResponse.json(
           {

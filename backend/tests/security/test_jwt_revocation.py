@@ -156,10 +156,11 @@ class TestRevocationService:
         await service.revoke_token("test-jti-123", expires_at)
 
         # Should store with appropriate TTL
-        mock_redis.setex.assert_called_once()
-        call_args = mock_redis.setex.call_args
-        assert "test-jti-123" in call_args[0][0]  # Key contains JTI
-        assert call_args[0][2] == "revoked"  # Value is "revoked"
+        mock_redis.set.assert_awaited_once()
+        call_args = mock_redis.set.await_args
+        assert "test-jti-123" in call_args.args[0]  # Key contains JTI
+        assert call_args.args[1] == "revoked"  # Value is "revoked"
+        assert call_args.kwargs["ex"] > 0
 
     @pytest.mark.asyncio
     async def test_is_revoked_checks_redis(self):
@@ -215,4 +216,4 @@ class TestSecurityProperties:
         await service.revoke_token("expired-jti", expires_at)
 
         # Should not store anything
-        mock_redis.setex.assert_not_called()
+        mock_redis.set.assert_not_called()

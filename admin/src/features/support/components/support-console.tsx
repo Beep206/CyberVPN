@@ -33,6 +33,7 @@ import {
 } from '@/lib/api/support';
 import { cn } from '@/lib/utils';
 import { hasAdminPermission } from '@/shared/lib/admin-rbac';
+import { invalidateAdminSupportQueues } from '@/shared/lib/admin-query-invalidation';
 import {
   Table,
   TableBody,
@@ -950,12 +951,7 @@ export function SupportConsole({
   });
 
   async function refreshSupportData(ticketRef: string | null) {
-    await queryClient.invalidateQueries({ queryKey: ['support', 'admin', 'tickets'] });
-    if (ticketRef) {
-      await queryClient.invalidateQueries({
-        queryKey: ['support', 'admin', 'tickets', ticketRef, 'detail'],
-      });
-    }
+    await invalidateAdminSupportQueues(queryClient, ticketRef);
   }
 
   const publicReplyMutation = useMutation({

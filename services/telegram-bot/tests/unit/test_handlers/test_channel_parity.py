@@ -7,6 +7,8 @@ from aiogram.types import CallbackQuery, User
 
 from src.handlers.account import show_subscriptions_handler
 from src.handlers.menu import connect_menu_handler
+from src.models.connection import ConnectionBootstrapResponse
+from src.services.cache_service import CacheService
 
 
 class _I18nStub:
@@ -33,38 +35,38 @@ def _callback(user_id: int = 123456) -> CallbackQuery:
     callback = MagicMock(spec=CallbackQuery)
     callback.from_user = User(id=user_id, is_bot=False, first_name="Test")
     callback.message = MagicMock()
+    callback.message.chat = type("Chat", (), {"id": user_id, "type": "private"})()
     callback.message.edit_text = AsyncMock()
     callback.answer = AsyncMock()
     return callback
 
 
-@pytest.mark.asyncio
-async def test_connect_menu_handler_uses_entitlements_and_service_state() -> None:
-    callback = _callback()
-    api_client = MagicMock()
-    api_client.get_current_entitlements = AsyncMock(
-        return_value={
-            "status": "active",
-            "display_name": "Pro Plan",
-            "expires_at": "2026-05-01T12:00:00Z",
-        }
-    )
-    api_client.get_current_service_state = AsyncMock(
-        return_value={
-            "provider_name": "remnawave",
-            "access_delivery_channel": {"channel_type": "telegram_bot"},
-            "purchase_context": {"source_type": "order"},
-        }
+def _available_bootstrap(url: str = "vless://private-secret-config") -> ConnectionBootstrapResponse:
+    return ConnectionBootstrapResponse(
+        status="available",
+        available=True,
+        subscription_url=url,
+        qr_payload=url,
+        config_profile_name="Primary profile",
+        flow_key="flow-channel",
+        version=7,
+        connection_session_id="11111111-2222-4333-8444-555555555555",
+        telegram_payload={"bot_connection_session_id": "11111111-2222-4333-8444-555555555555"},
     )
 
-    await connect_menu_handler(callback, _I18nStub(), api_client)
+
+@pytest.mark.asyncio
+async def test_connect_menu_handler_uses_connection_bootstrap(fake_redis: object) -> None:
+    callback = _callback()
+    cache = CacheService(fake_redis, key_prefix="channel:")
+    api_client = MagicMock()
+    api_client.get_customer_connection_bootstrap = AsyncMock(return_value=_available_bootstrap())
+
+    await connect_menu_handler(callback, _I18nStub(), api_client, cache)
 
     rendered_text = callback.message.edit_text.await_args.kwargs["text"]
-    assert "Pro Plan" in rendered_text
-    assert "remnawave" in rendered_text
-    assert "telegram_bot" in rendered_text
-    api_client.get_current_entitlements.assert_awaited_once_with(123456)
-    api_client.get_current_service_state.assert_awaited_once_with(123456)
+    assert rendered_text.startswith("bot-onboarding-connection-ready")
+    api_client.get_customer_connection_bootstrap.assert_awaited_once_with(123456, platform_hint="unknown")
 
 
 @pytest.mark.asyncio

@@ -16,6 +16,7 @@ import {
   shortId,
 } from '@/features/commerce/lib/formatting';
 import { adminWalletApi } from '@/lib/api/wallet';
+import { invalidateAdminWithdrawalQueues } from '@/shared/lib/admin-query-invalidation';
 import { canAdminConsoleSurfaceAccess } from '@/shared/lib/surface-policy';
 import {
   Table,
@@ -61,7 +62,7 @@ export function WithdrawalsConsole() {
       payload: Parameters<typeof adminWalletApi.approveWithdrawal>[1];
     }) => adminWalletApi.approveWithdrawal(withdrawalId, payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['commerce', 'withdrawals', 'pending'] });
+      await invalidateAdminWithdrawalQueues(queryClient);
       setSelectedWithdrawal(null);
       setFeedback(t('withdrawals.approveSuccess'));
     },
@@ -79,7 +80,7 @@ export function WithdrawalsConsole() {
       payload: Parameters<typeof adminWalletApi.rejectWithdrawal>[1];
     }) => adminWalletApi.rejectWithdrawal(withdrawalId, payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['commerce', 'withdrawals', 'pending'] });
+      await invalidateAdminWithdrawalQueues(queryClient);
       setSelectedWithdrawal(null);
       setFeedback(t('withdrawals.rejectSuccess'));
     },

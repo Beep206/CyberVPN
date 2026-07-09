@@ -4,7 +4,24 @@ import {
   parsePendingTwoFactorCookieValue,
   PENDING_2FA_COOKIE,
 } from '@/features/auth/lib/pending-twofa';
+import {
+  getTrustedForwardedHost,
+  getTrustedForwardedProto,
+} from '@/features/auth/lib/request-origin';
 import { getDefaultPostLoginPath } from '@/features/auth/lib/redirect-path';
+
+const SET_COOKIE_BOUNDARY_NAMES = [
+  '__Host-cvpn_device_id',
+  '__Host-cvpn_private_catalog_session',
+  'access_token',
+  'customer_access_token',
+  'customer_refresh_token',
+  'cv_partner_attribution',
+  'cv_ref_attribution',
+  'partner_access_token',
+  'partner_refresh_token',
+  'refresh_token',
+];
 
 function getBackendBaseUrl(): string {
   const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
@@ -22,13 +39,12 @@ function buildForwardHeaders(request: NextRequest, token: string): Headers {
     'content-type': 'application/json',
   });
 
-  const forwardedFor = request.headers.get('x-forwarded-for');
   const userAgent = request.headers.get('user-agent');
   const acceptLanguage = request.headers.get('accept-language');
 
-  if (forwardedFor) {
-    headers.set('x-forwarded-for', forwardedFor);
-  }
+  headers.set('x-forwarded-host', getTrustedForwardedHost(request));
+  headers.set('x-forwarded-proto', getTrustedForwardedProto(request));
+
   if (userAgent) {
     headers.set('user-agent', userAgent);
   }
@@ -45,11 +61,38 @@ function getSetCookieHeaders(response: Response): string[] {
   };
 
   if (typeof headers.getSetCookie === 'function') {
-    return headers.getSetCookie();
+    const setCookieHeaders = headers.getSetCookie();
+    if (setCookieHeaders.length > 0) {
+      return setCookieHeaders.flatMap(splitCombinedSetCookieHeader);
+    }
   }
 
   const setCookie = response.headers.get('set-cookie');
-  return setCookie ? [setCookie] : [];
+  return setCookie ? splitCombinedSetCookieHeader(setCookie) : [];
+}
+
+function splitCombinedSetCookieHeader(headerValue: string): string[] {
+  const headers: string[] = [];
+  let start = 0;
+
+  for (let index = 0; index < headerValue.length; index += 1) {
+    if (headerValue[index] !== ',') continue;
+
+    const candidate = headerValue.slice(index + 1).trimStart();
+    if (!SET_COOKIE_BOUNDARY_NAMES.some((name) => candidate.startsWith(`${name}=`))) {
+      continue;
+    }
+
+    headers.push(headerValue.slice(start, index).trim());
+    start = index + 1;
+  }
+
+  const tail = headerValue.slice(start).trim();
+  if (tail) {
+    headers.push(tail);
+  }
+
+  return headers;
 }
 
 function appendSetCookieHeaders(source: Response, target: NextResponse): void {

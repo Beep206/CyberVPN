@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
+from src.presentation.api.v1.remnawave_degraded import optional_remnawave_read
 from src.presentation.dependencies import get_remnawave_client, require_role
 
 from .schemas import (
@@ -17,6 +18,7 @@ from .schemas import (
     TorrentBlockerReportsQuery,
     TorrentBlockerReportsResponse,
     TorrentBlockerReportsStatsResponse,
+    TorrentBlockerStatsResponse,
     UpdateNodePluginRequest,
 )
 
@@ -43,11 +45,24 @@ async def get_torrent_blocker_stats(
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> TorrentBlockerReportsStatsResponse:
-    result = await client.get_validated(
-        "/node-plugins/torrent-blocker/reports/stats",
-        TorrentBlockerReportsStatsResponse,
+    result = await optional_remnawave_read(
+        route="node_plugins",
+        action="torrent_stats",
+        fetch=lambda: client.get_validated(
+            "/node-plugins/torrent-blocker/reports/stats",
+            TorrentBlockerReportsStatsResponse,
+        ),
+        fallback=TorrentBlockerReportsStatsResponse(
+            stats=TorrentBlockerStatsResponse(
+                distinctNodes=0,
+                distinctUsers=0,
+                totalReports=0,
+                reportsLast24Hours=0,
+            ),
+            topUsers=[],
+            topNodes=[],
+        ),
     )
-    route_operations_total.labels(route="node_plugins", action="torrent_stats", status="success").inc()
     return result
 
 
@@ -69,9 +84,12 @@ async def list_node_plugins(
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> NodePluginCollectionResponse:
-    result = await client.get_validated("/node-plugins", NodePluginCollectionResponse)
-    route_operations_total.labels(route="node_plugins", action="list", status="success").inc()
-    return result
+    return await optional_remnawave_read(
+        route="node_plugins",
+        action="list",
+        fetch=lambda: client.get_validated("/node-plugins", NodePluginCollectionResponse),
+        fallback=NodePluginCollectionResponse(total=0, nodePlugins=[]),
+    )
 
 
 @router.post("/", response_model=NodePluginResponse)

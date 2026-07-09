@@ -7,7 +7,12 @@ import { withSentryConfig } from "@sentry/nextjs";
 const CONFIG_DIR = dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = dirname(CONFIG_DIR);
 const ADMIN_PUBLIC_ORIGIN = "admin.cyber-vpn.net";
-const ADMIN_LOCAL_ORIGINS = ["localhost:3001", "127.0.0.1:3001"];
+const ADMIN_LOCAL_ORIGINS = [
+  "localhost",
+  "127.0.0.1",
+  "localhost:3001",
+  "127.0.0.1:3001",
+];
 const publicSentryRelease =
   process.env.NEXT_PUBLIC_SENTRY_RELEASE?.trim() ||
   process.env.GITHUB_SHA?.trim() ||
@@ -16,6 +21,11 @@ const publicSentryRelease =
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
 const sentryOrg = process.env.SENTRY_ORG?.trim();
 const sentryProject = process.env.SENTRY_PROJECT?.trim();
+const configuredBuildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? "", 10);
+const buildWorkerCount =
+  Number.isFinite(configuredBuildCpus) && configuredBuildCpus > 0
+    ? configuredBuildCpus
+    : 4;
 
 type NextConfigWithCompiler = NextConfig & {
   cacheComponents?: boolean;
@@ -42,6 +52,10 @@ const cspDirectives = [
 const config: NextConfigWithCompiler = {
   experimental: {
     globalNotFound: true,
+    cpus: buildWorkerCount,
+    staticGenerationRetryCount: 1,
+    staticGenerationMaxConcurrency: Math.min(buildWorkerCount, 4),
+    staticGenerationMinPagesPerWorker: 200,
     serverActions: {
       allowedOrigins: [ADMIN_PUBLIC_ORIGIN],
     },

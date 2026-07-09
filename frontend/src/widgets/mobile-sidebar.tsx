@@ -137,11 +137,11 @@ export function MobileSidebar() {
                     role="dialog"
                     aria-modal="true"
                     aria-label={labelFor('sidebar')}
-                    initial={{ x: '-100%' }}
+                    initial={{ x: 'var(--mobile-sidebar-hidden-x)' }}
                     animate={{ x: 0 }}
-                    exit={{ x: '-100%' }}
+                    exit={{ x: 'var(--mobile-sidebar-hidden-x)' }}
                     transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                    className="fixed inset-y-0 left-0 z-[80] flex h-dvh w-[min(20rem,calc(100vw-var(--mobile-page-gutter)*2))] max-w-full flex-col border-r border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
+                    className="fixed inset-y-0 start-0 z-[80] flex h-dvh w-[min(20rem,calc(100vw-var(--mobile-page-gutter)*2))] max-w-full flex-col border-e border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
                   >
                     <div className="flex h-16 items-center justify-between border-b border-grid-line/30 px-6">
                       <div className="flex items-center gap-2 font-display text-xl tracking-wider text-neon-cyan drop-shadow-glow">
@@ -161,7 +161,7 @@ export function MobileSidebar() {
                       </Button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-4 py-6">
+                    <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-6 scrollbar-gutter-stable">
                       <nav
                         aria-label={labelFor('mainNavigation')}
                         className="grid gap-2"
@@ -181,15 +181,15 @@ export function MobileSidebar() {
                               className="group relative block overflow-hidden rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-surface focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
                             >
                               {isActive && (
-                                <div className="absolute inset-0 bg-neon-cyan/10 border-l-2 border-neon-cyan" />
+                                <div className="absolute inset-0 border-s-2 border-neon-cyan bg-neon-cyan/10" />
                               )}
 
                               <div
                                 className={cn(
                                   'relative flex items-center gap-3 px-4 py-3 text-sm font-mono transition-all duration-300',
                                   isActive
-                                    ? 'text-neon-cyan translate-x-1'
-                                    : 'text-muted-foreground group-hover:text-foreground group-hover:translate-x-1',
+                                    ? 'text-neon-cyan ltr:translate-x-1 rtl:-translate-x-1'
+                                    : 'text-muted-foreground group-hover:text-foreground group-hover:ltr:translate-x-1 group-hover:rtl:-translate-x-1',
                                 )}
                               >
                                 <Icon

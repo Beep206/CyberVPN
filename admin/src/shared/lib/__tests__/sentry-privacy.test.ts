@@ -37,6 +37,22 @@ describe('scrubSentryEvent', () => {
           action: 'manual_review',
         },
       },
+      tags: {
+        paymentToken: 'token-secret',
+        route_group: 'admin',
+      },
+      breadcrumbs: [
+        {
+          category: 'admin.action',
+          data: {
+            audit_action: 'manual_review',
+            paymentUrl: 'https://gateway.local/pay?access_token=secret',
+            vpn_config_path: '/api/v1/vpn/config/secret',
+          },
+          message: 'reviewed vless://sensitive-config',
+        },
+      ],
+      fingerprint: ['admin-runtime', 'password=secret'],
     } as unknown as ErrorEvent;
 
     const scrubbed = scrubSentryEvent(event);
@@ -55,5 +71,13 @@ describe('scrubSentryEvent', () => {
     expect(scrubbed.extra?.provider_name).toBe('yookassa');
     expect(scrubbed.contexts?.payment).toBe('[Filtered]');
     expect(scrubbed.contexts?.safe?.action).toBe('manual_review');
+    expect(scrubbed.tags?.paymentToken).toBe('[Filtered]');
+    expect(scrubbed.tags?.route_group).toBe('admin');
+    expect(scrubbed.breadcrumbs?.[0]?.category).toBe('admin.action');
+    expect(scrubbed.breadcrumbs?.[0]?.message).toBe('[Filtered]');
+    expect(scrubbed.breadcrumbs?.[0]?.data?.audit_action).toBe('manual_review');
+    expect(scrubbed.breadcrumbs?.[0]?.data?.paymentUrl).toBe('[Filtered]');
+    expect(scrubbed.breadcrumbs?.[0]?.data?.vpn_config_path).toBe('[Filtered]');
+    expect(scrubbed.fingerprint).toEqual(['admin-runtime', '[Filtered]']);
   });
 });

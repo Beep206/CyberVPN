@@ -9,6 +9,7 @@ Provides:
 import hashlib
 import logging
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -115,6 +116,7 @@ from .schemas import (
     CustomerInviteBatchListResponse,
     CustomerInviteBatchResponse,
     InviteCodeResponse,
+    InviteCodeUsageMode,
     RedeemInviteRequest,
 )
 
@@ -491,7 +493,7 @@ async def list_my_invites(
             limit=limit,
         )
     if group_by is not None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unsupported invite grouping")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Unsupported invite grouping")
     return [_serialize_invite_code_response(inv) for inv in _sort_invites_for_clients(invites)]
 
 
@@ -527,7 +529,7 @@ async def admin_create_invites(
         legacy_plan_code = plan.plan_code if plan is not None else None
         if legacy_plan_code == "premium_smart_ru" and not body.legacy_acknowledgement:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "code": "PREMIUM_SMART_REQUIRES_FLEXIBLE_CAMPAIGN",
                     "message": (
@@ -794,7 +796,7 @@ async def admin_list_invite_campaigns(
     status_code=status.HTTP_201_CREATED,
     summary="Admin: create flexible invite campaign",
     responses={
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
             "model": AdminInviteCampaignValidationErrorResponse,
             "description": "Invite campaign policy validation error.",
         }
@@ -860,7 +862,7 @@ async def admin_create_invite_campaign(
         )
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=_invite_campaign_validation_detail(exc),
         ) from exc
     return await _serialize_invite_campaign(db, campaign)
@@ -886,7 +888,7 @@ async def admin_get_invite_campaign(
     status_code=status.HTTP_201_CREATED,
     summary="Admin: create draft invite campaign version",
     responses={
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
             "model": AdminInviteCampaignValidationErrorResponse,
             "description": "Invite campaign policy validation error.",
         }
@@ -943,7 +945,7 @@ async def admin_create_invite_campaign_version(
         )
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=_invite_campaign_validation_detail(exc),
         ) from exc
     return AdminInviteCampaignVersionResponse.model_validate(version)
@@ -1088,7 +1090,7 @@ async def admin_create_invite_campaign_batch(
             admin_user_id=current_user.id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
     return AdminInviteCampaignBatchCreateResponse(
         campaign=await _serialize_invite_campaign(db, result.campaign),
         batch=AdminInviteBatchResponse.model_validate(result.batch),
@@ -1978,7 +1980,7 @@ def _serialize_admin_invite_code(
         revoked_at=invite.revoked_at,
         expires_at=invite.expires_at,
         created_at=invite.created_at,
-        usage_mode=invite.usage_mode,
+        usage_mode=cast(InviteCodeUsageMode, invite.usage_mode),
         max_redemptions=invite.max_redemptions,
         redeemed_count=int(invite.redeemed_count or 0),
         active_redemptions_count=int(invite.active_redemptions_count or 0),

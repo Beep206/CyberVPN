@@ -108,4 +108,3 @@ class NatsJetStreamAdapter:
 
         self._connection = await nats.connect(self._settings.nats_url, name=self._settings.service_name)
         self._jetstream = self._connection.jetstream()
-

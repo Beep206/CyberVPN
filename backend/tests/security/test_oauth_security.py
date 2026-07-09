@@ -125,7 +125,10 @@ class TestOAuthStateService:
 
         assert len(state) > 20  # Should be a secure random token
         assert code_challenge is None  # No PKCE by default
-        mock_redis.setex.assert_called_once()
+        mock_redis.set.assert_awaited_once()
+        call_args = mock_redis.set.await_args
+        assert call_args.args[0].startswith("oauth_state:")
+        assert call_args.kwargs["ex"] == 600
 
 
 class TestOAuthLoginRedirectContract:

@@ -31,4 +31,3 @@ class ExecutorService:
         step = self._executor.build_plan_step(operation_run_id=operation_run.operation_run_id, preview=preview)
         await self._repository.append_operation_step(step)
         return preview, step
-

@@ -13,55 +13,46 @@ const FRONTEND_ROOT = resolve(SCRIPT_DIR, '..');
 const require = createRequire(import.meta.url);
 const NEXT_CLI_PATH = require.resolve('next/dist/bin/next');
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://admin.ozoxy.ru').replace(/\/+$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://admin.cyber-vpn.net').replace(/\/+$/, '');
 const DEFAULT_LOCALE = 'ru-RU';
-const RTL_LOCALE = 'ar-SA';
+const RTL_LOCALE = 'en-EN';
 const PRIORITY_LOCALE = 'ru-RU';
-const CHINA_LOCALE = 'zh-CN';
-const INDIA_LOCALE = 'hi-IN';
-const JAPAN_LOCALE = 'ja-JP';
+const CHINA_LOCALE = 'en-EN';
+const INDIA_LOCALE = 'en-EN';
+const JAPAN_LOCALE = 'ru-RU';
 const SERVER_HOST = '127.0.0.1';
 const AUDIT_DIST_DIR = '.next-seo-audit';
 const STARTUP_TIMEOUT_MS = 30_000;
 const BUILD_TIMEOUT_MS = 10 * 60_000;
 const REQUEST_TIMEOUT_MS = 15_000;
 const HEALTHCHECK_TIMEOUT_MS = 5_000;
-
-const INDEXABLE_ROUTES = [
-  '/',
-  '/api',
-  '/audits',
-  '/compare',
-  '/contact',
-  '/devices',
-  '/docs',
-  '/download',
-  '/features',
-  '/guides',
-  '/help',
-  '/network',
-  '/pricing',
-  '/privacy',
-  '/privacy-policy',
-  '/security',
-  '/status',
-  '/terms',
-  '/trust',
+const JSON_LD_PLACEHOLDER_VALUES = new Set(['undefined', 'null', 'nan', '[object object]']);
+const JSON_LD_SENSITIVE_VALUE_PATTERNS = [
+  { label: 'Bearer token', pattern: /\bBearer\s+[A-Za-z0-9._-]+/i },
+  { label: 'JWT', pattern: /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/ },
+  {
+    label: 'token query parameter',
+    pattern: /[?&](?:access_token|refresh_token|customer_access_token|partner_access_token|token|session|secret)=/i,
+  },
+  { label: 'VPN subscription URI', pattern: /\b(?:vless|vmess|trojan|ss|wireguard):\/\//i },
+  { label: 'local URL', pattern: /https?:\/\/(?:localhost|127\.0\.0\.1|portal\.localhost|storefront\.localhost)(?::\d+)?/i },
 ];
 
-const CONTENT_ROUTE_SAMPLES = [
-  '/guides/how-to-bypass-dpi-with-vless-reality',
-  '/compare/vless-reality-vs-wireguard',
-  '/devices/android-vpn-setup',
-];
+const INDEXABLE_ROUTES = [];
+
+const CONTENT_ROUTE_SAMPLES = [];
 
 const PRIVATE_ROUTE_SAMPLES = [
-  '/analytics',
+  '/',
+  '/commerce',
+  '/customers',
   '/dashboard',
+  '/growth',
+  '/infrastructure',
   '/login',
-  '/miniapp',
-  '/partner',
-  '/wallet',
+  '/privacy-requests',
+  '/security',
+  '/support',
   '/test-animation',
   '/test-error',
 ];
@@ -104,6 +95,175 @@ function getJsonLdBlocks(html) {
   return [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi)].map(
     ([, json]) => json,
   );
+}
+
+function normalizeJsonLdKey(key) {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[@\s-]+/g, '_')
+    .toLowerCase();
+}
+
+function isSensitiveJsonLdKey(key) {
+  const normalized = normalizeJsonLdKey(key);
+
+  if (normalized === '_id') {
+    return false;
+  }
+
+  return (
+    /(^|_)(access_token|refresh_token|customer_access_token|customer_refresh_token|partner_access_token|partner_refresh_token|tfa_token|totp_secret|api_key|private_key|subscription_url|vpn_url)($|_)/.test(
+      normalized,
+    ) ||
+    /(^|_)(token|authorization|cookie|password|secret|session|jwt|credential)($|_)/.test(
+      normalized,
+    ) ||
+    /(^|_)(user_id|customer_id|partner_id)($|_)/.test(normalized)
+  );
+}
+
+function assertJsonLdValueIsSafe(route, path, value) {
+  if (value === null) {
+    assert(false, `JSON-LD for "${route}" must not contain null at ${path}`);
+    return;
+  }
+
+  if (typeof value === 'number') {
+    assert(Number.isFinite(value), `JSON-LD for "${route}" must not contain a non-finite number at ${path}`);
+    return;
+  }
+
+  if (typeof value === 'string') {
+    const normalizedValue = value.trim().toLowerCase();
+
+    assert(
+      !JSON_LD_PLACEHOLDER_VALUES.has(normalizedValue) && !value.includes('[object Object]'),
+      `JSON-LD for "${route}" must not contain placeholder value at ${path}`,
+    );
+
+    for (const { label, pattern } of JSON_LD_SENSITIVE_VALUE_PATTERNS) {
+      assert(
+        !pattern.test(value),
+        `JSON-LD for "${route}" must not contain ${label} at ${path}`,
+      );
+    }
+
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => {
+      assertJsonLdValueIsSafe(route, `${path}[${index}]`, entry);
+    });
+    return;
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    for (const [key, entry] of Object.entries(value)) {
+      const nextPath = `${path}.${key}`;
+
+      assert(
+        !isSensitiveJsonLdKey(key),
+        `JSON-LD for "${route}" must not expose sensitive key "${key}" at ${nextPath}`,
+      );
+      assertJsonLdValueIsSafe(route, nextPath, entry);
+    }
+  }
+}
+
+function collectJsonLdTypes(value, types = new Set()) {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      collectJsonLdTypes(entry, types);
+    }
+
+    return types;
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return types;
+  }
+
+  const type = value['@type'];
+
+  if (typeof type === 'string') {
+    types.add(type);
+  } else if (Array.isArray(type)) {
+    type
+      .filter((entry) => typeof entry === 'string')
+      .forEach((entry) => {
+        types.add(entry);
+      });
+  }
+
+  for (const entry of Object.values(value)) {
+    collectJsonLdTypes(entry, types);
+  }
+
+  return types;
+}
+
+function parseJsonLdBlocks(route, html) {
+  const parsedBlocks = [];
+
+  getJsonLdBlocks(html).forEach((source, index) => {
+    try {
+      parsedBlocks.push(JSON.parse(source));
+    } catch (error) {
+      assert(
+        false,
+        `JSON-LD block ${index + 1} for "${route}" must parse as JSON: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  });
+
+  return parsedBlocks;
+}
+
+function assertRootJsonLdShape(route, block, index) {
+  const path = `$[${index}]`;
+
+  assert(
+    typeof block === 'object' && block !== null && !Array.isArray(block),
+    `JSON-LD block ${index + 1} for "${route}" must be an object`,
+  );
+
+  if (typeof block !== 'object' || block === null || Array.isArray(block)) {
+    return;
+  }
+
+  assert(
+    block['@context'] === 'https://schema.org',
+    `JSON-LD block ${index + 1} for "${route}" must use https://schema.org context`,
+  );
+  assert(
+    typeof block['@type'] === 'string' ||
+      (Array.isArray(block['@type']) && block['@type'].every((entry) => typeof entry === 'string')),
+    `JSON-LD block ${index + 1} for "${route}" must declare a string @type`,
+  );
+  assertJsonLdValueIsSafe(route, path, block);
+}
+
+function assertJsonLdBlocks(route, html, expectedTypes = []) {
+  const parsedBlocks = parseJsonLdBlocks(route, html);
+  const types = new Set();
+
+  if (expectedTypes.length > 0) {
+    assert(parsedBlocks.length > 0, `Route "${route}" must emit JSON-LD`);
+  }
+
+  parsedBlocks.forEach((block, index) => {
+    assertRootJsonLdShape(route, block, index);
+    collectJsonLdTypes(block, types);
+  });
+
+  for (const expectedType of expectedTypes) {
+    assert(types.has(expectedType), `Route "${route}" must emit ${expectedType} JSON-LD`);
+  }
+
+  return { raw: getJsonLdBlocks(html), types };
 }
 
 async function getAvailablePort() {
@@ -158,6 +318,7 @@ async function runBuild() {
       env: {
         ...process.env,
         NEXT_DIST_DIR: AUDIT_DIST_DIR,
+        NEXT_PUBLIC_SITE_URL: SITE_URL,
         NEXT_TELEMETRY_DISABLED: '1',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -210,6 +371,7 @@ function startServer(port) {
       env: {
         ...process.env,
         NEXT_DIST_DIR: AUDIT_DIST_DIR,
+        NEXT_PUBLIC_SITE_URL: SITE_URL,
         NEXT_TELEMETRY_DISABLED: '1',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -393,59 +555,22 @@ function assertRobots(robots) {
 function assertSitemapRoute(xml) {
   assert(xml.length > 0, 'sitemap.xml response must not be empty');
   assert(
-    xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}`),
-    'sitemap.xml must include the localized homepage URL',
+    !xml.includes('<url>') && !xml.includes('<url><loc>'),
+    'admin sitemap.xml must not publish indexable URLs',
   );
   assert(
-    xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}/help`),
-    'sitemap.xml must include the help knowledge surface',
+    !xml.includes('/dashboard') &&
+      !xml.includes('/customers') &&
+      !xml.includes('/growth') &&
+      !xml.includes('/login'),
+    'admin sitemap.xml must not include private admin URLs',
   );
   assert(
-    xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}/docs`),
-    'sitemap.xml must include the docs knowledge surface',
-  );
-  assert(
-    xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}/guides`),
-    'sitemap.xml must include the guides hub',
-  );
-  assert(
-    xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}/guides/how-to-bypass-dpi-with-vless-reality`),
-    'sitemap.xml must include the guide detail route',
-  );
-  assert(
-    xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}/trust`),
-    'sitemap.xml must include the trust center route',
-  );
-  assert(!xml.includes('/dashboard'), 'sitemap.xml must not include dashboard URLs');
-  assert(
-    !xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}/analytics`) &&
-      !xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}/wallet`) &&
-      !xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}/settings`) &&
-      !xml.includes(`${SITE_URL}/${DEFAULT_LOCALE}/users`),
-    'sitemap.xml must not include dashboard-related client URLs',
-  );
-  assert(!xml.includes('/login'), 'sitemap.xml must not include auth URLs');
-  assert(
-    !xml.includes('/test-animation') && !xml.includes('/test-error'),
-    'sitemap.xml must not include test URLs',
-  );
-  assert(
-    xml.includes(`${SITE_URL}/${PRIORITY_LOCALE}/guides`) &&
-      xml.includes(`${SITE_URL}/${CHINA_LOCALE}/trust`),
-    'sitemap.xml must include priority-market hub and trust routes',
-  );
-  assert(
-    xml.includes(`${SITE_URL}/${PRIORITY_LOCALE}/guides/how-to-bypass-dpi-with-vless-reality`) &&
-      xml.includes(`${SITE_URL}/${CHINA_LOCALE}/compare/vless-reality-vs-wireguard`) &&
-      xml.includes(`${SITE_URL}/${PRIORITY_LOCALE}/devices/android-vpn-setup`) &&
-      xml.includes(`${SITE_URL}/${INDIA_LOCALE}/guides/how-to-bypass-dpi-with-vless-reality`) &&
-      xml.includes(`${SITE_URL}/${JAPAN_LOCALE}/devices/android-vpn-setup`),
-    'sitemap.xml must include localized detail routes for the full priority-market rollout',
-  );
-  assert(
-    !xml.includes(`${SITE_URL}/fa-IR/guides/how-to-bypass-dpi-with-vless-reality`) &&
-      !xml.includes(`${SITE_URL}/ar-SA/devices/android-vpn-setup`),
-    'sitemap.xml must keep non-priority localized detail-content combinations out of the index',
+    !xml.includes('/pricing') &&
+      !xml.includes('/guides') &&
+      !xml.includes('/devices') &&
+      !xml.includes('/compare'),
+    'admin sitemap.xml must not include copied customer marketing URLs',
   );
   assert(
     !xml.includes('vpn-admin.example.com'),
@@ -454,9 +579,10 @@ function assertSitemapRoute(xml) {
 }
 
 function assertHomeJsonLdAndCtas(homeHtml) {
-  const jsonLd = getJsonLdBlocks(homeHtml).join('\n');
+  const { raw, types } = assertJsonLdBlocks('/', homeHtml);
+  const jsonLd = raw.join('\n');
 
-  assert(!jsonLd.includes('SearchAction'), 'Homepage JSON-LD must not advertise SearchAction');
+  assert(!types.has('SearchAction'), 'Homepage JSON-LD must not advertise SearchAction');
   assert(!jsonLd.includes('/search'), 'Homepage JSON-LD must not point to a fake /search route');
   assert(
     homeHtml.includes('https://t.me/C_y_b_e_r_VPN_Bot'),
@@ -473,37 +599,11 @@ function assertHomeJsonLdAndCtas(homeHtml) {
 }
 
 function assertKnowledgeStructuredData(helpHtml, docsHtml, guideHtml, compareHtml, deviceHtml) {
-  const helpJsonLd = getJsonLdBlocks(helpHtml).join('\n');
-  const docsJsonLd = getJsonLdBlocks(docsHtml).join('\n');
-  const guideJsonLd = getJsonLdBlocks(guideHtml).join('\n');
-  const compareJsonLd = getJsonLdBlocks(compareHtml).join('\n');
-  const deviceJsonLd = getJsonLdBlocks(deviceHtml).join('\n');
-
-  assert(helpJsonLd.includes('"@type":"FAQPage"'), 'Help page must emit FAQPage JSON-LD');
-  assert(
-    helpJsonLd.includes('"@type":"BreadcrumbList"'),
-    'Help page must emit BreadcrumbList JSON-LD',
-  );
-  assert(
-    docsJsonLd.includes('"@type":"TechArticle"'),
-    'Docs page must emit TechArticle JSON-LD',
-  );
-  assert(
-    docsJsonLd.includes('"@type":"BreadcrumbList"'),
-    'Docs page must emit BreadcrumbList JSON-LD',
-  );
-  assert(
-    guideJsonLd.includes('"@type":"TechArticle"'),
-    'Guide detail page must emit TechArticle JSON-LD',
-  );
-  assert(
-    compareJsonLd.includes('"@type":"TechArticle"'),
-    'Compare detail page must emit TechArticle JSON-LD',
-  );
-  assert(
-    deviceJsonLd.includes('"@type":"SoftwareApplication"'),
-    'Device detail page must emit SoftwareApplication JSON-LD',
-  );
+  assertJsonLdBlocks('/help', helpHtml, ['FAQPage', 'BreadcrumbList']);
+  assertJsonLdBlocks('/docs', docsHtml, ['TechArticle', 'BreadcrumbList']);
+  assertJsonLdBlocks('/guides/how-to-bypass-dpi-with-vless-reality', guideHtml, ['TechArticle']);
+  assertJsonLdBlocks('/compare/vless-reality-vs-wireguard', compareHtml, ['TechArticle']);
+  assertJsonLdBlocks('/devices/android-vpn-setup', deviceHtml, ['SoftwareApplication']);
 }
 
 function assertRtlMarkup(rtlHtml) {
@@ -560,14 +660,14 @@ async function main() {
     ] = await Promise.all([
       fetchText(baseUrl, '/robots.txt'),
       fetchText(baseUrl, '/sitemap.xml'),
-      fetchText(baseUrl, buildLocalizedRoute('/pricing', RTL_LOCALE)),
-      fetchText(baseUrl, buildLocalizedRoute('/guides', PRIORITY_LOCALE)),
-      fetchText(baseUrl, buildLocalizedRoute('/trust', CHINA_LOCALE)),
-      fetchText(baseUrl, buildLocalizedRoute('/guides/how-to-bypass-dpi-with-vless-reality', PRIORITY_LOCALE)),
-      fetchText(baseUrl, buildLocalizedRoute('/compare/vless-reality-vs-wireguard', CHINA_LOCALE)),
-      fetchText(baseUrl, buildLocalizedRoute('/devices/android-vpn-setup', PRIORITY_LOCALE)),
-      fetchText(baseUrl, buildLocalizedRoute('/guides/how-to-bypass-dpi-with-vless-reality', INDIA_LOCALE)),
-      fetchText(baseUrl, buildLocalizedRoute('/devices/android-vpn-setup', JAPAN_LOCALE)),
+      fetchText(baseUrl, buildLocalizedRoute('/login', RTL_LOCALE)),
+      fetchText(baseUrl, buildLocalizedRoute('/dashboard', PRIORITY_LOCALE)),
+      fetchText(baseUrl, buildLocalizedRoute('/security', CHINA_LOCALE)),
+      fetchText(baseUrl, buildLocalizedRoute('/growth', PRIORITY_LOCALE)),
+      fetchText(baseUrl, buildLocalizedRoute('/commerce', CHINA_LOCALE)),
+      fetchText(baseUrl, buildLocalizedRoute('/infrastructure', PRIORITY_LOCALE)),
+      fetchText(baseUrl, buildLocalizedRoute('/support', INDIA_LOCALE)),
+      fetchText(baseUrl, buildLocalizedRoute('/privacy-requests', JAPAN_LOCALE)),
     ]);
 
     const publicPages = new Map(publicPageEntries);
@@ -588,9 +688,21 @@ async function main() {
       assertPublicPage(route, publicPages.get(route) ?? '');
     }
 
+    for (const [route, html] of publicPages) {
+      assertJsonLdBlocks(route, html);
+    }
+
     for (const route of PRIVATE_ROUTE_SAMPLES) {
       assertPrivatePage(route, privatePages.get(route) ?? '');
     }
+
+    for (const [route, html] of privatePages) {
+      assertJsonLdBlocks(route, html);
+    }
+
+    assertRobots(robots);
+    assertSitemapRoute(sitemapXml);
+    assertNoLegacyDomainLeak([robots, sitemapXml]);
 
     if (homeHtml && helpHtml && docsHtml && pricingHtml && guideHtml && compareHtml && deviceHtml) {
       assertRobots(robots);
@@ -624,6 +736,18 @@ async function main() {
         JAPAN_LOCALE,
         japaneseDeviceDetailHtml,
       );
+      [
+        [`/${RTL_LOCALE}/pricing`, rtlHtml],
+        [`/${PRIORITY_LOCALE}/guides`, russianGuidesHtml],
+        [`/${CHINA_LOCALE}/trust`, chineseTrustHtml],
+        [`/${PRIORITY_LOCALE}/guides/how-to-bypass-dpi-with-vless-reality`, russianGuideDetailHtml],
+        [`/${CHINA_LOCALE}/compare/vless-reality-vs-wireguard`, chineseCompareDetailHtml],
+        [`/${PRIORITY_LOCALE}/devices/android-vpn-setup`, russianDeviceDetailHtml],
+        [`/${INDIA_LOCALE}/guides/how-to-bypass-dpi-with-vless-reality`, indianGuideDetailHtml],
+        [`/${JAPAN_LOCALE}/devices/android-vpn-setup`, japaneseDeviceDetailHtml],
+      ].forEach(([route, html]) => {
+        assertJsonLdBlocks(route, html);
+      });
       assertRtlMarkup(rtlHtml);
       assertNoLegacyDomainLeak([
         homeHtml,
@@ -668,3 +792,4 @@ if (errors.length > 0) {
 process.stdout.write(
   `SEO static audit passed: ${INDEXABLE_ROUTES.length + CONTENT_ROUTE_SAMPLES.length} public routes and ${PRIVATE_ROUTE_SAMPLES.length} private route samples verified.\n`,
 );
+process.exit(0);

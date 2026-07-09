@@ -224,7 +224,7 @@ class JWTRevocationService:
             return  # Token already expired, no need to revoke
 
         key = f"{self.REVOKED_PREFIX}{jti}"
-        await resolve_maybe_awaitable(self._redis.setex(key, ttl_seconds, "revoked"))
+        await resolve_maybe_awaitable(self._redis.set(key, "revoked", ex=ttl_seconds))
 
         logger.info(
             "Token revoked",

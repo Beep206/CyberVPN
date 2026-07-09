@@ -198,7 +198,7 @@
     "gapDescription": "The first dedicated `system_config` governance API is now live for `miniapp.runtime`. Broader system configuration families and a true admin directory still need to move off the generic `/settings` surface.",
     "keyPlaceholder": "registration_mode",
     "descriptionPlaceholder": "Short operator-facing explanation",
-    "valuePlaceholder": "{\"enabled\": true}",
+    "valuePlaceholder": "'{\"enabled\": true}'",
     "publicToggle": "Expose this setting as public",
     "resetEditor": "Reset editor",
     "createSuccess": "Setting created.",

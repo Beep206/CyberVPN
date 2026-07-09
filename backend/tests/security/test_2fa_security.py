@@ -32,7 +32,10 @@ class TestReauthService:
         )
 
         assert result is True
-        mock_redis.setex.assert_called_once()
+        mock_redis.set.assert_awaited_once()
+        call_args = mock_redis.set.await_args
+        assert call_args.args[0] == "reauth:user-123"
+        assert call_args.kwargs["ex"] == 300
 
     @pytest.mark.asyncio
     async def test_verify_password_fails_with_wrong_password(self):
@@ -51,7 +54,7 @@ class TestReauthService:
         )
 
         assert result is False
-        mock_redis.setex.assert_not_called()
+        mock_redis.set.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_is_recently_authenticated_checks_redis(self):
@@ -100,7 +103,11 @@ class TestPendingTOTPService:
             result = await service.generate_pending_secret("user-123", "test@example.com")
 
         assert "secret" in result
-        mock_redis.setex.assert_called_once()
+        mock_redis.set.assert_awaited_once()
+        call_args = mock_redis.set.await_args
+        assert call_args.args[0] == "pending_totp:user-123"
+        assert "TESTSECRET" in call_args.args[1]
+        assert call_args.kwargs["ex"] == 600
 
     @pytest.mark.asyncio
     async def test_verify_deletes_pending_on_success(self):

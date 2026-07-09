@@ -67,10 +67,10 @@ class ReauthService:
             "verified_at": datetime.now(UTC).isoformat(),
             "expires_at": (datetime.now(UTC) + self._grace_period).isoformat(),
         }
-        await self._redis.setex(
+        await self._redis.set(
             key,
-            int(self._grace_period.total_seconds()),
             json.dumps(data),
+            ex=int(self._grace_period.total_seconds()),
         )
 
         logger.info(

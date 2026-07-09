@@ -35,6 +35,14 @@ function localizePath(pathname: string, locale: string): string {
     return `/${locale}${pathname === '/' ? '' : pathname}`;
 }
 
+function formatTriggerLabel(template: unknown, language: string): string {
+    if (typeof template !== 'string' || template.length === 0) {
+        return `Select language: ${language}`;
+    }
+
+    return template.replace('{language}', language);
+}
+
 export function LanguageSelector() {
     const t = useTranslations('LanguageSelector');
     const locale = useLocale();
@@ -44,6 +52,7 @@ export function LanguageSelector() {
     const [searchQuery, setSearchQuery] = useState('');
 
     const currentLanguage = LANGUAGES.find(l => l.code === locale) || LANGUAGES[0];
+    const triggerLabel = formatTriggerLabel(t.raw('triggerLabel'), currentLanguage.name);
 
     // ... (rest of the component logic)
 
@@ -75,7 +84,7 @@ export function LanguageSelector() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsOpen(true)}
-                    aria-label={t('triggerLabel', { language: currentLanguage.name })}
+                    aria-label={triggerLabel}
                     aria-haspopup="dialog"
                     aria-expanded={isOpen}
                     className="touch-target inline-flex items-center justify-center gap-2 rounded-lg border border-grid-line/30 bg-terminal-surface/30 px-3 text-muted-foreground transition-colors duration-300 group hover:border-neon-cyan/50 hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"

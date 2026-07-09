@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
 import pytest
-from aiogram import Bot
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import User
 
@@ -21,6 +20,8 @@ from src.states.subscription import SubscriptionStates
 from tests.conftest import create_fsm_context
 
 if TYPE_CHECKING:
+    from aiogram import Bot
+
     from src.config import BotSettings
 
 
@@ -252,7 +253,7 @@ async def test_yookassa_payment_flow_success(
     5. Subscription activation
     """
     storage = MemoryStorage()
-    state = create_fsm_context(storage, mock_bot.id, test_user.id, test_user.id)
+    create_fsm_context(storage, mock_bot.id, test_user.id, test_user.id)
 
     # Mock YooKassa payment creation
     mock_simple_api_client.create_payment.return_value = {
@@ -330,7 +331,7 @@ async def test_payment_timeout_handling(
     }
 
     # Create payment
-    payment = await mock_simple_api_client.create_payment(
+    await mock_simple_api_client.create_payment(
         {
             "user_id": test_user.id,
             "plan_id": "basic_plan",
@@ -353,10 +354,10 @@ async def test_payment_webhook_verification_failure(
 ) -> None:
     """Test webhook verification failure scenario."""
     # Mock webhook verification failure
-    mock_simple_api_client.process_webhook.side_effect = Exception("Invalid webhook signature")
+    mock_simple_api_client.process_webhook.side_effect = ValueError("Invalid webhook signature")
 
     # Attempt to process webhook with invalid signature
-    try:
+    with pytest.raises(ValueError, match="Invalid webhook signature"):
         await mock_simple_api_client.process_webhook(
             "cryptobot",
             {
@@ -364,10 +365,6 @@ async def test_payment_webhook_verification_failure(
                 "status": "completed",
             },
         )
-        pytest.fail("Expected webhook verification to fail")
-    except Exception:
-        # Expected to fail
-        pass
 
 
 @pytest.mark.integration
@@ -385,10 +382,10 @@ async def test_payment_activation_error(
     }
 
     # But activation fails
-    mock_simple_api_client.verify_payment.side_effect = Exception("Subscription activation failed")
+    mock_simple_api_client.verify_payment.side_effect = ValueError("Subscription activation failed")
 
     # Create payment
-    payment = await mock_simple_api_client.create_payment(
+    await mock_simple_api_client.create_payment(
         {
             "user_id": test_user.id,
             "plan_id": "basic_plan",
@@ -399,9 +396,5 @@ async def test_payment_activation_error(
     )
 
     # Attempt verification should fail
-    try:
+    with pytest.raises(ValueError, match="Subscription activation failed"):
         await mock_simple_api_client.verify_payment("payment_with_activation_error")
-        pytest.fail("Expected activation to fail")
-    except Exception:
-        # Expected to fail
-        pass

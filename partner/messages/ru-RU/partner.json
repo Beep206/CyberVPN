@@ -1162,6 +1162,7 @@
     },
     "buttons": {
       "create": "Создать код",
+      "cancel": "Отмена",
       "copy": "Скопировать ссылку",
       "link": "Создать deep link",
       "qr": "Сгенерировать QR",
@@ -1172,6 +1173,11 @@
     },
     "capabilities": {
       "title": "Capability posture по lane",
+      "backendAction": "Backend action: {value}",
+      "write": "Запись включена",
+      "read": "Только чтение",
+      "loading": "Загружаем lane capabilities...",
+      "empty": "Для текущего lane нет backend-owned действий с кодами.",
       "items": {
         "starter_code": "Стартовый launch code",
         "additional_codes": "Создание дополнительных кодов",
@@ -1185,7 +1191,8 @@
       "starter": "Для этого lane уже доступен стартовый launch path, но инструменты расширения всё ещё зависят от quality checks и readiness overlays.",
       "controlled": "Lane уже может работать, но scale-out по кодам намеренно ограничен approval, governance или storefront alignment.",
       "full": "Для этого lane доступен полный PP4 code surface для стандартных growth-операций.",
-      "read_only": "Рабочая область может видеть текущую posture по кодам, но новые launch actions останутся заблокированными, пока restriction не снят."
+      "read_only": "Рабочая область может видеть текущую posture по кодам, но новые launch actions останутся заблокированными, пока restriction не снят.",
+      "review": "Рабочая область находится на review: текущая posture по кодам видна, а новые write actions ждут approval от partner operations."
     },
     "actions": {
       "title": "Action posture",
@@ -1193,6 +1200,25 @@
       "controlled": "Эта роль может управлять контролируемым launch set, но некоторые типы кодов всё ещё требуют дополнительный approval или lane readiness.",
       "full": "Эта роль может использовать PP4 code surface в рамках текущего lane.",
       "readOnly": "Эта роль или состояние рабочей области позволяют только смотреть posture по кодам, но create и expansion actions остаются заблокированными."
+    },
+    "confirm": {
+      "subject": "Lifecycle action для кода",
+      "activate": {
+        "title": "Активировать код",
+        "description": "Код станет доступен для новых attribution touchpoints после принятия lifecycle transition backend."
+      },
+      "pause": {
+        "title": "Поставить код на паузу",
+        "description": "Код перестанет принимать новые attribution touchpoints, а историческая отчётность останется видимой."
+      },
+      "revoke": {
+        "title": "Отозвать код",
+        "description": "Код будет навсегда заблокирован для нового attribution use. Историческая отчётность останется auditable."
+      },
+      "archive": {
+        "title": "Архивировать код",
+        "description": "Код уйдёт из активного рабочего набора, но останется доступен для audit и исторического finance context."
+      }
     },
     "links": {
       "title": "Связанные поверхности",
@@ -1238,6 +1264,7 @@
       }
     },
     "modes": {
+      "review": "Campaign assets остаются review-bound, пока рабочая область находится на проверке partner operations.",
       "starter": "Lane может использовать стартовые enablement assets, но расширение campaign scope остаётся осторожным и review-aware.",
       "controlled": "Доступ к campaigns есть, но submissions, approvals и глубина library остаются ограниченными правилами lane.",
       "full": "Lane может использовать полный PP4 campaigns surface для стандартной launch и enablement работы.",
@@ -1491,7 +1518,15 @@
       "available": "Доступный earnings",
       "onHold": "На холде",
       "reserves": "Резервы",
-      "forecast": "Прогноз следующего payout"
+      "forecast": "Прогноз следующего payout",
+      "currencyBreakdown": "Разбивка по currency",
+      "currencyBreakdownDescription": "Проверьте available, hold, reserve, paid, reversed и total суммы по settlement currency.",
+      "source": "Источник: {value}",
+      "paid": "Выплачено",
+      "reversed": "Отменено",
+      "total": "Итого",
+      "events": "События",
+      "notAvailable": "Недоступно"
     },
     "statements": {
       "title": "Statements",
@@ -1836,7 +1871,7 @@
   "supportTickets": {
     "eyebrow": "WORKSPACE SUPPORT TICKETS",
     "title": "Partner support tickets",
-    "subtitle": "Создавайте и ведите support tickets только для {рабочей области}. Internal support notes и tickets других рабочей области не отображаются в этой partner surface.",
+    "subtitle": "Создавайте и ведите support tickets только для {workspace}. Internal support notes и tickets других рабочих областей не отображаются в этой partner surface.",
     "summary": {
       "workspace": "Рабочая область",
       "visibleTickets": "Видимые tickets",

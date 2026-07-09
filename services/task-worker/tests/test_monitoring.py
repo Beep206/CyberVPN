@@ -40,10 +40,10 @@ async def test_health_check_all_nodes_healthy(mock_redis, mock_remnawave, mock_t
 
     with (
         patch("src.tasks.monitoring.health_check.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.health_check.CacheService") as MockCache,
-        patch("src.tasks.monitoring.health_check.RemnawaveClient") as MockRW,
-        patch("src.tasks.monitoring.health_check.TelegramClient") as MockTg,
-        patch("src.tasks.monitoring.health_check.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.monitoring.health_check.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.health_check.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.monitoring.health_check.TelegramClient") as mock_tg_cls,
+        patch("src.tasks.monitoring.health_check.publish_event", new_callable=AsyncMock),
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(
@@ -53,13 +53,13 @@ async def test_health_check_all_nodes_healthy(mock_redis, mock_remnawave, mock_t
             ]
         )
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await check_server_health()
 
@@ -83,22 +83,22 @@ async def test_health_check_node_goes_offline(mock_redis, mock_remnawave, mock_t
 
     with (
         patch("src.tasks.monitoring.health_check.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.health_check.CacheService") as MockCache,
-        patch("src.tasks.monitoring.health_check.RemnawaveClient") as MockRW,
-        patch("src.tasks.monitoring.health_check.TelegramClient") as MockTg,
-        patch("src.tasks.monitoring.health_check.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.monitoring.health_check.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.health_check.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.monitoring.health_check.TelegramClient") as mock_tg_cls,
+        patch("src.tasks.monitoring.health_check.publish_event", new_callable=AsyncMock),
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value={"status": "online"})  # Was online
         mock_cache.set = AsyncMock()
         mock_cache.add_to_sorted_set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await check_server_health()
 
@@ -125,22 +125,22 @@ async def test_health_check_node_recovers(mock_redis, mock_remnawave, mock_teleg
 
     with (
         patch("src.tasks.monitoring.health_check.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.health_check.CacheService") as MockCache,
-        patch("src.tasks.monitoring.health_check.RemnawaveClient") as MockRW,
-        patch("src.tasks.monitoring.health_check.TelegramClient") as MockTg,
-        patch("src.tasks.monitoring.health_check.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.monitoring.health_check.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.health_check.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.monitoring.health_check.TelegramClient") as mock_tg_cls,
+        patch("src.tasks.monitoring.health_check.publish_event", new_callable=AsyncMock),
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value={"status": "offline"})  # Was offline
         mock_cache.set = AsyncMock()
         mock_cache.add_to_sorted_set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await check_server_health()
 
@@ -166,22 +166,22 @@ async def test_health_check_first_run_no_cache(mock_redis, mock_remnawave, mock_
 
     with (
         patch("src.tasks.monitoring.health_check.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.health_check.CacheService") as MockCache,
-        patch("src.tasks.monitoring.health_check.RemnawaveClient") as MockRW,
-        patch("src.tasks.monitoring.health_check.TelegramClient") as MockTg,
-        patch("src.tasks.monitoring.health_check.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.monitoring.health_check.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.health_check.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.monitoring.health_check.TelegramClient") as mock_tg_cls,
+        patch("src.tasks.monitoring.health_check.publish_event", new_callable=AsyncMock),
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value=None)  # No previous state
         mock_cache.set = AsyncMock()
         mock_cache.add_to_sorted_set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await check_server_health()
 
@@ -208,15 +208,15 @@ async def test_bandwidth_collects_snapshots(mock_redis, mock_remnawave):
 
     with (
         patch("src.tasks.monitoring.bandwidth.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.bandwidth.CacheService") as MockCache,
-        patch("src.tasks.monitoring.bandwidth.RemnawaveClient") as MockRW,
+        patch("src.tasks.monitoring.bandwidth.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.bandwidth.RemnawaveClient") as mock_rw_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await collect_bandwidth_snapshot()
 
@@ -240,15 +240,15 @@ async def test_bandwidth_updates_dashboard_cache(mock_redis, mock_remnawave):
 
     with (
         patch("src.tasks.monitoring.bandwidth.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.bandwidth.CacheService") as MockCache,
-        patch("src.tasks.monitoring.bandwidth.RemnawaveClient") as MockRW,
+        patch("src.tasks.monitoring.bandwidth.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.bandwidth.RemnawaveClient") as mock_rw_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         await collect_bandwidth_snapshot()
 
@@ -283,15 +283,15 @@ async def test_bandwidth_handles_null_traffic(mock_redis, mock_remnawave):
 
     with (
         patch("src.tasks.monitoring.bandwidth.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.bandwidth.CacheService") as MockCache,
-        patch("src.tasks.monitoring.bandwidth.RemnawaveClient") as MockRW,
+        patch("src.tasks.monitoring.bandwidth.CacheService") as mock_cache_cls,
+        patch("src.tasks.monitoring.bandwidth.RemnawaveClient") as mock_rw_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await collect_bandwidth_snapshot()
 
@@ -305,11 +305,11 @@ async def test_services_health_all_services_up(mock_redis, mock_remnawave, mock_
     """Test services health check when all services are healthy."""
     with (
         patch("src.tasks.monitoring.services_health.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.services_health.CacheService") as MockCache,
+        patch("src.tasks.monitoring.services_health.CacheService") as mock_cache_cls,
         patch("src.tasks.monitoring.services_health.check_db_connection", return_value=True),
         patch("src.tasks.monitoring.services_health.check_redis", return_value=True),
-        patch("src.tasks.monitoring.services_health.RemnawaveClient") as MockRW,
-        patch("src.tasks.monitoring.services_health.TelegramClient") as MockTg,
+        patch("src.tasks.monitoring.services_health.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.monitoring.services_health.TelegramClient") as mock_tg_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(
@@ -321,15 +321,15 @@ async def test_services_health_all_services_up(mock_redis, mock_remnawave, mock_
             }
         )
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_remnawave.health_check.return_value = True
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         mock_telegram.health_check.return_value = True
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await check_external_services()
 
@@ -345,11 +345,11 @@ async def test_services_health_service_down_triggers_alert(mock_redis, mock_remn
     """Test services health check sends alert when service goes down."""
     with (
         patch("src.tasks.monitoring.services_health.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.services_health.CacheService") as MockCache,
+        patch("src.tasks.monitoring.services_health.CacheService") as mock_cache_cls,
         patch("src.tasks.monitoring.services_health.check_db_connection", return_value=False),
         patch("src.tasks.monitoring.services_health.check_redis", return_value=True),
-        patch("src.tasks.monitoring.services_health.RemnawaveClient") as MockRW,
-        patch("src.tasks.monitoring.services_health.TelegramClient") as MockTg,
+        patch("src.tasks.monitoring.services_health.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.monitoring.services_health.TelegramClient") as mock_tg_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(
@@ -359,15 +359,15 @@ async def test_services_health_service_down_triggers_alert(mock_redis, mock_remn
             }
         )
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_remnawave.health_check.return_value = True
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         mock_telegram.health_check.return_value = True
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await check_external_services()
 
@@ -383,11 +383,11 @@ async def test_services_health_service_recovers(mock_redis, mock_remnawave, mock
     """Test services health check sends recovery alert."""
     with (
         patch("src.tasks.monitoring.services_health.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.services_health.CacheService") as MockCache,
+        patch("src.tasks.monitoring.services_health.CacheService") as mock_cache_cls,
         patch("src.tasks.monitoring.services_health.check_db_connection", return_value=True),
         patch("src.tasks.monitoring.services_health.check_redis", return_value=True),
-        patch("src.tasks.monitoring.services_health.RemnawaveClient") as MockRW,
-        patch("src.tasks.monitoring.services_health.TelegramClient") as MockTg,
+        patch("src.tasks.monitoring.services_health.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.monitoring.services_health.TelegramClient") as mock_tg_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(
@@ -399,15 +399,15 @@ async def test_services_health_service_recovers(mock_redis, mock_remnawave, mock
             ]
         )
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         mock_remnawave.health_check.return_value = True
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         mock_telegram.health_check.return_value = True
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await check_external_services()
 
@@ -423,25 +423,25 @@ async def test_services_health_handles_exceptions(mock_redis, mock_remnawave, mo
     """Test services health check handles API exceptions gracefully."""
     with (
         patch("src.tasks.monitoring.services_health.get_redis_client", return_value=mock_redis),
-        patch("src.tasks.monitoring.services_health.CacheService") as MockCache,
+        patch("src.tasks.monitoring.services_health.CacheService") as mock_cache_cls,
         patch("src.tasks.monitoring.services_health.check_db_connection", return_value=True),
         patch("src.tasks.monitoring.services_health.check_redis", return_value=True),
-        patch("src.tasks.monitoring.services_health.RemnawaveClient") as MockRW,
-        patch("src.tasks.monitoring.services_health.TelegramClient") as MockTg,
+        patch("src.tasks.monitoring.services_health.RemnawaveClient") as mock_rw_cls,
+        patch("src.tasks.monitoring.services_health.TelegramClient") as mock_tg_cls,
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(return_value=None)
         mock_cache.set = AsyncMock()
-        MockCache.return_value = mock_cache
+        mock_cache_cls.return_value = mock_cache
 
         # Remnawave throws exception
         mock_remnawave.health_check.side_effect = Exception("Connection error")
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw_cls.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         mock_telegram.health_check.return_value = True
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg_cls.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await check_external_services()
 

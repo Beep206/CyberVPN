@@ -86,6 +86,6 @@ class StarsPaymentService:
         """
         try:
             settings = await self._api.get_gateway_settings()
-            return settings.get("stars_enabled", False)
+            return bool(settings.get("stars_enabled", False))
         except APIError:
             return False

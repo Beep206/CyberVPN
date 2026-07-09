@@ -90,7 +90,7 @@ class CheckoutAddonRequest(BaseModel):
 
     code: str = Field(..., min_length=1, max_length=50)
     qty: int = Field(default=1, ge=1, le=100)
-    location_code: str | None = Field(None, min_length=2, max_length=64)
+    location_code: str | None = Field(default=None, min_length=2, max_length=64)
 
 
 class CheckoutAddonResponse(BaseModel):
@@ -107,7 +107,7 @@ class CheckoutAddonResponse(BaseModel):
 
 class CheckoutCodeBasketItemRequest(BaseModel):
     code: str = Field(..., min_length=1, max_length=64)
-    client_slot_id: str | None = Field(None, min_length=1, max_length=80)
+    client_slot_id: str | None = Field(default=None, min_length=1, max_length=80)
 
 
 class EffectiveEntitlementsResponse(BaseModel):
@@ -138,14 +138,16 @@ class CheckoutQuoteRequest(BaseModel):
 
     plan_id: UUID = Field(..., description="Subscription plan to purchase")
     addons: list[CheckoutAddonRequest] = Field(default_factory=list)
-    code_input: str | None = Field(None, max_length=64, description="Optional promo or referral code")
-    promo_code: str | None = Field(None, max_length=50, description="Optional promo code")
-    partner_code: str | None = Field(None, max_length=30, description="Optional partner code")
+    code_input: str | None = Field(default=None, max_length=64, description="Optional promo or referral code")
+    promo_code: str | None = Field(default=None, max_length=50, description="Optional promo code")
+    partner_code: str | None = Field(default=None, max_length=30, description="Optional partner code")
     codes: list[CheckoutCodeBasketItemRequest] = Field(default_factory=list, max_length=5)
-    private_catalog_grant_id: UUID | None = Field(None, description="Private catalog grant from code-set preflight")
+    private_catalog_grant_id: UUID | None = Field(
+        default=None, description="Private catalog grant from code-set preflight"
+    )
     use_wallet: float = Field(0, ge=0, description="Requested wallet amount in USD")
-    currency: str = Field("USD", min_length=3, max_length=12, description="Gateway asset code")
-    channel: str = Field("web", min_length=1, max_length=30, description="Checkout sale channel")
+    currency: str = Field(default="USD", min_length=3, max_length=12, description="Gateway asset code")
+    channel: str = Field(default="web", min_length=1, max_length=30, description="Checkout sale channel")
 
     @field_validator("currency")
     @classmethod
@@ -286,7 +288,7 @@ class CheckoutQuoteResponse(BaseModel):
 class CheckoutCommitResponse(CheckoutQuoteResponse):
     """Commit response with persisted payment or invoice reference."""
 
-    payment_id: UUID | None = Field(None, description="Local payment identifier")
+    payment_id: UUID | None = Field(default=None, description="Local payment identifier")
     status: str = Field(..., description="completed or pending")
     invoice: InvoiceResponse | None = None
 
@@ -297,7 +299,7 @@ class PaymentStatusResponse(BaseModel):
     payment_id: UUID
     status: PaymentStatus = Field(..., description="Current payment status")
     provider: PaymentProvider = Field(..., description="Payment provider")
-    external_id: str | None = Field(None, description="Provider-side charge identifier")
+    external_id: str | None = Field(default=None, description="Provider-side charge identifier")
     amount: float = Field(..., ge=0)
     currency: str
     created_at: datetime

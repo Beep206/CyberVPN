@@ -2,6 +2,7 @@
 
 from src.shared.logging.config import configure_logging
 from src.shared.logging.sanitization import (
+    fingerprint_pii,
     sanitize_email,
     sanitize_headers,
     sanitize_pii,
@@ -11,6 +12,7 @@ from src.shared.logging.sanitization import (
 
 __all__ = [
     "configure_logging",
+    "fingerprint_pii",
     "sanitize_url",
     "sanitize_headers",
     "sanitize_email",

@@ -122,7 +122,7 @@ async def preflight_growth_code_set(
             )
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
     if result.status != "accepted":
         observe_checkout_code_set_rejected(reason=_code_set_rejection_reason(result))
     response.headers["Cache-Control"] = "no-store, private"

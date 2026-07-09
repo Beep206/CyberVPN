@@ -10,6 +10,7 @@ import { server } from '@/test/mocks/server';
 import { walletApi } from '../wallet';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
+import { expectAxiosErrorStatus } from './assertions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -139,7 +140,7 @@ describe('walletApi.getBalance', () => {
     );
 
     // Act & Assert
-    await expect(walletApi.getBalance()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(walletApi.getBalance(), 401);
   });
 
   it('test_get_balance_with_refresh_token_retries_on_401', async () => {
@@ -243,7 +244,7 @@ describe('walletApi.getTransactions', () => {
     );
 
     // Act & Assert
-    await expect(walletApi.getTransactions()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(walletApi.getTransactions(), 401);
   });
 });
 
@@ -386,12 +387,13 @@ describe('walletApi.requestWithdrawal', () => {
     );
 
     // Act & Assert
-    await expect(
+    await expectAxiosErrorStatus(
       walletApi.requestWithdrawal({
         amount: 25.0,
         method: 'cryptobot',
       }),
-    ).rejects.toThrow('Request failed with status code 401');
+      401,
+    );
   });
 });
 
@@ -465,7 +467,7 @@ describe('walletApi.getWithdrawals', () => {
     );
 
     // Act & Assert
-    await expect(walletApi.getWithdrawals()).rejects.toThrow('Request failed with status code 401');
+    await expectAxiosErrorStatus(walletApi.getWithdrawals(), 401);
   });
 
   it('test_get_withdrawals_rate_limited_rejects_with_rate_limit_error', async () => {

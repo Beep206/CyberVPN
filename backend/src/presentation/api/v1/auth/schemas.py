@@ -40,11 +40,11 @@ class RegisterRequest(BaseModel):
 
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str | None = Field(None, min_length=1, max_length=1000)
+    refresh_token: str | None = Field(default=None, min_length=1, max_length=1000)
 
 
 class LogoutRequest(BaseModel):
-    refresh_token: str | None = Field(None, min_length=1, max_length=1000)
+    refresh_token: str | None = Field(default=None, min_length=1, max_length=1000)
 
 
 class TokenResponse(BaseModel):
@@ -311,9 +311,9 @@ class TelegramWebLoginRequest(BaseModel):
 
     id: int = Field(..., description="Telegram User ID")
     first_name: str = Field(..., max_length=255)
-    last_name: str | None = Field(None, max_length=255)
-    username: str | None = Field(None, max_length=255)
-    photo_url: str | None = Field(None, max_length=1024)
+    last_name: str | None = Field(default=None, max_length=255)
+    username: str | None = Field(default=None, max_length=255)
+    photo_url: str | None = Field(default=None, max_length=1024)
     auth_date: int = Field(..., description="Authentication timestamp")
     hash: str = Field(..., min_length=1, max_length=255, description="HMAC-SHA256 signature")
 
@@ -439,9 +439,9 @@ class DeviceSessionResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    device_id: str | None = Field(None, description="Unique device identifier")
-    ip_address: str | None = Field(None, description="Last known IP address")
-    user_agent: str | None = Field(None, description="Browser/device user agent string")
+    device_id: str | None = Field(default=None, description="Unique device identifier")
+    ip_address: str | None = Field(default=None, description="Last known IP address")
+    user_agent: str | None = Field(default=None, description="Browser/device user agent string")
     last_used_at: datetime = Field(..., description="Last time this session was used")
     created_at: datetime = Field(..., description="When this session was created")
     is_current: bool = Field(False, description="Whether this is the current session")

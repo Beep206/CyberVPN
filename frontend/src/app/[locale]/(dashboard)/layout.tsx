@@ -60,11 +60,11 @@ export default async function DashboardLayout({
               }}
             />
 
-            <div className="flex min-h-dvh w-full bg-terminal-bg text-foreground">
+            <div className="flex min-h-dvh w-full scrollbar-gutter-stable bg-terminal-bg text-foreground">
               <NavigationDebugProvider />
               <a
                 href="#main-content"
-                className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-neon-cyan focus:text-black focus:px-4 focus:py-2 focus:rounded-sm focus:font-mono focus:text-sm"
+                className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:bg-neon-cyan focus:text-black focus:px-4 focus:py-2 focus:rounded-sm focus:font-mono focus:text-sm"
               >
                 Skip to main content
               </a>
@@ -75,7 +75,7 @@ export default async function DashboardLayout({
                 <CyberSidebar />
               </ErrorBoundary>
 
-              <div className="relative flex min-h-dvh flex-1 flex-col md:pl-64">
+              <div className="relative flex min-h-dvh flex-1 flex-col md:ps-64">
                 <ErrorBoundary label="Header">
                   <TerminalHeader performanceMode="always" showMobileSidebar />
                 </ErrorBoundary>
@@ -87,7 +87,7 @@ export default async function DashboardLayout({
                   id="main-content"
                   tabIndex={-1}
                   aria-live="polite"
-                  className="relative z-10 flex-1 p-4 pb-20 focus:outline-hidden md:p-6"
+                  className="safe-inline-gutter relative z-10 flex-1 py-4 pb-20 focus:outline-hidden md:p-6"
                 >
                   {children}
                 </main>

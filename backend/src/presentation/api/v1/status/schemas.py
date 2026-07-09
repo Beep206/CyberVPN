@@ -11,11 +11,11 @@ class ServiceStatuses(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     database: str = Field(
-        "ok",
+        default="ok",
         description="Database connectivity status",
     )
     redis: str = Field(
-        "ok",
+        default="ok",
         description="Redis cache connectivity status",
     )
 
@@ -43,6 +43,6 @@ class StatusResponse(BaseModel):
         description="Server timestamp in ISO 8601 format",
     )
     services: ServiceStatuses = Field(
-        default_factory=ServiceStatuses,
+        default_factory=lambda: ServiceStatuses(),
         description="Individual service dependency statuses",
     )

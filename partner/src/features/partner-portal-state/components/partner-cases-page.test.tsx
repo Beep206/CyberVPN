@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -131,6 +131,10 @@ function renderPage() {
   );
 }
 
+function setFieldValue(field: HTMLElement, value: string) {
+  fireEvent.change(field, { target: { value } });
+}
+
 describe('PartnerCasesPage', () => {
   beforeEach(() => {
     respondToWorkspaceReviewRequest.mockReset();
@@ -170,7 +174,7 @@ describe('PartnerCasesPage', () => {
 
     renderPage();
 
-    await user.type(
+    setFieldValue(
       screen.getByLabelText('requestedInfo.responseLabel'),
       'Uploaded payout profile evidence and settlement contacts.',
     );
@@ -193,7 +197,7 @@ describe('PartnerCasesPage', () => {
 
     expect(await screen.findByText('requestedInfo.success')).toBeInTheDocument();
 
-    await user.type(
+    setFieldValue(
       screen.getByLabelText('caseList.responseLabel'),
       'Finance package is complete and ready for partner ops review.',
     );
@@ -215,8 +219,7 @@ describe('PartnerCasesPage', () => {
 
     expect(await screen.findByText('caseList.replySuccess')).toBeInTheDocument();
 
-    await user.clear(screen.getByLabelText('caseList.responseLabel'));
-    await user.type(
+    setFieldValue(
       screen.getByLabelText('caseList.responseLabel'),
       'Case is packaged and ready for ops handoff.',
     );

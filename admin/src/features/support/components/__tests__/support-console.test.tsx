@@ -82,6 +82,10 @@ function renderWithQueryClient(ui: ReactNode) {
   );
 }
 
+function setFieldValue(field: HTMLElement, value: string) {
+  fireEvent.change(field, { target: { value } });
+}
+
 function buildTicket(overrides: Partial<SupportTicketDetail> = {}): SupportTicketDetail {
   return {
     assigned_admin_id: null,
@@ -181,12 +185,10 @@ describe('SupportConsole', () => {
   });
 
   it('posts public replies and internal notes to different API methods', async () => {
-    const user = userEvent.setup();
-
     renderWithQueryClient(<SupportConsole initialTicketRef="sup_20260529_0001" />);
 
     const publicComposer = await screen.findByTestId('support-public-reply-composer');
-    await user.type(
+    setFieldValue(
       within(publicComposer).getByLabelText('reply.message'),
       'Public troubleshooting steps.',
     );
@@ -203,7 +205,7 @@ describe('SupportConsole', () => {
     expect(mockAddAdminInternalNote).not.toHaveBeenCalled();
 
     const internalComposer = screen.getByTestId('support-internal-note-composer');
-    await user.type(
+    setFieldValue(
       within(internalComposer).getByLabelText('internalNote.message'),
       'Internal operator note.',
     );

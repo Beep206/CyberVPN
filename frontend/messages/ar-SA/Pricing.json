@@ -73,14 +73,16 @@
     "stealth": "Stealth",
     "manual_config": "يدوي / متقدم",
     "dedicated_ip": "IP مخصص",
-    "experimental": "تجريبي"
+    "experimental": "تجريبي",
+    "shared": "Shared"
   },
   "poolNames": {
     "shared": "مشترك",
     "shared_plus": "Shared+",
     "premium_shared": "مشترك مميز",
     "premium": "مميز",
-    "exclusive": "حصري"
+    "exclusive": "حصري",
+    "default": "Default"
   },
   "supportNames": {
     "standard": "دعم قياسي",

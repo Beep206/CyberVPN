@@ -5,10 +5,14 @@ Restricts handler access to configured admin Telegram IDs.
 
 from __future__ import annotations
 
-from aiogram.filters import BaseFilter
-from aiogram.types import CallbackQuery, Message
+from typing import TYPE_CHECKING
 
-from src.config import BotSettings
+from aiogram.filters import BaseFilter
+
+if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery, Message
+
+    from src.config import BotSettings
 
 
 class IsAdmin(BaseFilter):

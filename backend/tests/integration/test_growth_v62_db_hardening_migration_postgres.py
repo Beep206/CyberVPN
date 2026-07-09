@@ -21,6 +21,7 @@ pytestmark = [pytest.mark.integration]
 
 PREVIOUS_REVISION = "20260626_reg_access_idem"
 GROWTH_V62_DB_REVISION = "20260627_growth_v62_db"
+CURRENT_HEAD_REVISION = "20260701_invite_source_len"
 
 NEW_TABLES = {
     "fx_provider_configs",
@@ -60,7 +61,7 @@ async def test_growth_v62_db_migration_clean_upgrade_downgrade_reupgrade() -> No
         await asyncio.to_thread(_run_alembic, url, "upgrade", "head")
         conn = await asyncpg.connect(_asyncpg_url_for_database(database_name))
         try:
-            assert await conn.fetchval("select version_num from alembic_version") == GROWTH_V62_DB_REVISION
+            assert await conn.fetchval("select version_num from alembic_version") == CURRENT_HEAD_REVISION
             await _assert_v62_schema_present(conn)
         finally:
             await conn.close()
@@ -78,7 +79,7 @@ async def test_growth_v62_db_migration_clean_upgrade_downgrade_reupgrade() -> No
         await asyncio.to_thread(_run_alembic, url, "upgrade", "head")
         conn = await asyncpg.connect(_asyncpg_url_for_database(database_name))
         try:
-            assert await conn.fetchval("select version_num from alembic_version") == GROWTH_V62_DB_REVISION
+            assert await conn.fetchval("select version_num from alembic_version") == CURRENT_HEAD_REVISION
             await _assert_v62_schema_present(conn)
         finally:
             await conn.close()

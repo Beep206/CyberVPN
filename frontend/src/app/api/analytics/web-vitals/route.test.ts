@@ -76,6 +76,30 @@ describe('POST /api/analytics/web-vitals', () => {
     expect(response.status).toBe(204);
   });
 
+  it('accepts custom loopback ports used by local browser smokes', async () => {
+    const response = await POST(
+      createRequest(
+        {
+          connectionType: '4g',
+          deviceBucket: 'desktop',
+          locale: 'ru-RU',
+          metric: 'cls',
+          path: '/ru-RU/dashboard',
+          rating: 'good',
+          reducedMotion: 'no-preference',
+          routeGroup: 'dashboard',
+          saveData: 'off',
+          value: 0.01,
+          viewportBucket: 'desktop',
+        },
+        'http://127.0.0.1:9464',
+        'http://localhost:3000',
+      ) as never,
+    );
+
+    expect(response.status).toBe(204);
+  });
+
   it('rejects foreign origins', async () => {
     const response = await POST(
       createRequest(

@@ -5,11 +5,13 @@ This module contains Pydantic models for system notifications and alerts.
 
 from __future__ import annotations
 
-from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class NotificationType(StrEnum):

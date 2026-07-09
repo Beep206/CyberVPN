@@ -11,8 +11,8 @@ from pathlib import Path
 WORKLOAD_CLUSTER_NAME = "nonprod-hetzner-hel1-core"
 APP_NAMESPACE = "platform-apps"
 SOURCE_REPOSITORY_SLUG = "beep/vpnbussiness"
-BACKEND_SECRET_KEY = "kv-apps/data/nonprod/platform/backend"
-TASK_WORKER_SECRET_KEY = "kv-apps/data/nonprod/platform/task-worker"
+BACKEND_OPENBAO_PATH = "kv-apps/data/nonprod/platform/backend"
+TASK_WORKER_OPENBAO_PATH = "kv-apps/data/nonprod/platform/task-worker"
 BACKEND_CHART_NAME = "cybervpn-backend"
 TASK_WORKER_CHART_NAME = "cybervpn-task-worker"
 
@@ -20,7 +20,7 @@ REQUIRED_ANCHORS: dict[str, tuple[str, ...]] = {
     "backend/Dockerfile": ('CMD ["python", "-m", "src.serve"]', "EXPOSE 9091"),
     "backend/alembic.ini": ("[alembic]",),
     "backend/src/serve.py": ("start_http_server",),
-    "backend/src/main.py": ('@app.get("/health")', '@app.get("/readiness")'),
+    "backend/src/main.py": ('@app.get("/health")', '@app.get("/readiness"'),
     "backend/src/config/settings.py": ("metrics_port: int = 9091", "remnawave_token: SecretStr"),
     "services/task-worker/Dockerfile": ('CMD ["taskiq", "worker", "src.broker:broker"',),
     "services/task-worker/src/broker.py": ("TaskiqScheduler", "PROMETHEUS_MULTIPROC_DIR"),
@@ -38,7 +38,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def write_text(path: Path, content: str, mode: int = 0o640) -> None:
+def write_text(path: Path, content: str, mode: int = 0o600) -> None:
     ensure_parent(path)
     path.write_text(content, encoding="utf-8")
     os.chmod(path, mode)
@@ -67,7 +67,7 @@ Canonical decisions frozen here:
 - `task-scheduler` is a second release of the `{TASK_WORKER_CHART_NAME}` chart, not a new image family;
 - both worker releases consume OpenBao-backed runtime material through `ExternalSecret`;
 - `task-worker` and `task-scheduler` intentionally share the same OpenBao extract key:
-  - `{TASK_WORKER_SECRET_KEY}`
+  - `{TASK_WORKER_OPENBAO_PATH}`
 - `backend` carries a pre-install and pre-upgrade database migration hook:
   - `alembic upgrade head`
 - rollout order is:
@@ -190,7 +190,7 @@ externalSecret:
     kind: ClusterSecretStore
     name: openbao-apps
   targetName: backend-runtime
-  extractKey: {BACKEND_SECRET_KEY}
+  extractKey: {BACKEND_OPENBAO_PATH}
 
 service:
   enabled: true
@@ -243,7 +243,7 @@ externalSecret:
     kind: ClusterSecretStore
     name: openbao-apps
   targetName: task-worker-runtime
-  extractKey: {TASK_WORKER_SECRET_KEY}
+  extractKey: {TASK_WORKER_OPENBAO_PATH}
 
 workload:
   mode: worker
@@ -295,7 +295,7 @@ externalSecret:
     kind: ClusterSecretStore
     name: openbao-apps
   targetName: task-scheduler-runtime
-  extractKey: {TASK_WORKER_SECRET_KEY}
+  extractKey: {TASK_WORKER_OPENBAO_PATH}
 
 workload:
   mode: scheduler
@@ -425,7 +425,7 @@ metadata:
 """
 
 
-def render_externalsecret_tpl(helper_prefix: str) -> str:
+def render_external_runtime_reference_tpl(helper_prefix: str) -> str:
     return f"""{{{{- if .Values.externalSecret.enabled }}}}
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -812,7 +812,7 @@ spec:
       digest: sha256:REPLACE_ME_BACKEND_IMAGE_DIGEST
     externalSecret:
       targetName: backend-runtime
-      extractKey: {BACKEND_SECRET_KEY}
+      extractKey: {BACKEND_OPENBAO_PATH}
     service:
       enabled: true
       type: ClusterIP
@@ -864,7 +864,7 @@ spec:
       digest: {digest_placeholder}
     externalSecret:
       targetName: {target_name}
-      extractKey: {TASK_WORKER_SECRET_KEY}
+      extractKey: {TASK_WORKER_OPENBAO_PATH}
     workload:
       mode: {mode}
       command:
@@ -891,8 +891,8 @@ def render_versions_env() -> str:
     return f"""WORKLOAD_CLUSTER_NAME={WORKLOAD_CLUSTER_NAME}
 APP_NAMESPACE={APP_NAMESPACE}
 SOURCE_REPOSITORY_SLUG={SOURCE_REPOSITORY_SLUG}
-BACKEND_SECRET_KEY={BACKEND_SECRET_KEY}
-TASK_WORKER_SECRET_KEY={TASK_WORKER_SECRET_KEY}
+BACKEND_OPENBAO_PATH={BACKEND_OPENBAO_PATH}
+TASK_WORKER_OPENBAO_PATH={TASK_WORKER_OPENBAO_PATH}
 INITIAL_WORKLOADS=backend,task-worker,task-scheduler
 EXCLUDED_WORKLOADS=helix-adapter,telegram-bot
 """
@@ -910,9 +910,9 @@ excludedWorkloads:
   - helix-adapter
   - telegram-bot
 secretContracts:
-  backend: {BACKEND_SECRET_KEY}
-  task-worker: {TASK_WORKER_SECRET_KEY}
-  task-scheduler: {TASK_WORKER_SECRET_KEY}
+  backend: {BACKEND_OPENBAO_PATH}
+  task-worker: {TASK_WORKER_OPENBAO_PATH}
+  task-scheduler: {TASK_WORKER_OPENBAO_PATH}
 rolloutOrder:
   - namespace
   - backend
@@ -930,8 +930,8 @@ echo "  cluster: {WORKLOAD_CLUSTER_NAME}"
 echo "  namespace: {APP_NAMESPACE}"
 echo "  initial workloads: backend, task-worker, task-scheduler"
 echo "  excluded workloads: helix-adapter, telegram-bot"
-echo "  backend secret key: {BACKEND_SECRET_KEY}"
-echo "  task-worker secret key: {TASK_WORKER_SECRET_KEY}"
+echo "  backend OpenBao path: {BACKEND_OPENBAO_PATH}"
+echo "  task-worker OpenBao path: {TASK_WORKER_OPENBAO_PATH}"
 """
 
 
@@ -955,7 +955,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
     write_text(output_dir / "README.md", render_root_readme())
     write_text(output_dir / "versions.env", render_versions_env())
     write_text(output_dir / "spec-manifest.yaml", render_spec_manifest())
-    write_text(output_dir / "scripts" / "check-control-plane-workloads.sh", render_check_script(), mode=0o750)
+    write_text(output_dir / "scripts" / "check-control-plane-workloads.sh", render_check_script(), mode=0o700)
 
     source_repo_dir = output_dir / "source-repo"
     gitops_repo_dir = output_dir / "platform-gitops"
@@ -968,7 +968,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
     write_text(backend_chart_dir / "values.yaml", render_backend_values())
     write_text(backend_chart_dir / "templates" / "_helpers.tpl", render_backend_helpers_tpl())
     write_text(backend_chart_dir / "templates" / "serviceaccount.yaml", render_serviceaccount_tpl("cybervpn-backend"))
-    write_text(backend_chart_dir / "templates" / "externalsecret.yaml", render_externalsecret_tpl("cybervpn-backend"))
+    write_text(backend_chart_dir / "templates" / "externalsecret.yaml", render_external_runtime_reference_tpl("cybervpn-backend"))
     write_text(backend_chart_dir / "templates" / "deployment.yaml", render_backend_deployment_tpl())
     write_text(backend_chart_dir / "templates" / "service.yaml", render_backend_service_tpl())
     write_text(backend_chart_dir / "templates" / "servicemonitor.yaml", render_backend_servicemonitor_tpl())
@@ -981,7 +981,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
     write_text(task_worker_chart_dir / "values-scheduler.yaml", render_task_scheduler_values())
     write_text(task_worker_chart_dir / "templates" / "_helpers.tpl", render_task_worker_helpers_tpl())
     write_text(task_worker_chart_dir / "templates" / "serviceaccount.yaml", render_serviceaccount_tpl("cybervpn-task-worker"))
-    write_text(task_worker_chart_dir / "templates" / "externalsecret.yaml", render_externalsecret_tpl("cybervpn-task-worker"))
+    write_text(task_worker_chart_dir / "templates" / "externalsecret.yaml", render_external_runtime_reference_tpl("cybervpn-task-worker"))
     write_text(task_worker_chart_dir / "templates" / "deployment.yaml", render_task_worker_deployment_tpl())
     write_text(task_worker_chart_dir / "templates" / "service.yaml", render_task_worker_service_tpl())
     write_text(task_worker_chart_dir / "templates" / "servicemonitor.yaml", render_task_worker_servicemonitor_tpl())
@@ -1074,9 +1074,9 @@ def command_validate(args: argparse.Namespace) -> int:
 
     print("initial_workloads=backend,task-worker,task-scheduler")
     print("excluded_workloads=helix-adapter,telegram-bot")
-    print(f"backend_secret_key={BACKEND_SECRET_KEY}")
-    print(f"task_worker_secret_key={TASK_WORKER_SECRET_KEY}")
-    print(f"task_scheduler_secret_key={TASK_WORKER_SECRET_KEY}")
+    print(f"backend_openbao_path={BACKEND_OPENBAO_PATH}")
+    print(f"task_worker_openbao_path={TASK_WORKER_OPENBAO_PATH}")
+    print(f"task_scheduler_openbao_path={TASK_WORKER_OPENBAO_PATH}")
     print("backend_migration_job=alembic upgrade head")
     print("backend_metrics_port=9091")
     print("task_worker_metrics_port=9091")

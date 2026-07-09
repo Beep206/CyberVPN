@@ -11,6 +11,7 @@ Note on mocking redis.asyncio pipelines:
 """
 
 import json
+import logging
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -27,6 +28,7 @@ def _make_pipeline(execute_return):
     pipe.ttl = MagicMock(return_value=pipe)
     pipe.get = MagicMock(return_value=pipe)
     pipe.delete = MagicMock(return_value=pipe)
+    pipe.set = MagicMock(return_value=pipe)
     pipe.setex = MagicMock(return_value=pipe)
     return pipe
 
@@ -75,19 +77,21 @@ class TestMagicLinkServiceGenerate:
         pipe = mock_redis.pipeline.return_value
         token, otp_code = await service.generate(email="test@example.com")
 
-        assert pipe.setex.call_count == 3
+        assert pipe.set.call_count == 3
 
-        key, ttl, data_json = pipe.setex.call_args_list[0].args
+        key, data_json = pipe.set.call_args_list[0].args
         assert key == f"magic_link:{token}"
-        assert ttl == 3600
+        assert pipe.set.call_args_list[0].kwargs == {"ex": 3600}
         data = json.loads(data_json)
         assert data["email"] == "test@example.com"
         assert "created_at" in data
 
-        email_key, email_ttl, stored_token = pipe.setex.call_args_list[1].args
-        otp_key, otp_ttl, stored_otp = pipe.setex.call_args_list[2].args
-        assert (email_key, email_ttl, stored_token) == ("magic_link_email:test@example.com", 3600, token)
-        assert (otp_key, otp_ttl, stored_otp) == ("magic_link_otp:test@example.com", 3600, otp_code)
+        email_key, stored_token = pipe.set.call_args_list[1].args
+        otp_key, stored_otp = pipe.set.call_args_list[2].args
+        assert (email_key, stored_token) == ("magic_link_email:test@example.com", token)
+        assert (otp_key, stored_otp) == ("magic_link_otp:test@example.com", otp_code)
+        assert pipe.set.call_args_list[1].kwargs == {"ex": 3600}
+        assert pipe.set.call_args_list[2].kwargs == {"ex": 3600}
 
     @pytest.mark.unit
     async def test_generate_stores_ip_address_when_provided(self, mock_redis):
@@ -97,7 +101,7 @@ class TestMagicLinkServiceGenerate:
         await service.generate(email="test@example.com", ip_address="192.168.1.100")
 
         pipe = mock_redis.pipeline.return_value
-        data_json = pipe.setex.call_args_list[0].args[2]
+        data_json = pipe.set.call_args_list[0].args[1]
         data = json.loads(data_json)
         assert data["ip_address"] == "192.168.1.100"
 
@@ -109,7 +113,7 @@ class TestMagicLinkServiceGenerate:
         await service.generate(email="test@example.com")
 
         pipe = mock_redis.pipeline.return_value
-        data_json = pipe.setex.call_args_list[0].args[2]
+        data_json = pipe.set.call_args_list[0].args[1]
         data = json.loads(data_json)
         assert data["ip_address"] is None
 
@@ -228,6 +232,29 @@ class TestMagicLinkServiceValidateAndConsume:
         assert result["created_at"] == "2026-01-15T10:00:00+00:00"
 
     @pytest.mark.unit
+    async def test_validate_logs_do_not_include_token_material(self, caplog):
+        """Magic-link logs must not expose raw token material or token prefixes."""
+        payload = json.dumps(
+            {
+                "email": "test@example.com",
+                "ip_address": "10.0.0.1",
+                "created_at": "2026-01-15T10:00:00+00:00",
+            }
+        )
+        pipe = _make_pipeline(execute_return=[payload.encode(), 1])
+        mock_redis = _make_redis(pipe)
+        service = MagicLinkService(mock_redis)
+        raw_token = "super_secret_magic_link_token"
+
+        caplog.set_level(logging.INFO, logger="src.application.services.magic_link_service")
+
+        await service.validate_and_consume(raw_token)
+
+        assert raw_token not in caplog.text
+        assert raw_token[:8] not in caplog.text
+        assert all("token_prefix" not in record.__dict__ for record in caplog.records)
+
+    @pytest.mark.unit
     async def test_validate_expired_token_returns_none(self):
         """Expired or non-existent token returns None."""
         pipe = _make_pipeline(execute_return=[None, 0])
@@ -269,8 +296,8 @@ class TestMagicLinkServiceValidateAndConsume:
         assert result is None
 
     @pytest.mark.unit
-    async def test_validate_allows_single_replay_then_blocks_further_reuse(self):
-        """Second consumption may replay once; subsequent reuse is blocked."""
+    async def test_validate_rejects_replay_after_first_consumption(self):
+        """A consumed bearer token must not issue another session."""
         payload = json.dumps(
             {"email": "test@example.com", "ip_address": None, "created_at": "2026-01-01T00:00:00+00:00"}
         )
@@ -278,22 +305,18 @@ class TestMagicLinkServiceValidateAndConsume:
         first_read = _make_pipeline(execute_return=[payload.encode(), 1])
         first_cleanup = _make_pipeline(execute_return=[1, 1, True, 1])
         second_read = _make_pipeline(execute_return=[None, 0])
-        third_read = _make_pipeline(execute_return=[None, 0])
 
         mock_redis = AsyncMock()
-        mock_redis.pipeline = MagicMock(side_effect=[first_read, first_cleanup, second_read, third_read])
-        mock_redis.get = AsyncMock(side_effect=[payload.encode(), payload.encode()])
-        mock_redis.set = AsyncMock(side_effect=[True, False])
+        mock_redis.pipeline = MagicMock(side_effect=[first_read, first_cleanup, second_read])
+        mock_redis.get = AsyncMock(return_value=payload.encode())
 
         service = MagicLinkService(mock_redis)
 
         result1 = await service.validate_and_consume("one_time_token")
         result2 = await service.validate_and_consume("one_time_token")
-        result3 = await service.validate_and_consume("one_time_token")
 
         assert result1 is not None
-        assert result2 is not None
-        assert result3 is None
+        assert result2 is None
 
 
 class TestRateLimitExceededError:
@@ -308,11 +331,12 @@ class TestRateLimitExceededError:
         assert error.retry_after_seconds == 600
 
     @pytest.mark.unit
-    def test_error_message_includes_email(self):
-        """Error message includes the email address."""
+    def test_error_message_does_not_include_email(self):
+        """Error message does not include the email address."""
         error = RateLimitExceededError("test@example.com")
 
-        assert "test@example.com" in str(error)
+        assert "test@example.com" not in str(error)
+        assert str(error) == "Rate limit exceeded for magic link requests"
 
     @pytest.mark.unit
     def test_error_retry_after_defaults_to_none(self):

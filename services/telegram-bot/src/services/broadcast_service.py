@@ -6,11 +6,12 @@ Backend API's broadcast system.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
-from src.services.api_client import CyberVPNAPIClient
+if TYPE_CHECKING:
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
@@ -69,13 +70,13 @@ class BroadcastService:
             stats = await self._api.get_statistics()
             match audience:
                 case "all":
-                    return stats.get("total_users", 0)
+                    return int(stats.get("total_users", 0))
                 case "active":
-                    return stats.get("active_subscriptions", 0)
+                    return int(stats.get("active_subscriptions", 0))
                 case "expired":
-                    return stats.get("expired_subscriptions", 0)
+                    return int(stats.get("expired_subscriptions", 0))
                 case "trial":
-                    return stats.get("trial_users", 0)
+                    return int(stats.get("trial_users", 0))
                 case _:
                     return 0
         except Exception:

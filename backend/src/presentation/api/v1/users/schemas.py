@@ -12,19 +12,19 @@ class CreateUserRequest(BaseModel):
     """Request schema for creating a new VPN user."""
 
     username: str = Field(..., min_length=3, max_length=50)
-    password: str | None = Field(None, max_length=255)
+    password: str | None = Field(default=None, max_length=255)
     email: EmailStr | None = None
-    data_limit: int | None = Field(None, ge=0, le=1_099_511_627_776)  # max 1 TB
+    data_limit: int | None = Field(default=None, ge=0, le=1_099_511_627_776)  # max 1 TB
     expire_at: datetime | None = None
 
 
 class UpdateUserRequest(BaseModel):
     """Request schema for updating a VPN user."""
 
-    username: str | None = Field(None, min_length=3, max_length=50)
-    password: str | None = Field(None, max_length=255)
+    username: str | None = Field(default=None, min_length=3, max_length=50)
+    password: str | None = Field(default=None, max_length=255)
     email: EmailStr | None = None
-    data_limit: int | None = Field(None, ge=0, le=1_099_511_627_776)
+    data_limit: int | None = Field(default=None, ge=0, le=1_099_511_627_776)
     expire_at: datetime | None = None
 
 

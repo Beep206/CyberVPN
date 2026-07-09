@@ -23,8 +23,8 @@ class CreateStatementAdjustmentRequest(BaseModel):
     adjustment_direction: StatementAdjustmentDirection
     amount: Decimal
     currency_code: str = Field(..., min_length=1, max_length=12)
-    reason_code: str | None = Field(None, min_length=1, max_length=80)
-    source_reference_type: str | None = Field(None, min_length=1, max_length=40)
+    reason_code: str | None = Field(default=None, min_length=1, max_length=80)
+    source_reference_type: str | None = Field(default=None, min_length=1, max_length=40)
     source_reference_id: UUID | None = None
     adjustment_payload: dict[str, Any] = Field(default_factory=dict)
 

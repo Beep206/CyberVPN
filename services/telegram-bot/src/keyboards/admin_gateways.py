@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 def gateway_settings_keyboard(
     i18n: I18nContext,
-    settings: dict,
+    settings: dict[str, Any],
 ) -> InlineKeyboardMarkup:
     """Create payment gateway settings keyboard."""
     builder = InlineKeyboardBuilder()

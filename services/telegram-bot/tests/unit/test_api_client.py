@@ -597,9 +597,9 @@ class TestAPIClientCompleteTelegramAccountLink:
         client = CyberVPNAPIClient(settings=mock_settings.backend, auth_backend=auth_backend)
 
         with respx.mock:
-            route = respx.post(
-                "https://auth.test.cybervpn.local/oauth/telegram/account-link/magic-link/complete"
-            ).mock(return_value=httpx.Response(200, json={"status": "accepted"}))
+            route = respx.post("https://auth.test.cybervpn.local/oauth/telegram/account-link/magic-link/complete").mock(
+                return_value=httpx.Response(200, json={"status": "accepted"})
+            )
 
             result = await client.complete_telegram_account_link(
                 token="link_token_123",
@@ -920,9 +920,7 @@ async def test_create_support_escalation_posts_to_telegram_bot_endpoint(mock_set
     }
 
     with respx.mock:
-        route = respx.post(
-            "https://api.test.cybervpn.local/telegram/bot/user/123456/support/escalations"
-        ).mock(
+        route = respx.post("https://api.test.cybervpn.local/telegram/bot/user/123456/support/escalations").mock(
             return_value=httpx.Response(
                 201,
                 json={"status": "accepted", "support_reference": payload["support_reference"]},

@@ -26,7 +26,7 @@ from src.domain.entities.messaging import (
 class MessagingWriteRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    client_message_id: str | None = Field(None, min_length=1, max_length=80)
+    client_message_id: str | None = Field(default=None, min_length=1, max_length=80)
     body: str = Field(..., min_length=1, max_length=4000)
 
 
@@ -89,10 +89,10 @@ class CustomerConversationDetailResponse(CustomerConversationSummaryResponse):
 
 
 class CustomerConversationListResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     conversations: list[CustomerConversationSummaryResponse]
-    next_cursor: str | None = Field(None, alias="nextCursor")
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
 
 
 class AdminConversationSummaryResponse(BaseModel):
@@ -119,10 +119,10 @@ class AdminConversationDetailResponse(AdminConversationSummaryResponse):
 
 
 class AdminConversationListResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     conversations: list[AdminConversationSummaryResponse]
-    next_cursor: str | None = Field(None, alias="nextCursor")
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
 
 
 class MessagingMessageWriteResponse(BaseModel):
@@ -176,10 +176,10 @@ class SiteNotificationResponse(BaseModel):
 
 
 class SiteNotificationListResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     notifications: list[SiteNotificationResponse]
-    next_cursor: str | None = Field(None, alias="nextCursor")
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
 
 
 class SiteNotificationReadRequest(BaseModel):
@@ -215,7 +215,7 @@ class MessagingRealtimeSyncResponse(BaseModel):
 
 
 class MessagingRealtimeTicketResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, validate_by_name=True, validate_by_alias=True)
 
     ticket: str
     expires_in: int = Field(30, alias="expiresIn")
@@ -229,7 +229,7 @@ class BroadcastCreateRequest(BaseModel):
     audience_filter: dict[str, object] = Field(default_factory=dict)
     title: str = Field(..., min_length=1, max_length=160)
     body: str = Field(..., min_length=1, max_length=4000)
-    action_url: str | None = Field(None, max_length=500)
+    action_url: str | None = Field(default=None, max_length=500)
     scheduled_at: datetime | None = None
 
 

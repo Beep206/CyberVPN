@@ -26,8 +26,8 @@ from src.domain.enums import PartnerBotStatus
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.presentation.api.v1.auth.realm_context import get_principal_type_for_realm
-from src.presentation.dependencies.auth import get_current_active_user
-from src.presentation.dependencies.auth_realms import get_request_admin_realm
+from src.presentation.dependencies.auth import get_current_active_web_user
+from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.partner_workspace import (
     enforce_partner_workspace_permission,
@@ -156,13 +156,14 @@ async def _enforce_partner_bot_passkey_fresh_auth(
     )
 
 
+@router.get("", response_model=list[PartnerBotResponse], include_in_schema=False)
 @router.get("/", response_model=list[PartnerBotResponse])
 async def list_partner_bots(
     partner_account_id: UUID = Query(...),
     bot_status: PartnerBotStatus | None = Query(None),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerBotResponse]:
     await _require_workspace_permission(
@@ -180,10 +181,11 @@ async def list_partner_bots(
     return [_serialize_partner_bot_bundle(item) for item in items]
 
 
+@router.post("", response_model=PartnerBotResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=PartnerBotResponse, status_code=status.HTTP_201_CREATED)
 async def create_partner_bot(
     payload: CreatePartnerBotRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerBotResponse:
     await _require_workspace_permission(
@@ -214,7 +216,7 @@ async def create_partner_bot(
 @router.get("/{partner_bot_id}", response_model=PartnerBotResponse)
 async def get_partner_bot(
     partner_bot_id: UUID,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerBotResponse:
     item = await GetPartnerBotUseCase(db).execute(partner_bot_id=partner_bot_id)
@@ -233,7 +235,7 @@ async def get_partner_bot(
 async def request_partner_bot_provisioning(
     partner_bot_id: UUID,
     payload: RequestPartnerBotProvisioningRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerBotResponse:
     existing = await GetPartnerBotUseCase(db).execute(partner_bot_id=partner_bot_id)
@@ -261,7 +263,7 @@ async def request_partner_bot_provisioning(
 async def suspend_partner_bot(
     partner_bot_id: UUID,
     payload: SuspendPartnerBotRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerBotResponse:
     existing = await GetPartnerBotUseCase(db).execute(partner_bot_id=partner_bot_id)
@@ -287,7 +289,7 @@ async def suspend_partner_bot(
 @router.post("/{partner_bot_id}/restore", response_model=PartnerBotResponse)
 async def restore_partner_bot(
     partner_bot_id: UUID,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerBotResponse:
     existing = await GetPartnerBotUseCase(db).execute(partner_bot_id=partner_bot_id)
@@ -314,8 +316,8 @@ async def rotate_partner_bot_token(
     partner_bot_id: UUID,
     payload: RotatePartnerBotTokenRequest,
     request: Request,
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerBotResponse:

@@ -21,7 +21,7 @@ class CreateServiceIdentityRequest(BaseModel):
     provider_name: str = Field(..., min_length=1, max_length=40)
     source_order_id: UUID | None = None
     origin_storefront_id: UUID | None = None
-    provider_subject_ref: str | None = Field(None, min_length=1, max_length=160)
+    provider_subject_ref: str | None = Field(default=None, min_length=1, max_length=160)
     service_context: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -48,12 +48,12 @@ class ServiceAccessObservabilityRequest(BaseModel):
     service_identity_id: UUID | None = None
     customer_account_id: UUID | None = None
     auth_realm_id: UUID | None = None
-    provider_name: str | None = Field(None, min_length=1, max_length=40)
+    provider_name: str | None = Field(default=None, min_length=1, max_length=40)
     channel_type: AccessDeliveryChannelType | None = None
-    channel_subject_ref: str | None = Field(None, min_length=1, max_length=160)
-    provisioning_profile_key: str | None = Field(None, min_length=1, max_length=120)
+    channel_subject_ref: str | None = Field(default=None, min_length=1, max_length=160)
+    provisioning_profile_key: str | None = Field(default=None, min_length=1, max_length=120)
     credential_type: DeviceCredentialType | None = None
-    credential_subject_key: str | None = Field(None, min_length=1, max_length=160)
+    credential_subject_key: str | None = Field(default=None, min_length=1, max_length=160)
 
 
 class ServiceAccessPurchaseContextResponse(BaseModel):

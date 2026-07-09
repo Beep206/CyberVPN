@@ -6,6 +6,7 @@ import structlog
 from aiogram import F, Router
 
 from src.states.admin import AdminUserState
+from src.utils.telegram import callback_data, callback_message, message_text, message_user_id
 
 if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
@@ -49,7 +50,7 @@ async def users_menu_handler(
         )
     )
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-users-title"),
         reply_markup=builder.as_markup(),
     )
@@ -64,7 +65,7 @@ async def users_search_prompt_handler(
     state: FSMContext,
 ) -> None:
     """Prompt for user search."""
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-users-search-prompt"),
     )
 
@@ -82,7 +83,7 @@ async def users_search_handler(
     state: FSMContext,
 ) -> None:
     """Search for users."""
-    search_query = message.text.strip()
+    search_query = message_text(message).strip()
 
     try:
         # Search users via API
@@ -123,10 +124,10 @@ async def users_search_handler(
         )
 
         await state.clear()
-        logger.info("admin_user_search_completed", admin_id=message.from_user.id, results=len(users))
+        logger.info("admin_user_search_completed", admin_id=message_user_id(message), results=len(users))
 
     except Exception as e:
-        logger.error("admin_user_search_error", admin_id=message.from_user.id, error=str(e))
+        logger.error("admin_user_search_error", admin_id=message_user_id(message), error=str(e))
         await message.answer(i18n.get("error-generic"))
         await state.clear()
 
@@ -171,7 +172,7 @@ async def users_list_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=i18n.get("admin-users-list-title"),
             reply_markup=builder.as_markup(),
         )
@@ -192,7 +193,7 @@ async def user_view_handler(
     api_client: CyberVPNAPIClient,
 ) -> None:
     """View user details."""
-    user_id = int(callback.data.split(":")[3])
+    user_id = int(callback_data(callback).split(":")[3])
 
     try:
         # Get user details
@@ -238,7 +239,7 @@ async def user_view_handler(
             )
         )
 
-        await callback.message.edit_text(
+        await callback_message(callback).edit_text(
             text=user_text,
             reply_markup=builder.as_markup(),
         )
@@ -259,7 +260,7 @@ async def user_ban_handler(
     api_client: CyberVPNAPIClient,
 ) -> None:
     """Ban/unban user."""
-    user_id = int(callback.data.split(":")[3])
+    user_id = int(callback_data(callback).split(":")[3])
 
     try:
         # Toggle ban status
@@ -290,12 +291,12 @@ async def user_extend_subscription_prompt_handler(
     state: FSMContext,
 ) -> None:
     """Prompt for subscription extension days."""
-    user_id = int(callback.data.split(":")[3])
+    user_id = int(callback_data(callback).split(":")[3])
 
     await state.update_data(extend_user_id=user_id)
     await state.set_state(AdminUserState.extending_subscription)
 
-    await callback.message.edit_text(
+    await callback_message(callback).edit_text(
         text=i18n.get("admin-user-extend-prompt"),
     )
 
@@ -311,7 +312,7 @@ async def user_extend_subscription_handler(
 ) -> None:
     """Extend user subscription."""
     try:
-        days = int(message.text.strip())
+        days = int(message_text(message).strip())
 
         if days <= 0 or days > 365:
             await message.answer(i18n.get("admin-user-extend-invalid-days"))
@@ -340,12 +341,12 @@ async def user_extend_subscription_handler(
 
         await state.clear()
         logger.info(
-            "admin_user_subscription_extended", admin_id=message.from_user.id, target_user_id=user_id, days=days
+            "admin_user_subscription_extended", admin_id=message_user_id(message), target_user_id=user_id, days=days
         )
 
     except ValueError:
         await message.answer(i18n.get("admin-user-extend-invalid-number"))
     except Exception as e:
-        logger.error("admin_user_extend_error", admin_id=message.from_user.id, error=str(e))
+        logger.error("admin_user_extend_error", admin_id=message_user_id(message), error=str(e))
         await message.answer(i18n.get("error-generic"))
         await state.clear()

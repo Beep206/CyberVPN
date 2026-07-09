@@ -443,11 +443,14 @@ describe('DevicesSection', () => {
 
     it('test_disables_logout_button_while_logging_out', async () => {
       let logoutRequests = 0;
+      let resolveLogout: (() => void) | undefined;
 
       server.use(
         http.delete(`${API_BASE}/auth/devices/device-2`, async () => {
           logoutRequests += 1;
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          await new Promise<void>((resolve) => {
+            resolveLogout = resolve;
+          });
           return HttpResponse.json({ message: 'Success' });
         })
       );
@@ -467,9 +470,8 @@ describe('DevicesSection', () => {
         expect(logoutRequests).toBe(1);
       });
 
-      await waitFor(() => {
-        expect(screen.getAllByLabelText('Logout device')[0]).toBeDisabled();
-      });
+      expect(screen.getAllByLabelText('Logout device')[0]).toBeDisabled();
+      resolveLogout?.();
 
       await waitFor(() => {
         expect(screen.getAllByLabelText('Logout device')[0]).toBeEnabled();

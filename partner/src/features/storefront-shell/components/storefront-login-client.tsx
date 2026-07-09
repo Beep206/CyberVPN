@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useLocale } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'motion/react';
 import { AlertCircle, Loader2, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link, useRouter } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import {
   AuthFormCard,
   CyberInput,

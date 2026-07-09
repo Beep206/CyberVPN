@@ -107,10 +107,11 @@ async def test_metrics_middleware_post_execute():
     )
     result = TaskiqResult(is_err=False, return_value={"status": "success"}, execution_time=0.5)
 
-    with patch.object(TASKS_IN_PROGRESS, "labels") as mock_in_progress, \
-         patch.object(TASK_DURATION, "labels") as mock_duration, \
-         patch.object(TASK_TOTAL, "labels") as mock_total:
-
+    with (
+        patch.object(TASKS_IN_PROGRESS, "labels") as mock_in_progress,
+        patch.object(TASK_DURATION, "labels") as mock_duration,
+        patch.object(TASK_TOTAL, "labels") as mock_total,
+    ):
         mock_gauge = MagicMock()
         mock_histogram = MagicMock()
         mock_counter = MagicMock()
@@ -219,10 +220,11 @@ async def test_retry_middleware_retry_scheduled():
     result = TaskiqResult(is_err=True, return_value=None, execution_time=0.1)
     exception = Exception("Temporary failure")
 
-    with patch("src.middleware.retry_middleware.RETRY_POLICIES", {"default": {"max_retries": 3, "delays": [1, 2, 4]}}), \
-         patch("src.middleware.retry_middleware.asyncio.sleep") as mock_sleep, \
-         patch("src.middleware.retry_middleware.AsyncKicker") as mock_kicker_cls:
-
+    with (
+        patch("src.middleware.retry_middleware.RETRY_POLICIES", {"default": {"max_retries": 3, "delays": [1, 2, 4]}}),
+        patch("src.middleware.retry_middleware.asyncio.sleep") as mock_sleep,
+        patch("src.middleware.retry_middleware.AsyncKicker") as mock_kicker_cls,
+    ):
         mock_kicker = AsyncMock()
         mock_kicker_cls.return_value = mock_kicker
 
@@ -250,9 +252,10 @@ async def test_retry_middleware_max_retries_exceeded():
     result = TaskiqResult(is_err=True, return_value=None, execution_time=0.1)
     exception = Exception("Permanent failure")
 
-    with patch("src.middleware.retry_middleware.RETRY_POLICIES", {"default": {"max_retries": 3, "delays": [1, 2, 4]}}), \
-         patch("src.middleware.retry_middleware.AsyncKicker") as mock_kicker_cls:
-
+    with (
+        patch("src.middleware.retry_middleware.RETRY_POLICIES", {"default": {"max_retries": 3, "delays": [1, 2, 4]}}),
+        patch("src.middleware.retry_middleware.AsyncKicker") as mock_kicker_cls,
+    ):
         mock_kicker = AsyncMock()
         mock_kicker_cls.return_value = mock_kicker
 
@@ -279,9 +282,10 @@ async def test_retry_middleware_no_policy():
     result = TaskiqResult(is_err=True, return_value=None, execution_time=0.1)
     exception = Exception("Failure")
 
-    with patch("src.middleware.retry_middleware.RETRY_POLICIES", {}), \
-         patch("src.middleware.retry_middleware.AsyncKicker") as mock_kicker_cls:
-
+    with (
+        patch("src.middleware.retry_middleware.RETRY_POLICIES", {}),
+        patch("src.middleware.retry_middleware.AsyncKicker") as mock_kicker_cls,
+    ):
         mock_kicker = AsyncMock()
         mock_kicker_cls.return_value = mock_kicker
 

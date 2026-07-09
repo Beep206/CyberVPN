@@ -14,10 +14,10 @@ class CreateCustomerCommercialBindingRequest(BaseModel):
     binding_type: CustomerCommercialBindingType
     owner_type: CommercialOwnerType
     storefront_id: UUID | None = None
-    partner_code: str | None = Field(None, max_length=30)
+    partner_code: str | None = Field(default=None, max_length=30)
     partner_code_id: UUID | None = None
     partner_account_id: UUID | None = None
-    reason_code: str | None = Field(None, max_length=80)
+    reason_code: str | None = Field(default=None, max_length=80)
     evidence_payload: dict[str, Any] = Field(default_factory=dict)
     effective_from: datetime | None = None
 

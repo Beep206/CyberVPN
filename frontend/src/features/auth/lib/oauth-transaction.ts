@@ -6,7 +6,7 @@ import { getSafeRedirectPath, normalizeAuthLocale } from './redirect-path';
 export const OAUTH_TRANSACTION_COOKIE = 'oauth_tx';
 export const OAUTH_TRANSACTION_TTL_SECONDS = 10 * 60;
 
-const OAUTH_TRANSACTION_VERSION = 1 as const;
+const TRANSACTION_FORMAT_VERSION = 1 as const;
 const DEV_OAUTH_TRANSACTION_SECRET = 'cybervpn-dev-oauth-transaction-secret';
 const WEB_OAUTH_PROVIDERS = new Set<OAuthProvider>([
   'google',
@@ -19,7 +19,7 @@ const WEB_OAUTH_PROVIDERS = new Set<OAuthProvider>([
 ]);
 
 interface OAuthTransactionPayload {
-  v: typeof OAUTH_TRANSACTION_VERSION;
+  v: typeof TRANSACTION_FORMAT_VERSION;
   provider: OAuthProvider;
   locale: string;
   returnTo: string;
@@ -71,7 +71,7 @@ export function isSupportedWebOAuthProvider(provider: string): provider is OAuth
   return isValidOAuthProvider(provider);
 }
 
-export function createOAuthTransactionCookieValue(
+export function createProviderTransactionCookieValue(
   provider: OAuthProvider,
   localeInput: string | null | undefined,
   rawReturnTo: string | null,
@@ -80,7 +80,7 @@ export function createOAuthTransactionCookieValue(
   const returnTo = getSafeRedirectPath(rawReturnTo, locale);
 
   const payload: OAuthTransactionPayload = {
-    v: OAUTH_TRANSACTION_VERSION,
+    v: TRANSACTION_FORMAT_VERSION,
     provider,
     locale,
     returnTo,
@@ -98,7 +98,7 @@ export function createOAuthTransactionCookieValue(
   };
 }
 
-export function parseOAuthTransactionCookieValue(cookieValue: string | undefined | null): OAuthTransaction | null {
+export function parseProviderTransactionCookieValue(cookieValue: string | undefined | null): OAuthTransaction | null {
   if (!cookieValue) {
     return null;
   }
@@ -124,7 +124,7 @@ export function parseOAuthTransactionCookieValue(cookieValue: string | undefined
       Buffer.from(encodedPayload, 'base64url').toString('utf8'),
     ) as Partial<OAuthTransactionPayload>;
 
-    if (payload.v !== OAUTH_TRANSACTION_VERSION) {
+    if (payload.v !== TRANSACTION_FORMAT_VERSION) {
       return null;
     }
 

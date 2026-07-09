@@ -797,7 +797,7 @@ async def login(
         observe_auth_request_duration("password", started_at)
         logger.warning(
             "Login attempt on locked account",
-            extra={"identifier_type": password_identifier_type, "permanent": e.permanent},
+            extra={"identifier_type": "redacted", "permanent": e.permanent},
         )
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
@@ -910,7 +910,7 @@ async def login(
         observe_auth_request_duration("password", started_at)
         logger.warning(
             "Failed login attempt",
-            extra={"identifier_type": password_identifier_type, "attempts": protection_result.attempts},
+            extra={"identifier_type": "redacted", "attempts": protection_result.attempts},
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
