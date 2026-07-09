@@ -852,8 +852,7 @@ class VpnTesterService:
                         "required_modes": sorted(required_modes),
                         "actual_modes": sorted(modes),
                         "effective_modes": sorted(effective_modes),
-                        "xhttp_satisfied_by_remnawave_assignment": "xhttp" not in modes
-                        and "xhttp" in effective_modes,
+                        "xhttp_satisfied_by_remnawave_assignment": "xhttp" not in modes and "xhttp" in effective_modes,
                         "xhttp_satisfied_by_generated_subscription": generated_xhttp_ready,
                         "xhttp_satisfied_by_remnawave_nodes": xhttp_node_ready,
                     },

@@ -295,11 +295,7 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
 
     torrent_group = _group_by_name(groups, "🧲 Torrents")
     torrent_proxies = _group_proxies(torrent_group)
-    torrent_rules = [
-        rule
-        for rule in rules
-        if "bittorrent" in rule.lower() or "torrent" in rule.lower()
-    ]
+    torrent_rules = [rule for rule in rules if "bittorrent" in rule.lower() or "torrent" in rule.lower()]
     torrent_group_rejects = torrent_proxies == ["REJECT"]
     torrent_rules_route_to_reject_group = bool(torrent_rules) and all(
         rule.strip().endswith(",🧲 Torrents") for rule in torrent_rules

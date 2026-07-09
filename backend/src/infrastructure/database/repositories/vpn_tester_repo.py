@@ -309,12 +309,16 @@ class VpnTesterRepository:
             service_context = dict(identity.service_context or {})
             delivery_payload = dict(channel.delivery_payload or {})
             delivery_context = dict(channel.delivery_context or {})
-            plan_code = str(
-                service_context.get("plan_code")
-                or delivery_payload.get("plan_code")
-                or delivery_context.get("plan_code")
-                or ""
-            ).strip().lower()
+            plan_code = (
+                str(
+                    service_context.get("plan_code")
+                    or delivery_payload.get("plan_code")
+                    or delivery_context.get("plan_code")
+                    or ""
+                )
+                .strip()
+                .lower()
+            )
             if normalized_plan_codes and plan_code not in normalized_plan_codes:
                 continue
             subscription_url = str(

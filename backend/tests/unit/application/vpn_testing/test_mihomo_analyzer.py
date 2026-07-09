@@ -85,6 +85,7 @@ def test_mihomo_analyzer_rejects_manual_eu_rule_after_broad_ru() -> None:
     by_key = {result["check_key"]: result for result in results}
 
     assert by_key["mihomo.rule_order.eu_before_ru"]["status"] == "fail"
-    assert by_key["mihomo.rule_order.eu_before_ru"]["details"]["eu_indexes"]["manual-eu-inline"][0] > by_key[
-        "mihomo.rule_order.eu_before_ru"
-    ]["details"]["ru_indexes"]["ru-services-inline"][0]
+    assert (
+        by_key["mihomo.rule_order.eu_before_ru"]["details"]["eu_indexes"]["manual-eu-inline"][0]
+        > by_key["mihomo.rule_order.eu_before_ru"]["details"]["ru_indexes"]["ru-services-inline"][0]
+    )

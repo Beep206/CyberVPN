@@ -123,9 +123,7 @@ def generated_mihomo_artifact_summary(artifact: Any) -> dict[str, Any]:
         proxies = _list_dicts(mapping.get("proxies"))
         proxy_count = len(proxies)
         xhttp_proxy_count = sum(
-            1
-            for proxy in proxies
-            if "xhttp" in json.dumps(proxy, ensure_ascii=False, sort_keys=True).lower()
+            1 for proxy in proxies if "xhttp" in json.dumps(proxy, ensure_ascii=False, sort_keys=True).lower()
         )
 
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest() if text is not None else None

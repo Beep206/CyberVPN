@@ -110,9 +110,7 @@ async def test_contract_results_treat_smart_ru_assignment_as_xhttp_and_uses_uniq
     )
     connection_checks = [item for item in results if item["check_key"] == "premium_smart_ru.connection_modes"]
     generated_group_checks = [item for item in results if item["check_key"] == "generated_subscription.mihomo_groups"]
-    generated_xhttp_checks = [
-        item for item in results if item["check_key"] == "generated_subscription.xhttp_transport"
-    ]
+    generated_xhttp_checks = [item for item in results if item["check_key"] == "generated_subscription.xhttp_transport"]
 
     assert [item["target"] for item in connection_checks] == [
         "premium_smart_ru_30",

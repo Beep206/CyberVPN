@@ -649,7 +649,8 @@ async def internal_execute_vpn_tester_run(
     if run is None:
         return InternalWorkerResultResponse(skipped=True, reason="run_not_found")
     executed = await service.execute_run(run)
-    return InternalWorkerResultResponse(run=_serialize_run(executed))
+    refreshed = await service.get_run(executed.id)
+    return InternalWorkerResultResponse(run=_serialize_run(refreshed or executed))
 
 
 @router.post("/internal/queued/execute-next", response_model=InternalWorkerResultResponse, include_in_schema=False)
@@ -661,7 +662,8 @@ async def internal_execute_next_vpn_tester_run(
     executed = await service.execute_next_queued_run()
     if executed is None:
         return InternalWorkerResultResponse(skipped=True, reason="no_queued_runs")
-    return InternalWorkerResultResponse(run=_serialize_run(executed))
+    refreshed = await service.get_run(executed.id)
+    return InternalWorkerResultResponse(run=_serialize_run(refreshed or executed))
 
 
 @router.post("/internal/scheduled/run", response_model=InternalWorkerResultResponse, include_in_schema=False)
@@ -681,7 +683,8 @@ async def internal_create_scheduled_vpn_tester_run(
     )
     if payload.execute_immediately:
         run = await service.execute_run(run)
-    return InternalWorkerResultResponse(run=_serialize_run(run))
+    refreshed = await service.get_run(run.id)
+    return InternalWorkerResultResponse(run=_serialize_run(refreshed or run))
 
 
 @router.post(
@@ -703,6 +706,8 @@ async def internal_run_vpn_tester_schedule(
         idempotency_window=payload.idempotency_window,
     )
     run = result.get("run")
+    if isinstance(run, VpnTestRunModel):
+        run = await service.get_run(run.id) or run
     schedule_model = result.get("schedule")
     return InternalWorkerResultResponse(
         skipped=bool(result.get("skipped")),
