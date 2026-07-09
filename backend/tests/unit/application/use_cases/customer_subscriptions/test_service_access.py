@@ -214,6 +214,53 @@ async def test_selected_subscription_lazy_provisioning_fails_closed_when_smart_r
 
 
 @pytest.mark.asyncio
+async def test_selected_subscription_config_passes_plan_code_to_xhttp_gate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    customer_account_id = uuid.uuid4()
+    auth_realm_id = uuid.uuid4()
+    service_identity = SimpleNamespace(
+        provider_subject_ref="remnawave-premium-smart-ru-user",
+    )
+
+    class FakeGenerateConfigUseCase:
+        def __init__(self, client) -> None:
+            captured["client"] = client
+
+        async def execute(self, user_uuid: str, *, plan_code: str | None = None, user_segments=None):
+            captured["user_uuid"] = user_uuid
+            captured["plan_code"] = plan_code
+            captured["user_segments"] = user_segments
+            return {"subscription_url": "https://subscription.example.local/sub/redacted-smart"}
+
+    monkeypatch.setattr(service_access_module, "GenerateConfigUseCase", FakeGenerateConfigUseCase)
+
+    use_case = CustomerSubscriptionServiceAccessUseCase(SimpleNamespace())
+    use_case.get_service_state = AsyncMock(
+        return_value=SimpleNamespace(
+            subscription=SimpleNamespace(plan_code="premium_smart_ru"),
+            service_identity=service_identity,
+            access_delivery_channel=SimpleNamespace(),
+        )
+    )
+    use_case._store_subscription_url = AsyncMock()
+
+    result = await use_case.get_config(
+        customer_account_id=customer_account_id,
+        auth_realm_id=auth_realm_id,
+        subscription_key=f"grant:{uuid.uuid4()}",
+        remnawave_client=SimpleNamespace(),
+    )
+
+    assert captured["user_uuid"] == "remnawave-premium-smart-ru-user"
+    assert captured["plan_code"] == "premium_smart_ru"
+    assert captured["user_segments"] is None
+    assert result["subscription_url"] == "https://subscription.example.local/sub/redacted-smart"
+    use_case._store_subscription_url.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_selected_subscription_service_state_route_forwards_credential_request(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

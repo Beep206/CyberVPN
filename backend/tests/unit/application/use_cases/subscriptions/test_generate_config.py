@@ -100,6 +100,7 @@ async def test_generate_config_allows_remnawave_2_8_xhttp_links_when_enabled(
 ) -> None:
     monkeypatch.setattr(settings, "remnawave_feature_xhttp_enabled", True)
     monkeypatch.setattr(settings, "remnawave_feature_xhttp_rollout_mode", "canary")
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_allowed_user_segments", "internal,beta")
     monkeypatch.setattr(settings, "remnawave_feature_xhttp_force_disabled", False)
     monkeypatch.setattr(settings, "remnawave_feature_xhttp_mihomo_enabled", True)
     xhttp_link = "vless://xhttp-user@example.com:443?type=xhttp&security=reality#xhttp"
@@ -119,13 +120,83 @@ async def test_generate_config_allows_remnawave_2_8_xhttp_links_when_enabled(
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("xhttp-user")
+    result = await GenerateConfigUseCase(client).execute("xhttp-user", user_segments=["beta"])
 
     assert result["config"] == xhttp_link
     assert result["client_type"] == "vless"
     assert result["links"] == [xhttp_link]
     assert result["xhttp_enabled"] is True
     assert result["xhttp_links"] == [xhttp_link]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_generate_config_allows_premium_smart_ru_plan_rollout_xhttp_links(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_enabled", True)
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_rollout_mode", "premium_smart_ru")
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_allowed_plan_codes", "premium_smart_ru")
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_force_disabled", False)
+    stable_link = "vless://stable-user@example.com:443?type=tcp&security=reality#stable"
+    xhttp_link = "vless://xhttp-user@example.com:8443?type=xhttp&security=reality#xhttp"
+    client = AsyncMock()
+    client.get_validated = AsyncMock(
+        return_value=RemnawaveSubscriptionDetailsResponse(
+            is_found=True,
+            user={
+                "shortUuid": "xhttp-user",
+                "username": "xhttp-user",
+                "userStatus": "ACTIVE",
+                "isActive": True,
+            },
+            links=[stable_link],
+            xhttpLinks=[xhttp_link],
+            subscription_url=None,
+        )
+    )
+
+    result = await GenerateConfigUseCase(client).execute("xhttp-user", plan_code="premium_smart_ru")
+
+    assert result["config"] == stable_link
+    assert result["links"] == [stable_link, xhttp_link]
+    assert result["xhttp_enabled"] is True
+    assert result["xhttp_links"] == [xhttp_link]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_generate_config_filters_premium_smart_ru_xhttp_without_plan_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_enabled", True)
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_rollout_mode", "premium_smart_ru")
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_allowed_plan_codes", "premium_smart_ru")
+    monkeypatch.setattr(settings, "remnawave_feature_xhttp_force_disabled", False)
+    stable_link = "vless://stable-user@example.com:443?type=tcp&security=reality#stable"
+    xhttp_link = "vless://xhttp-user@example.com:8443?type=xhttp&security=reality#xhttp"
+    client = AsyncMock()
+    client.get_validated = AsyncMock(
+        return_value=RemnawaveSubscriptionDetailsResponse(
+            is_found=True,
+            user={
+                "shortUuid": "xhttp-user",
+                "username": "xhttp-user",
+                "userStatus": "ACTIVE",
+                "isActive": True,
+            },
+            links=[stable_link],
+            xhttpLinks=[xhttp_link],
+            subscription_url=None,
+        )
+    )
+
+    result = await GenerateConfigUseCase(client).execute("xhttp-user")
+
+    assert result["config"] == stable_link
+    assert result["links"] == [stable_link]
+    assert result["xhttp_enabled"] is False
+    assert result["xhttp_links"] == []
 
 
 @pytest.mark.unit

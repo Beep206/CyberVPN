@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -72,14 +73,44 @@ class GenerateConfigUseCase:
         return [link for link in links if not cls._is_xhttp_link(link)]
 
     @staticmethod
-    def _xhttp_enabled_for_output() -> bool:
+    def _csv_values(raw: str) -> set[str]:
+        return {item.strip().lower() for item in raw.split(",") if item.strip()}
+
+    @classmethod
+    def _xhttp_enabled_for_output(
+        cls,
+        *,
+        plan_code: str | None = None,
+        user_segments: Sequence[str] | None = None,
+    ) -> bool:
         if settings.remnawave_feature_xhttp_force_disabled:
             return False
         if not settings.remnawave_feature_xhttp_enabled:
             return False
-        return settings.remnawave_feature_xhttp_rollout_mode != "disabled"
+        rollout_mode = settings.remnawave_feature_xhttp_rollout_mode
+        if rollout_mode == "disabled":
+            return False
+        if rollout_mode == "stable":
+            return True
 
-    async def execute(self, user_uuid: UUID | str) -> dict:
+        normalized_plan_code = (plan_code or "").strip().lower()
+        allowed_plan_codes = cls._csv_values(settings.remnawave_feature_xhttp_allowed_plan_codes)
+        normalized_segments = {segment.strip().lower() for segment in user_segments or () if segment.strip()}
+        allowed_segments = cls._csv_values(settings.remnawave_feature_xhttp_allowed_user_segments)
+
+        if rollout_mode == "premium_smart_ru":
+            return normalized_plan_code in allowed_plan_codes
+        if rollout_mode in {"canary", "internal"}:
+            return bool(normalized_segments & allowed_segments)
+        return False
+
+    async def execute(
+        self,
+        user_uuid: UUID | str,
+        *,
+        plan_code: str | None = None,
+        user_segments: Sequence[str] | None = None,
+    ) -> dict:
         try:
             data = await self._client.get_validated(
                 f"/subscriptions/by-uuid/{user_uuid}",
@@ -109,7 +140,7 @@ class GenerateConfigUseCase:
         subscription_url = normalize_public_subscription_url(data.subscription_url)
         rollout_mode = settings.remnawave_feature_xhttp_rollout_mode
         candidate_xhttp_links = self._xhttp_links(links)
-        xhttp_allowed = self._xhttp_enabled_for_output()
+        xhttp_allowed = self._xhttp_enabled_for_output(plan_code=plan_code, user_segments=user_segments)
         if candidate_xhttp_links and not xhttp_allowed:
             links = self._filter_xhttp_links(links)
             remnawave_xhttp_rollback_total.labels(rollout_mode=rollout_mode).inc()
@@ -119,6 +150,8 @@ class GenerateConfigUseCase:
                     "rollout_mode": rollout_mode,
                     "force_disabled": settings.remnawave_feature_xhttp_force_disabled,
                     "candidate_count": len(candidate_xhttp_links),
+                    "plan_code_present": bool(plan_code),
+                    "segment_count": len(user_segments or ()),
                 },
             )
         elif candidate_xhttp_links:

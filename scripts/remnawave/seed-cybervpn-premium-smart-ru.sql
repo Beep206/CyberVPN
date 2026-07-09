@@ -22,6 +22,7 @@ with template_upsert as (
         $cybervpn_premium_smart_ru_yaml$
 # ==================================================================================================
 # CyberVPN Premium Smart RU
+# Hardened review build for Remnawave 2.8.0 / Mihomo
 # Гибридный Mihomo / Clash Meta шаблон для Remnawave
 # --------------------------------------------------------------------------------------------------
 # Топология под этот шаблон:
@@ -53,7 +54,7 @@ remnawave:
 
 mixed-port: 7890
 allow-lan: false
-bind-address: "*"
+bind-address: 127.0.0.1
 mode: rule
 log-level: info
 ipv6: false
@@ -197,9 +198,10 @@ dns:
   nameserver-policy:
     "rule-set:geosite-private":
       - system
-    # DNS-level adblock: домены рекламы получают пустой/success ответ.
+    # DNS-level adblock: домены рекламы/tor получают NXDOMAIN.
+    # Если у редкого приложения ломается аналитика/логин — можно удалить этот policy-блок, rules ниже всё равно REJECT-ят рекламу.
     "rule-set:oisd_big,ads-all,win-spy,tor-inline":
-      - rcode://success
+      - rcode://name_error
     # Rule-set файлы и GitHub всегда через EU, иначе в РФ часто ловятся проблемы с доступом.
     "raw.githubusercontent.com,objects.githubusercontent.com,github.com,githubusercontent.com,cdn.jsdelivr.net":
       - https://8.8.8.8/dns-query#🌍 World / EU
@@ -323,9 +325,8 @@ proxy-groups:
     remnawave:
       include-proxies: false
     proxies:
-      # По умолчанию запрещено. DIRECT оставлен только как аварийная ручная опция для диагностики.
+      # По умолчанию запрещено на клиенте; серверно дублируется Remnawave Torrent Blocker.
       - REJECT
-      - DIRECT
 
   - name: 🧪 Speedtest
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Speedtest.png
@@ -344,8 +345,7 @@ proxy-groups:
       include-proxies: false
     include-all: true
     filter: '(?i)(🇩🇪|🇳🇱|\bDE\b|\bNL\b|Germany|Deutschland|Германия|Frankfurt|FRA|Berlin|Берлин|Netherlands|Nederland|Нидерланд|Amsterdam|AMS)'
-    exclude-filter: '(?i)(🇷🇺|\bRU\b|Russia|Россия|Москва|Moscow|Санкт|Петербург|Питер|SPB)'
-    exclude-type: "Dns|Direct"
+    exclude-filter: '(?i)(🇷🇺|\bRU\b|Russia|Россия|Москва|Moscow|Санкт|Петербург|Питер|SPB|DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
     url: https://www.gstatic.com/generate_204
     expected-status: 204
     interval: 300
@@ -360,7 +360,7 @@ proxy-groups:
       include-proxies: false
     include-all: true
     filter: '(?i)(🇳🇱|\bNL\b|Netherlands|Nederland|Нидерланд|Amsterdam|AMS)'
-    exclude-type: "Dns|Direct"
+    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
     url: https://www.gstatic.com/generate_204
     expected-status: 204
     interval: 300
@@ -375,7 +375,7 @@ proxy-groups:
       include-proxies: false
     include-all: true
     filter: '(?i)(🇩🇪|\bDE\b|Germany|Deutschland|Германия|Frankfurt|FRA|Berlin|Берлин)'
-    exclude-type: "Dns|Direct"
+    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
     url: https://www.gstatic.com/generate_204
     expected-status: 204
     interval: 300
@@ -390,7 +390,7 @@ proxy-groups:
       include-proxies: false
     include-all: true
     filter: '(?i)(🇷🇺|\bRU\b|Russia|Россия|Москва|Moscow|MSK|MOW|Санкт|Петербург|Питер|SPB|LED|Saint.?Petersburg|St.?Petersburg)'
-    exclude-type: "Dns|Direct"
+    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
     # Проверяем доступность RU-ноды. Для строгих клиентов можно заменить на https://www.gstatic.com/generate_204.
     url: https://ya.ru
     interval: 300
@@ -404,7 +404,7 @@ proxy-groups:
       include-proxies: false
     include-all: true
     filter: '(?i)(Москва|Moscow|MSK|MOW)'
-    exclude-type: "Dns|Direct"
+    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
     url: https://ya.ru
     interval: 300
     tolerance: 120
@@ -417,7 +417,7 @@ proxy-groups:
       include-proxies: false
     include-all: true
     filter: '(?i)(Санкт|Петербург|Питер|Saint.?Petersburg|St.?Petersburg|SPB|LED)'
-    exclude-type: "Dns|Direct"
+    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
     url: https://ya.ru
     interval: 300
     tolerance: 120
@@ -1118,15 +1118,27 @@ external_squad_upsert as (
     )
     values (
         'CYBERVPN_PREMIUM_SMART_RU',
+        '{
+          "profileTitle": "CyberVPN Premium Smart RU",
+          "supportLink": "https://cyber-vpn.org/support",
+          "profileUpdateInterval": 24,
+          "isProfileWebpageUrlEnabled": true,
+          "happAnnounce": "CyberVPN Premium Smart RU: DE 25G + RU 25G smart routing. RU-сервисы работают без отключения VPN. Torrent запрещён."
+        }'::jsonb,
         '{}'::jsonb,
-        '{}'::jsonb,
-        '{}'::jsonb,
+        '{
+          "x-cybervpn-plan": "premium_smart_ru",
+          "x-cybervpn-routing": "de-primary-ru-smart",
+          "x-cybervpn-unlimited": "true"
+        }'::jsonb,
         '{}'::jsonb,
         '{"purpose":"Premium Smart RU MIHOMO template override for DE/NL/RU smart-routing users"}'::jsonb,
         202
     )
     on conflict (name) do update
     set updated_at = now(),
+        subscription_settings = excluded.subscription_settings,
+        response_headers = excluded.response_headers,
         custom_remarks = excluded.custom_remarks,
         view_position = excluded.view_position
     returning uuid
@@ -1210,7 +1222,7 @@ plugin_update as (
     update node_plugin
     set plugin_config = '{
           "ingressFilter": {"enabled": false, "blockedIps": []},
-          "egressFilter": {"enabled": true, "blockedIps": ["ext:tor-exit-nodes", "ext:tor-relays"], "blockedPorts": []},
+          "egressFilter": {"enabled": true, "blockedIps": ["ext:tor-exit-nodes", "ext:tor-relays"], "blockedPorts": [25, 465, 587]},
           "torrentBlocker": {"enabled": true, "ignoreLists": {"ip": [], "userId": []}, "blockDuration": 86400},
           "connectionDrop": {"enabled": false, "whitelistIps": []},
           "sharedLists": [
@@ -1233,7 +1245,7 @@ plugin_upsert as (
         'CYBERVPN_PREMIUM_SMART_RU_ABUSE_PROTECTION',
         '{
           "ingressFilter": {"enabled": false, "blockedIps": []},
-          "egressFilter": {"enabled": true, "blockedIps": ["ext:tor-exit-nodes", "ext:tor-relays"], "blockedPorts": []},
+          "egressFilter": {"enabled": true, "blockedIps": ["ext:tor-exit-nodes", "ext:tor-relays"], "blockedPorts": [25, 465, 587]},
           "torrentBlocker": {"enabled": true, "ignoreLists": {"ip": [], "userId": []}, "blockDuration": 86400},
           "connectionDrop": {"enabled": false, "whitelistIps": []},
           "sharedLists": [
@@ -1267,12 +1279,155 @@ smart_node_plugin_assignment as (
         updated_at = now()
     from plugin_row
     where nodes.name in (select name from smart_node_names)
+      and (
+          nodes.active_plugin_uuid is null
+          or nodes.active_plugin_uuid = plugin_row.uuid
+      )
     returning nodes.uuid
 )
 select
     (select count(*) from internal_squad_inbound_links) as linked_internal_squad_inbounds,
     (select count(*) from smart_node_inbound_links) as linked_node_inbounds,
     (select count(*) from smart_node_plugin_assignment) as plugin_assigned_nodes;
+
+do $cybervpn_premium_smart_ru_validation$
+declare
+    v_external_squad_uuid uuid;
+    v_internal_squad_uuid uuid;
+    v_plugin_uuid uuid;
+    v_template_uuid uuid;
+    v_template_link_count integer;
+    v_inbound_count integer;
+    v_internal_squad_inbound_count integer;
+    v_smart_node_count integer;
+    v_linked_node_inbounds integer;
+    v_conflicting_active_plugin_count integer;
+    v_plugin_assigned_node_count integer;
+    v_conflicting_node_names text;
+begin
+    select uuid
+    into v_external_squad_uuid
+    from external_squads
+    where name = 'CYBERVPN_PREMIUM_SMART_RU';
+
+    select uuid
+    into v_internal_squad_uuid
+    from internal_squads
+    where name = 'CYBERVPN_PREMIUM_SMART_RU_NODES';
+
+    select uuid
+    into v_plugin_uuid
+    from node_plugin
+    where name = 'CYBERVPN_PREMIUM_SMART_RU_ABUSE_PROTECTION';
+
+    select uuid
+    into v_template_uuid
+    from subscription_templates
+    where template_type = 'MIHOMO'
+      and name = 'CyberVPN Premium Smart RU';
+
+    if v_external_squad_uuid is null then
+        raise exception 'CYBERVPN_PREMIUM_SMART_RU external squad was not created';
+    end if;
+    if v_internal_squad_uuid is null then
+        raise exception 'CYBERVPN_PREMIUM_SMART_RU_NODES internal squad was not created';
+    end if;
+    if v_plugin_uuid is null then
+        raise exception 'CYBERVPN_PREMIUM_SMART_RU_ABUSE_PROTECTION plugin was not created';
+    end if;
+    if v_template_uuid is null then
+        raise exception 'CyberVPN Premium Smart RU MIHOMO template was not created';
+    end if;
+
+    select count(*)
+    into v_template_link_count
+    from external_squads_templates
+    where external_squad_uuid = v_external_squad_uuid
+      and template_uuid = v_template_uuid
+      and template_type = 'MIHOMO';
+    if v_template_link_count <> 1 then
+        raise exception 'CyberVPN Premium Smart RU MIHOMO template link is missing or duplicated: %', v_template_link_count;
+    end if;
+
+    select count(*)
+    into v_inbound_count
+    from config_profile_inbounds
+    where tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443');
+    if v_inbound_count < 2 then
+        raise exception 'Expected at least 2 Smart RU inbounds, found %', v_inbound_count;
+    end if;
+
+    select count(*)
+    into v_internal_squad_inbound_count
+    from internal_squad_inbounds
+    where internal_squad_uuid = v_internal_squad_uuid;
+    if v_internal_squad_inbound_count < 2 then
+        raise exception 'Expected Smart RU internal squad to contain at least 2 inbounds, found %',
+            v_internal_squad_inbound_count;
+    end if;
+
+    select count(*)
+    into v_smart_node_count
+    from nodes
+    where name in (
+        '🇩🇪 DE Frankfurt 01 25G',
+        '🇳🇱 NL Amsterdam 01 10G',
+        '🇷🇺 RU Moscow 01 25G',
+        '🇷🇺 RU SPB 01 25G'
+    );
+    if v_smart_node_count <> 4 then
+        raise exception 'Expected 4 Premium Smart RU nodes by exact Remnawave name, found %', v_smart_node_count;
+    end if;
+
+    select count(*)
+    into v_linked_node_inbounds
+    from config_profile_inbounds_to_nodes
+    join config_profile_inbounds
+      on config_profile_inbounds.uuid = config_profile_inbounds_to_nodes.config_profile_inbound_uuid
+    join nodes
+      on nodes.uuid = config_profile_inbounds_to_nodes.node_uuid
+    where config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+      and nodes.name in (
+          '🇩🇪 DE Frankfurt 01 25G',
+          '🇳🇱 NL Amsterdam 01 10G',
+          '🇷🇺 RU Moscow 01 25G',
+          '🇷🇺 RU SPB 01 25G'
+      );
+    if v_linked_node_inbounds < 8 then
+        raise exception 'Expected at least 8 Smart RU node inbound links, found %', v_linked_node_inbounds;
+    end if;
+
+    select count(*), string_agg(name, ', ' order by name)
+    into v_conflicting_active_plugin_count, v_conflicting_node_names
+    from nodes
+    where name in (
+        '🇩🇪 DE Frankfurt 01 25G',
+        '🇳🇱 NL Amsterdam 01 10G',
+        '🇷🇺 RU Moscow 01 25G',
+        '🇷🇺 RU SPB 01 25G'
+    )
+      and active_plugin_uuid is not null
+      and active_plugin_uuid <> v_plugin_uuid;
+    if v_conflicting_active_plugin_count > 0 then
+        raise exception 'Refusing to overwrite existing active plugin on Premium Smart RU nodes: %',
+            v_conflicting_node_names;
+    end if;
+
+    select count(distinct nodes.uuid)
+    into v_plugin_assigned_node_count
+    from nodes
+    where nodes.name in (
+        '🇩🇪 DE Frankfurt 01 25G',
+        '🇳🇱 NL Amsterdam 01 10G',
+        '🇷🇺 RU Moscow 01 25G',
+        '🇷🇺 RU SPB 01 25G'
+    )
+      and nodes.active_plugin_uuid = v_plugin_uuid;
+    if v_plugin_assigned_node_count <> 4 then
+        raise exception 'Expected plugin_assigned_node_count=4, found %', v_plugin_assigned_node_count;
+    end if;
+end
+$cybervpn_premium_smart_ru_validation$;
 
 commit;
 
@@ -1291,6 +1446,21 @@ select
         from internal_squad_inbounds
         where internal_squad_inbounds.internal_squad_uuid = internal_squads.uuid
     ) as internal_squad_inbound_count,
+    (
+        select count(*)
+        from config_profile_inbounds_to_nodes
+        join config_profile_inbounds
+          on config_profile_inbounds.uuid = config_profile_inbounds_to_nodes.config_profile_inbound_uuid
+        join nodes
+          on nodes.uuid = config_profile_inbounds_to_nodes.node_uuid
+        where config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+          and nodes.name in (
+              '🇩🇪 DE Frankfurt 01 25G',
+              '🇳🇱 NL Amsterdam 01 10G',
+              '🇷🇺 RU Moscow 01 25G',
+              '🇷🇺 RU SPB 01 25G'
+          )
+    ) as linked_node_inbounds,
     (
         select count(distinct nodes.uuid)
         from nodes

@@ -189,7 +189,10 @@ class CustomerSubscriptionServiceAccessUseCase:
                 detail="Selected subscription VPN identity is not provisioned",
             )
 
-        config = await GenerateConfigUseCase(remnawave_client).execute(service_identity.provider_subject_ref)
+        config = await GenerateConfigUseCase(remnawave_client).execute(
+            service_identity.provider_subject_ref,
+            plan_code=state.subscription.plan_code,
+        )
         subscription_url = normalize_public_subscription_url(config.get("subscription_url"))
         if subscription_url:
             await self._store_subscription_url(
