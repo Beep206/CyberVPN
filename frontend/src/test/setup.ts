@@ -1,7 +1,9 @@
-import '@testing-library/jest-dom/vitest';
+import * as jestDomMatchers from '@testing-library/jest-dom/matchers';
 import { cleanup } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest';
 import { server } from './mocks/server';
+
+expect.extend(jestDomMatchers);
 
 process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8000';
 
