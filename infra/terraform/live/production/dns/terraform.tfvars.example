@@ -25,4 +25,24 @@ records = {
     comment = "CyberVPN production edge de-prod-01"
     tags    = ["environment:production", "component:edge"]
   }
+  de-3-vpn-ipv4 = {
+    name         = "de-3.cyber-vpn.org"
+    content      = "138.124.115.206"
+    record_class = "vpn-node"
+    type         = "A"
+    ttl          = 1
+    proxied      = false
+    comment      = "CyberVPN DE3 direct VLESS Reality and XHTTP IPv4"
+    tags         = ["environment:production", "component:vpn-node", "region:de"]
+  }
+  de-3-vpn-ipv6 = {
+    name         = "de-3.cyber-vpn.org"
+    content      = "2a0b:4140:ba84::2"
+    record_class = "vpn-node"
+    type         = "AAAA"
+    ttl          = 1
+    proxied      = false
+    comment      = "CyberVPN DE3 direct VLESS Reality and XHTTP IPv6"
+    tags         = ["environment:production", "component:vpn-node", "region:de"]
+  }
 }

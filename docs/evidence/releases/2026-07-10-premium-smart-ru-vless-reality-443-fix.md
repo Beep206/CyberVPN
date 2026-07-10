@@ -20,6 +20,7 @@ short IDs, API tokens, cookies, invite codes, or credentials.
 | Remnawave node/host matrix | PASS | Four connected enabled nodes, two required inbounds, eight enabled hosts, and eight resolved address-to-node links. |
 | Premium Smart RU routing contract | PASS | Hardened Mihomo analyzer and generated-core validation passed; transport repair did not replace the routing template. |
 | VPN Tester release gate | OPEN | Latest production run passed all 59 checks and no release override is active. |
+| DE INCY dual-stack follow-up | AGENT PASS / PHONE PENDING | The target account's exact DE RAW and XHTTP profiles pass through the normal hostname after the DNS-only AAAA addition; the final phone retry remains user-owned. |
 
 ## Root Causes
 
@@ -80,7 +81,7 @@ VLESS over RAW/TCP Reality on port 443 with Vision client flow;
 | Check | Result |
 | --- | --- |
 | A records | 4/4 resolve to their intended public IPv4 address |
-| AAAA records | 0 unexpected public node records |
+| AAAA records | Baseline had 0 unexpected records; the follow-up intentionally adds one DNS-only `de-3` AAAA record to the same DE node. |
 | Provider mode | Node records confirmed DNS-only |
 | External reachability | 8/8 TCP endpoints reachable: ports 443 and 8443 on four nodes |
 | Node listeners | 8/8 listeners present in the node-loaded Xray runtime |
@@ -88,6 +89,58 @@ VLESS over RAW/TCP Reality on port 443 with Vision client flow;
 
 The home monitoring host `10.10.10.34` was not started or contacted because it
 is under maintenance and was explicitly excluded from this task.
+
+## DE INCY Dual-Stack Follow-Up
+
+A real INCY report was investigated after the initial rollout. The target
+account could use the NL RAW and XHTTP profiles, while neither DE profile
+reached the DE Xray access log during the reported phone attempt. This ruled
+out a server-side rejection at that timestamp and pointed to the client network
+path before the DE node.
+
+The same target account's exact generated DE profiles were then tested through
+the production VPN Test Agent. RAW and XHTTP both passed DNS, TCP, Reality
+handshake, HTTPS probe, and DE exit-country checks. Before the DNS change, the
+same profiles also passed when the DE host was forced to the node-owned global
+IPv6 address. The node exposes both `443` and `8443` on dual-stack listeners and
+permits those ports over IPv4 and IPv6.
+
+The narrow, reversible production mitigation was therefore limited to DNS. It
+does not prove which address family INCY will select on the affected phone
+network; that user-visible result remains pending.
+
+| Item | Follow-up evidence |
+| --- | --- |
+| Existing A | `de-3.cyber-vpn.org -> 138.124.115.206`, retained and DNS-only |
+| Added AAAA | `de-3.cyber-vpn.org -> 2a0b:4140:ba84::2`, DNS-only, automatic TTL |
+| Cloudflare record | `00a3ab1a6fd0de22b555d0a68ee48446` |
+| Public propagation | Cloudflare and Google DoH plus direct `1.1.1.1` and `8.8.8.8` queries returned the intended AAAA |
+| Post-change DE RAW | PASS on attempt 1; DNS, TCP, handshake, HTTP, and DE exit passed; 520 ms |
+| Post-change DE XHTTP | PASS on attempt 1; DNS, TCP, handshake, HTTP, and DE exit passed; 490 ms |
+| DE access log correlation | Both target-account transports were accepted during the post-change test window |
+| Remnawave/profile mutation | None; hostname, UUID, Reality fields, SNI, ports, flow, and XHTTP path were not changed |
+| Rollback | Remove only the added AAAA record and wait for recursive resolver caches; retain the existing A and all Remnawave state |
+
+The final DE RAW/XHTTP retry in INCY is deliberately not claimed by this
+evidence. The account remains available until the user completes that retry;
+it will then be removed from both CyberVPN and Remnawave.
+
+## INCY And Ozon Routing Boundary
+
+The INCY response for this account is a Base64 list of eight individual VLESS
+links. That format carries connection parameters, but it does not carry the
+Mihomo YAML `proxy-groups`, `rule-providers`, or `rules` sections. Selecting the
+NL profile in INCY therefore produces an NL exit for the whole tunnel; it does
+not activate the hardened Mihomo Smart RU rules.
+
+The hardened Mihomo template separately routes the explicit Ozon domains into
+`RU Sites`. Direct regional probes to Ozon produced the same initial HTTP 307
+response from DE, NL, and Saint Petersburg, followed by the same redirect-loop
+behavior under non-browser curl. That evidence does not support an NL-specific
+server outage and is not a user-facing Ozon pass. Ozon behavior through an
+individual INCY link and Ozon behavior through the Mihomo Smart RU template are
+consequently tracked as different client paths rather than treated as one
+failed routing rule.
 
 ## Authoritative References
 
@@ -99,10 +152,14 @@ adapter alone:
 - Remnawave Nodes: <https://docs.rw/learn-en/nodes/>
 - Remnawave Hosts: <https://docs.rw/learn-en/hosts/>
 - Remnawave Squads: <https://docs.rw/learn-en/squads/>
+- Remnawave subscription formats: <https://docs.rw/learn-en/templates/>
 - Official Remnawave backend: <https://github.com/remnawave/backend>
+- Official Remnawave templates: <https://github.com/remnawave/templates>
 - Official XTLS Reality reference: <https://github.com/XTLS/REALITY/blob/main/README.en.md>
 - Official Xray Reality server example:
   <https://github.com/XTLS/Xray-examples/blob/main/VLESS-TCP-XTLS-Vision-REALITY/config_server.jsonc>
+- Cloudflare DNS proxy status: <https://developers.cloudflare.com/dns/proxy-status/>
+- Cloudflare DNS record API: <https://developers.cloudflare.com/api/resources/dns/subresources/records/methods/create/>
 
 ## Generated Subscription
 
@@ -191,10 +248,21 @@ error count after the final deployment is zero.
 - VPN test agent: 27 focused tests, Ruff check/format, and mypy PASS.
 - Infrastructure: 15 focused tests, stage1/local Compose config, and Ansible
   syntax for regional, relay, control-plane rollout, verify, and rollback PASS.
+- DE3 DNS follow-up: 3 focused Python contract tests plus 5 native OpenTofu
+  plan/validation tests PASS. The native tests prove explicit dual-stack records
+  do not read edge remote state and reject mixed proxying, edge explicit/blank
+  content, and VPN-node blank content.
+- The documented post-import plan gate was exercised with synthetic plan JSON:
+  it accepted DE3 no-op/update actions, rejected a DE3 create action, and
+  rejected an unrelated managed-resource mutation in the same saved plan.
 - Remnawave compatibility patch: 4 Node tests PASS.
 - Independent adversarial and security re-reviews found no unresolved finding
   in the final requested remediation set; final verifier findings were resolved
   by canonical CIDR and control-plane URL/secret validation.
+- Independent follow-up verifier, adversarial, and security re-reviews found no
+  actionable finding after the DNS source-class, remote-state, import, plan
+  allowlist, lifecycle, Ozon-boundary, and PII remediations. The user-owned phone
+  retry and post-retry account deletion remain intentionally open.
 
 ## Rollback
 
@@ -215,21 +283,26 @@ error count after the final deployment is zero.
 
 ## User-Owned INCY Verification
 
-The target account is absent from both the CyberVPN application database and
-Remnawave, so a clean registration can start without reusing cached state.
+The initial rollout cleanup removed its disposable target and canary accounts
+before this follow-up began. The user subsequently registered a new follow-up
+account. Current production checks show exactly one corresponding CyberVPN
+account with a subscription/Remnawave reference and exactly one Remnawave user;
+that account is intentionally retained for the post-DNS phone retry.
 
-1. Register the account in the public cabinet and complete email verification.
-2. Enter the authorized invite code during onboarding and confirm that the
-   subscription becomes active without an Internal Server Error.
-3. Import the new subscription into the latest INCY client. Do not reuse an old
-   QR code, cached profile, or previously imported subscription.
-4. Confirm that INCY shows the four target locations and both RAW/TCP and XHTTP
+1. Fully close INCY and toggle airplane mode before the retry so the phone and
+   client do not retain the pre-AAAA negative DNS cache.
+2. Refresh the existing subscription in the latest INCY client. Do not reuse an
+   old QR code or a profile imported before this follow-up account was created.
+3. Confirm that INCY shows the four target locations and both RAW/TCP and XHTTP
    variants where the client exposes transport names.
-5. Select each concrete location/transport instead of Auto. Open an HTTPS site,
+4. Select each concrete location/transport instead of Auto. Open an HTTPS site,
    then check the exit country with `https://ipwho.is/`.
-6. Repeat at least one Russian and one European profile on Wi-Fi and mobile data.
-7. Confirm normal DNS resolution, no immediate disconnect, and expected Smart RU
-   routing for representative RU and non-RU sites.
+5. Test both concrete DE profiles on the affected network and record the local
+   timestamp for correlation with the DE access log.
+6. Treat Ozon on an individual INCY link as selected-node egress, not as proof
+   of the Mihomo Smart RU routing policy.
+7. After the phone result is captured, remove the exact follow-up account from
+   both CyberVPN and Remnawave and verify zero exact matches.
 
 For a failed phone check, report only: local timestamp and timezone, INCY
 version, phone OS/version, Wi-Fi or mobile network, selected location and
