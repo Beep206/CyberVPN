@@ -1361,8 +1361,8 @@ smart_host_specs(node_name, remark, address, port, path, inbound_tag, server_des
         (
             '🇩🇪 DE Frankfurt 01 25G',
             '🇩🇪 DE Frankfurt 01 25G Reality 443',
-            'de-3.cyber-vpn.org',
-            443,
+            'de-relay.cyber-vpn.org',
+            2053,
             null::text,
             'VLESS_REALITY_443',
             'Premium Smart RU DE',
@@ -1372,8 +1372,8 @@ smart_host_specs(node_name, remark, address, port, path, inbound_tag, server_des
         (
             '🇩🇪 DE Frankfurt 01 25G',
             '🇩🇪 DE Frankfurt 01 25G XHTTP Reality 8443',
-            'de-3.cyber-vpn.org',
-            8443,
+            'de-relay.cyber-vpn.org',
+            2083,
             '/s1-xhttp-9fec0898',
             'VLESS_XHTTP_REALITY_8443',
             'Premium Smart RU DE',
@@ -1450,6 +1450,8 @@ smart_host_specs(node_name, remark, address, port, path, inbound_tag, server_des
 smart_host_update as (
     update hosts
     set view_position = smart_host_specs.view_position,
+        address = smart_host_specs.address,
+        port = smart_host_specs.port,
         path = smart_host_specs.path,
         sni = null,
         host = null,
@@ -1474,8 +1476,6 @@ smart_host_update as (
     join smart_inbound_rows
       on smart_inbound_rows.tag = smart_host_specs.inbound_tag
     where hosts.remark = smart_host_specs.remark
-      and hosts.address = smart_host_specs.address
-      and hosts.port = smart_host_specs.port
     returning hosts.uuid, hosts.remark, hosts.address, hosts.port
 ),
 smart_host_insert as (

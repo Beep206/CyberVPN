@@ -1,5 +1,31 @@
 # CyberVPN systemd units
 
+## DE Reality ingress relay
+
+`cybervpn-de-relay-reality.*` and `cybervpn-de-relay-xhttp.*` expose bounded
+TCP listeners on the NL node and transparently proxy them to the DE node:
+
+- `0.0.0.0:2053` -> `138.124.115.206:443`;
+- `0.0.0.0:2083` -> `138.124.115.206:8443`.
+
+The relay is used by `de-relay.cyber-vpn.org` when a client network truncates
+large REALITY ClientHello records on the direct path to the DE provider. TLS,
+REALITY, and VLESS terminate only on the DE node, so the VPN exit remains DE.
+
+Install on the NL node and allow only the two relay ports:
+
+```bash
+install -m 0644 infra/systemd/cybervpn-de-relay-{reality,xhttp}.{socket,service} \
+  /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now cybervpn-de-relay-reality.socket cybervpn-de-relay-xhttp.socket
+ufw allow 2053/tcp comment 'CyberVPN DE Reality relay'
+ufw allow 2083/tcp comment 'CyberVPN DE XHTTP relay'
+```
+
+Rollback by restoring the DE Remnawave hosts to `de-3.cyber-vpn.org` on ports
+`443` and `8443`, then disabling both sockets and removing the relay DNS record.
+
 ## `cybervpn-remnawave-ru-msk-node-proxy.service`
 
 Production-only compatibility unit for the RU Moscow Remnawave node API.

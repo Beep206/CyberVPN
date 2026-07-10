@@ -45,4 +45,14 @@ records = {
     comment      = "CyberVPN DE3 direct VLESS Reality and XHTTP IPv6"
     tags         = ["environment:production", "component:vpn-node", "region:de"]
   }
+  de-relay-vpn-ipv4 = {
+    name         = "de-relay.cyber-vpn.org"
+    content      = "138.16.140.44"
+    record_class = "vpn-node"
+    type         = "A"
+    ttl          = 1
+    proxied      = false
+    comment      = "CyberVPN DE Reality ingress relay through NL4"
+    tags         = ["environment:production", "component:vpn-relay", "ingress:nl", "egress:de"]
+  }
 }
