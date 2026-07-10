@@ -1,0 +1,26 @@
+[Unit]
+Description=CyberVPN VPN tester {{ vpn_test_agent_relay_name }} IPv4-to-IPv6 relay
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+ExecStart=/usr/bin/socat TCP4-LISTEN:{{ vpn_test_agent_relay_listen_port }},bind={{ vpn_test_agent_relay_listen_ipv4 }},reuseaddr,fork,keepalive TCP6:[{{ vpn_test_agent_relay_target_ipv6 }}]:{{ vpn_test_agent_relay_target_port }},connect-timeout=10
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

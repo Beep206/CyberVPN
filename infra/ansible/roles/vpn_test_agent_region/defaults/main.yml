@@ -1,0 +1,58 @@
+---
+vpn_test_agent_region_enabled: false
+vpn_test_agent_region_action: deploy
+
+vpn_test_agent_region_name: ""
+vpn_test_agent_region_physical_region: ""
+vpn_test_agent_region_target_region: ""
+
+vpn_test_agent_region_root: /opt/cybervpn/vpn-test-agent-region
+vpn_test_agent_region_compose_filename: docker-compose.yml
+vpn_test_agent_region_env_filename: vpn-test-agent.env
+vpn_test_agent_region_project_name: "cybervpn-vpn-test-agent-{{ vpn_test_agent_region_name }}"
+vpn_test_agent_region_service_name: "cybervpn-vpn-test-agent-{{ vpn_test_agent_region_name }}"
+vpn_test_agent_region_container_name: "{{ vpn_test_agent_region_service_name }}"
+
+vpn_test_agent_region_image: ""
+vpn_test_agent_region_secret: ""
+vpn_test_agent_region_agent_id: "{{ vpn_test_agent_region_name }}-regional-agent"
+
+vpn_test_agent_region_bind_address: 0.0.0.0
+vpn_test_agent_region_health_host: 127.0.0.1
+vpn_test_agent_region_port: 18080
+vpn_test_agent_region_container_port: "{{ vpn_test_agent_region_port }}"
+vpn_test_agent_region_proxy_only_enabled: true
+vpn_test_agent_region_tun_enabled: false
+vpn_test_agent_region_profile_timeout_seconds: 20
+vpn_test_agent_region_profile_max_attempts: 3
+vpn_test_agent_region_profile_retry_backoff_seconds: 0.75
+vpn_test_agent_region_log_level: INFO
+
+vpn_test_agent_region_memory_limit: 256m
+vpn_test_agent_region_cpus: "0.50"
+vpn_test_agent_region_pids_limit: 128
+vpn_test_agent_region_tmpfs_size: 64m
+
+vpn_test_agent_region_manage_nftables: true
+vpn_test_agent_region_manage_ufw: true
+vpn_test_agent_region_nftables_include_dir: /etc/nftables.d
+vpn_test_agent_region_nftables_include_path: "{{ vpn_test_agent_region_nftables_include_dir }}/cybervpn-vpn-test-agent-{{ vpn_test_agent_region_name }}.nft"
+vpn_test_agent_region_nftables_table_name: "cybervpn_vpn_test_agent_{{ vpn_test_agent_region_name | regex_replace('[^A-Za-z0-9_]', '_') }}"
+vpn_test_agent_region_firewall_unit_name: "cybervpn-vpn-test-agent-{{ vpn_test_agent_region_name }}-firewall"
+vpn_test_agent_region_firewall_allowed_ipv4_cidrs:
+  - 45.87.41.146/32
+vpn_test_agent_region_firewall_allowed_ipv6_cidrs: []
+vpn_test_agent_region_required_source_ipv4_cidr: 45.87.41.146/32
+vpn_test_agent_region_required_source_ipv6_cidr: ""
+
+vpn_test_agent_region_env:
+  VPN_TEST_AGENT_SECRET: "{{ vpn_test_agent_region_secret }}"
+  VPN_TEST_AGENT_ID: "{{ vpn_test_agent_region_agent_id }}"
+  VPN_TEST_AGENT_PROXY_ONLY_ENABLED: "{{ vpn_test_agent_region_proxy_only_enabled | ternary('true', 'false') }}"
+  VPN_TEST_AGENT_TUN_ENABLED: "{{ vpn_test_agent_region_tun_enabled | ternary('true', 'false') }}"
+  VPN_TEST_AGENT_PROFILE_TIMEOUT_SECONDS: "{{ vpn_test_agent_region_profile_timeout_seconds | string }}"
+  VPN_TEST_AGENT_PROFILE_MAX_ATTEMPTS: "{{ vpn_test_agent_region_profile_max_attempts | string }}"
+  VPN_TEST_AGENT_PROFILE_RETRY_BACKOFF_SECONDS: "{{ vpn_test_agent_region_profile_retry_backoff_seconds | string }}"
+  PYTHONDONTWRITEBYTECODE: "1"
+  TMPDIR: /tmp
+  LOG_LEVEL: "{{ vpn_test_agent_region_log_level }}"

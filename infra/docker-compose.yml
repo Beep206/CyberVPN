@@ -16,7 +16,9 @@ x-env: &env
 
 services:
   remnawave:
-    image: remnawave/backend:2.8.0
+    image: ${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:-cybervpn/remnawave-backend:2.8.0-raw-vision-flow.2}
+    build:
+      context: ./remnawave-backend-compat
     container_name: remnawave
     hostname: remnawave
     <<: [*common, *logging, *env]
@@ -172,6 +174,10 @@ services:
       - HELIX_ADAPTER_TOKEN=${HELIX_INTERNAL_AUTH_TOKEN:-replace-me-too}
       - BACKEND_API_URL=http://cybervpn-backend:8000/api/v1
       - BACKEND_INTERNAL_SECRET=${BACKEND_INTERNAL_SECRET:-}
+      - VPN_TEST_AGENT_MOSCOW_URL=${VPN_TEST_AGENT_MOSCOW_URL:-}
+      - VPN_TEST_AGENT_MOSCOW_SECRET=${VPN_TEST_AGENT_MOSCOW_SECRET:-}
+      - VPN_TEST_AGENT_SPB_URL=${VPN_TEST_AGENT_SPB_URL:-}
+      - VPN_TEST_AGENT_SPB_SECRET=${VPN_TEST_AGENT_SPB_SECRET:-}
       - TELEGRAM_BOT_INTERNAL_SECRET=${TELEGRAM_BOT_INTERNAL_SECRET:-}
       - PAYMENT_SETTLEMENT_WORKER_SECRET=${PAYMENT_SETTLEMENT_WORKER_SECRET:-}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
@@ -438,6 +444,10 @@ services:
       - REMNAWAVE_URL=http://remnawave:3000
       - BACKEND_API_URL=http://cybervpn-backend:8000/api/v1
       - BACKEND_INTERNAL_SECRET=${BACKEND_INTERNAL_SECRET:-}
+      - VPN_TEST_AGENT_MOSCOW_URL=${VPN_TEST_AGENT_MOSCOW_URL:-}
+      - VPN_TEST_AGENT_MOSCOW_SECRET=${VPN_TEST_AGENT_MOSCOW_SECRET:-}
+      - VPN_TEST_AGENT_SPB_URL=${VPN_TEST_AGENT_SPB_URL:-}
+      - VPN_TEST_AGENT_SPB_SECRET=${VPN_TEST_AGENT_SPB_SECRET:-}
       - TELEGRAM_BOT_INTERNAL_SECRET=${TELEGRAM_BOT_INTERNAL_SECRET:-}
       - PAYMENT_SETTLEMENT_WORKER_SECRET=${PAYMENT_SETTLEMENT_WORKER_SECRET:-}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}

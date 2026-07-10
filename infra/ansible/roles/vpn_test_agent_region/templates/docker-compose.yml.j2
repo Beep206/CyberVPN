@@ -1,0 +1,44 @@
+name: {{ vpn_test_agent_region_project_name }}
+
+services:
+  {{ vpn_test_agent_region_service_name }}:
+    image: {{ vpn_test_agent_region_image | to_json }}
+    container_name: {{ vpn_test_agent_region_container_name }}
+    hostname: {{ vpn_test_agent_region_container_name }}
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - {{ vpn_test_agent_region_env_filename }}
+    command:
+      - uvicorn
+      - src.main:app
+      - --host
+      - {{ vpn_test_agent_region_bind_address | quote }}
+      - --port
+      - {{ vpn_test_agent_region_port | string | quote }}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size={{ vpn_test_agent_region_tmpfs_size }},mode=1777
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://{{ vpn_test_agent_region_health_host }}:{{ vpn_test_agent_region_port }}/health', timeout=3).read()\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: {{ vpn_test_agent_region_memory_limit | quote }}
+    cpus: {{ vpn_test_agent_region_cpus | quote }}
+    pids_limit: {{ vpn_test_agent_region_pids_limit }}
+    labels:
+      cybervpn.service: cybervpn-vpn-test-agent-region
+      cybervpn.region.name: {{ vpn_test_agent_region_name | quote }}
+      cybervpn.region.physical: {{ vpn_test_agent_region_physical_region | quote }}
+      cybervpn.region.target: {{ vpn_test_agent_region_target_region | quote }}
+      cybervpn.firewall.allowed_ipv4_cidrs: {{ vpn_test_agent_region_firewall_allowed_ipv4_cidrs | join(',') | quote }}

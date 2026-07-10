@@ -11,6 +11,7 @@ PLAN_TEMPLATE = REPO_ROOT / "docs/plans/cybervpn-premium-smart-ru-de-primary-har
 CANONICAL_TEMPLATE = REPO_ROOT / "scripts/remnawave/templates/cybervpn-premium-smart-ru.yaml"
 HARDENED_TEMPLATE = REPO_ROOT / "scripts/remnawave/templates/cybervpn-premium-smart-ru-de-primary-hardened.yaml"
 SEED_SQL = REPO_ROOT / "scripts/remnawave/seed-cybervpn-premium-smart-ru.sql"
+DIAGNOSTIC_SQL = REPO_ROOT / "scripts/remnawave/diagnose-premium-smart-ru-inbounds.sql"
 
 
 def _read(path: Path) -> str:
@@ -25,11 +26,26 @@ def _extract_seed_template(sql: str) -> str:
 
 
 def _jsonb_literal(sql: str, marker: str) -> dict[str, object]:
-    for match in re.finditer(r"'(?P<json>\{.*?\})'::jsonb", sql, re.DOTALL):
+    for match in re.finditer(r"'(?P<json>(?:[^']|'')*)'::jsonb", sql, re.DOTALL):
         raw_json = match.group("json")
         if marker in raw_json:
-            return json.loads(raw_json)
+            try:
+                return json.loads(raw_json)
+            except json.JSONDecodeError:
+                continue
     raise AssertionError(f"JSONB literal containing {marker!r} was not found")
+
+
+def _compact(sql: str) -> str:
+    return re.sub(r"\s+", " ", sql.strip())
+
+
+def _validation_block(sql: str) -> str:
+    start_marker = "do $premium_smart_ru_inbound_validation$"
+    end_marker = "$premium_smart_ru_inbound_validation$;"
+    start = sql.index(start_marker)
+    end = sql.index(end_marker, start) + len(end_marker)
+    return sql[start:end]
 
 
 def test_premium_smart_ru_hardened_templates_are_canonical_and_parseable() -> None:
@@ -126,3 +142,157 @@ def test_premium_smart_ru_seed_embeds_hardened_template_and_rollout_settings() -
         "ignoreLists": {"ip": [], "userId": []},
         "blockDuration": 86400,
     }
+
+
+def test_premium_smart_ru_seed_validates_inbounds_before_transaction_and_mutations() -> None:
+    seed_sql = _read(SEED_SQL)
+    validation_start = seed_sql.index("do $premium_smart_ru_inbound_validation$")
+    validation_end = seed_sql.index(
+        "$premium_smart_ru_inbound_validation$;",
+        validation_start,
+    )
+    transaction_begin = seed_sql.index("\nbegin;\n", validation_end)
+
+    assert validation_start < transaction_begin
+    assert transaction_begin < seed_sql.index("with template_upsert as")
+
+    mutation_markers = [
+        "insert into subscription_templates",
+        "insert into external_squads",
+        "insert into external_squads_templates",
+        "insert into internal_squads",
+        "insert into internal_squad_inbounds",
+        "insert into config_profile_inbounds_to_nodes",
+        "update hosts",
+        "insert into hosts",
+        "insert into hosts_to_nodes",
+        "insert into internal_squad_host_exclusions",
+        "update node_plugin",
+        "insert into node_plugin",
+        "update nodes",
+    ]
+    for marker in mutation_markers:
+        assert validation_start < validation_end < transaction_begin < seed_sql.index(marker)
+
+
+def test_premium_smart_ru_seed_requires_full_raw_tcp_reality_contract() -> None:
+    validation = _compact(_validation_block(_read(SEED_SQL)))
+
+    required_fragments = [
+        "where tag = 'VLESS_REALITY_443'",
+        "v_raw_count <> 1",
+        "VLESS_REALITY_443 inbound must exist exactly once",
+        "lower(coalesce(v_raw.type, '')) <> 'vless'",
+        "VLESS_REALITY_443 must use type=vless",
+        "lower(coalesce(v_raw.network, '')) not in ('raw', 'tcp')",
+        "VLESS_REALITY_443 must use raw/tcp network",
+        "lower(coalesce(v_raw.security, '')) <> 'reality'",
+        "VLESS_REALITY_443 must use reality security",
+        "v_raw.port <> 443",
+        "VLESS_REALITY_443 must use port 443",
+        "v_raw.raw_inbound #>> '{settings,decryption}'",
+        "VLESS_REALITY_443 must use decryption=none",
+        "v_raw.raw_inbound #>> '{settings,flow}'",
+        "xtls-rprx-vision",
+        "VLESS_REALITY_443 must use settings.flow=xtls-rprx-vision",
+        "v_raw.raw_inbound #>> '{streamSettings,network}'",
+        "VLESS_REALITY_443 streamSettings.network must be raw/tcp",
+        "v_raw.raw_inbound #>> '{streamSettings,security}'",
+        "VLESS_REALITY_443 streamSettings.security must be reality",
+        "v_raw.raw_inbound #> '{streamSettings,realitySettings,serverNames}'",
+        "jsonb_array_length(v_raw.raw_inbound #> '{streamSettings,realitySettings,serverNames}')",
+        "VLESS_REALITY_443 serverNames is empty",
+        "v_raw.raw_inbound #> '{streamSettings,realitySettings,shortIds}'",
+        "jsonb_array_length(v_raw.raw_inbound #> '{streamSettings,realitySettings,shortIds}')",
+        "VLESS_REALITY_443 shortIds is empty",
+        "v_raw.raw_inbound #>> '{streamSettings,realitySettings,privateKey}'",
+        "VLESS_REALITY_443 privateKey is empty",
+        "v_raw.raw_inbound #>> '{streamSettings,realitySettings,target}'",
+        "v_raw.raw_inbound #>> '{streamSettings,realitySettings,dest}'",
+        "VLESS_REALITY_443 Reality target is empty",
+        "right(btrim(v_raw_reality_target), 4) <> ':443'",
+        "VLESS_REALITY_443 Reality target must end with :443",
+        "v_raw.raw_inbound #>> '{sniffing,enabled}'",
+        "VLESS_REALITY_443 sniffing must be enabled",
+        "v_raw.raw_inbound #> '{sniffing,destOverride}'",
+        "v_raw_dest_override ?& array['http', 'tls', 'quic']",
+        "VLESS_REALITY_443 sniffing.destOverride must contain http, tls, and quic",
+    ]
+    for fragment in required_fragments:
+        assert fragment in validation
+
+
+def test_premium_smart_ru_seed_requires_and_preserves_xhttp_contract() -> None:
+    seed_sql = _read(SEED_SQL)
+    validation = _compact(_validation_block(seed_sql))
+
+    required_fragments = [
+        "where tag = 'VLESS_XHTTP_REALITY_8443'",
+        "v_xhttp_count <> 1",
+        "VLESS_XHTTP_REALITY_8443 inbound must exist exactly once",
+        "lower(coalesce(v_xhttp.type, '')) <> 'vless'",
+        "VLESS_XHTTP_REALITY_8443 must use type=vless",
+        "lower(coalesce(v_xhttp.network, '')) <> 'xhttp'",
+        "VLESS_XHTTP_REALITY_8443 must use network=xhttp",
+        "lower(coalesce(v_xhttp.security, '')) <> 'reality'",
+        "VLESS_XHTTP_REALITY_8443 must use reality security",
+        "v_xhttp.port <> 8443",
+        "VLESS_XHTTP_REALITY_8443 must use port 8443",
+    ]
+    for fragment in required_fragments:
+        assert fragment in validation
+
+    for pattern in (
+        r"\binsert\s+into\s+config_profile_inbounds\b",
+        r"\bupdate\s+config_profile_inbounds\b",
+        r"\bdelete\s+from\s+config_profile_inbounds\b",
+    ):
+        assert re.search(pattern, seed_sql, flags=re.IGNORECASE) is None
+
+
+def test_premium_smart_ru_inbound_diagnostic_sql_is_safe_and_contract_focused() -> None:
+    assert DIAGNOSTIC_SQL.is_file()
+
+    diagnostic_sql = _read(DIAGNOSTIC_SQL)
+    diagnostic_compact = _compact(diagnostic_sql)
+    select_output = diagnostic_compact[diagnostic_compact.lower().index("select ") :]
+
+    required_fragments = [
+        "cpi.tag",
+        "cpi.type",
+        "cpi.network",
+        "cpi.security",
+        "cpi.port",
+        "tag_row_count",
+        "as decryption",
+        "as settings_flow_is_xtls_rprx_vision",
+        "as stream_network",
+        "as stream_security",
+        "as server_names_count",
+        "as short_ids_count",
+        "as reality_private_key_present",
+        "as reality_target_present",
+        "as reality_target_ends_443",
+        "as sniffing_enabled",
+        "as dest_override_has_http",
+        "as dest_override_has_tls",
+        "as dest_override_has_quic",
+        "'VLESS_REALITY_443'",
+        "'VLESS_XHTTP_REALITY_8443'",
+    ]
+    for fragment in required_fragments:
+        assert fragment in diagnostic_sql
+
+    forbidden_output_patterns = [
+        r"\bcpi\.raw_inbound\b\s*(?:,|as\b)",
+        r"#>?>\s+'\{streamSettings,realitySettings,serverNames\}'\s+as\b",
+        r"#>?>\s+'\{streamSettings,realitySettings,shortIds\}'\s+as\b",
+        r"#>?>\s+'\{streamSettings,realitySettings,privateKey\}'\s+as\b",
+        r"#>?>\s+'\{streamSettings,realitySettings,target\}'\s+as\b",
+        r"#>?>\s+'\{streamSettings,realitySettings,dest\}'\s+as\b",
+        r"\bprofile_uuid\b",
+        r"\bpublicKey\b",
+        r"\bsni\b\s*(?:,|as\b)",
+    ]
+    for pattern in forbidden_output_patterns:
+        assert re.search(pattern, select_output, flags=re.IGNORECASE) is None

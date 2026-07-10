@@ -1,0 +1,49 @@
+---
+- name: VPN test agent region | Assert supported action
+  ansible.builtin.assert:
+    that:
+      - vpn_test_agent_region_action in ['deploy', 'verify']
+    fail_msg: "vpn_test_agent_region_action must be deploy or verify."
+
+- name: VPN test agent region | Assert regional agent config is complete
+  ansible.builtin.assert:
+    that:
+      - vpn_test_agent_region_name is match('^[a-z0-9][a-z0-9-]{1,31}$')
+      - vpn_test_agent_region_physical_region | length > 0
+      - vpn_test_agent_region_target_region | length > 0
+      - vpn_test_agent_region_image | length > 0
+      - vpn_test_agent_region_secret | length >= 16
+      - (vpn_test_agent_region_secret | lower) is not search('replace|example|test|placeholder|changeme|dummy|local|development|dev-|redacted|your_')
+      - vpn_test_agent_region_bind_address | length > 0
+      - vpn_test_agent_region_port | int >= 1024
+      - vpn_test_agent_region_port | int <= 65535
+      - (vpn_test_agent_region_firewall_allowed_ipv4_cidrs + vpn_test_agent_region_firewall_allowed_ipv6_cidrs) | length > 0
+      - (vpn_test_agent_region_firewall_allowed_ipv4_cidrs + vpn_test_agent_region_firewall_allowed_ipv6_cidrs) | length == 1
+      - vpn_test_agent_region_required_source_ipv4_cidr | length > 0 or vpn_test_agent_region_required_source_ipv6_cidr | length > 0
+      - vpn_test_agent_region_required_source_ipv4_cidr in ['', '45.87.41.146/32']
+      - vpn_test_agent_region_required_source_ipv6_cidr in ['', '2a0d:2787:1b:12f5::a/128']
+      - vpn_test_agent_region_required_source_ipv4_cidr | length == 0 or vpn_test_agent_region_required_source_ipv4_cidr in vpn_test_agent_region_firewall_allowed_ipv4_cidrs
+      - vpn_test_agent_region_required_source_ipv6_cidr | length == 0 or vpn_test_agent_region_required_source_ipv6_cidr in vpn_test_agent_region_firewall_allowed_ipv6_cidrs
+      - vpn_test_agent_region_required_source_ipv4_cidr | length == 0 or vpn_test_agent_region_required_source_ipv4_cidr is match('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/32$')
+      - vpn_test_agent_region_required_source_ipv6_cidr | length == 0 or vpn_test_agent_region_required_source_ipv6_cidr is match('^[0-9A-Fa-f:]+/128$')
+      - vpn_test_agent_region_firewall_allowed_ipv4_cidrs == (['45.87.41.146/32'] if vpn_test_agent_region_required_source_ipv4_cidr | length > 0 else [])
+      - vpn_test_agent_region_firewall_allowed_ipv6_cidrs == (['2a0d:2787:1b:12f5::a/128'] if vpn_test_agent_region_required_source_ipv6_cidr | length > 0 else [])
+      - not vpn_test_agent_region_tun_enabled | bool
+      - vpn_test_agent_region_proxy_only_enabled | bool
+    fail_msg: >-
+      Configure the regional VPN test agent with a pinned image, dedicated
+      secret, physical/target region labels, proxy-only mode, and a firewall
+      allowlist containing only the required production app /32 or /128 CIDR.
+  when: vpn_test_agent_region_enabled
+  no_log: true
+
+- name: VPN test agent region | Assert host-network firewall mode
+  ansible.builtin.assert:
+    that:
+      - vpn_test_agent_region_manage_nftables | bool
+      - vpn_test_agent_region_manage_ufw | bool
+    fail_msg: >-
+      Regional agents use Docker host networking, not published ports. Keep
+      nftables management enabled or provide an equivalent host/cloud firewall
+      role before deploying.
+  when: vpn_test_agent_region_enabled

@@ -6,6 +6,146 @@
 -- Configure backend with the returned external_squad_uuid:
 --   REMNAWAVE_SMART_RU_EXTERNAL_SQUAD_UUID=<external_squad_uuid>
 
+do $premium_smart_ru_inbound_validation$
+declare
+    v_raw record;
+    v_raw_count integer;
+    v_raw_server_names_count integer;
+    v_raw_short_ids_count integer;
+    v_raw_reality_target text;
+    v_raw_dest_override jsonb;
+    v_xhttp record;
+    v_xhttp_count integer;
+begin
+    select count(*)
+    into v_raw_count
+    from config_profile_inbounds
+    where tag = 'VLESS_REALITY_443';
+
+    if v_raw_count <> 1 then
+        raise exception 'VLESS_REALITY_443 inbound must exist exactly once, found %', v_raw_count;
+    end if;
+
+    select *
+    into v_raw
+    from config_profile_inbounds
+    where tag = 'VLESS_REALITY_443';
+
+    if lower(coalesce(v_raw.type, '')) <> 'vless' then
+        raise exception 'VLESS_REALITY_443 must use type=vless';
+    end if;
+
+    if lower(coalesce(v_raw.network, '')) not in ('raw', 'tcp') then
+        raise exception 'VLESS_REALITY_443 must use raw/tcp network';
+    end if;
+
+    if lower(coalesce(v_raw.security, '')) <> 'reality' then
+        raise exception 'VLESS_REALITY_443 must use reality security';
+    end if;
+
+    if v_raw.port <> 443 then
+        raise exception 'VLESS_REALITY_443 must use port 443';
+    end if;
+
+    if lower(coalesce(v_raw.raw_inbound #>> '{settings,decryption}', '')) <> 'none' then
+        raise exception 'VLESS_REALITY_443 must use decryption=none';
+    end if;
+
+    if coalesce(v_raw.raw_inbound #>> '{settings,flow}', '') <> 'xtls-rprx-vision' then
+        raise exception 'VLESS_REALITY_443 must use settings.flow=xtls-rprx-vision';
+    end if;
+
+    if lower(coalesce(v_raw.raw_inbound #>> '{streamSettings,network}', '')) not in ('raw', 'tcp') then
+        raise exception 'VLESS_REALITY_443 streamSettings.network must be raw/tcp';
+    end if;
+
+    if lower(coalesce(v_raw.raw_inbound #>> '{streamSettings,security}', '')) <> 'reality' then
+        raise exception 'VLESS_REALITY_443 streamSettings.security must be reality';
+    end if;
+
+    select
+        case
+            when jsonb_typeof(v_raw.raw_inbound #> '{streamSettings,realitySettings,serverNames}') = 'array'
+            then jsonb_array_length(v_raw.raw_inbound #> '{streamSettings,realitySettings,serverNames}')
+            else 0
+        end,
+        case
+            when jsonb_typeof(v_raw.raw_inbound #> '{streamSettings,realitySettings,shortIds}') = 'array'
+            then jsonb_array_length(v_raw.raw_inbound #> '{streamSettings,realitySettings,shortIds}')
+            else 0
+        end,
+        coalesce(
+            nullif(v_raw.raw_inbound #>> '{streamSettings,realitySettings,target}', ''),
+            nullif(v_raw.raw_inbound #>> '{streamSettings,realitySettings,dest}', '')
+        ),
+        coalesce(v_raw.raw_inbound #> '{sniffing,destOverride}', '[]'::jsonb)
+    into
+        v_raw_server_names_count,
+        v_raw_short_ids_count,
+        v_raw_reality_target,
+        v_raw_dest_override;
+
+    if v_raw_server_names_count = 0 then
+        raise exception 'VLESS_REALITY_443 serverNames is empty';
+    end if;
+
+    if v_raw_short_ids_count = 0 then
+        raise exception 'VLESS_REALITY_443 shortIds is empty';
+    end if;
+
+    if length(coalesce(v_raw.raw_inbound #>> '{streamSettings,realitySettings,privateKey}', '')) = 0 then
+        raise exception 'VLESS_REALITY_443 privateKey is empty';
+    end if;
+
+    if coalesce(v_raw_reality_target, '') = '' then
+        raise exception 'VLESS_REALITY_443 Reality target is empty';
+    end if;
+
+    if right(btrim(v_raw_reality_target), 4) <> ':443' then
+        raise exception 'VLESS_REALITY_443 Reality target must end with :443';
+    end if;
+
+    if lower(coalesce(v_raw.raw_inbound #>> '{sniffing,enabled}', 'false')) <> 'true' then
+        raise exception 'VLESS_REALITY_443 sniffing must be enabled';
+    end if;
+
+    if jsonb_typeof(v_raw_dest_override) <> 'array'
+       or not (v_raw_dest_override ?& array['http', 'tls', 'quic']) then
+        raise exception 'VLESS_REALITY_443 sniffing.destOverride must contain http, tls, and quic';
+    end if;
+
+    select count(*)
+    into v_xhttp_count
+    from config_profile_inbounds
+    where tag = 'VLESS_XHTTP_REALITY_8443';
+
+    if v_xhttp_count <> 1 then
+        raise exception 'VLESS_XHTTP_REALITY_8443 inbound must exist exactly once, found %', v_xhttp_count;
+    end if;
+
+    select *
+    into v_xhttp
+    from config_profile_inbounds
+    where tag = 'VLESS_XHTTP_REALITY_8443';
+
+    if lower(coalesce(v_xhttp.type, '')) <> 'vless' then
+        raise exception 'VLESS_XHTTP_REALITY_8443 must use type=vless';
+    end if;
+
+    if lower(coalesce(v_xhttp.network, '')) <> 'xhttp' then
+        raise exception 'VLESS_XHTTP_REALITY_8443 must use network=xhttp';
+    end if;
+
+    if lower(coalesce(v_xhttp.security, '')) <> 'reality' then
+        raise exception 'VLESS_XHTTP_REALITY_8443 must use reality security';
+    end if;
+
+    if v_xhttp.port <> 8443 then
+        raise exception 'VLESS_XHTTP_REALITY_8443 must use port 8443';
+    end if;
+end
+$premium_smart_ru_inbound_validation$;
+
 begin;
 
 with template_upsert as (

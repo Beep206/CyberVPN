@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from importlib.resources import files
@@ -9,7 +10,7 @@ from time import perf_counter
 from typing import Any
 from uuid import UUID
 
-from httpx import AsyncClient, HTTPError
+from httpx import HTTPError
 
 from src.application.vpn_testing.analyzers import analyze_mihomo_template
 from src.application.vpn_testing.balancer import recommendation_key, stable_recommendation_hash
@@ -86,6 +87,44 @@ DEFAULT_SCHEDULES = (
         "enabled": False,
         "settings": {"profile": "cleanup"},
     },
+)
+
+PREMIUM_SMART_RU_NODE_HOSTS = {
+    "de-3.cyber-vpn.org": "🇩🇪 DE Frankfurt 01 25G",
+    "nl-4.cyber-vpn.org": "🇳🇱 NL Amsterdam 01 10G",
+    "ru-msk-3.cyber-vpn.org": "🇷🇺 RU Moscow 01 25G",
+    "ru-spb-3.cyber-vpn.org": "🇷🇺 RU SPB 01 25G",
+}
+PREMIUM_SMART_RU_INBOUND_TAGS = {
+    "VLESS_REALITY_443",
+    "VLESS_XHTTP_REALITY_8443",
+}
+PREMIUM_SMART_RU_INTERNAL_SQUAD = "CYBERVPN_PREMIUM_SMART_RU_NODES"
+PREMIUM_SMART_RU_RELEASE_GATE_SUITE = "premium_smart_ru_v1"
+PREMIUM_SMART_RU_RELEASE_GATE_VERSION = "v1"
+PREMIUM_SMART_RU_RELEASE_GATE_MODE = "runtime"
+PREMIUM_SMART_RU_RELEASE_GATE_MAX_AGE = timedelta(hours=24)
+PREMIUM_SMART_RU_RELEASE_GATE_CONTRACT_CHECKS = frozenset(
+    {
+        "generated_subscription.vless_reality_raw_tcp",
+        "generated_subscription.xhttp_transport",
+        "remnawave.inbounds.vless_reality_raw_tcp",
+        "remnawave.inbounds.vless_reality_xhttp",
+        "remnawave.hosts.transport_matrix",
+    }
+)
+PREMIUM_SMART_RU_RELEASE_GATE_RAW_COUNT = 4
+PREMIUM_SMART_RU_RELEASE_GATE_XHTTP_COUNT = 4
+PERSISTED_RUN_CONTEXT_KEYS = frozenset(
+    {
+        "source",
+        "admin_surface",
+        "trigger",
+        "schedule_key",
+        "execute_immediately",
+        "idempotency_window",
+        "lock_policy",
+    }
 )
 
 
@@ -173,6 +212,70 @@ def _run_status(results: list[dict[str, Any]]) -> str:
     return "pass"
 
 
+def _release_gate_result_value(result: Any, field: str) -> Any:
+    if isinstance(result, Mapping):
+        return result.get(field)
+    return getattr(result, field, None)
+
+
+def _premium_smart_ru_release_evidence_complete(run: Any) -> bool:
+    if run is None or str(getattr(run, "status", "")) != "pass":
+        return False
+    if str(getattr(run, "suite_key", "")) != PREMIUM_SMART_RU_RELEASE_GATE_SUITE:
+        return False
+    if str(getattr(run, "suite_version", "")) != PREMIUM_SMART_RU_RELEASE_GATE_VERSION:
+        return False
+    if str(getattr(run, "mode", "")) != PREMIUM_SMART_RU_RELEASE_GATE_MODE:
+        return False
+    finished_at = getattr(run, "finished_at", None)
+    if not isinstance(finished_at, datetime) or finished_at.tzinfo is None:
+        return False
+    age = _utc_now() - finished_at.astimezone(UTC)
+    if age < timedelta(0) or age > PREMIUM_SMART_RU_RELEASE_GATE_MAX_AGE:
+        return False
+
+    results = list(getattr(run, "results", None) or [])
+    if not results:
+        return False
+    status_by_key = {
+        str(_release_gate_result_value(result, "check_key") or ""): str(
+            _release_gate_result_value(result, "status") or ""
+        )
+        for result in results
+    }
+    if any(status_by_key.get(check_key) != "pass" for check_key in PREMIUM_SMART_RU_RELEASE_GATE_CONTRACT_CHECKS):
+        return False
+
+    raw_keys = {
+        check_key
+        for check_key, check_status in status_by_key.items()
+        if "runtime.transport.raw." in check_key and check_status == "pass"
+    }
+    xhttp_keys = {
+        check_key
+        for check_key, check_status in status_by_key.items()
+        if "runtime.transport.xhttp." in check_key and check_status == "pass"
+    }
+    matrix_results = [
+        result
+        for result in results
+        if "runtime.transport_profile_matrix.required" in str(_release_gate_result_value(result, "check_key") or "")
+    ]
+    matrix_evidence_valid = bool(matrix_results) and all(
+        str(_release_gate_result_value(result, "status") or "") == "pass"
+        and isinstance(_release_gate_result_value(result, "details"), Mapping)
+        and _release_gate_result_value(result, "details").get("server_matrix_valid") is True
+        and _release_gate_result_value(result, "details").get("raw_server_matrix_valid") is True
+        and _release_gate_result_value(result, "details").get("xhttp_server_matrix_valid") is True
+        for result in matrix_results
+    )
+    return (
+        len(raw_keys) == PREMIUM_SMART_RU_RELEASE_GATE_RAW_COUNT
+        and len(xhttp_keys) == PREMIUM_SMART_RU_RELEASE_GATE_XHTTP_COUNT
+        and matrix_evidence_valid
+    )
+
+
 def _summary(results: list[dict[str, Any]], *, suite_key: str, mode: str) -> dict[str, Any]:
     pass_count = sum(1 for item in results if item["status"] == "pass")
     fail_count = sum(1 for item in results if item["status"] == "fail")
@@ -218,67 +321,38 @@ def _default_mihomo_template() -> str:
     )
 
 
-def _request_context_payload(request_context: Mapping[str, Any] | None) -> Mapping[str, Any]:
+def _context_generated_mihomo_artifact(request_context: Mapping[str, Any] | None) -> Any:
     if not isinstance(request_context, Mapping):
-        return {}
+        return None
+    payloads = [request_context]
     requested = request_context.get("requested_context")
     if isinstance(requested, Mapping):
-        return requested
-    return request_context
-
-
-def _context_generated_mihomo_artifact(request_context: Mapping[str, Any] | None) -> Any:
-    payload = _request_context_payload(request_context)
-    for key in (
-        "generated_mihomo_yaml",
-        "mihomo_yaml",
-        "generated_subscription_yaml",
-        "subscription_yaml",
-        "generated_mihomo",
-        "generated_subscription",
-    ):
-        value = payload.get(key)
-        if value:
-            return value
+        payloads.append(requested)
+    for payload in payloads:
+        for key in (
+            "generated_mihomo_yaml",
+            "mihomo_yaml",
+            "generated_subscription_yaml",
+            "subscription_yaml",
+            "generated_mihomo",
+            "generated_subscription",
+        ):
+            value = payload.get(key)
+            if value:
+                return value
     return None
 
 
-def _mapping_str(value: Mapping[str, Any], *keys: str) -> str:
-    for key in keys:
-        item = value.get(key)
-        if item is not None:
-            return str(item).strip()
-    return ""
-
-
-def _remnawave_user_subscription_url(user: Mapping[str, Any]) -> str:
-    return _mapping_str(user, "subscriptionUrl", "subscription_url")
-
-
-def _remnawave_user_is_active(user: Mapping[str, Any]) -> bool:
-    return _mapping_str(user, "status").lower() == "active"
-
-
-def _remnawave_user_matches_smart_ru(user: Mapping[str, Any]) -> bool:
-    internal_squad_uuid = settings.remnawave_smart_ru_internal_squad_uuid.strip().lower()
-    external_squad_uuid = settings.remnawave_smart_ru_external_squad_uuid.strip().lower()
-    external_user_squad_uuid = _mapping_str(user, "externalSquadUuid", "external_squad_uuid").lower()
-    if external_squad_uuid and external_user_squad_uuid == external_squad_uuid:
-        return True
-
-    squads = user.get("activeInternalSquads") or user.get("active_internal_squads") or []
-    if not isinstance(squads, list):
-        return False
-    for squad in squads:
-        if not isinstance(squad, Mapping):
-            continue
-        squad_uuid = _mapping_str(squad, "uuid").lower()
-        squad_name = _mapping_str(squad, "name").lower()
-        if internal_squad_uuid and squad_uuid == internal_squad_uuid:
-            return True
-        if "premium_smart_ru" in squad_name:
-            return True
-    return False
+def _sanitize_run_request_context(request_context: Mapping[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(request_context, Mapping):
+        return {}
+    sanitized = {
+        key: value
+        for key, value in request_context.items()
+        if key in PERSISTED_RUN_CONTEXT_KEYS and isinstance(value, str | int | bool | type(None))
+    }
+    sanitized["generated_mihomo_artifact_supplied"] = _context_generated_mihomo_artifact(request_context) is not None
+    return sanitized
 
 
 class VpnTesterService:
@@ -286,68 +360,12 @@ class VpnTesterService:
         self._repository = repository
         self._remnawave_client = remnawave_client
 
-    async def _generated_mihomo_artifact_from_candidates(self, candidates: list[dict[str, str]]) -> Any:
-        async with AsyncClient(
-            timeout=20.0,
-            follow_redirects=True,
-            headers={"User-Agent": "ClashMetaForAndroid/2.11.0"},
-        ) as client:
-            for candidate in candidates:
-                subscription_url = str(candidate.get("subscription_url") or "").strip()
-                if not subscription_url:
-                    continue
-                try:
-                    response = await client.get(subscription_url)
-                    response.raise_for_status()
-                except HTTPError:
-                    continue
-                text = response.text
-                summary = generated_mihomo_artifact_summary(text)
-                if summary["present"]:
-                    return {
-                        "generated_mihomo_yaml": text,
-                        "source": str(candidate.get("source") or "subscription_delivery_channel"),
-                        "http_status": response.status_code,
-                    }
-        return None
-
-    async def _generated_mihomo_artifact_from_remnawave_users(self) -> Any:
-        if self._remnawave_client is None:
-            return None
-        try:
-            page = await self._remnawave_client.get_all_users_cursor_page(limit=100)
-        except HTTPError:
-            return None
-
-        candidates: list[dict[str, str]] = []
-        for user in page.items:
-            if not isinstance(user, Mapping):
-                continue
-            subscription_url = _remnawave_user_subscription_url(user)
-            if not subscription_url:
-                continue
-            if not _remnawave_user_is_active(user):
-                continue
-            if not _remnawave_user_matches_smart_ru(user):
-                continue
-            candidates.append({"subscription_url": subscription_url, "source": "remnawave_users_cursor"})
-        return await self._generated_mihomo_artifact_from_candidates(candidates)
+    @staticmethod
+    def transient_generated_mihomo_artifact(request_context: Mapping[str, Any] | None) -> Any:
+        return _context_generated_mihomo_artifact(request_context)
 
     async def _generated_mihomo_artifact(self, request_context: Mapping[str, Any] | None) -> Any:
-        context_artifact = _context_generated_mihomo_artifact(request_context)
-        if context_artifact:
-            return context_artifact
-        list_candidates = getattr(self._repository, "list_subscription_delivery_candidates", None)
-        if list_candidates is not None:
-            plan_codes = set(_csv(settings.remnawave_smart_ru_plan_codes))
-            candidates = await list_candidates(plan_codes=plan_codes, limit=20)
-            artifact = await self._generated_mihomo_artifact_from_candidates(candidates)
-            if artifact:
-                return artifact
-        artifact = await self._generated_mihomo_artifact_from_remnawave_users()
-        if artifact:
-            return artifact
-        return None
+        return _context_generated_mihomo_artifact(request_context)
 
     async def ensure_seeded(self) -> None:
         for suite in load_default_suites():
@@ -380,7 +398,7 @@ class VpnTesterService:
             trigger="manual",
             requested_by_admin_id=requested_by_admin_id,
             idempotency_key=idempotency_key,
-            request_context=request_context,
+            request_context=_sanitize_run_request_context(request_context),
             runtime_mode="proxy-only" if mode == "runtime" else None,
             route_registry_version=str(suite_spec.get("required_route_registry") or ""),
         )
@@ -406,7 +424,9 @@ class VpnTesterService:
             trigger=trigger,
             requested_by_admin_id=None,
             idempotency_key=idempotency_key,
-            request_context={"source": "task_worker", "trigger": trigger, **dict(request_context or {})},
+            request_context=_sanitize_run_request_context(
+                {"source": "task_worker", "trigger": trigger, **dict(request_context or {})}
+            ),
             runtime_mode="proxy-only" if mode == "runtime" else None,
             route_registry_version=str(suite_spec.get("required_route_registry") or ""),
         )
@@ -505,7 +525,7 @@ class VpnTesterService:
             return None
         return await self._repository.cancel_run(run)
 
-    async def execute_run(self, run: VpnTestRunModel) -> VpnTestRunModel:
+    async def execute_run(self, run: VpnTestRunModel, *, generated_mihomo_artifact: Any = None) -> VpnTestRunModel:
         if run.status == "cancelled":
             return run
         started = perf_counter()
@@ -521,7 +541,22 @@ class VpnTesterService:
         elif run.mode == "balancer_preview":
             results = await self._balancer_preview_results(plans, route_entries)
         elif run.mode == "runtime":
-            results = await self._runtime_results(run, route_entries)
+            if generated_mihomo_artifact is None:
+                generated_mihomo_artifact = await self._generated_mihomo_artifact(run.request_context)
+            results = await self._contract_results(
+                suite_spec,
+                plans,
+                route_entries,
+                request_context=run.request_context,
+                generated_mihomo_artifact=generated_mihomo_artifact,
+            )
+            results.extend(
+                await self._runtime_results(
+                    run,
+                    route_entries,
+                    generated_mihomo_artifact=generated_mihomo_artifact,
+                )
+            )
         else:
             results = await self._contract_results(
                 suite_spec,
@@ -637,15 +672,15 @@ class VpnTesterService:
     async def release_gate(self) -> dict[str, Any]:
         runs = await self._repository.list_runs(limit=10)
         latest = runs[0] if runs else None
-        blocking = latest is None or latest.status in {"fail", "queued", "running"}
+        blocking = not _premium_smart_ru_release_evidence_complete(latest)
         active_override = await self._repository.get_active_release_gate_override()
         if active_override is not None:
-            vpn_tester_release_gate_blocking.set(0)
+            vpn_tester_release_gate_blocking.set(1)
             return {
-                "status": "override_active",
-                "blocking": False,
+                "status": "blocked",
+                "blocking": True,
                 "latest_run_id": latest.id if latest else None,
-                "reason": "manual_release_gate_override_active",
+                "reason": "manual_release_gate_override_not_permitted_for_premium_smart_ru",
                 "override_allowed_roles": ["owner/super_admin", "super_admin"],
                 "active_override": {
                     "id": active_override.id,
@@ -664,7 +699,9 @@ class VpnTesterService:
             "status": "blocked" if blocking else latest.status,
             "blocking": blocking,
             "latest_run_id": latest.id if latest else None,
-            "reason": "latest_vpn_tester_run_not_passing" if blocking else "latest_vpn_tester_run_acceptable",
+            "reason": "latest_vpn_tester_run_missing_required_evidence"
+            if blocking
+            else "latest_vpn_tester_run_acceptable",
             "override_allowed_roles": ["owner/super_admin", "super_admin"],
             "active_override": None,
             "generated_at": _utc_now(),
@@ -856,6 +893,7 @@ class VpnTesterService:
         route_entries: list[Any],
         *,
         request_context: Mapping[str, Any] | None = None,
+        generated_mihomo_artifact: Any = None,
     ) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
         results.append(
@@ -888,23 +926,23 @@ class VpnTesterService:
             )
         )
 
-        generated_mihomo_artifact = await self._generated_mihomo_artifact(request_context)
+        if generated_mihomo_artifact is None:
+            generated_mihomo_artifact = await self._generated_mihomo_artifact(request_context)
         generated_artifact_summary = generated_mihomo_artifact_summary(generated_mihomo_artifact)
         remnawave_nodes_result = await self._remnawave_nodes_result()
-        remnawave_node_details = dict(remnawave_nodes_result.get("details") or {})
-        xhttp_node_ready = (
-            remnawave_nodes_result.get("status") == "pass"
-            and int(remnawave_node_details.get("xhttp_node_count") or 0) > 0
-        )
-        generated_xhttp_ready = int(generated_artifact_summary.get("xhttp_proxy_count") or 0) > 0
+        remnawave_transport_results = await self._remnawave_transport_results()
+        generated_xhttp_ready = int(generated_artifact_summary.get("xhttp_proxy_count") or 0) == 4
+        generated_raw_ready = int(generated_artifact_summary.get("vless_reality_tcp_proxy_count") or 0) == 4
 
         required_modes = set(_str_list(suite_spec.get("required_connection_modes") or []))
         for plan in target_plans:
             modes = set(_str_list(plan.connection_modes))
             effective_modes = set(modes)
             assignment = expected_remnawave_assignment(plan)
-            if assignment["requires_xhttp"] and (generated_xhttp_ready or xhttp_node_ready):
+            if assignment["requires_xhttp"] and generated_xhttp_ready:
                 effective_modes.add("xhttp")
+            if assignment["is_premium_smart_ru"] and generated_raw_ready:
+                effective_modes.add("raw")
             missing = sorted(required_modes - effective_modes)
             results.append(
                 _result(
@@ -922,7 +960,7 @@ class VpnTesterService:
                         "effective_modes": sorted(effective_modes),
                         "xhttp_satisfied_by_remnawave_assignment": "xhttp" not in modes and "xhttp" in effective_modes,
                         "xhttp_satisfied_by_generated_subscription": generated_xhttp_ready,
-                        "xhttp_satisfied_by_remnawave_nodes": xhttp_node_ready,
+                        "raw_satisfied_by_generated_subscription": generated_raw_ready,
                     },
                 )
             )
@@ -965,9 +1003,16 @@ class VpnTesterService:
             )
         results.append(self._feature_flag_result())
         results.append(remnawave_nodes_result)
+        results.extend(remnawave_transport_results)
         return results
 
-    async def _runtime_results(self, run: VpnTestRunModel, route_entries: list[Any]) -> list[dict[str, Any]]:
+    async def _runtime_results(
+        self,
+        run: VpnTestRunModel,
+        route_entries: list[Any],
+        *,
+        generated_mihomo_artifact: Any = None,
+    ) -> list[dict[str, Any]]:
         if not settings.vpn_tester_runtime_enabled:
             return [
                 _result(
@@ -1000,6 +1045,7 @@ class VpnTesterService:
                 suite_key=run.suite_key,
                 mode=run.mode,
                 route_entries=route_entries,
+                generated_mihomo_artifact=generated_mihomo_artifact,
             )
         except HTTPError as exc:
             vpn_tester_runtime_agent_unavailable_total.labels(reason=type(exc).__name__).inc()
@@ -1132,6 +1178,15 @@ class VpnTesterService:
                 started=started,
             )
         nodes = _extract_nodes(payload)
+        target_names = set(PREMIUM_SMART_RU_NODE_HOSTS.values())
+        matched_nodes = [node for node in nodes if str(node.get("name") or "") in target_names]
+        connected_enabled_names = {
+            str(node.get("name") or "")
+            for node in matched_nodes
+            if bool(node.get("isConnected") if "isConnected" in node else node.get("is_connected"))
+            and not bool(node.get("isDisabled") if "isDisabled" in node else node.get("is_disabled"))
+        }
+        missing_names = sorted(target_names - connected_enabled_names)
         xhttp_count = 0
         ru_count = 0
         for node in nodes:
@@ -1140,16 +1195,150 @@ class VpnTesterService:
                 xhttp_count += 1
             if "ru" in tags or str(node.get("country_code") or node.get("countryCode") or "").upper() == "RU":
                 ru_count += 1
+        valid = len(matched_nodes) == 4 and not missing_names
         return _result(
             check_key="remnawave.nodes.contract",
             check_name="Remnawave node contract snapshot",
             category="remnawave",
-            status="pass" if nodes else "degraded",
-            severity="warning",
-            safe_summary="Remnawave nodes snapshot loaded" if nodes else "Remnawave nodes snapshot was empty",
-            details={"node_count": len(nodes), "xhttp_node_count": xhttp_count, "ru_node_count": ru_count},
+            status="pass" if valid else "fail",
+            safe_summary="Four Premium Smart RU nodes are connected and enabled"
+            if valid
+            else "Premium Smart RU node availability contract is incomplete",
+            details={
+                "node_count": len(nodes),
+                "target_node_count": len(matched_nodes),
+                "connected_enabled_target_count": len(connected_enabled_names),
+                "missing_or_unavailable_nodes": missing_names,
+                "xhttp_tagged_node_count": xhttp_count,
+                "ru_node_count": ru_count,
+            },
             started=started,
         )
+
+    async def _remnawave_transport_results(self) -> list[dict[str, Any]]:
+        started = perf_counter()
+        check_specs = (
+            (
+                "remnawave.inbounds.vless_reality_raw_tcp",
+                "Remnawave VLESS Reality RAW/TCP inbound",
+            ),
+            (
+                "remnawave.inbounds.vless_reality_xhttp",
+                "Remnawave VLESS Reality XHTTP inbound",
+            ),
+            ("remnawave.hosts.transport_matrix", "Remnawave Smart RU host transport matrix"),
+        )
+
+        def failed_results(reason: str, error_type: str | None = None) -> list[dict[str, Any]]:
+            details = {"reason": reason, "secrets_redacted": True}
+            if error_type:
+                details["error_type"] = error_type
+            return [
+                _result(
+                    check_key=check_key,
+                    check_name=check_name,
+                    category="remnawave",
+                    status="fail",
+                    safe_summary="Required Remnawave transport contract could not be verified",
+                    details=details,
+                    started=started,
+                )
+                for check_key, check_name in check_specs
+            ]
+
+        if self._remnawave_client is None:
+            return failed_results("remnawave_client_not_configured")
+
+        try:
+            inbounds_payload = await self._remnawave_client.get("/config-profiles/inbounds")
+            hosts_payload = await self._remnawave_client.get("/hosts")
+            squads_payload = await self._remnawave_client.get("/internal-squads")
+            nodes_payload = await self._remnawave_client.get("/nodes")
+        except HTTPError as exc:
+            return failed_results("remnawave_transport_endpoints_unavailable", type(exc).__name__)
+
+        inbounds = _extract_collection(inbounds_payload, "inbounds")
+        hosts = _extract_collection(hosts_payload, "hosts")
+        squads = _extract_collection(squads_payload, "internalSquads")
+        nodes = _extract_nodes(nodes_payload)
+        raw_rows = [row for row in inbounds if str(row.get("tag") or "") == "VLESS_REALITY_443"]
+        xhttp_rows = [row for row in inbounds if str(row.get("tag") or "") == "VLESS_XHTTP_REALITY_8443"]
+
+        squad = next(
+            (row for row in squads if str(row.get("name") or "") == PREMIUM_SMART_RU_INTERNAL_SQUAD),
+            None,
+        )
+        squad_tags = {
+            str(item.get("tag") or "")
+            for item in (squad.get("inbounds") if isinstance(squad, dict) else []) or []
+            if isinstance(item, dict)
+        }
+        raw_contract = _safe_raw_inbound_contract(raw_rows[0]) if len(raw_rows) == 1 else {}
+        xhttp_contract = _safe_xhttp_inbound_contract(xhttp_rows[0]) if len(xhttp_rows) == 1 else {}
+        raw_valid = len(raw_rows) == 1 and all(raw_contract.values()) and "VLESS_REALITY_443" in squad_tags
+        xhttp_valid = len(xhttp_rows) == 1 and all(xhttp_contract.values()) and "VLESS_XHTTP_REALITY_8443" in squad_tags
+        inbound_tags_by_uuid = {
+            str(row.get("uuid")): str(row.get("tag") or "")
+            for row in inbounds
+            if row.get("uuid") and str(row.get("tag") or "") in PREMIUM_SMART_RU_INBOUND_TAGS
+        }
+        node_names_by_uuid = {
+            str(node.get("uuid")): str(node.get("name") or "")
+            for node in nodes
+            if node.get("uuid") and node.get("name")
+        }
+        host_details = _safe_transport_host_matrix(
+            hosts,
+            inbound_tags_by_uuid=inbound_tags_by_uuid,
+            node_names_by_uuid=node_names_by_uuid,
+        )
+        host_valid = bool(host_details.pop("valid"))
+
+        return [
+            _result(
+                check_key="remnawave.inbounds.vless_reality_raw_tcp",
+                check_name="Remnawave VLESS Reality RAW/TCP inbound",
+                category="remnawave",
+                status="pass" if raw_valid else "fail",
+                safe_summary="VLESS_REALITY_443 satisfies the server contract"
+                if raw_valid
+                else "VLESS_REALITY_443 server contract is invalid",
+                details={
+                    "inbound_count": len(raw_rows),
+                    "internal_squad_linked": "VLESS_REALITY_443" in squad_tags,
+                    "contract": raw_contract,
+                    "secrets_redacted": True,
+                },
+                started=started,
+            ),
+            _result(
+                check_key="remnawave.inbounds.vless_reality_xhttp",
+                check_name="Remnawave VLESS Reality XHTTP inbound",
+                category="remnawave",
+                status="pass" if xhttp_valid else "fail",
+                safe_summary="VLESS_XHTTP_REALITY_8443 satisfies the server contract"
+                if xhttp_valid
+                else "VLESS_XHTTP_REALITY_8443 server contract is invalid",
+                details={
+                    "inbound_count": len(xhttp_rows),
+                    "internal_squad_linked": "VLESS_XHTTP_REALITY_8443" in squad_tags,
+                    "contract": xhttp_contract,
+                    "secrets_redacted": True,
+                },
+                started=started,
+            ),
+            _result(
+                check_key="remnawave.hosts.transport_matrix",
+                check_name="Remnawave Smart RU host transport matrix",
+                category="remnawave",
+                status="pass" if host_valid else "fail",
+                safe_summary="Eight Smart RU hosts are enabled and linked to the expected nodes"
+                if host_valid
+                else "Smart RU host transport matrix is incomplete",
+                details={**host_details, "secrets_redacted": True},
+                started=started,
+            ),
+        ]
 
     def _evidence(
         self,
@@ -1189,6 +1378,177 @@ def _extract_nodes(payload: Any) -> list[dict[str, Any]]:
             if isinstance(value, list):
                 return [item for item in value if isinstance(item, dict)]
     return []
+
+
+def _extract_collection(payload: Any, collection_key: str) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if not isinstance(payload, dict):
+        return []
+    direct = payload.get(collection_key)
+    if isinstance(direct, list):
+        return [item for item in direct if isinstance(item, dict)]
+    response = payload.get("response")
+    if isinstance(response, list):
+        return [item for item in response if isinstance(item, dict)]
+    if isinstance(response, dict):
+        nested = response.get(collection_key)
+        if isinstance(nested, list):
+            return [item for item in nested if isinstance(item, dict)]
+    return []
+
+
+def _safe_inbound_parts(inbound: Mapping[str, Any]) -> tuple[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]]:
+    raw = inbound.get("rawInbound") or inbound.get("raw_inbound")
+    raw = raw if isinstance(raw, Mapping) else {}
+    settings_value = raw.get("settings")
+    settings_map = settings_value if isinstance(settings_value, Mapping) else {}
+    stream_value = raw.get("streamSettings")
+    stream = stream_value if isinstance(stream_value, Mapping) else {}
+    reality_value = stream.get("realitySettings")
+    reality = reality_value if isinstance(reality_value, Mapping) else {}
+    return settings_map, stream, reality
+
+
+def _safe_reality_contract(reality: Mapping[str, Any]) -> dict[str, bool]:
+    target = str(reality.get("target") or reality.get("dest") or "")
+    server_names = reality.get("serverNames")
+    short_ids = reality.get("shortIds")
+    target_hostname = target.rsplit(":", 1)[0].strip("[]").lower() if ":" in target else ""
+    primary_server_name = (
+        str(server_names[0]).strip().lower() if isinstance(server_names, list) and server_names else ""
+    )
+    return {
+        "server_names_present": isinstance(server_names, list) and bool(server_names),
+        "server_name_matches_target": bool(target_hostname) and primary_server_name == target_hostname,
+        "short_ids_present": isinstance(short_ids, list) and bool(short_ids),
+        "private_key_present": bool(reality.get("privateKey")),
+        "target_443_present": bool(target) and target.endswith(":443"),
+    }
+
+
+def _safe_raw_inbound_contract(inbound: Mapping[str, Any]) -> dict[str, bool]:
+    settings_map, stream, reality = _safe_inbound_parts(inbound)
+    raw = inbound.get("rawInbound") or inbound.get("raw_inbound")
+    raw = raw if isinstance(raw, Mapping) else {}
+    sniffing_value = raw.get("sniffing")
+    sniffing = sniffing_value if isinstance(sniffing_value, Mapping) else {}
+    overrides = sniffing.get("destOverride")
+    override_set = {str(item).lower() for item in overrides} if isinstance(overrides, list) else set()
+    return {
+        "type_vless": str(inbound.get("type") or raw.get("protocol") or "").lower() == "vless",
+        "network_raw_tcp": str(inbound.get("network") or stream.get("network") or "").lower() in {"raw", "tcp"},
+        "security_reality": str(inbound.get("security") or stream.get("security") or "").lower() == "reality",
+        "port_443": int(inbound.get("port") or raw.get("port") or 0) == 443,
+        "decryption_none": str(settings_map.get("decryption") or "") == "none",
+        "flow_vision": str(settings_map.get("flow") or "") == "xtls-rprx-vision",
+        **_safe_reality_contract(reality),
+        "sniffing_enabled": sniffing.get("enabled") is True,
+        "dest_override_http_tls_quic": {"http", "tls", "quic"}.issubset(override_set),
+    }
+
+
+def _safe_xhttp_inbound_contract(inbound: Mapping[str, Any]) -> dict[str, bool]:
+    settings_map, stream, reality = _safe_inbound_parts(inbound)
+    raw = inbound.get("rawInbound") or inbound.get("raw_inbound")
+    raw = raw if isinstance(raw, Mapping) else {}
+    return {
+        "type_vless": str(inbound.get("type") or raw.get("protocol") or "").lower() == "vless",
+        "network_xhttp": str(inbound.get("network") or stream.get("network") or "").lower() == "xhttp",
+        "security_reality": str(inbound.get("security") or stream.get("security") or "").lower() == "reality",
+        "port_8443": int(inbound.get("port") or raw.get("port") or 0) == 8443,
+        "decryption_none": str(settings_map.get("decryption") or "") == "none",
+        **_safe_reality_contract(reality),
+    }
+
+
+def _safe_transport_host_matrix(
+    hosts: list[dict[str, Any]],
+    *,
+    inbound_tags_by_uuid: Mapping[str, str] | None = None,
+    node_names_by_uuid: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    expected = {
+        (address, 443, "VLESS_REALITY_443", node_name) for address, node_name in PREMIUM_SMART_RU_NODE_HOSTS.items()
+    } | {
+        (address, 8443, "VLESS_XHTTP_REALITY_8443", node_name)
+        for address, node_name in PREMIUM_SMART_RU_NODE_HOSTS.items()
+    }
+    actual_counts: Counter[tuple[str, int, str, str]] = Counter()
+    candidate_host_count = 0
+    disabled_count = 0
+    excluded_required_format_count = 0
+    inbound_reference_resolved_count = 0
+    expanded_node_link_count = 0
+    unresolved_node_reference_count = 0
+    tag_by_uuid = inbound_tags_by_uuid or {}
+    name_by_uuid = node_names_by_uuid or {}
+    for host in hosts:
+        address = str(host.get("address") or "")
+        if address not in PREMIUM_SMART_RU_NODE_HOSTS:
+            continue
+        inbound_value = host.get("inbound")
+        inbound = inbound_value if isinstance(inbound_value, Mapping) else {}
+        inbound_uuid = str(inbound.get("configProfileInboundUuid") or inbound.get("uuid") or "")
+        embedded_tag = str(inbound.get("tag") or host.get("inboundTag") or "")
+        tag = embedded_tag or tag_by_uuid.get(inbound_uuid, "")
+        if tag not in PREMIUM_SMART_RU_INBOUND_TAGS:
+            continue
+        if not embedded_tag and inbound_uuid and tag:
+            inbound_reference_resolved_count += 1
+        candidate_host_count += 1
+        port = int(host.get("port") or 0)
+        if bool(host.get("isDisabled") if "isDisabled" in host else host.get("is_disabled")):
+            disabled_count += 1
+        exclusions = host.get("excludeFromSubscriptionTypes") or host.get("exclude_from_subscription_types") or []
+        exclusion_set = {str(item).upper() for item in exclusions} if isinstance(exclusions, list) else set()
+        if exclusion_set & {"MIHOMO", "XRAY_BASE64"}:
+            excluded_required_format_count += 1
+        nodes_value = host.get("nodes")
+        nodes = nodes_value if isinstance(nodes_value, list) else []
+        linked_node_names: list[str] = []
+        for node in nodes:
+            if isinstance(node, Mapping):
+                node_uuid = str(node.get("uuid") or node.get("nodeUuid") or "")
+                node_name = str(node.get("name") or name_by_uuid.get(node_uuid, ""))
+            else:
+                node_name = name_by_uuid.get(str(node), "")
+            if node_name:
+                linked_node_names.append(node_name)
+            else:
+                unresolved_node_reference_count += 1
+        for node_name in linked_node_names:
+            actual_counts[(address, port, tag, node_name)] += 1
+            expanded_node_link_count += 1
+    actual = set(actual_counts)
+    missing = expected - actual
+    unexpected = actual - expected
+    duplicate_link_count = sum(count - 1 for count in actual_counts.values() if count > 1)
+    raw_host_count = len({item for item in actual if item[2] == "VLESS_REALITY_443"})
+    xhttp_host_count = len({item for item in actual if item[2] == "VLESS_XHTTP_REALITY_8443"})
+    return {
+        "valid": not missing
+        and not unexpected
+        and candidate_host_count == 8
+        and expanded_node_link_count == 8
+        and unresolved_node_reference_count == 0
+        and duplicate_link_count == 0
+        and disabled_count == 0
+        and excluded_required_format_count == 0
+        and raw_host_count == 4
+        and xhttp_host_count == 4,
+        "raw_host_count": raw_host_count,
+        "xhttp_host_count": xhttp_host_count,
+        "candidate_host_count": candidate_host_count,
+        "missing_link_count": len(missing),
+        "unexpected_link_count": len(unexpected),
+        "duplicate_link_count": duplicate_link_count,
+        "disabled_host_count": disabled_count,
+        "excluded_required_format_count": excluded_required_format_count,
+        "inbound_reference_resolved_count": inbound_reference_resolved_count,
+        "expanded_node_link_count": expanded_node_link_count,
+        "unresolved_node_reference_count": unresolved_node_reference_count,
+    }
 
 
 def _node_tags(node: dict[str, Any]) -> set[str]:

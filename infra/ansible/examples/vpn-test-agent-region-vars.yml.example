@@ -1,0 +1,27 @@
+---
+# Logical Moscow-target checks should use a physically SPB agent.
+vpn_test_agent_region_enabled: true
+vpn_test_agent_region_name: moscow
+vpn_test_agent_region_physical_region: spb
+vpn_test_agent_region_target_region: moscow
+vpn_test_agent_region_image: ghcr.io/REPLACE_ME/cybervpn-vpn-test-agent@sha256:REPLACE_ME
+vpn_test_agent_region_secret: "{{ vault_vpn_test_agent_moscow_secret }}"
+vpn_test_agent_region_bind_address: 0.0.0.0
+vpn_test_agent_region_port: 18080
+vpn_test_agent_region_firewall_allowed_ipv4_cidrs:
+  - 45.87.41.146/32
+
+# Logical SPB-target checks should use a physically Moscow agent.
+# Override these values for the Moscow-hosted node:
+# vpn_test_agent_region_name: spb
+# vpn_test_agent_region_physical_region: moscow
+# vpn_test_agent_region_target_region: spb
+# vpn_test_agent_region_secret: "{{ vault_vpn_test_agent_spb_secret }}"
+# vpn_test_agent_region_bind_address: "::"
+# vpn_test_agent_region_health_host: "[::1]"
+# vpn_test_agent_region_port: 18080
+# vpn_test_agent_region_firewall_allowed_ipv4_cidrs: []
+# vpn_test_agent_region_firewall_allowed_ipv6_cidrs:
+#   - 2a0d:2787:1b:12f5::a/128
+# vpn_test_agent_region_required_source_ipv4_cidr: ""
+# vpn_test_agent_region_required_source_ipv6_cidr: 2a0d:2787:1b:12f5::a/128

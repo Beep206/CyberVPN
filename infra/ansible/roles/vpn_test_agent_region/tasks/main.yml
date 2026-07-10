@@ -1,0 +1,12 @@
+---
+- import_tasks: validate.yml
+
+- import_tasks: deploy.yml
+  when:
+    - vpn_test_agent_region_enabled
+    - vpn_test_agent_region_action == 'deploy'
+
+- import_tasks: verify.yml
+  when:
+    - vpn_test_agent_region_enabled
+    - vpn_test_agent_region_action == 'verify'
