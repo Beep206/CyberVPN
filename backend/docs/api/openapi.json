@@ -82656,7 +82656,7 @@
         "properties": {
           "trigger": {
             "type": "string",
-            "maxLength": 60,
+            "maxLength": 40,
             "minLength": 3,
             "title": "Trigger",
             "default": "scheduled"

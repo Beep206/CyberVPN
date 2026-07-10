@@ -104,9 +104,6 @@ export function useTelegramWebApp() {
 
     const tg = window.Telegram?.WebApp;
     if (!tg) {
-      if (process.env.NODE_ENV === 'development') {
-        console.info('Telegram WebApp not available. Running outside Telegram Mini App context.');
-      }
       return;
     }
 
