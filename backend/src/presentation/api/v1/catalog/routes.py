@@ -57,12 +57,14 @@ async def get_public_catalog(
     storefront_key: str | None = Query(None, alias="storefrontKey", min_length=1, max_length=80),
     db: AsyncSession = Depends(get_db),
 ) -> PublicCommercialCatalogResponse:
-    payload = ResolveCatalogContextRequest(
-        urlLocale=url_locale,
-        explicitUiLocale=ui_locale,
-        explicitCountryCode=country,
-        explicitCurrencyCode=currency,
-        channelKey=channel,
+    payload = ResolveCatalogContextRequest.model_validate(
+        {
+            "url_locale": url_locale,
+            "explicit_ui_locale": ui_locale,
+            "explicit_country_code": country,
+            "explicit_currency_code": currency,
+            "channel_key": channel,
+        }
     )
     use_case = ResolvePublicCommercialCatalogUseCase(db)
     try:
@@ -104,110 +106,128 @@ def _build_signals(payload: ResolveCatalogContextRequest, request: Request) -> C
 
 
 def _serialize_catalog(catalog: PublicCommercialCatalog) -> PublicCommercialCatalogResponse:
-    return PublicCommercialCatalogResponse(
-        catalogVersion=catalog.catalog_version,
-        cacheKey=catalog.cache_key,
-        context=_serialize_context(catalog.context),
-        plans=[
-            PublicCatalogPlanResponse(
-                planCode=plan.plan_code,
-                displayName=plan.display_name,
-                version=plan.version,
-                billingPeriods=[
-                    PublicCatalogBillingPeriodResponse(
-                        planId=period.plan_id,
-                        catalogItemKey=period.catalog_item_key,
-                        durationDays=period.duration_days,
-                        displayPrice=_serialize_money(period.display_price),
-                        version=period.version,
-                        quote=PublicCatalogQuoteHandoffResponse(
-                            planId=period.quote.plan_id,
-                            planCode=period.quote.plan_code,
-                            billingPeriodDays=period.quote.billing_period_days,
-                            currency=period.quote.currency,
-                            catalogItemKey=period.quote.catalog_item_key,
-                            contextCacheKey=period.quote.context_cache_key,
-                        ),
-                        includedAddonCodes=list(period.included_addon_codes),
-                        availability=list(period.availability),
-                        metadata=period.metadata,
-                    )
-                    for period in plan.billing_periods
-                ],
-                devicesIncluded=plan.devices_included,
-                trafficLimitBytes=plan.traffic_limit_bytes,
-                trafficPolicy=plan.traffic_policy,
-                connectionModes=list(plan.connection_modes),
-                serverPool=list(plan.server_pool),
-                supportSla=plan.support_sla,
-                dedicatedIp=plan.dedicated_ip,
-                inviteBundle=plan.invite_bundle,
-                trialEligible=plan.trial_eligible,
-                promoEligible=plan.promo_eligible,
-                metadata=plan.metadata,
-            )
-            for plan in catalog.plans
-        ],
-        addons=[
-            PublicCatalogAddonResponse(
-                addonId=addon.addon_id,
-                code=addon.code,
-                displayName=addon.display_name,
-                durationMode=addon.duration_mode,
-                isStackable=addon.is_stackable,
-                quantityStep=addon.quantity_step,
-                displayPrice=_serialize_money(addon.display_price),
-                maxQuantityByPlan=addon.max_quantity_by_plan,
-                deltaEntitlements=addon.delta_entitlements,
-                requiresLocation=addon.requires_location,
-                saleChannels=list(addon.sale_channels),
-                metadata=addon.metadata,
-            )
-            for addon in catalog.addons
-        ],
-        trialEligible=catalog.trial_eligible,
-        promoEligible=catalog.promo_eligible,
-        metadata=PublicCatalogMetadataResponse(
-            policyIds=list(catalog.metadata.policy_ids),
-            source=catalog.metadata.source,
-            channel=catalog.metadata.channel,
-            storefrontKey=catalog.metadata.storefront_key,
-            addonsEnabled=catalog.metadata.addons_enabled,
-            promoCodesEnabled=catalog.metadata.promo_codes_enabled,
-            checkoutCodeDiscountsEnabled=catalog.metadata.checkout_code_discounts_enabled,
-            invalidationEvents=list(catalog.metadata.invalidation_events),
-        ),
+    return PublicCommercialCatalogResponse.model_validate(
+        {
+            "catalog_version": catalog.catalog_version,
+            "cache_key": catalog.cache_key,
+            "context": _serialize_context(catalog.context),
+            "plans": [
+                PublicCatalogPlanResponse.model_validate(
+                    {
+                        "plan_code": plan.plan_code,
+                        "display_name": plan.display_name,
+                        "version": plan.version,
+                        "billing_periods": [
+                            PublicCatalogBillingPeriodResponse.model_validate(
+                                {
+                                    "plan_id": period.plan_id,
+                                    "catalog_item_key": period.catalog_item_key,
+                                    "duration_days": period.duration_days,
+                                    "display_price": _serialize_money(period.display_price),
+                                    "version": period.version,
+                                    "quote": PublicCatalogQuoteHandoffResponse.model_validate(
+                                        {
+                                            "plan_id": period.quote.plan_id,
+                                            "plan_code": period.quote.plan_code,
+                                            "billing_period_days": period.quote.billing_period_days,
+                                            "currency": period.quote.currency,
+                                            "catalog_item_key": period.quote.catalog_item_key,
+                                            "context_cache_key": period.quote.context_cache_key,
+                                        }
+                                    ),
+                                    "included_addon_codes": list(period.included_addon_codes),
+                                    "availability": list(period.availability),
+                                    "metadata": period.metadata,
+                                }
+                            )
+                            for period in plan.billing_periods
+                        ],
+                        "devices_included": plan.devices_included,
+                        "traffic_limit_bytes": plan.traffic_limit_bytes,
+                        "traffic_policy": plan.traffic_policy,
+                        "connection_modes": list(plan.connection_modes),
+                        "server_pool": list(plan.server_pool),
+                        "support_sla": plan.support_sla,
+                        "dedicated_ip": plan.dedicated_ip,
+                        "invite_bundle": plan.invite_bundle,
+                        "trial_eligible": plan.trial_eligible,
+                        "promo_eligible": plan.promo_eligible,
+                        "metadata": plan.metadata,
+                    }
+                )
+                for plan in catalog.plans
+            ],
+            "addons": [
+                PublicCatalogAddonResponse.model_validate(
+                    {
+                        "addon_id": addon.addon_id,
+                        "code": addon.code,
+                        "display_name": addon.display_name,
+                        "duration_mode": addon.duration_mode,
+                        "is_stackable": addon.is_stackable,
+                        "quantity_step": addon.quantity_step,
+                        "display_price": _serialize_money(addon.display_price),
+                        "max_quantity_by_plan": addon.max_quantity_by_plan,
+                        "delta_entitlements": addon.delta_entitlements,
+                        "requires_location": addon.requires_location,
+                        "sale_channels": list(addon.sale_channels),
+                        "metadata": addon.metadata,
+                    }
+                )
+                for addon in catalog.addons
+            ],
+            "trial_eligible": catalog.trial_eligible,
+            "promo_eligible": catalog.promo_eligible,
+            "metadata": PublicCatalogMetadataResponse.model_validate(
+                {
+                    "policy_ids": list(catalog.metadata.policy_ids),
+                    "source": catalog.metadata.source,
+                    "channel": catalog.metadata.channel,
+                    "storefront_key": catalog.metadata.storefront_key,
+                    "addons_enabled": catalog.metadata.addons_enabled,
+                    "promo_codes_enabled": catalog.metadata.promo_codes_enabled,
+                    "checkout_code_discounts_enabled": catalog.metadata.checkout_code_discounts_enabled,
+                    "invalidation_events": list(catalog.metadata.invalidation_events),
+                }
+            ),
+        }
     )
 
 
 def _serialize_context(context: PublicCatalogContext) -> PublicCatalogContextResponse:
     resolved = context.resolved
     payment_methods = context.payment_methods
-    return PublicCatalogContextResponse(
-        uiLocale=resolved.ui_locale,
-        displayCountry=resolved.display_country,
-        pricingCountry=resolved.pricing_country,
-        paymentCountry=resolved.payment_country,
-        currency=resolved.currency,
-        confidence=resolved.confidence,
-        selectableCountries=list(resolved.selectable_countries),
-        selectableCurrencies=list(resolved.selectable_currencies),
-        paymentMethods=PaymentMethodAvailabilityResponse(
-            availableMethods=list(payment_methods.available_methods),
-            webCheckout=payment_methods.web_checkout,
-            cryptobot=payment_methods.cryptobot,
-            telegramStars=payment_methods.telegram_stars,
-            manualInvoice=payment_methods.manual_invoice,
-            autorenewal=payment_methods.autorenewal,
-        ),
-        cacheKey=context.cache_key,
-        resolutionTrace=list(resolved.resolution_trace),
+    return PublicCatalogContextResponse.model_validate(
+        {
+            "ui_locale": resolved.ui_locale,
+            "display_country": resolved.display_country,
+            "pricing_country": resolved.pricing_country,
+            "payment_country": resolved.payment_country,
+            "currency": resolved.currency,
+            "confidence": resolved.confidence,
+            "selectable_countries": list(resolved.selectable_countries),
+            "selectable_currencies": list(resolved.selectable_currencies),
+            "payment_methods": PaymentMethodAvailabilityResponse.model_validate(
+                {
+                    "available_methods": list(payment_methods.available_methods),
+                    "web_checkout": payment_methods.web_checkout,
+                    "cryptobot": payment_methods.cryptobot,
+                    "telegram_stars": payment_methods.telegram_stars,
+                    "manual_invoice": payment_methods.manual_invoice,
+                    "autorenewal": payment_methods.autorenewal,
+                }
+            ),
+            "cache_key": context.cache_key,
+            "resolution_trace": list(resolved.resolution_trace),
+        }
     )
 
 
 def _serialize_money(money) -> PublicCatalogMoneyResponse:
-    return PublicCatalogMoneyResponse(
-        amount=money.amount,
-        currency=money.currency,
-        minorUnits=money.minor_units,
+    return PublicCatalogMoneyResponse.model_validate(
+        {
+            "amount": money.amount,
+            "currency": money.currency,
+            "minor_units": money.minor_units,
+        }
     )

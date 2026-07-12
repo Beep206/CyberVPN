@@ -12,14 +12,16 @@ router = APIRouter(prefix="/squads", tags=["squads"])
 
 
 def _map_squad(payload: RemnawaveRawSquadResponse, squad_type: str) -> RemnawaveSquadResponse:
-    return RemnawaveSquadResponse(
-        uuid=payload.uuid,
-        name=payload.name,
-        squadType=squad_type,
-        maxMembers=None,
-        isActive=True,
-        description=None,
-        memberCount=payload.info.members_count if payload.info else None,
+    return RemnawaveSquadResponse.model_validate(
+        {
+            "uuid": payload.uuid,
+            "name": payload.name,
+            "squad_type": squad_type,
+            "max_members": None,
+            "is_active": True,
+            "description": None,
+            "member_count": payload.info.members_count if payload.info else None,
+        }
     )
 
 
