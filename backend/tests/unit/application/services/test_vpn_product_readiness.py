@@ -83,7 +83,7 @@ def test_valid_signed_attestation_allows_task2_when_kill_switch_is_enabled(
 
     assert attestation.product_key == SPB_DE_EXCEPTIONS_PRODUCT_CODE
     assert attestation.policy_hash == "sha256:policy-ready"
-    assert attestation.manifest_hash == f"sha256:{TEST_MANIFEST_SHA256}"
+    assert attestation.manifest_hash == TEST_MANIFEST_SHA256
     assert attestation.runtime_evidence_id == "task2-runtime-evidence-20260711"
 
 
@@ -172,6 +172,35 @@ def test_manifest_state_requires_signed_hash_to_match_fully_promoted_pointer() -
 
 
 @pytest.mark.parametrize(
+    "manifest_hash",
+    [
+        f"sha256:{TEST_MANIFEST_SHA256}",
+        TEST_MANIFEST_SHA256.upper(),
+        f" {TEST_MANIFEST_SHA256}",
+        f"{TEST_MANIFEST_SHA256}\n",
+    ],
+)
+def test_signed_manifest_hash_rejects_noncanonical_forms(manifest_hash: str) -> None:
+    artifact = make_spb_de_readiness_attestation(payload_overrides={"manifest_hash": manifest_hash})
+    attestation = evaluate_spb_de_exceptions_readiness_attestation(
+        attestation_token=artifact.token,
+        public_key=artifact.public_key,
+        expected_policy_version="premium_spb_de_exceptions.v1",
+        now=CHECKED_AT,
+    )
+    pointer = AntifilterManifestPointer.model_validate_json(manifest_pointer_json())
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_manifest_state(
+            attestation,
+            active_pointer=pointer,
+            lkg_pointer=pointer,
+        )
+
+    _assert_reason(exc_info, TASK2_READINESS_MANIFEST_MISMATCH_REASON)
+
+
+@pytest.mark.parametrize(
     "payload",
     [
         {"version": "A" * 64, "manifestSha256": TEST_MANIFEST_SHA256},
@@ -255,6 +284,25 @@ def test_production_rejects_inline_promoted_manifest(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(readiness_module, "_configured_attestation_token", lambda: artifact.token)
     monkeypatch.setattr(readiness_module, "_configured_public_key", lambda: artifact.public_key)
     monkeypatch.setattr(readiness_module, "_configured_manifest_pointer", lambda **_kwargs: pointer)
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
+
+
+def test_production_rejects_untrusted_readiness_store_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    artifact = enable_spb_de_readiness(monkeypatch)
+    pointer = AntifilterManifestPointer.model_validate_json(manifest_pointer_json())
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(readiness_module, "_configured_attestation_token", lambda: artifact.token)
+    monkeypatch.setattr(readiness_module, "_configured_public_key", lambda: artifact.public_key)
+    monkeypatch.setattr(readiness_module, "_configured_manifest_pointer", lambda **_kwargs: pointer)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_manifest", "")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_store_path", str(tmp_path))
 
     with pytest.raises(VpnProductReadinessError) as exc_info:
         ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
@@ -414,6 +462,125 @@ def test_manifest_pointer_symlink_fails_closed(
 
     with pytest.raises(VpnProductReadinessError) as exc_info:
         ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
+
+
+@pytest.mark.skipif(readiness_module.os.name != "posix", reason="dir_fd containment is enforced on POSIX production")
+def test_readiness_reader_retains_parent_directory_when_path_is_replaced(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    original_raw = b'{"source":"original"}'
+    outside_raw = b'{"source":"outside"}'
+    store = tmp_path / "store"
+    versions = store / "versions"
+    original_manifest = versions / TEST_MANIFEST_VERSION / "manifest.json"
+    original_manifest.parent.mkdir(parents=True)
+    original_manifest.write_bytes(original_raw)
+    outside_versions = tmp_path / "outside-versions"
+    outside_manifest = outside_versions / TEST_MANIFEST_VERSION / "manifest.json"
+    outside_manifest.parent.mkdir(parents=True)
+    outside_manifest.write_bytes(outside_raw)
+
+    real_open = readiness_module.os.open
+    swapped = False
+
+    def racing_open(path, flags, mode=0o777, *, dir_fd=None):
+        nonlocal swapped
+        path_text = str(path)
+        if path_text == "versions" and dir_fd is not None and not swapped:
+            descriptor = real_open(path, flags, mode, dir_fd=dir_fd)
+            versions.rename(store / "versions-original")
+            versions.symlink_to(outside_versions, target_is_directory=True)
+            swapped = True
+            return descriptor
+        if path_text.endswith("manifest.json") and dir_fd is None and not swapped:
+            versions.rename(store / "versions-original")
+            versions.symlink_to(outside_versions, target_is_directory=True)
+            swapped = True
+        return real_open(path, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr(readiness_module.os, "open", racing_open)
+
+    raw = readiness_module._read_config_file_bytes(
+        original_manifest,
+        max_bytes=4096,
+        missing_reason=TASK2_READINESS_STATE_MISSING_REASON,
+        invalid_reason=TASK2_READINESS_STATE_INVALID_REASON,
+        missing_message="missing",
+        invalid_message="invalid",
+    )
+
+    assert swapped is True
+    assert raw == original_raw
+
+
+@pytest.mark.skipif(readiness_module.os.name != "posix", reason="symlink containment is enforced on POSIX production")
+@pytest.mark.parametrize("component", ["versions", "version", "manifest"])
+def test_promoted_manifest_rejects_symlinked_path_components(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    component: str,
+) -> None:
+    pointer = AntifilterManifestPointer.model_validate_json(manifest_pointer_json())
+    store = tmp_path / "store"
+    outside = tmp_path / "outside"
+    outside_manifest = outside / "manifest.json"
+    outside.mkdir()
+    outside_manifest.write_text(TEST_MANIFEST_JSON, encoding="utf-8")
+    versions = store / "versions"
+    if component == "versions":
+        store.mkdir()
+        versions.symlink_to(outside, target_is_directory=True)
+    elif component == "version":
+        versions.mkdir(parents=True)
+        (versions / TEST_MANIFEST_VERSION).symlink_to(outside, target_is_directory=True)
+    else:
+        version_dir = versions / TEST_MANIFEST_VERSION
+        version_dir.mkdir(parents=True)
+        (version_dir / "manifest.json").symlink_to(outside_manifest)
+    monkeypatch.setattr(settings, "environment", "development")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_manifest", "")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_store_path", str(store))
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        readiness_module._configured_promoted_manifest(pointer)
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
+
+
+@pytest.mark.skipif(readiness_module.os.name != "posix", reason="FIFO semantics are POSIX-only")
+def test_readiness_reader_rejects_fifo_without_blocking(tmp_path: Path) -> None:
+    fifo = tmp_path / "manifest.json"
+    readiness_module.os.mkfifo(fifo)
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        readiness_module._read_config_file_bytes(
+            fifo,
+            max_bytes=4096,
+            missing_reason=TASK2_READINESS_STATE_MISSING_REASON,
+            invalid_reason=TASK2_READINESS_STATE_INVALID_REASON,
+            missing_message="missing",
+            invalid_message="invalid",
+        )
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
+
+
+def test_readiness_reader_rejects_oversized_file(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_bytes(b"x" * 65)
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        readiness_module._read_config_file_bytes(
+            manifest,
+            max_bytes=64,
+            missing_reason=TASK2_READINESS_STATE_MISSING_REASON,
+            invalid_reason=TASK2_READINESS_STATE_INVALID_REASON,
+            missing_message="missing",
+            invalid_message="invalid",
+        )
 
     _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
 

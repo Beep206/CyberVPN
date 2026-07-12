@@ -82,6 +82,25 @@ def _is_production_environment() -> bool:
     return _text_or_empty(settings.environment).lower() == "production"
 
 
+def _open_no_symlink_file(path: Path) -> int:
+    file_flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    if os.name != "posix" or not hasattr(os, "O_DIRECTORY"):
+        return os.open(path, file_flags)
+
+    absolute_path = Path(os.path.abspath(path))
+    parts = absolute_path.parts
+    directory_fd = os.open(parts[0], directory_flags)
+    try:
+        for part in parts[1:-1]:
+            next_fd = os.open(part, directory_flags, dir_fd=directory_fd)
+            os.close(directory_fd)
+            directory_fd = next_fd
+        return os.open(parts[-1], file_flags, dir_fd=directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
 def _read_config_file_bytes(
     path_value: Any,
     *,
@@ -99,8 +118,7 @@ def _read_config_file_bytes(
         path = Path(path_text).expanduser()
         if path.is_symlink():
             raise VpnProductReadinessError(invalid_reason, invalid_message)
-        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
-        descriptor = os.open(path, flags)
+        descriptor = _open_no_symlink_file(path)
         try:
             file_stat = os.fstat(descriptor)
             if not stat.S_ISREG(file_stat.st_mode):
@@ -321,15 +339,12 @@ def _configured_manifest_pointer(
 
 
 def _attested_manifest_sha256(value: str | None) -> str:
-    normalized = _text_or_empty(value).lower()
-    if normalized.startswith("sha256:"):
-        normalized = normalized.removeprefix("sha256:")
-    if not _SHA256_RE.fullmatch(normalized):
+    if not isinstance(value, str) or not _SHA256_RE.fullmatch(value):
         raise VpnProductReadinessError(
             TASK2_READINESS_MANIFEST_MISMATCH_REASON,
             "Premium SPB/DE readiness attestation has no usable manifest hash",
         )
-    return normalized
+    return value
 
 
 def _configured_promoted_manifest(pointer: AntifilterManifestPointer) -> bytes:

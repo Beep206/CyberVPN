@@ -76,7 +76,7 @@ def make_spb_de_readiness_attestation(
         "issued_at": datetime(2026, 1, 1, tzinfo=UTC).isoformat(),
         "expires_at": datetime(2099, 1, 1, tzinfo=UTC).isoformat(),
         "policy_hash": "sha256:policy-ready",
-        "manifest_hash": f"sha256:{TEST_MANIFEST_SHA256}",
+        "manifest_hash": TEST_MANIFEST_SHA256,
         "runtime_evidence_id": "task2-runtime-evidence-20260711",
         "attestation_id": "task2-attestation-20260711",
         "approval_status": "approved",
