@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -17,6 +18,21 @@ from src.application.services.vpn_product_readiness import (
     SPB_DE_EXCEPTIONS_READINESS_SCHEMA_VERSION,
 )
 from src.config.settings import settings
+
+TEST_MANIFEST_SHA256 = "a" * 64
+TEST_MANIFEST_VERSION = "b" * 64
+
+
+def manifest_pointer_json(
+    *,
+    manifest_sha256: str = TEST_MANIFEST_SHA256,
+    version: str = TEST_MANIFEST_VERSION,
+) -> str:
+    return json.dumps(
+        {"version": version, "manifestSha256": manifest_sha256},
+        separators=(",", ":"),
+        sort_keys=True,
+    )
 
 
 @dataclass(frozen=True)
@@ -54,7 +70,7 @@ def make_spb_de_readiness_attestation(
         "issued_at": datetime(2026, 1, 1, tzinfo=UTC).isoformat(),
         "expires_at": datetime(2099, 1, 1, tzinfo=UTC).isoformat(),
         "policy_hash": "sha256:policy-ready",
-        "manifest_hash": "sha256:manifest-ready",
+        "manifest_hash": f"sha256:{TEST_MANIFEST_SHA256}",
         "runtime_evidence_id": "task2-runtime-evidence-20260711",
         "attestation_id": "task2-attestation-20260711",
         "approval_status": "approved",
@@ -84,5 +100,17 @@ def enable_spb_de_readiness(monkeypatch: pytest.MonkeyPatch) -> SpbDeReadinessTe
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_attestation_path", "")
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_public_key", artifact.public_key)
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_public_key_path", "")
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_active_pointer",
+        manifest_pointer_json(),
+    )
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer_path", "")
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_lkg_pointer",
+        manifest_pointer_json(),
+    )
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer_path", "")
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_revoked_attestation_ids", "")
     return artifact

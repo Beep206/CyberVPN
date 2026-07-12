@@ -36,6 +36,7 @@ def test_task2_readiness_uses_read_only_signed_artifacts_and_defaults_closed() -
         "  cybervpn-vpn-test-agent:", 1
     )[0]
 
+    assert "      ENVIRONMENT: production" in backend
     assert (
         "REMNAWAVE_SPB_DE_EXCEPTIONS_DATA_PLANE_READY: "
         "${REMNAWAVE_SPB_DE_EXCEPTIONS_DATA_PLANE_READY:-false}"
@@ -47,6 +48,14 @@ def test_task2_readiness_uses_read_only_signed_artifacts_and_defaults_closed() -
     assert (
         "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_PUBLIC_KEY_PATH: "
         "/run/cybervpn/readiness/task2/public-key.pem"
+    ) in backend
+    assert (
+        "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_ACTIVE_POINTER_PATH: "
+        "/run/cybervpn/readiness/task2/active.json"
+    ) in backend
+    assert (
+        "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_LKG_POINTER_PATH: "
+        "/run/cybervpn/readiness/task2/last-known-good.json"
     ) in backend
     assert (
         "${CYBERVPN_READINESS_DIR:-/srv/cybervpn/readiness}/task2:"

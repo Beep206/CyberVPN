@@ -10,6 +10,7 @@ from src.application.services.vpn_product_readiness import (
     PRODUCT_PLAN_MISMATCH_REASON,
     TASK2_DATA_PLANE_NOT_READY_REASON,
     TASK2_READINESS_ATTESTATION_MISSING_REASON,
+    TASK2_READINESS_MANIFEST_MISMATCH_REASON,
     VpnProductReadinessError,
 )
 from src.application.use_cases.service_access.entitlements import (
@@ -17,7 +18,7 @@ from src.application.use_cases.service_access.entitlements import (
     CreateEntitlementGrantUseCase,
 )
 from src.config.settings import settings
-from tests.helpers.spb_de_readiness import enable_spb_de_readiness
+from tests.helpers.spb_de_readiness import enable_spb_de_readiness, manifest_pointer_json
 
 OVERLAPPING_PLAN_CODES = "premium_smart_ru,premium_spb_de_exceptions"
 
@@ -123,6 +124,28 @@ async def test_create_task2_grant_fails_before_persistence_when_attestation_is_m
         )
 
     assert exc_info.value.reason == TASK2_READINESS_ATTESTATION_MISSING_REASON
+    repo.create_entitlement_grant.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_create_task2_grant_fails_before_persistence_when_manifest_is_stale(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    stale_pointer = manifest_pointer_json(manifest_sha256="c" * 64)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", stale_pointer)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer", stale_pointer)
+    identity = _identity("premium_spb_de_exceptions")
+    use_case, repo = _create_use_case(identity)
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        await use_case.execute(
+            service_identity_id=identity.id,
+            manual_source_key="manual-task2-stale-manifest",
+            grant_snapshot={"plan_code": "premium_spb_de_exceptions"},
+        )
+
+    assert exc_info.value.reason == TASK2_READINESS_MANIFEST_MISMATCH_REASON
     repo.create_entitlement_grant.assert_not_awaited()
 
 

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import os
+import re
+import stat
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,12 +27,25 @@ TASK2_READINESS_ATTESTATION_STALE_REASON = "spb_de_exceptions_readiness_attestat
 TASK2_READINESS_ATTESTATION_FUTURE_REASON = "spb_de_exceptions_readiness_attestation_future"
 TASK2_READINESS_ATTESTATION_REVOKED_REASON = "spb_de_exceptions_readiness_attestation_revoked"
 TASK2_READINESS_ATTESTATION_UNAPPROVED_REASON = "spb_de_exceptions_readiness_attestation_unapproved"
+TASK2_READINESS_STATE_MISSING_REASON = "spb_de_exceptions_readiness_state_missing"
+TASK2_READINESS_STATE_INVALID_REASON = "spb_de_exceptions_readiness_state_invalid"
+TASK2_READINESS_STATE_CHANGED_REASON = "spb_de_exceptions_readiness_state_changed"
+TASK2_READINESS_STATE_NOT_PROMOTED_REASON = "spb_de_exceptions_readiness_state_not_promoted"
+TASK2_READINESS_MANIFEST_MISMATCH_REASON = "spb_de_exceptions_readiness_manifest_mismatch"
 PRODUCT_PLAN_MISMATCH_REASON = "subscription_product_plan_mismatch"
 SPB_DE_EXCEPTIONS_READINESS_SCHEMA = "cybervpn.vpn_product_readiness_attestation"
 SPB_DE_EXCEPTIONS_READINESS_SCHEMA_VERSION = 1
 SPB_DE_EXCEPTIONS_READINESS_JWT_ALGORITHM = "EdDSA"
 _MAX_READINESS_ATTESTATION_BYTES = 64 * 1024
 _MAX_READINESS_PUBLIC_KEY_BYTES = 16 * 1024
+_MAX_READINESS_POINTER_BYTES = 4 * 1024
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
+_PRODUCTION_ATTESTATION_PATH = "/run/cybervpn/readiness/task2/attestation.jwt"
+_PRODUCTION_PUBLIC_KEY_PATH = "/run/cybervpn/readiness/task2/public-key.pem"
+_PRODUCTION_POINTER_PATHS = {
+    "active": "/run/cybervpn/readiness/task2/active.json",
+    "last-known-good": "/run/cybervpn/readiness/task2/last-known-good.json",
+}
 
 
 class VpnProductReadinessError(ValueError):
@@ -56,6 +73,10 @@ def _text_or_empty(value: Any) -> str:
     return ""
 
 
+def _is_production_environment() -> bool:
+    return _text_or_empty(settings.environment).lower() == "production"
+
+
 def _read_config_file_text(
     path_value: Any,
     *,
@@ -71,13 +92,26 @@ def _read_config_file_text(
 
     try:
         path = Path(path_text).expanduser()
-        if not path.is_file():
-            raise VpnProductReadinessError(missing_reason, missing_message)
-        if path.stat().st_size > max_bytes:
+        if path.is_symlink():
             raise VpnProductReadinessError(invalid_reason, invalid_message)
-        raw = path.read_bytes()
+        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        try:
+            file_stat = os.fstat(descriptor)
+            if not stat.S_ISREG(file_stat.st_mode):
+                raise VpnProductReadinessError(invalid_reason, invalid_message)
+            if file_stat.st_size > max_bytes:
+                raise VpnProductReadinessError(invalid_reason, invalid_message)
+            with os.fdopen(descriptor, "rb", closefd=False) as handle:
+                raw = handle.read(max_bytes + 1)
+        finally:
+            os.close(descriptor)
+        if not raw:
+            raise VpnProductReadinessError(missing_reason, missing_message)
     except VpnProductReadinessError:
         raise
+    except FileNotFoundError as exc:
+        raise VpnProductReadinessError(missing_reason, missing_message) from exc
     except OSError as exc:
         raise VpnProductReadinessError(invalid_reason, invalid_message) from exc
 
@@ -91,6 +125,20 @@ def _read_config_file_text(
 
 def _configured_attestation_token() -> str:
     token = _text_or_empty(settings.remnawave_spb_de_exceptions_readiness_attestation)
+    if token and _is_production_environment():
+        raise VpnProductReadinessError(
+            TASK2_READINESS_ATTESTATION_INVALID_REASON,
+            "Premium SPB/DE readiness attestation must use the read-only file in production",
+        )
+    if (
+        _is_production_environment()
+        and _text_or_empty(settings.remnawave_spb_de_exceptions_readiness_attestation_path)
+        != _PRODUCTION_ATTESTATION_PATH
+    ):
+        raise VpnProductReadinessError(
+            TASK2_READINESS_ATTESTATION_INVALID_REASON,
+            "Premium SPB/DE readiness attestation path is not trusted",
+        )
     if token:
         return token
     return _read_config_file_text(
@@ -105,6 +153,20 @@ def _configured_attestation_token() -> str:
 
 def _configured_public_key() -> str:
     public_key = _text_or_empty(settings.remnawave_spb_de_exceptions_readiness_public_key)
+    if public_key and _is_production_environment():
+        raise VpnProductReadinessError(
+            TASK2_READINESS_SIGNATURE_INVALID_REASON,
+            "Premium SPB/DE readiness verification key must use the read-only file in production",
+        )
+    if (
+        _is_production_environment()
+        and _text_or_empty(settings.remnawave_spb_de_exceptions_readiness_public_key_path)
+        != _PRODUCTION_PUBLIC_KEY_PATH
+    ):
+        raise VpnProductReadinessError(
+            TASK2_READINESS_SIGNATURE_INVALID_REASON,
+            "Premium SPB/DE readiness verification key path is not trusted",
+        )
     if public_key:
         return public_key
     return _read_config_file_text(
@@ -179,6 +241,90 @@ class SpbDeExceptionsReadinessAttestation(BaseModel):
             if not (_has_text(left) or _has_text(right)):
                 raise ValueError(f"{label} hash or evidence id is required")
         return self
+
+
+class AntifilterManifestPointer(BaseModel):
+    """Strict pointer emitted by the atomic Antifilter publisher."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: str
+    manifest_sha256: str = Field(alias="manifestSha256")
+
+    @field_validator("version", "manifest_sha256")
+    @classmethod
+    def require_sha256(cls, value: str) -> str:
+        if not _SHA256_RE.fullmatch(value):
+            raise ValueError("value must be a lowercase SHA-256")
+        return value
+
+
+def _configured_manifest_pointer(
+    *,
+    pointer_value: Any,
+    path_value: Any,
+    pointer_name: str,
+) -> AntifilterManifestPointer:
+    raw = _text_or_empty(pointer_value)
+    if raw and _is_production_environment():
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            f"Premium SPB/DE {pointer_name} readiness pointer must use the read-only file in production",
+        )
+    if _is_production_environment() and _text_or_empty(path_value) != _PRODUCTION_POINTER_PATHS[pointer_name]:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            f"Premium SPB/DE {pointer_name} readiness pointer path is not trusted",
+        )
+    if not raw:
+        raw = _read_config_file_text(
+            path_value,
+            max_bytes=_MAX_READINESS_POINTER_BYTES,
+            missing_reason=TASK2_READINESS_STATE_MISSING_REASON,
+            invalid_reason=TASK2_READINESS_STATE_INVALID_REASON,
+            missing_message=f"Premium SPB/DE {pointer_name} readiness pointer is not configured",
+            invalid_message=f"Premium SPB/DE {pointer_name} readiness pointer cannot be loaded safely",
+        )
+    try:
+        payload = json.loads(raw)
+        return AntifilterManifestPointer.model_validate(payload)
+    except (json.JSONDecodeError, ValidationError, TypeError, ValueError) as exc:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            f"Premium SPB/DE {pointer_name} readiness pointer is invalid",
+        ) from exc
+
+
+def _attested_manifest_sha256(value: str | None) -> str:
+    normalized = _text_or_empty(value).lower()
+    if normalized.startswith("sha256:"):
+        normalized = normalized.removeprefix("sha256:")
+    if not _SHA256_RE.fullmatch(normalized):
+        raise VpnProductReadinessError(
+            TASK2_READINESS_MANIFEST_MISMATCH_REASON,
+            "Premium SPB/DE readiness attestation has no usable manifest hash",
+        )
+    return normalized
+
+
+def ensure_spb_de_exceptions_manifest_state(
+    attestation: SpbDeExceptionsReadinessAttestation,
+    *,
+    active_pointer: AntifilterManifestPointer,
+    lkg_pointer: AntifilterManifestPointer,
+) -> None:
+    """Require a fully promoted artifact that matches the signed readiness claim."""
+
+    if active_pointer != lkg_pointer:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_NOT_PROMOTED_REASON,
+            "Premium SPB/DE active artifact is not promoted to last-known-good",
+        )
+    if _attested_manifest_sha256(attestation.manifest_hash) != active_pointer.manifest_sha256:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_MANIFEST_MISMATCH_REASON,
+            "Premium SPB/DE readiness attestation does not match the promoted manifest",
+        )
 
 
 def _decode_signed_readiness_attestation(*, attestation_token: str, public_key: str) -> Mapping[str, Any]:
@@ -319,11 +465,42 @@ def ensure_spb_de_exceptions_data_plane_ready(plan_code: Any) -> bool:
             TASK2_DATA_PLANE_NOT_READY_REASON,
             "Premium SPB/DE data-plane is not marked ready",
         )
-    evaluate_spb_de_exceptions_readiness_attestation(
+    attestation = evaluate_spb_de_exceptions_readiness_attestation(
         attestation_token=_configured_attestation_token(),
         public_key=_configured_public_key(),
         expected_policy_version=settings.remnawave_spb_de_exceptions_policy_version,
         revoked_attestation_ids=settings.remnawave_spb_de_exceptions_readiness_revoked_attestation_ids,
+    )
+    pointer_inputs = (
+        (
+            settings.remnawave_spb_de_exceptions_readiness_active_pointer,
+            settings.remnawave_spb_de_exceptions_readiness_active_pointer_path,
+            "active",
+        ),
+        (
+            settings.remnawave_spb_de_exceptions_readiness_lkg_pointer,
+            settings.remnawave_spb_de_exceptions_readiness_lkg_pointer_path,
+            "last-known-good",
+        ),
+    )
+    first_snapshot = tuple(
+        _configured_manifest_pointer(pointer_value=value, path_value=path, pointer_name=name)
+        for value, path, name in pointer_inputs
+    )
+    confirmed_snapshot = tuple(
+        _configured_manifest_pointer(pointer_value=value, path_value=path, pointer_name=name)
+        for value, path, name in pointer_inputs
+    )
+    if first_snapshot != confirmed_snapshot:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_CHANGED_REASON,
+            "Premium SPB/DE readiness state changed during verification",
+        )
+    active_pointer, lkg_pointer = confirmed_snapshot
+    ensure_spb_de_exceptions_manifest_state(
+        attestation,
+        active_pointer=active_pointer,
+        lkg_pointer=lkg_pointer,
     )
     return True
 

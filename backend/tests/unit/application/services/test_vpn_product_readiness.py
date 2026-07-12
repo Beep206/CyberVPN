@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import jwt
 import pytest
 
+import src.application.services.vpn_product_readiness as readiness_module
 from src.application.services.vpn_product_readiness import (
     PRODUCT_PLAN_MISMATCH_REASON,
     SMART_RU_PRODUCT_CODE,
@@ -17,16 +19,29 @@ from src.application.services.vpn_product_readiness import (
     TASK2_READINESS_ATTESTATION_REVOKED_REASON,
     TASK2_READINESS_ATTESTATION_STALE_REASON,
     TASK2_READINESS_ATTESTATION_UNAPPROVED_REASON,
+    TASK2_READINESS_MANIFEST_MISMATCH_REASON,
     TASK2_READINESS_PUBLIC_KEY_MISSING_REASON,
     TASK2_READINESS_SIGNATURE_INVALID_REASON,
+    TASK2_READINESS_STATE_CHANGED_REASON,
+    TASK2_READINESS_STATE_INVALID_REASON,
+    TASK2_READINESS_STATE_MISSING_REASON,
+    TASK2_READINESS_STATE_NOT_PROMOTED_REASON,
+    AntifilterManifestPointer,
     VpnProductReadinessError,
     ensure_entitlement_grant_data_plane_ready,
     ensure_spb_de_exceptions_data_plane_ready,
+    ensure_spb_de_exceptions_manifest_state,
     evaluate_spb_de_exceptions_readiness_attestation,
     resolve_gateway_product_plan_code,
 )
 from src.config.settings import settings
-from tests.helpers.spb_de_readiness import enable_spb_de_readiness, make_spb_de_readiness_attestation
+from tests.helpers.spb_de_readiness import (
+    TEST_MANIFEST_SHA256,
+    TEST_MANIFEST_VERSION,
+    enable_spb_de_readiness,
+    make_spb_de_readiness_attestation,
+    manifest_pointer_json,
+)
 
 CHECKED_AT = datetime(2026, 7, 11, 12, 0, tzinfo=UTC)
 
@@ -58,7 +73,7 @@ def test_valid_signed_attestation_allows_task2_when_kill_switch_is_enabled(
 
     assert attestation.product_key == SPB_DE_EXCEPTIONS_PRODUCT_CODE
     assert attestation.policy_hash == "sha256:policy-ready"
-    assert attestation.manifest_hash == "sha256:manifest-ready"
+    assert attestation.manifest_hash == f"sha256:{TEST_MANIFEST_SHA256}"
     assert attestation.runtime_evidence_id == "task2-runtime-evidence-20260711"
 
 
@@ -100,15 +115,321 @@ def test_readiness_can_use_configured_artifact_and_public_key_paths(
     artifact = make_spb_de_readiness_attestation()
     attestation_path = tmp_path / "task2-readiness.jwt"
     public_key_path = tmp_path / "task2-readiness.pub"
+    active_pointer_path = tmp_path / "active.json"
+    lkg_pointer_path = tmp_path / "last-known-good.json"
     attestation_path.write_text(artifact.token, encoding="utf-8")
     public_key_path.write_text(artifact.public_key, encoding="utf-8")
+    active_pointer_path.write_text(manifest_pointer_json(), encoding="utf-8")
+    lkg_pointer_path.write_text(manifest_pointer_json(), encoding="utf-8")
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", True)
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_attestation", "")
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_attestation_path", str(attestation_path))
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_public_key", "")
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_public_key_path", str(public_key_path))
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", "")
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_active_pointer_path",
+        str(active_pointer_path),
+    )
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer", "")
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_lkg_pointer_path",
+        str(lkg_pointer_path),
+    )
 
     assert ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE) is True
+
+
+def test_manifest_state_requires_signed_hash_to_match_fully_promoted_pointer() -> None:
+    artifact = make_spb_de_readiness_attestation()
+    attestation = evaluate_spb_de_exceptions_readiness_attestation(
+        attestation_token=artifact.token,
+        public_key=artifact.public_key,
+        expected_policy_version="premium_spb_de_exceptions.v1",
+        now=CHECKED_AT,
+    )
+    pointer = AntifilterManifestPointer.model_validate_json(manifest_pointer_json())
+
+    ensure_spb_de_exceptions_manifest_state(
+        attestation,
+        active_pointer=pointer,
+        lkg_pointer=pointer,
+    )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"version": "A" * 64, "manifestSha256": TEST_MANIFEST_SHA256},
+        {"version": TEST_MANIFEST_VERSION, "manifestSha256": "A" * 64},
+        {"version": TEST_MANIFEST_VERSION, "manifest_sha256": TEST_MANIFEST_SHA256},
+        {
+            "version": TEST_MANIFEST_VERSION,
+            "manifestSha256": TEST_MANIFEST_SHA256,
+            "unexpected": True,
+        },
+    ],
+)
+def test_manifest_pointer_rejects_non_publisher_shape(payload: dict[str, object]) -> None:
+    with pytest.raises(ValueError):
+        AntifilterManifestPointer.model_validate(payload)
+
+
+def test_production_rejects_inline_manifest_pointers(monkeypatch: pytest.MonkeyPatch) -> None:
+    artifact = enable_spb_de_readiness(monkeypatch)
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(readiness_module, "_configured_attestation_token", lambda: artifact.token)
+    monkeypatch.setattr(readiness_module, "_configured_public_key", lambda: artifact.public_key)
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
+
+
+@pytest.mark.parametrize("environment", ["Production", "PRODUCTION", " production "])
+def test_production_environment_variants_reject_inline_manifest_pointers(
+    monkeypatch: pytest.MonkeyPatch,
+    environment: str,
+) -> None:
+    artifact = enable_spb_de_readiness(monkeypatch)
+    monkeypatch.setattr(settings, "environment", environment)
+    monkeypatch.setattr(readiness_module, "_configured_attestation_token", lambda: artifact.token)
+    monkeypatch.setattr(readiness_module, "_configured_public_key", lambda: artifact.public_key)
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
+
+
+def test_production_rejects_inline_attestation(monkeypatch: pytest.MonkeyPatch) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_attestation_path",
+        "/run/cybervpn/readiness/task2/attestation.jwt",
+    )
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_ATTESTATION_INVALID_REASON)
+
+
+def test_production_rejects_inline_public_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    artifact = enable_spb_de_readiness(monkeypatch)
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(readiness_module, "_configured_attestation_token", lambda: artifact.token)
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_public_key_path",
+        "/run/cybervpn/readiness/task2/public-key.pem",
+    )
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_SIGNATURE_INVALID_REASON)
+
+
+def test_production_accepts_only_pinned_read_only_readiness_files(monkeypatch: pytest.MonkeyPatch) -> None:
+    artifact = enable_spb_de_readiness(monkeypatch)
+    pinned_values = {
+        "/run/cybervpn/readiness/task2/attestation.jwt": artifact.token,
+        "/run/cybervpn/readiness/task2/public-key.pem": artifact.public_key,
+        "/run/cybervpn/readiness/task2/active.json": manifest_pointer_json(),
+        "/run/cybervpn/readiness/task2/last-known-good.json": manifest_pointer_json(),
+    }
+    monkeypatch.setattr(settings, "environment", " production ")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_attestation", "")
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_attestation_path",
+        "/run/cybervpn/readiness/task2/attestation.jwt",
+    )
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_public_key", "")
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_public_key_path",
+        "/run/cybervpn/readiness/task2/public-key.pem",
+    )
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", "")
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_active_pointer_path",
+        "/run/cybervpn/readiness/task2/active.json",
+    )
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer", "")
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_lkg_pointer_path",
+        "/run/cybervpn/readiness/task2/last-known-good.json",
+    )
+    monkeypatch.setattr(
+        readiness_module,
+        "_read_config_file_text",
+        lambda path_value, **_kwargs: pinned_values[str(path_value)],
+    )
+
+    assert ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE) is True
+
+
+def test_production_rejects_manifest_pointer_outside_readiness_mount(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    artifact = enable_spb_de_readiness(monkeypatch)
+    pointer_path = tmp_path / "active.json"
+    pointer_path.write_text(manifest_pointer_json(), encoding="utf-8")
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(readiness_module, "_configured_attestation_token", lambda: artifact.token)
+    monkeypatch.setattr(readiness_module, "_configured_public_key", lambda: artifact.public_key)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", "")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer_path", str(pointer_path))
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
+
+
+def test_malformed_manifest_pointer_file_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    malformed_path = tmp_path / "active.json"
+    malformed_path.write_text('{"version":"bad","manifestSha256":"bad"}', encoding="utf-8")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", "")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer_path", str(malformed_path))
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
+
+
+def test_manifest_pointer_symlink_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    target = tmp_path / "pointer-target.json"
+    target.write_text(manifest_pointer_json(), encoding="utf-8")
+    symlink = tmp_path / "active.json"
+    try:
+        symlink.symlink_to(target)
+    except OSError:
+        pytest.skip("symlink creation is unavailable on this platform")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", "")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer_path", str(symlink))
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_INVALID_REASON)
+
+
+def test_manifest_pointer_rotation_during_verification_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    old_pointer = AntifilterManifestPointer.model_validate_json(manifest_pointer_json())
+    new_pointer = AntifilterManifestPointer.model_validate_json(
+        manifest_pointer_json(version="c" * 64, manifest_sha256="c" * 64)
+    )
+    snapshots = iter((old_pointer, old_pointer, new_pointer, old_pointer))
+    monkeypatch.setattr(
+        readiness_module,
+        "_configured_manifest_pointer",
+        lambda **_kwargs: next(snapshots),
+    )
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_CHANGED_REASON)
+
+
+def test_manifest_state_rejects_unpromoted_active_pointer() -> None:
+    artifact = make_spb_de_readiness_attestation()
+    attestation = evaluate_spb_de_exceptions_readiness_attestation(
+        attestation_token=artifact.token,
+        public_key=artifact.public_key,
+        expected_policy_version="premium_spb_de_exceptions.v1",
+        now=CHECKED_AT,
+    )
+    active = AntifilterManifestPointer(
+        version="c" * 64,
+        manifestSha256=TEST_MANIFEST_SHA256,
+    )
+    lkg = AntifilterManifestPointer(
+        version=TEST_MANIFEST_VERSION,
+        manifestSha256=TEST_MANIFEST_SHA256,
+    )
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_manifest_state(
+            attestation,
+            active_pointer=active,
+            lkg_pointer=lkg,
+        )
+
+    _assert_reason(exc_info, TASK2_READINESS_STATE_NOT_PROMOTED_REASON)
+
+
+def test_manifest_state_rejects_stale_signed_manifest_hash(monkeypatch: pytest.MonkeyPatch) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_active_pointer",
+        manifest_pointer_json(manifest_sha256="c" * 64),
+    )
+    monkeypatch.setattr(
+        settings,
+        "remnawave_spb_de_exceptions_readiness_lkg_pointer",
+        manifest_pointer_json(manifest_sha256="c" * 64),
+    )
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, TASK2_READINESS_MANIFEST_MISMATCH_REASON)
+
+
+@pytest.mark.parametrize(
+    ("active_pointer", "lkg_pointer", "expected_reason"),
+    [
+        ("", "", TASK2_READINESS_STATE_MISSING_REASON),
+        ('{"version":"bad","manifestSha256":"bad"}', manifest_pointer_json(), TASK2_READINESS_STATE_INVALID_REASON),
+        (manifest_pointer_json(), '{"version":"bad","manifestSha256":"bad"}', TASK2_READINESS_STATE_INVALID_REASON),
+        (
+            manifest_pointer_json(),
+            manifest_pointer_json(version="c" * 64),
+            TASK2_READINESS_STATE_NOT_PROMOTED_REASON,
+        ),
+    ],
+)
+def test_manifest_pointer_negative_matrix_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    active_pointer: str,
+    lkg_pointer: str,
+    expected_reason: str,
+) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", active_pointer)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer_path", "")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer", lkg_pointer)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer_path", "")
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+
+    _assert_reason(exc_info, expected_reason)
 
 
 @pytest.mark.parametrize(
