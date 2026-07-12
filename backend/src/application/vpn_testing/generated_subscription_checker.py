@@ -27,14 +27,13 @@ PREMIUM_SMART_RU_MIHOMO_GROUPS = (
     "🧲 Torrents",
 )
 EXPECTED_PREMIUM_SMART_RU_TRANSPORT_PROFILE_COUNT = 4
-PREMIUM_SMART_RU_REQUIRED_SERVERS = frozenset(
-    {
-        "de-3.cyber-vpn.org",
-        "nl-4.cyber-vpn.org",
-        "ru-msk-3.cyber-vpn.org",
-        "ru-spb-3.cyber-vpn.org",
-    }
-)
+PREMIUM_SMART_RU_ENDPOINT_PORTS = {
+    "de-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
+    "nl-4.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
+    "msk-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
+    "ru-spb-3.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
+}
+PREMIUM_SMART_RU_REQUIRED_SERVERS = frozenset(PREMIUM_SMART_RU_ENDPOINT_PORTS)
 
 
 def _str_list(value: Any) -> list[str]:
@@ -65,6 +64,11 @@ def _port_equals(proxy: Mapping[str, Any], expected: int) -> bool:
         return False
 
 
+def _expected_port(proxy: Mapping[str, Any], transport: str) -> int | None:
+    server = str(proxy.get("server") or "").strip().lower()
+    return PREMIUM_SMART_RU_ENDPOINT_PORTS.get(server, {}).get(transport)
+
+
 def _has_reality_sni(proxy: Mapping[str, Any]) -> bool:
     return bool(proxy.get("servername") or proxy.get("sni"))
 
@@ -75,10 +79,12 @@ def _has_reality_public_fields(proxy: Mapping[str, Any]) -> bool:
 
 
 def _is_xhttp_reality_vless(proxy: Mapping[str, Any]) -> bool:
+    expected_port = _expected_port(proxy, "xhttp")
     return (
         str(proxy.get("type") or "").lower() == "vless"
         and str(proxy.get("network") or "").lower() == "xhttp"
-        and _port_equals(proxy, 8443)
+        and expected_port is not None
+        and _port_equals(proxy, expected_port)
         and proxy.get("tls") is True
         and _has_reality_sni(proxy)
         and _has_reality_public_fields(proxy)
@@ -87,10 +93,12 @@ def _is_xhttp_reality_vless(proxy: Mapping[str, Any]) -> bool:
 
 def _is_raw_tcp_reality_vless(proxy: Mapping[str, Any]) -> bool:
     network = str(proxy.get("network") or "tcp").lower()
+    expected_port = _expected_port(proxy, "raw")
     return (
         str(proxy.get("type") or "").lower() == "vless"
         and network in {"", "tcp", "raw"}
-        and _port_equals(proxy, 443)
+        and expected_port is not None
+        and _port_equals(proxy, expected_port)
         and proxy.get("tls") is True
         and str(proxy.get("flow") or "") == "xtls-rprx-vision"
         and _has_reality_sni(proxy)

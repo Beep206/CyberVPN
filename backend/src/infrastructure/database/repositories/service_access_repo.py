@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -65,6 +66,27 @@ class ServiceAccessRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    async def list_active_subscription_identities_by_provider_subject(
+        self,
+        *,
+        provider_name: str,
+        provider_subject_ref: str,
+    ) -> list[ServiceIdentityModel]:
+        """Return all active server-owned subscription identities for one provider user."""
+
+        query = (
+            select(ServiceIdentityModel)
+            .where(
+                ServiceIdentityModel.provider_name == provider_name,
+                ServiceIdentityModel.provider_subject_ref == provider_subject_ref,
+                ServiceIdentityModel.identity_scope == "subscription",
+                ServiceIdentityModel.identity_status == "active",
+            )
+            .order_by(ServiceIdentityModel.created_at.desc())
+        )
+        result = await self._session.execute(query)
+        return list(result.scalars().all())
 
     async def list_service_identities(
         self,
@@ -359,6 +381,28 @@ class ServiceAccessRepository:
                 EntitlementGrantModel.customer_account_id == customer_account_id,
                 EntitlementGrantModel.auth_realm_id == auth_realm_id,
                 EntitlementGrantModel.grant_status == "active",
+                (EntitlementGrantModel.expires_at.is_(None) | (EntitlementGrantModel.expires_at > now)),
+            )
+            .order_by(
+                EntitlementGrantModel.effective_from.desc(),
+                EntitlementGrantModel.created_at.desc(),
+            )
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_active_entitlement_grant_for_service_identity(
+        self,
+        *,
+        service_identity_id: UUID,
+        now: datetime,
+    ) -> EntitlementGrantModel | None:
+        result = await self._session.execute(
+            select(EntitlementGrantModel)
+            .where(
+                EntitlementGrantModel.service_identity_id == service_identity_id,
+                EntitlementGrantModel.grant_status == "active",
+                (EntitlementGrantModel.effective_from.is_(None) | (EntitlementGrantModel.effective_from <= now)),
                 (EntitlementGrantModel.expires_at.is_(None) | (EntitlementGrantModel.expires_at > now)),
             )
             .order_by(

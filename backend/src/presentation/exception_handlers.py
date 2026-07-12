@@ -27,8 +27,13 @@ from src.domain.exceptions.domain_errors import (
     ValidationError as DomainValidationError,
 )
 from src.presentation.middleware.request_id import get_request_id
+from src.shared.logging.sanitization import sanitize_path_params
 
 logger = structlog.get_logger("cybervpn.exceptions")
+
+
+def _safe_request_path(request: Request) -> str:
+    return sanitize_path_params(request.url.path)
 
 
 def _get_request_id_header() -> dict[str, str]:
@@ -56,9 +61,9 @@ async def validation_exception_handler(
     logger.warning(
         "Validation failed for %s %s",
         request.method,
-        request.url.path,
+        _safe_request_path(request),
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "errors": errors,
             "client_ip": request.client.host if request.client else None,
@@ -82,7 +87,7 @@ async def user_not_found_handler(request: Request, exc: UserNotFoundError) -> JS
     logger.warning(
         "User not found",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -103,7 +108,7 @@ async def server_not_found_handler(request: Request, exc: ServerNotFoundError) -
     logger.warning(
         "Server not found",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -124,7 +129,7 @@ async def payment_not_found_handler(request: Request, exc: PaymentNotFoundError)
     logger.warning(
         "Payment not found",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -146,7 +151,7 @@ async def invalid_credentials_handler(request: Request, exc: InvalidCredentialsE
     logger.warning(
         "Invalid credentials",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "client_ip": request.client.host if request.client else None,
             "request_id": request_id,
@@ -165,7 +170,7 @@ async def invalid_token_handler(request: Request, exc: InvalidTokenError) -> JSO
     logger.warning(
         "Invalid or expired token",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -186,7 +191,7 @@ async def insufficient_permissions_handler(request: Request, exc: InsufficientPe
     logger.warning(
         "Insufficient permissions",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -207,7 +212,7 @@ async def subscription_expired_handler(request: Request, exc: SubscriptionExpire
     logger.warning(
         "Subscription expired",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -228,7 +233,7 @@ async def traffic_limit_exceeded_handler(request: Request, exc: TrafficLimitExce
     logger.warning(
         "Traffic limit exceeded",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -249,7 +254,7 @@ async def user_already_exists_handler(request: Request, exc: UserAlreadyExistsEr
     logger.warning(
         "User already exists",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -270,7 +275,7 @@ async def duplicate_username_handler(request: Request, exc: DuplicateUsernameErr
     logger.warning(
         "Username already exists",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -292,7 +297,7 @@ async def invalid_webhook_signature_handler(request: Request, exc: InvalidWebhoo
     logger.warning(
         "Invalid webhook signature",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "client_ip": request.client.host if request.client else None,
             "request_id": request_id,
@@ -311,7 +316,7 @@ async def domain_validation_error_handler(request: Request, exc: DomainValidatio
     logger.warning(
         "Domain validation error",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "details": exc.details,
@@ -332,7 +337,7 @@ async def domain_error_handler(request: Request, exc: DomainError) -> JSONRespon
     logger.warning(
         "Domain error",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception": str(exc),
             "exception_type": type(exc).__name__,
@@ -363,7 +368,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     logger.exception(
         "Unhandled exception",
         extra={
-            "path": request.url.path,
+            "path": _safe_request_path(request),
             "method": request.method,
             "exception_type": type(exc).__name__,
             "client_ip": request.client.host if request.client else None,

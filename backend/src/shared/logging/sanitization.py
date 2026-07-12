@@ -172,6 +172,9 @@ def sanitize_path_params(path: str, *, patterns: list[str] | None = None) -> str
             r"/users/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
             r"/tokens/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
             r"/api/v1/(?:vpn|xray|provisioning|subscriptions?)/(?:config|credentials|subscription)/[^/?#]+",
+            r"/api/v1/admin/invites/[^/?#]+",
+            r"/api/v1/oauth/telegram/(?:account-link/)?magic-link/[^/?#]+(?=/status(?:$|[/?#]))",
+            r"/api/sub/[^/?#]+",
         ]
 
     sanitized = path

@@ -9,23 +9,24 @@ import pytest
 from pydantic import SecretStr
 
 from src.application.vpn_testing import runtime_agent_client as client
+from src.application.vpn_testing import service as service_module
 from src.config.settings import Settings, settings
 
 _LOCATIONS = (
-    ("DE Frankfurt", "de-3.cyber-vpn.org"),
-    ("NL Amsterdam", "nl-4.cyber-vpn.org"),
-    ("RU Moscow", "ru-msk-3.cyber-vpn.org"),
-    ("RU SPB", "ru-spb-3.cyber-vpn.org"),
+    ("DE Frankfurt", "de-relay.cyber-vpn.org", 2053, 2083),
+    ("NL Amsterdam", "nl-4.cyber-vpn.org", 443, 8443),
+    ("RU Moscow", "msk-relay.cyber-vpn.org", 2053, 2083),
+    ("RU SPB", "ru-spb-3.cyber-vpn.org", 443, 8443),
 )
 
 
 def _raw_proxy(index: int) -> dict[str, Any]:
-    location, server = _LOCATIONS[index]
+    location, server, raw_port, _ = _LOCATIONS[index]
     return {
         "name": f"{location} RAW {index + 1}",
         "type": "vless",
         "server": server,
-        "port": 443,
+        "port": raw_port,
         "network": "tcp",
         "uuid": f"00000000-0000-4000-8000-{index + 1:012x}",
         "flow": "xtls-rprx-vision",
@@ -39,12 +40,12 @@ def _raw_proxy(index: int) -> dict[str, Any]:
 
 
 def _xhttp_proxy(index: int) -> dict[str, Any]:
-    location, server = _LOCATIONS[index]
+    location, server, _, xhttp_port = _LOCATIONS[index]
     return {
         "name": f"{location} XHTTP {index + 1}",
         "type": "vless",
         "server": server,
-        "port": 8443,
+        "port": xhttp_port,
         "network": "xhttp",
         "uuid": f"00000000-0000-4000-8000-{index + 11:012x}",
         "servername": "www.microsoft.com",
@@ -93,9 +94,10 @@ class FakeAsyncClient:
     responses_by_base_url: dict[str, Any | ResponseFactory] = {}
     failures_by_base_url: dict[str, Exception] = {}
 
-    def __init__(self, *, base_url: str, timeout: Any) -> None:
+    def __init__(self, *, base_url: str, timeout: Any, trust_env: bool) -> None:
         self.base_url = base_url
         self.timeout = timeout
+        self.trust_env = trust_env
 
     async def __aenter__(self) -> FakeAsyncClient:
         return self
@@ -109,6 +111,7 @@ class FakeAsyncClient:
             "path": path,
             "json": json,
             "headers": headers,
+            "trust_env": self.trust_env,
         }
         self.__class__.requests.append(request)
         failure = self.__class__.failures_by_base_url.get(self.base_url)
@@ -131,9 +134,21 @@ class FakeAsyncClient:
 def _default_response(request: dict[str, Any]) -> dict[str, Any]:
     payload = request["json"]
     secret = request["headers"][client.RUNTIME_AGENT_AUTH_HEADER]
-    checks = []
+    checks = [
+        {
+            "check_key": "runtime.transport_profile_matrix.required",
+            "check_name": "Runtime transport profile matrix",
+            "category": "runtime",
+            "status": "pass",
+            "severity": "error",
+            "target": "global",
+            "safe_summary": "Shard matrix passed",
+            "details": {"request_scope": payload["request_scope"]},
+            "duration_ms": 0,
+        }
+    ]
     for profile in _profiles_from_payload(payload):
-        location_key = str(profile["location"]).lower().replace(" ", "_")
+        location_key = client.PREMIUM_SMART_RU_RELEASE_LOCATION_KEY_BY_SERVER[profile["server"]]
         checks.append(
             {
                 "check_key": f"runtime.transport.{profile['network']}.{location_key}",
@@ -222,6 +237,8 @@ async def test_call_runtime_agent_derives_payload_from_generated_mihomo_and_reda
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _configure_primary(monkeypatch)
+    monkeypatch.setenv("HTTPS_PROXY", "http://untrusted-proxy.invalid:8080")
+    monkeypatch.setenv("ALL_PROXY", "socks5://untrusted-proxy.invalid:1080")
 
     result = await client.call_runtime_agent(
         run_id="run-1",
@@ -237,6 +254,7 @@ async def test_call_runtime_agent_derives_payload_from_generated_mihomo_and_reda
     profiles = _profiles_from_payload(payload)
     assert request["base_url"] == "https://primary-agent.internal"
     assert request["path"] == client.RUNTIME_AGENT_ENDPOINT
+    assert request["trust_env"] is False
     assert request["headers"] == {client.RUNTIME_AGENT_AUTH_HEADER: "primary-agent-secret"}
     assert payload["runtime_mode"] == "proxy-only"
     assert payload["request_scope"] == "full"
@@ -246,8 +264,13 @@ async def test_call_runtime_agent_derives_payload_from_generated_mihomo_and_reda
     assert profiles[4]["xhttp_path"] == "/xhttp/0"
     assert profiles[4]["xhttp_mode"] == "auto"
     assert all(not item["check_key"].startswith("runtime.agent.primary.") for item in result["checks"])
-    assert result["checks"][0]["details"]["uuid"] == "<redacted>"
-    assert "<redacted>" in result["checks"][0]["safe_summary"]
+    profile_check = next(
+        check
+        for check in result["checks"]
+        if check["check_key"].startswith(("runtime.transport.raw.", "runtime.transport.xhttp."))
+    )
+    assert profile_check["details"]["uuid"] == "<redacted>"
+    assert "<redacted>" in profile_check["safe_summary"]
     _assert_no_sensitive_values(result, FakeAsyncClient.requests)
 
 
@@ -298,9 +321,20 @@ async def test_call_runtime_agent_splits_moscow_and_spb_targets_and_combines_uni
     }
     check_keys = [item["check_key"] for item in result["checks"]]
     assert len(check_keys) == len(set(check_keys))
-    assert any(key.startswith("runtime.agent.primary.") for key in check_keys)
-    assert any(key.startswith("runtime.agent.moscow.") for key in check_keys)
-    assert any(key.startswith("runtime.agent.spb.") for key in check_keys)
+    assert {key for key in check_keys if key.startswith(("runtime.transport.raw.", "runtime.transport.xhttp."))} == {
+        f"runtime.transport.{transport}.{location}"
+        for transport in ("raw", "xhttp")
+        for location in ("de", "nl", "moscow", "spb")
+    }
+    assert "runtime.transport_profile_matrix.required" in check_keys
+    assert (
+        service_module.PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_RAW_CHECKS
+        | service_module.PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_XHTTP_CHECKS
+    ).issubset(check_keys)
+    assert check_keys.count(service_module.PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_MATRIX_CHECK) == 1
+    assert any(key.startswith("runtime.agent.primary.runtime.transport_profile_matrix") for key in check_keys)
+    assert any(key.startswith("runtime.agent.moscow.runtime.transport_profile_matrix") for key in check_keys)
+    assert any(key.startswith("runtime.agent.spb.runtime.transport_profile_matrix") for key in check_keys)
     assert result["status"] == "pass"
     _assert_no_sensitive_values(result, FakeAsyncClient.requests)
 
@@ -394,7 +428,8 @@ async def test_call_runtime_agent_rejects_duplicate_compensated_server_matrix(
 ) -> None:
     _configure_primary(monkeypatch)
     artifact = _generated_mihomo()
-    artifact["proxies"][3]["server"] = "de-3.cyber-vpn.org"
+    artifact["proxies"][3]["server"] = "de-relay.cyber-vpn.org"
+    artifact["proxies"][3]["port"] = 2053
 
     result = await client.call_runtime_agent(
         run_id="run-1",

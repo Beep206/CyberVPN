@@ -1,0 +1,23 @@
+[Unit]
+Description=Proxy CyberVPN Moscow XHTTP Reality ingress to the Moscow node
+Documentation=man:systemd-socket-proxyd(8)
+Requires=cybervpn-msk-relay-xhttp.socket
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/lib/systemd/systemd-socket-proxyd --connections-max=4096 --exit-idle-time=5min 178.159.94.225:8443
+DynamicUser=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_INET AF_INET6
+LimitNOFILE=16384
+MemoryMax=128M
+TasksMax=512
+
+[Install]
+WantedBy=multi-user.target

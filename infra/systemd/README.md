@@ -26,6 +26,23 @@ ufw allow 2083/tcp comment 'CyberVPN DE XHTTP relay'
 Rollback by restoring the DE Remnawave hosts to `de-3.cyber-vpn.org` on ports
 `443` and `8443`, then disabling both sockets and removing the relay DNS record.
 
+## Moscow Reality ingress relay
+
+`cybervpn-msk-relay-reality.*` and `cybervpn-msk-relay-xhttp.*` run on the SPB
+node and bypass the Moscow provider's unreliable public IPv4 path. The private
+origin alias is managed in `/etc/hosts` by the `remnawave_edge` Ansible role
+from the production inventory, avoiding public DNS and manual host drift:
+
+- `0.0.0.0:2053` -> `msk-origin-v6.cybervpn.internal:443`;
+- `0.0.0.0:2083` -> `msk-origin-v6.cybervpn.internal:8443`.
+
+The relay is published as `msk-relay.cyber-vpn.org`. TLS, REALITY, and VLESS
+terminate on the Moscow node, so the VPN exit remains Moscow. Installation and
+rollback follow the DE relay procedure with the `cybervpn-msk-relay-*` units.
+After installation, verify the two upstream IPv6 ports and complete a VLESS
+Reality handshake through each public relay port; a listening socket alone is
+not a sufficient health check.
+
 ## `cybervpn-remnawave-ru-msk-node-proxy.service`
 
 Production-only compatibility unit for the RU Moscow Remnawave node API.

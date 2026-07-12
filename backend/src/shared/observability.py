@@ -4,6 +4,8 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
+from src.shared.logging.sanitization import sanitize_path_params
+
 SENSITIVE_HEADER_NAMES = {
     "authorization",
     "cookie",
@@ -101,15 +103,16 @@ def _scrub_request_headers(headers: Any) -> None:
             headers[header_name] = "[Filtered]"
 
 
-def _strip_url_query(url: Any) -> Any:
+def _sanitize_request_url(url: Any) -> Any:
     if not isinstance(url, str) or not url:
         return url
 
     parsed = urlparse(url)
+    sanitized_path = sanitize_path_params(parsed.path or "/")
     if not parsed.scheme and not parsed.netloc:
-        return parsed.path or "/"
+        return sanitized_path
 
-    sanitized = parsed._replace(query="", fragment="")
+    sanitized = parsed._replace(path=sanitized_path, params="", query="", fragment="")
     return sanitized.geturl()
 
 
@@ -117,7 +120,7 @@ def before_send(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any] 
     request = event.get("request")
     if isinstance(request, dict):
         _scrub_request_headers(request.get("headers"))
-        request["url"] = _strip_url_query(request.get("url"))
+        request["url"] = _sanitize_request_url(request.get("url"))
         if "data" in request:
             request["data"] = "[Filtered]"
         if "cookies" in request:
@@ -139,7 +142,7 @@ def before_send(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any] 
 def before_send_transaction(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any] | None:
     request = event.get("request")
     if isinstance(request, dict):
-        request["url"] = _strip_url_query(request.get("url"))
+        request["url"] = _sanitize_request_url(request.get("url"))
         url = request.get("url")
         if isinstance(url, str):
             path = urlparse(url).path or url

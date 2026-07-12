@@ -1,0 +1,13 @@
+[Unit]
+Description=CyberVPN Moscow XHTTP Reality relay listener
+Documentation=man:systemd.socket(5)
+
+[Socket]
+ListenStream=0.0.0.0:2083
+NoDelay=true
+Backlog=4096
+MaxConnections=4096
+MaxConnectionsPerSource=256
+
+[Install]
+WantedBy=sockets.target

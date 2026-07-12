@@ -20,7 +20,7 @@ class SubscriptionPlanModel(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     tier: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    plan_code: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    plan_code: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     display_name: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     catalog_visibility: Mapped[str] = mapped_column(String(20), nullable=False, default="hidden")
     catalog_access_class: Mapped[str] = mapped_column(

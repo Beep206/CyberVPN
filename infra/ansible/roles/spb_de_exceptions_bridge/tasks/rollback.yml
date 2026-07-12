@@ -1,0 +1,74 @@
+---
+- name: Task2 SPB DE exceptions | Refuse firewall rollback while bridge port is listening
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/ss
+      - -H
+      - -lntu
+      - "sport = :{{ spb_de_exceptions_bridge_port }}"
+  register: spb_de_exceptions_bridge_port_listeners
+  changed_when: false
+  failed_when: spb_de_exceptions_bridge_port_listeners.stdout | trim | length > 0
+  when: spb_de_exceptions_bridge_manage_nftables | bool
+
+- name: Task2 SPB DE exceptions | Stop firewall unit
+  ansible.builtin.systemd:
+    name: "{{ spb_de_exceptions_bridge_firewall_unit_name }}.service"
+    enabled: false
+    state: stopped
+  when: spb_de_exceptions_bridge_manage_nftables | bool
+
+- name: Task2 SPB DE exceptions | Check nftables table presence
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/nft
+      - list
+      - table
+      - inet
+      - "{{ spb_de_exceptions_bridge_nftables_table_name }}"
+  register: spb_de_exceptions_bridge_nft_table_status
+  changed_when: false
+  failed_when:
+    - spb_de_exceptions_bridge_nft_table_status.rc != 0
+    - "'No such file or directory' not in spb_de_exceptions_bridge_nft_table_status.stderr"
+    - "'No such file' not in spb_de_exceptions_bridge_nft_table_status.stderr"
+  when: spb_de_exceptions_bridge_manage_nftables | bool
+
+- name: Task2 SPB DE exceptions | Delete nftables table
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/nft
+      - delete
+      - table
+      - inet
+      - "{{ spb_de_exceptions_bridge_nftables_table_name }}"
+  changed_when: true
+  when:
+    - spb_de_exceptions_bridge_manage_nftables | bool
+    - spb_de_exceptions_bridge_nft_table_status.rc == 0
+
+- name: Task2 SPB DE exceptions | Remove bridge TCP UFW allow rule
+  community.general.ufw:
+    rule: allow
+    delete: true
+    proto: tcp
+    from_ip: "{{ item }}"
+    to_port: "{{ spb_de_exceptions_bridge_port }}"
+  loop: "{{ spb_de_exceptions_bridge_allowed_ipv4_cidrs + spb_de_exceptions_bridge_allowed_ipv6_cidrs }}"
+  when: spb_de_exceptions_bridge_manage_ufw | bool
+
+- name: Task2 SPB DE exceptions | Remove bridge UDP UFW allow rule
+  community.general.ufw:
+    rule: allow
+    delete: true
+    proto: udp
+    from_ip: "{{ item }}"
+    to_port: "{{ spb_de_exceptions_bridge_port }}"
+  loop: "{{ spb_de_exceptions_bridge_allowed_ipv4_cidrs + spb_de_exceptions_bridge_allowed_ipv6_cidrs }}"
+  when: spb_de_exceptions_bridge_manage_ufw | bool
+
+- name: Task2 SPB DE exceptions | Remove nftables include
+  ansible.builtin.file:
+    path: "{{ spb_de_exceptions_bridge_nftables_include_path }}"
+    state: absent
+  when: spb_de_exceptions_bridge_manage_nftables | bool

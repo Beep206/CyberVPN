@@ -1,0 +1,34 @@
+{
+  "created_at": "2026-07-11T08:29:14.175336+00:00",
+  "updated_at": "2026-07-11T20:47:00+00:00",
+  "files": [
+    {
+      "name": "TZ_Codex_Task1_Premium_Smart_RU_Remnawave_2_8_0.md",
+      "path": "docs/plans/TZ_Codex_Task1_Premium_Smart_RU_Remnawave_2_8_0.md",
+      "size_bytes": 37100,
+      "sha256": "2c4b5735a9c23b72f98aafeab0cff16fa63da77b0834dc5e60c51e833e86e057",
+      "lines": 1004
+    },
+    {
+      "name": "TZ_Codex_Task2_SPB_Default_With_DE_Exceptions_Remnawave_2_8_0.md",
+      "path": "docs/plans/TZ_Codex_Task2_SPB_Default_With_DE_Exceptions_Remnawave_2_8_0.md",
+      "size_bytes": 35200,
+      "sha256": "23a8bcc3f36deb759bb6c8bd9fe326d60392b3d103e3cfdb06e2f029e0e5fa9e",
+      "lines": 1097
+    },
+    {
+      "name": "README_CyberVPN_Remnawave_TZ.md",
+      "path": "docs/plans/README_CyberVPN_Remnawave_TZ.md",
+      "size_bytes": 2340,
+      "sha256": "0d27f816bb515e297000999f78dee670224573f3576f60082d1ffd9660cf97f1",
+      "lines": 12
+    },
+    {
+      "name": "CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md",
+      "path": "docs/architecture/CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md",
+      "size_bytes": 98298,
+      "sha256": "e72a345c0338bcf621177fd5406b64ab083b4977c5b63501104a9bc86eea3af4",
+      "lines": 1391
+    }
+  ]
+}

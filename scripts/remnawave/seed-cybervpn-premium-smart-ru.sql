@@ -1,10 +1,18 @@
 -- Seed CyberVPN Premium Smart RU Remnawave Mihomo template, squads, and abuse plugin.
 --
--- Usage:
---   psql "$REMNAWAVE_DATABASE_URL" -f scripts/remnawave/seed-cybervpn-premium-smart-ru.sql
+-- Usage: run run-premium-smart-ru-seeds.py on the PostgreSQL host/container.
+-- The wrapper supplies a private random stage directory and trusted SHA-256
+-- values directly through psql variables; this file intentionally has no /tmp
+-- artifact fallback.
 --
 -- Configure backend with the returned external_squad_uuid:
 --   REMNAWAVE_SMART_RU_EXTERNAL_SQUAD_UUID=<external_squad_uuid>
+--
+-- XRAY_BASE64 clients such as INCY require server-side Smart RU routing. After
+-- this base seed, run apply-premium-smart-ru-server-routing.py with the
+-- production source subscription URL supplied through its environment.
+
+\set ON_ERROR_STOP on
 
 do $premium_smart_ru_inbound_validation$
 declare
@@ -148,6 +156,137 @@ $premium_smart_ru_inbound_validation$;
 
 begin;
 
+create temporary table cybervpn_premium_smart_ru_artifact_contract (
+    stage_dir text not null,
+    stage_manifest_sha256 text not null,
+    mihomo_sha256 text not null,
+    incy_sha256 text not null,
+    legacy_header_sha256 text not null,
+    stage_manifest jsonb,
+    mihomo_template text,
+    legacy_header jsonb
+) on commit drop;
+
+insert into cybervpn_premium_smart_ru_artifact_contract (
+    stage_dir,
+    stage_manifest_sha256,
+    mihomo_sha256,
+    incy_sha256,
+    legacy_header_sha256
+)
+values (
+    :'cybervpn_premium_smart_ru_stage_dir',
+    :'cybervpn_premium_smart_ru_stage_manifest_sha256',
+    :'cybervpn_premium_smart_ru_mihomo_sha256',
+    :'cybervpn_premium_smart_ru_incy_sha256',
+    :'cybervpn_premium_smart_ru_legacy_header_sha256'
+);
+
+do $cybervpn_premium_smart_ru_mihomo_preflight$
+declare
+    v_contract cybervpn_premium_smart_ru_artifact_contract%rowtype;
+    v_manifest_bytes bytea;
+    v_template_bytes bytea;
+    v_legacy_header_bytes bytea;
+    v_template text;
+    v_manifest jsonb;
+    v_legacy_header jsonb;
+    v_legacy_decoded jsonb;
+    v_legacy_value text;
+    v_expected_bytes bigint;
+begin
+    select * into strict v_contract
+    from cybervpn_premium_smart_ru_artifact_contract;
+
+    if v_contract.stage_dir !~ '^/[A-Za-z0-9._/-]+$'
+       or v_contract.stage_dir ~ '(^|/)\.\.(/|$)'
+       or v_contract.stage_dir ~ '^/(tmp|var/tmp)(/|$)'
+       or v_contract.stage_manifest_sha256 !~ '^[0-9a-f]{64}$'
+       or v_contract.mihomo_sha256 !~ '^[0-9a-f]{64}$'
+       or v_contract.incy_sha256 !~ '^[0-9a-f]{64}$'
+       or v_contract.legacy_header_sha256 !~ '^[0-9a-f]{64}$' then
+        raise exception 'CyberVPN Premium Smart RU trusted artifact variables are invalid';
+    end if;
+
+    v_manifest_bytes := pg_read_binary_file(v_contract.stage_dir || '/manifest.json');
+    v_template_bytes := pg_read_binary_file(v_contract.stage_dir || '/mihomo.yaml');
+    v_legacy_header_bytes := pg_read_binary_file(
+        v_contract.stage_dir || '/legacy-routing-header.json'
+    );
+
+    if encode(sha256(v_manifest_bytes), 'hex') <> v_contract.stage_manifest_sha256 then
+        raise exception 'CyberVPN Premium Smart RU stage manifest SHA-256 mismatch';
+    end if;
+    if encode(sha256(v_template_bytes), 'hex') <> v_contract.mihomo_sha256 then
+        raise exception 'CyberVPN Premium Smart RU Mihomo SHA-256 mismatch';
+    end if;
+    if encode(sha256(v_legacy_header_bytes), 'hex') <> v_contract.legacy_header_sha256 then
+        raise exception 'CyberVPN Premium Smart RU legacy header SHA-256 mismatch';
+    end if;
+
+    v_template := convert_from(v_template_bytes, 'UTF8');
+    v_manifest := convert_from(v_manifest_bytes, 'UTF8')::jsonb;
+    v_legacy_header := convert_from(v_legacy_header_bytes, 'UTF8')::jsonb;
+
+    if v_manifest->>'schemaVersion' is distinct from '1'
+       or v_manifest->>'product' is distinct from 'premium_smart_ru'
+       or v_manifest#>>'{artifacts,mihomo.yaml,sha256}' is distinct from v_contract.mihomo_sha256
+       or v_manifest#>>'{artifacts,incy-xray.json,sha256}' is distinct from v_contract.incy_sha256
+       or v_manifest#>>'{artifacts,legacy-routing-header.json,sha256}'
+            is distinct from v_contract.legacy_header_sha256 then
+        raise exception 'CyberVPN Premium Smart RU stage manifest contract is invalid';
+    end if;
+
+    v_expected_bytes := (v_manifest#>>'{artifacts,mihomo.yaml,bytes}')::bigint;
+    if v_expected_bytes is null
+       or octet_length(v_template_bytes) <> v_expected_bytes
+       or octet_length(v_legacy_header_bytes) is distinct from
+            (v_manifest#>>'{artifacts,legacy-routing-header.json,bytes}')::bigint then
+        raise exception 'CyberVPN Premium Smart RU Mihomo artifact size mismatch';
+    end if;
+
+    if position('MATCH,World / EU' in v_template) = 0
+       or position('name: Torrents' in v_template) = 0
+       or position('name: RU Sites' in v_template) = 0
+       or position('name: World / EU' in v_template) = 0
+       or position('MATCH,DIRECT' in v_template) <> 0 then
+        raise exception 'CyberVPN Premium Smart RU Mihomo artifact contract is invalid';
+    end if;
+
+    v_legacy_value := v_legacy_header->>'value';
+    if v_legacy_header->>'schemaVersion' is distinct from '1'
+       or v_legacy_header->>'product' is distinct from 'premium_smart_ru'
+       or v_legacy_header->>'consumer' is distinct from 'remnawave-legacy-routing-header'
+       or v_legacy_header->>'encoding' is distinct from 'base64-json'
+       or coalesce(v_legacy_value, '') !~ '^[A-Za-z0-9+/]+={0,2}$'
+       or length(v_legacy_value) % 4 <> 0 then
+        raise exception 'CyberVPN Premium Smart RU legacy routing artifact is invalid';
+    end if;
+
+    v_legacy_decoded := convert_from(decode(v_legacy_value, 'base64'), 'UTF8')::jsonb;
+    if v_legacy_header->'decoded' is distinct from v_legacy_decoded
+       or v_legacy_decoded->>'Name' is distinct from 'CyberVPN Premium Smart RU'
+       or v_legacy_decoded->>'GlobalProxy' is distinct from 'true'
+       or v_legacy_decoded->>'DomainStrategy' is distinct from 'AsIs'
+       or v_legacy_decoded->>'FakeDNS' is distinct from 'false'
+       or v_legacy_decoded->>'RemoteDNSType' is distinct from 'DoH'
+       or v_legacy_decoded->>'RemoteDNSDomain' is distinct from 'https://cloudflare-dns.com/dns-query'
+       or v_legacy_decoded->>'RemoteDNSIP' is distinct from '1.1.1.1'
+       or jsonb_typeof(v_legacy_decoded->'BlockSites') is distinct from 'array'
+       or not (v_legacy_decoded->'BlockSites' ? 'domain:rutracker.org')
+       or not (v_legacy_decoded->'BlockSites' ? 'geosite:category-ads-all')
+       or jsonb_typeof(v_legacy_decoded->'DirectIp') is distinct from 'array'
+       or not (v_legacy_decoded->'DirectIp' ? '10.0.0.0/8') then
+        raise exception 'CyberVPN Premium Smart RU legacy routing semantics are invalid';
+    end if;
+
+    update cybervpn_premium_smart_ru_artifact_contract
+    set stage_manifest = v_manifest,
+        mihomo_template = v_template,
+        legacy_header = v_legacy_header;
+end
+$cybervpn_premium_smart_ru_mihomo_preflight$;
+
 with template_upsert as (
     insert into subscription_templates (
         template_type,
@@ -159,1072 +298,7 @@ with template_upsert as (
     values (
         'MIHOMO',
         'CyberVPN Premium Smart RU',
-        $cybervpn_premium_smart_ru_yaml$
-# ==================================================================================================
-# CyberVPN Premium Smart RU
-# Hardened review build for Remnawave 2.8.0 / Mihomo
-# Гибридный Mihomo / Clash Meta шаблон для Remnawave
-# --------------------------------------------------------------------------------------------------
-# Топология под этот шаблон:
-#   - 🇩🇪 DE Frankfurt / Germany: 25 Gbit/s — основной быстрый EU-контур
-#   - 🇳🇱 NL Amsterdam / Netherlands: 10 Gbit/s — резервный/дополнительный EU-контур
-#   - 🇷🇺 RU Moscow: 25 Gbit/s — российский контур для RU-сервисов
-#   - 🇷🇺 RU Saint Petersburg: 25 Gbit/s — российский контур для RU-сервисов
-#
-# Идея:
-#   - весь обычный non-RU трафик по умолчанию идет через DE 25G; NL 10G — резерв/ручной выбор;
-#   - российские сервисы, банки, маркетплейсы, Яндекс, Госуслуги и RU IP идут через РФ-ноды;
-#   - ресурсы, заблокированные/недоступные из РФ, идут через DE/NL, даже если домен .ru;
-#   - Torrent/TOR режутся на уровне клиентского профиля, а также должны дублироваться Node Plugins на сервере;
-#   - реклама, трекеры и Windows telemetry блокируются;
-#   - YouTube / Discord / Telegram / AI / Dev вынесены в отдельные селекторы.
-#
-# ВАЖНО ПО ИМЕНАМ НОД В REMNAWAVE:
-#   Чтобы фильтры групп работали стабильно, называй ноды примерно так:
-#     🇩🇪 DE Frankfurt 01 25G
-#     🇳🇱 NL Amsterdam 01 10G
-#     🇷🇺 RU Moscow 01 25G
-#     🇷🇺 RU SPB 01 25G
-#
-# Если названия другие — поправь filter/exclude-filter в proxy-groups.
-# ==================================================================================================
-
-remnawave:
-  includeHiddenHosts: false
-
-mixed-port: 7890
-allow-lan: false
-bind-address: 127.0.0.1
-mode: rule
-log-level: info
-ipv6: false
-tcp-concurrent: true
-unified-delay: true
-keep-alive-interval: 30
-enable-process: true
-find-process-mode: always
-external-controller: 127.0.0.1:9090
-
-profile:
-  store-selected: true
-  store-fake-ip: true
-
-sniffer:
-  enable: true
-  force-dns-mapping: true
-  parse-pure-ip: true
-  override-destination: false
-  sniff:
-    HTTP:
-      ports:
-        - 80
-        - 8080-8880
-    TLS:
-      ports:
-        - 443
-        - 8443
-    QUIC:
-      ports:
-        - 443
-  skip-dst-address:
-    - 0.0.0.0/8
-    - 10.0.0.0/8
-    - 100.64.0.0/10
-    - 127.0.0.0/8
-    - 169.254.0.0/16
-    - 172.16.0.0/12
-    - 192.0.0.0/24
-    - 192.0.2.0/24
-    - 192.88.99.0/24
-    - 192.168.0.0/16
-    - 198.51.100.0/24
-    - 203.0.113.0/24
-    - 224.0.0.0/3
-    - ::/127
-    - fc00::/7
-    - fe80::/10
-    - ff00::/8
-
-tun:
-  enable: true
-  # gvisor — максимально совместимый вариант. Для отдельных десктоп-клиентов можно тестировать stack: system/mixed.
-  stack: gvisor
-  auto-route: true
-  auto-detect-interface: true
-  strict-route: true
-  dns-hijack:
-    - any:53
-    - tcp://any:53
-  route-exclude-address:
-    # Служебные/локальные сети не загоняем в TUN.
-    # 198.18.0.0/15 НЕ добавляем сюда, потому что это fake-ip диапазон Mihomo.
-    - 0.0.0.0/8
-    - 10.0.0.0/8
-    - 100.64.0.0/10
-    - 127.0.0.0/8
-    - 169.254.0.0/16
-    - 172.16.0.0/12
-    - 192.0.0.0/24
-    - 192.0.2.0/24
-    - 192.88.99.0/24
-    - 192.168.0.0/16
-    - 198.51.100.0/24
-    - 203.0.113.0/24
-    - 224.0.0.0/3
-    - ::/127
-    - fc00::/7
-    - fe80::/10
-    - ff00::/8
-
-dns:
-  enable: true
-  cache-algorithm: arc
-  prefer-h3: false
-  use-hosts: true
-  use-system-hosts: true
-  ipv6: false
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - rule-set:geosite-private
-    - "+.lan"
-    - "+.local"
-    - "+.localhost"
-    - "+.msftconnecttest.com"
-    - "+.msftncsi.com"
-    - "stun.*.*"
-    - "stun.*.*.*"
-    - "time.windows.com"
-    - "time.nist.gov"
-    - "time.apple.com"
-    - "time1.apple.com"
-    - "time2.apple.com"
-    - "time3.apple.com"
-    - "time4.apple.com"
-    - "time5.apple.com"
-    - "time6.apple.com"
-    - "time7.apple.com"
-    - "time.google.com"
-    - "time1.google.com"
-    - "time2.google.com"
-    - "time3.google.com"
-    - "time4.google.com"
-    - "pool.ntp.org"
-    - "ntp.ubuntu.com"
-    - "+.xboxlive.com"
-    - "*.*.stun.playstation.net"
-    - "xbox.*.*.microsoft.com"
-    - "speedtest.cros.wr.pvp.net"
-  default-nameserver:
-    # DNS для резолва самих DNS-серверов.
-    - https://77.88.8.8/dns-query
-    - https://8.8.8.8/dns-query
-    - https://1.1.1.1/dns-query
-  proxy-server-nameserver:
-    # DNS для доменов самих прокси-нод Remnawave.
-    - https://8.8.8.8/dns-query#🌍 World / EU
-    - https://1.1.1.1/dns-query#🌍 World / EU
-    - https://77.88.8.8/dns-query#🇷🇺 RU Sites
-  direct-nameserver:
-    - system
-    - https://77.88.8.8/dns-query
-    - https://8.8.8.8/dns-query
-  nameserver:
-    # Default DNS идет через быстрый EU контур, потому что default routing тоже EU.
-    - https://8.8.8.8/dns-query#🌍 World / EU
-    - https://1.1.1.1/dns-query#🌍 World / EU
-    - https://94.140.14.14/dns-query#🌍 World / EU
-  nameserver-policy:
-    "rule-set:geosite-private":
-      - system
-    # DNS-level adblock: домены рекламы/tor получают NXDOMAIN.
-    # Если у редкого приложения ломается аналитика/логин — можно удалить этот policy-блок, rules ниже всё равно REJECT-ят рекламу.
-    "rule-set:oisd_big,ads-all,win-spy,tor-inline":
-      - rcode://name_error
-    # Rule-set файлы и GitHub всегда через EU, иначе в РФ часто ловятся проблемы с доступом.
-    "raw.githubusercontent.com,objects.githubusercontent.com,github.com,githubusercontent.com,cdn.jsdelivr.net":
-      - https://8.8.8.8/dns-query#🌍 World / EU
-      - https://1.1.1.1/dns-query#🌍 World / EU
-    # Российские сервисы резолвим через RU-контур.
-    "rule-set:ru-services-inline,geosite-ru":
-      - https://77.88.8.8/dns-query#🇷🇺 RU Sites
-      - https://8.8.8.8/dns-query#🇷🇺 RU Sites
-    # Заблокированное из РФ и глобальные сервисы резолвим через EU.
-    "rule-set:ru-eu-exceptions,manual-eu-inline,ru-inside,ru-bundle,refilter_domains,youtube,discord_domains,telegram-domains,additional-telegram-domains,whatsapp,ai,google-deepmind,github,speedtest-net":
-      - https://8.8.8.8/dns-query#🌍 World / EU
-      - https://1.1.1.1/dns-query#🌍 World / EU
-
-proxies:
-  # DNS-OUT используется правилом DST-PORT,53,DNS-OUT.
-  - name: DNS-OUT
-    type: dns
-
-proxy-groups:
-  - name: 🌍 World / EU
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      # DE — основной маршрут по умолчанию; NL — резерв/ручной выбор.
-      - 🇩🇪 DE Auto
-      - ⚡ EU Auto
-      - 🇳🇱 NL Auto
-      - DIRECT
-
-  - name: 🇷🇺 RU Sites
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Russia.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      - ⚡ RU Auto
-      - 🇷🇺 Moscow Auto
-      - 🇷🇺 SPB Auto
-      - 🌍 World / EU
-      - DIRECT
-
-  - name: 📺 YouTube
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      - 🌍 World / EU
-      - 🇩🇪 DE Auto
-      - 🇳🇱 NL Auto
-      - 🇷🇺 RU Sites
-
-  - name: 💬 Discord
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Discord.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      - 🌍 World / EU
-      - 🇩🇪 DE Auto
-      - 🇳🇱 NL Auto
-      - DIRECT
-
-  - name: ➤ Telegram
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      - 🌍 World / EU
-      - 🇷🇺 RU Sites
-      - DIRECT
-
-  - name: 💬 Messengers
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Message.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      - 🌍 World / EU
-      - 🇷🇺 RU Sites
-      - DIRECT
-
-  - name: 🤖 AI
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/AI.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      - 🌍 World / EU
-      - 🇩🇪 DE Auto
-      - 🇳🇱 NL Auto
-
-  - name: 👨‍💻 Dev Services
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/GitHub.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      - 🌍 World / EU
-      - 🇩🇪 DE Auto
-      - 🇳🇱 NL Auto
-      - DIRECT
-
-  - name: 🎮 Games
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      - DIRECT
-      - 🌍 World / EU
-      - 🇷🇺 RU Sites
-
-  - name: 🧲 Torrents
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Download.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      # По умолчанию запрещено на клиенте; серверно дублируется Remnawave Torrent Blocker.
-      - REJECT
-
-  - name: 🧪 Speedtest
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Speedtest.png
-    type: select
-    remnawave:
-      include-proxies: false
-    proxies:
-      - 🌍 World / EU
-      - 🇷🇺 RU Sites
-      - DIRECT
-
-  - name: ⚡ EU Auto
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png
-    type: url-test
-    remnawave:
-      include-proxies: false
-    include-all: true
-    filter: '(?i)(🇩🇪|🇳🇱|\bDE\b|\bNL\b|Germany|Deutschland|Германия|Frankfurt|FRA|Berlin|Берлин|Netherlands|Nederland|Нидерланд|Amsterdam|AMS)'
-    exclude-filter: '(?i)(🇷🇺|\bRU\b|Russia|Россия|Москва|Moscow|Санкт|Петербург|Питер|SPB|DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
-    url: https://www.gstatic.com/generate_204
-    expected-status: 204
-    interval: 300
-    tolerance: 80
-    lazy: true
-    hidden: true
-
-  - name: 🇳🇱 NL Auto
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Netherlands.png
-    type: url-test
-    remnawave:
-      include-proxies: false
-    include-all: true
-    filter: '(?i)(🇳🇱|\bNL\b|Netherlands|Nederland|Нидерланд|Amsterdam|AMS)'
-    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
-    url: https://www.gstatic.com/generate_204
-    expected-status: 204
-    interval: 300
-    tolerance: 80
-    lazy: true
-    hidden: true
-
-  - name: 🇩🇪 DE Auto
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Germany.png
-    type: url-test
-    remnawave:
-      include-proxies: false
-    include-all: true
-    filter: '(?i)(🇩🇪|\bDE\b|Germany|Deutschland|Германия|Frankfurt|FRA|Berlin|Берлин)'
-    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
-    url: https://www.gstatic.com/generate_204
-    expected-status: 204
-    interval: 300
-    tolerance: 80
-    lazy: true
-    hidden: true
-
-  - name: ⚡ RU Auto
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Auto.png
-    type: url-test
-    remnawave:
-      include-proxies: false
-    include-all: true
-    filter: '(?i)(🇷🇺|\bRU\b|Russia|Россия|Москва|Moscow|MSK|MOW|Санкт|Петербург|Питер|SPB|LED|Saint.?Petersburg|St.?Petersburg)'
-    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
-    # Проверяем доступность RU-ноды. Для строгих клиентов можно заменить на https://www.gstatic.com/generate_204.
-    url: https://ya.ru
-    interval: 300
-    tolerance: 120
-    lazy: true
-    hidden: true
-
-  - name: 🇷🇺 Moscow Auto
-    type: url-test
-    remnawave:
-      include-proxies: false
-    include-all: true
-    filter: '(?i)(Москва|Moscow|MSK|MOW)'
-    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
-    url: https://ya.ru
-    interval: 300
-    tolerance: 120
-    lazy: true
-    hidden: true
-
-  - name: 🇷🇺 SPB Auto
-    type: url-test
-    remnawave:
-      include-proxies: false
-    include-all: true
-    filter: '(?i)(Санкт|Петербург|Питер|Saint.?Petersburg|St.?Petersburg|SPB|LED)'
-    exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
-    url: https://ya.ru
-    interval: 300
-    tolerance: 120
-    lazy: true
-    hidden: true
-
-
-  - name: ♻️ DIRECT
-    type: select
-    remnawave:
-      include-proxies: false
-    hidden: true
-    proxies:
-      - DIRECT
-
-  - name: ⛔ BLOCK
-    type: select
-    remnawave:
-      include-proxies: false
-    hidden: true
-    proxies:
-      - REJECT
-      - REJECT-DROP
-
-  - name: PROXY
-    type: select
-    remnawave:
-      include-proxies: false
-    hidden: true
-    proxies:
-      - 🌍 World / EU
-
-rule-providers:
-  geosite-private:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs
-    path: ./rule-sets/geosite-private.mrs
-
-  private-ips:
-    type: inline
-    behavior: classical
-    payload:
-      # Не включаем 198.18.0.0/15, потому что это fake-ip диапазон Mihomo.
-      - IP-CIDR,0.0.0.0/8
-      - IP-CIDR,10.0.0.0/8
-      - IP-CIDR,100.64.0.0/10
-      - IP-CIDR,127.0.0.0/8
-      - IP-CIDR,169.254.0.0/16
-      - IP-CIDR,172.16.0.0/12
-      - IP-CIDR,192.0.0.0/24
-      - IP-CIDR,192.0.2.0/24
-      - IP-CIDR,192.88.99.0/24
-      - IP-CIDR,192.168.0.0/16
-      - IP-CIDR,198.51.100.0/24
-      - IP-CIDR,203.0.113.0/24
-      - IP-CIDR,224.0.0.0/3
-      - IP-CIDR,::/127
-      - IP-CIDR,fc00::/7
-      - IP-CIDR,fe80::/10
-      - IP-CIDR,ff00::/8
-
-  tor-inline:
-    type: inline
-    behavior: classical
-    payload:
-      - DOMAIN-SUFFIX,onion
-      - DOMAIN-SUFFIX,torproject.org
-      - DOMAIN-SUFFIX,torproject.net
-      - DOMAIN-KEYWORD,torproject
-      - DOMAIN-KEYWORD,tor2web
-
-  quic:
-    type: inline
-    behavior: classical
-    payload:
-      # Блокируем QUIC/HTTP3 и DoQ, чтобы браузеры уходили в TCP/TLS и корректнее работали через Reality/TLS.
-      - AND,((NETWORK,udp),(DST-PORT,443))
-      - AND,((NETWORK,udp),(DST-PORT,853))
-
-  oisd_big:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/oisd/big.mrs
-    path: ./rule-sets/oisd_big.mrs
-
-  ads-all:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ads-all.mrs
-    path: ./rule-sets/ads-all.mrs
-
-  win-spy:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite/release/mihomo/win-spy.mrs
-    path: ./rule-sets/win-spy.mrs
-
-  twitch-ads:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite/release/mihomo/twitch-ads.mrs
-    path: ./rule-sets/twitch-ads.mrs
-
-  youtube:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs
-    path: ./rule-sets/youtube.mrs
-
-  discord_domains:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/discord.mrs
-    path: ./rule-sets/discord_domains.mrs
-
-  discord_voiceips:
-    type: http
-    behavior: ipcidr
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/discord-voice-ip-list.mrs
-    path: ./rule-sets/discord_voiceips.mrs
-
-  cloudflare-ips:
-    type: http
-    behavior: ipcidr
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cloudflare.mrs
-    path: ./rule-sets/cloudflare-ips.mrs
-
-  telegram-domains:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs
-    path: ./rule-sets/telegram-domains.mrs
-
-  telegram-ips:
-    type: http
-    behavior: ipcidr
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs
-    path: ./rule-sets/telegram-ips.mrs
-
-  additional-telegram-domains:
-    type: http
-    behavior: classical
-    format: yaml
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/main/domains/additional-telegram-domains.yaml
-    path: ./rule-sets/additional-telegram-domains.yaml
-
-  additional-telegram-ips:
-    type: http
-    behavior: classical
-    format: yaml
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/main/domains/additional-telegram-ips.yaml
-    path: ./rule-sets/additional-telegram-ips.yaml
-
-  whatsapp:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/whatsapp.mrs
-    path: ./rule-sets/whatsapp.mrs
-
-  meta-ips:
-    type: http
-    behavior: ipcidr
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/facebook.mrs
-    path: ./rule-sets/meta-ips.mrs
-
-  ai:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.mrs
-    path: ./rule-sets/ai.mrs
-
-  google-deepmind:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-deepmind.mrs
-    path: ./rule-sets/google-deepmind.mrs
-
-  github:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite/release/mihomo/github.mrs
-    path: ./rule-sets/github.mrs
-
-  speedtest-net:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/speedtest.mrs
-    path: ./rule-sets/speedtest-net.mrs
-
-  remote-control:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-remote-control.mrs
-    path: ./rule-sets/remote-control.mrs
-
-  torrent-trackers:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/torrent-trackers.mrs
-    path: ./rule-sets/torrent-trackers.mrs
-
-  torrent-websites:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/torrent-websites.mrs
-    path: ./rule-sets/torrent-websites.mrs
-
-  torrent-clients:
-    type: http
-    behavior: classical
-    format: yaml
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/torrent-clients.yaml
-    path: ./rule-sets/torrent-clients.yaml
-
-  games-direct:
-    type: http
-    behavior: classical
-    format: yaml
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/games-direct.yaml
-    path: ./rule-sets/games-direct.yaml
-
-  ru-apps:
-    type: http
-    behavior: classical
-    format: yaml
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/ru-app-list.yaml
-    path: ./rule-sets/ru-apps.yaml
-
-  geosite-ru:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/main/rules/category-ru.mrs
-    path: ./rule-sets/geosite-ru.mrs
-
-  geoip-for-ru:
-    type: http
-    behavior: ipcidr
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/main/ip-for-ru/lists/ips-for-ru.mrs
-    path: ./rule-sets/geoip-for-ru.mrs
-
-  ru-bundle:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@main/ru-bundle/rule.mrs
-    path: ./rule-sets/ru-bundle.mrs
-
-  rknasnblock:
-    type: http
-    behavior: ipcidr
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@main/ru-bundle/rknasnblock.mrs
-    path: ./rule-sets/rknasnblock.mrs
-
-  ru-inside:
-    type: http
-    behavior: classical
-    format: text
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-clashx.lst
-    path: ./rule-sets/ru-inside.lst
-
-  refilter_domains:
-    type: http
-    behavior: domain
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/re-filter/domain-rule.mrs
-    path: ./rule-sets/refilter_domains.mrs
-
-  refilter_ipsum:
-    type: http
-    behavior: ipcidr
-    format: mrs
-    proxy: "🌍 World / EU"
-    interval: 86400
-    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/re-filter/ip-rule.mrs
-    path: ./rule-sets/refilter_ipsum.mrs
-
-  apps_ipcheck:
-    type: inline
-    behavior: classical
-    payload:
-      - DOMAIN,ipwho.is
-      - DOMAIN,api.ip.sb
-      - DOMAIN,ipapi.co
-      - DOMAIN,ipinfo.io
-      - DOMAIN,ip-api.com
-      - DOMAIN,ident.me
-      - DOMAIN,api.myip.com
-      - DOMAIN,2ip.io
-      - DOMAIN,2ipcore.com
-      - DOMAIN,flclashx.app
-
-  ru-eu-exceptions:
-    type: inline
-    behavior: classical
-    payload:
-      # .ru/.com ресурсы, которые часто должны идти НЕ через РФ, а через EU.
-      # Список можно расширять по обращениям пользователей.
-      - DOMAIN-SUFFIX,habr.com
-      - DOMAIN-SUFFIX,meduza.io
-      - DOMAIN-SUFFIX,theins.ru
-      - DOMAIN-SUFFIX,tvrain.ru
-      - DOMAIN-SUFFIX,dozhd.tv
-      - DOMAIN-SUFFIX,novayagazeta.ru
-      - DOMAIN-SUFFIX,moscowtimes.ru
-      - DOMAIN-SUFFIX,echo.msk.ru
-      - DOMAIN-SUFFIX,svoboda.org
-      - DOMAIN-SUFFIX,currenttime.tv
-      - DOMAIN-SUFFIX,holod.media
-      - DOMAIN-SUFFIX,zona.media
-      - DOMAIN-SUFFIX,ovd.info
-      - DOMAIN-SUFFIX,navalny.com
-      - DOMAIN-SUFFIX,bellingcat.com
-      - DOMAIN-SUFFIX,proekt.media
-      - DOMAIN-SUFFIX,istories.media
-      - DOMAIN-SUFFIX,agents.media
-      - DOMAIN-SUFFIX,verstka.media
-      - DOMAIN-SUFFIX,mediazona.ca
-      - DOMAIN-SUFFIX,change.org
-      - DOMAIN-SUFFIX,archive.org
-      - DOMAIN-SUFFIX,archive.ph
-      - DOMAIN-SUFFIX,archive.is
-      - DOMAIN-SUFFIX,4pda.to
-      - DOMAIN-SUFFIX,4pda.ws
-      - DOMAIN-SUFFIX,nnmclub.to
-      - DOMAIN-SUFFIX,rutracker.org
-      - DOMAIN-SUFFIX,rutor.info
-      - DOMAIN-SUFFIX,kinozal.tv
-      - DOMAIN-SUFFIX,libgen.is
-      - DOMAIN-SUFFIX,annas-archive.org
-      - DOMAIN-KEYWORD,anilibria
-      - DOMAIN-KEYWORD,anidub
-      - DOMAIN-KEYWORD,animego
-      - DOMAIN-KEYWORD,yummyanime
-
-  manual-eu-inline:
-    type: inline
-    behavior: classical
-    payload:
-      # Ручные global/EU исключения поверх внешних списков.
-      - DOMAIN-SUFFIX,openai.com
-      - DOMAIN-SUFFIX,chatgpt.com
-      - DOMAIN-SUFFIX,oaistatic.com
-      - DOMAIN-SUFFIX,oaiusercontent.com
-      - DOMAIN-SUFFIX,anthropic.com
-      - DOMAIN-SUFFIX,claude.ai
-      - DOMAIN-SUFFIX,perplexity.ai
-      - DOMAIN-SUFFIX,poe.com
-      - DOMAIN-SUFFIX,notion.so
-      - DOMAIN-SUFFIX,figma.com
-      - DOMAIN-SUFFIX,canva.com
-      - DOMAIN-SUFFIX,spotify.com
-      - DOMAIN-SUFFIX,netflix.com
-      - DOMAIN-SUFFIX,discord.com
-      - DOMAIN-SUFFIX,discordapp.com
-      - DOMAIN-SUFFIX,discord.gg
-      - DOMAIN-SUFFIX,github.com
-      - DOMAIN-SUFFIX,githubusercontent.com
-      - DOMAIN-SUFFIX,githubassets.com
-
-  ru-services-inline:
-    type: inline
-    behavior: classical
-    payload:
-      # Общие российские зоны и сервисы.
-      # Исключения, которые должны идти через EU, стоят выше в rules: ru-eu-exceptions / ru-bundle / refilter.
-      - DOMAIN-SUFFIX,ru
-      - DOMAIN-SUFFIX,рф
-      - DOMAIN-SUFFIX,xn--p1ai
-      - DOMAIN-SUFFIX,su
-      - DOMAIN-SUFFIX,ru.com
-      - DOMAIN-SUFFIX,ru.net
-      - DOMAIN-SUFFIX,mos.ru
-      - DOMAIN-SUFFIX,mosreg.ru
-      - DOMAIN-SUFFIX,gosuslugi.ru
-      - DOMAIN-SUFFIX,gosekspertiza.ru
-      - DOMAIN-SUFFIX,nalog.gov.ru
-      - DOMAIN-SUFFIX,fns.ru
-      - DOMAIN-SUFFIX,pfr.gov.ru
-      - DOMAIN-SUFFIX,sfr.gov.ru
-      - DOMAIN-SUFFIX,gibdd.ru
-      - DOMAIN-SUFFIX,zakupki.gov.ru
-      - DOMAIN-SUFFIX,dom.gosuslugi.ru
-      - DOMAIN-SUFFIX,esia.gosuslugi.ru
-      - DOMAIN-SUFFIX,yandex.ru
-      - DOMAIN-SUFFIX,yandex.net
-      - DOMAIN-SUFFIX,yandex.com
-      - DOMAIN-SUFFIX,yastatic.net
-      - DOMAIN-SUFFIX,yadi.sk
-      - DOMAIN-SUFFIX,ya.ru
-      - DOMAIN-SUFFIX,kinopoisk.ru
-      - DOMAIN-SUFFIX,kinopoiskhd.ru
-      - DOMAIN-SUFFIX,plus.yandex.ru
-      - DOMAIN-SUFFIX,avito.ru
-      - DOMAIN-SUFFIX,avito.st
-      - DOMAIN-SUFFIX,ozon.ru
-      - DOMAIN-SUFFIX,ozonusercontent.com
-      - DOMAIN-SUFFIX,wildberries.ru
-      - DOMAIN-SUFFIX,wb.ru
-      - DOMAIN-SUFFIX,wbbasket.ru
-      - DOMAIN-SUFFIX,wbstatic.net
-      - DOMAIN-SUFFIX,market.yandex.ru
-      - DOMAIN-SUFFIX,sbermarket.ru
-      - DOMAIN-SUFFIX,megamarket.ru
-      - DOMAIN-SUFFIX,lamoda.ru
-      - DOMAIN-SUFFIX,detmir.ru
-      - DOMAIN-SUFFIX,citilink.ru
-      - DOMAIN-SUFFIX,dns-shop.ru
-      - DOMAIN-SUFFIX,mvideo.ru
-      - DOMAIN-SUFFIX,eldorado.ru
-      - DOMAIN-SUFFIX,sberbank.ru
-      - DOMAIN-SUFFIX,sber.ru
-      - DOMAIN-SUFFIX,online.sberbank.ru
-      - DOMAIN-SUFFIX,tinkoff.ru
-      - DOMAIN-SUFFIX,tbank.ru
-      - DOMAIN-SUFFIX,vtb.ru
-      - DOMAIN-SUFFIX,alfabank.ru
-      - DOMAIN-SUFFIX,gazprombank.ru
-      - DOMAIN-SUFFIX,raiffeisen.ru
-      - DOMAIN-SUFFIX,open.ru
-      - DOMAIN-SUFFIX,pochtabank.ru
-      - DOMAIN-SUFFIX,psbank.ru
-      - DOMAIN-SUFFIX,rshb.ru
-      - DOMAIN-SUFFIX,akbars.ru
-      - DOMAIN-SUFFIX,moex.com
-      - DOMAIN-SUFFIX,moex.ru
-      - DOMAIN-SUFFIX,vk.com
-      - DOMAIN-SUFFIX,vk.ru
-      - DOMAIN-SUFFIX,vkvideo.ru
-      - DOMAIN-SUFFIX,userapi.com
-      - DOMAIN-SUFFIX,mycdn.me
-      - DOMAIN-SUFFIX,ok.ru
-      - DOMAIN-SUFFIX,mail.ru
-      - DOMAIN-SUFFIX,imgsmail.ru
-      - DOMAIN-SUFFIX,dzen.ru
-      - DOMAIN-SUFFIX,zen.yandex.ru
-      - DOMAIN-SUFFIX,rutube.ru
-      - DOMAIN-SUFFIX,premier.one
-      - DOMAIN-SUFFIX,start.ru
-      - DOMAIN-SUFFIX,more.tv
-      - DOMAIN-SUFFIX,ivi.ru
-      - DOMAIN-SUFFIX,okko.tv
-      - DOMAIN-SUFFIX,wink.ru
-      - DOMAIN-SUFFIX,kion.ru
-      - DOMAIN-SUFFIX,2gis.ru
-      - DOMAIN-SUFFIX,2gis.com
-      - DOMAIN-SUFFIX,dublgis.ru
-      - DOMAIN-SUFFIX,rzd.ru
-      - DOMAIN-SUFFIX,tutu.ru
-      - DOMAIN-SUFFIX,aviasales.ru
-      - DOMAIN-SUFFIX,cdek.ru
-      - DOMAIN-SUFFIX,pochta.ru
-      - DOMAIN-SUFFIX,russianpost.ru
-      - DOMAIN-SUFFIX,lenta.com
-      - DOMAIN-SUFFIX,lenta.ru
-      - DOMAIN-SUFFIX,magnit.ru
-      - DOMAIN-SUFFIX,pyaterochka.ru
-      - DOMAIN-SUFFIX,perekrestok.ru
-      - DOMAIN-SUFFIX,vkusvill.ru
-      - DOMAIN-SUFFIX,samokat.ru
-      - DOMAIN-SUFFIX,eda.yandex.ru
-      - DOMAIN-SUFFIX,lavka.yandex.ru
-      - DOMAIN-SUFFIX,delivery-club.ru
-      - DOMAIN-SUFFIX,hh.ru
-      - DOMAIN-SUFFIX,superjob.ru
-      - DOMAIN-SUFFIX,banki.ru
-      - DOMAIN-SUFFIX,sravni.ru
-      - DOMAIN-SUFFIX,championat.com
-      - DOMAIN-SUFFIX,sportbox.ru
-      - DOMAIN-SUFFIX,pikabu.ru
-      - DOMAIN-SUFFIX,vc.ru
-      - DOMAIN-SUFFIX,dtf.ru
-      - DOMAIN-SUFFIX,tjournal.ru
-      - DOMAIN-SUFFIX,kaspersky.ru
-      - DOMAIN-SUFFIX,kaspersky.com
-      - DOMAIN-KEYWORD,yandex
-      - DOMAIN-KEYWORD,avito
-      - DOMAIN-KEYWORD,ozon
-      - DOMAIN-KEYWORD,wildberries
-      - DOMAIN-KEYWORD,gazprom
-      - DOMAIN-KEYWORD,sber
-      - DOMAIN-KEYWORD,tinkoff
-      - DOMAIN-KEYWORD,gosslugi
-      - DOMAIN-KEYWORD,gosuslugi
-
-rules:
-  # DNS hijack
-  - DST-PORT,53,DNS-OUT
-
-  # Локальные и служебные сети — всегда напрямую.
-  - RULE-SET,private-ips,DIRECT,no-resolve
-  - RULE-SET,geosite-private,DIRECT
-
-  # IPv6 выключен, чтобы не было обхода/утечек мимо IPv4 routing.
-  - IP-CIDR6,::/0,REJECT,no-resolve
-
-  # VPN/mesh/remote-control приложения не должны зацикливаться через TUN.
-  - PROCESS-NAME-REGEX,(?i).*tailscale.*,DIRECT
-  - PROCESS-NAME-REGEX,(?i).*wireguard.*,DIRECT
-  - PROCESS-NAME-REGEX,(?i).*netbird.*,DIRECT
-  - PROCESS-NAME-REGEX,(?i).*zerotier.*,DIRECT
-  - PROCESS-NAME-REGEX,(?i).*anydesk.*,DIRECT
-  - PROCESS-NAME-REGEX,(?i).*rustdesk.*,DIRECT
-  - PROCESS-NAME-REGEX,(?i).*teamviewer.*,DIRECT
-  - RULE-SET,remote-control,DIRECT
-
-  # Блокировки: реклама, трекеры, Windows telemetry.
-  # Если у пользователя ломается редкий сайт/приложение — первым делом временно отключить ads-all.
-  - RULE-SET,oisd_big,REJECT
-  - RULE-SET,ads-all,REJECT
-  - RULE-SET,win-spy,REJECT
-
-  # QUIC / HTTP3 / DoQ block. Часто улучшает стабильность и заставляет браузеры уйти в TCP/TLS.
-  - RULE-SET,quic,REJECT
-
-  # IP-check сайты всегда через EU, чтобы пользователь видел основной VPN IP.
-  - RULE-SET,apps_ipcheck,🌍 World / EU
-
-  # Торренты: по умолчанию REJECT через селектор 🧲 Torrents, чтобы не создавать abuse-нагрузку.
-  - RULE-SET,torrent-clients,🧲 Torrents
-  - RULE-SET,torrent-trackers,🧲 Torrents
-  - PROCESS-NAME-REGEX,(?i).*torrent.*,🧲 Torrents
-  - RULE-SET,torrent-websites,🧲 Torrents
-
-  # TOR: клиентский best-effort блок. Серверный запрет должен дублироваться Node Plugins / egress policy.
-  - RULE-SET,tor-inline,⛔ BLOCK
-  - PROCESS-NAME-REGEX,(?i).*(tor|torbrowser|obfs4proxy|snowflake-client).*,⛔ BLOCK
-
-  # Игры обычно лучше напрямую, но пользователь может переключить 🎮 Games на EU/RU.
-  - RULE-SET,games-direct,🎮 Games
-
-  # Основные global-сервисы.
-  - RULE-SET,youtube,📺 YouTube
-  - PROCESS-NAME-REGEX,(?i).*youtube.*,📺 YouTube
-
-  # Discord: домены + voice UDP ranges.
-  - AND,((RULE-SET,cloudflare-ips),(NETWORK,udp),(DST-PORT,19200-19500)),💬 Discord
-  - AND,((RULE-SET,cloudflare-ips),(NETWORK,udp),(DST-PORT,50000-50100)),💬 Discord
-  - AND,((RULE-SET,discord_voiceips),(NETWORK,udp),(DST-PORT,50000-50100)),💬 Discord
-  - RULE-SET,discord_domains,💬 Discord
-  - PROCESS-NAME-REGEX,(?i).*discord.*,💬 Discord
-  - PROCESS-NAME-REGEX,(?i).*vesktop.*,💬 Discord
-
-  # Telegram / WhatsApp / Meta.
-  - RULE-SET,telegram-domains,➤ Telegram
-  - RULE-SET,telegram-ips,➤ Telegram
-  - RULE-SET,additional-telegram-domains,➤ Telegram
-  - RULE-SET,additional-telegram-ips,➤ Telegram
-  - PROCESS-NAME-REGEX,(?i).*telegram.*,➤ Telegram
-  - PROCESS-NAME-REGEX,(?i).*ayugram.*,➤ Telegram
-  - PROCESS-NAME-REGEX,(?i).*nekogram.*,➤ Telegram
-  - RULE-SET,whatsapp,💬 Messengers
-  - RULE-SET,meta-ips,💬 Messengers
-  - PROCESS-NAME-REGEX,(?i).*whatsapp.*,💬 Messengers
-
-  # AI / Dev.
-  - RULE-SET,manual-eu-inline,🌍 World / EU
-  - RULE-SET,ai,🤖 AI
-  - RULE-SET,google-deepmind,🤖 AI
-  - RULE-SET,github,👨‍💻 Dev Services
-
-  # Twitch ads лучше не резать жестко: иногда ломает проигрывание. По умолчанию через EU.
-  - RULE-SET,twitch-ads,🌍 World / EU
-
-  # Speedtest — отдельный selector, удобно диагностировать EU/RU контуры.
-  - RULE-SET,speedtest-net,🧪 Speedtest
-
-  # Ресурсы, которые НЕ должны идти через РФ, даже если домен выглядит российским.
-  - RULE-SET,ru-eu-exceptions,🌍 World / EU
-  - RULE-SET,ru-inside,🌍 World / EU
-  - RULE-SET,refilter_domains,🌍 World / EU
-  - RULE-SET,refilter_ipsum,🌍 World / EU,no-resolve
-  - RULE-SET,ru-bundle,🌍 World / EU
-  - RULE-SET,rknasnblock,🌍 World / EU,no-resolve
-
-  # Российские приложения/сайты/IP — через РФ-ноды.
-  - RULE-SET,ru-services-inline,🇷🇺 RU Sites
-  - RULE-SET,ru-apps,🇷🇺 RU Sites
-  - RULE-SET,geosite-ru,🇷🇺 RU Sites
-  - RULE-SET,geoip-for-ru,🇷🇺 RU Sites,no-resolve
-
-  # Финальный default: быстрый EU-контур NL/DE.
-  - MATCH,🌍 World / EU
-$cybervpn_premium_smart_ru_yaml$,
+        (select mihomo_template from cybervpn_premium_smart_ru_artifact_contract),
         null,
         202
     )
@@ -1264,11 +338,15 @@ external_squad_upsert as (
           "happAnnounce": "CyberVPN Premium Smart RU: DE 25G + RU 25G smart routing. RU-сервисы работают без отключения VPN. Torrent запрещён."
         }'::jsonb,
         '{}'::jsonb,
-        '{
-          "x-cybervpn-plan": "premium_smart_ru",
-          "x-cybervpn-routing": "de-primary-ru-smart",
-          "x-cybervpn-unlimited": "true"
-        }'::jsonb,
+        jsonb_build_object(
+            'routing', (
+                select legacy_header->>'value'
+                from cybervpn_premium_smart_ru_artifact_contract
+            ),
+            'x-cybervpn-plan', 'premium_smart_ru',
+            'x-cybervpn-routing', 'de-primary-ru-smart',
+            'x-cybervpn-unlimited', 'true'
+        ),
         '{}'::jsonb,
         '{"purpose":"Premium Smart RU MIHOMO template override for DE/NL/RU smart-routing users"}'::jsonb,
         202
@@ -1319,10 +397,29 @@ internal_squad_row as (
     select uuid from internal_squads where name = 'CYBERVPN_PREMIUM_SMART_RU_NODES'
     limit 1
 ),
+customer_squad_bridge_cleanup as (
+    delete from internal_squad_inbounds
+    using internal_squad_row, config_profile_inbounds
+    where internal_squad_inbounds.internal_squad_uuid = internal_squad_row.uuid
+      and internal_squad_inbounds.inbound_uuid = config_profile_inbounds.uuid
+      and config_profile_inbounds.tag in (
+          'MSK_SMART_RU_BRIDGE_9443',
+          'MSK_SMART_RU_BRIDGE_V2_9443',
+          'DE_SMART_GLOBAL_BRIDGE_9443'
+      )
+    returning internal_squad_inbounds.inbound_uuid
+),
 smart_inbound_rows as (
     select uuid, tag, profile_uuid as config_profile_uuid
     from config_profile_inbounds
-    where tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+    where tag in (
+        'VLESS_REALITY_443',
+        'VLESS_XHTTP_REALITY_8443',
+        'DE_SMART_REALITY_443',
+        'DE_SMART_XHTTP_REALITY_8443',
+        'MSK_SMART_REALITY_443',
+        'MSK_SMART_XHTTP_REALITY_8443'
+    )
 ),
 internal_squad_inbound_links as (
     insert into internal_squad_inbounds (
@@ -1346,17 +443,102 @@ smart_node_rows as (
     from nodes
     join smart_node_names on smart_node_names.name = nodes.name
 ),
+stale_frankfurt_base_node_inbound_links as (
+    delete from config_profile_inbounds_to_nodes
+    using config_profile_inbounds, nodes
+    where config_profile_inbounds_to_nodes.config_profile_inbound_uuid = config_profile_inbounds.uuid
+      and config_profile_inbounds_to_nodes.node_uuid = nodes.uuid
+      and nodes.name = '🇩🇪 DE Frankfurt 01 25G'
+      and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+      and exists (
+          select 1
+          from smart_inbound_rows de_smart_inbound
+          where de_smart_inbound.tag = 'DE_SMART_REALITY_443'
+      )
+    returning config_profile_inbounds_to_nodes.node_uuid
+),
+stale_frankfurt_base_node_inbound_cleanup as (
+    select count(*) as removed_count
+    from stale_frankfurt_base_node_inbound_links
+),
+stale_moscow_base_node_inbound_links as (
+    delete from config_profile_inbounds_to_nodes
+    using config_profile_inbounds, nodes
+    where config_profile_inbounds_to_nodes.config_profile_inbound_uuid = config_profile_inbounds.uuid
+      and config_profile_inbounds_to_nodes.node_uuid = nodes.uuid
+      and nodes.name = '🇷🇺 RU Moscow 01 25G'
+      and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+      and exists (
+          select 1
+          from smart_inbound_rows moscow_smart_inbound
+          where moscow_smart_inbound.tag = 'MSK_SMART_REALITY_443'
+      )
+    returning config_profile_inbounds_to_nodes.node_uuid
+),
+stale_moscow_base_node_inbound_cleanup as (
+    select count(*) as removed_count
+    from stale_moscow_base_node_inbound_links
+),
 smart_node_inbound_links as (
     insert into config_profile_inbounds_to_nodes (
         config_profile_inbound_uuid,
         node_uuid
     )
     select smart_inbound_rows.uuid, smart_node_rows.uuid
-    from smart_inbound_rows, smart_node_rows
+    from smart_inbound_rows,
+         smart_node_rows,
+         stale_frankfurt_base_node_inbound_cleanup,
+         stale_moscow_base_node_inbound_cleanup
+    where (
+            smart_node_rows.name = '🇩🇪 DE Frankfurt 01 25G'
+        and (
+                (
+                    exists (
+                        select 1
+                        from smart_inbound_rows de_smart_inbound
+                        where de_smart_inbound.tag = 'DE_SMART_REALITY_443'
+                    )
+                and smart_inbound_rows.tag in ('DE_SMART_REALITY_443', 'DE_SMART_XHTTP_REALITY_8443')
+                )
+             or (
+                    not exists (
+                        select 1
+                        from smart_inbound_rows de_smart_inbound
+                        where de_smart_inbound.tag = 'DE_SMART_REALITY_443'
+                    )
+                and smart_inbound_rows.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+                )
+        )
+    )
+       or (
+            smart_node_rows.name = '🇷🇺 RU Moscow 01 25G'
+        and (
+                (
+                    exists (
+                        select 1
+                        from smart_inbound_rows moscow_smart_inbound
+                        where moscow_smart_inbound.tag = 'MSK_SMART_REALITY_443'
+                    )
+                and smart_inbound_rows.tag in ('MSK_SMART_REALITY_443', 'MSK_SMART_XHTTP_REALITY_8443')
+                )
+             or (
+                    not exists (
+                        select 1
+                        from smart_inbound_rows moscow_smart_inbound
+                        where moscow_smart_inbound.tag = 'MSK_SMART_REALITY_443'
+                    )
+                and smart_inbound_rows.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+                )
+        )
+    )
+       or (
+            smart_node_rows.name not in ('🇩🇪 DE Frankfurt 01 25G', '🇷🇺 RU Moscow 01 25G')
+        and smart_inbound_rows.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+    )
     on conflict do nothing
     returning node_uuid, config_profile_inbound_uuid
 ),
-smart_host_specs(node_name, remark, address, port, path, inbound_tag, server_description, host_tag, view_position) as (
+raw_smart_host_specs(node_name, remark, address, port, path, inbound_tag, server_description, host_tag, view_position) as (
     values
         (
             '🇩🇪 DE Frankfurt 01 25G',
@@ -1405,8 +587,8 @@ smart_host_specs(node_name, remark, address, port, path, inbound_tag, server_des
         (
             '🇷🇺 RU Moscow 01 25G',
             '🇷🇺 RU Moscow 01 25G Reality 443',
-            'ru-msk-3.cyber-vpn.org',
-            443,
+            'msk-relay.cyber-vpn.org',
+            2053,
             null::text,
             'VLESS_REALITY_443',
             'Premium Smart RU Moscow',
@@ -1416,8 +598,8 @@ smart_host_specs(node_name, remark, address, port, path, inbound_tag, server_des
         (
             '🇷🇺 RU Moscow 01 25G',
             '🇷🇺 RU Moscow 01 25G XHTTP Reality 8443',
-            'ru-msk-3.cyber-vpn.org',
-            8443,
+            'msk-relay.cyber-vpn.org',
+            2083,
             '/s1-xhttp-9fec0898',
             'VLESS_XHTTP_REALITY_8443',
             'Premium Smart RU Moscow',
@@ -1446,6 +628,45 @@ smart_host_specs(node_name, remark, address, port, path, inbound_tag, server_des
             'PREMIUM_SMART_RU_SPB_XHTTP_REALITY_8443',
             217
         )
+),
+smart_host_specs as (
+    select
+        raw_smart_host_specs.node_name,
+        raw_smart_host_specs.remark,
+        raw_smart_host_specs.address,
+        raw_smart_host_specs.port,
+        raw_smart_host_specs.path,
+        case
+            when raw_smart_host_specs.node_name = '🇩🇪 DE Frankfurt 01 25G'
+             and raw_smart_host_specs.inbound_tag = 'VLESS_REALITY_443'
+             and exists (
+                 select 1 from smart_inbound_rows where tag = 'DE_SMART_REALITY_443'
+             )
+            then 'DE_SMART_REALITY_443'
+            when raw_smart_host_specs.node_name = '🇩🇪 DE Frankfurt 01 25G'
+             and raw_smart_host_specs.inbound_tag = 'VLESS_XHTTP_REALITY_8443'
+             and exists (
+                 select 1 from smart_inbound_rows where tag = 'DE_SMART_XHTTP_REALITY_8443'
+             )
+            then 'DE_SMART_XHTTP_REALITY_8443'
+            when raw_smart_host_specs.node_name = '🇷🇺 RU Moscow 01 25G'
+             and raw_smart_host_specs.inbound_tag = 'VLESS_REALITY_443'
+             and exists (
+                 select 1 from smart_inbound_rows where tag = 'MSK_SMART_REALITY_443'
+             )
+            then 'MSK_SMART_REALITY_443'
+            when raw_smart_host_specs.node_name = '🇷🇺 RU Moscow 01 25G'
+             and raw_smart_host_specs.inbound_tag = 'VLESS_XHTTP_REALITY_8443'
+             and exists (
+                 select 1 from smart_inbound_rows where tag = 'MSK_SMART_XHTTP_REALITY_8443'
+             )
+            then 'MSK_SMART_XHTTP_REALITY_8443'
+            else raw_smart_host_specs.inbound_tag
+        end as inbound_tag,
+        raw_smart_host_specs.server_description,
+        raw_smart_host_specs.host_tag,
+        raw_smart_host_specs.view_position
+    from raw_smart_host_specs
 ),
 smart_host_update as (
     update hosts
@@ -1686,6 +907,7 @@ smart_node_plugin_assignment as (
     returning nodes.uuid
 )
 select
+    (select count(*) from customer_squad_bridge_cleanup) as removed_customer_bridge_inbounds,
     (select count(*) from internal_squad_inbound_links) as linked_internal_squad_inbounds,
     (select count(*) from smart_node_inbound_links) as linked_node_inbounds,
     (select count(*) from smart_host_rows) as smart_host_count,
@@ -1701,9 +923,13 @@ declare
     v_template_link_count integer;
     v_inbound_count integer;
     v_internal_squad_inbound_count integer;
+    v_customer_bridge_inbound_count integer;
     v_smart_node_count integer;
     v_linked_node_inbounds integer;
+    v_stale_frankfurt_base_link_count integer;
+    v_stale_moscow_base_link_count integer;
     v_smart_host_count integer;
+    v_visible_premium_host_count integer;
     v_smart_host_link_count integer;
     v_unexcluded_non_smart_host_count integer;
     v_conflicting_active_plugin_count integer;
@@ -1772,6 +998,21 @@ begin
     end if;
 
     select count(*)
+    into v_customer_bridge_inbound_count
+    from internal_squad_inbounds
+    join config_profile_inbounds
+      on config_profile_inbounds.uuid = internal_squad_inbounds.inbound_uuid
+    where internal_squad_inbounds.internal_squad_uuid = v_internal_squad_uuid
+      and config_profile_inbounds.tag in (
+          'MSK_SMART_RU_BRIDGE_9443',
+          'MSK_SMART_RU_BRIDGE_V2_9443',
+          'DE_SMART_GLOBAL_BRIDGE_9443'
+      );
+    if v_customer_bridge_inbound_count <> 0 then
+        raise exception 'Premium Smart RU customer squad must not contain the Moscow bridge inbound';
+    end if;
+
+    select count(*)
     into v_smart_node_count
     from nodes
     where name in (
@@ -1791,15 +1032,112 @@ begin
       on config_profile_inbounds.uuid = config_profile_inbounds_to_nodes.config_profile_inbound_uuid
     join nodes
       on nodes.uuid = config_profile_inbounds_to_nodes.node_uuid
-    where config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+    where (
+            (
+                nodes.name = '🇩🇪 DE Frankfurt 01 25G'
+            and (
+                    (
+                        exists (
+                            select 1
+                            from config_profile_inbounds de_smart_inbound
+                            where de_smart_inbound.tag = 'DE_SMART_REALITY_443'
+                        )
+                    and config_profile_inbounds.tag in (
+                        'DE_SMART_REALITY_443',
+                        'DE_SMART_XHTTP_REALITY_8443'
+                    )
+                    )
+                 or (
+                        not exists (
+                            select 1
+                            from config_profile_inbounds de_smart_inbound
+                            where de_smart_inbound.tag = 'DE_SMART_REALITY_443'
+                        )
+                    and config_profile_inbounds.tag in (
+                        'VLESS_REALITY_443',
+                        'VLESS_XHTTP_REALITY_8443'
+                    )
+                    )
+            )
+            )
+         or (
+                nodes.name = '🇷🇺 RU Moscow 01 25G'
+            and (
+                    (
+                        exists (
+                            select 1
+                            from config_profile_inbounds moscow_smart_inbound
+                            where moscow_smart_inbound.tag = 'MSK_SMART_REALITY_443'
+                        )
+                    and config_profile_inbounds.tag in (
+                        'MSK_SMART_REALITY_443',
+                        'MSK_SMART_XHTTP_REALITY_8443'
+                    )
+                    )
+                 or (
+                        not exists (
+                            select 1
+                            from config_profile_inbounds moscow_smart_inbound
+                            where moscow_smart_inbound.tag = 'MSK_SMART_REALITY_443'
+                        )
+                    and config_profile_inbounds.tag in (
+                        'VLESS_REALITY_443',
+                        'VLESS_XHTTP_REALITY_8443'
+                    )
+                    )
+            )
+            )
+         or (
+                nodes.name not in ('🇩🇪 DE Frankfurt 01 25G', '🇷🇺 RU Moscow 01 25G')
+            and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+            )
+    )
       and nodes.name in (
           '🇩🇪 DE Frankfurt 01 25G',
           '🇳🇱 NL Amsterdam 01 10G',
           '🇷🇺 RU Moscow 01 25G',
           '🇷🇺 RU SPB 01 25G'
       );
-    if v_linked_node_inbounds < 8 then
-        raise exception 'Expected at least 8 Smart RU node inbound links, found %', v_linked_node_inbounds;
+    if v_linked_node_inbounds <> 8 then
+        raise exception 'Expected exactly 8 Smart RU node inbound links, found %', v_linked_node_inbounds;
+    end if;
+
+    select count(*)
+    into v_stale_frankfurt_base_link_count
+    from config_profile_inbounds_to_nodes
+    join config_profile_inbounds
+      on config_profile_inbounds.uuid = config_profile_inbounds_to_nodes.config_profile_inbound_uuid
+    join nodes
+      on nodes.uuid = config_profile_inbounds_to_nodes.node_uuid
+    where nodes.name = '🇩🇪 DE Frankfurt 01 25G'
+      and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+      and exists (
+          select 1
+          from config_profile_inbounds de_smart_inbound
+          where de_smart_inbound.tag = 'DE_SMART_REALITY_443'
+      );
+    if v_stale_frankfurt_base_link_count <> 0 then
+        raise exception 'Expected no stale Frankfurt base inbound links after DE Smart routing, found %',
+            v_stale_frankfurt_base_link_count;
+    end if;
+
+    select count(*)
+    into v_stale_moscow_base_link_count
+    from config_profile_inbounds_to_nodes
+    join config_profile_inbounds
+      on config_profile_inbounds.uuid = config_profile_inbounds_to_nodes.config_profile_inbound_uuid
+    join nodes
+      on nodes.uuid = config_profile_inbounds_to_nodes.node_uuid
+    where nodes.name = '🇷🇺 RU Moscow 01 25G'
+      and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+      and exists (
+          select 1
+          from config_profile_inbounds moscow_smart_inbound
+          where moscow_smart_inbound.tag = 'MSK_SMART_REALITY_443'
+      );
+    if v_stale_moscow_base_link_count <> 0 then
+        raise exception 'Expected no stale Moscow base inbound links after Moscow Smart routing, found %',
+            v_stale_moscow_base_link_count;
     end if;
 
     select count(*)
@@ -1818,15 +1156,58 @@ begin
         '🇷🇺 RU SPB 01 25G XHTTP Reality 8443'
     )
       and hosts.address in (
-          'de-3.cyber-vpn.org',
+          'de-relay.cyber-vpn.org',
           'nl-4.cyber-vpn.org',
-          'ru-msk-3.cyber-vpn.org',
+          'msk-relay.cyber-vpn.org',
           'ru-spb-3.cyber-vpn.org'
       )
       and hosts.is_disabled = false
-      and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443');
+      and config_profile_inbounds.tag in (
+          'VLESS_REALITY_443',
+           'VLESS_XHTTP_REALITY_8443',
+           'DE_SMART_REALITY_443',
+           'DE_SMART_XHTTP_REALITY_8443',
+           'MSK_SMART_REALITY_443',
+           'MSK_SMART_XHTTP_REALITY_8443'
+       );
     if v_smart_host_count <> 8 then
         raise exception 'Expected 8 Premium Smart RU Remnawave hosts, found %', v_smart_host_count;
+    end if;
+
+    select count(*)
+    into v_visible_premium_host_count
+    from hosts
+    where hosts.remark in (
+        '🇩🇪 DE Frankfurt 01 25G Reality 443',
+        '🇩🇪 DE Frankfurt 01 25G XHTTP Reality 8443',
+        '🇳🇱 NL Amsterdam 01 10G Reality 443',
+        '🇳🇱 NL Amsterdam 01 10G XHTTP Reality 8443',
+        '🇷🇺 RU Moscow 01 25G Reality 443',
+        '🇷🇺 RU Moscow 01 25G XHTTP Reality 8443',
+        '🇷🇺 RU SPB 01 25G Reality 443',
+        '🇷🇺 RU SPB 01 25G XHTTP Reality 8443'
+    )
+      and hosts.is_disabled = false
+      and exists (
+          select 1
+          from unnest(coalesce(hosts.tags, array[]::text[])) as host_tags(tag)
+          where host_tags.tag like 'PREMIUM\_SMART\_RU\_%' escape '\'
+      )
+      and exists (
+          select 1
+          from internal_squad_inbounds
+          where internal_squad_inbounds.internal_squad_uuid = v_internal_squad_uuid
+            and internal_squad_inbounds.inbound_uuid = hosts.config_profile_inbound_uuid
+      )
+      and not exists (
+          select 1
+          from internal_squad_host_exclusions
+          where internal_squad_host_exclusions.squad_uuid = v_internal_squad_uuid
+            and internal_squad_host_exclusions.host_uuid = hosts.uuid
+      );
+    if v_visible_premium_host_count <> 8 then
+        raise exception 'Expected exactly 8 visible Premium Smart RU tagged hosts, found %',
+            v_visible_premium_host_count;
     end if;
 
     select count(*)
@@ -1934,7 +1315,66 @@ select
           on config_profile_inbounds.uuid = config_profile_inbounds_to_nodes.config_profile_inbound_uuid
         join nodes
           on nodes.uuid = config_profile_inbounds_to_nodes.node_uuid
-        where config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+        where (
+                (
+                    nodes.name = '🇩🇪 DE Frankfurt 01 25G'
+                and (
+                        (
+                            exists (
+                                select 1
+                                from config_profile_inbounds de_smart_inbound
+                                where de_smart_inbound.tag = 'DE_SMART_REALITY_443'
+                            )
+                        and config_profile_inbounds.tag in (
+                            'DE_SMART_REALITY_443',
+                            'DE_SMART_XHTTP_REALITY_8443'
+                        )
+                        )
+                     or (
+                            not exists (
+                                select 1
+                                from config_profile_inbounds de_smart_inbound
+                                where de_smart_inbound.tag = 'DE_SMART_REALITY_443'
+                            )
+                        and config_profile_inbounds.tag in (
+                            'VLESS_REALITY_443',
+                            'VLESS_XHTTP_REALITY_8443'
+                        )
+                        )
+                )
+                )
+             or (
+                    nodes.name = '🇷🇺 RU Moscow 01 25G'
+                and (
+                        (
+                            exists (
+                                select 1
+                                from config_profile_inbounds moscow_smart_inbound
+                                where moscow_smart_inbound.tag = 'MSK_SMART_REALITY_443'
+                            )
+                        and config_profile_inbounds.tag in (
+                            'MSK_SMART_REALITY_443',
+                            'MSK_SMART_XHTTP_REALITY_8443'
+                        )
+                        )
+                     or (
+                            not exists (
+                                select 1
+                                from config_profile_inbounds moscow_smart_inbound
+                                where moscow_smart_inbound.tag = 'MSK_SMART_REALITY_443'
+                            )
+                        and config_profile_inbounds.tag in (
+                            'VLESS_REALITY_443',
+                            'VLESS_XHTTP_REALITY_8443'
+                        )
+                        )
+                )
+                )
+             or (
+                    nodes.name not in ('🇩🇪 DE Frankfurt 01 25G', '🇷🇺 RU Moscow 01 25G')
+                and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+                )
+        )
           and nodes.name in (
               '🇩🇪 DE Frankfurt 01 25G',
               '🇳🇱 NL Amsterdam 01 10G',
@@ -1957,7 +1397,14 @@ select
             '🇷🇺 RU SPB 01 25G Reality 443',
             '🇷🇺 RU SPB 01 25G XHTTP Reality 8443'
         )
-          and config_profile_inbounds.tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')
+          and config_profile_inbounds.tag in (
+              'VLESS_REALITY_443',
+              'VLESS_XHTTP_REALITY_8443',
+              'DE_SMART_REALITY_443',
+              'DE_SMART_XHTTP_REALITY_8443',
+              'MSK_SMART_REALITY_443',
+              'MSK_SMART_XHTTP_REALITY_8443'
+          )
     ) as smart_host_count,
     (
         select count(*)

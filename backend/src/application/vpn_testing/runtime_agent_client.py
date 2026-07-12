@@ -27,21 +27,26 @@ EXPECTED_REGIONAL_TARGET_PROFILE_COUNT = 2
 HARD_MAX_RUNTIME_PROFILE_COUNT = 16
 RUNTIME_AGENT_ENDPOINT = "/internal/v1/runtime-checks"
 RUNTIME_AGENT_AUTH_HEADER = "X-VPN-Test-Agent-Secret"
-PREMIUM_SMART_RU_RUNTIME_SERVERS = frozenset(
-    {
-        "de-3.cyber-vpn.org",
-        "nl-4.cyber-vpn.org",
-        "ru-msk-3.cyber-vpn.org",
-        "ru-spb-3.cyber-vpn.org",
-    }
-)
-PREMIUM_SMART_RU_MOSCOW_SERVER = "ru-msk-3.cyber-vpn.org"
+PREMIUM_SMART_RU_RUNTIME_ENDPOINTS = {
+    "de-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
+    "nl-4.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
+    "msk-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
+    "ru-spb-3.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
+}
+PREMIUM_SMART_RU_RUNTIME_SERVERS = frozenset(PREMIUM_SMART_RU_RUNTIME_ENDPOINTS)
+PREMIUM_SMART_RU_MOSCOW_SERVER = "msk-relay.cyber-vpn.org"
 PREMIUM_SMART_RU_SPB_SERVER = "ru-spb-3.cyber-vpn.org"
 PREMIUM_SMART_RU_LOCATION_BY_SERVER = {
-    "de-3.cyber-vpn.org": "DE",
+    "de-relay.cyber-vpn.org": "DE",
     "nl-4.cyber-vpn.org": "NL",
     PREMIUM_SMART_RU_MOSCOW_SERVER: "RU Moscow",
     PREMIUM_SMART_RU_SPB_SERVER: "RU SPB",
+}
+PREMIUM_SMART_RU_RELEASE_LOCATION_KEY_BY_SERVER = {
+    "de-relay.cyber-vpn.org": "de",
+    "nl-4.cyber-vpn.org": "nl",
+    PREMIUM_SMART_RU_MOSCOW_SERVER: "moscow",
+    PREMIUM_SMART_RU_SPB_SERVER: "spb",
 }
 SENSITIVE_RESPONSE_KEYS = frozenset(
     {
@@ -124,14 +129,15 @@ class RuntimeAgentTransportProfile(BaseModel):
 
     @model_validator(mode="after")
     def _validate_transport_contract(self) -> RuntimeAgentTransportProfile:
+        expected_ports = PREMIUM_SMART_RU_RUNTIME_ENDPOINTS[self.server]
         if self.network == "raw":
-            if self.port != 443:
-                raise ValueError("raw_tcp_profiles_must_use_443")
+            if self.port != expected_ports["raw"]:
+                raise ValueError("raw_tcp_profile_port_mismatch")
             if self.flow != "xtls-rprx-vision":
                 raise ValueError("raw_tcp_profiles_must_use_vision_flow")
             return self
-        if self.port != 8443:
-            raise ValueError("xhttp_profiles_must_use_8443")
+        if self.port != expected_ports["xhttp"]:
+            raise ValueError("xhttp_profile_port_mismatch")
         if not self.xhttp_path or not self.xhttp_path.startswith("/"):
             raise ValueError("xhttp_profiles_must_include_path")
         if not self.xhttp_mode:
@@ -552,6 +558,11 @@ def _agent_check_key(role: RuntimeAgentRole, check_key: Any) -> str:
     return f"runtime.agent.{role}.{normalized}"
 
 
+def _runtime_transport_check_key(profile: RuntimeAgentTransportProfile) -> str:
+    location = PREMIUM_SMART_RU_RELEASE_LOCATION_KEY_BY_SERVER[profile.server]
+    return f"runtime.transport.{profile.transport}.{location}"
+
+
 async def _post_runtime_agent(
     *,
     target: RuntimeAgentTarget,
@@ -567,7 +578,7 @@ async def _post_runtime_agent(
         write=10.0,
         pool=5.0,
     )
-    async with httpx.AsyncClient(base_url=target.url, timeout=timeout) as client:
+    async with httpx.AsyncClient(base_url=target.url, timeout=timeout, trust_env=False) as client:
         response = await client.post(
             RUNTIME_AGENT_ENDPOINT,
             json=payload,
@@ -584,6 +595,7 @@ def _combine_agent_payloads(
     responses: Sequence[tuple[RuntimeAgentRole, dict[str, Any]]],
     *,
     profile_counts_by_role: Mapping[RuntimeAgentRole, int],
+    profiles_by_role: Mapping[RuntimeAgentRole, Sequence[RuntimeAgentTransportProfile]],
     profiles: Sequence[RuntimeAgentTransportProfile],
     redaction_values: set[str],
 ) -> dict[str, Any]:
@@ -603,6 +615,8 @@ def _combine_agent_payloads(
                 actual_count=len(profiles),
                 details={"target_role": role, "agent_statuses": agent_statuses},
             )
+        expected_transport_keys = {_runtime_transport_check_key(profile) for profile in profiles_by_role[role]}
+        observed_transport_keys: set[str] = set()
         for item in agent_checks:
             if not isinstance(item, Mapping):
                 return _failure_payload(
@@ -612,7 +626,19 @@ def _combine_agent_payloads(
                     details={"target_role": role, "agent_statuses": agent_statuses},
                 )
             check = dict(item)
-            check_key = _agent_check_key(role, check.get("check_key"))
+            source_check_key = str(check.get("check_key") or "").strip()
+            if status == "pass" and source_check_key.startswith(("runtime.transport.raw.", "runtime.transport.xhttp.")):
+                if source_check_key not in expected_transport_keys:
+                    return _failure_payload(
+                        "agent_unexpected_transport_check",
+                        expected_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+                        actual_count=len(profiles),
+                        details={"target_role": role},
+                    )
+                check_key = source_check_key
+                observed_transport_keys.add(check_key)
+            else:
+                check_key = _agent_check_key(role, source_check_key)
             if check_key in seen_check_keys:
                 return _failure_payload(
                     "duplicate_agent_check_keys",
@@ -627,6 +653,39 @@ def _combine_agent_payloads(
             check["details"]["agent_role"] = role
             check["details"]["agent_profile_count"] = profile_counts_by_role.get(role, 0)
             checks.append(check)
+        if status == "pass" and observed_transport_keys != expected_transport_keys:
+            return _failure_payload(
+                "agent_transport_checks_incomplete",
+                expected_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+                actual_count=len(profiles),
+                details={
+                    "target_role": role,
+                    "expected_transport_check_count": len(expected_transport_keys),
+                    "actual_transport_check_count": len(observed_transport_keys),
+                },
+            )
+
+    checks.append(
+        {
+            "check_key": "runtime.transport_profile_matrix.required",
+            "check_name": "Combined runtime transport profile matrix",
+            "category": "runtime",
+            "status": "pass",
+            "severity": "error",
+            "target": "global",
+            "safe_summary": "All required runtime transport profiles were assigned to an agent shard",
+            "details": {
+                "actual_profile_count": len(profiles),
+                "actual_raw_count": sum(profile.transport == "raw" for profile in profiles),
+                "actual_xhttp_count": sum(profile.transport == "xhttp" for profile in profiles),
+                "server_matrix_valid": True,
+                "raw_server_matrix_valid": True,
+                "xhttp_server_matrix_valid": True,
+                "agent_profile_counts": dict(profile_counts_by_role),
+            },
+            "duration_ms": 0,
+        }
+    )
 
     combined_status = "pass" if all(status == "pass" for status in agent_statuses.values()) else "fail"
     payload: dict[str, Any] = {
@@ -723,6 +782,7 @@ async def call_runtime_agent(
     return _combine_agent_payloads(
         responses,
         profile_counts_by_role={target.role: len(target.profiles) for target in targets_or_failure},
+        profiles_by_role={target.role: target.profiles for target in targets_or_failure},
         profiles=profiles,
         redaction_values=redaction_values,
     )

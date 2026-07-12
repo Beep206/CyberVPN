@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -10,6 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService, OutboxActorContext
 from src.application.services.entitlements_service import EntitlementsService
+from src.application.services.vpn_product_readiness import (
+    ensure_entitlement_grant_data_plane_ready,
+    is_spb_de_exceptions_plan,
+)
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.models.growth_reward_allocation_model import GrowthRewardAllocationModel
 from src.infrastructure.database.models.order_model import OrderModel
@@ -21,6 +26,12 @@ from src.infrastructure.database.repositories.service_access_repo import Service
 class CreateEntitlementGrantResult:
     created: bool
     entitlement_grant: EntitlementGrantModel
+
+
+def _snapshot_requires_data_plane_readiness(snapshot: Mapping[str, Any] | None) -> bool:
+    if not isinstance(snapshot, Mapping):
+        return False
+    return any(is_spb_de_exceptions_plan(snapshot.get(key)) for key in ("plan_code", "remnawave_routing_product"))
 
 
 class CreateEntitlementGrantUseCase:
@@ -64,6 +75,19 @@ class CreateEntitlementGrantUseCase:
             manual_source_key=manual_source_key,
         )
         if existing is not None:
+            if any(
+                _snapshot_requires_data_plane_readiness(snapshot)
+                for snapshot in (
+                    existing.grant_snapshot,
+                    service_identity.service_context,
+                    grant_snapshot,
+                )
+            ):
+                ensure_entitlement_grant_data_plane_ready(
+                    grant_snapshot=existing.grant_snapshot,
+                    service_context=service_identity.service_context,
+                    candidate_snapshot=grant_snapshot,
+                )
             return CreateEntitlementGrantResult(created=False, entitlement_grant=existing)
 
         source_type = source_names[0]
@@ -133,6 +157,11 @@ class CreateEntitlementGrantUseCase:
 
         if not resolved_snapshot:
             raise ValueError("Entitlement grant snapshot is required for this source")
+
+        ensure_entitlement_grant_data_plane_ready(
+            grant_snapshot=resolved_snapshot,
+            service_context=service_identity.service_context,
+        )
 
         model = EntitlementGrantModel(
             id=uuid.uuid4(),
@@ -270,6 +299,13 @@ class _TransitionEntitlementGrantUseCase:
             if allocation.allocation_status != "allocated":
                 raise ValueError("Source growth reward allocation is not active")
 
+    async def _ensure_data_plane_ready_for_grant(self, item: EntitlementGrantModel) -> None:
+        service_identity = await self._repo.get_service_identity_by_id(item.service_identity_id)
+        ensure_entitlement_grant_data_plane_ready(
+            grant_snapshot=item.grant_snapshot,
+            service_context=service_identity.service_context if service_identity is not None else None,
+        )
+
 
 class ActivateEntitlementGrantUseCase(_TransitionEntitlementGrantUseCase):
     async def execute(
@@ -279,10 +315,12 @@ class ActivateEntitlementGrantUseCase(_TransitionEntitlementGrantUseCase):
         activated_by_admin_user_id: UUID | None,
     ) -> EntitlementGrantModel:
         item = await self._get_grant(entitlement_grant_id)
-        if item.grant_status == "active":
-            return item
         if item.grant_status in self.terminal_statuses:
             raise ValueError("Terminal entitlement grants cannot be reactivated")
+
+        await self._ensure_data_plane_ready_for_grant(item)
+        if item.grant_status == "active":
+            return item
 
         await self._validate_source_for_activation(item)
         now = datetime.now(UTC)

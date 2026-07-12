@@ -1,0 +1,29 @@
+[Unit]
+Description=CyberVPN Antifilter BGP canonical candidate exporter
+After=network-online.target {{ antifilter_bgp_collector_bird_service }}.service
+Wants=network-online.target
+Requires={{ antifilter_bgp_collector_bird_service }}.service
+
+[Service]
+Type=oneshot
+User=root
+Group=bird
+UMask=0027
+ExecStartPre=/usr/bin/test -S {{ antifilter_bgp_collector_bird_socket }}
+ExecStart={{ antifilter_bgp_collector_python_path }} {{ antifilter_bgp_collector_exporter_path }} --birdc {{ antifilter_bgp_collector_birdc_path }} --socket {{ antifilter_bgp_collector_bird_socket }} --output-root {{ antifilter_bgp_collector_output_root }} --collector {{ antifilter_bgp_collector_collector_name }} --protocol-ipv4 {{ antifilter_bgp_collector_protocol_ipv4 }} --table-ipv4 {{ antifilter_bgp_collector_table_ipv4 }} --protocol-ipv6 {{ antifilter_bgp_collector_protocol_ipv6 }} --table-ipv6 {{ antifilter_bgp_collector_table_ipv6 }} --ipv6-policy {{ antifilter_bgp_collector_ipv6_policy_mode }} --ipv6-policy-reason {{ antifilter_bgp_collector_ipv6_policy_reason | to_json }} --timeout {{ antifilter_bgp_collector_command_timeout_seconds }} --max-output-bytes {{ antifilter_bgp_collector_max_output_bytes }} --max-lines-per-community {{ antifilter_bgp_collector_max_lines_per_community }}
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths={{ antifilter_bgp_collector_output_root }}
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+MemoryMax={{ antifilter_bgp_collector_unit_memory_max }}
+TasksMax={{ antifilter_bgp_collector_unit_tasks_max }}

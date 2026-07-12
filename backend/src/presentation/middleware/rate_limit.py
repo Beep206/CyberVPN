@@ -20,6 +20,7 @@ from starlette.responses import JSONResponse, Response
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis_pool
 from src.presentation.dependencies.client_ip import resolve_client_ip
+from src.shared.logging.sanitization import sanitize_path_params
 
 logger = logging.getLogger("cybervpn")
 
@@ -138,6 +139,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/api/v1/auth/session/",
     }
     _HELIX_ADMIN_READ_PREFIX = "/api/v1/helix/admin/"
+    _SUBSCRIPTION_GATEWAY_PREFIX = "/api/sub/"
+    _SUBSCRIPTION_GATEWAY_BUCKET = "subscription_gateway"
 
     def __init__(
         self,
@@ -209,6 +212,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         client_ip = self._get_client_ip(request)
+        safe_path = sanitize_path_params(request.url.path)
         key = f"cybervpn:rate_limit:{client_ip}:{self._rate_limit_bucket_for(request)}"
         request_budget = self._requests_budget_for(request)
 
@@ -216,7 +220,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if self.circuit.is_open():
             logger.warning(
                 "Rate limiter circuit breaker OPEN - rejecting request",
-                extra={"client_ip": client_ip, "path": request.url.path},
+                extra={"client_ip": client_ip, "path": safe_path},
             )
             if not self.fail_open:
                 return JSONResponse(
@@ -251,7 +255,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     "Rate limit exceeded",
                     extra={
                         "client_ip": client_ip,
-                        "path": request.url.path,
+                        "path": safe_path,
                         "count": request_count,
                         "limit": request_budget,
                     },
@@ -314,7 +318,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         rule = self._rule_for(request)
         if rule is not None:
             return rule.name
-        return request.url.path
+        if request.url.path.lower().startswith(self._SUBSCRIPTION_GATEWAY_PREFIX):
+            return self._SUBSCRIPTION_GATEWAY_BUCKET
+        return sanitize_path_params(request.url.path)
 
     def _rule_for(self, request: Request) -> RateLimitRule | None:
         return next((rule for rule in self._s1_rules if rule.matches(request)), None)

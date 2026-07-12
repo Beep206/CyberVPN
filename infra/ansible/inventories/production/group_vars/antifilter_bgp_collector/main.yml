@@ -1,0 +1,16 @@
+---
+antifilter_bgp_collector_enabled: true
+antifilter_bgp_collector_action: deploy
+
+antifilter_bgp_collector_source_ipv4: "193.233.91.99"
+antifilter_bgp_collector_router_id: "193.233.91.99"
+antifilter_bgp_collector_ipv6_enabled: false
+antifilter_bgp_collector_ipv6_policy_mode: fallback_block
+antifilter_bgp_collector_ipv6_policy_reason: >-
+  IPv6 is blocked for premium_spb_de_exceptions until Antifilter registration,
+  complete per-community IPv6 export, the SPB-to-DE bridge, and external IPv6
+  route evidence are all proven together.
+
+antifilter_bgp_collector_timer_on_boot_sec: 5min
+antifilter_bgp_collector_timer_on_unit_active_sec: 1h
+antifilter_bgp_collector_timer_randomized_delay_sec: 5min

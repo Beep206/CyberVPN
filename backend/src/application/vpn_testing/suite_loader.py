@@ -10,10 +10,15 @@ SUITE_PACKAGE = "src.application.vpn_testing.suites"
 REGISTRY_PACKAGE = "src.application.vpn_testing.route_registry"
 DEFAULT_SUITE_FILES = (
     "premium_smart_ru_v1.yaml",
+    "premium_spb_de_exceptions_v1.yaml",
     "all_tariffs_contract_v1.yaml",
     "default_subscription_smoke_v1.yaml",
 )
-DEFAULT_ROUTE_REGISTRY_FILES = ("premium_smart_ru_v1.yaml", "premium_smart_ru_v2.yaml")
+DEFAULT_ROUTE_REGISTRY_FILES = (
+    "premium_smart_ru_v1.yaml",
+    "premium_smart_ru_v2.yaml",
+    "premium_spb_de_exceptions_v1.yaml",
+)
 
 
 def _load_json_resource(package: str, file_name: str) -> dict[str, Any]:

@@ -32,12 +32,30 @@ def test_de3_dual_stack_records_are_explicit_and_dns_only() -> None:
     assert example.count('name         = "de-3.cyber-vpn.org"') == 2
     assert 'content      = "138.124.115.206"' in example
     assert 'content      = "2a0b:4140:ba84::2"' in example
-    assert example.count('record_class = "vpn-node"') == 2
+    for key, record_type in (("de-3-vpn-ipv4", "A"), ("de-3-vpn-ipv6", "AAAA")):
+        record = example.split(f"{key} = {{", 1)[1].split("}", 1)[0]
+        assert 'record_class = "vpn-node"' in record
+        assert f'type         = "{record_type}"' in record
+        assert "proxied      = false" in record
     assert len(re.findall(r"proxied\s*=\s*false", example)) >= 4
     assert re.search(
         r'tags\s*=\s*\["environment:production", "component:vpn-node", "region:de"\]',
         example,
     )
+
+
+def test_spb_exceptions_dedicated_ipv4_record_is_explicit_and_dns_only() -> None:
+    example = _read("terraform.tfvars.example")
+
+    assert example.count('name         = "spb-exceptions.cyber-vpn.org"') == 1
+    assert 'content      = "193.233.91.99"' in example
+    assert "spb-exceptions-vpn-ipv4" in example
+    assert "spb-exceptions-vpn-ipv6" not in example
+    record = example.split("spb-exceptions-vpn-ipv4 = {", 1)[1].split("}", 1)[0]
+    assert 'record_class = "vpn-node"' in record
+    assert 'type         = "A"' in record
+    assert "ttl          = 300" in record
+    assert "proxied      = false" in record
 
 
 def test_existing_records_require_import_before_apply() -> None:

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 from collections import Counter
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
@@ -12,6 +15,11 @@ from uuid import UUID
 
 from httpx import HTTPError
 
+from src.application.services.vpn_product_readiness import (
+    SPB_DE_EXCEPTIONS_PRODUCT_CODE,
+    VpnProductReadinessError,
+    ensure_spb_de_exceptions_data_plane_ready,
+)
 from src.application.vpn_testing.analyzers import analyze_mihomo_template
 from src.application.vpn_testing.balancer import recommendation_key, stable_recommendation_hash
 from src.application.vpn_testing.generated_subscription_checker import (
@@ -90,16 +98,136 @@ DEFAULT_SCHEDULES = (
 )
 
 PREMIUM_SMART_RU_NODE_HOSTS = {
-    "de-3.cyber-vpn.org": "🇩🇪 DE Frankfurt 01 25G",
+    "de-relay.cyber-vpn.org": "🇩🇪 DE Frankfurt 01 25G",
     "nl-4.cyber-vpn.org": "🇳🇱 NL Amsterdam 01 10G",
-    "ru-msk-3.cyber-vpn.org": "🇷🇺 RU Moscow 01 25G",
+    "msk-relay.cyber-vpn.org": "🇷🇺 RU Moscow 01 25G",
     "ru-spb-3.cyber-vpn.org": "🇷🇺 RU SPB 01 25G",
+}
+PREMIUM_SMART_RU_HOST_TRANSPORTS = {
+    "de-relay.cyber-vpn.org": {
+        "raw": (2053, "DE_SMART_REALITY_443"),
+        "xhttp": (2083, "DE_SMART_XHTTP_REALITY_8443"),
+    },
+    "nl-4.cyber-vpn.org": {
+        "raw": (443, "VLESS_REALITY_443"),
+        "xhttp": (8443, "VLESS_XHTTP_REALITY_8443"),
+    },
+    "msk-relay.cyber-vpn.org": {
+        "raw": (2053, "MSK_SMART_REALITY_443"),
+        "xhttp": (2083, "MSK_SMART_XHTTP_REALITY_8443"),
+    },
+    "ru-spb-3.cyber-vpn.org": {
+        "raw": (443, "VLESS_REALITY_443"),
+        "xhttp": (8443, "VLESS_XHTTP_REALITY_8443"),
+    },
 }
 PREMIUM_SMART_RU_INBOUND_TAGS = {
     "VLESS_REALITY_443",
     "VLESS_XHTTP_REALITY_8443",
+    "DE_SMART_REALITY_443",
+    "DE_SMART_XHTTP_REALITY_8443",
+    "MSK_SMART_REALITY_443",
+    "MSK_SMART_XHTTP_REALITY_8443",
+    "DE_SMART_GLOBAL_BRIDGE_9443",
+    "MSK_SMART_RU_BRIDGE_V2_9443",
+}
+PREMIUM_SMART_RU_RAW_INBOUND_TAGS = {
+    "VLESS_REALITY_443",
+    "DE_SMART_REALITY_443",
+    "MSK_SMART_REALITY_443",
+}
+PREMIUM_SMART_RU_XHTTP_INBOUND_TAGS = {
+    "VLESS_XHTTP_REALITY_8443",
+    "DE_SMART_XHTTP_REALITY_8443",
+    "MSK_SMART_XHTTP_REALITY_8443",
 }
 PREMIUM_SMART_RU_INTERNAL_SQUAD = "CYBERVPN_PREMIUM_SMART_RU_NODES"
+PREMIUM_SMART_RU_EXTERNAL_SQUAD = "CYBERVPN_PREMIUM_SMART_RU"
+PREMIUM_SMART_RU_DE_PROFILE_NAME = "S1 DE Smart RU Server"
+PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS = (
+    "DE_SMART_REALITY_443",
+    "DE_SMART_XHTTP_REALITY_8443",
+)
+PREMIUM_SMART_RU_DE_BRIDGE_INBOUND_TAG = "DE_SMART_GLOBAL_BRIDGE_9443"
+PREMIUM_SMART_RU_DE_PROFILE_INBOUND_TAGS = (
+    *PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS,
+    PREMIUM_SMART_RU_DE_BRIDGE_INBOUND_TAG,
+)
+PREMIUM_SMART_RU_MOSCOW_PROFILE_NAME = "S1 Moscow Smart Global Server"
+PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS = (
+    "MSK_SMART_REALITY_443",
+    "MSK_SMART_XHTTP_REALITY_8443",
+)
+PREMIUM_SMART_RU_MOSCOW_BRIDGE_INBOUND_TAG = "MSK_SMART_RU_BRIDGE_V2_9443"
+PREMIUM_SMART_RU_MOSCOW_PROFILE_INBOUND_TAGS = (
+    *PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS,
+    PREMIUM_SMART_RU_MOSCOW_BRIDGE_INBOUND_TAG,
+)
+PREMIUM_SMART_RU_BRIDGE_INBOUND_TAGS = frozenset(
+    {
+        PREMIUM_SMART_RU_DE_BRIDGE_INBOUND_TAG,
+        PREMIUM_SMART_RU_MOSCOW_BRIDGE_INBOUND_TAG,
+    }
+)
+PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG = "RU_MSK_BRIDGE"
+PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG = "DE_GLOBAL_BRIDGE"
+PREMIUM_SMART_RU_BRIDGE_PORT = 9443
+PREMIUM_SMART_RU_BRIDGE_METHOD = "chacha20-ietf-poly1305"
+PREMIUM_SMART_RU_TORRENT_BLOCK_DOMAINS = (
+    "domain:nnmclub.to",
+    "domain:rutracker.org",
+    "domain:rutor.info",
+    "domain:kinozal.tv",
+)
+PREMIUM_SMART_RU_REQUIRED_DIRECT_DOMAINS = frozenset(
+    {
+        "domain:youtube.com",
+        "domain:youtu.be",
+        "domain:googlevideo.com",
+        "domain:discord.com",
+        "domain:discordapp.com",
+        "domain:discord.gg",
+        "domain:telegram.org",
+        "domain:t.me",
+        "domain:openai.com",
+        "domain:chatgpt.com",
+        "domain:anthropic.com",
+        "domain:claude.ai",
+        "domain:github.com",
+        "domain:githubusercontent.com",
+        "domain:githubassets.com",
+    }
+)
+PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS = frozenset(
+    {
+        "domain:ru",
+        "domain:su",
+        "domain:xn--p1ai",
+        "domain:gosuslugi.ru",
+        "domain:nalog.gov.ru",
+        "domain:yandex.ru",
+        "domain:ozon.ru",
+        "domain:sberbank.ru",
+        "domain:vk.com",
+        "geosite:category-ru",
+    }
+)
+PREMIUM_SMART_RU_TOR_BLOCK_DOMAINS = frozenset(
+    {
+        "domain:torproject.org",
+        "domain:torproject.net",
+        r"regexp:\.onion$",
+    }
+)
+PREMIUM_SMART_RU_EXTERNAL_ROUTING_BLOCK_SITES = (
+    "geosite:category-ads-all",
+    "domain:nnmclub.to",
+    "domain:rutracker.org",
+    "domain:rutor.info",
+    "domain:kinozal.tv",
+    "domain:torproject.org",
+    "domain:torproject.net",
+)
 PREMIUM_SMART_RU_RELEASE_GATE_SUITE = "premium_smart_ru_v1"
 PREMIUM_SMART_RU_RELEASE_GATE_VERSION = "v1"
 PREMIUM_SMART_RU_RELEASE_GATE_MODE = "runtime"
@@ -111,10 +239,20 @@ PREMIUM_SMART_RU_RELEASE_GATE_CONTRACT_CHECKS = frozenset(
         "remnawave.inbounds.vless_reality_raw_tcp",
         "remnawave.inbounds.vless_reality_xhttp",
         "remnawave.hosts.transport_matrix",
+        "remnawave.config_profiles.de_smart_ru_server_routing",
+        "remnawave.config_profiles.moscow_smart_global_routing",
+        "remnawave.external_squads.premium_smart_ru_headers",
     }
 )
 PREMIUM_SMART_RU_RELEASE_GATE_RAW_COUNT = 4
 PREMIUM_SMART_RU_RELEASE_GATE_XHTTP_COUNT = 4
+PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_RAW_CHECKS = frozenset(
+    f"runtime.transport.raw.{location}" for location in ("de", "nl", "moscow", "spb")
+)
+PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_XHTTP_CHECKS = frozenset(
+    f"runtime.transport.xhttp.{location}" for location in ("de", "nl", "moscow", "spb")
+)
+PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_MATRIX_CHECK = "runtime.transport_profile_matrix.required"
 PERSISTED_RUN_CONTEXT_KEYS = frozenset(
     {
         "source",
@@ -249,19 +387,20 @@ def _premium_smart_ru_release_evidence_complete(run: Any) -> bool:
     raw_keys = {
         check_key
         for check_key, check_status in status_by_key.items()
-        if "runtime.transport.raw." in check_key and check_status == "pass"
+        if check_key in PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_RAW_CHECKS and check_status == "pass"
     }
     xhttp_keys = {
         check_key
         for check_key, check_status in status_by_key.items()
-        if "runtime.transport.xhttp." in check_key and check_status == "pass"
+        if check_key in PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_XHTTP_CHECKS and check_status == "pass"
     }
     matrix_results = [
         result
         for result in results
-        if "runtime.transport_profile_matrix.required" in str(_release_gate_result_value(result, "check_key") or "")
+        if str(_release_gate_result_value(result, "check_key") or "")
+        == PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_MATRIX_CHECK
     ]
-    matrix_evidence_valid = bool(matrix_results) and all(
+    matrix_evidence_valid = len(matrix_results) == 1 and all(
         str(_release_gate_result_value(result, "status") or "") == "pass"
         and isinstance(_release_gate_result_value(result, "details"), Mapping)
         and _release_gate_result_value(result, "details").get("server_matrix_valid") is True
@@ -270,7 +409,9 @@ def _premium_smart_ru_release_evidence_complete(run: Any) -> bool:
         for result in matrix_results
     )
     return (
-        len(raw_keys) == PREMIUM_SMART_RU_RELEASE_GATE_RAW_COUNT
+        raw_keys == PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_RAW_CHECKS
+        and xhttp_keys == PREMIUM_SMART_RU_RELEASE_GATE_RUNTIME_XHTTP_CHECKS
+        and len(raw_keys) == PREMIUM_SMART_RU_RELEASE_GATE_RAW_COUNT
         and len(xhttp_keys) == PREMIUM_SMART_RU_RELEASE_GATE_XHTTP_COUNT
         and matrix_evidence_valid
     )
@@ -886,6 +1027,300 @@ class VpnTesterService:
             results.extend(generated_subscription_checks(plan, route_entries))
         return results
 
+    def _spb_de_exceptions_contract_results(
+        self,
+        suite_spec: dict[str, Any],
+        plans: list[SubscriptionPlanModel],
+        route_entries: list[Any],
+    ) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
+        target_codes = set(_str_list(suite_spec.get("target_plan_codes") or []))
+        target_plans = [
+            plan for plan in plans if _plan_code(plan).lower() in target_codes or plan.name.lower() in target_codes
+        ]
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.plan.exists",
+                check_name="Premium SPB + DE Exceptions tariff exists",
+                category="plans",
+                status="pass" if target_plans else "fail",
+                safe_summary="Premium SPB + DE Exceptions tariff is active"
+                if target_plans
+                else "Premium SPB + DE Exceptions tariff was not found among active plans",
+                details={"target_plan_codes": sorted(target_codes), "matched_count": len(target_plans)},
+            )
+        )
+
+        required_modes = set(_str_list(suite_spec.get("required_connection_modes") or []))
+        required_server_pool = set(_str_list(suite_spec.get("required_server_pool") or []))
+        for plan in target_plans:
+            actual_modes = set(_str_list(plan.connection_modes))
+            missing_modes = sorted(required_modes - actual_modes)
+            actual_server_pool = set(_str_list(plan.server_pool))
+            missing_server_pool = sorted(required_server_pool - actual_server_pool)
+            results.append(
+                _result(
+                    check_key="premium_spb_de_exceptions.connection_modes",
+                    check_name="Premium SPB + DE Exceptions connection modes",
+                    category="plans",
+                    status="pass" if not missing_modes and not missing_server_pool else "fail",
+                    target=_plan_target(plan),
+                    safe_summary="Required connection modes and isolated server pool are present"
+                    if not missing_modes and not missing_server_pool
+                    else "Task2 plan modes or isolated server pool are incomplete",
+                    details={
+                        "required_modes": sorted(required_modes),
+                        "actual_modes": sorted(actual_modes),
+                        "missing_modes": missing_modes,
+                        "required_server_pool": sorted(required_server_pool),
+                        "actual_server_pool": sorted(actual_server_pool),
+                        "missing_server_pool": missing_server_pool,
+                    },
+                )
+            )
+
+        suite_metadata = suite_spec.get("metadata") if isinstance(suite_spec.get("metadata"), Mapping) else {}
+        expected_categories = {
+            str(item.get("key") or "")
+            for item in suite_metadata.get("antifilter_categories", [])
+            if isinstance(item, Mapping) and item.get("key")
+        }
+        route_metadata: list[tuple[Any, dict[str, Any]]] = []
+        for entry in route_entries:
+            raw_metadata = getattr(entry, "metadata_json", None)
+            route_metadata.append((entry, dict(raw_metadata) if isinstance(raw_metadata, Mapping) else {}))
+
+        category_networks: dict[str, set[str]] = {}
+        invalid_exception_routes: list[str] = []
+        for entry, metadata in route_metadata:
+            category = str(metadata.get("category") or "")
+            if category not in expected_categories:
+                continue
+            category_networks.setdefault(category, set()).add(str(metadata.get("probe_network") or ""))
+            if (
+                metadata.get("expected_outbound") != "DE_EXCEPTIONS_BRIDGE"
+                or metadata.get("expected_egress_country") != "DE"
+                or metadata.get("bridge_down_behavior") != "fail_closed"
+                or metadata.get("forbidden_outbound_on_bridge_down") != "DIRECT"
+            ):
+                invalid_exception_routes.append(str(getattr(entry, "route_key", "unknown")))
+        missing_category_networks = {
+            category: sorted({"tcp", "udp"} - category_networks.get(category, set()))
+            for category in sorted(expected_categories)
+            if category_networks.get(category, set()) != {"tcp", "udp"}
+        }
+        category_contract_ok = (
+            bool(expected_categories) and not missing_category_networks and not invalid_exception_routes
+        )
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.exception_categories_de",
+                check_name="Task2 authoritative exception categories use DE bridge",
+                category="route_registry",
+                status="pass" if category_contract_ok else "fail",
+                safe_summary="All declared Antifilter categories cover TCP/UDP and fail closed through DE"
+                if category_contract_ok
+                else "Task2 exception category coverage or DE fail-closed metadata is incomplete",
+                details={
+                    "expected_categories": sorted(expected_categories),
+                    "missing_category_networks": missing_category_networks,
+                    "invalid_route_keys": invalid_exception_routes,
+                },
+            )
+        )
+
+        default_matrix = {
+            (str(metadata.get("transport") or ""), str(metadata.get("probe_network") or ""))
+            for _, metadata in route_metadata
+            if metadata.get("traffic_class") == "unmatched_default"
+            and metadata.get("expected_outbound") == "DIRECT"
+            and metadata.get("expected_egress_region") == "SPB"
+            and metadata.get("bridge_down_behavior") == "continues_direct"
+        }
+        required_matrix = {(transport, network) for transport in ("raw", "xhttp") for network in ("tcp", "udp")}
+        default_matrix_ok = required_matrix.issubset(default_matrix)
+        matched_matrix = {
+            (str(metadata.get("transport") or ""), str(metadata.get("probe_network") or ""))
+            for _, metadata in route_metadata
+            if metadata.get("traffic_class") == "matched_exception"
+            and metadata.get("transport")
+            and metadata.get("expected_outbound") == "DE_EXCEPTIONS_BRIDGE"
+            and metadata.get("expected_egress_country") == "DE"
+            and metadata.get("bridge_down_behavior") == "fail_closed"
+            and metadata.get("forbidden_outbound_on_bridge_down") == "DIRECT"
+            and isinstance(metadata.get("required_evidence"), list)
+            and bool(metadata.get("required_evidence"))
+        }
+        matched_matrix_ok = required_matrix.issubset(matched_matrix)
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.default_spb_direct",
+                check_name="Task2 unmatched traffic defaults to SPB DIRECT",
+                category="route_registry",
+                status="pass" if default_matrix_ok else "fail",
+                safe_summary="RAW/XHTTP and TCP/UDP unmatched probes remain SPB DIRECT"
+                if default_matrix_ok
+                else "Task2 SPB DIRECT default matrix is incomplete",
+                details={
+                    "required_matrix": sorted(f"{transport}:{network}" for transport, network in required_matrix),
+                    "actual_matrix": sorted(f"{transport}:{network}" for transport, network in default_matrix),
+                },
+            )
+        )
+
+        matched_failure = next(
+            (
+                metadata
+                for _, metadata in route_metadata
+                if metadata.get("failure_scenario") == "de_bridge_down"
+                and metadata.get("traffic_class") == "matched_exception"
+            ),
+            None,
+        )
+        unmatched_failure = next(
+            (
+                metadata
+                for _, metadata in route_metadata
+                if metadata.get("failure_scenario") == "de_bridge_down"
+                and metadata.get("traffic_class") == "unmatched_default"
+            ),
+            None,
+        )
+        bridge_failure_ok = bool(
+            matched_failure
+            and matched_failure.get("expected_failure") == "connection_fails"
+            and matched_failure.get("forbidden_outbound") == "DIRECT"
+            and unmatched_failure
+            and unmatched_failure.get("expected_outbound") == "DIRECT"
+            and unmatched_failure.get("expected_egress_region") == "SPB"
+        )
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.bridge_down_fail_closed",
+                check_name="Task2 DE bridge failure semantics",
+                category="runtime",
+                status="pass" if bridge_failure_ok else "fail",
+                safe_summary="Registry requires matched traffic to fail closed while unmatched traffic stays SPB DIRECT"
+                if bridge_failure_ok
+                else "Task2 bridge-down registry semantics are incomplete",
+                details={"metadata_contract_only": True, "runtime_evidence_claimed": False},
+            )
+        )
+
+        transports = {transport for transport, _ in default_matrix}
+        networks = {network for _, network in default_matrix}
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.raw_xhttp_matrix",
+                check_name="Task2 RAW/XHTTP route matrix declaration",
+                category="runtime",
+                status="pass" if matched_matrix_ok and {"raw", "xhttp"}.issubset(transports) else "fail",
+                safe_summary="RAW and XHTTP are represented in the route contract",
+                details={
+                    "declared_transports": sorted(transports),
+                    "matched_matrix": sorted(f"{transport}:{network}" for transport, network in matched_matrix),
+                    "metadata_contract_only": True,
+                },
+            )
+        )
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.tcp_udp_matrix",
+                check_name="Task2 TCP/UDP route matrix declaration",
+                category="runtime",
+                status="pass" if matched_matrix_ok and {"tcp", "udp"}.issubset(networks) else "fail",
+                safe_summary="TCP and UDP are represented in the route contract",
+                details={"declared_networks": sorted(networks), "metadata_contract_only": True},
+            )
+        )
+
+        leak_route_keys = {str(getattr(entry, "route_key", "")) for entry, _ in route_metadata}
+        leak_contract_ok = {
+            "leak-dns-no-policy-bypass",
+            "leak-ipv6-approved-or-blocked",
+        }.issubset(leak_route_keys)
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.dns_ipv6_leak_policy",
+                check_name="Task2 DNS and IPv6 leak policy declaration",
+                category="runtime",
+                status="pass" if leak_contract_ok else "fail",
+                safe_summary="DNS and IPv6 leak expectations are explicit"
+                if leak_contract_ok
+                else "Task2 DNS or IPv6 leak expectation is missing",
+                details={"metadata_contract_only": True, "runtime_evidence_claimed": False},
+            )
+        )
+
+        registry_ok = (
+            len(route_entries) >= 43
+            and category_contract_ok
+            and default_matrix_ok
+            and matched_matrix_ok
+            and bridge_failure_ok
+        )
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.route_registry",
+                check_name="Task2 route registry contract",
+                category="route_registry",
+                status="pass" if registry_ok else "fail",
+                safe_summary="Task2 route registry has complete declared coverage"
+                if registry_ok
+                else "Task2 route registry is missing required declared coverage",
+                details={
+                    "route_count": len(route_entries),
+                    "minimum_route_count": 43,
+                    "registry_key": suite_spec.get("required_route_registry"),
+                },
+            )
+        )
+
+        runtime_not_claimed = str(suite_metadata.get("runtime_evidence_status") or "") == "not_claimed"
+        readiness_setting_enabled = bool(settings.remnawave_spb_de_exceptions_data_plane_ready)
+        readiness_enabled = False
+        readiness_reason = "kill_switch_disabled"
+        if readiness_setting_enabled:
+            try:
+                readiness_enabled = ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+                readiness_reason = "signed_attestation_verified"
+            except VpnProductReadinessError as exc:
+                readiness_reason = exc.reason
+        readiness_contract_ok = (runtime_not_claimed and not readiness_setting_enabled) or (
+            not runtime_not_claimed and readiness_enabled
+        )
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.readiness_gate",
+                check_name="Task2 production readiness remains fail closed",
+                category="runtime",
+                status="pass" if readiness_contract_ok else "fail",
+                safe_summary="Task2 remains disabled while runtime evidence is not claimed"
+                if runtime_not_claimed and not readiness_enabled
+                else "Task2 readiness conflicts with the suite runtime evidence state",
+                details={
+                    "runtime_evidence_status": suite_metadata.get("runtime_evidence_status"),
+                    "kill_switch_enabled": readiness_setting_enabled,
+                    "data_plane_ready": readiness_enabled,
+                    "readiness_reason": readiness_reason,
+                },
+            )
+        )
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.runtime_evidence",
+                check_name="Task2 production runtime evidence",
+                category="runtime",
+                status="degraded" if runtime_not_claimed else "pass",
+                severity="warning",
+                safe_summary="Production route evidence is intentionally not claimed"
+                if runtime_not_claimed
+                else "Production route evidence is declared by the suite",
+                details={"runtime_evidence_status": suite_metadata.get("runtime_evidence_status")},
+            )
+        )
+        return results
+
     async def _contract_results(
         self,
         suite_spec: dict[str, Any],
@@ -908,6 +1343,10 @@ class VpnTesterService:
                 details={"suite_key": suite_spec.get("suite_key"), "version": suite_spec.get("version")},
             )
         )
+
+        if suite_spec.get("suite_key") == "premium_spb_de_exceptions_v1":
+            results.extend(self._spb_de_exceptions_contract_results(suite_spec, plans, route_entries))
+            return results
 
         target_codes = set(_str_list(suite_spec.get("target_plan_codes") or settings.remnawave_smart_ru_plan_codes))
         target_plans = [
@@ -1013,6 +1452,22 @@ class VpnTesterService:
         *,
         generated_mihomo_artifact: Any = None,
     ) -> list[dict[str, Any]]:
+        if run.suite_key == "premium_spb_de_exceptions_v1":
+            return [
+                _result(
+                    check_key="premium_spb_de_exceptions.runtime.dispatch",
+                    check_name="Task2 runtime agent compatibility",
+                    category="runtime",
+                    status="fail",
+                    severity="error",
+                    safe_summary="Task2 runtime dispatch is disabled until a Task2-aware agent is implemented",
+                    details={
+                        "runtime_agent_dispatched": False,
+                        "runtime_evidence_status": "not_claimed",
+                        "smart_ru_agent_reuse_forbidden": True,
+                    },
+                )
+            ]
         if not settings.vpn_tester_runtime_enabled:
             return [
                 _result(
@@ -1227,6 +1682,18 @@ class VpnTesterService:
                 "Remnawave VLESS Reality XHTTP inbound",
             ),
             ("remnawave.hosts.transport_matrix", "Remnawave Smart RU host transport matrix"),
+            (
+                "remnawave.config_profiles.de_smart_ru_server_routing",
+                "Remnawave DE Smart RU server routing profile",
+            ),
+            (
+                "remnawave.config_profiles.moscow_smart_global_routing",
+                "Remnawave Moscow Smart Global server routing profile",
+            ),
+            (
+                "remnawave.external_squads.premium_smart_ru_headers",
+                "Remnawave Premium Smart RU external squad headers",
+            ),
         )
 
         def failed_results(reason: str, error_type: str | None = None) -> list[dict[str, Any]]:
@@ -1250,19 +1717,80 @@ class VpnTesterService:
             return failed_results("remnawave_client_not_configured")
 
         try:
+            config_profiles_payload = await self._remnawave_client.get("/config-profiles")
             inbounds_payload = await self._remnawave_client.get("/config-profiles/inbounds")
             hosts_payload = await self._remnawave_client.get("/hosts")
             squads_payload = await self._remnawave_client.get("/internal-squads")
+            external_squads_payload = await self._remnawave_client.get("/external-squads")
             nodes_payload = await self._remnawave_client.get("/nodes")
         except HTTPError as exc:
             return failed_results("remnawave_transport_endpoints_unavailable", type(exc).__name__)
 
+        config_profiles = _extract_collection(config_profiles_payload, "configProfiles")
         inbounds = _extract_collection(inbounds_payload, "inbounds")
         hosts = _extract_collection(hosts_payload, "hosts")
         squads = _extract_collection(squads_payload, "internalSquads")
+        external_squads = _extract_collection(external_squads_payload, "externalSquads")
         nodes = _extract_nodes(nodes_payload)
         raw_rows = [row for row in inbounds if str(row.get("tag") or "") == "VLESS_REALITY_443"]
         xhttp_rows = [row for row in inbounds if str(row.get("tag") or "") == "VLESS_XHTTP_REALITY_8443"]
+        de_raw_rows = [row for row in inbounds if str(row.get("tag") or "") == "DE_SMART_REALITY_443"]
+        de_xhttp_rows = [row for row in inbounds if str(row.get("tag") or "") == "DE_SMART_XHTTP_REALITY_8443"]
+        moscow_raw_rows = [row for row in inbounds if str(row.get("tag") or "") == "MSK_SMART_REALITY_443"]
+        moscow_xhttp_rows = [row for row in inbounds if str(row.get("tag") or "") == "MSK_SMART_XHTTP_REALITY_8443"]
+
+        de_profile_refs = [
+            row for row in config_profiles if str(row.get("name") or "") == PREMIUM_SMART_RU_DE_PROFILE_NAME
+        ]
+        de_profile_ref = de_profile_refs[0] if len(de_profile_refs) == 1 else None
+        de_profile = de_profile_ref
+        de_profile_detail_fetched = False
+        if isinstance(de_profile_ref, Mapping) and not _profile_has_runtime_config(de_profile_ref):
+            profile_uuid = str(de_profile_ref.get("uuid") or "")
+            if profile_uuid:
+                try:
+                    de_profile = _extract_mapping_payload(
+                        await self._remnawave_client.get(f"/config-profiles/{profile_uuid}")
+                    )
+                    de_profile_detail_fetched = True
+                except HTTPError as exc:
+                    return failed_results("remnawave_config_profile_detail_unavailable", type(exc).__name__)
+        de_profile_details = _safe_de_smart_config_profile_contract(de_profile)
+        de_profile_details["profile_match_count"] = len(de_profile_refs)
+        de_profile_valid = bool(de_profile_details.pop("valid"))
+        de_profile_valid = de_profile_valid and len(de_profile_refs) == 1
+        de_profile_details["detail_fetched"] = de_profile_detail_fetched
+
+        moscow_profile_refs = [
+            row for row in config_profiles if str(row.get("name") or "") == PREMIUM_SMART_RU_MOSCOW_PROFILE_NAME
+        ]
+        moscow_profile_ref = moscow_profile_refs[0] if len(moscow_profile_refs) == 1 else None
+        moscow_profile = moscow_profile_ref
+        moscow_profile_detail_fetched = False
+        if isinstance(moscow_profile_ref, Mapping) and not _profile_has_runtime_config(moscow_profile_ref):
+            profile_uuid = str(moscow_profile_ref.get("uuid") or "")
+            if profile_uuid:
+                try:
+                    moscow_profile = _extract_mapping_payload(
+                        await self._remnawave_client.get(f"/config-profiles/{profile_uuid}")
+                    )
+                    moscow_profile_detail_fetched = True
+                except HTTPError as exc:
+                    return failed_results("remnawave_config_profile_detail_unavailable", type(exc).__name__)
+        moscow_profile_details = _safe_moscow_smart_config_profile_contract(moscow_profile)
+        moscow_profile_details["profile_match_count"] = len(moscow_profile_refs)
+        moscow_profile_valid = bool(moscow_profile_details.pop("valid"))
+        moscow_profile_valid = moscow_profile_valid and len(moscow_profile_refs) == 1
+        moscow_profile_details["detail_fetched"] = moscow_profile_detail_fetched
+
+        external_squad_refs = [
+            row for row in external_squads if str(row.get("name") or "") == PREMIUM_SMART_RU_EXTERNAL_SQUAD
+        ]
+        external_squad = external_squad_refs[0] if len(external_squad_refs) == 1 else None
+        external_squad_details = _safe_external_squad_routing_contract(external_squad)
+        external_squad_details["squad_match_count"] = len(external_squad_refs)
+        external_squad_valid = bool(external_squad_details.pop("valid"))
+        external_squad_valid = external_squad_valid and len(external_squad_refs) == 1
 
         squad = next(
             (row for row in squads if str(row.get("name") or "") == PREMIUM_SMART_RU_INTERNAL_SQUAD),
@@ -1275,8 +1803,34 @@ class VpnTesterService:
         }
         raw_contract = _safe_raw_inbound_contract(raw_rows[0]) if len(raw_rows) == 1 else {}
         xhttp_contract = _safe_xhttp_inbound_contract(xhttp_rows[0]) if len(xhttp_rows) == 1 else {}
-        raw_valid = len(raw_rows) == 1 and all(raw_contract.values()) and "VLESS_REALITY_443" in squad_tags
-        xhttp_valid = len(xhttp_rows) == 1 and all(xhttp_contract.values()) and "VLESS_XHTTP_REALITY_8443" in squad_tags
+        de_raw_contract = _safe_raw_inbound_contract(de_raw_rows[0]) if len(de_raw_rows) == 1 else {}
+        de_xhttp_contract = _safe_xhttp_inbound_contract(de_xhttp_rows[0]) if len(de_xhttp_rows) == 1 else {}
+        moscow_raw_contract = _safe_raw_inbound_contract(moscow_raw_rows[0]) if len(moscow_raw_rows) == 1 else {}
+        moscow_xhttp_contract = (
+            _safe_xhttp_inbound_contract(moscow_xhttp_rows[0]) if len(moscow_xhttp_rows) == 1 else {}
+        )
+        raw_valid = (
+            len(raw_rows) == 1
+            and len(de_raw_rows) == 1
+            and len(moscow_raw_rows) == 1
+            and all(raw_contract.values())
+            and all(de_raw_contract.values())
+            and all(moscow_raw_contract.values())
+            and "VLESS_REALITY_443" in squad_tags
+            and "DE_SMART_REALITY_443" in squad_tags
+            and "MSK_SMART_REALITY_443" in squad_tags
+        )
+        xhttp_valid = (
+            len(xhttp_rows) == 1
+            and len(de_xhttp_rows) == 1
+            and len(moscow_xhttp_rows) == 1
+            and all(xhttp_contract.values())
+            and all(de_xhttp_contract.values())
+            and all(moscow_xhttp_contract.values())
+            and "VLESS_XHTTP_REALITY_8443" in squad_tags
+            and "DE_SMART_XHTTP_REALITY_8443" in squad_tags
+            and "MSK_SMART_XHTTP_REALITY_8443" in squad_tags
+        )
         inbound_tags_by_uuid = {
             str(row.get("uuid")): str(row.get("tag") or "")
             for row in inbounds
@@ -1305,8 +1859,14 @@ class VpnTesterService:
                 else "VLESS_REALITY_443 server contract is invalid",
                 details={
                     "inbound_count": len(raw_rows),
+                    "de_inbound_count": len(de_raw_rows),
+                    "moscow_inbound_count": len(moscow_raw_rows),
                     "internal_squad_linked": "VLESS_REALITY_443" in squad_tags,
+                    "de_internal_squad_linked": "DE_SMART_REALITY_443" in squad_tags,
+                    "moscow_internal_squad_linked": "MSK_SMART_REALITY_443" in squad_tags,
                     "contract": raw_contract,
+                    "de_contract": de_raw_contract,
+                    "moscow_contract": moscow_raw_contract,
                     "secrets_redacted": True,
                 },
                 started=started,
@@ -1321,8 +1881,14 @@ class VpnTesterService:
                 else "VLESS_XHTTP_REALITY_8443 server contract is invalid",
                 details={
                     "inbound_count": len(xhttp_rows),
+                    "de_inbound_count": len(de_xhttp_rows),
+                    "moscow_inbound_count": len(moscow_xhttp_rows),
                     "internal_squad_linked": "VLESS_XHTTP_REALITY_8443" in squad_tags,
+                    "de_internal_squad_linked": "DE_SMART_XHTTP_REALITY_8443" in squad_tags,
+                    "moscow_internal_squad_linked": "MSK_SMART_XHTTP_REALITY_8443" in squad_tags,
                     "contract": xhttp_contract,
+                    "de_contract": de_xhttp_contract,
+                    "moscow_contract": moscow_xhttp_contract,
                     "secrets_redacted": True,
                 },
                 started=started,
@@ -1336,6 +1902,39 @@ class VpnTesterService:
                 if host_valid
                 else "Smart RU host transport matrix is incomplete",
                 details={**host_details, "secrets_redacted": True},
+                started=started,
+            ),
+            _result(
+                check_key="remnawave.config_profiles.de_smart_ru_server_routing",
+                check_name="Remnawave DE Smart RU server routing profile",
+                category="remnawave",
+                status="pass" if de_profile_valid else "fail",
+                safe_summary="DE Smart RU config profile routes Russian destinations through the bridge"
+                if de_profile_valid
+                else "DE Smart RU config profile routing contract is invalid",
+                details={**de_profile_details, "secrets_redacted": True},
+                started=started,
+            ),
+            _result(
+                check_key="remnawave.config_profiles.moscow_smart_global_routing",
+                check_name="Remnawave Moscow Smart Global server routing profile",
+                category="remnawave",
+                status="pass" if moscow_profile_valid else "fail",
+                safe_summary="Moscow Smart Global config profile routes global destinations through the bridge"
+                if moscow_profile_valid
+                else "Moscow Smart Global config profile routing contract is invalid",
+                details={**moscow_profile_details, "secrets_redacted": True},
+                started=started,
+            ),
+            _result(
+                check_key="remnawave.external_squads.premium_smart_ru_headers",
+                check_name="Remnawave Premium Smart RU external squad headers",
+                category="remnawave",
+                status="pass" if external_squad_valid else "fail",
+                safe_summary="Premium Smart RU external squad exposes the expected safe routing headers"
+                if external_squad_valid
+                else "Premium Smart RU external squad routing headers are invalid",
+                details={**external_squad_details, "secrets_redacted": True},
                 started=started,
             ),
         ]
@@ -1396,6 +1995,435 @@ def _extract_collection(payload: Any, collection_key: str) -> list[dict[str, Any
         if isinstance(nested, list):
             return [item for item in nested if isinstance(item, dict)]
     return []
+
+
+def _extract_mapping_payload(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, Mapping):
+        return {}
+    response = payload.get("response")
+    if len(payload) == 1 and isinstance(response, Mapping):
+        return dict(response)
+    return dict(payload)
+
+
+def _string_items(value: Any) -> list[str]:
+    if isinstance(value, list | tuple | set):
+        return [str(item) for item in value if str(item)]
+    if isinstance(value, str) and value:
+        return [value]
+    return []
+
+
+def _string_set(value: Any) -> set[str]:
+    return set(_string_items(value))
+
+
+def _int_or_zero(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _profile_config(profile: Mapping[str, Any]) -> Mapping[str, Any]:
+    config_value = profile.get("config")
+    if isinstance(config_value, Mapping):
+        return config_value
+    if isinstance(config_value, str) and config_value.strip():
+        try:
+            decoded = json.loads(config_value)
+        except json.JSONDecodeError:
+            return {}
+        return decoded if isinstance(decoded, Mapping) else {}
+    if any(key in profile for key in ("inbounds", "outbounds", "routing")):
+        return profile
+    return {}
+
+
+def _profile_has_runtime_config(profile: Mapping[str, Any]) -> bool:
+    config = _profile_config(profile)
+    return isinstance(config.get("routing"), Mapping) and isinstance(config.get("outbounds"), list)
+
+
+def _rule_has_inbound_tags(rule: Mapping[str, Any], expected_tags: tuple[str, ...]) -> bool:
+    return tuple(_string_items(rule.get("inboundTag") or rule.get("inbound_tag"))) == expected_tags
+
+
+def _rules_exclude_inbound_tag(rules: list[Mapping[str, Any]], forbidden_tag: str) -> bool:
+    return all(forbidden_tag not in _string_items(rule.get("inboundTag") or rule.get("inbound_tag")) for rule in rules)
+
+
+def _rule_outbound(rule: Mapping[str, Any]) -> str:
+    return str(rule.get("outboundTag") or rule.get("outbound_tag") or "")
+
+
+def _as_boolish(value: Any, *, expected: bool) -> bool:
+    if isinstance(value, bool):
+        return value is expected
+    normalized = str(value).strip().lower()
+    return normalized == ("true" if expected else "false")
+
+
+def _safe_de_smart_routing_contract(routing: Mapping[str, Any]) -> dict[str, Any]:
+    rules_value = routing.get("rules")
+    rules = [item for item in rules_value if isinstance(item, Mapping)] if isinstance(rules_value, list) else []
+    expected_outbounds = [
+        "BLOCK",
+        "BLOCK",
+        "BLOCK",
+        "BLOCK",
+        "BLOCK",
+        "DIRECT",
+        "BLOCK",
+        "BLOCK",
+        PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG,
+        PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG,
+        "DIRECT",
+    ]
+    contract: dict[str, Any] = {
+        "domain_strategy_ip_if_non_match": str(routing.get("domainStrategy") or routing.get("domain_strategy") or "")
+        == "IPIfNonMatch",
+        "rule_count": len(rules),
+        "rule_count_exact": len(rules) == 11,
+        "outbound_order_valid": [_rule_outbound(rule) for rule in rules] == expected_outbounds,
+        "bridge_inbound_excluded_from_customer_rules": _rules_exclude_inbound_tag(
+            rules, PREMIUM_SMART_RU_DE_BRIDGE_INBOUND_TAG
+        ),
+        "private_ip_block_rule_valid": False,
+        "private_domain_block_rule_valid": False,
+        "bittorrent_block_rule_valid": False,
+        "udp_443_block_rule_valid": False,
+        "torrent_domain_block_rule_valid": False,
+        "direct_exceptions_rule_valid": False,
+        "ads_block_rule_after_direct_valid": False,
+        "tor_block_rule_valid": False,
+        "ru_domain_bridge_rule_valid": False,
+        "ru_geoip_bridge_rule_valid": False,
+        "final_direct_rule_valid": False,
+    }
+    if len(rules) != 11:
+        return contract
+
+    contract["private_ip_block_rule_valid"] = (
+        _string_set(rules[0].get("ip")) == {"geoip:private"} and _rule_outbound(rules[0]) == "BLOCK"
+    )
+    contract["private_domain_block_rule_valid"] = (
+        _string_set(rules[1].get("domain")) == {"geosite:private"} and _rule_outbound(rules[1]) == "BLOCK"
+    )
+    contract["bittorrent_block_rule_valid"] = (
+        _string_set(rules[2].get("protocol")) == {"bittorrent"} and _rule_outbound(rules[2]) == "BLOCK"
+    )
+    contract["udp_443_block_rule_valid"] = (
+        str(rules[3].get("network") or "").lower() == "udp"
+        and str(rules[3].get("port") or "") == "443"
+        and _rule_outbound(rules[3]) == "BLOCK"
+    )
+    contract["torrent_domain_block_rule_valid"] = (
+        tuple(_string_items(rules[4].get("domain"))) == PREMIUM_SMART_RU_TORRENT_BLOCK_DOMAINS
+        and _rule_has_inbound_tags(rules[4], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[4]) == "BLOCK"
+    )
+    direct_domains = _string_set(rules[5].get("domain"))
+    contract["direct_exceptions_rule_valid"] = (
+        PREMIUM_SMART_RU_REQUIRED_DIRECT_DOMAINS.issubset(direct_domains)
+        and _rule_has_inbound_tags(rules[5], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[5]) == "DIRECT"
+    )
+    contract["ads_block_rule_after_direct_valid"] = (
+        _string_items(rules[6].get("domain")) == ["geosite:category-ads-all"]
+        and _rule_has_inbound_tags(rules[6], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[6]) == "BLOCK"
+    )
+    contract["tor_block_rule_valid"] = (
+        _string_set(rules[7].get("domain")) == PREMIUM_SMART_RU_TOR_BLOCK_DOMAINS
+        and _rule_has_inbound_tags(rules[7], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[7]) == "BLOCK"
+    )
+    ru_domains = _string_set(rules[8].get("domain"))
+    contract["ru_domain_bridge_rule_valid"] = (
+        PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS.issubset(ru_domains)
+        and _rule_has_inbound_tags(rules[8], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[8]) == PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG
+    )
+    contract["ru_geoip_bridge_rule_valid"] = (
+        _string_items(rules[9].get("ip")) == ["geoip:ru"]
+        and _rule_has_inbound_tags(rules[9], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[9]) == PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG
+    )
+    contract["final_direct_rule_valid"] = (
+        _rule_has_inbound_tags(rules[10], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[10]) == "DIRECT"
+    )
+    return contract
+
+
+def _safe_de_smart_config_profile_contract(profile: Mapping[str, Any] | None) -> dict[str, Any]:
+    config = _profile_config(profile or {})
+    inbounds_value = config.get("inbounds") or (profile or {}).get("inbounds")
+    inbounds = (
+        [item for item in inbounds_value if isinstance(item, Mapping)] if isinstance(inbounds_value, list) else []
+    )
+    inbound_tags = [str(item.get("tag") or "") for item in inbounds if item.get("tag")]
+    de_inbound_tags = [tag for tag in inbound_tags if tag in PREMIUM_SMART_RU_DE_PROFILE_INBOUND_TAGS]
+    de_customer_inbound_tags = [tag for tag in inbound_tags if tag in PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS]
+    de_bridge_inbound_tags = [tag for tag in inbound_tags if tag == PREMIUM_SMART_RU_DE_BRIDGE_INBOUND_TAG]
+
+    outbounds_value = config.get("outbounds")
+    outbounds = (
+        [item for item in outbounds_value if isinstance(item, Mapping)] if isinstance(outbounds_value, list) else []
+    )
+    bridge_outbounds = [
+        item for item in outbounds if str(item.get("tag") or "") == PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG
+    ]
+    bridge = bridge_outbounds[0] if len(bridge_outbounds) == 1 else {}
+    settings_value = bridge.get("settings") if isinstance(bridge, Mapping) else {}
+    settings_map = settings_value if isinstance(settings_value, Mapping) else {}
+    servers_value = settings_map.get("servers")
+    servers = [item for item in servers_value if isinstance(item, Mapping)] if isinstance(servers_value, list) else []
+    server = servers[0] if len(servers) == 1 else {}
+    routing_value = config.get("routing")
+    routing = routing_value if isinstance(routing_value, Mapping) else {}
+    routing_contract = _safe_de_smart_routing_contract(routing)
+    details: dict[str, Any] = {
+        "profile_found": profile is not None,
+        "profile_config_present": bool(config),
+        "de_inbound_tag_count": len(de_inbound_tags),
+        "de_inbound_tags_exact": tuple(de_inbound_tags) == PREMIUM_SMART_RU_DE_PROFILE_INBOUND_TAGS
+        and len(inbound_tags) == 3,
+        "de_customer_inbound_tags_exact": tuple(de_customer_inbound_tags) == PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS,
+        "de_global_bridge_inbound_present": tuple(de_bridge_inbound_tags) == (PREMIUM_SMART_RU_DE_BRIDGE_INBOUND_TAG,),
+        "bridge_outbound_count": len(bridge_outbounds),
+        "bridge_outbound_present": len(bridge_outbounds) == 1,
+        "bridge_protocol_shadowsocks": str(bridge.get("protocol") or "").lower() == "shadowsocks",
+        "bridge_server_count": len(servers),
+        "bridge_single_server": len(servers) == 1,
+        "bridge_address_present": bool(server.get("address")),
+        "bridge_method_valid": str(server.get("method") or "") == PREMIUM_SMART_RU_BRIDGE_METHOD,
+        "bridge_port_valid": _int_or_zero(server.get("port")) == PREMIUM_SMART_RU_BRIDGE_PORT,
+        "bridge_password_present": bool(server.get("password")),
+        "routing": routing_contract,
+    }
+    details["valid"] = (
+        details["profile_found"]
+        and details["profile_config_present"]
+        and details["de_inbound_tags_exact"]
+        and details["bridge_outbound_present"]
+        and details["bridge_protocol_shadowsocks"]
+        and details["bridge_single_server"]
+        and details["bridge_address_present"]
+        and details["bridge_method_valid"]
+        and details["bridge_port_valid"]
+        and details["bridge_password_present"]
+        and all(value is True for key, value in routing_contract.items() if key != "rule_count")
+    )
+    return details
+
+
+def _safe_moscow_smart_routing_contract(routing: Mapping[str, Any]) -> dict[str, Any]:
+    rules_value = routing.get("rules")
+    rules = [item for item in rules_value if isinstance(item, Mapping)] if isinstance(rules_value, list) else []
+    expected_outbounds = [
+        "BLOCK",
+        "BLOCK",
+        "BLOCK",
+        "BLOCK",
+        "BLOCK",
+        "BLOCK",
+        "BLOCK",
+        "DIRECT",
+        "DIRECT",
+        PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG,
+    ]
+    contract: dict[str, Any] = {
+        "domain_strategy_ip_if_non_match": str(routing.get("domainStrategy") or routing.get("domain_strategy") or "")
+        == "IPIfNonMatch",
+        "rule_count": len(rules),
+        "rule_count_exact": len(rules) == 10,
+        "outbound_order_valid": [_rule_outbound(rule) for rule in rules] == expected_outbounds,
+        "all_rules_customer_scoped": all(
+            _rule_has_inbound_tags(rule, PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS) for rule in rules
+        ),
+        "bridge_inbound_excluded_from_customer_rules": _rules_exclude_inbound_tag(
+            rules, PREMIUM_SMART_RU_MOSCOW_BRIDGE_INBOUND_TAG
+        ),
+        "private_ip_block_rule_valid": False,
+        "private_domain_block_rule_valid": False,
+        "bittorrent_block_rule_valid": False,
+        "udp_443_block_rule_valid": False,
+        "torrent_domain_block_rule_valid": False,
+        "ads_block_rule_valid": False,
+        "tor_block_rule_valid": False,
+        "ru_domain_direct_rule_valid": False,
+        "ru_geoip_direct_rule_valid": False,
+        "final_global_bridge_rule_valid": False,
+    }
+    if len(rules) != 10:
+        return contract
+
+    contract["private_ip_block_rule_valid"] = (
+        _string_set(rules[0].get("ip")) == {"geoip:private"}
+        and _rule_has_inbound_tags(rules[0], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[0]) == "BLOCK"
+    )
+    contract["private_domain_block_rule_valid"] = (
+        _string_set(rules[1].get("domain")) == {"geosite:private"}
+        and _rule_has_inbound_tags(rules[1], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[1]) == "BLOCK"
+    )
+    contract["bittorrent_block_rule_valid"] = (
+        _string_set(rules[2].get("protocol")) == {"bittorrent"}
+        and _rule_has_inbound_tags(rules[2], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[2]) == "BLOCK"
+    )
+    contract["udp_443_block_rule_valid"] = (
+        str(rules[3].get("network") or "").lower() == "udp"
+        and str(rules[3].get("port") or "") == "443"
+        and _rule_has_inbound_tags(rules[3], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[3]) == "BLOCK"
+    )
+    contract["torrent_domain_block_rule_valid"] = (
+        tuple(_string_items(rules[4].get("domain"))) == PREMIUM_SMART_RU_TORRENT_BLOCK_DOMAINS
+        and _rule_has_inbound_tags(rules[4], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[4]) == "BLOCK"
+    )
+    contract["ads_block_rule_valid"] = (
+        _string_items(rules[5].get("domain")) == ["geosite:category-ads-all"]
+        and _rule_has_inbound_tags(rules[5], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[5]) == "BLOCK"
+    )
+    contract["tor_block_rule_valid"] = (
+        _string_set(rules[6].get("domain")) == PREMIUM_SMART_RU_TOR_BLOCK_DOMAINS
+        and _rule_has_inbound_tags(rules[6], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[6]) == "BLOCK"
+    )
+    ru_domains = _string_set(rules[7].get("domain"))
+    contract["ru_domain_direct_rule_valid"] = (
+        PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS.issubset(ru_domains)
+        and _rule_has_inbound_tags(rules[7], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[7]) == "DIRECT"
+    )
+    contract["ru_geoip_direct_rule_valid"] = (
+        _string_items(rules[8].get("ip")) == ["geoip:ru"]
+        and _rule_has_inbound_tags(rules[8], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[8]) == "DIRECT"
+    )
+    contract["final_global_bridge_rule_valid"] = (
+        _rule_has_inbound_tags(rules[9], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        and _rule_outbound(rules[9]) == PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG
+    )
+    return contract
+
+
+def _safe_moscow_smart_config_profile_contract(profile: Mapping[str, Any] | None) -> dict[str, Any]:
+    config = _profile_config(profile or {})
+    inbounds_value = config.get("inbounds") or (profile or {}).get("inbounds")
+    inbounds = (
+        [item for item in inbounds_value if isinstance(item, Mapping)] if isinstance(inbounds_value, list) else []
+    )
+    inbound_tags = [str(item.get("tag") or "") for item in inbounds if item.get("tag")]
+    moscow_inbound_tags = [tag for tag in inbound_tags if tag in PREMIUM_SMART_RU_MOSCOW_PROFILE_INBOUND_TAGS]
+    moscow_customer_inbound_tags = [tag for tag in inbound_tags if tag in PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS]
+    moscow_bridge_inbound_tags = [tag for tag in inbound_tags if tag == PREMIUM_SMART_RU_MOSCOW_BRIDGE_INBOUND_TAG]
+
+    outbounds_value = config.get("outbounds")
+    outbounds = (
+        [item for item in outbounds_value if isinstance(item, Mapping)] if isinstance(outbounds_value, list) else []
+    )
+    bridge_outbounds = [
+        item for item in outbounds if str(item.get("tag") or "") == PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG
+    ]
+    bridge = bridge_outbounds[0] if len(bridge_outbounds) == 1 else {}
+    settings_value = bridge.get("settings") if isinstance(bridge, Mapping) else {}
+    settings_map = settings_value if isinstance(settings_value, Mapping) else {}
+    servers_value = settings_map.get("servers")
+    servers = [item for item in servers_value if isinstance(item, Mapping)] if isinstance(servers_value, list) else []
+    server = servers[0] if len(servers) == 1 else {}
+    routing_value = config.get("routing")
+    routing = routing_value if isinstance(routing_value, Mapping) else {}
+    routing_contract = _safe_moscow_smart_routing_contract(routing)
+    details: dict[str, Any] = {
+        "profile_found": profile is not None,
+        "profile_config_present": bool(config),
+        "moscow_inbound_tag_count": len(moscow_inbound_tags),
+        "moscow_inbound_tags_exact": tuple(moscow_inbound_tags) == PREMIUM_SMART_RU_MOSCOW_PROFILE_INBOUND_TAGS
+        and len(inbound_tags) == 3,
+        "moscow_customer_inbound_tags_exact": tuple(moscow_customer_inbound_tags)
+        == PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS,
+        "moscow_bridge_inbound_present": tuple(moscow_bridge_inbound_tags)
+        == (PREMIUM_SMART_RU_MOSCOW_BRIDGE_INBOUND_TAG,),
+        "bridge_outbound_count": len(bridge_outbounds),
+        "bridge_outbound_present": len(bridge_outbounds) == 1,
+        "bridge_protocol_shadowsocks": str(bridge.get("protocol") or "").lower() == "shadowsocks",
+        "bridge_server_count": len(servers),
+        "bridge_single_server": len(servers) == 1,
+        "bridge_address_present": bool(server.get("address")),
+        "bridge_method_valid": str(server.get("method") or "") == PREMIUM_SMART_RU_BRIDGE_METHOD,
+        "bridge_port_valid": _int_or_zero(server.get("port")) == PREMIUM_SMART_RU_BRIDGE_PORT,
+        "bridge_password_present": bool(server.get("password")),
+        "routing": routing_contract,
+    }
+    details["valid"] = (
+        details["profile_found"]
+        and details["profile_config_present"]
+        and details["moscow_inbound_tags_exact"]
+        and details["moscow_bridge_inbound_present"]
+        and details["bridge_outbound_present"]
+        and details["bridge_protocol_shadowsocks"]
+        and details["bridge_single_server"]
+        and details["bridge_address_present"]
+        and details["bridge_method_valid"]
+        and details["bridge_port_valid"]
+        and details["bridge_password_present"]
+        and all(value is True for key, value in routing_contract.items() if key != "rule_count")
+    )
+    return details
+
+
+def _decode_external_routing_header(value: Any) -> tuple[Mapping[str, Any], str | None]:
+    if not isinstance(value, str) or not value.strip():
+        return {}, "missing_routing_header"
+    normalized = value.strip()
+    padded = normalized + ("=" * (-len(normalized) % 4))
+    try:
+        decoded = base64.b64decode(padded, validate=True).decode("utf-8")
+        payload = json.loads(decoded)
+    except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError):
+        return {}, "malformed_routing_header"
+    if not isinstance(payload, Mapping):
+        return {}, "routing_header_not_json_object"
+    return payload, None
+
+
+def _safe_external_squad_routing_contract(squad: Mapping[str, Any] | None) -> dict[str, Any]:
+    headers_value = (squad or {}).get("responseHeaders") or (squad or {}).get("response_headers")
+    headers = headers_value if isinstance(headers_value, Mapping) else {}
+    routing_payload, decode_error = _decode_external_routing_header(headers.get("routing"))
+    block_sites_value = routing_payload.get("BlockSites")
+    block_sites = _string_items(block_sites_value)
+    details: dict[str, Any] = {
+        "squad_found": squad is not None,
+        "response_headers_present": bool(headers),
+        "routing_header_present": isinstance(headers.get("routing"), str) and bool(str(headers.get("routing")).strip()),
+        "routing_header_decoded": decode_error is None,
+        "routing_decode_error": decode_error,
+        "name_valid": str(routing_payload.get("Name") or "") == "CyberVPN Premium Smart RU",
+        "global_proxy_enabled": _as_boolish(routing_payload.get("GlobalProxy"), expected=True),
+        "dns_type_doh": str(routing_payload.get("RemoteDNSType") or "") == "DoH",
+        "dns_domain_valid": str(routing_payload.get("RemoteDNSDomain") or "") == "https://cloudflare-dns.com/dns-query",
+        "dns_ip_valid": str(routing_payload.get("RemoteDNSIP") or "") == "1.1.1.1",
+        "domain_strategy_valid": str(routing_payload.get("DomainStrategy") or "") == "AsIs",
+        "fake_dns_disabled": _as_boolish(routing_payload.get("FakeDNS"), expected=False),
+        "block_sites_count": len(block_sites),
+        "block_sites_exact": tuple(block_sites) == PREMIUM_SMART_RU_EXTERNAL_ROUTING_BLOCK_SITES,
+        "block_ip_empty": routing_payload.get("BlockIp") == [],
+        "plan_header_valid": str(headers.get("x-cybervpn-plan") or "") == "premium_smart_ru",
+        "routing_header_marker_valid": str(headers.get("x-cybervpn-routing") or "") == "de-primary-ru-smart",
+        "unlimited_header_valid": str(headers.get("x-cybervpn-unlimited") or "").lower() == "true",
+    }
+    details["valid"] = all(
+        value is True for key, value in details.items() if key not in {"routing_decode_error", "block_sites_count"}
+    )
+    return details
 
 
 def _safe_inbound_parts(inbound: Mapping[str, Any]) -> tuple[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]]:
@@ -1469,10 +2497,14 @@ def _safe_transport_host_matrix(
     node_names_by_uuid: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     expected = {
-        (address, 443, "VLESS_REALITY_443", node_name) for address, node_name in PREMIUM_SMART_RU_NODE_HOSTS.items()
-    } | {
-        (address, 8443, "VLESS_XHTTP_REALITY_8443", node_name)
+        (
+            address,
+            PREMIUM_SMART_RU_HOST_TRANSPORTS[address][transport][0],
+            PREMIUM_SMART_RU_HOST_TRANSPORTS[address][transport][1],
+            node_name,
+        )
         for address, node_name in PREMIUM_SMART_RU_NODE_HOSTS.items()
+        for transport in ("raw", "xhttp")
     }
     actual_counts: Counter[tuple[str, int, str, str]] = Counter()
     candidate_host_count = 0
@@ -1524,8 +2556,8 @@ def _safe_transport_host_matrix(
     missing = expected - actual
     unexpected = actual - expected
     duplicate_link_count = sum(count - 1 for count in actual_counts.values() if count > 1)
-    raw_host_count = len({item for item in actual if item[2] == "VLESS_REALITY_443"})
-    xhttp_host_count = len({item for item in actual if item[2] == "VLESS_XHTTP_REALITY_8443"})
+    raw_host_count = len({item for item in actual if item[2] in PREMIUM_SMART_RU_RAW_INBOUND_TAGS})
+    xhttp_host_count = len({item for item in actual if item[2] in PREMIUM_SMART_RU_XHTTP_INBOUND_TAGS})
     return {
         "valid": not missing
         and not unexpected

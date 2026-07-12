@@ -8,6 +8,17 @@ import pytest
 from tests.remnawave_fixtures import load_remnawave_fixture
 
 
+def test_remnawave_client_ignores_ambient_proxy_environment(monkeypatch):
+    monkeypatch.setenv("HTTPS_PROXY", "http://proxy.invalid:3128")
+    monkeypatch.setenv("ALL_PROXY", "http://proxy.invalid:3128")
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as client_cls:
+        from src.services.remnawave_client import RemnawaveClient
+
+        RemnawaveClient()
+
+    assert client_cls.call_args.kwargs["trust_env"] is False
+
+
 @pytest.mark.asyncio
 async def test_remnawave_client_get_users():
     """Test RemnawaveClient get_users returns user list."""

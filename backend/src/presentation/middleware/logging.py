@@ -10,7 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.config.settings import settings
 from src.presentation.middleware.request_id import get_request_id
-from src.shared.logging.sanitization import sanitize_url
+from src.shared.logging.sanitization import sanitize_path_params, sanitize_url
 
 logger = logging.getLogger("cybervpn")
 
@@ -28,7 +28,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         request_id = get_request_id() or "-"
 
         # Sanitize URL if enabled (LOW-004)
-        url_path = request.url.path
+        url_path = sanitize_path_params(request.url.path)
         if request.url.query:
             full_url = f"{url_path}?{request.url.query}"
             if getattr(settings, "log_sanitization_enabled", True):

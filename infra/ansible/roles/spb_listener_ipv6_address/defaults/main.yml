@@ -1,0 +1,21 @@
+---
+spb_listener_ipv6_address_enabled: false
+spb_listener_ipv6_address_action: deploy
+
+spb_listener_ipv6_address_expected_host_ipv4: "193.233.91.99"
+spb_listener_ipv6_address_interface: ""
+spb_listener_ipv6_address_address: "2a01:e5c0:1368::3"
+spb_listener_ipv6_address_prefix_length: 48
+spb_listener_ipv6_address_expected_prefix: "2a01:e5c0:1368::/48"
+spb_listener_ipv6_address_cidr: "{{ spb_listener_ipv6_address_address }}/{{ spb_listener_ipv6_address_prefix_length }}"
+
+spb_listener_ipv6_address_ip_binary: /usr/sbin/ip
+spb_listener_ipv6_address_script_path: /usr/local/sbin/cybervpn-spb-listener-ipv6
+spb_listener_ipv6_address_unit_name: cybervpn-spb-listener-ipv6
+spb_listener_ipv6_address_runtime_directory: cybervpn-spb-listener-ipv6
+spb_listener_ipv6_address_state_dir: "/run/{{ spb_listener_ipv6_address_runtime_directory }}"
+spb_listener_ipv6_address_dad_wait_attempts: 10
+spb_listener_ipv6_address_dad_wait_seconds: 1
+
+spb_listener_ipv6_address_unit_memory_max: 32M
+spb_listener_ipv6_address_unit_tasks_max: 32

@@ -160,9 +160,12 @@ dns:
     - https://1.1.1.1/dns-query
   proxy-server-nameserver:
     # DNS для доменов самих прокси-нод Remnawave.
-    - https://8.8.8.8/dns-query#🌍 World / EU
-    - https://1.1.1.1/dns-query#🌍 World / EU
-    - https://77.88.8.8/dns-query#🇷🇺 RU Sites
+    # Bootstrap обязан работать до первого VPN-соединения и не может идти
+    # через ещё не разрешённый proxy endpoint.
+    - system
+    - https://8.8.8.8/dns-query
+    - https://1.1.1.1/dns-query
+    - https://77.88.8.8/dns-query
   direct-nameserver:
     - system
     - https://77.88.8.8/dns-query
@@ -367,8 +370,9 @@ proxy-groups:
     include-all: true
     filter: '(?i)(🇷🇺|\bRU\b|Russia|Россия|Москва|Moscow|MSK|MOW|Санкт|Петербург|Питер|SPB|LED|Saint.?Petersburg|St.?Petersburg)'
     exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
-    # Проверяем доступность RU-ноды. Для строгих клиентов можно заменить на https://www.gstatic.com/generate_204.
-    url: https://ya.ru
+    # A dedicated 204 probe avoids false negatives from normal HTML redirects.
+    url: https://www.google.com/generate_204
+    expected-status: 204
     interval: 300
     tolerance: 120
     lazy: true
@@ -381,7 +385,8 @@ proxy-groups:
     include-all: true
     filter: '(?i)(Москва|Moscow|MSK|MOW)'
     exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
-    url: https://ya.ru
+    url: https://www.google.com/generate_204
+    expected-status: 204
     interval: 300
     tolerance: 120
     lazy: true
@@ -394,7 +399,8 @@ proxy-groups:
     include-all: true
     filter: '(?i)(Санкт|Петербург|Питер|Saint.?Petersburg|St.?Petersburg|SPB|LED)'
     exclude-filter: '(?i)(DNS-OUT|DIRECT|Direct|REJECT|REJECT-DROP|COMPATIBLE)'
-    url: https://ya.ru
+    url: https://www.google.com/generate_204
+    expected-status: 204
     interval: 300
     tolerance: 120
     lazy: true

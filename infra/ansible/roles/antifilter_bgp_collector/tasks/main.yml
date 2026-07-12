@@ -1,0 +1,23 @@
+---
+- name: Antifilter BGP collector | Assert supported action
+  ansible.builtin.assert:
+    that:
+      - antifilter_bgp_collector_action in ['deploy', 'verify']
+    fail_msg: "antifilter_bgp_collector_action must be deploy or verify."
+
+- name: Antifilter BGP collector | Validate configuration
+  ansible.builtin.import_tasks: validate.yml
+  when: antifilter_bgp_collector_enabled | bool
+
+- name: Antifilter BGP collector | Deploy collector
+  ansible.builtin.import_tasks: deploy.yml
+  when:
+    - antifilter_bgp_collector_enabled | bool
+    - antifilter_bgp_collector_action == 'deploy'
+
+- name: Antifilter BGP collector | Verify collector
+  ansible.builtin.import_tasks: verify.yml
+  when:
+    - antifilter_bgp_collector_enabled | bool
+    - antifilter_bgp_collector_action in ['deploy', 'verify']
+    - not ansible_check_mode

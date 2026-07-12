@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -7,6 +8,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.entitlements_service import EntitlementsService
@@ -49,6 +51,11 @@ from src.infrastructure.remnawave.smart_ru_bundle import (
     SmartRuConfigurationError,
     resolve_smart_ru_external_squad_uuid,
     resolve_smart_ru_internal_squad_uuids,
+)
+from src.infrastructure.remnawave.spb_de_exceptions_bundle import (
+    SpbDeExceptionsConfigurationError,
+    SpbDeExceptionsRoutingBundle,
+    resolve_spb_de_exceptions_bundle,
 )
 from src.infrastructure.remnawave.stage1_ru_bundle import resolve_stage1_ru_bundle_external_squad_uuid
 from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
@@ -259,6 +266,13 @@ class CustomerSubscriptionServiceAccessUseCase:
     ) -> ServiceIdentityModel | None:
         customer_account_id = grant.customer_account_id if grant is not None else await self._customer_id(item)
         auth_realm_id = grant.auth_realm_id if grant is not None else await self._auth_realm_id(item)
+        await _acquire_selected_subscription_provisioning_lock(
+            self._session,
+            customer_account_id=customer_account_id,
+            auth_realm_id=auth_realm_id,
+            provider_name=provider_name,
+            subscription_key=item.subscription_key,
+        )
         existing = await self._repo.get_service_identity_by_subscription_key(
             customer_account_id=customer_account_id,
             auth_realm_id=auth_realm_id,
@@ -266,6 +280,9 @@ class CustomerSubscriptionServiceAccessUseCase:
             subscription_key=item.subscription_key,
         )
         if existing is not None and existing.provider_subject_ref:
+            spb_de_exceptions_bundle = _resolve_spb_de_exceptions_bundle_or_http(item.plan_code)
+            if spb_de_exceptions_bundle is not None and (remnawave_client is None or grant is None):
+                _assert_spb_de_exceptions_context(existing, spb_de_exceptions_bundle)
             if grant is not None and grant.service_identity_id != existing.id:
                 grant.service_identity_id = existing.id
                 await self._session.flush()
@@ -305,6 +322,8 @@ class CustomerSubscriptionServiceAccessUseCase:
         remnawave_client: RemnawaveClient | None,
         existing: ServiceIdentityModel | None,
     ) -> ServiceIdentityModel:
+        spb_de_exceptions_bundle = _resolve_spb_de_exceptions_bundle_or_http(item.plan_code)
+
         if remnawave_client is None:
             if (
                 existing is not None
@@ -312,6 +331,8 @@ class CustomerSubscriptionServiceAccessUseCase:
                 and existing.identity_scope == "subscription"
                 and existing.subscription_key == item.subscription_key
             ):
+                if spb_de_exceptions_bundle is not None:
+                    _assert_spb_de_exceptions_context(existing, spb_de_exceptions_bundle)
                 return existing
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -348,21 +369,29 @@ class CustomerSubscriptionServiceAccessUseCase:
             )
         else:
             payload["expire_at"] = datetime.now(UTC) + timedelta(days=3650)
-        try:
-            smart_ru_external_squad_uuid = resolve_smart_ru_external_squad_uuid(item.plan_code)
-            smart_ru_internal_squad_uuids = resolve_smart_ru_internal_squad_uuids(item.plan_code)
-        except SmartRuConfigurationError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Selected subscription VPN identity requires Premium Smart RU routing configuration",
-            ) from exc
-        external_squad_uuid = smart_ru_external_squad_uuid or resolve_stage1_ru_bundle_external_squad_uuid(
-            item.plan_code
+        spb_de_exceptions_context = (
+            spb_de_exceptions_bundle.service_context() if spb_de_exceptions_bundle is not None else {}
         )
+        if spb_de_exceptions_bundle is not None:
+            external_squad_uuid = spb_de_exceptions_bundle.external_squad_uuid
+            internal_squad_uuids = list(spb_de_exceptions_bundle.internal_squad_uuids)
+        else:
+            try:
+                smart_ru_external_squad_uuid = resolve_smart_ru_external_squad_uuid(item.plan_code)
+                smart_ru_internal_squad_uuids = resolve_smart_ru_internal_squad_uuids(item.plan_code)
+            except SmartRuConfigurationError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Selected subscription VPN identity requires Premium Smart RU routing configuration",
+                ) from exc
+            external_squad_uuid = smart_ru_external_squad_uuid or resolve_stage1_ru_bundle_external_squad_uuid(
+                item.plan_code
+            )
+            internal_squad_uuids = smart_ru_internal_squad_uuids
         if external_squad_uuid:
             payload["external_squad_uuid"] = external_squad_uuid
-        if smart_ru_internal_squad_uuids:
-            payload["active_internal_squads"] = smart_ru_internal_squad_uuids
+        if internal_squad_uuids:
+            payload["active_internal_squads"] = internal_squad_uuids
 
         if (
             existing is not None
@@ -373,6 +402,18 @@ class CustomerSubscriptionServiceAccessUseCase:
             existing_uuid = _parse_remnawave_uuid(existing.provider_subject_ref)
             existing_user = await gateway.get_by_uuid(existing_uuid) if existing_uuid is not None else None
             if existing_user is not None:
+                if grant.service_identity_id != existing.id:
+                    grant.service_identity_id = existing.id
+                if spb_de_exceptions_bundle is not None and not _has_spb_de_exceptions_context(
+                    existing,
+                    spb_de_exceptions_bundle,
+                ):
+                    existing_user = await gateway.update(existing_user.uuid, **payload)
+                if spb_de_exceptions_context:
+                    existing.service_context = {
+                        **_strip_bridge_context_keys(existing.service_context),
+                        **spb_de_exceptions_context,
+                    }
                 subscription_url = normalize_public_subscription_url(existing_user.subscription_url)
                 if subscription_url:
                     if customer.remnawave_uuid != str(existing_user.uuid):
@@ -383,6 +424,7 @@ class CustomerSubscriptionServiceAccessUseCase:
                         service_identity=existing,
                         subscription_url=subscription_url,
                     )
+                if subscription_url or spb_de_exceptions_context:
                     await self._session.flush()
                 return existing
 
@@ -419,6 +461,7 @@ class CustomerSubscriptionServiceAccessUseCase:
                     "remnawave_lifetime_expire_at": payload.get("lifetime_expire_at"),
                     "upstream_expiry_mode": payload.get("upstream_expiry_mode"),
                     "upstream_expires_at": payload.get("upstream_expires_at"),
+                    **spb_de_exceptions_context,
                 },
             )
             service_identity = created.service_identity
@@ -426,7 +469,11 @@ class CustomerSubscriptionServiceAccessUseCase:
             existing.provider_subject_ref = str(created_user.uuid)
             existing.identity_status = "active"
             existing.service_context = {
-                **dict(existing.service_context or {}),
+                **(
+                    _strip_bridge_context_keys(existing.service_context)
+                    if spb_de_exceptions_context
+                    else dict(existing.service_context or {})
+                ),
                 "subscription_key": item.subscription_key,
                 "entitlement_grant_id": str(grant.id),
                 "plan_code": item.plan_code,
@@ -438,6 +485,7 @@ class CustomerSubscriptionServiceAccessUseCase:
                 "remnawave_lifetime_expire_at": payload.get("lifetime_expire_at"),
                 "upstream_expiry_mode": payload.get("upstream_expiry_mode"),
                 "upstream_expires_at": payload.get("upstream_expires_at"),
+                **spb_de_exceptions_context,
             }
             service_identity = existing
 
@@ -536,18 +584,30 @@ class CustomerSubscriptionServiceAccessUseCase:
             service_identity_id=service_identity.id,
             profile_key=profile_key,
         )
+        routing_payload = _provisioning_routing_payload(dict(service_identity.service_context or {}))
         if existing is not None:
+            if routing_payload:
+                existing_payload = _strip_bridge_context_keys(getattr(existing, "provisioning_payload", None))
+                if existing_payload.get("remnawave_routing") != routing_payload:
+                    existing.provisioning_payload = {
+                        **existing_payload,
+                        "remnawave_routing": routing_payload,
+                    }
+                    await self._session.flush()
             return existing
+        provisioning_payload: dict[str, Any] = {
+            "resolved_from": "selected_customer_subscription",
+            "subscription_key": service_identity.subscription_key,
+            "provider_name": service_identity.provider_name,
+        }
+        if routing_payload:
+            provisioning_payload["remnawave_routing"] = routing_payload
         result = await CreateProvisioningProfileUseCase(self._session).execute(
             service_identity_id=service_identity.id,
             profile_key=profile_key,
             target_channel=_default_target_channel(channel_type),
             delivery_method=channel_type,
-            provisioning_payload={
-                "resolved_from": "selected_customer_subscription",
-                "subscription_key": service_identity.subscription_key,
-                "provider_name": service_identity.provider_name,
-            },
+            provisioning_payload=provisioning_payload,
         )
         return result.provisioning_profile
 
@@ -671,6 +731,87 @@ class CustomerSubscriptionServiceAccessUseCase:
             if grant is not None:
                 return grant.auth_realm_id
         raise LookupError("Cannot resolve subscription auth realm")
+
+
+async def _acquire_selected_subscription_provisioning_lock(
+    session: Any,
+    *,
+    customer_account_id: UUID,
+    auth_realm_id: UUID,
+    provider_name: str,
+    subscription_key: str,
+) -> None:
+    get_bind = getattr(session, "get_bind", None)
+    bind = get_bind() if callable(get_bind) else None
+    dialect_name = getattr(getattr(bind, "dialect", None), "name", "")
+    if dialect_name != "postgresql":
+        return
+
+    execute = getattr(session, "execute", None)
+    if not callable(execute):
+        return
+
+    scope = (
+        f"selected-subscription-provisioning:{customer_account_id}:{auth_realm_id}:{provider_name}:{subscription_key}"
+    )
+    lock_id = int.from_bytes(hashlib.blake2b(scope.encode("utf-8"), digest_size=8).digest(), "big", signed=True)
+    await execute(text("select pg_advisory_xact_lock(:lock_id)"), {"lock_id": lock_id})
+
+
+def _resolve_spb_de_exceptions_bundle_or_http(plan_code: str | None) -> SpbDeExceptionsRoutingBundle | None:
+    try:
+        return resolve_spb_de_exceptions_bundle(plan_code)
+    except SpbDeExceptionsConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Selected subscription VPN identity requires Premium SPB/DE Exceptions routing configuration",
+        ) from exc
+
+
+def _has_spb_de_exceptions_context(
+    service_identity: ServiceIdentityModel,
+    bundle: SpbDeExceptionsRoutingBundle,
+) -> bool:
+    context = dict(service_identity.service_context or {})
+    return all(context.get(key) == value for key, value in bundle.service_context().items())
+
+
+def _assert_spb_de_exceptions_context(
+    service_identity: ServiceIdentityModel,
+    bundle: SpbDeExceptionsRoutingBundle,
+) -> None:
+    if _has_spb_de_exceptions_context(service_identity, bundle):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Selected subscription VPN identity requires Premium SPB/DE Exceptions routing configuration",
+    )
+
+
+def _provisioning_routing_payload(service_context: dict[str, Any]) -> dict[str, Any]:
+    routing_keys = (
+        "remnawave_routing_product",
+        "remnawave_external_squad_uuid",
+        "remnawave_internal_squad_uuids",
+        "remnawave_config_profile",
+        "remnawave_policy_version",
+        "remnawave_fail_closed_for_matched_exceptions",
+    )
+    return {key: service_context[key] for key in routing_keys if key in service_context}
+
+
+def _strip_bridge_context_keys(service_context: dict[str, Any] | None) -> dict[str, Any]:
+    sanitized: dict[str, Any] = {}
+    for key, value in dict(service_context or {}).items():
+        if "bridge" in str(key).lower():
+            continue
+        if isinstance(value, dict):
+            sanitized[key] = _strip_bridge_context_keys(value)
+        elif isinstance(value, list):
+            sanitized[key] = [_strip_bridge_context_keys(item) if isinstance(item, dict) else item for item in value]
+        else:
+            sanitized[key] = value
+    return sanitized
 
 
 def _parse_subscription_uuid(subscription_key: str, *, prefix: str) -> UUID:

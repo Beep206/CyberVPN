@@ -1,0 +1,216 @@
+#!/bin/sh
+set -eu
+
+ACTION="${1:-ensure}"
+IP_BIN="{{ spb_listener_ipv6_address_ip_binary }}"
+INTERFACE="{{ spb_listener_ipv6_address_interface }}"
+ADDRESS="{{ spb_listener_ipv6_address_address }}"
+PREFIX_LENGTH="{{ spb_listener_ipv6_address_prefix_length }}"
+EXPECTED_PREFIX="{{ spb_listener_ipv6_address_expected_prefix }}"
+CIDR="${ADDRESS}/${PREFIX_LENGTH}"
+STATE_DIR="{{ spb_listener_ipv6_address_state_dir }}"
+OWNED_MARKER="${STATE_DIR}/owned"
+DAD_WAIT_ATTEMPTS="{{ spb_listener_ipv6_address_dad_wait_attempts }}"
+DAD_WAIT_SECONDS="{{ spb_listener_ipv6_address_dad_wait_seconds }}"
+CREATED_TARGET=0
+
+fail() {
+  echo "cybervpn-spb-listener-ipv6: $*" >&2
+  exit 1
+}
+
+cleanup_on_error() {
+  status="$?"
+  if [ "$status" -ne 0 ] && [ "$CREATED_TARGET" = "1" ]; then
+    if "$IP_BIN" -6 addr del "$CIDR" dev "$INTERFACE" >/dev/null 2>&1; then
+      rm -f "$OWNED_MARKER"
+    else
+      echo "cybervpn-spb-listener-ipv6: cleanup failed for $CIDR on $INTERFACE" >&2
+    fi
+  fi
+  exit "$status"
+}
+
+trap cleanup_on_error EXIT
+
+case "$ACTION" in
+  ensure|remove) ;;
+  *) fail "unsupported action: $ACTION" ;;
+esac
+
+[ "$ADDRESS" = "2a01:e5c0:1368::3" ] || fail "unexpected listener address: $ADDRESS"
+[ "$PREFIX_LENGTH" = "48" ] || fail "unexpected listener prefix length: $PREFIX_LENGTH"
+[ "$EXPECTED_PREFIX" = "2a01:e5c0:1368::/48" ] || fail "unexpected routed prefix: $EXPECTED_PREFIX"
+[ "$CIDR" = "2a01:e5c0:1368::3/48" ] || fail "unexpected listener CIDR: $CIDR"
+[ "$DAD_WAIT_ATTEMPTS" -ge 1 ] || fail "DAD wait attempts must be positive"
+[ "$DAD_WAIT_ATTEMPTS" -le 60 ] || fail "DAD wait attempts are unbounded"
+[ "$DAD_WAIT_SECONDS" -ge 0 ] || fail "DAD wait seconds must be non-negative"
+[ "$DAD_WAIT_SECONDS" -le 10 ] || fail "DAD wait seconds are unbounded"
+
+printf '%s' "$INTERFACE" | /usr/bin/grep -Eq '^[A-Za-z0-9_.:-]{1,32}$' ||
+  fail "unsafe or empty interface name"
+[ "$INTERFACE" != "lo" ] || fail "refusing loopback interface"
+[ -x "$IP_BIN" ] || fail "ip binary is not executable: $IP_BIN"
+mkdir -p "$STATE_DIR"
+
+"$IP_BIN" -o link show dev "$INTERFACE" >/dev/null 2>&1 ||
+  fail "interface does not exist: $INTERFACE"
+
+target_prefixes() {
+  "$IP_BIN" -6 -o addr show dev "$INTERFACE" scope global |
+    /usr/bin/awk -v address="$ADDRESS" '
+      $3 == "inet6" && index($4, address "/") == 1 { print $4 }
+    '
+}
+
+all_target_prefixes() {
+  "$IP_BIN" -6 -o addr show scope global |
+    /usr/bin/awk -v address="$ADDRESS" '
+      $3 == "inet6" && index($4, address "/") == 1 {
+        ifname = $2
+        sub(/@.*/, "", ifname)
+        print ifname " " $4
+      }
+    '
+}
+
+target_rows() {
+  "$IP_BIN" -6 -o addr show dev "$INTERFACE" scope global |
+    /usr/bin/awk -v cidr="$CIDR" '
+      $3 == "inet6" && $4 == cidr { print }
+    '
+}
+
+exact_target_present() {
+  target_rows | /usr/bin/awk 'NF > 0 { found = 1 } END { exit(found ? 0 : 1) }'
+}
+
+assert_target_usable() {
+  rows="$(target_rows)"
+  [ -n "$rows" ] || fail "listener address is not present after apply"
+  if printf '%s\n' "$rows" |
+    /usr/bin/awk '
+      /(^|[[:space:]])(dadfailed|tentative|deprecated)([[:space:]]|$)/ {
+        bad = 1
+      }
+      END { exit(bad ? 0 : 1) }
+    '
+  then
+    fail "listener address is not usable: $rows"
+  fi
+}
+
+wait_for_target_usable() {
+  attempt=1
+  while [ "$attempt" -le "$DAD_WAIT_ATTEMPTS" ]; do
+    rows="$(target_rows)"
+    if [ -n "$rows" ]; then
+      if printf '%s\n' "$rows" |
+        /usr/bin/awk '
+          /(^|[[:space:]])dadfailed([[:space:]]|$)/ { bad = 1 }
+          END { exit(bad ? 0 : 1) }
+        '
+      then
+        fail "listener address failed duplicate-address detection: $rows"
+      fi
+      if ! printf '%s\n' "$rows" |
+        /usr/bin/awk '
+          /(^|[[:space:]])(tentative|deprecated)([[:space:]]|$)/ { bad = 1 }
+          END { exit(bad ? 0 : 1) }
+        '
+      then
+        return 0
+      fi
+    fi
+    if [ "$DAD_WAIT_SECONDS" -gt 0 ]; then
+      /usr/bin/sleep "$DAD_WAIT_SECONDS"
+    fi
+    attempt=$((attempt + 1))
+  done
+  fail "listener address did not become usable after DAD wait: $(target_rows)"
+}
+
+default_routes() {
+  "$IP_BIN" -6 route show default | /usr/bin/sort
+}
+
+non_target_addresses() {
+  "$IP_BIN" -o addr show dev "$INTERFACE" |
+    /usr/bin/awk -v cidr="$CIDR" '
+      !($3 == "inet6" && $4 == cidr) { print $3 " " $4 }
+    ' |
+    /usr/bin/sort
+}
+
+assert_no_conflicting_prefix() {
+  prefixes="$(target_prefixes)"
+  if [ -n "$prefixes" ] && printf '%s\n' "$prefixes" | /usr/bin/grep -Fvx "$CIDR" >/dev/null; then
+    fail "listener address exists with a different prefix: $prefixes"
+  fi
+
+  all_prefixes="$(all_target_prefixes)"
+  if [ -n "$all_prefixes" ]; then
+    conflicts="$(
+      printf '%s\n' "$all_prefixes" |
+        /usr/bin/awk -v iface="$INTERFACE" -v cidr="$CIDR" '
+          $1 != iface || $2 != cidr { print }
+        '
+    )"
+    [ -z "$conflicts" ] ||
+      fail "listener address exists on an unexpected interface or prefix: $conflicts"
+  fi
+}
+
+assert_exact_present() {
+  exact_target_present || fail "listener address is not present after apply"
+}
+
+assert_exact_absent() {
+  if exact_target_present; then
+    fail "listener address is still present after remove"
+  fi
+}
+
+before_routes="$(default_routes)"
+before_addresses="$(non_target_addresses)"
+assert_no_conflicting_prefix
+TARGET_WAS_PRESENT=0
+if exact_target_present; then
+  TARGET_WAS_PRESENT=1
+fi
+
+if [ "$ACTION" = "ensure" ]; then
+  if [ "$TARGET_WAS_PRESENT" = "1" ] && [ ! -f "$OWNED_MARKER" ]; then
+    fail "refusing to take over pre-existing unmanaged listener address"
+  fi
+  if [ "$TARGET_WAS_PRESENT" = "0" ]; then
+    "$IP_BIN" -6 addr replace "$CIDR" dev "$INTERFACE" noprefixroute
+    CREATED_TARGET=1
+  fi
+  wait_for_target_usable
+  assert_exact_present
+  assert_target_usable
+else
+  if [ "$TARGET_WAS_PRESENT" = "1" ] && [ ! -f "$OWNED_MARKER" ]; then
+    fail "refusing to remove unmanaged listener address"
+  fi
+  if [ "$TARGET_WAS_PRESENT" = "1" ]; then
+    "$IP_BIN" -6 addr del "$CIDR" dev "$INTERFACE"
+  fi
+  rm -f "$OWNED_MARKER"
+  assert_exact_absent
+fi
+
+after_routes="$(default_routes)"
+after_addresses="$(non_target_addresses)"
+
+[ "$before_routes" = "$after_routes" ] ||
+  fail "IPv6 default routes changed during $ACTION"
+[ "$before_addresses" = "$after_addresses" ] ||
+  fail "non-target interface addresses changed during $ACTION"
+
+if [ "$ACTION" = "ensure" ]; then
+  printf '%s\n' "$CIDR" >"$OWNED_MARKER"
+fi
+CREATED_TARGET=0
+trap - EXIT

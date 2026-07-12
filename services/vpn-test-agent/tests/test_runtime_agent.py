@@ -12,6 +12,13 @@ from pydantic import ValidationError
 
 from src import main as agent
 
+ENDPOINTS = (
+    ("de-relay.cyber-vpn.org", 2053, 2083),
+    ("nl-4.cyber-vpn.org", 443, 8443),
+    ("msk-relay.cyber-vpn.org", 2053, 2083),
+    ("ru-spb-3.cyber-vpn.org", 443, 8443),
+)
+
 
 class FakeProcess:
     def __init__(self) -> None:
@@ -39,14 +46,13 @@ class FakeProcess:
 
 
 def _raw_profile(index: int) -> dict[str, Any]:
+    server, raw_port, _ = ENDPOINTS[index]
     return {
         "name": f"raw-{index}",
         "location": ["DE", "NL", "RU Moscow", "RU SPB"][index],
         "node": f"node-raw-{index}",
-        "server": ["de-3.cyber-vpn.org", "nl-4.cyber-vpn.org", "ru-msk-3.cyber-vpn.org", "ru-spb-3.cyber-vpn.org"][
-            index
-        ],
-        "port": 443,
+        "server": server,
+        "port": raw_port,
         "network": "raw",
         "uuid": f"00000000-0000-4000-8000-{index + 1:012x}",
         "flow": "xtls-rprx-vision",
@@ -58,14 +64,13 @@ def _raw_profile(index: int) -> dict[str, Any]:
 
 
 def _xhttp_profile(index: int) -> dict[str, Any]:
+    server, _, xhttp_port = ENDPOINTS[index]
     return {
         "name": f"xhttp-{index}",
         "location": ["DE", "NL", "RU Moscow", "RU SPB"][index],
         "node": f"node-xhttp-{index}",
-        "server": ["de-3.cyber-vpn.org", "nl-4.cyber-vpn.org", "ru-msk-3.cyber-vpn.org", "ru-spb-3.cyber-vpn.org"][
-            index
-        ],
-        "port": 8443,
+        "server": server,
+        "port": xhttp_port,
         "network": "xhttp",
         "uuid": f"00000000-0000-4000-8000-{index + 11:012x}",
         "sni": "www.google.com",
@@ -222,6 +227,11 @@ async def test_success_runs_all_profiles_with_proxy_only_xray_and_safe_checks(mo
         if check["check_key"].startswith(("runtime.transport.raw.", "runtime.transport.xhttp."))
     ]
     assert len(profile_checks) == 8
+    assert {check["check_key"] for check in profile_checks} == {
+        f"runtime.transport.{transport}.{location}"
+        for transport in ("raw", "xhttp")
+        for location in ("de", "nl", "moscow", "spb")
+    }
     assert {check["details"]["transport"] for check in profile_checks} == {"raw", "xhttp"}
     assert all(check["details"]["dns_ok"] for check in profile_checks)
     assert all(check["details"]["tcp_connect_ok"] for check in profile_checks)
@@ -318,7 +328,9 @@ async def test_shard_scope_rejects_invalid_location_pairs(
 async def test_full_scope_rejects_duplicate_servers_hidden_by_location_labels() -> None:
     profiles = _profiles()
     profiles[1]["server"] = profiles[0]["server"]
+    profiles[1]["port"] = profiles[0]["port"]
     profiles[5]["server"] = profiles[4]["server"]
+    profiles[5]["port"] = profiles[4]["port"]
 
     response = await agent.runtime_checks(_request(profiles), x_vpn_test_agent_secret="agent-secret")
 
@@ -333,7 +345,7 @@ async def test_raw_transport_tcp_failure_is_mandatory_fail(monkeypatch: pytest.M
     _install_success_boundaries(monkeypatch)
 
     async def tcp_boundary(_server: str, port: int, _timeout_seconds: float) -> bool:
-        return port != 443
+        return port not in {443, 2053}
 
     monkeypatch.setattr(agent, "_tcp_connect", tcp_boundary)
 
@@ -352,7 +364,7 @@ async def test_xhttp_transport_tcp_failure_is_mandatory_fail(monkeypatch: pytest
     _install_success_boundaries(monkeypatch)
 
     async def tcp_boundary(_server: str, port: int, _timeout_seconds: float) -> bool:
-        return port != 8443
+        return port not in {8443, 2083}
 
     monkeypatch.setattr(agent, "_tcp_connect", tcp_boundary)
 
@@ -505,7 +517,7 @@ async def test_proxy_only_disabled_behavior_is_preserved(monkeypatch: pytest.Mon
 
 def test_profile_validation_blocks_injection_hosts_paths_and_hard_max() -> None:
     bad_host = _raw_profile(0)
-    bad_host["server"] = "de-3.cyber-vpn.org;touch"
+    bad_host["server"] = "de-relay.cyber-vpn.org;touch"
     with pytest.raises(ValidationError):
         agent.RuntimeTransportProfile.model_validate(bad_host)
 

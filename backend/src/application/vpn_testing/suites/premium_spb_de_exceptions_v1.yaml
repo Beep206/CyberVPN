@@ -1,0 +1,77 @@
+{
+  "suite_key": "premium_spb_de_exceptions_v1",
+  "version": "v1",
+  "display_name": "Premium SPB + DE Exceptions Contract",
+  "mode": "contract",
+  "description": "Contract and runtime-readiness metadata for premium_spb_de_exceptions: SPB is the explicit default egress, authoritative Antifilter exception categories use the dedicated DE bridge, and matched traffic must fail closed when the bridge is unavailable.",
+  "target_plan_codes": ["premium_spb_de_exceptions"],
+  "required_connection_modes": ["standard", "stealth", "server_side_de_exceptions"],
+  "required_server_pool": ["premium_spb_de_exceptions"],
+  "forbidden_modes": ["tun", "amnezia", "helix"],
+  "required_route_registry": "premium_spb_de_exceptions_v1",
+  "metadata": {
+    "product_code": "premium_spb_de_exceptions",
+    "authoritative_routing": "server_side_spb_xray",
+    "runtime_evidence_status": "not_claimed",
+    "runtime_evidence_required": true,
+    "customer_subscription_inbounds": ["SPB_EXCEPTIONS_REALITY_443", "SPB_EXCEPTIONS_XHTTP_REALITY_8443"],
+    "runtime_routing_ingress": {
+      "dedicated_ipv4_tags": ["SPB_EXCEPTIONS_REALITY_443", "SPB_EXCEPTIONS_XHTTP_REALITY_8443"],
+      "ports": {"raw": 4443, "xhttp": 8444},
+      "expected_total_inbound_tags": 2,
+      "shared_with_other_products": false
+    },
+    "outbounds": {
+      "matched_exceptions": "DE_EXCEPTIONS_BRIDGE",
+      "unmatched_default": "DIRECT",
+      "blocked": "BLOCK"
+    },
+    "route_semantics": {
+      "matched_exception": {
+        "expected_outbound": "DE_EXCEPTIONS_BRIDGE",
+        "expected_egress_country": "DE",
+        "bridge_down_behavior": "fail_closed",
+        "forbidden_fallback_outbound": "DIRECT"
+      },
+      "unmatched_default": {
+        "expected_outbound": "DIRECT",
+        "expected_egress_region": "SPB",
+        "bridge_down_behavior": "continues_direct"
+      }
+    },
+    "runtime_matrix": {
+      "client_transports": ["raw", "xhttp"],
+      "networks": ["tcp", "udp"],
+      "dns_leak_expectation": "no_client_or_system_dns_bypass_of_server_side_route_policy",
+      "ipv6_leak_expectation": "ipv6_must_be_routed_by_approved_policy_or_blocked_until_feed_bridge_support_is_proven",
+      "proof_required": ["compiled_feed_membership", "xray_selected_outbound_log", "egress_country_or_fail_closed"]
+    },
+    "antifilter_categories": [
+      {"key": "rkn", "communities": ["65444:100"]},
+      {"key": "meta", "communities": ["65444:700"]},
+      {"key": "twitter_x", "communities": ["65444:710"]},
+      {"key": "netflix", "communities": ["65444:720"]},
+      {"key": "cloudfront", "communities": ["65444:730"]},
+      {"key": "microsoft", "communities": ["65444:740"]},
+      {"key": "amazon", "communities": ["65444:750"]},
+      {"key": "openai", "communities": ["65444:760"]},
+      {"key": "youtube", "communities": ["65444:770"]},
+      {"key": "google", "communities": ["65444:780"]},
+      {"key": "telegram", "communities": ["65444:790"]},
+      {"key": "discord", "communities": ["65444:800"]},
+      {"key": "custom_networks", "communities": ["65444:65444"]}
+    ]
+  },
+  "checks": [
+    {"key": "suite.dsl.valid", "category": "static", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.plan.exists", "category": "plans", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.connection_modes", "category": "plans", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.route_registry", "category": "route_registry", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.default_spb_direct", "category": "route_registry", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.exception_categories_de", "category": "route_registry", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.bridge_down_fail_closed", "category": "runtime", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.raw_xhttp_matrix", "category": "runtime", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.tcp_udp_matrix", "category": "runtime", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.dns_ipv6_leak_policy", "category": "runtime", "severity": "error"}
+  ]
+}

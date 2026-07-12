@@ -1,0 +1,106 @@
+---
+- name: Antifilter BGP collector | Verify BIRD service is active
+  ansible.builtin.command:
+    argv:
+      - systemctl
+      - is-active
+      - "{{ antifilter_bgp_collector_bird_service }}"
+  changed_when: false
+
+- name: Antifilter BGP collector | Verify IPv4 BGP protocol is established
+  ansible.builtin.command:
+    argv:
+      - "{{ antifilter_bgp_collector_birdc_path }}"
+      - -s
+      - "{{ antifilter_bgp_collector_bird_socket }}"
+      - "show protocols all {{ antifilter_bgp_collector_protocol_ipv4 }}"
+  register: antifilter_bgp_collector_ipv4_protocol
+  changed_when: false
+  failed_when: >-
+    antifilter_bgp_collector_ipv4_protocol.rc != 0 or
+    'BGP state:          Established' not in antifilter_bgp_collector_ipv4_protocol.stdout
+
+- name: Antifilter BGP collector | Verify IPv6 BGP protocol is established when enabled
+  ansible.builtin.command:
+    argv:
+      - "{{ antifilter_bgp_collector_birdc_path }}"
+      - -s
+      - "{{ antifilter_bgp_collector_bird_socket }}"
+      - "show protocols all {{ antifilter_bgp_collector_protocol_ipv6 }}"
+  register: antifilter_bgp_collector_ipv6_protocol
+  changed_when: false
+  failed_when: >-
+    antifilter_bgp_collector_ipv6_protocol.rc != 0 or
+    'BGP state:          Established' not in antifilter_bgp_collector_ipv6_protocol.stdout
+  when: antifilter_bgp_collector_ipv6_enabled | bool
+
+- name: Antifilter BGP collector | Verify candidate timer is enabled
+  ansible.builtin.command:
+    argv:
+      - systemctl
+      - is-enabled
+      - "{{ antifilter_bgp_collector_timer_name }}.timer"
+  changed_when: false
+
+- name: Antifilter BGP collector | Generate a fresh candidate during verify
+  ansible.builtin.systemd_service:
+    name: "{{ antifilter_bgp_collector_service_name }}.service"
+    state: started
+    daemon_reload: true
+
+- name: Antifilter BGP collector | Find generated candidate manifests
+  ansible.builtin.find:
+    paths: "{{ antifilter_bgp_collector_output_root }}"
+    patterns: source.json
+    recurse: true
+    file_type: file
+  register: antifilter_bgp_collector_candidate_manifests
+
+- name: Antifilter BGP collector | Assert a candidate manifest exists
+  ansible.builtin.assert:
+    that:
+      - antifilter_bgp_collector_candidate_manifests.files | length > 0
+    fail_msg: "The candidate exporter did not create a source.json manifest."
+
+- name: Antifilter BGP collector | Select latest candidate manifest
+  ansible.builtin.set_fact:
+    antifilter_bgp_collector_latest_manifest: >-
+      {{
+        (antifilter_bgp_collector_candidate_manifests.files
+         | sort(attribute='mtime', reverse=true)
+         | first).path
+      }}
+
+- name: Antifilter BGP collector | Read latest candidate manifest
+  ansible.builtin.slurp:
+    src: "{{ antifilter_bgp_collector_latest_manifest }}"
+  register: antifilter_bgp_collector_latest_manifest_raw
+
+- name: Antifilter BGP collector | Parse latest candidate manifest
+  ansible.builtin.set_fact:
+    antifilter_bgp_collector_latest_source: >-
+      {{ antifilter_bgp_collector_latest_manifest_raw.content | b64decode | from_json }}
+
+- name: Antifilter BGP collector | Verify candidate manifest contract
+  ansible.builtin.assert:
+    that:
+      - antifilter_bgp_collector_latest_source.schemaVersion == 1
+      - antifilter_bgp_collector_latest_source.source.type == 'bgp-canonical-cidr'
+      - antifilter_bgp_collector_latest_source.source.collector == antifilter_bgp_collector_collector_name
+      - >-
+        antifilter_bgp_collector_latest_source.files | length ==
+        ((antifilter_bgp_collector_required_communities | length) *
+         (2 if antifilter_bgp_collector_ipv6_enabled | bool else 1))
+      - >-
+        antifilter_bgp_collector_latest_source.files
+        | map(attribute='community')
+        | unique
+        | sort
+        == antifilter_bgp_collector_required_communities | sort
+      - >-
+        antifilter_bgp_collector_ipv6_enabled | bool or
+        (antifilter_bgp_collector_latest_source.files
+         | selectattr('family', 'equalto', 6)
+         | list
+         | length) == 0
+    fail_msg: "Generated source.json is not a complete canonical BGP CIDR candidate."

@@ -1,0 +1,590 @@
+version: 1
+product: premium_smart_ru
+
+routes:
+  private: direct
+  default: eu
+  ru_services: ru
+  eu_exceptions: eu
+
+blocks:
+  ads: true
+  trackers: true
+  torrent: true
+  tor: best_effort
+  quic_doq: block
+  smtp_abuse_ports: [25, 465, 587]
+
+regions:
+  eu:
+    primary: de
+    fallback: nl
+  ru:
+    primary: spb
+    fallback: moscow
+
+transport_groups:
+  eu:
+    primary: de
+    fallback: nl
+    primary_transport: xhttp
+    fallback_transport: xhttp
+    members:
+      de: [raw, xhttp]
+      nl: [raw, xhttp]
+    health:
+      probe_url: https://www.gstatic.com/generate_204
+      expected_status: 204
+      interval_seconds: 300
+      lazy: true
+      transport_checks: independent
+      constrain_probe_to_region: true
+    degraded:
+      on_primary_unavailable: use_fallback
+      on_fallback_unavailable: use_primary_if_healthy
+      on_all_unavailable: explicit_degraded
+      cross_region_fallback: false
+      event: premium_smart_ru.eu.degraded
+      metric: premium_smart_ru_eu_degraded
+  ru:
+    primary: spb
+    fallback: moscow
+    primary_transport: xhttp
+    fallback_transport: xhttp
+    members:
+      moscow: [raw, xhttp]
+      spb: [raw, xhttp]
+    health:
+      probe_url: https://www.ozon.ru/
+      expected_status: 307
+      interval_seconds: 60
+      lazy: true
+      transport_checks: independent
+      constrain_probe_to_region: true
+    degraded:
+      on_primary_unavailable: use_fallback
+      on_fallback_unavailable: use_primary_if_healthy
+      on_all_unavailable: explicit_degraded
+      cross_region_fallback: false
+      event: premium_smart_ru.ru.degraded
+      metric: premium_smart_ru_ru_degraded
+
+# Every remote rule set is immutable: the URL contains a commit revision and the
+# integrity block records the exact bytes accepted by the compiler verifier.
+sources:
+  private-ips:
+    kind: inline
+    behavior: classical
+    entries:
+      - IP-CIDR,0.0.0.0/8
+      - IP-CIDR,10.0.0.0/8
+      - IP-CIDR,100.64.0.0/10
+      - IP-CIDR,127.0.0.0/8
+      - IP-CIDR,169.254.0.0/16
+      - IP-CIDR,172.16.0.0/12
+      - IP-CIDR,192.0.0.0/24
+      - IP-CIDR,192.0.2.0/24
+      - IP-CIDR,192.88.99.0/24
+      - IP-CIDR,192.168.0.0/16
+      - IP-CIDR,198.51.100.0/24
+      - IP-CIDR,203.0.113.0/24
+      - IP-CIDR,224.0.0.0/3
+      - IP-CIDR,::/127
+      - IP-CIDR,fc00::/7
+      - IP-CIDR,fe80::/10
+      - IP-CIDR,ff00::/8
+  geosite-private:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/private.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: 0f9ba48d4d0b0d192a4e7c3548486dde05e5a92e6e58e8ea8c9cc302712a1420}
+  direct-processes:
+    kind: process
+    behavior: classical
+    entries:
+      - (?i).*tailscale.*
+      - (?i).*wireguard.*
+      - (?i).*netbird.*
+      - (?i).*zerotier.*
+      - (?i).*anydesk.*
+      - (?i).*rustdesk.*
+      - (?i).*teamviewer.*
+  remote-control:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/category-remote-control.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: 0d1fdf64b303a04d4b6f524dccb4334c38cfc722ccbb94663395ece2da917d7a}
+  bittorrent-protocol:
+    kind: builtin
+    behavior: protocol
+    entries: [bittorrent]
+  torrent-processes:
+    kind: process
+    behavior: classical
+    entries: ["(?i).*torrent.*"]
+  torrent-clients:
+    kind: http
+    behavior: classical
+    format: yaml
+    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-clients.yaml
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: 31b26f266129bac396f523c3309f768430ef487fb9e16d8eafcffbcd52aab9ba}
+  torrent-trackers:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-trackers.mrs
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: f2832fedc058999ba039052d684f1b8b05433dc378cd041d36bf625e209848c5}
+  torrent-websites:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-websites.mrs
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: 68efec804d027ba03a76bf4baaf6be7fd6c92571930cb439eab25143821448ce}
+  torrent-domains-inline:
+    kind: inline
+    behavior: domain
+    entries:
+      - 1337x.to
+      - eztv.re
+      - limetorrents.lol
+      - nnmclub.to
+      - thepiratebay.org
+      - torrentdownload.info
+      - torrentgalaxy.to
+      - rutracker.org
+      - rutor.info
+      - kinozal.tv
+      - yts.mx
+  oisd-big:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/oisd/big.mrs
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: 7629b91ce2f3324e9aa0b4b45de545f8e9712a4d700f5abbb6face0c8959af5f}
+  ads-all:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/category-ads-all.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: 6dfc9cde6a802d9641594df0c8ed8b1c5df646faa05e74c06f9bfba202080335}
+  win-spy:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite@2041bdc2748776fd083ea3bb8790eab14a7aed25/mihomo/win-spy.mrs
+    interval_seconds: 86400
+    integrity: {revision: 2041bdc2748776fd083ea3bb8790eab14a7aed25, pinned: true, sha256: ef83021ce3a116a8c2bb30d259963f3061c7f4a71e17d3a4f5f90abbf3d11a24}
+  tracker-domains-inline:
+    kind: inline
+    behavior: domain
+    entries:
+      - app-measurement.com
+      - doubleclick.net
+      - googleadservices.com
+      - googlesyndication.com
+      - googletagmanager.com
+      - googletagservices.com
+      - scorecardresearch.com
+  tor-inline:
+    kind: inline
+    behavior: classical
+    entries:
+      - DOMAIN-SUFFIX,onion
+      - DOMAIN-SUFFIX,torproject.org
+      - DOMAIN-SUFFIX,torproject.net
+      - DOMAIN-KEYWORD,torproject
+      - DOMAIN-KEYWORD,tor2web
+  tor-processes:
+    kind: process
+    behavior: classical
+    entries: ["(?i).*(tor|torbrowser|obfs4proxy|snowflake-client).*"]
+  quic-doq:
+    kind: inline
+    behavior: classical
+    entries:
+      - AND,((NETWORK,udp),(DST-PORT,443))
+      - AND,((NETWORK,udp),(DST-PORT,853))
+  manual-eu-inline:
+    kind: inline
+    behavior: classical
+    entries:
+      - DOMAIN-SUFFIX,openai.com
+      - DOMAIN-SUFFIX,chatgpt.com
+      - DOMAIN-SUFFIX,oaistatic.com
+      - DOMAIN-SUFFIX,oaiusercontent.com
+      - DOMAIN-SUFFIX,anthropic.com
+      - DOMAIN-SUFFIX,claude.ai
+      - DOMAIN-SUFFIX,perplexity.ai
+      - DOMAIN-SUFFIX,poe.com
+      - DOMAIN-SUFFIX,notion.so
+      - DOMAIN-SUFFIX,figma.com
+      - DOMAIN-SUFFIX,canva.com
+      - DOMAIN-SUFFIX,spotify.com
+      - DOMAIN-SUFFIX,netflix.com
+      - DOMAIN-SUFFIX,discord.com
+      - DOMAIN-SUFFIX,discordapp.com
+      - DOMAIN-SUFFIX,discord.gg
+      - DOMAIN-SUFFIX,github.com
+      - DOMAIN-SUFFIX,githubusercontent.com
+      - DOMAIN-SUFFIX,githubassets.com
+  youtube:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/youtube.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: e212b2ce9f39b30f4e2ab57da9ed0937673606bc56bb46e5d55ad7dd9af00aef}
+  discord-domains:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/discord.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: d7387b23e75ca9a93086ee7f9d398efb936c64bdbb85d97aa7dea99de2381891}
+  discord-voice:
+    kind: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/discord-voice-ip-list.mrs
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: 51af199e7aa95a6a939e7853a5405df328bd8ca54cb24953a6c9e3a189db5d68}
+  cloudflare-ips:
+    kind: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geoip/cloudflare.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: a483f5947ebc8e0d77bf0bc3e1108e36a88006a494a95a92538bf4a43c48b19b}
+  telegram-domains:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/telegram.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: ffa4d1d3e8649965e529c1c570d8add75a0d6f70aa8503ece8add841ce48c0e7}
+  telegram-ips:
+    kind: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geoip/telegram.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: d121af95b9aeca3d8c29b2112d5e6685b2a6716383df8ae31b5fbb3408c527b3}
+  additional-telegram-domains:
+    kind: http
+    behavior: classical
+    format: yaml
+    url: https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/836b578f61d71de43cea3a2b0658e239e7fabd27/domains/additional-telegram-domains.yaml
+    interval_seconds: 86400
+    integrity: {revision: 836b578f61d71de43cea3a2b0658e239e7fabd27, pinned: true, sha256: 17310935e7c919fdd426a58f759c7be85a02973b2e540c3f57c43240007d6baa}
+  additional-telegram-ips:
+    kind: http
+    behavior: classical
+    format: yaml
+    url: https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/836b578f61d71de43cea3a2b0658e239e7fabd27/domains/additional-telegram-ips.yaml
+    interval_seconds: 86400
+    integrity: {revision: 836b578f61d71de43cea3a2b0658e239e7fabd27, pinned: true, sha256: 8998206dadd831b471ea95138c4090ec63362e10575f19c241e3199b32bec55a}
+  whatsapp:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/whatsapp.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: bdcf58fcbea6c962e307aac8b452c39b55644ec02e92e29919eb69d0bd40985f}
+  meta-ips:
+    kind: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geoip/facebook.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: 9523a6fe895fb1ecb8e9fee31e2064b68a882dc160e604279ed01490ce2a7ea6}
+  ai:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/category-ai-!cn.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: 256a3b73663caab55e6c7af9eb2e87113ceb80d9e70eff1a6d5bee82f344f65f}
+  google-deepmind:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/google-deepmind.mrs
+    interval_seconds: 86400
+    integrity: {revision: 05bfd6e7af58d4cc2f06382e82d1a38bb35d1959, pinned: true, sha256: 785863d3232bbfa561463aa00d2913b94b98a36d80690e4bb6dd96f4a6c74e94}
+  github:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite@2041bdc2748776fd083ea3bb8790eab14a7aed25/mihomo/github.mrs
+    interval_seconds: 86400
+    integrity: {revision: 2041bdc2748776fd083ea3bb8790eab14a7aed25, pinned: true, sha256: fdfb28a7fda4ee6ea13b04a143bed8de8f583a029355929f7a38322406cec35c}
+  ru-eu-exceptions:
+    kind: inline
+    behavior: classical
+    entries:
+      - DOMAIN-SUFFIX,habr.com
+      - DOMAIN-SUFFIX,meduza.io
+      - DOMAIN-SUFFIX,theins.ru
+      - DOMAIN-SUFFIX,tvrain.ru
+      - DOMAIN-SUFFIX,dozhd.tv
+      - DOMAIN-SUFFIX,novayagazeta.ru
+      - DOMAIN-SUFFIX,moscowtimes.ru
+      - DOMAIN-SUFFIX,echo.msk.ru
+      - DOMAIN-SUFFIX,svoboda.org
+      - DOMAIN-SUFFIX,currenttime.tv
+      - DOMAIN-SUFFIX,holod.media
+      - DOMAIN-SUFFIX,zona.media
+      - DOMAIN-SUFFIX,ovd.info
+      - DOMAIN-SUFFIX,navalny.com
+      - DOMAIN-SUFFIX,bellingcat.com
+      - DOMAIN-SUFFIX,proekt.media
+      - DOMAIN-SUFFIX,istories.media
+      - DOMAIN-SUFFIX,agents.media
+      - DOMAIN-SUFFIX,verstka.media
+      - DOMAIN-SUFFIX,mediazona.ca
+      - DOMAIN-SUFFIX,change.org
+      - DOMAIN-SUFFIX,archive.org
+      - DOMAIN-SUFFIX,archive.ph
+      - DOMAIN-SUFFIX,archive.is
+      - DOMAIN-SUFFIX,4pda.to
+      - DOMAIN-SUFFIX,4pda.ws
+      - DOMAIN-SUFFIX,libgen.is
+      - DOMAIN-SUFFIX,annas-archive.org
+      - DOMAIN-KEYWORD,anilibria
+      - DOMAIN-KEYWORD,anidub
+      - DOMAIN-KEYWORD,animego
+      - DOMAIN-KEYWORD,yummyanime
+  ru-inside:
+    kind: http
+    behavior: classical
+    format: text
+    url: https://raw.githubusercontent.com/itdoginfo/allow-domains/8d45624fdd6b09113a93835f1f69a458a83cd911/Russia/inside-clashx.lst
+    interval_seconds: 86400
+    integrity: {revision: 8d45624fdd6b09113a93835f1f69a458a83cd911, pinned: true, sha256: e6facd2ea06200a73e991ccd18041de85be4e0122d0995950fd895dfb916f769}
+  refilter-domains:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/re-filter/domain-rule.mrs
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: 34e2be7cc1760f6103305da3fd660f8257678617e2c5aba60ed088e26f45b43d}
+  refilter-ipsum:
+    kind: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/re-filter/ip-rule.mrs
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: 5db46438f3ceb0f17a5ad78a1285932d35340c5f36a8216ed22ef04af92bb942}
+  ru-bundle:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@049c25a0d334d0ba6a4680a2fe62893557dd6d35/ru-bundle/rule.mrs
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: 981318366bf53e357ce8dcd923b61128d49820ab329acf57701c689aa0a279d0}
+  rknasnblock:
+    kind: http
+    behavior: ipcidr
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@049c25a0d334d0ba6a4680a2fe62893557dd6d35/ru-bundle/rknasnblock.mrs
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: 70f3de23618786ef1241a4dbd691c5fab483e6d702b7c5b391efd7ea5c7ef173}
+  ru-services-inline:
+    kind: inline
+    behavior: classical
+    entries:
+      - DOMAIN-SUFFIX,ru
+      - "DOMAIN-SUFFIX,\u0440\u0444"
+      - DOMAIN-SUFFIX,xn--p1ai
+      - DOMAIN-SUFFIX,su
+      - DOMAIN-SUFFIX,ru.com
+      - DOMAIN-SUFFIX,ru.net
+      - DOMAIN-SUFFIX,mos.ru
+      - DOMAIN-SUFFIX,mosreg.ru
+      - DOMAIN-SUFFIX,gosuslugi.ru
+      - DOMAIN-SUFFIX,gosekspertiza.ru
+      - DOMAIN-SUFFIX,nalog.gov.ru
+      - DOMAIN-SUFFIX,fns.ru
+      - DOMAIN-SUFFIX,pfr.gov.ru
+      - DOMAIN-SUFFIX,sfr.gov.ru
+      - DOMAIN-SUFFIX,gibdd.ru
+      - DOMAIN-SUFFIX,zakupki.gov.ru
+      - DOMAIN-SUFFIX,dom.gosuslugi.ru
+      - DOMAIN-SUFFIX,esia.gosuslugi.ru
+      - DOMAIN-SUFFIX,yandex.ru
+      - DOMAIN-SUFFIX,yandex.net
+      - DOMAIN-SUFFIX,yandex.com
+      - DOMAIN-SUFFIX,yastatic.net
+      - DOMAIN-SUFFIX,yadi.sk
+      - DOMAIN-SUFFIX,ya.ru
+      - DOMAIN-SUFFIX,kinopoisk.ru
+      - DOMAIN-SUFFIX,kinopoiskhd.ru
+      - DOMAIN-SUFFIX,plus.yandex.ru
+      - DOMAIN-SUFFIX,avito.ru
+      - DOMAIN-SUFFIX,avito.st
+      - DOMAIN-SUFFIX,ozon.ru
+      - DOMAIN-SUFFIX,ozonusercontent.com
+      - DOMAIN-SUFFIX,wildberries.ru
+      - DOMAIN-SUFFIX,wb.ru
+      - DOMAIN-SUFFIX,wbbasket.ru
+      - DOMAIN-SUFFIX,wbstatic.net
+      - DOMAIN-SUFFIX,market.yandex.ru
+      - DOMAIN-SUFFIX,sbermarket.ru
+      - DOMAIN-SUFFIX,megamarket.ru
+      - DOMAIN-SUFFIX,lamoda.ru
+      - DOMAIN-SUFFIX,detmir.ru
+      - DOMAIN-SUFFIX,citilink.ru
+      - DOMAIN-SUFFIX,dns-shop.ru
+      - DOMAIN-SUFFIX,mvideo.ru
+      - DOMAIN-SUFFIX,eldorado.ru
+      - DOMAIN-SUFFIX,sberbank.ru
+      - DOMAIN-SUFFIX,sber.ru
+      - DOMAIN-SUFFIX,online.sberbank.ru
+      - DOMAIN-SUFFIX,tinkoff.ru
+      - DOMAIN-SUFFIX,tbank.ru
+      - DOMAIN-SUFFIX,vtb.ru
+      - DOMAIN-SUFFIX,alfabank.ru
+      - DOMAIN-SUFFIX,gazprombank.ru
+      - DOMAIN-SUFFIX,raiffeisen.ru
+      - DOMAIN-SUFFIX,open.ru
+      - DOMAIN-SUFFIX,pochtabank.ru
+      - DOMAIN-SUFFIX,psbank.ru
+      - DOMAIN-SUFFIX,rshb.ru
+      - DOMAIN-SUFFIX,akbars.ru
+      - DOMAIN-SUFFIX,moex.com
+      - DOMAIN-SUFFIX,moex.ru
+      - DOMAIN-SUFFIX,vk.com
+      - DOMAIN-SUFFIX,vk.ru
+      - DOMAIN-SUFFIX,vkvideo.ru
+      - DOMAIN-SUFFIX,userapi.com
+      - DOMAIN-SUFFIX,mycdn.me
+      - DOMAIN-SUFFIX,ok.ru
+      - DOMAIN-SUFFIX,mail.ru
+      - DOMAIN-SUFFIX,imgsmail.ru
+      - DOMAIN-SUFFIX,dzen.ru
+      - DOMAIN-SUFFIX,zen.yandex.ru
+      - DOMAIN-SUFFIX,rutube.ru
+      - DOMAIN-SUFFIX,premier.one
+      - DOMAIN-SUFFIX,start.ru
+      - DOMAIN-SUFFIX,more.tv
+      - DOMAIN-SUFFIX,ivi.ru
+      - DOMAIN-SUFFIX,okko.tv
+      - DOMAIN-SUFFIX,wink.ru
+      - DOMAIN-SUFFIX,kion.ru
+      - DOMAIN-SUFFIX,2gis.ru
+      - DOMAIN-SUFFIX,2gis.com
+      - DOMAIN-SUFFIX,dublgis.ru
+      - DOMAIN-SUFFIX,rzd.ru
+      - DOMAIN-SUFFIX,tutu.ru
+      - DOMAIN-SUFFIX,aviasales.ru
+      - DOMAIN-SUFFIX,cdek.ru
+      - DOMAIN-SUFFIX,pochta.ru
+      - DOMAIN-SUFFIX,russianpost.ru
+      - DOMAIN-SUFFIX,lenta.com
+      - DOMAIN-SUFFIX,lenta.ru
+      - DOMAIN-SUFFIX,magnit.ru
+      - DOMAIN-SUFFIX,pyaterochka.ru
+      - DOMAIN-SUFFIX,perekrestok.ru
+      - DOMAIN-SUFFIX,vkusvill.ru
+      - DOMAIN-SUFFIX,samokat.ru
+      - DOMAIN-SUFFIX,eda.yandex.ru
+      - DOMAIN-SUFFIX,lavka.yandex.ru
+      - DOMAIN-SUFFIX,delivery-club.ru
+      - DOMAIN-SUFFIX,hh.ru
+      - DOMAIN-SUFFIX,superjob.ru
+      - DOMAIN-SUFFIX,banki.ru
+      - DOMAIN-SUFFIX,sravni.ru
+      - DOMAIN-SUFFIX,championat.com
+      - DOMAIN-SUFFIX,sportbox.ru
+      - DOMAIN-SUFFIX,pikabu.ru
+      - DOMAIN-SUFFIX,vc.ru
+      - DOMAIN-SUFFIX,dtf.ru
+      - DOMAIN-SUFFIX,tjournal.ru
+      - DOMAIN-SUFFIX,kaspersky.ru
+      - DOMAIN-SUFFIX,kaspersky.com
+      - DOMAIN-KEYWORD,yandex
+      - DOMAIN-KEYWORD,avito
+      - DOMAIN-KEYWORD,ozon
+      - DOMAIN-KEYWORD,wildberries
+      - DOMAIN-KEYWORD,gazprom
+      - DOMAIN-KEYWORD,sber
+      - DOMAIN-KEYWORD,tinkoff
+      - DOMAIN-KEYWORD,gosslugi
+      - DOMAIN-KEYWORD,gosuslugi
+  ru-apps:
+    kind: http
+    behavior: classical
+    format: yaml
+    url: https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/ru-app-list.yaml
+    interval_seconds: 86400
+    integrity: {revision: 049c25a0d334d0ba6a4680a2fe62893557dd6d35, pinned: true, sha256: 9c8a4ef4d04fbc32692e6d9969e06177e2f278bc09d990c2f49514a50f040406}
+  geosite-ru:
+    kind: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/836b578f61d71de43cea3a2b0658e239e7fabd27/rules/category-ru.mrs
+    interval_seconds: 86400
+    integrity: {revision: 836b578f61d71de43cea3a2b0658e239e7fabd27, pinned: true, sha256: 835c69e57b4671da175a75ca854e5376832572f38c4a8baf848a12c0110ed825}
+  geoip-for-ru:
+    kind: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/836b578f61d71de43cea3a2b0658e239e7fabd27/ip-for-ru/lists/ips-for-ru.mrs
+    interval_seconds: 86400
+    integrity: {revision: 836b578f61d71de43cea3a2b0658e239e7fabd27, pinned: true, sha256: 897bca0c49492fe839d359e059ef2c2456c43524b0f8742e5c5f5db50ec54dfe}
+
+source_groups:
+  private_networks: [private-ips, geosite-private]
+  direct_processes: [direct-processes, remote-control]
+  bittorrent_protocol: [bittorrent-protocol]
+  torrent_processes: [torrent-processes]
+  torrent_sources: [torrent-clients, torrent-trackers, torrent-websites, torrent-domains-inline]
+  ads_trackers: [oisd-big, ads-all, win-spy, tracker-domains-inline]
+  tor: [tor-inline, tor-processes]
+  quic_doq: [quic-doq]
+  eu_exceptions:
+    - manual-eu-inline
+    - youtube
+    - discord-domains
+    - discord-voice
+    - cloudflare-ips
+    - telegram-domains
+    - telegram-ips
+    - additional-telegram-domains
+    - additional-telegram-ips
+    - whatsapp
+    - meta-ips
+    - ai
+    - google-deepmind
+    - github
+    - ru-eu-exceptions
+    - ru-inside
+    - refilter-domains
+    - refilter-ipsum
+    - ru-bundle
+    - rknasnblock
+  ru_services: [ru-services-inline, ru-apps]
+  broad_ru: [geosite-ru, geoip-for-ru]
+
+rules:
+  - {id: direct_private, stage: private_networks, action: direct, source_group: private_networks}
+  - {id: direct_approved_processes, stage: direct_processes, action: direct, source_group: direct_processes}
+  - {id: block_bittorrent_protocol, stage: bittorrent_protocol, action: block, source_group: bittorrent_protocol}
+  - {id: block_torrent_processes, stage: torrent_processes, action: block, source_group: torrent_processes}
+  - {id: block_torrent_sources, stage: torrent_sources, action: block, source_group: torrent_sources}
+  - {id: block_ads_trackers, stage: ads_trackers, action: block, source_group: ads_trackers}
+  - {id: block_tor_best_effort, stage: tor, action: block, source_group: tor, assurance: best_effort}
+  - {id: block_quic_doq, stage: quic_doq, action: block, source_group: quic_doq}
+  - {id: route_eu_exceptions, stage: eu_exceptions, action: eu, source_group: eu_exceptions}
+  - {id: route_ru_services, stage: ru_services, action: ru, source_group: ru_services}
+  - {id: route_broad_ru, stage: broad_ru, action: ru, source_group: broad_ru}
+  - {id: route_final_eu, stage: final, action: eu, network: "tcp,udp"}

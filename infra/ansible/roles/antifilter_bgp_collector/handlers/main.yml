@@ -1,0 +1,12 @@
+---
+- name: Antifilter BGP collector | Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: not ansible_check_mode
+
+- name: Antifilter BGP collector | Restart BIRD
+  ansible.builtin.systemd_service:
+    name: "{{ antifilter_bgp_collector_bird_service }}"
+    daemon_reload: true
+    state: restarted
+  when: not ansible_check_mode

@@ -160,6 +160,82 @@ def test_stage1_non_critical_routes_keep_default_path_bucket() -> None:
     assert middleware._requests_budget_for(request) == 100
 
 
+def test_subscription_gateway_tokens_share_one_non_secret_bucket() -> None:
+    middleware = _s1_middleware()
+    first = _request("/api/sub/first-bearer-token", "GET")
+    second = _request("/api/sub/second-bearer-token", "GET")
+
+    assert middleware._rate_limit_bucket_for(first) == "subscription_gateway"
+    assert middleware._rate_limit_bucket_for(second) == "subscription_gateway"
+    assert "bearer-token" not in middleware._rate_limit_bucket_for(first)
+    assert middleware._requests_budget_for(first) == 100
+
+
+def test_subscription_gateway_mixed_case_path_uses_non_secret_bucket() -> None:
+    middleware = _s1_middleware()
+    request = _request("/API/SUB/synthetic-bearer-token", "GET")
+
+    assert middleware._rate_limit_bucket_for(request) == "subscription_gateway"
+    assert "synthetic-bearer-token" not in middleware._rate_limit_bucket_for(request)
+
+
+def test_tokenized_routes_use_redacted_fallback_buckets() -> None:
+    middleware = _s1_middleware()
+    paths = (
+        "/api/v1/admin/invites/synthetic-invite-token",
+        "/api/v1/oauth/telegram/magic-link/synthetic-login-token/status",
+        "/api/v1/oauth/telegram/account-link/magic-link/synthetic-link-token/status",
+    )
+
+    for path in paths:
+        bucket = middleware._rate_limit_bucket_for(_request(path, "GET"))
+        assert "synthetic-" not in bucket
+        assert "[REDACTED]" in bucket
+
+
+@pytest.mark.asyncio
+async def test_tokenized_routes_never_write_tokens_to_redis_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    RateLimitMiddleware._circuit_breaker = None
+    fake_redis = _FakeRedisClient()
+    monkeypatch.setattr(
+        "src.presentation.middleware.rate_limit.get_redis_pool",
+        lambda: object(),
+    )
+    monkeypatch.setattr(
+        "src.presentation.middleware.rate_limit.redis.Redis",
+        lambda connection_pool: fake_redis,
+    )
+
+    app = FastAPI()
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=100,
+        window_seconds=60,
+        fail_open=False,
+    )
+
+    @app.get("/{path:path}")
+    async def catch_all(path: str) -> dict[str, str]:
+        return {"path": path}
+
+    paths = (
+        "/API/SUB/synthetic-bearer-token",
+        "/api/v1/admin/invites/synthetic-invite-token",
+        "/api/v1/oauth/telegram/magic-link/synthetic-login-token/status",
+        "/api/v1/oauth/telegram/account-link/magic-link/synthetic-link-token/status",
+    )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://backend") as client:
+        responses = [await client.get(path) for path in paths]
+
+    assert all(response.status_code == 200 for response in responses)
+    redis_keys = tuple(fake_redis.store)
+    assert any(key.endswith(":subscription_gateway") for key in redis_keys)
+    assert any("[REDACTED]" in key for key in redis_keys)
+    assert all("synthetic-" not in key for key in redis_keys)
+
+
 def test_stage1_helix_admin_get_budget_stays_high_for_polling() -> None:
     middleware = _s1_middleware()
     request = _request("/api/v1/helix/admin/rollouts/rollout-helix-lab/canary-evidence", "GET")

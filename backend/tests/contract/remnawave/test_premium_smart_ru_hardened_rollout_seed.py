@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import re
 from pathlib import Path
@@ -12,17 +13,26 @@ CANONICAL_TEMPLATE = REPO_ROOT / "scripts/remnawave/templates/cybervpn-premium-s
 HARDENED_TEMPLATE = REPO_ROOT / "scripts/remnawave/templates/cybervpn-premium-smart-ru-de-primary-hardened.yaml"
 SEED_SQL = REPO_ROOT / "scripts/remnawave/seed-cybervpn-premium-smart-ru.sql"
 DIAGNOSTIC_SQL = REPO_ROOT / "scripts/remnawave/diagnose-premium-smart-ru-inbounds.sql"
+SERVER_ROUTING_SCRIPT = REPO_ROOT / "scripts/remnawave/apply-premium-smart-ru-server-routing.py"
+GENERATED_DIR = REPO_ROOT / "scripts/remnawave/generated/premium_smart_ru"
+GENERATED_MIHOMO = GENERATED_DIR / "mihomo.yaml"
+GENERATED_MANIFEST = GENERATED_DIR / "manifest.json"
+GENERATED_LEGACY_HEADER = GENERATED_DIR / "legacy-routing-header.json"
+MOSCOW_RELAY_SOCKETS = (
+    REPO_ROOT / "infra/systemd/cybervpn-msk-relay-reality.socket",
+    REPO_ROOT / "infra/systemd/cybervpn-msk-relay-xhttp.socket",
+)
 
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _extract_seed_template(sql: str) -> str:
-    delimiter = "$cybervpn_premium_smart_ru_yaml$"
-    first = sql.index(delimiter)
-    second = sql.index(delimiter, first + len(delimiter))
-    return sql[first + len(delimiter) : second].strip()
+def test_public_moscow_relay_sockets_bound_global_and_per_source_connections() -> None:
+    for socket_path in MOSCOW_RELAY_SOCKETS:
+        unit = _read(socket_path)
+        assert "MaxConnections=4096" in unit
+        assert "MaxConnectionsPerSource=256" in unit
 
 
 def _jsonb_literal(sql: str, marker: str) -> dict[str, object]:
@@ -68,6 +78,9 @@ def test_premium_smart_ru_hardened_templates_are_canonical_and_parseable() -> No
 
     dns_policy = data["dns"]["nameserver-policy"]
     assert dns_policy["rule-set:oisd_big,ads-all,win-spy,tor-inline"] == ["rcode://name_error"]
+    bootstrap_nameservers = data["dns"]["proxy-server-nameserver"]
+    assert "system" in bootstrap_nameservers
+    assert all("#" not in nameserver for nameserver in bootstrap_nameservers)
 
     for group_name in ("🇩🇪 DE Auto", "🇳🇱 NL Auto", "⚡ RU Auto", "🇷🇺 Moscow Auto", "🇷🇺 SPB Auto"):
         group = next(item for item in data["proxy-groups"] if item["name"] == group_name)
@@ -76,12 +89,44 @@ def test_premium_smart_ru_hardened_templates_are_canonical_and_parseable() -> No
         assert "filter" in group
         assert "exclude-filter" in group
 
+    for group_name in ("⚡ RU Auto", "🇷🇺 Moscow Auto", "🇷🇺 SPB Auto"):
+        group = next(item for item in data["proxy-groups"] if item["name"] == group_name)
+        assert group["url"] == "https://www.google.com/generate_204"
+        assert group["expected-status"] == 204
 
-def test_premium_smart_ru_seed_embeds_hardened_template_and_rollout_settings() -> None:
+
+def test_premium_smart_ru_seed_loads_generated_template_and_rollout_settings() -> None:
     seed_sql = _read(SEED_SQL)
-    canonical_text = _read(CANONICAL_TEMPLATE).strip()
+    generated_mihomo = GENERATED_MIHOMO.read_bytes()
+    manifest = json.loads(_read(GENERATED_MANIFEST))
+    legacy_header = json.loads(_read(GENERATED_LEGACY_HEADER))
 
-    assert _extract_seed_template(seed_sql) == canonical_text
+    assert "$cybervpn_premium_smart_ru_yaml$" not in seed_sql
+    assert "/tmp/cybervpn-premium-smart-ru" not in seed_sql  # noqa: S108
+    assert "cybervpn_premium_smart_ru_stage_dir" in seed_sql
+    assert "cybervpn_premium_smart_ru_stage_manifest_sha256" in seed_sql
+    assert "cybervpn_premium_smart_ru_mihomo_sha256" in seed_sql
+    assert "cybervpn_premium_smart_ru_incy_sha256" in seed_sql
+    assert "cybervpn_premium_smart_ru_legacy_header_sha256" in seed_sql
+    assert "pg_read_binary_file(v_contract.stage_dir || '/manifest.json')" in seed_sql
+    assert "pg_read_binary_file(v_contract.stage_dir || '/mihomo.yaml')" in seed_sql
+    assert "encode(sha256(v_manifest_bytes), 'hex') <> v_contract.stage_manifest_sha256" in seed_sql
+    assert "encode(sha256(v_template_bytes), 'hex') <> v_contract.mihomo_sha256" in seed_sql
+    assert "encode(sha256(v_legacy_header_bytes), 'hex') <> v_contract.legacy_header_sha256" in seed_sql
+    assert "v_manifest#>>'{artifacts,mihomo.yaml,sha256}' is distinct from v_contract.mihomo_sha256" in seed_sql
+    assert "v_manifest#>>'{artifacts,incy-xray.json,sha256}' is distinct from v_contract.incy_sha256" in seed_sql
+    assert "select mihomo_template from cybervpn_premium_smart_ru_artifact_contract" in seed_sql
+    assert "select legacy_header->>'value'" in seed_sql
+    assert "convert_from(decode(v_legacy_value, 'base64'), 'UTF8')::jsonb" in seed_sql
+    assert "v_legacy_header->'decoded' is distinct from v_legacy_decoded" in seed_sql
+    assert "v_contract.stage_dir ~ '^/(tmp|var/tmp)(/|$)'" in seed_sql
+    assert manifest["artifacts"]["mihomo.yaml"]["bytes"] == len(generated_mihomo)
+    assert manifest["rendererCoverage"]["mihomo"] == {
+        "artifact": "mihomo.yaml",
+        "reason": "full deterministic Mihomo config rendered from canonical policy",
+        "risk": "none",
+        "status": "rendered",
+    }
     assert "template_type = 'MIHOMO'" in seed_sql
     assert "name = 'CyberVPN Premium Smart RU'" in seed_sql
     assert "view_position = 202" in seed_sql
@@ -97,18 +142,48 @@ def test_premium_smart_ru_seed_embeds_hardened_template_and_rollout_settings() -
     assert "'🇷🇺 RU Moscow 01 25G XHTTP Reality 8443'" in seed_sql
     assert "'🇷🇺 RU SPB 01 25G Reality 443'" in seed_sql
     assert "'🇷🇺 RU SPB 01 25G XHTTP Reality 8443'" in seed_sql
-    assert "'de-3.cyber-vpn.org'" in seed_sql
+    assert "'de-relay.cyber-vpn.org'" in seed_sql
     assert "'nl-4.cyber-vpn.org'" in seed_sql
-    assert "'ru-msk-3.cyber-vpn.org'" in seed_sql
+    assert "'msk-relay.cyber-vpn.org'" in seed_sql
     assert "'ru-spb-3.cyber-vpn.org'" in seed_sql
+    assert "'DE_SMART_REALITY_443'" in seed_sql
+    assert "'DE_SMART_XHTTP_REALITY_8443'" in seed_sql
+    assert "apply-premium-smart-ru-server-routing.py" in seed_sql
+    assert SERVER_ROUTING_SCRIPT.is_file()
     assert "where tag in ('VLESS_REALITY_443', 'VLESS_XHTTP_REALITY_8443')" in seed_sql
     assert "linked_node_inbounds" in seed_sql
+    assert "stale_frankfurt_base_node_inbound_links" in seed_sql
+    assert "stale_moscow_base_node_inbound_links" in seed_sql
+    assert "Expected exactly 8 Smart RU node inbound links" in seed_sql
+    assert "Expected no stale Frankfurt base inbound links" in seed_sql
+    assert "Expected no stale Moscow base inbound links" in seed_sql
+    assert "'MSK_SMART_REALITY_443'" in seed_sql
+    assert "'MSK_SMART_XHTTP_REALITY_8443'" in seed_sql
+    assert "customer_squad_bridge_cleanup" in seed_sql
+    assert "'MSK_SMART_RU_BRIDGE_V2_9443'" in seed_sql
+    assert "'DE_SMART_GLOBAL_BRIDGE_9443'" in seed_sql
+    assert "Premium Smart RU customer squad must not contain the Moscow bridge inbound" in seed_sql
     assert "smart_host_specs" in seed_sql
     assert "smart_host_node_links" in seed_sql
     assert "premium_host_exclusions" in seed_sql
     assert "internal_squad_host_exclusions" in seed_sql
     assert "host_tags.tag like 'PREMIUM\\_SMART\\_RU\\_%' escape '\\'" in seed_sql
     assert "Expected 8 Premium Smart RU Remnawave hosts" in seed_sql
+    assert "Expected exactly 8 visible Premium Smart RU tagged hosts" in seed_sql
+    visible_host_validation = seed_sql[
+        seed_sql.index("into v_visible_premium_host_count") : seed_sql.index("if v_visible_premium_host_count <> 8")
+    ]
+    for remark in (
+        "🇩🇪 DE Frankfurt 01 25G Reality 443",
+        "🇩🇪 DE Frankfurt 01 25G XHTTP Reality 8443",
+        "🇳🇱 NL Amsterdam 01 10G Reality 443",
+        "🇳🇱 NL Amsterdam 01 10G XHTTP Reality 8443",
+        "🇷🇺 RU Moscow 01 25G Reality 443",
+        "🇷🇺 RU Moscow 01 25G XHTTP Reality 8443",
+        "🇷🇺 RU SPB 01 25G Reality 443",
+        "🇷🇺 RU SPB 01 25G XHTTP Reality 8443",
+    ):
+        assert remark in visible_host_validation
     assert "Expected 8 Premium Smart RU host-to-node links" in seed_sql
     assert "Expected Premium Smart RU squad to exclude non-Smart-RU shared inbound hosts" in seed_sql
     assert "nodes.active_plugin_uuid is null" in seed_sql
@@ -124,12 +199,19 @@ def test_premium_smart_ru_seed_embeds_hardened_template_and_rollout_settings() -
     assert subscription_settings["isProfileWebpageUrlEnabled"] is True
     assert "Torrent запрещён" in str(subscription_settings["happAnnounce"])
 
-    response_headers = _jsonb_literal(seed_sql, '"x-cybervpn-plan": "premium_smart_ru"')
-    assert response_headers == {
-        "x-cybervpn-plan": "premium_smart_ru",
-        "x-cybervpn-routing": "de-primary-ru-smart",
-        "x-cybervpn-unlimited": "true",
-    }
+    assert "'x-cybervpn-plan', 'premium_smart_ru'" in seed_sql
+    assert "'x-cybervpn-routing', 'de-primary-ru-smart'" in seed_sql
+    assert "'x-cybervpn-unlimited', 'true'" in seed_sql
+    assert legacy_header["consumer"] == "remnawave-legacy-routing-header"
+    assert legacy_header["encoding"] == "base64-json"
+    incy_routing = json.loads(base64.b64decode(legacy_header["value"]))
+    assert incy_routing["Name"] == "CyberVPN Premium Smart RU"
+    assert incy_routing["GlobalProxy"] == "true"
+    assert incy_routing["DomainStrategy"] == "AsIs"
+    assert incy_routing["BlockSites"][0] == "domain:1337x.to"
+    assert "domain:rutracker.org" in incy_routing["BlockSites"]
+    assert "domain:yts.mx" in incy_routing["BlockSites"]
+    assert "geosite:category-ads-all" in incy_routing["BlockSites"]
 
     plugin_config = _jsonb_literal(seed_sql, '"ingressFilter": {"enabled": false')
     assert plugin_config["egressFilter"] == {

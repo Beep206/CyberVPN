@@ -1,0 +1,11 @@
+---
+spb_de_exceptions_bridge_enabled: true
+spb_de_exceptions_bridge_action: deploy
+spb_de_exceptions_bridge_port: 9444
+spb_de_exceptions_bridge_inbound_tag: DE_SPB_EXCEPTIONS_BRIDGE_9444
+spb_de_exceptions_bridge_outbound_tag: DE_EXCEPTIONS_BRIDGE
+
+# The Task2 bridge is reachable only from the dedicated SPB listener IPv6.
+spb_de_exceptions_bridge_allowed_ipv4_cidrs: []
+spb_de_exceptions_bridge_allowed_ipv6_cidrs:
+  - 2a01:e5c0:1368::3/128

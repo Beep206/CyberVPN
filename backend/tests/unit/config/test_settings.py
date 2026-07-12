@@ -133,6 +133,105 @@ class TestWeakSecretPatterns:
 
         assert settings.remnawave_default_internal_squad_name == "CYBERVPN_PREMIUM_SMART_RU_NODES"
 
+    def test_default_spb_de_exceptions_settings_are_explicit_and_isolated(self) -> None:
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+        )
+
+        assert settings.remnawave_spb_de_exceptions_plan_codes == "premium_spb_de_exceptions"
+        assert settings.remnawave_spb_de_exceptions_external_squad_uuid == ""
+        assert settings.remnawave_spb_de_exceptions_internal_squad_uuid == ""
+        assert settings.remnawave_spb_de_exceptions_bridge_squad_uuid == ""
+        assert settings.remnawave_spb_de_exceptions_profile_name == "S1 SPB DE Exceptions"
+        assert settings.remnawave_spb_de_exceptions_policy_version == "premium_spb_de_exceptions.v1"
+        assert settings.remnawave_spb_de_exceptions_data_plane_ready is False
+        assert settings.remnawave_spb_de_exceptions_readiness_attestation == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_attestation_path == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_public_key == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_public_key_path == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_revoked_attestation_ids == ""
+        assert settings.remnawave_spb_de_exceptions_plan_codes != settings.remnawave_smart_ru_plan_codes
+
+    def test_spb_de_exceptions_data_plane_ready_must_be_explicitly_enabled(self) -> None:
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+            remnawave_spb_de_exceptions_data_plane_ready=True,
+        )
+
+        assert settings.remnawave_spb_de_exceptions_data_plane_ready is True
+
+    @pytest.mark.parametrize(("raw_value", "expected"), [("true", True), ("false", False)])
+    def test_spb_de_exceptions_data_plane_ready_env_override(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        raw_value: str,
+        expected: bool,
+    ) -> None:
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_DATA_PLANE_READY", raw_value)
+
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+        )
+
+        assert settings.remnawave_spb_de_exceptions_data_plane_ready is expected
+
+    def test_spb_de_exceptions_readiness_attestation_settings_accept_env_overrides(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_ATTESTATION", "signed.jwt")
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_ATTESTATION_PATH", "/run/cybervpn/task2.jwt")
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_PUBLIC_KEY", "-----BEGIN PUBLIC KEY-----")
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_PUBLIC_KEY_PATH", "/run/cybervpn/task2.pub")
+        monkeypatch.setenv(
+            "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_REVOKED_ATTESTATION_IDS",
+            "task2-attestation-20260711",
+        )
+
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+        )
+
+        assert settings.remnawave_spb_de_exceptions_readiness_attestation == "signed.jwt"
+        assert settings.remnawave_spb_de_exceptions_readiness_attestation_path == "/run/cybervpn/task2.jwt"
+        assert settings.remnawave_spb_de_exceptions_readiness_public_key == "-----BEGIN PUBLIC KEY-----"
+        assert settings.remnawave_spb_de_exceptions_readiness_public_key_path == "/run/cybervpn/task2.pub"
+        assert settings.remnawave_spb_de_exceptions_readiness_revoked_attestation_ids == ("task2-attestation-20260711")
+
+    def test_spb_de_exceptions_data_plane_ready_false_is_allowed_in_production(self) -> None:
+        settings = Settings(
+            _env_file=None,
+            environment="production",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            payment_settlement_worker_secret=SecretStr(self.VALID_WORKER_SECRET),
+            telegram_bot_internal_secret=SecretStr(""),
+            oauth_token_encryption_key=SecretStr(self.STRONG_SECRET),
+            oauth_enabled_login_providers=[],
+            cors_origins=self.PRODUCTION_CORS_ORIGINS,
+            cookie_secure=True,
+            admin_2fa_required=True,
+        )
+
+        assert settings.remnawave_spb_de_exceptions_data_plane_ready is False
+
 
 class TestS1CorsAndCookieSettings:
     """Test S1 production browser-origin and cookie constraints."""

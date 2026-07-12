@@ -1,0 +1,115 @@
+---
+- name: Task2 SPB listener IPv6 | Check configured interface exists
+  ansible.builtin.command:
+    argv:
+      - "{{ spb_listener_ipv6_address_ip_binary }}"
+      - -o
+      - link
+      - show
+      - dev
+      - "{{ spb_listener_ipv6_address_interface }}"
+  changed_when: false
+
+- name: Task2 SPB listener IPv6 | Check configured interface owns SPB IPv4
+  ansible.builtin.command:
+    argv:
+      - "{{ spb_listener_ipv6_address_ip_binary }}"
+      - -o
+      - -4
+      - addr
+      - show
+      - dev
+      - "{{ spb_listener_ipv6_address_interface }}"
+  register: spb_listener_ipv6_address_ipv4_state
+  changed_when: false
+  failed_when: >-
+    spb_listener_ipv6_address_ipv4_state.rc != 0 or
+    (spb_listener_ipv6_address_expected_host_ipv4 ~ '/') not in
+    spb_listener_ipv6_address_ipv4_state.stdout
+
+- name: Task2 SPB listener IPv6 | Check for conflicting target prefixes
+  ansible.builtin.command:
+    argv:
+      - "{{ spb_listener_ipv6_address_ip_binary }}"
+      - -6
+      - -o
+      - addr
+      - show
+      - dev
+      - "{{ spb_listener_ipv6_address_interface }}"
+      - scope
+      - global
+  register: spb_listener_ipv6_address_ipv6_state
+  changed_when: false
+  failed_when: >-
+    spb_listener_ipv6_address_ipv6_state.rc != 0 or
+    (
+      ('inet6 ' ~ spb_listener_ipv6_address_address ~ '/') in
+      spb_listener_ipv6_address_ipv6_state.stdout and
+      ('inet6 ' ~ spb_listener_ipv6_address_cidr ~ ' ') not in
+      spb_listener_ipv6_address_ipv6_state.stdout
+    )
+
+- name: Task2 SPB listener IPv6 | Check target address is not on another interface
+  ansible.builtin.command:
+    argv:
+      - "{{ spb_listener_ipv6_address_ip_binary }}"
+      - -6
+      - -o
+      - addr
+      - show
+      - scope
+      - global
+  register: spb_listener_ipv6_address_all_ipv6_state
+  changed_when: false
+  failed_when: >-
+    spb_listener_ipv6_address_all_ipv6_state.rc != 0 or
+    (
+      ('inet6 ' ~ spb_listener_ipv6_address_address ~ '/') in
+      spb_listener_ipv6_address_all_ipv6_state.stdout and
+      spb_listener_ipv6_address_all_ipv6_state.stdout is not search(
+        '(?m)^[0-9]+:\\s+' ~
+        (spb_listener_ipv6_address_interface | regex_escape) ~
+        '(?:@[^\\s]+)?\\s+inet6\\s+' ~
+        (spb_listener_ipv6_address_cidr | regex_escape) ~ '\\s'
+      )
+    )
+
+- name: Task2 SPB listener IPv6 | Install guarded address manager
+  ansible.builtin.template:
+    src: cybervpn-spb-listener-ipv6.sh.j2
+    dest: "{{ spb_listener_ipv6_address_script_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+    validate: /bin/sh -n %s
+
+- name: Task2 SPB listener IPv6 | Install hardened systemd unit
+  ansible.builtin.template:
+    src: cybervpn-spb-listener-ipv6.service.j2
+    dest: "/etc/systemd/system/{{ spb_listener_ipv6_address_unit_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Task2 SPB listener IPv6 | Verify rendered systemd unit
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/systemd-analyze
+      - verify
+      - "/etc/systemd/system/{{ spb_listener_ipv6_address_unit_name }}.service"
+  changed_when: false
+
+- name: Task2 SPB listener IPv6 | Enable and apply secondary address
+  ansible.builtin.systemd_service:
+    name: "{{ spb_listener_ipv6_address_unit_name }}.service"
+    daemon_reload: true
+    state: started
+  when: not ansible_check_mode
+
+- name: Task2 SPB listener IPv6 | Enable persistent boot restore
+  ansible.builtin.systemd_service:
+    name: "{{ spb_listener_ipv6_address_unit_name }}.service"
+    enabled: true
+    state: started
+  when: not ansible_check_mode

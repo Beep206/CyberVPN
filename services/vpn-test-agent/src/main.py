@@ -33,14 +33,19 @@ MAX_REQUEST_PROFILE_COUNT = EXPECTED_PROFILE_COUNT
 MAX_PROFILE_PROBE_ATTEMPTS = 4
 GENERATE_204_URL = "https://example.com/"
 EXIT_COUNTRY_URL = "https://ipwho.is/"
-PREMIUM_SMART_RU_ALLOWED_SERVERS = frozenset(
-    {
-        "de-3.cyber-vpn.org",
-        "nl-4.cyber-vpn.org",
-        "ru-msk-3.cyber-vpn.org",
-        "ru-spb-3.cyber-vpn.org",
-    }
-)
+PREMIUM_SMART_RU_ENDPOINT_PORTS = {
+    "de-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
+    "nl-4.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
+    "msk-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
+    "ru-spb-3.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
+}
+PREMIUM_SMART_RU_ALLOWED_SERVERS = frozenset(PREMIUM_SMART_RU_ENDPOINT_PORTS)
+PREMIUM_SMART_RU_LOCATION_KEYS_BY_SERVER = {
+    "de-relay.cyber-vpn.org": "de",
+    "nl-4.cyber-vpn.org": "nl",
+    "msk-relay.cyber-vpn.org": "moscow",
+    "ru-spb-3.cyber-vpn.org": "spb",
+}
 HOST_RE = re.compile(r"^(?=.{1,253}$)(?!-)[A-Za-z0-9.-]+(?<!-)$")
 PUBLIC_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{10,120}$")
 SHORT_ID_RE = re.compile(r"^[0-9A-Fa-f]{0,32}$")
@@ -224,15 +229,16 @@ class RuntimeTransportProfile(BaseModel):
 
     @model_validator(mode="after")
     def _validate_transport_specific_fields(self) -> RuntimeTransportProfile:
+        expected_ports = PREMIUM_SMART_RU_ENDPOINT_PORTS[self.server]
         if self.network in {"raw", "tcp"}:
-            if self.port != 443:
-                raise ValueError("raw_tcp_profiles_must_use_443")
+            if self.port != expected_ports["raw"]:
+                raise ValueError("raw_tcp_profile_port_mismatch")
             if self.flow != "xtls-rprx-vision":
                 raise ValueError("raw_tcp_profiles_must_use_vision_flow")
             return self
 
-        if self.port != 8443:
-            raise ValueError("xhttp_profiles_must_use_8443")
+        if self.port != expected_ports["xhttp"]:
+            raise ValueError("xhttp_profile_port_mismatch")
         if not self.xhttp_path or not SAFE_PATH_RE.fullmatch(self.xhttp_path):
             raise ValueError("invalid_xhttp_path")
         if not self.xhttp_mode or not XHTTP_MODE_RE.fullmatch(self.xhttp_mode):
@@ -488,7 +494,9 @@ def _matrix_check(
 def _profile_check(profile: RuntimeTransportProfile, result: ProfileProbeResult) -> dict[str, Any]:
     target = f"{profile.node}:{profile.transport}"
     return {
-        "check_key": f"runtime.transport.{profile.transport}.{_safe_slug(profile.node)}",
+        "check_key": (
+            f"runtime.transport.{profile.transport}.{PREMIUM_SMART_RU_LOCATION_KEYS_BY_SERVER[profile.server]}"
+        ),
         "check_name": "Runtime concrete transport profile",
         "category": "runtime",
         "status": "pass" if result.passed else "fail",

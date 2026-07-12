@@ -1,0 +1,51 @@
+---
+- name: Task2 SPB listener IPv6 | Assert dedicated production SPB target
+  ansible.builtin.assert:
+    that:
+      - >-
+        (groups.get(spb_listener_ipv6_address_target_group | default('spb_listener_ipv6_address'), [])
+         | length) == 1
+      - >-
+        inventory_hostname in
+        groups.get(spb_listener_ipv6_address_target_group | default('spb_listener_ipv6_address'), [])
+      - spb_listener_ipv6_address_expected_host_ipv4 == '193.233.91.99'
+      - ansible_host | default('') == spb_listener_ipv6_address_expected_host_ipv4
+    fail_msg: >-
+      This role is scoped only to the single production SPB host at
+      193.233.91.99. Refusing empty groups, multi-host groups, or any other
+      target before mutation.
+
+- name: Task2 SPB listener IPv6 | Assert pinned listener address contract
+  ansible.builtin.assert:
+    that:
+      - spb_listener_ipv6_address_address == '2a01:e5c0:1368::3'
+      - spb_listener_ipv6_address_prefix_length | int == 48
+      - spb_listener_ipv6_address_expected_prefix == '2a01:e5c0:1368::/48'
+      - spb_listener_ipv6_address_cidr == '2a01:e5c0:1368::3/48'
+    fail_msg: >-
+      Task2 dedicated SPB listener address must stay pinned to
+      2a01:e5c0:1368::3/48 from the 2a01:e5c0:1368::/48 routed prefix.
+
+- name: Task2 SPB listener IPv6 | Assert interface and path inputs are safe
+  ansible.builtin.assert:
+    that:
+      - spb_listener_ipv6_address_interface is match('^[A-Za-z0-9_.:-]{1,32}$')
+      - spb_listener_ipv6_address_interface != 'lo'
+      - >-
+        not (spb_listener_ipv6_address_interface is
+             match('^(docker|br-|veth|virbr|tun|tap|wg|tailscale|zt)'))
+      - spb_listener_ipv6_address_ip_binary is match('^/[A-Za-z0-9._/@+=:-]+(?:/[A-Za-z0-9._/@+=:-]+)*$')
+      - spb_listener_ipv6_address_script_path is match('^/[A-Za-z0-9._/@+=:-]+(?:/[A-Za-z0-9._/@+=:-]+)*$')
+      - spb_listener_ipv6_address_state_dir is match('^/[A-Za-z0-9._/@+=:-]+(?:/[A-Za-z0-9._/@+=:-]+)*$')
+      - spb_listener_ipv6_address_runtime_directory is match('^[A-Za-z0-9][A-Za-z0-9_.@-]{0,63}$')
+      - spb_listener_ipv6_address_unit_name is match('^[A-Za-z0-9][A-Za-z0-9_.@-]{0,63}$')
+      - spb_listener_ipv6_address_dad_wait_attempts | int >= 1
+      - spb_listener_ipv6_address_dad_wait_attempts | int <= 60
+      - spb_listener_ipv6_address_dad_wait_seconds | int >= 0
+      - spb_listener_ipv6_address_dad_wait_seconds | int <= 10
+      - spb_listener_ipv6_address_unit_memory_max is match('^[0-9]+[KMG]?$')
+      - spb_listener_ipv6_address_unit_tasks_max | int >= 4
+      - spb_listener_ipv6_address_unit_tasks_max | int <= 128
+    fail_msg: >-
+      Configure an explicit non-loopback interface, safe absolute paths, and
+      bounded systemd resource limits before applying the SPB listener address.

@@ -18,11 +18,13 @@ from src.application.vpn_testing.generated_subscription_checker import (
 from src.config.settings import settings
 
 NODE_HOSTS = (
-    "de-3.cyber-vpn.org",
+    "de-relay.cyber-vpn.org",
     "nl-4.cyber-vpn.org",
-    "ru-msk-3.cyber-vpn.org",
+    "msk-relay.cyber-vpn.org",
     "ru-spb-3.cyber-vpn.org",
 )
+RAW_PORTS = (2053, 443, 2053, 443)
+XHTTP_PORTS = (2083, 8443, 2083, 8443)
 
 
 @pytest.fixture
@@ -50,7 +52,7 @@ def _valid_raw_proxy(index: int) -> dict[str, Any]:
         "name": f"raw-{index}",
         "type": "vless",
         "server": host,
-        "port": 443,
+        "port": RAW_PORTS[index],
         "network": "tcp",
         "tls": True,
         "flow": "xtls-rprx-vision",
@@ -68,7 +70,7 @@ def _valid_xhttp_proxy(index: int) -> dict[str, Any]:
         "name": f"xhttp-{index}",
         "type": "vless",
         "server": host,
-        "port": 8443,
+        "port": XHTTP_PORTS[index],
         "network": "xhttp",
         "tls": True,
         "sni": host,
@@ -252,6 +254,7 @@ def test_generated_subscription_rejects_duplicate_compensated_location_matrix(
         if (str(proxy.get("network") or "tcp") == "xhttp") is (transport == "xhttp")
     ]
     selected[-1]["server"] = selected[0]["server"]
+    selected[-1]["port"] = selected[0]["port"]
 
     by_key = _checks_by_key(artifact)
     check_key = (

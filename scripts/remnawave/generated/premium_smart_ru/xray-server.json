@@ -1,0 +1,831 @@
+{
+  "consumer": "remnawave-xray-server",
+  "product": "premium_smart_ru",
+  "ruleOrder": [
+    "private_networks",
+    "direct_processes",
+    "bittorrent_protocol",
+    "torrent_processes",
+    "torrent_sources",
+    "ads_trackers",
+    "tor",
+    "quic_doq",
+    "eu_exceptions",
+    "ru_services",
+    "broad_ru",
+    "final"
+  ],
+  "rules": [
+    {
+      "action": "direct",
+      "assurance": "enforced",
+      "id": "direct_private",
+      "matches": [
+        {
+          "domain": [
+            "geosite:private"
+          ]
+        },
+        {
+          "ip": [
+            "0.0.0.0/8",
+            "10.0.0.0/8",
+            "100.64.0.0/10",
+            "127.0.0.0/8",
+            "169.254.0.0/16",
+            "172.16.0.0/12",
+            "192.0.0.0/24",
+            "192.0.2.0/24",
+            "192.88.99.0/24",
+            "192.168.0.0/16",
+            "198.51.100.0/24",
+            "203.0.113.0/24",
+            "224.0.0.0/3",
+            "::/127",
+            "fc00::/7",
+            "fe80::/10",
+            "ff00::/8"
+          ]
+        }
+      ],
+      "providers": [
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "geosite-private",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "0f9ba48d4d0b0d192a4e7c3548486dde05e5a92e6e58e8ea8c9cc302712a1420",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/private.mrs"
+        }
+      ],
+      "sourceGroup": "private_networks",
+      "sourceIds": [
+        "private-ips",
+        "geosite-private"
+      ],
+      "stage": "private_networks"
+    },
+    {
+      "action": "direct",
+      "assurance": "enforced",
+      "id": "direct_approved_processes",
+      "matches": [
+        {
+          "domain": [
+            "geosite:category-remote-control"
+          ]
+        },
+        {
+          "process": [
+            "regexp:(?i).*tailscale.*",
+            "regexp:(?i).*wireguard.*",
+            "regexp:(?i).*netbird.*",
+            "regexp:(?i).*zerotier.*",
+            "regexp:(?i).*anydesk.*",
+            "regexp:(?i).*rustdesk.*",
+            "regexp:(?i).*teamviewer.*"
+          ]
+        }
+      ],
+      "providers": [
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "remote-control",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "0d1fdf64b303a04d4b6f524dccb4334c38cfc722ccbb94663395ece2da917d7a",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/category-remote-control.mrs"
+        }
+      ],
+      "sourceGroup": "direct_processes",
+      "sourceIds": [
+        "direct-processes",
+        "remote-control"
+      ],
+      "stage": "direct_processes"
+    },
+    {
+      "action": "block",
+      "assurance": "enforced",
+      "id": "block_bittorrent_protocol",
+      "matches": [
+        {
+          "protocol": [
+            "bittorrent"
+          ]
+        }
+      ],
+      "providers": [],
+      "sourceGroup": "bittorrent_protocol",
+      "sourceIds": [
+        "bittorrent-protocol"
+      ],
+      "stage": "bittorrent_protocol"
+    },
+    {
+      "action": "block",
+      "assurance": "enforced",
+      "id": "block_torrent_processes",
+      "matches": [
+        {
+          "process": [
+            "regexp:(?i).*torrent.*"
+          ]
+        }
+      ],
+      "providers": [],
+      "sourceGroup": "torrent_processes",
+      "sourceIds": [
+        "torrent-processes"
+      ],
+      "stage": "torrent_processes"
+    },
+    {
+      "action": "block",
+      "assurance": "enforced",
+      "id": "block_torrent_sources",
+      "matches": [
+        {
+          "domain": [
+            "domain:1337x.to",
+            "domain:eztv.re",
+            "domain:limetorrents.lol",
+            "domain:nnmclub.to",
+            "domain:thepiratebay.org",
+            "domain:torrentdownload.info",
+            "domain:torrentgalaxy.to",
+            "domain:rutracker.org",
+            "domain:rutor.info",
+            "domain:kinozal.tv",
+            "domain:yts.mx"
+          ]
+        }
+      ],
+      "providers": [
+        {
+          "behavior": "classical",
+          "entries": [],
+          "format": "yaml",
+          "id": "torrent-clients",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "31b26f266129bac396f523c3309f768430ef487fb9e16d8eafcffbcd52aab9ba",
+          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-clients.yaml"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "torrent-trackers",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "f2832fedc058999ba039052d684f1b8b05433dc378cd041d36bf625e209848c5",
+          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-trackers.mrs"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "torrent-websites",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "68efec804d027ba03a76bf4baaf6be7fd6c92571930cb439eab25143821448ce",
+          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-websites.mrs"
+        }
+      ],
+      "sourceGroup": "torrent_sources",
+      "sourceIds": [
+        "torrent-clients",
+        "torrent-trackers",
+        "torrent-websites",
+        "torrent-domains-inline"
+      ],
+      "stage": "torrent_sources"
+    },
+    {
+      "action": "block",
+      "assurance": "enforced",
+      "id": "block_ads_trackers",
+      "matches": [
+        {
+          "domain": [
+            "geosite:category-ads-all",
+            "domain:app-measurement.com",
+            "domain:doubleclick.net",
+            "domain:googleadservices.com",
+            "domain:googlesyndication.com",
+            "domain:googletagmanager.com",
+            "domain:googletagservices.com",
+            "domain:scorecardresearch.com"
+          ]
+        }
+      ],
+      "providers": [
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "oisd-big",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "7629b91ce2f3324e9aa0b4b45de545f8e9712a4d700f5abbb6face0c8959af5f",
+          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/oisd/big.mrs"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "ads-all",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "6dfc9cde6a802d9641594df0c8ed8b1c5df646faa05e74c06f9bfba202080335",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/category-ads-all.mrs"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "win-spy",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "2041bdc2748776fd083ea3bb8790eab14a7aed25",
+          "sha256": "ef83021ce3a116a8c2bb30d259963f3061c7f4a71e17d3a4f5f90abbf3d11a24",
+          "url": "https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite@2041bdc2748776fd083ea3bb8790eab14a7aed25/mihomo/win-spy.mrs"
+        }
+      ],
+      "sourceGroup": "ads_trackers",
+      "sourceIds": [
+        "oisd-big",
+        "ads-all",
+        "win-spy",
+        "tracker-domains-inline"
+      ],
+      "stage": "ads_trackers"
+    },
+    {
+      "action": "block",
+      "assurance": "best_effort",
+      "id": "block_tor_best_effort",
+      "matches": [
+        {
+          "domain": [
+            "regexp:\\.onion$",
+            "domain:torproject.org",
+            "domain:torproject.net",
+            "keyword:torproject",
+            "keyword:tor2web"
+          ]
+        },
+        {
+          "process": [
+            "regexp:(?i).*(tor|torbrowser|obfs4proxy|snowflake-client).*"
+          ]
+        }
+      ],
+      "providers": [],
+      "sourceGroup": "tor",
+      "sourceIds": [
+        "tor-inline",
+        "tor-processes"
+      ],
+      "stage": "tor"
+    },
+    {
+      "action": "block",
+      "assurance": "enforced",
+      "id": "block_quic_doq",
+      "matches": [
+        {
+          "network": "udp",
+          "port": "443,853"
+        }
+      ],
+      "providers": [],
+      "sourceGroup": "quic_doq",
+      "sourceIds": [
+        "quic-doq"
+      ],
+      "stage": "quic_doq"
+    },
+    {
+      "action": "eu",
+      "assurance": "enforced",
+      "id": "route_eu_exceptions",
+      "matches": [
+        {
+          "domain": [
+            "domain:openai.com",
+            "domain:chatgpt.com",
+            "domain:oaistatic.com",
+            "domain:oaiusercontent.com",
+            "domain:anthropic.com",
+            "domain:claude.ai",
+            "domain:perplexity.ai",
+            "domain:poe.com",
+            "domain:notion.so",
+            "domain:figma.com",
+            "domain:canva.com",
+            "domain:spotify.com",
+            "domain:netflix.com",
+            "domain:discord.com",
+            "domain:discordapp.com",
+            "domain:discord.gg",
+            "domain:github.com",
+            "domain:githubusercontent.com",
+            "domain:githubassets.com",
+            "geosite:youtube",
+            "geosite:discord",
+            "geosite:telegram",
+            "geosite:whatsapp",
+            "geosite:category-ai-!cn",
+            "geosite:google-deepmind",
+            "geosite:github",
+            "domain:habr.com",
+            "domain:meduza.io",
+            "domain:theins.ru",
+            "domain:tvrain.ru",
+            "domain:dozhd.tv",
+            "domain:novayagazeta.ru",
+            "domain:moscowtimes.ru",
+            "domain:echo.msk.ru",
+            "domain:svoboda.org",
+            "domain:currenttime.tv",
+            "domain:holod.media",
+            "domain:zona.media",
+            "domain:ovd.info",
+            "domain:navalny.com",
+            "domain:bellingcat.com",
+            "domain:proekt.media",
+            "domain:istories.media",
+            "domain:agents.media",
+            "domain:verstka.media",
+            "domain:mediazona.ca",
+            "domain:change.org",
+            "domain:archive.org",
+            "domain:archive.ph",
+            "domain:archive.is",
+            "domain:4pda.to",
+            "domain:4pda.ws",
+            "domain:libgen.is",
+            "domain:annas-archive.org",
+            "keyword:anilibria",
+            "keyword:anidub",
+            "keyword:animego",
+            "keyword:yummyanime"
+          ]
+        },
+        {
+          "ip": [
+            "geoip:telegram",
+            "geoip:facebook"
+          ]
+        }
+      ],
+      "providers": [
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "youtube",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "e212b2ce9f39b30f4e2ab57da9ed0937673606bc56bb46e5d55ad7dd9af00aef",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/youtube.mrs"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "discord-domains",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "d7387b23e75ca9a93086ee7f9d398efb936c64bdbb85d97aa7dea99de2381891",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/discord.mrs"
+        },
+        {
+          "behavior": "ipcidr",
+          "entries": [],
+          "format": "mrs",
+          "id": "discord-voice",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "51af199e7aa95a6a939e7853a5405df328bd8ca54cb24953a6c9e3a189db5d68",
+          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/discord-voice-ip-list.mrs"
+        },
+        {
+          "behavior": "ipcidr",
+          "entries": [],
+          "format": "mrs",
+          "id": "cloudflare-ips",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "a483f5947ebc8e0d77bf0bc3e1108e36a88006a494a95a92538bf4a43c48b19b",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geoip/cloudflare.mrs"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "telegram-domains",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "ffa4d1d3e8649965e529c1c570d8add75a0d6f70aa8503ece8add841ce48c0e7",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/telegram.mrs"
+        },
+        {
+          "behavior": "ipcidr",
+          "entries": [],
+          "format": "mrs",
+          "id": "telegram-ips",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "d121af95b9aeca3d8c29b2112d5e6685b2a6716383df8ae31b5fbb3408c527b3",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geoip/telegram.mrs"
+        },
+        {
+          "behavior": "classical",
+          "entries": [],
+          "format": "yaml",
+          "id": "additional-telegram-domains",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "836b578f61d71de43cea3a2b0658e239e7fabd27",
+          "sha256": "17310935e7c919fdd426a58f759c7be85a02973b2e540c3f57c43240007d6baa",
+          "url": "https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/836b578f61d71de43cea3a2b0658e239e7fabd27/domains/additional-telegram-domains.yaml"
+        },
+        {
+          "behavior": "classical",
+          "entries": [],
+          "format": "yaml",
+          "id": "additional-telegram-ips",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "836b578f61d71de43cea3a2b0658e239e7fabd27",
+          "sha256": "8998206dadd831b471ea95138c4090ec63362e10575f19c241e3199b32bec55a",
+          "url": "https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/836b578f61d71de43cea3a2b0658e239e7fabd27/domains/additional-telegram-ips.yaml"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "whatsapp",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "bdcf58fcbea6c962e307aac8b452c39b55644ec02e92e29919eb69d0bd40985f",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/whatsapp.mrs"
+        },
+        {
+          "behavior": "ipcidr",
+          "entries": [],
+          "format": "mrs",
+          "id": "meta-ips",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "9523a6fe895fb1ecb8e9fee31e2064b68a882dc160e604279ed01490ce2a7ea6",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geoip/facebook.mrs"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "ai",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "256a3b73663caab55e6c7af9eb2e87113ceb80d9e70eff1a6d5bee82f344f65f",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/category-ai-!cn.mrs"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "google-deepmind",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
+          "sha256": "785863d3232bbfa561463aa00d2913b94b98a36d80690e4bb6dd96f4a6c74e94",
+          "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/google-deepmind.mrs"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "github",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "2041bdc2748776fd083ea3bb8790eab14a7aed25",
+          "sha256": "fdfb28a7fda4ee6ea13b04a143bed8de8f583a029355929f7a38322406cec35c",
+          "url": "https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite@2041bdc2748776fd083ea3bb8790eab14a7aed25/mihomo/github.mrs"
+        },
+        {
+          "behavior": "classical",
+          "entries": [],
+          "format": "text",
+          "id": "ru-inside",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "8d45624fdd6b09113a93835f1f69a458a83cd911",
+          "sha256": "e6facd2ea06200a73e991ccd18041de85be4e0122d0995950fd895dfb916f769",
+          "url": "https://raw.githubusercontent.com/itdoginfo/allow-domains/8d45624fdd6b09113a93835f1f69a458a83cd911/Russia/inside-clashx.lst"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "refilter-domains",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "34e2be7cc1760f6103305da3fd660f8257678617e2c5aba60ed088e26f45b43d",
+          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/re-filter/domain-rule.mrs"
+        },
+        {
+          "behavior": "ipcidr",
+          "entries": [],
+          "format": "mrs",
+          "id": "refilter-ipsum",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "5db46438f3ceb0f17a5ad78a1285932d35340c5f36a8216ed22ef04af92bb942",
+          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/re-filter/ip-rule.mrs"
+        },
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "ru-bundle",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "981318366bf53e357ce8dcd923b61128d49820ab329acf57701c689aa0a279d0",
+          "url": "https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@049c25a0d334d0ba6a4680a2fe62893557dd6d35/ru-bundle/rule.mrs"
+        },
+        {
+          "behavior": "ipcidr",
+          "entries": [],
+          "format": "mrs",
+          "id": "rknasnblock",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "70f3de23618786ef1241a4dbd691c5fab483e6d702b7c5b391efd7ea5c7ef173",
+          "url": "https://cdn.jsdelivr.net/gh/legiz-ru/mihomo-rule-sets@049c25a0d334d0ba6a4680a2fe62893557dd6d35/ru-bundle/rknasnblock.mrs"
+        }
+      ],
+      "sourceGroup": "eu_exceptions",
+      "sourceIds": [
+        "manual-eu-inline",
+        "youtube",
+        "discord-domains",
+        "discord-voice",
+        "cloudflare-ips",
+        "telegram-domains",
+        "telegram-ips",
+        "additional-telegram-domains",
+        "additional-telegram-ips",
+        "whatsapp",
+        "meta-ips",
+        "ai",
+        "google-deepmind",
+        "github",
+        "ru-eu-exceptions",
+        "ru-inside",
+        "refilter-domains",
+        "refilter-ipsum",
+        "ru-bundle",
+        "rknasnblock"
+      ],
+      "stage": "eu_exceptions"
+    },
+    {
+      "action": "ru",
+      "assurance": "enforced",
+      "id": "route_ru_services",
+      "matches": [
+        {
+          "domain": [
+            "domain:ru",
+            "regexp:\\.\u0440\u0444$",
+            "domain:xn--p1ai",
+            "domain:su",
+            "domain:ru.com",
+            "domain:ru.net",
+            "domain:mos.ru",
+            "domain:mosreg.ru",
+            "domain:gosuslugi.ru",
+            "domain:gosekspertiza.ru",
+            "domain:nalog.gov.ru",
+            "domain:fns.ru",
+            "domain:pfr.gov.ru",
+            "domain:sfr.gov.ru",
+            "domain:gibdd.ru",
+            "domain:zakupki.gov.ru",
+            "domain:dom.gosuslugi.ru",
+            "domain:esia.gosuslugi.ru",
+            "domain:yandex.ru",
+            "domain:yandex.net",
+            "domain:yandex.com",
+            "domain:yastatic.net",
+            "domain:yadi.sk",
+            "domain:ya.ru",
+            "domain:kinopoisk.ru",
+            "domain:kinopoiskhd.ru",
+            "domain:plus.yandex.ru",
+            "domain:avito.ru",
+            "domain:avito.st",
+            "domain:ozon.ru",
+            "domain:ozonusercontent.com",
+            "domain:wildberries.ru",
+            "domain:wb.ru",
+            "domain:wbbasket.ru",
+            "domain:wbstatic.net",
+            "domain:market.yandex.ru",
+            "domain:sbermarket.ru",
+            "domain:megamarket.ru",
+            "domain:lamoda.ru",
+            "domain:detmir.ru",
+            "domain:citilink.ru",
+            "domain:dns-shop.ru",
+            "domain:mvideo.ru",
+            "domain:eldorado.ru",
+            "domain:sberbank.ru",
+            "domain:sber.ru",
+            "domain:online.sberbank.ru",
+            "domain:tinkoff.ru",
+            "domain:tbank.ru",
+            "domain:vtb.ru",
+            "domain:alfabank.ru",
+            "domain:gazprombank.ru",
+            "domain:raiffeisen.ru",
+            "domain:open.ru",
+            "domain:pochtabank.ru",
+            "domain:psbank.ru",
+            "domain:rshb.ru",
+            "domain:akbars.ru",
+            "domain:moex.com",
+            "domain:moex.ru",
+            "domain:vk.com",
+            "domain:vk.ru",
+            "domain:vkvideo.ru",
+            "domain:userapi.com",
+            "domain:mycdn.me",
+            "domain:ok.ru",
+            "domain:mail.ru",
+            "domain:imgsmail.ru",
+            "domain:dzen.ru",
+            "domain:zen.yandex.ru",
+            "domain:rutube.ru",
+            "domain:premier.one",
+            "domain:start.ru",
+            "domain:more.tv",
+            "domain:ivi.ru",
+            "domain:okko.tv",
+            "domain:wink.ru",
+            "domain:kion.ru",
+            "domain:2gis.ru",
+            "domain:2gis.com",
+            "domain:dublgis.ru",
+            "domain:rzd.ru",
+            "domain:tutu.ru",
+            "domain:aviasales.ru",
+            "domain:cdek.ru",
+            "domain:pochta.ru",
+            "domain:russianpost.ru",
+            "domain:lenta.com",
+            "domain:lenta.ru",
+            "domain:magnit.ru",
+            "domain:pyaterochka.ru",
+            "domain:perekrestok.ru",
+            "domain:vkusvill.ru",
+            "domain:samokat.ru",
+            "domain:eda.yandex.ru",
+            "domain:lavka.yandex.ru",
+            "domain:delivery-club.ru",
+            "domain:hh.ru",
+            "domain:superjob.ru",
+            "domain:banki.ru",
+            "domain:sravni.ru",
+            "domain:championat.com",
+            "domain:sportbox.ru",
+            "domain:pikabu.ru",
+            "domain:vc.ru",
+            "domain:dtf.ru",
+            "domain:tjournal.ru",
+            "domain:kaspersky.ru",
+            "domain:kaspersky.com",
+            "keyword:yandex",
+            "keyword:avito",
+            "keyword:ozon",
+            "keyword:wildberries",
+            "keyword:gazprom",
+            "keyword:sber",
+            "keyword:tinkoff",
+            "keyword:gosslugi",
+            "keyword:gosuslugi"
+          ]
+        }
+      ],
+      "providers": [
+        {
+          "behavior": "classical",
+          "entries": [],
+          "format": "yaml",
+          "id": "ru-apps",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
+          "sha256": "9c8a4ef4d04fbc32692e6d9969e06177e2f278bc09d990c2f49514a50f040406",
+          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/ru-app-list.yaml"
+        }
+      ],
+      "sourceGroup": "ru_services",
+      "sourceIds": [
+        "ru-services-inline",
+        "ru-apps"
+      ],
+      "stage": "ru_services"
+    },
+    {
+      "action": "ru",
+      "assurance": "enforced",
+      "id": "route_broad_ru",
+      "matches": [
+        {
+          "domain": [
+            "geosite:category-ru"
+          ]
+        },
+        {
+          "ip": [
+            "geoip:ru"
+          ]
+        }
+      ],
+      "providers": [
+        {
+          "behavior": "domain",
+          "entries": [],
+          "format": "mrs",
+          "id": "geosite-ru",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "836b578f61d71de43cea3a2b0658e239e7fabd27",
+          "sha256": "835c69e57b4671da175a75ca854e5376832572f38c4a8baf848a12c0110ed825",
+          "url": "https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/836b578f61d71de43cea3a2b0658e239e7fabd27/rules/category-ru.mrs"
+        },
+        {
+          "behavior": "ipcidr",
+          "entries": [],
+          "format": "mrs",
+          "id": "geoip-for-ru",
+          "intervalSeconds": 86400,
+          "kind": "http",
+          "revision": "836b578f61d71de43cea3a2b0658e239e7fabd27",
+          "sha256": "897bca0c49492fe839d359e059ef2c2456c43524b0f8742e5c5f5db50ec54dfe",
+          "url": "https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/836b578f61d71de43cea3a2b0658e239e7fabd27/ip-for-ru/lists/ips-for-ru.mrs"
+        }
+      ],
+      "sourceGroup": "broad_ru",
+      "sourceIds": [
+        "geosite-ru",
+        "geoip-for-ru"
+      ],
+      "stage": "broad_ru"
+    },
+    {
+      "action": "eu",
+      "assurance": "enforced",
+      "id": "route_final_eu",
+      "matches": [
+        {
+          "network": "tcp,udp"
+        }
+      ],
+      "providers": [],
+      "sourceGroup": null,
+      "sourceIds": [],
+      "stage": "final"
+    }
+  ],
+  "schemaVersion": 1
+}

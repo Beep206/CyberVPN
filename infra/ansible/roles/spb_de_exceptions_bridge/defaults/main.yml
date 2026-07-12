@@ -1,0 +1,30 @@
+---
+spb_de_exceptions_bridge_enabled: false
+spb_de_exceptions_bridge_action: deploy
+
+spb_de_exceptions_bridge_port: 9444
+spb_de_exceptions_bridge_inbound_tag: DE_SPB_EXCEPTIONS_BRIDGE_9444
+spb_de_exceptions_bridge_outbound_tag: DE_EXCEPTIONS_BRIDGE
+spb_de_exceptions_bridge_product_code: premium_spb_de_exceptions
+
+spb_de_exceptions_bridge_service_user: cybervpn-spb-de-bridge
+spb_de_exceptions_bridge_service_group: cybervpn-spb-de-bridge
+
+spb_de_exceptions_bridge_manage_nftables: true
+spb_de_exceptions_bridge_manage_ufw: true
+spb_de_exceptions_bridge_run_port_preflight: true
+spb_de_exceptions_bridge_nftables_include_dir: /etc/nftables.d
+spb_de_exceptions_bridge_nftables_include_path: "{{ spb_de_exceptions_bridge_nftables_include_dir }}/cybervpn-spb-de-exceptions-bridge.nft"
+spb_de_exceptions_bridge_nftables_table_name: cybervpn_spb_de_exceptions_bridge
+spb_de_exceptions_bridge_firewall_unit_name: cybervpn-spb-de-exceptions-firewall
+
+spb_de_exceptions_bridge_allowed_ipv4_cidrs: []
+spb_de_exceptions_bridge_allowed_ipv6_cidrs:
+  - 2a01:e5c0:1368::3/128
+spb_de_exceptions_bridge_required_source_ipv4_cidr: ""
+spb_de_exceptions_bridge_required_source_ipv6_cidr: 2a01:e5c0:1368::3/128
+spb_de_exceptions_bridge_deprecated_ipv4_cidrs:
+  - 193.233.91.99/32
+
+spb_de_exceptions_bridge_unit_memory_max: 64M
+spb_de_exceptions_bridge_unit_tasks_max: 64

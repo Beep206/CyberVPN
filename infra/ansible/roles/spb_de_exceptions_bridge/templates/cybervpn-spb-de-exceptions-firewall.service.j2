@@ -1,0 +1,29 @@
+[Unit]
+Description=CyberVPN Task2 SPB DE exceptions bridge peer-only firewall
+Documentation=file:/opt/cybervpn/docs/runbooks/SPB_DE_EXCEPTIONS_ROLLBACK.md
+Wants=network-online.target
+After=network-online.target
+Before=remnanode.service remnanode@.service
+RequiresMountsFor={{ spb_de_exceptions_bridge_nftables_include_dir }}
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/sbin/nft -c -f {{ spb_de_exceptions_bridge_nftables_include_path }}
+ExecStartPre=-/usr/sbin/nft delete table inet {{ spb_de_exceptions_bridge_nftables_table_name }}
+ExecStart=/usr/sbin/nft -f {{ spb_de_exceptions_bridge_nftables_include_path }}
+RemainAfterExit=yes
+User=root
+Group=root
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK
+MemoryMax={{ spb_de_exceptions_bridge_unit_memory_max }}
+TasksMax={{ spb_de_exceptions_bridge_unit_tasks_max }}
+
+[Install]
+WantedBy=multi-user.target
+RequiredBy=remnanode.service remnanode@.service

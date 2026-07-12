@@ -1,0 +1,23 @@
+---
+- name: Manage CyberVPN Task2 SPB listener IPv6 address
+  hosts: "{{ spb_listener_ipv6_address_target_group | default('spb_listener_ipv6_address') }}"
+  become: true
+  gather_facts: true
+  serial: 1
+  max_fail_percentage: 0
+
+  pre_tasks:
+    - name: Task2 SPB listener IPv6 | Refuse silent no-op apply
+      ansible.builtin.assert:
+        that:
+          - spb_listener_ipv6_address_enabled | default(false) | bool
+          - >-
+            spb_listener_ipv6_address_action | default('deploy') in
+            ['deploy', 'verify', 'rollback', 'remove']
+        fail_msg: >-
+          Set spb_listener_ipv6_address_enabled=true and choose a supported
+          action. This production-only playbook must not succeed as a silent
+          no-op.
+
+  roles:
+    - role: spb_listener_ipv6_address

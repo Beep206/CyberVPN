@@ -1,0 +1,10 @@
+---
+- name: Manage Task2 SPB DE exceptions bridge firewall foundation
+  hosts: "{{ spb_de_exceptions_bridge_target_group | default('spb_de_exceptions_bridge') }}"
+  become: true
+  gather_facts: true
+  serial: 1
+  max_fail_percentage: 0
+
+  roles:
+    - role: spb_de_exceptions_bridge
