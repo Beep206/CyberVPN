@@ -44,6 +44,7 @@ DE_BRIDGE_PROFILE_NAME = "S1 DE SPB Bridge"
 SPB_NODE_ADDRESS = "193.233.91.99"
 DE_NODE_ADDRESS = "138.124.115.206"
 SPB_PUBLIC_HOST = "spb-exceptions.cyber-vpn.org"
+SPB_CONNECT_ADDRESS = SPB_NODE_ADDRESS
 SPB_XHTTP_PATH = "/spb-de-exceptions-xhttp"
 SPB_TASK2_RAW_PORT = 4443
 SPB_TASK2_XHTTP_PORT = 8444
@@ -66,6 +67,10 @@ IPV6_POLICY_MODES = {"enabled", "disabled", "fallback_block"}
 IPV6_BLOCK_POLICY_MODES = {"disabled", "fallback_block"}
 MAX_EXCEPTION_RULES = 50_000
 MAX_EXCEPTION_PREFIXES = 500_000
+SPB_IPV4_DNS_SERVERS = [
+    "https+local://1.1.1.1/dns-query",
+    "https+local://8.8.8.8/dns-query",
+]
 REMNAWAVE_INBOUND_TAG_MAX_LENGTH = 36
 PRESERVED_TAG_PREFIXES = {"spb": "T2S_", "de": "T2D_"}
 
@@ -620,10 +625,14 @@ def _spb_shared_public_source_tags(
         if port == 8443 and network != "xhttp":
             continue
         if port in selected:
-            raise RuntimeError(f"SPB shared IPv4 port {port} maps to multiple active inbounds")
+            raise RuntimeError(
+                f"SPB shared IPv4 port {port} maps to multiple active inbounds"
+            )
         selected[port] = tag
     if set(selected) != {443, 8443}:
-        raise RuntimeError("SPB shared IPv4 RAW 443 and XHTTP 8443 inbounds are required")
+        raise RuntimeError(
+            "SPB shared IPv4 RAW 443 and XHTTP 8443 inbounds are required"
+        )
     return [selected[443], selected[8443]]
 
 
@@ -907,8 +916,7 @@ def _build_spb_customer_config(
             config.get("dns") if isinstance(config.get("dns"), dict) else {}
         )
         dns["queryStrategy"] = "UseIPv4"
-        if not isinstance(dns.get("servers"), list) or not dns["servers"]:
-            dns["servers"] = ["localhost"]
+        dns["servers"] = list(SPB_IPV4_DNS_SERVERS)
         config["dns"] = dns
     _validate_no_empty_routing_rules(config)
     _validate_final_direct_rule(config, customer_inbound_tags=customer_inbound_tags)
@@ -1019,6 +1027,18 @@ def _validate_dedicated_listen_address(address: str | None) -> str | None:
     if parsed.is_unspecified:
         raise RuntimeError("SPB Task2 listen address must not be wildcard")
     return str(parsed)
+
+
+def _validate_spb_connect_address(address: str) -> str:
+    try:
+        normalized = _validate_dedicated_listen_address(address)
+    except RuntimeError as exc:
+        raise RuntimeError(
+            "SPB connect address must be a literal IPv4 address"
+        ) from exc
+    if normalized is None or ipaddress.ip_address(normalized).version != 4:
+        raise RuntimeError("SPB connect address must be a literal IPv4 address")
+    return normalized
 
 
 ListenAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
@@ -1389,7 +1409,9 @@ async def _upsert_spb_public_hosts(
     for spec in SPB_PUBLIC_HOST_SPECS:
         spec = {
             **spec,
-            "path": xhttp_path if spec["inbound_tag"] == "SPB_EXCEPTIONS_XHTTP_REALITY_8443" else spec["path"],
+            "path": xhttp_path
+            if spec["inbound_tag"] == "SPB_EXCEPTIONS_XHTTP_REALITY_8443"
+            else spec["path"],
         }
         inbound_uuid = tag_to_uuid.get(str(spec["inbound_tag"]))
         if not inbound_uuid:
@@ -1898,6 +1920,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
     spb_preserved_listen_address = _validate_dedicated_listen_address(
         args.spb_preserved_listen_address
     )
+    spb_connect_address = _validate_spb_connect_address(args.spb_connect_address)
 
     api = RemnawaveApi(
         args.remnawave_url,
@@ -2052,9 +2075,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             _preserved_squad_snapshots(
                 squads, spb_base_profile, spb_base_preserved_tags
             ),
-            _preserved_squad_snapshots(
-                squads, de_base_profile, de_base_preserved_tags
-            ),
+            _preserved_squad_snapshots(squads, de_base_profile, de_base_preserved_tags),
         )
 
         de_bridge_config = _build_de_bridge_config(
@@ -2105,6 +2126,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             "bridgeOutboundTag": BRIDGE_OUTBOUND_TAG,
             "bridgePublicHost": "none",
             "spbPublicHost": args.spb_public_host,
+            "spbConnectAddress": spb_connect_address,
             "spbPublicHostCount": len(SPB_PUBLIC_HOST_SPECS),
             "bridgeUser": "reuse" if bridge_user else "create",
             "bridgeSquad": "update" if bridge_squad else "create",
@@ -2356,7 +2378,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             await _upsert_spb_public_hosts(
                 api,
                 hosts,
-                args.spb_public_host,
+                spb_connect_address,
                 spb_profile["uuid"],
                 spb_tags,
                 xhttp_path=spb_shared_xhttp_path,
@@ -2487,6 +2509,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--spb-node-address", default=SPB_NODE_ADDRESS)
     parser.add_argument("--de-node-address", default=DE_NODE_ADDRESS)
     parser.add_argument("--spb-public-host", default=SPB_PUBLIC_HOST)
+    parser.add_argument("--spb-connect-address", default=SPB_CONNECT_ADDRESS)
     parser.add_argument(
         "--spb-preserved-listen-address",
         default=os.environ.get("SPB_PRESERVED_LISTEN_ADDRESS"),
@@ -2498,9 +2521,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--spb-task2-listen-address",
         default=os.environ.get("SPB_TASK2_LISTEN_ADDRESS"),
-        help=(
-            "Dedicated SPB bind IP for isolated Task2 RAW 4443/XHTTP 8444 inbounds"
-        ),
+        help=("Dedicated SPB bind IP for isolated Task2 RAW 4443/XHTTP 8444 inbounds"),
     )
     parser.add_argument(
         "--de-bridge-upstream-address", default=DE_BRIDGE_UPSTREAM_ADDRESS

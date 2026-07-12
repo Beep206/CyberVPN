@@ -146,6 +146,7 @@ def _args(tmp_path: Path, manifest_path: Path, module: ModuleType) -> argparse.N
         spb_node_address=module.SPB_NODE_ADDRESS,
         de_node_address=module.DE_NODE_ADDRESS,
         spb_public_host=module.SPB_PUBLIC_HOST,
+        spb_connect_address=module.SPB_CONNECT_ADDRESS,
         spb_preserved_listen_address="10.0.0.1",
         spb_task2_listen_address="10.0.0.2",
         de_bridge_upstream_address=module.DE_BRIDGE_UPSTREAM_ADDRESS,
@@ -168,6 +169,16 @@ def test_operator_object_names_fit_remnawave_2_8_0_limits() -> None:
     for spec in module.SPB_PUBLIC_HOST_SPECS:
         assert len(spec["remark"]) <= 40
         assert len(spec["host_tag"]) <= 36
+
+
+def test_spb_connect_address_requires_literal_ipv4() -> None:
+    module = _load_module()
+
+    assert module._validate_spb_connect_address("193.233.91.99") == "193.233.91.99"
+    with pytest.raises(RuntimeError, match="literal IPv4"):
+        module._validate_spb_connect_address("spb-exceptions.cyber-vpn.org")
+    with pytest.raises(RuntimeError, match="literal IPv4"):
+        module._validate_spb_connect_address("2a01:e5c0:1368::3")
 
 
 def test_artifact_loader_validates_manifest_rules_and_checksum(tmp_path: Path) -> None:
@@ -402,7 +413,10 @@ def test_preserved_inbounds_are_globally_unique_and_routing_references_follow() 
         assert existing_customer_tags.isdisjoint(set(inbound_tags))
     assert spb_config["dns"]["queryStrategy"] == "UseIPv4"
     assert spb_config["routing"]["domainStrategy"] == "IPOnDemand"
-    assert spb_config["dns"]["servers"] == ["1.1.1.1"]
+    assert spb_config["dns"]["servers"] == [
+        "https+local://1.1.1.1/dns-query",
+        "https+local://8.8.8.8/dns-query",
+    ]
     assert spb_config["policy"] == _base_config()["policy"]
     assert spb_config["log"] == _base_config()["log"]
 
@@ -416,7 +430,25 @@ def test_preserved_inbounds_are_globally_unique_and_routing_references_follow() 
         ipv6_policy_mode="fallback_block",
         task2_listen_address="10.0.0.2",
     )
-    assert config_with_dns_fallback["dns"]["servers"] == ["localhost"]
+    assert config_with_dns_fallback["dns"]["servers"] == [
+        "https+local://1.1.1.1/dns-query",
+        "https+local://8.8.8.8/dns-query",
+    ]
+
+    base_with_local_dns = _base_config()
+    base_with_local_dns["dns"] = {"servers": ["localhost"], "queryStrategy": "UseIP"}
+    config_with_local_dns = module._build_spb_customer_config(
+        base_with_local_dns,
+        "unit-test-bridge-password",
+        "203.0.113.10",
+        artifact_rules,
+        ipv6_policy_mode="fallback_block",
+        task2_listen_address="10.0.0.2",
+    )
+    assert config_with_local_dns["dns"]["servers"] == [
+        "https+local://1.1.1.1/dns-query",
+        "https+local://8.8.8.8/dns-query",
+    ]
 
     rebuilt_spb_config = module._build_spb_customer_config(
         spb_config,
@@ -773,6 +805,7 @@ def test_dry_run_is_read_only_and_does_not_write_manifest(
     assert result["bridgeSocketPreflight"] == "skipped"
     assert result["bridgePublicHost"] == "none"
     assert result["spbPublicHost"] == module.SPB_PUBLIC_HOST
+    assert result["spbConnectAddress"] == module.SPB_CONNECT_ADDRESS
     assert result["spbPublicHostCount"] == 2
     assert result["spbTask2ListenAddress"] == "10.0.0.2"
     assert result["ipv6PolicyMode"] == "disabled"
@@ -1096,7 +1129,7 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
         }
     ]
     assert captured["hosts"]
-    assert {host["address"] for host in captured["hosts"]} == {module.SPB_PUBLIC_HOST}
+    assert {host["address"] for host in captured["hosts"]} == {module.SPB_CONNECT_ADDRESS}
     xhttp_host = next(host for host in captured["hosts"] if host["port"] == module.SPB_TASK2_XHTTP_PORT)
     assert xhttp_host["path"] == "/source-xhttp-path"
     assert {host["inbound"]["configProfileInboundUuid"] for host in captured["hosts"]} == {
