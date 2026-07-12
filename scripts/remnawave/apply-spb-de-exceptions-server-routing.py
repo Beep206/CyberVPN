@@ -1188,13 +1188,13 @@ def _validate_local_bridge_socket_available(port: int = BRIDGE_PORT) -> None:
                     )
             finally:
                 probe.close()
-        for sock_type, label in (
+        for sock_type, _label in (
             (socket.SOCK_STREAM, "TCP"),
             (socket.SOCK_DGRAM, "UDP"),
         ):
             sock = socket.socket(socket.AF_INET, sock_type)
             sockets.append(sock)
-            sock.bind(("0.0.0.0", port))
+            sock.bind(("0.0.0.0", port))  # noqa: S104 - wildcard preflight is intentional.
         return
     except OSError as exc:
         raise RuntimeError(
@@ -1210,6 +1210,77 @@ def _inbound_uuids(squad: dict[str, Any]) -> list[str]:
         item["uuid"] if isinstance(item, dict) else str(item)
         for item in squad.get("inbounds", [])
     ]
+
+
+def _preserved_squad_snapshots(
+    squads: list[dict[str, Any]],
+    source_profile: dict[str, Any],
+    preserved_tags: list[str],
+) -> list[dict[str, Any]]:
+    source_uuids = _profile_inbound_uuid_by_tag(source_profile)
+    preserved_uuids = {
+        source_uuids[tag] for tag in preserved_tags if tag in source_uuids
+    }
+    snapshots: list[dict[str, Any]] = []
+    for squad in squads:
+        inbound_uuids = _inbound_uuids(squad)
+        if preserved_uuids.intersection(inbound_uuids):
+            snapshots.append(
+                {
+                    "uuid": str(squad["uuid"]),
+                    "name": str(squad.get("name") or ""),
+                    "inbounds": inbound_uuids,
+                }
+            )
+    return snapshots
+
+
+def _merge_squad_snapshots(
+    *snapshot_groups: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for snapshots in snapshot_groups:
+        for snapshot in snapshots:
+            merged.setdefault(str(snapshot["uuid"]), snapshot)
+    return list(merged.values())
+
+
+async def _extend_preserved_squads(
+    api: RemnawaveApi,
+    snapshots: list[dict[str, Any]],
+    preservations: list[
+        tuple[
+            dict[str, Any],
+            dict[str, Any],
+            dict[str, str],
+            list[str],
+        ]
+    ],
+) -> None:
+    for snapshot in snapshots:
+        original_uuids = list(snapshot["inbounds"])
+        desired_uuids = list(original_uuids)
+        for source_profile, target_profile, tag_map, preserved_tags in preservations:
+            source_uuids = _profile_inbound_uuid_by_tag(source_profile)
+            target_uuids = _profile_inbound_uuid_by_tag(target_profile)
+            for source_tag in preserved_tags:
+                source_uuid = source_uuids.get(source_tag)
+                if source_uuid not in original_uuids:
+                    continue
+                target_tag = tag_map.get(source_tag, source_tag)
+                target_uuid = target_uuids.get(target_tag)
+                if not target_uuid:
+                    raise RuntimeError(
+                        f"Superset profile is missing preserved inbound tag {target_tag}"
+                    )
+                if target_uuid not in desired_uuids:
+                    desired_uuids.append(target_uuid)
+        if desired_uuids != original_uuids:
+            await api.request(
+                "PATCH",
+                "/internal-squads",
+                json={"uuid": snapshot["uuid"], "inbounds": desired_uuids},
+            )
 
 
 def _squad_uuids(user: dict[str, Any]) -> list[str]:
@@ -1646,6 +1717,16 @@ async def _rollback(
                 "inbounds": customer_squad["inbounds"],
             },
         )
+    for preserved_squad in manifest.get("preservedSquads") or []:
+        if isinstance(preserved_squad, dict) and preserved_squad.get("uuid"):
+            await api.request(
+                "PATCH",
+                "/internal-squads",
+                json={
+                    "uuid": preserved_squad["uuid"],
+                    "inbounds": preserved_squad.get("inbounds") or [],
+                },
+            )
     external_squad = manifest.get("externalSquad")
     if external_squad:
         await api.request(
@@ -1752,12 +1833,21 @@ async def _node_source_profile(
     api: RemnawaveApi,
     node: dict[str, Any],
     base_profile: dict[str, Any],
+    *,
+    exclude_tags: set[str],
 ) -> dict[str, Any]:
     active_uuid = _normalize_node_config_profile(node.get("configProfile")).get(
         "activeConfigProfileUuid"
     )
     if active_uuid and active_uuid != base_profile.get("uuid"):
-        return await api.request("GET", f"/config-profiles/{active_uuid}")
+        active_profile = await api.request("GET", f"/config-profiles/{active_uuid}")
+        preserved_tags = {
+            tag
+            for tag in _profile_inbound_uuid_by_tag(active_profile)
+            if tag not in exclude_tags
+        }
+        if preserved_tags:
+            return active_profile
     return base_profile
 
 
@@ -1859,8 +1949,18 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         nodes = _collection(await api.request("GET", "/nodes"), "nodes")
         spb_node = _find_node(nodes, args.spb_node_address)
         de_node = _find_node(nodes, args.de_node_address)
-        spb_source_profile = await _node_source_profile(api, spb_node, spb_base_profile)
-        de_source_profile = await _node_source_profile(api, de_node, de_base_profile)
+        spb_source_profile = await _node_source_profile(
+            api,
+            spb_node,
+            spb_base_profile,
+            exclude_tags=SPB_CUSTOMER_INBOUND_TAG_SET,
+        )
+        de_source_profile = await _node_source_profile(
+            api,
+            de_node,
+            de_base_profile,
+            exclude_tags={BRIDGE_INBOUND_TAG},
+        )
         spb_preserved_active_tags = _active_inbound_tags(
             spb_source_profile,
             spb_node,
@@ -1921,12 +2021,40 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         spb_preserved_target_tags = [
             spb_preserved_tag_map.get(tag, tag) for tag in spb_preserved_active_tags
         ]
+        spb_base_preserved_tag_map = _preserved_inbound_tag_map(
+            spb_base_profile["config"],
+            "spb",
+            exclude_tags=SPB_CUSTOMER_INBOUND_TAG_SET | {BRIDGE_INBOUND_TAG},
+        )
+        spb_base_preserved_tags = [
+            source_tag
+            for source_tag, target_tag in spb_base_preserved_tag_map.items()
+            if target_tag in spb_preserved_target_tags
+        ]
+        de_base_preserved_tag_map = _preserved_inbound_tag_map(
+            de_base_profile["config"],
+            "de",
+            exclude_tags={BRIDGE_INBOUND_TAG},
+        )
+        de_base_preserved_tags = [
+            source_tag
+            for source_tag, target_tag in de_base_preserved_tag_map.items()
+            if target_tag in de_preserved_target_tags
+        ]
         spb_shared_public_source_tags = _spb_shared_public_source_tags(
             spb_source_profile["config"], spb_preserved_active_tags
         )
         spb_customer_routing_tags = list(SPB_CUSTOMER_INBOUND_TAGS)
         spb_shared_xhttp_path = _spb_shared_xhttp_path(
             spb_source_profile["config"], spb_shared_public_source_tags
+        )
+        preserved_squads = _merge_squad_snapshots(
+            _preserved_squad_snapshots(
+                squads, spb_base_profile, spb_base_preserved_tags
+            ),
+            _preserved_squad_snapshots(
+                squads, de_base_profile, de_base_preserved_tags
+            ),
         )
 
         de_bridge_config = _build_de_bridge_config(
@@ -1990,6 +2118,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             "dePreservedActiveInboundTags": de_preserved_active_tags,
             "spbPreservedTargetInboundTags": spb_preserved_target_tags,
             "dePreservedTargetInboundTags": de_preserved_target_tags,
+            "preservedSquadCount": len(preserved_squads),
             "spbRoutingRuleCount": len(spb_config["routing"]["rules"]),
             "deBridgeRoutingRuleCount": len(de_bridge_config["routing"]["rules"]),
             "restartOrder": ["de", "spb"],
@@ -2027,6 +2156,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 "uuid": external_squad["uuid"],
                 "responseHeaders": external_squad.get("responseHeaders") or {},
             },
+            "preservedSquads": preserved_squads,
             "spbRemappedHosts": _host_snapshots_for_profile(
                 hosts,
                 spb_source_profile,
@@ -2190,6 +2320,25 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             spb_node_active_inbounds = _mapped_active_inbounds(
                 spb_tags, spb_preserved_target_tags, SPB_CUSTOMER_INBOUND_TAGS
             )
+            await _extend_preserved_squads(
+                api,
+                preserved_squads,
+                [
+                    (
+                        spb_base_profile,
+                        spb_profile,
+                        spb_base_preserved_tag_map,
+                        spb_base_preserved_tags,
+                    ),
+                    (
+                        de_base_profile,
+                        de_bridge_profile,
+                        de_base_preserved_tag_map,
+                        de_base_preserved_tags,
+                    ),
+                ],
+            )
+            _checkpoint(manifest_path, manifest, "preserved_squads_extended")
             _validate_no_active_listener_conflicts(
                 spb_profile.get("config", spb_config),
                 spb_next_active_tags,

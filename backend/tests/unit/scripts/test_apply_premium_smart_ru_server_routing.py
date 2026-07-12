@@ -62,6 +62,43 @@ def _compiled_artifacts() -> tuple[dict[str, object], str]:
     return server, legacy["value"]
 
 
+def test_rejects_replacing_active_task2_de_superset_profile() -> None:
+    module = _load_module()
+    node = {
+        "configProfile": {
+            "activeConfigProfileUuid": "task2-de-profile",
+            "activeInbounds": [],
+        }
+    }
+    profiles = [
+        {
+            "uuid": "task2-de-profile",
+            "name": module.TASK2_DE_SUPERSET_PROFILE_NAME,
+        }
+    ]
+
+    with pytest.raises(RuntimeError, match="Task2 DE superset profile"):
+        module._reject_active_task2_de_superset(node, profiles)
+
+
+def test_allows_task1_apply_when_task2_de_superset_is_not_active() -> None:
+    module = _load_module()
+    node = {
+        "configProfile": {
+            "activeConfigProfileUuid": "task1-de-profile",
+            "activeInbounds": [],
+        }
+    }
+    profiles = [
+        {
+            "uuid": "task2-de-profile",
+            "name": module.TASK2_DE_SUPERSET_PROFILE_NAME,
+        }
+    ]
+
+    module._reject_active_task2_de_superset(node, profiles)
+
+
 def test_build_config_isolates_bridge_and_enforces_ordered_policy() -> None:
     module = _load_module()
     base_config = module._build_base_config(_base_config())

@@ -284,10 +284,7 @@ def test_builds_bridge_and_spb_profile_with_fail_closed_exception_order() -> Non
     assert spb_config["inbounds"][3]["listen"] == "10.0.0.2"
     assert spb_config["inbounds"][2]["port"] == module.SPB_TASK2_RAW_PORT
     assert spb_config["inbounds"][3]["port"] == module.SPB_TASK2_XHTTP_PORT
-    assert (
-        spb_config["inbounds"][3]["streamSettings"]["xhttpSettings"]["path"]
-        == "/source-xhttp-path"
-    )
+    assert spb_config["inbounds"][3]["streamSettings"]["xhttpSettings"]["path"] == "/source-xhttp-path"
     assert [item["tag"] for item in spb_config["outbounds"]] == [
         "DIRECT",
         "BLOCK",
@@ -609,6 +606,93 @@ def test_bridge_port_public_host_and_user_isolation_guards() -> None:
         )
 
 
+def test_extend_preserved_squads_adds_rebuilt_clone_inbounds_without_removing_originals() -> None:
+    module = _load_module()
+    source_profile = _base_profile("spb-base", module.SPB_BASE_PROFILE_NAME)
+    tag_map = module._preserved_inbound_tag_map(
+        source_profile["config"],
+        "spb",
+        exclude_tags=module.SPB_CUSTOMER_INBOUND_TAG_SET | {module.BRIDGE_INBOUND_TAG},
+    )
+    target_profile = {
+        "uuid": "rebuilt-spb-profile",
+        "name": module.SPB_PROFILE_NAME,
+        "inbounds": [
+            {
+                "tag": tag_map["VLESS_REALITY_443"],
+                "uuid": "rebuilt-spb-raw-clone",
+                "port": 443,
+            },
+            {
+                "tag": tag_map["VLESS_XHTTP_REALITY_8443"],
+                "uuid": "rebuilt-spb-xhttp-clone",
+                "port": 8443,
+            },
+        ],
+    }
+    squad = {
+        "uuid": "premium-smart-ru-squad",
+        "name": "CYBERVPN_PREMIUM_SMART_RU_NODES",
+        "inbounds": [
+            {"uuid": "spb-base-raw"},
+            {"uuid": "spb-base-xhttp"},
+        ],
+    }
+    snapshots = module._preserved_squad_snapshots(
+        [squad],
+        source_profile,
+        ["VLESS_REALITY_443", "VLESS_XHTTP_REALITY_8443"],
+    )
+    assert snapshots == [
+        {
+            "uuid": "premium-smart-ru-squad",
+            "name": "CYBERVPN_PREMIUM_SMART_RU_NODES",
+            "inbounds": ["spb-base-raw", "spb-base-xhttp"],
+        }
+    ]
+
+    class FakeRemnawaveApi:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, object]] = []
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            self.calls.append((method, path, kwargs.get("json")))
+            return kwargs.get("json") or {}
+
+    api = FakeRemnawaveApi()
+    asyncio.run(
+        module._extend_preserved_squads(
+            api,
+            snapshots,
+            [
+                (
+                    source_profile,
+                    target_profile,
+                    tag_map,
+                    ["VLESS_REALITY_443", "VLESS_XHTTP_REALITY_8443"],
+                )
+            ],
+        )
+    )
+
+    assert api.calls == [
+        (
+            "PATCH",
+            "/internal-squads",
+            {
+                "uuid": "premium-smart-ru-squad",
+                "inbounds": [
+                    "spb-base-raw",
+                    "spb-base-xhttp",
+                    "rebuilt-spb-raw-clone",
+                    "rebuilt-spb-xhttp-clone",
+                ],
+            },
+        )
+    ]
+    assert snapshots[0]["inbounds"] == ["spb-base-raw", "spb-base-xhttp"]
+
+
 def test_dry_run_is_read_only_and_does_not_write_manifest(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -823,17 +907,17 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
             self.token = token
             self.trusted_proxy_headers = trusted_proxy_headers
             self.hosts: list[dict[str, object]] = [
-                    {
-                        "uuid": "old-spb-host",
-                        "remark": "Existing SPB customer RAW",
-                        "inbound": {"configProfileInboundUuid": "spb-base-raw"},
-                        "excludedInternalSquads": ["customer-squad"],
-                    },
+                {
+                    "uuid": "old-spb-host",
+                    "remark": "Existing SPB customer RAW",
+                    "inbound": {"configProfileInboundUuid": "spb-base-raw"},
+                    "excludedInternalSquads": ["customer-squad"],
+                },
                 {
                     "uuid": "old-spb-xhttp-host",
-                        "remark": "Existing SPB customer XHTTP",
-                        "inbound": {"configProfileInboundUuid": "spb-base-xhttp"},
-                        "excludedInternalSquads": ["customer-squad"],
+                    "remark": "Existing SPB customer XHTTP",
+                    "inbound": {"configProfileInboundUuid": "spb-base-xhttp"},
+                    "excludedInternalSquads": ["customer-squad"],
                 },
                 {
                     "uuid": "old-de-host",
@@ -919,17 +1003,13 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                     assert config_inbounds["SPB_EXCEPTIONS_XHTTP_REALITY_8443"]["listen"] == "10.0.0.2"
                     routing_rules = body["config"]["routing"]["rules"]
                     task2_rules = [
-                        rule
-                        for rule in routing_rules
-                        if str(rule.get("ruleTag") or "").startswith("task2-")
+                        rule for rule in routing_rules if str(rule.get("ruleTag") or "").startswith("task2-")
                     ]
                     assert task2_rules[-1]["inboundTag"] == [
                         "SPB_EXCEPTIONS_REALITY_443",
                         "SPB_EXCEPTIONS_XHTTP_REALITY_8443",
                     ]
-                    exception_rule = next(
-                        rule for rule in routing_rules if rule.get("ruleTag") == "fixture-ipv4"
-                    )
+                    exception_rule = next(rule for rule in routing_rules if rule.get("ruleTag") == "fixture-ipv4")
                     assert exception_rule["inboundTag"] == task2_rules[-1]["inboundTag"]
                     profile = {
                         "uuid": "spb-profile",
@@ -1017,9 +1097,7 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
     ]
     assert captured["hosts"]
     assert {host["address"] for host in captured["hosts"]} == {module.SPB_PUBLIC_HOST}
-    xhttp_host = next(
-        host for host in captured["hosts"] if host["port"] == module.SPB_TASK2_XHTTP_PORT
-    )
+    xhttp_host = next(host for host in captured["hosts"] if host["port"] == module.SPB_TASK2_XHTTP_PORT)
     assert xhttp_host["path"] == "/source-xhttp-path"
     assert {host["inbound"]["configProfileInboundUuid"] for host in captured["hosts"]} == {
         "spb-task2-raw",
@@ -1031,9 +1109,7 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
     assert patched_hosts["old-de-host"] == "de-raw-clone"
     assert patched_hosts["old-de-xhttp-host"] == "de-xhttp-clone"
     spb_host_patches = [
-        patch
-        for patch in captured["host_patches"]
-        if patch["uuid"] in {"old-spb-host", "old-spb-xhttp-host"}
+        patch for patch in captured["host_patches"] if patch["uuid"] in {"old-spb-host", "old-spb-xhttp-host"}
     ]
     assert all(patch["excludedInternalSquads"] == [] for patch in spb_host_patches)
     assert "bridge-inbound" not in {host["inbound"]["configProfileInboundUuid"] for host in captured["hosts"]}
@@ -1049,6 +1125,277 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
         "spb-xhttp-clone",
         "spb-task2-raw",
         "spb-task2-xhttp",
+    ]
+
+
+def test_apply_reapply_uses_named_spb_base_when_active_profile_is_task2_only(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    manifest_path = _write_artifact(tmp_path, module)
+    saved_spb_base_name = "Saved SPB Smart RU 443 8443"
+    saved_spb_base = _base_profile("saved-spb-base", saved_spb_base_name)
+    de_base = _base_profile("de-base", module.DE_BASE_PROFILE_NAME)
+    spb_mapping = module._preserved_inbound_tag_map(
+        saved_spb_base["config"],
+        "spb",
+        exclude_tags=module.SPB_CUSTOMER_INBOUND_TAG_SET | {module.BRIDGE_INBOUND_TAG},
+    )
+    de_mapping = module._preserved_inbound_tag_map(
+        de_base["config"],
+        "de",
+        exclude_tags={module.BRIDGE_INBOUND_TAG},
+    )
+    active_task2_only_profile = {
+        "uuid": "spb-task2-only-profile",
+        "name": module.SPB_PROFILE_NAME,
+        "config": {
+            "inbounds": [
+                {
+                    "tag": "SPB_EXCEPTIONS_REALITY_443",
+                    "protocol": "vless",
+                    "port": module.SPB_TASK2_RAW_PORT,
+                    "listen": "10.0.0.2",
+                    "streamSettings": {"network": "raw"},
+                },
+                {
+                    "tag": "SPB_EXCEPTIONS_XHTTP_REALITY_8443",
+                    "protocol": "vless",
+                    "port": module.SPB_TASK2_XHTTP_PORT,
+                    "listen": "10.0.0.2",
+                    "streamSettings": {
+                        "network": "xhttp",
+                        "xhttpSettings": {"path": "/spb-de-exceptions-xhttp"},
+                    },
+                },
+            ],
+            "outbounds": [
+                {"tag": "DIRECT", "protocol": "freedom"},
+                {"tag": "BLOCK", "protocol": "blackhole"},
+                {"tag": module.BRIDGE_OUTBOUND_TAG, "protocol": "shadowsocks"},
+            ],
+            "routing": {
+                "rules": [
+                    {
+                        "type": "field",
+                        "ruleTag": "task2-final-spb-direct",
+                        "inboundTag": list(module.SPB_CUSTOMER_INBOUND_TAGS),
+                        "network": "tcp,udp",
+                        "outboundTag": "DIRECT",
+                    }
+                ]
+            },
+        },
+        "inbounds": [
+            {
+                "tag": "SPB_EXCEPTIONS_REALITY_443",
+                "uuid": "current-spb-task2-raw",
+                "port": module.SPB_TASK2_RAW_PORT,
+            },
+            {
+                "tag": "SPB_EXCEPTIONS_XHTTP_REALITY_8443",
+                "uuid": "current-spb-task2-xhttp",
+                "port": module.SPB_TASK2_XHTTP_PORT,
+            },
+        ],
+    }
+    captured: dict[str, object] = {"spb_profile_patch": None, "nodes": []}
+
+    class FakeRemnawaveApi:
+        def __init__(
+            self,
+            base_url: str,
+            token: str,
+            *,
+            trusted_proxy_headers: bool = False,
+        ) -> None:
+            self.configs: dict[str, dict[str, object]] = {
+                "saved-spb-base": saved_spb_base,
+                "de-base": de_base,
+                "spb-task2-only-profile": active_task2_only_profile,
+            }
+            self.hosts: list[dict[str, object]] = []
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            body = kwargs.get("json")
+            if path == "/config-profiles" and method == "GET":
+                return {
+                    "configProfiles": [
+                        {"uuid": "saved-spb-base", "name": saved_spb_base_name},
+                        {"uuid": "de-base", "name": module.DE_BASE_PROFILE_NAME},
+                        {"uuid": "spb-task2-only-profile", "name": module.SPB_PROFILE_NAME},
+                    ]
+                }
+            if path.startswith("/config-profiles/") and method == "GET":
+                return self.configs[path.rsplit("/", 1)[-1]]
+            if path == "/nodes" and method == "GET":
+                return {
+                    "nodes": [
+                        {
+                            "uuid": "spb-node",
+                            "address": module.SPB_NODE_ADDRESS,
+                            "configProfile": {
+                                "activeConfigProfileUuid": "spb-task2-only-profile",
+                                "activeInbounds": [
+                                    {"uuid": "current-spb-task2-raw"},
+                                    {"uuid": "current-spb-task2-xhttp"},
+                                ],
+                            },
+                        },
+                        {
+                            "uuid": "de-node",
+                            "address": module.DE_NODE_ADDRESS,
+                            "configProfile": {
+                                "activeConfigProfileUuid": "de-base",
+                                "activeInbounds": [
+                                    {"uuid": "de-base-raw"},
+                                    {"uuid": "de-base-xhttp"},
+                                ],
+                            },
+                        },
+                    ]
+                }
+            if path == "/hosts" and method == "GET":
+                return {"hosts": self.hosts}
+            if path == "/internal-squads" and method == "GET":
+                return {
+                    "internalSquads": [{"uuid": "customer-squad", "name": module.CUSTOMER_SQUAD_NAME, "inbounds": []}]
+                }
+            if path == "/external-squads" and method == "GET":
+                return {
+                    "externalSquads": [
+                        {
+                            "uuid": "external-squad",
+                            "name": module.EXTERNAL_SQUAD_NAME,
+                            "responseHeaders": {},
+                        }
+                    ]
+                }
+            if path == f"/users/by-username/{module.BRIDGE_USERNAME}" and method == "GET":
+                return None
+            if path == "/config-profiles" and method == "POST":
+                assert isinstance(body, dict)
+                assert body["name"] == module.DE_BRIDGE_PROFILE_NAME
+                profile = {
+                    "uuid": "de-bridge-profile",
+                    "name": body["name"],
+                    "config": body["config"],
+                    "inbounds": [
+                        {"tag": de_mapping["VLESS_REALITY_443"], "uuid": "de-raw-clone", "port": 443},
+                        {"tag": de_mapping["VLESS_XHTTP_REALITY_8443"], "uuid": "de-xhttp-clone", "port": 8443},
+                        {"tag": module.BRIDGE_INBOUND_TAG, "uuid": "bridge-inbound", "port": 9444},
+                    ],
+                }
+                self.configs["de-bridge-profile"] = profile
+                return {"uuid": "de-bridge-profile"}
+            if path == "/config-profiles" and method == "PATCH":
+                assert isinstance(body, dict)
+                assert body["uuid"] == "spb-task2-only-profile"
+                captured["spb_profile_patch"] = body
+                profile = {
+                    "uuid": "spb-task2-only-profile",
+                    "name": body["name"],
+                    "config": body["config"],
+                    "inbounds": [
+                        {"tag": spb_mapping["VLESS_REALITY_443"], "uuid": "rebuilt-spb-raw", "port": 443},
+                        {
+                            "tag": spb_mapping["VLESS_XHTTP_REALITY_8443"],
+                            "uuid": "rebuilt-spb-xhttp",
+                            "port": 8443,
+                        },
+                        {
+                            "tag": "SPB_EXCEPTIONS_REALITY_443",
+                            "uuid": "rebuilt-spb-task2-raw",
+                            "port": module.SPB_TASK2_RAW_PORT,
+                        },
+                        {
+                            "tag": "SPB_EXCEPTIONS_XHTTP_REALITY_8443",
+                            "uuid": "rebuilt-spb-task2-xhttp",
+                            "port": module.SPB_TASK2_XHTTP_PORT,
+                        },
+                    ],
+                }
+                self.configs["spb-task2-only-profile"] = profile
+                return {"uuid": "spb-task2-only-profile"}
+            if path == "/internal-squads" and method == "POST":
+                assert isinstance(body, dict)
+                return {"uuid": "bridge-squad", "name": module.BRIDGE_SQUAD_NAME, "inbounds": body["inbounds"]}
+            if path == "/users" and method == "POST":
+                assert isinstance(body, dict)
+                return {
+                    "uuid": "bridge-user",
+                    "username": module.BRIDGE_USERNAME,
+                    "ssPassword": "unit-test-ss-password",
+                    "activeInternalSquads": body["activeInternalSquads"],
+                    "externalSquadUuid": None,
+                }
+            if path == "/hosts" and method == "POST":
+                assert isinstance(body, dict)
+                host = {**body, "uuid": f"host-{len(self.hosts) + 1}"}
+                self.hosts.append(host)
+                return host
+            if path == "/internal-squads" and method == "PATCH":
+                return body
+            if path == "/external-squads" and method == "PATCH":
+                return body
+            if path == "/nodes" and method == "PATCH":
+                assert isinstance(body, dict)
+                captured["nodes"].append(body)
+                return body
+            if path in {"/nodes/de-node/actions/restart", "/nodes/spb-node/actions/restart"} and method == "POST":
+                return {}
+            raise AssertionError(f"unexpected request {method} {path}")
+
+        async def close(self) -> None:
+            self.closed = True
+
+    args = _args(tmp_path, manifest_path, module)
+    args.apply = True
+    args.spb_base_profile = saved_spb_base_name
+    monkeypatch.setattr(module, "RemnawaveApi", FakeRemnawaveApi)
+    monkeypatch.setenv("REMNAWAVE_TOKEN", "unit-test-token")
+
+    result = asyncio.run(module._run(args))
+
+    assert result["status"] == "applied"
+    assert result["spbPreservedActiveInboundTags"] == [
+        "VLESS_REALITY_443",
+        "VLESS_XHTTP_REALITY_8443",
+    ]
+    spb_profile_patch = captured["spb_profile_patch"]
+    assert isinstance(spb_profile_patch, dict)
+    config = spb_profile_patch["config"]
+    inbounds_by_tag = {item["tag"]: item for item in config["inbounds"]}
+    assert inbounds_by_tag[spb_mapping["VLESS_REALITY_443"]]["port"] == 443
+    assert inbounds_by_tag[spb_mapping["VLESS_XHTTP_REALITY_8443"]]["port"] == 8443
+    assert inbounds_by_tag[spb_mapping["VLESS_REALITY_443"]]["listen"] == "10.0.0.1"
+    assert inbounds_by_tag[spb_mapping["VLESS_XHTTP_REALITY_8443"]]["listen"] == "10.0.0.1"
+    assert inbounds_by_tag["SPB_EXCEPTIONS_REALITY_443"]["port"] == module.SPB_TASK2_RAW_PORT
+    assert inbounds_by_tag["SPB_EXCEPTIONS_XHTTP_REALITY_8443"]["port"] == module.SPB_TASK2_XHTTP_PORT
+    assert inbounds_by_tag["SPB_EXCEPTIONS_REALITY_443"]["listen"] == "10.0.0.2"
+    assert inbounds_by_tag["SPB_EXCEPTIONS_XHTTP_REALITY_8443"]["listen"] == "10.0.0.2"
+
+    routing_rules = config["routing"]["rules"]
+    preserved_rule = next(rule for rule in routing_rules if rule.get("ruleTag") == "existing-smart-ru-customer-route")
+    assert preserved_rule["inboundTag"] == [
+        spb_mapping["VLESS_REALITY_443"],
+        spb_mapping["VLESS_XHTTP_REALITY_8443"],
+    ]
+    customer_task2_rules = [
+        rule
+        for rule in routing_rules
+        if (str(rule.get("ruleTag") or "").startswith("task2-") or rule.get("ruleTag") == "fixture-ipv4")
+        and rule.get("inboundTag") != [module.BRIDGE_INBOUND_TAG]
+    ]
+    assert customer_task2_rules
+    assert all(rule["inboundTag"] == module.SPB_CUSTOMER_INBOUND_TAGS for rule in customer_task2_rules)
+    spb_node_patch = next(item for item in captured["nodes"] if item["uuid"] == "spb-node")
+    assert spb_node_patch["configProfile"]["activeInbounds"] == [
+        "rebuilt-spb-raw",
+        "rebuilt-spb-xhttp",
+        "rebuilt-spb-task2-raw",
+        "rebuilt-spb-task2-xhttp",
     ]
 
 

@@ -32,6 +32,7 @@ import httpx
 
 BASE_PROFILE_NAME = "S1 DE VLESS XHTTP"
 DE_PROFILE_NAME = "S1 DE Smart RU Server"
+TASK2_DE_SUPERSET_PROFILE_NAME = "S1 DE SPB Bridge"
 MOSCOW_PROFILE_NAME = "S1 Moscow Smart Global Server"
 DE_NODE_ADDRESS = "138.124.115.206"
 DE_PUBLIC_HOST = "de-relay.cyber-vpn.org"
@@ -404,6 +405,27 @@ def _normalize_node_config_profile(
             for item in config_profile.get("activeInbounds", [])
         ],
     }
+
+
+def _reject_active_task2_de_superset(
+    de_node: dict[str, Any], profiles: list[dict[str, Any]]
+) -> None:
+    task2_profile = next(
+        (
+            profile
+            for profile in profiles
+            if profile.get("name") == TASK2_DE_SUPERSET_PROFILE_NAME
+        ),
+        None,
+    )
+    active_uuid = _normalize_node_config_profile(de_node.get("configProfile")).get(
+        "activeConfigProfileUuid"
+    )
+    if task2_profile and active_uuid == task2_profile.get("uuid"):
+        raise RuntimeError(
+            "Frankfurt uses the Task2 DE superset profile; run the coordinated "
+            "Task2 routing operator instead of replacing it with the Task1 profile"
+        )
 
 
 def _validate_remnawave_url(base_url: str, allowed_hosts: list[str]) -> None:
@@ -1068,6 +1090,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             if item.get("address") == args.moscow_node_address
             or item.get("name") == MOSCOW_NODE_NAME
         )
+        _reject_active_task2_de_superset(de_node, profiles)
         hosts = _collection(await api.request("GET", "/hosts"), "hosts")
         de_address_hosts = [
             item for item in hosts if item.get("address") == args.de_public_host
