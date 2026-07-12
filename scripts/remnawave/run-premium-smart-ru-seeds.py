@@ -579,6 +579,23 @@ def _validate_cache_key_prefix(value: str) -> str:
     return value
 
 
+def _validate_cache_execution(
+    *,
+    cache_container: str | None,
+    docker_container: str | None,
+    execute: bool,
+    selection: str,
+) -> None:
+    if not cache_container:
+        return
+    if not execute or not docker_container:
+        raise RuntimeError(
+            "Cache invalidation requires --execute and --docker-container"
+        )
+    if selection == "main":
+        raise RuntimeError("Cache invalidation requires the INCY seed")
+
+
 def _invalidate_container_template_cache(
     *,
     docker: str,
@@ -692,6 +709,12 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
+    _validate_cache_execution(
+        cache_container=args.cache_container,
+        docker_container=args.docker_container,
+        execute=args.execute,
+        selection=args.seed,
+    )
     contract = _stage_artifacts(args.stage_root)
     try:
         report = {

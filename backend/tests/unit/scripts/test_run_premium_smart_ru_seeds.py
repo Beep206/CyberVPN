@@ -340,6 +340,42 @@ def test_cache_key_prefix_rejects_wildcards_controls_and_unbounded_values(prefix
         module._validate_cache_key_prefix(prefix)
 
 
+@pytest.mark.parametrize(
+    ("execute", "docker_container", "selection", "message"),
+    [
+        (False, "remnawave-db", "incy", "requires --execute"),
+        (True, None, "incy", "requires --execute"),
+        (True, "remnawave-db", "main", "requires the INCY seed"),
+    ],
+)
+def test_cache_invalidation_rejects_modes_that_cannot_refresh_incy_templates(
+    execute: bool,
+    docker_container: str | None,
+    selection: str,
+    message: str,
+) -> None:
+    module = _load_module()
+
+    with pytest.raises(RuntimeError, match=message):
+        module._validate_cache_execution(
+            cache_container="remnawave-valkey",
+            docker_container=docker_container,
+            execute=execute,
+            selection=selection,
+        )
+
+
+def test_cache_invalidation_accepts_docker_incy_execution() -> None:
+    module = _load_module()
+
+    module._validate_cache_execution(
+        cache_container="remnawave-valkey",
+        docker_container="remnawave-db",
+        execute=True,
+        selection="incy",
+    )
+
+
 @pytest.mark.skipif(os.name == "nt", reason="POSIX ownership and mode contract")
 def test_stage_contract_refuses_world_writable_or_symlink_root(tmp_path: Path) -> None:
     module = _load_module()
