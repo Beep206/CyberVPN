@@ -5,6 +5,8 @@ from uuid import UUID
 
 from src.domain.enums import CatalogVisibility, PlanCode
 
+PLAN_CODE_MAX_LENGTH = 40
+
 
 @dataclass(frozen=True)
 class SubscriptionPlan:

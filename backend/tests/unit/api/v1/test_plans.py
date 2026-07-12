@@ -7,8 +7,12 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 
 from src.presentation.api.v1.plans import routes as plan_routes
+from src.presentation.api.v1.plans.schemas import CreatePlanRequest, UpdatePlanRequest
+
+TASK2_PLAN_CODE = "premium_spb_de_exceptions"
 
 
 def _build_plan(**overrides):
@@ -37,6 +41,28 @@ def _build_plan(**overrides):
     }
     base.update(overrides)
     return SimpleNamespace(**base)
+
+
+def test_plan_request_schemas_accept_task2_plan_code() -> None:
+    created = CreatePlanRequest(
+        name="premium_spb_de_exceptions_30",
+        plan_code=TASK2_PLAN_CODE,
+        display_name="Premium SPB + DE Exceptions",
+        duration_days=30,
+        devices_included=5,
+        price_usd=0,
+    )
+    updated = UpdatePlanRequest(plan_code=TASK2_PLAN_CODE)
+
+    assert created.plan_code == TASK2_PLAN_CODE
+    assert updated.plan_code == TASK2_PLAN_CODE
+
+
+def test_plan_request_schemas_reject_plan_codes_above_database_limit() -> None:
+    too_long = "p" * 41
+
+    with pytest.raises(ValidationError, match="at most 40 characters"):
+        UpdatePlanRequest(plan_code=too_long)
 
 
 @pytest.mark.asyncio

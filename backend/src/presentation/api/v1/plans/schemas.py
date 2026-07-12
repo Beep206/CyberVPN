@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.domain.entities.subscription_plan import PLAN_CODE_MAX_LENGTH
+
 
 class TrafficPolicySchema(BaseModel):
     mode: str = Field(default="fair_use")
@@ -74,7 +76,7 @@ class CreatePlanRequest(BaseModel):
     )
 
     name: str = Field(..., min_length=1, max_length=100)
-    plan_code: str = Field(..., min_length=1, max_length=20)
+    plan_code: str = Field(..., min_length=1, max_length=PLAN_CODE_MAX_LENGTH)
     display_name: str = Field(..., min_length=1, max_length=100)
     catalog_visibility: str = Field(default="public", min_length=1, max_length=20)
     duration_days: int = Field(..., gt=0, le=3650)
@@ -97,7 +99,7 @@ class CreatePlanRequest(BaseModel):
 
 class UpdatePlanRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
-    plan_code: str | None = Field(default=None, min_length=1, max_length=20)
+    plan_code: str | None = Field(default=None, min_length=1, max_length=PLAN_CODE_MAX_LENGTH)
     display_name: str | None = Field(default=None, min_length=1, max_length=100)
     catalog_visibility: str | None = Field(default=None, min_length=1, max_length=20)
     duration_days: int | None = Field(default=None, gt=0, le=3650)

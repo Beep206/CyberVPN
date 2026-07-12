@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from src.domain.entities.subscription_plan import PLAN_CODE_MAX_LENGTH
 from src.shared.validators.password import validate_password_strength
 
 from .mobile_users_schemas import AdminMobileDeviceResponse
@@ -47,7 +48,7 @@ class AdminCustomerCredentialRegenerationRequest(BaseModel):
 
 class AdminCustomerManualSubscriptionRequest(BaseModel):
     reason: str = Field(..., min_length=3, max_length=1000)
-    plan_code: str | None = Field(default=None, min_length=1, max_length=20)
+    plan_code: str | None = Field(default=None, min_length=1, max_length=PLAN_CODE_MAX_LENGTH)
     duration_days: int = Field(..., ge=1, le=365)
     device_limit: int = Field(1, ge=1, le=10)
     traffic_limit_bytes: int | None = Field(default=None, gt=0)
