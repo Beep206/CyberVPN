@@ -10,13 +10,17 @@
 > `2026-07-11`; Task2 production activation и финальная live-сверка выполнены
 > `2026-07-12`. Для Task2 принят owner contract из 13 Antifilter communities
 > без `65444:110`, опубликован active/LKG artifact, поднят IPv6 bridge SPB -> DE,
-> пройдена RAW/XHTTP TCP/UDP route matrix, а backend `r9-xray-failover-canary-71728ebe` принимает
+> пройдена RAW/XHTTP TCP/UDP route matrix, а backend
+> `task1-task2-20260712-r10-main-c9dd3ca9` принимает
 > signed readiness. После security recheck customer ingress переведен на
 > A-only dedicated IPv4 ports `4443/8444`; Task2 rules больше не охватывают
 > preserved Smart RU inbounds. Реальный Task2 account profile прошел отдельный
 > Xray RAW/XHTTP data-plane smoke. Для Task1 exact opted-in identity final
 > Remnawave-generated canary прошел normal, primary-down, all-down и recovery;
 > Remnawave template cache после SQL seed инвалидируется по exact keys.
+> PR #99 слит в `main` merge-коммитом `c9dd3ca9`; после backend rollout
+> production gateway повторно отдал оба продукта для generic, INCY, HAPP и
+> Mihomo: `8/8` HTTP `200`, правильный product header, bridge `9444` отсутствует.
 >
 > Документ описывает фактически развернутое post-fix состояние. Target-дизайн,
 > исторические проверки и текущий runtime не считаются взаимозаменяемыми
@@ -27,6 +31,9 @@ Sanitized command evidence для later BGP/DNS/backend/firewall/Remnawave reche
 [`stage1-readiness-r3-and-vpn-runtime-20260711.md`](../evidence/releases/task1-task2-20260711/stage1-readiness-r3-and-vpn-runtime-20260711.md).
 Его timestamped rows supersede только более ранние `Connect/DOWN` и `NXDOMAIN`
 snapshot того же файла.
+Финальный merge `c9dd3ca9`, backend `r10`, invite/account/squad readback и
+post-deploy gateway matrix `8/8` зафиксированы отдельно в
+[`final-main-production-audit-20260712.md`](../evidence/releases/task1-task2-20260712/final-main-production-audit-20260712.md).
 
 Карта чтения:
 
@@ -43,7 +50,7 @@ snapshot того же файла.
 
 | Область | Текущее состояние | Граница доказательства |
 |---|---|---|
-| CyberVPN backend | image `r9-xray-failover-canary-71728ebe`, `healthy` на `18080` | signed Task2 readiness=true, Sentry/path redaction, squad isolation, replay guard и exact Smart RU canary selection LIVE; invalid readiness остается fail-closed |
+| CyberVPN backend | image `task1-task2-20260712-r10-main-c9dd3ca9`, `healthy` на `18080`, restart count `0` | merge `c9dd3ca9`; signed Task2 readiness=true, Sentry/path redaction, squad isolation, replay guard, plan-code limit `40` и exact Smart RU canary selection LIVE; invalid readiness остается fail-closed |
 | Remnawave | image `2.8.0-raw-vision-flow.2`, `healthy` | control plane и генерация подписки доступны |
 | INCY/HAPP stable Xray JSON | 10 outbounds, 18 rules | нет `routing.balancers`, нет `observatory`; это default для не opted-in identities |
 | INCY/HAPP failover canary | 12 outbounds, 20 rules | отдельный XRAY_JSON с четырьмя regional balancers, одним shared observatory и двумя loopback outbounds; включается только exact backend-owned JSON marker |
@@ -82,7 +89,7 @@ snapshot того же файла.
 
 | Уровень | Владелец состояния | Типичный drift |
 |---|---|---|
-| Product/backend | CyberVPN catalog, entitlement и readiness gate | readiness может drift-ить; Task2 current readiness=true только при valid attestation в `r9-xray-failover-canary-71728ebe`, иначе выдача fail-closed |
+| Product/backend | CyberVPN catalog, entitlement и readiness gate | readiness может drift-ить; Task2 current readiness=true только при valid attestation в `task1-task2-20260712-r10-main-c9dd3ca9`, иначе выдача fail-closed |
 | Remnawave control plane | squads, Hosts, Config Profiles, Response Rules, templates | DB обновлена, а process/cache отдает предыдущий artifact |
 | Generated subscription | фактический body для конкретного client family | сохраненный template и injected final JSON структурно различаются |
 | Node runtime | загруженные Xray profiles, listeners и relay units | control plane healthy, но relay origin или profile на узле другой |
@@ -121,7 +128,7 @@ Xray выберет резервный transport автоматически. О�
 
 ```mermaid
 flowchart LR
-    C["Client"] --> G["CyberVPN backend r9 canary\nproduct-scoped gateway"]
+    C["Client"] --> G["CyberVPN backend r10 main\nproduct-scoped gateway"]
     G -->|"Task2 readiness=true + product grant"| R
     G -. "Task2 readiness invalid" .-> FC["Fail closed"]
     G -->|"Premium Smart RU ready"| R["Remnawave 2.8.0"]
@@ -161,7 +168,7 @@ selected outbound, terminal HTTP outcome, fail-closed и recovery. Stable users
 | Компонент | Current state | Роль |
 |---|---|---|
 | Production app | `prod-app-1` (`45.87.41.146`) | CyberVPN backend и product-scoped subscription gateway |
-| CyberVPN backend | image tag `r9-xray-failover-canary-71728ebe`, healthy на `18080` | entitlement/readiness enforcement, signed attestation verifier, bearer/Sentry sanitization, squad isolation, exact canary marker и gateway |
+| CyberVPN backend | image tag `task1-task2-20260712-r10-main-c9dd3ca9`, healthy на `18080` | entitlement/readiness enforcement, signed attestation verifier, bearer/Sentry sanitization, squad isolation, exact canary marker и gateway; deployed from merge `c9dd3ca9` |
 | Remnawave | image `2.8.0-raw-vision-flow.2`, healthy | subscription generation, Hosts, squads и node control plane |
 
 Task2 readiness gate является production safety boundary. После live matrix
@@ -373,11 +380,15 @@ Mihomo automatic fallback не переносится автоматически
 
 ## 10. Task2 readiness, live data plane и fail-closed boundary
 
-Task2 (`premium_spb_de_exceptions`) является live production VPN data plane
-только при одновременном выполнении signed readiness=true, наличии active/LKG
-Antifilter artifact, загруженных SPB/DE profiles, exact peer-only firewall и
-успешной route matrix. Любой missing, stale или mismatched элемент снова
-закрывает provisioning и subscription gateway fail-closed.
+Release contract разрешает считать Task2 (`premium_spb_de_exceptions`) live
+production VPN data plane только при одновременном выполнении signed
+readiness=true, наличии active/LKG Antifilter artifact, загруженных SPB/DE
+profiles, exact peer-only firewall и успешной route matrix. Текущий backend
+fail-closed проверяет kill switch, подпись, product/policy, approval, expiry,
+revocation, squad и entitlement, но пока не связывает JWT `manifest_hash` с
+trusted current active/LKG checksum. Поэтому stale manifest claim сейчас не
+закрывает gateway автоматически и сохраняет статус этого boundary
+`LIVE/DEGRADED`; это явно перечислено в рисках и финальном audit.
 
 | Control | Current state | Fail-closed condition |
 |---|---|---|
@@ -385,13 +396,14 @@ Antifilter artifact, загруженных SPB/DE profiles, exact peer-only fir
 | DNS/listeners | A-only; dedicated IPv4 RAW `4443`/XHTTP `8444` listeners active and UFW-declared | DNS/listener/profile/firewall mismatch или missing loaded runtime |
 | Bridge/firewall | IPv6 SPB `2a01:e5c0:1368::3` -> DE `2a0b:4140:ba84::2:9444`; exact peer-only TCP/UDP firewall | wildcard source, IPv4 fallback, listener missing или wrong peer |
 | Runtime matrix | RAW/XHTTP matched/unmatched TCP/UDP и bridge-down fail-closed checks passed | matched DIRECT leak, unmatched SPB regression или transport/UDP mismatch |
-| Gateway/readiness | `r9-xray-failover-canary-71728ebe`, signed readiness=true, product entitlement active | invalid/missing/revoked/expired attestation, squad mismatch или entitlement mismatch |
+| Gateway/readiness | `task1-task2-20260712-r10-main-c9dd3ca9`, signed readiness=true, product entitlement active | invalid/missing/revoked/expired attestation, squad mismatch или entitlement mismatch |
 
 По release contract наличие plan row, invite, entitlement code, automation или
 firewall fragment не должно приводить к readiness `true` без полного data-plane
 evidence. Этот документ не содержит invite codes.
 
-Running production backend теперь `r9-xray-failover-canary-71728ebe`. Положительное решение
+Running production backend теперь `task1-task2-20260712-r10-main-c9dd3ca9`.
+Положительное решение
 требует одновременно kill switch `true` и валидный EdDSA attestation с
 совпадающими product/policy/evidence fields, approval, expiry и revocation
 checks. В current runtime kill switch `true`, read-only readiness mount
@@ -504,7 +516,7 @@ real backend configuration для `cybervpn-terraform-state`; иначе буд�
 
 | Слой | Статус | Фактическое состояние |
 |---|---|---|
-| Backend kill switch | **LIVE/PASS** | running `r9-xray-failover-canary-71728ebe`, boolean `true`; доступ разрешен только после signature/policy/squad verification |
+| Backend kill switch | **LIVE/PASS** | running `task1-task2-20260712-r10-main-c9dd3ca9`, boolean `true`; доступ разрешен только после signature/policy/squad verification |
 | Signed EdDSA verifier | **LIVE/PASS** | attestation проверена внутри running backend; Task1 остается отдельным product scope |
 | Readiness files | **LIVE/DEGRADED** | Ed25519 JWT + public key read-only; signature/expiry valid, но manifest hash относится к предыдущему LKG; private signing key хранится отдельно `0600` |
 | Compose mount | **LIVE** | `/srv/cybervpn/readiness/task2 -> /run/cybervpn/readiness/task2`, `rw=false` |
@@ -657,7 +669,7 @@ flowchart TD
     S --> RW["Seed Remnawave templates, Hosts and Response Rules"]
     RW --> CI["Invalidate exact named and UUID template cache keys"]
     MI --> RW
-    CI --> GW["CyberVPN r9 canary gateway"]
+    CI --> GW["CyberVPN r10 main gateway"]
     GW -->|"Premium Smart RU"| OUT["Generated client response"]
     GW -->|"Task2 readiness=true"| T2OUT["Task2 generated client response"]
     GW -. "Task2 readiness invalid" .-> FC["Fail closed"]
@@ -679,7 +691,7 @@ flowchart TD
     DE --> MAT["RAW/XHTTP x TCP/UDP\nmatched/unmatched/failure matrix"]
     MAT --> ATT["Signed readiness attestation"]
     ATT --> GW2["Task2 public gateway enabled"]
-    ATT --> FC2["Current production r9\nreadiness=true with signed verifier"]
+    ATT --> FC2["Current production r10\nreadiness=true with signed verifier"]
 ```
 
 В current snapshot вся цепочка завершена. Bridge transport использует IPv6
@@ -809,7 +821,7 @@ logger, validation/unhandled exception handlers и Sentry event/transaction
 URL. Rate limiter объединяет все case variants `/api/sub/*` в non-secret bucket
 `subscription_gateway`; admin invite и Telegram magic-link paths используют
 redacted fallback buckets. Это подтверждено focused unit/security и fake-Redis
-tests, historical smoke внутри production `r8`, повторным current `r9` gateway
+tests, historical smoke внутри production `r8`, повторным current `r10` gateway
 audit и отсутствием synthetic bearer-значения в post-deploy logs.
 
 Для расследований использовать только форму `/api/sub/[REDACTED]`, timestamp,
@@ -819,7 +831,8 @@ shell history, screenshots, evidence artifacts или issue descriptions.
 ## 18. Remnawave objects и product-scoped delivery
 
 Статус раздела: object model и guards ниже подтверждены **SOURCE** текущего
-worktree. Развернутый backend `r9-xray-failover-canary-71728ebe`, Remnawave `2.8.0` и фактические
+worktree. Развернутый backend `task1-task2-20260712-r10-main-c9dd3ca9`,
+Remnawave `2.8.0` и фактические
 Task1/Task2 generated bodies подтверждены **LIVE/EVIDENCE**. Exact production
 UUID, customer identifiers и полный DB dump намеренно не приводятся.
 
@@ -1366,7 +1379,7 @@ it does not invalidate the proven server-generated canary topology.
 | RESOLVED | Antifilter companion community `:110` | owner decision исключил `65444:110`; около 29.5k routes и все 13 required categories принимаются | stale docs/tools могут снова заблокировать корректный feed | не возвращать `:110` в required contract без нового owner decision |
 | P1 | Task2 DNS опубликован, но не в Terraform state | **LIVE:** public A отвечает, AAAA удален; narrow API mutation еще не импортирована в canonical state | следующий Terraform plan может предложить duplicate create или конфликт | импортировать A record в production DNS state и проверить no-delete/no-replace plan |
 | P1 | Cloudflare DNS tags несовместимы с account quota | **LIVE:** API code `9300`, quota `0`; Task2 source tags removed | plan/apply с tags для новой записи fail; metadata expectation расходится с plan capabilities | не задавать Task2 tags на этом account или повысить quota; focused source test фиксирует omission |
-| RESOLVED | Subscription short UUID недостаточно унифицирован как bearer secret | **LIVE/PASS:** historical `r8` evidence и current `r9` gateway audit сохраняют redaction normal, exception и Sentry paths; case-insensitive `/api/sub/*` использует shared `subscription_gateway` bucket | regression снова раскроет bearer path или позволит unique-path bucket spray | сохранять negative redaction/bucket/Sentry tests и production image smoke в release gate |
+| RESOLVED | Subscription short UUID недостаточно унифицирован как bearer secret | **LIVE/PASS:** historical `r8` evidence и current `r10` gateway audit сохраняют redaction normal, exception и Sentry paths; case-insensitive `/api/sub/*` использует shared `subscription_gateway` bucket | regression снова раскроет bearer path или позволит unique-path bucket spray | сохранять negative redaction/bucket/Sentry tests и production image smoke в release gate |
 | RESOLVED canary / P1 stable rollout | Automatic INCY/HAPP failover | **LIVE/PASS for exact opted-in identity:** canonical Remnawave-generated canary passed normal, DE/SPB primary-down, all-down BLOCK and recovery; stable users remain static | массовый rollout без phone soak может перенести client-specific stall/cache risk на всех пользователей | расширять opt-in постепенно; сохранять exact server marker, four-phase runtime gate и rollback by marker removal |
 | P1 | Moscow RAW reliability | **EVIDENCE:** repeated `www.ozon.ru` only 3/5; старый 8/8 был delay smoke | manual RAW fallback может быть intermittent, listener/delay PASS даст false confidence | cold repeated RAW handshake + DNS + selected tag + terminal egress + HTTP outcome, сравнить XHTTP |
 | P1 | Phone TUN/cache/DNS | **UNKNOWN:** post-fix phone run отсутствует | server 5/5 может не воспроизводиться из-за stale profile, device DNS/TUN или client mutation | fresh import, version/OS, default/RU/EU/BLOCK/local matrix и sanitized device logs |
@@ -1440,7 +1453,8 @@ primary-down, all-down и recovery. Это не закрывает phone-side IN
 
 Mihomo остается отдельным automatic-fallback client path с RU order
 SPB -> Moscow и Ozon probe `307` каждые `60s`. Task2 live: backend
-`r9-xray-failover-canary-71728ebe` принимает signed readiness=true; BGP `Established`; все 13
+`task1-task2-20260712-r10-main-c9dd3ca9` принимает signed readiness=true; BGP
+`Established`; все 13
 required communities приняты; artifact active+LKG; DNS A-only; IPv6 bridge
 SPB -> DE `9444` и peer-only firewall active. RAW `4443` и XHTTP `8444`
 работают через dedicated IPv4 inbounds, routing использует `IPOnDemand`,

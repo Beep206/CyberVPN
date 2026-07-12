@@ -26,6 +26,7 @@ def test_remnawave_tz_manifest_matches_current_bundle_files() -> None:
         artifact = REPO_ROOT / entry["path"]
         assert artifact.is_file(), entry["path"]
         content = artifact.read_bytes()
+        assert b"\r" not in content, entry["path"]
 
         assert len(content) == entry["size_bytes"], entry["path"]
         assert hashlib.sha256(content).hexdigest() == entry["sha256"], entry["path"]
