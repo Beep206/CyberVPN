@@ -32,7 +32,7 @@ snapshot того же файла.
 
 - разделы 1-7: быстрый status, topology, nodes, endpoints и transports;
 - разделы 8-9 и 19-20: точные Xray/Mihomo route, DNS, TUN и policy settings;
-- раздел 10: Task2 BGP/DNS/bridge/readiness с матрицей LIVE/PASS и fail-closed boundary;
+- раздел 10: Task2 BGP/DNS/bridge/readiness со status matrix и fail-closed boundary;
 - разделы 11-15: runtime evidence, диагностика, deployment и rollback;
 - разделы 16-18 и 21-22: source ownership, Remnawave objects, gateway/security,
   server profiles, failover и cache layers;
@@ -500,7 +500,7 @@ Terraform state через import. Cloudflare token для этого досту
 real backend configuration для `cybervpn-terraform-state`; иначе будущий plan
 может предложить duplicate/conflicting operation.
 
-### 10.3. Task2: точная матрица LIVE/PASS и fail-closed evidence
+### 10.3. Task2: точная status matrix и fail-closed evidence
 
 | Слой | Статус | Фактическое состояние |
 |---|---|---|
@@ -1361,7 +1361,8 @@ it does not invalidate the proven server-generated canary topology.
 
 | Priority | Risk | Evidence/status | Diagnostic impact | Как проверить |
 |---|---|---|---|---|
-| RESOLVED | Task2 server-side rollout | **LIVE/PASS:** current `r9-xray-failover-canary-71728ebe` readiness=true, 13-community artifact active/LKG, IPv6 bridge, isolated IPv4 RAW/XHTTP `4443/8444` и route matrix passed | regression создаст readiness/gateway/data-plane mismatch | сохранять signed-readiness expiry/revocation, artifact freshness и route matrix в release gate |
+| RESOLVED | Task2 server-side data plane | **LIVE/PASS:** 13-community artifact active/LKG, IPv6 bridge, isolated IPv4 RAW/XHTTP `4443/8444` и route matrix passed | regression создаст gateway/data-plane mismatch | сохранять artifact freshness и route matrix в release gate |
+| P1 | Task2 signed readiness artifact binding | **LIVE/DEGRADED:** signature, policy и expiry valid, но JWT содержит manifest hash предыдущего LKG, а backend не сравнивает его с current active/LKG | stale attestation может скрыть неверный artifact или rollback target | перевыпустить JWT offline signer и добавить fail-closed backend binding к current active/LKG manifest hash |
 | RESOLVED | Antifilter companion community `:110` | owner decision исключил `65444:110`; около 29.5k routes и все 13 required categories принимаются | stale docs/tools могут снова заблокировать корректный feed | не возвращать `:110` в required contract без нового owner decision |
 | P1 | Task2 DNS опубликован, но не в Terraform state | **LIVE:** public A отвечает, AAAA удален; narrow API mutation еще не импортирована в canonical state | следующий Terraform plan может предложить duplicate create или конфликт | импортировать A record в production DNS state и проверить no-delete/no-replace plan |
 | P1 | Cloudflare DNS tags несовместимы с account quota | **LIVE:** API code `9300`, quota `0`; Task2 source tags removed | plan/apply с tags для новой записи fail; metadata expectation расходится с plan capabilities | не задавать Task2 tags на этом account или повысить quota; focused source test фиксирует omission |
