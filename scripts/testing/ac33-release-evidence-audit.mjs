@@ -154,7 +154,7 @@ check('CodeQL workflow fails closed on missing SARIF and high or critical findin
     codeqlWorkflow.includes('languages: python') &&
     codeqlWorkflow.includes('output: sarif-results') &&
     codeqlWorkflow.includes('upload: true') &&
-    codeqlWorkflow.includes('SARIF_FILE="sarif-results/javascript-typescript.sarif"') &&
+    codeqlWorkflow.includes('SARIF_FILE="sarif-results/javascript.sarif"') &&
     codeqlWorkflow.includes('SARIF_FILE="sarif-results/python.sarif"') &&
     codeqlWorkflow.includes('Expected CodeQL SARIF output is missing or empty') &&
     codeqlWorkflow.includes('security_severity') &&
@@ -167,7 +167,7 @@ check('CodeQL workflow fails closed on missing SARIF and high or critical findin
     codeqlWorkflow.includes('exit 1'),
   details: {
     evidenceFile: '.github/workflows/codeql.yml',
-    expectedSarifFiles: ['sarif-results/javascript-typescript.sarif', 'sarif-results/python.sarif'],
+    expectedSarifFiles: ['sarif-results/javascript.sarif', 'sarif-results/python.sarif'],
   },
 });
 
