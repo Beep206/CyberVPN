@@ -55,9 +55,9 @@ snapshot того же файла.
 | Phone-side INCY TUN | UNKNOWN | после post-fix rollout на телефоне не проверен |
 | RAW transports | присутствуют | ранний 8/8 delay smoke не закрывает надежность; Moscow RAW/Ozon был только 3/5 |
 | Task2 BGP | LIVE/PASS | session `Established`, около 29.5k IPv4 routes; все 13 required communities непусты, `65444:110` исключен owner decision |
-| Task2 DNS | LIVE/PASS | `spb-exceptions.cyber-vpn.org` возвращает только DNS-only A `193.233.91.99`; customer AAAA удален |
-| Task2 data plane | LIVE/PASS | active/LKG artifact, IPv6 bridge, peer-only firewall и RAW/XHTTP TCP/UDP route matrix подтверждены |
-| Task2 signed readiness | LIVE/PASS | `r9-xray-failover-canary-71728ebe` running; signed readiness=true; missing/stale/mismatched attestation остается fail-closed |
+| Task2 DNS | LIVE/PASS | `spb-exceptions.cyber-vpn.org` возвращает только DNS-only A `193.233.91.99`; customer AAAA удален; generated customer profiles dial literal IPv4 to avoid client-resolver stalls |
+| Task2 data plane | LIVE/PASS | active/LKG `0b4748aa...` (21 415 IPv4 prefixes), IPv6 bridge, peer-only firewall и RAW/XHTTP route matrix подтверждены |
+| Task2 signed readiness | LIVE/PASS with evidence caveat | signature, policy и expiry valid; текущий JWT все еще содержит manifest hash предыдущего LKG, потому что offline signing key отсутствует на app host |
 | Monitoring host | maintenance | свежего monitoring/dashboard evidence нет |
 
 Главная граница snapshot: успешный официальный cold test final generated JSON
@@ -487,6 +487,7 @@ session state по-прежнему не заменяет compile/publish gates,
 | Desired record | `spb-exceptions.cyber-vpn.org A 193.233.91.99` | DNS-only, TTL `300`, no proxy; no customer AAAA |
 | Cloudflare API | token status `active`; ровно один A record, content `193.233.91.99`, TTL `300`, `proxied=false`, expected comment | live read-only API verification from production app network; token и record ID не сохранялись в evidence |
 | Public recursive DNS | A возвращается, AAAA отсутствует | DNS boundary PASS; VLESS listener и route outcome подтверждаются отдельно |
+| Generated connect address | literal `193.233.91.99` | Cloudflare name остается управляемым alias, но не является critical-path resolver dependency в INCY/HAPP/VLESS profiles |
 | Listener on dedicated endpoint | IPv4 RAW `4443` и XHTTP `8444` active | generated subscription и live VLESS flows подтверждены отдельно |
 
 Первый create с Terraform-style DNS tags был отклонен Cloudflare: текущий
@@ -874,7 +875,7 @@ customer/bridge squads Premium Smart RU:
 | Bridge internal squad | `CYBERVPN_SPB_DE_BRIDGE` | **LIVE count 1**; изолирован от customer squad, bridge credential не должен попадать клиенту |
 | Mihomo template | `CyberVPN Premium SPB DE Exceptions` | **LIVE count 1**; не предлагает `DIRECT` как selectable customer proxy, server profile владеет split routing |
 | Bridge inbound | `DE_SPB_EXCEPTIONS_BRIDGE_9444` | **LIVE/PASS**; bridge-only internal path, отсутствует в customer squad/public Hosts; DE listener active на IPv6 `9444` |
-| Dedicated public Host | `spb-exceptions.cyber-vpn.org` target | A-only DNS и generated subscriptions active; RAW `4443`, XHTTP `8444`, current path синхронизирован |
+| Dedicated public Host | literal connect target `193.233.91.99`; managed alias `spb-exceptions.cyber-vpn.org` | RAW `4443`, XHTTP `8444`; exact generated profiles passed local-network Xray 26.6.27 checks |
 
 Task2 seed сам по себе намеренно не создает bridge credential, public bridge
 Host или backend plan wiring. Current production state включает routing

@@ -96,7 +96,8 @@ The reviewed production mapping is:
 ```text
 Preserved Smart RU:     193.233.91.99:443/8443
 Task2 dedicated IPv4:   193.233.91.99:4443/8444
-Task2 public Host:      spb-exceptions.cyber-vpn.org (DNS-only A)
+Task2 connect address:  193.233.91.99 (literal IPv4 in generated profiles)
+Task2 managed DNS alias: spb-exceptions.cyber-vpn.org (DNS-only A)
 Task2 bridge source:    2a01:e5c0:1368::3/128 (not public customer DNS)
 ```
 
