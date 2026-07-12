@@ -13,8 +13,10 @@
 > пройдена RAW/XHTTP TCP/UDP route matrix, а backend `r8-task2-live` принимает
 > signed readiness. После security recheck customer ingress переведен на
 > A-only dedicated IPv4 ports `4443/8444`; Task2 rules больше не охватывают
-> preserved Smart RU inbounds. Финальный exact-account Xray smoke повторен
-> реальный account profile прошел отдельный Xray RAW/XHTTP data-plane smoke.
+> preserved Smart RU inbounds. Реальный Task2 account profile прошел отдельный
+> Xray RAW/XHTTP data-plane smoke. Для Task1 exact opted-in identity final
+> Remnawave-generated canary прошел normal, primary-down, all-down и recovery;
+> Remnawave template cache после SQL seed инвалидируется по exact keys.
 >
 > Документ описывает фактически развернутое post-fix состояние. Target-дизайн,
 > исторические проверки и текущий runtime не считаются взаимозаменяемыми
@@ -43,10 +45,11 @@ snapshot того же файла.
 |---|---|---|
 | CyberVPN backend | image `r8-task2-live`, `healthy` на `18080` | signed Task2 readiness=true, Sentry/path redaction, squad isolation и replay guard LIVE; invalid readiness остается fail-closed |
 | Remnawave | image `2.8.0-raw-vision-flow.2`, `healthy` | control plane и генерация подписки доступны |
-| INCY/HAPP final Xray JSON | 10 outbounds, 18 rules | нет `routing.balancers`, нет `observatory` |
-| Default route | `eu-de-2` | DE XHTTP является статическим final/default outbound |
-| RU route | `ru-spb-2` | SPB XHTTP является production RU primary |
-| Moscow XHTTP | присутствует | только ручной fallback; автоматический INCY failover не реализован |
+| INCY/HAPP stable Xray JSON | 10 outbounds, 18 rules | нет `routing.balancers`, нет `observatory`; это default для не opted-in identities |
+| INCY/HAPP failover canary | 12 outbounds, 20 rules | отдельный XRAY_JSON с четырьмя regional balancers, одним shared observatory и двумя loopback outbounds; включается только exact backend-owned JSON marker |
+| Stable default/RU routes | `eu-de-2` / `ru-spb-2` | DE и SPB XHTTP являются статическими primary outbounds |
+| Canary default/RU routes | `eu-primary` / `ru-primary` | DE -> NL и SPB -> Moscow; при отказе обоих кандидатов региона используется `BLOCK`, не `DIRECT` и не cross-region |
+| Failover runtime | LIVE/PASS для opted-in target identity | official Xray `26.6.27`: normal, primary-down, all-down и recovery прошли на final Remnawave-generated INCY/HAPP body |
 | Mihomo | автоматический fallback сохранен | `RU Sites`: SPB -> Moscow, Ozon probe ожидает HTTP `307`, interval `60s` |
 | Generated Xray cold test | PASS | Xray `26.6.27`: default DE 5/5, `ozon.ru` 5/5, `www.ozon.ru` 5/5 |
 | Phone-side INCY TUN | UNKNOWN | после post-fix rollout на телефоне не проверен |
@@ -103,15 +106,16 @@ entitlement/readiness
 
 | Client path | Формат | Текущая маршрутизация | Failover |
 |---|---|---|---|
-| INCY | один full Xray JSON | 17 static rules; default DE XHTTP, RU SPB XHTTP | automatic INCY failover отсутствует |
-| HAPP | один full Xray JSON | тот же final generated Xray structure | automatic Xray failover отсутствует |
+| INCY | один full Xray JSON | stable: 18 static rules; opted-in canary: 20 rules с regional balancers | canary DE -> NL и SPB -> Moscow; stable identity остается static |
+| HAPP | один full Xray JSON | тот же stable/canary selection по backend-owned service identity | те же canary semantics; User-Agent или request header не может self-enroll |
 | Mihomo | YAML | proxy-groups, providers, client-side policy | automatic fallback сохранен |
 | Generic/XRAY_BASE64 | отдельные VLESS links | пользователь выбирает link; server profiles могут добавлять routing | единого client-side automatic failover нет |
 
-Успешный Mihomo fallback не доказывает automatic fallback в INCY/HAPP. Наличие
-в full JSON всех восьми proxy transports также не означает, что Xray выберет
-резервный transport автоматически: current routing rules ссылаются на конкретные
-outbound tags.
+Успешный Mihomo fallback не доказывает automatic fallback в stable INCY/HAPP.
+Наличие в stable full JSON всех восьми proxy transports также не означает, что
+Xray выберет резервный transport автоматически. Отдельный canary artifact
+содержит executable balancers и observatory; его наличие не означает opt-in:
+выбор выполняет backend по exact JSON `true` в authoritative service identity.
 
 ## 4. Текущая topology
 
@@ -121,26 +125,34 @@ flowchart LR
     G -->|"Task2 readiness=true + product grant"| R
     G -. "Task2 readiness invalid" .-> FC["Fail closed"]
     G -->|"Premium Smart RU ready"| R["Remnawave 2.8.0"]
-    R -->|"INCY/HAPP"| X["Final Xray JSON\n10 outbounds / 18 rules"]
+    R -->|"INCY/HAPP stable"| X["Stable Xray JSON\n10 outbounds / 18 rules"]
+    R -->|"exact server-owned canary marker"| XC["Failover canary\n12 outbounds / 20 rules"]
     R -->|"Mihomo"| M["Mihomo YAML\nautomatic fallback"]
     R -->|"generic"| B["VLESS links"]
 
     X -->|"default + EU exceptions"| DEX["eu-de-2\nDE XHTTP"]
     X -->|"RU services + broad RU"| SPBX["ru-spb-2\nSPB XHTTP"]
     X -. "manual selection" .-> MSKX["ru-msk-2\nMoscow XHTTP"]
+    XC -->|"eu-primary"| DEX
+    XC -. "DE down" .-> NLX["eu-nl-2\nNL fallback"]
+    XC -->|"ru-primary"| SPBX
+    XC -. "SPB down" .-> MSKX
+    XC -. "both regional paths down" .-> BL["BLOCK"]
 
     DEX --> NLR["NL ingress 138.16.140.44:2083"]
     NLR --> DE["DE XHTTP origin / DE egress"]
     SPBX --> SPB["SPB 193.233.91.99:8443\nRU primary egress"]
     MSKX --> SPBR["SPB relay 193.233.91.99:2083"]
-    SPBR --> MSK["Moscow 178.159.94.225:8443\nmanual RU fallback"]
+    SPBR --> MSK["Moscow 178.159.94.225:8443\nstable manual / canary fallback"]
 ```
 
-Current final Xray JSON намеренно не содержит `routing.balancers` и
-`observatory`. Xray `26.6.27` с observatory вызывал stalls пользовательского
-XHTTP-трафика. После удаления observatory static XHTTP routing прошел cold test.
-Automatic INCY failover остается unresolved и не считается развернутой
-production-возможностью.
+Stable Xray JSON намеренно не содержит `routing.balancers` и `observatory`.
+Ранний общий observatory с EU-only probe вызывал stalls и был удален из stable
+path. Новый isolated canary использует один RU-доступный Ozon probe для всех
+четырех XHTTP outbounds. Xray background observatory принимает любой полученный
+HTTP response, включая `307`; external runtime harness дополнительно проверяет
+selected outbound, terminal HTTP outcome, fail-closed и recovery. Stable users
+не затронуты.
 
 ## 5. Production inventory
 
@@ -164,7 +176,7 @@ Remnawave squad UUID. Attestation истекает 2026-10-10; отсутств�
 |---|---|---|---|
 | Germany | `combative-sapphi` | `138.124.115.206` | terminal DE egress; default идет через DE XHTTP |
 | Netherlands | `netherlands-vpn-node` | `138.16.140.44` | NL transports и public ingress relay к DE |
-| Moscow | `gigantic-violet` | `178.159.94.225` | manual RU fallback origin |
+| Moscow | `gigantic-violet` | `178.159.94.225` | stable manual and canary automatic RU fallback origin |
 | Saint Petersburg | `watery-azure` | `193.233.91.99` | production RU primary и public relay ingress к Moscow |
 
 Listener presence, Remnanode connected-state и health status не заменяют VLESS
@@ -230,17 +242,19 @@ INCY/HAPP JSON.
 
 ## 7. INCY/HAPP transport contract
 
-Final JSON содержит восемь VLESS proxy outbounds и два служебных outbounds:
-`direct` (`freedom`) и `block` (`blackhole`). Итого: **10 outbounds**.
+Stable final JSON содержит восемь VLESS proxy outbounds и два служебных
+outbounds: `direct` (`freedom`) и `block` (`blackhole`). Итого: **10 outbounds**.
+Canary дополнительно содержит два loopback outbounds для regional fallback,
+итого **12 outbounds**.
 
 | Tag | Регион | Effective INCY/HAPP endpoint | Network | Flow | Current role |
 |---|---|---|---|---|---|
 | `eu-de` | DE | `138.16.140.44:2053` | RAW/TCP | `xtls-rprx-vision` | присутствует; manual/diagnostic |
 | `eu-de-2` | DE | `138.16.140.44:2083` | XHTTP | empty | **static default/final** |
-| `eu-nl` | NL | `138.16.140.44:443` | RAW/TCP | `xtls-rprx-vision` | присутствует; manual fallback |
-| `eu-nl-2` | NL | `138.16.140.44:8443` | XHTTP | empty | присутствует; manual fallback |
+| `eu-nl` | NL | `138.16.140.44:443` | RAW/TCP | `xtls-rprx-vision` | присутствует; manual/diagnostic |
+| `eu-nl-2` | NL | `138.16.140.44:8443` | XHTTP | empty | stable manual; canary EU fallback |
 | `ru-msk` | Moscow | `193.233.91.99:2053` | RAW/TCP | `xtls-rprx-vision` | присутствует; reliability unresolved |
-| `ru-msk-2` | Moscow | `193.233.91.99:2083` | XHTTP | empty | manual RU fallback |
+| `ru-msk-2` | Moscow | `193.233.91.99:2083` | XHTTP | empty | stable manual; canary RU fallback |
 | `ru-spb` | SPB | `193.233.91.99:443` | RAW/TCP | `xtls-rprx-vision` | присутствует; manual/diagnostic |
 | `ru-spb-2` | SPB | `193.233.91.99:8443` | XHTTP | empty | **static RU primary** |
 | `direct` | local/direct | n/a | `freedom` | n/a | local/private and approved direct rules |
@@ -279,15 +293,16 @@ Production backup перед этим изменением:
 | Object | Current expectation |
 |---|---|
 | `outbounds` | exactly `10` |
-| `routing.rules` | exactly `17` |
-| `routing.balancers` | absent |
-| `observatory` | absent |
+| `routing.rules` | exactly `18` в stable; exactly `20` в canary |
+| `routing.balancers` | absent в stable; exactly `4` в canary |
+| `observatory` | absent в stable; exactly one shared object в canary |
 | final/default outbound | `eu-de-2` |
 | RU services/broad RU outbound | `ru-spb-2` |
 
-Любой generated body с `eu-auto`, `ru-auto`, `routing.balancers` или
-`observatory` является stale/pre-fix artifact и не соответствует current
-production.
+Для stable identity generated body с balancers/observatory является ошибкой.
+Для opted-in canary обязательны `eu-primary`, `eu-fallback`, `ru-primary`,
+`ru-fallback`, exact selectors, Ozon probe и два loopback rules. Старые
+`eu-auto`/`ru-auto` и client-controlled opt-in по-прежнему запрещены.
 
 ### 8.2. Rule order
 
@@ -317,21 +332,21 @@ Xray применяет первое совпавшее правило. Current 
 Порядок `EU exceptions -> RU domains -> RU geoip -> final DE` сохраняется.
 Широкое RU правило нельзя поднимать выше EU exceptions.
 
-### 8.3. Почему balancers и observatory удалены
+### 8.3. Stable static path и isolated failover canary
 
-Pre-fix JSON использовал `eu-auto`/`ru-auto`, `routing.balancers` и Xray
-`observatory`. На Xray `26.6.27` observatory приводил к stalls реального
-XHTTP user traffic. Поэтому current production использует deterministic static
-XHTTP routes:
+Stable production path использует deterministic static XHTTP routes:
 
 ```text
 default/EU -> eu-de-2
 RU         -> ru-spb-2
 ```
 
-Следствие: NL и Moscow transports остаются в JSON, но Xray не выполняет на них
-автоматический failover. Moscow XHTTP является manual fallback. Автоматический
-INCY failover остается unresolved requirement.
+В isolated canary те же policy destinations указывают на `eu-primary` и
+`ru-primary`. Primary balancers выбирают DE/SPB и через loopback переходят на
+NL/Moscow. Fallback balancers заканчиваются на `block`. Один shared background
+observatory проверяет Ozon URL через все четыре XHTTP outbounds. Exact production
+proof подтвердил normal, primary-down, all-down и recovery; canary включен только
+для target service identity. Stable JSON и stable response rules не изменены.
 
 ## 9. Mihomo routing
 
@@ -470,7 +485,7 @@ session state по-прежнему не заменяет compile/publish gates,
 | SPB address | `2a01:e5c0:1368::3/48` присутствует | persistent oneshot unit enabled/active, `Result=success`, owned marker matches |
 | External IPv6 reachability | DE <-> SPB, около `33ms` | ICMPv6 и bidirectional TCP payload подтверждены live |
 | Desired record | `spb-exceptions.cyber-vpn.org A 193.233.91.99` | DNS-only, TTL `300`, no proxy; no customer AAAA |
-| Cloudflare API | один record, правильный content/TTL/proxy; zone export содержит запись | control-plane evidence |
+| Cloudflare API | token status `active`; ровно один A record, content `193.233.91.99`, TTL `300`, `proxied=false`, expected comment | live read-only API verification from production app network; token и record ID не сохранялись в evidence |
 | Public recursive DNS | A возвращается, AAAA отсутствует | DNS boundary PASS; VLESS listener и route outcome подтверждаются отдельно |
 | Listener on dedicated endpoint | IPv4 RAW `4443` и XHTTP `8444` active | generated subscription и live VLESS flows подтверждены отдельно |
 
@@ -478,7 +493,9 @@ session state по-прежнему не заменяет compile/publish gates,
 account имеет DNS tag quota `0`. Task2 record source исправлен так, чтобы tags
 были omitted; focused infra test требует это. Record создан без tags и теперь
 публично резолвится. Direct API mutation все еще должна быть принята в canonical
-Terraform state через import до итогового release evidence; иначе будущий plan
+Terraform state через import. Cloudflare token для этого доступен и проверен,
+но безопасный import остается заблокирован отсутствующими AWS/S3 credentials и
+real backend configuration для `cybervpn-terraform-state`; иначе будущий plan
 может предложить duplicate/conflicting operation.
 
 ### 10.3. Task2: точная матрица LIVE/PASS и fail-closed evidence
@@ -548,7 +565,7 @@ checks; отсутствие alert не является доказательс�
 | Предыдущее evidence/ожидание | Статус после fix | Как использовать |
 |---|---|---|
 | Ozon rule matched RU, но browser/cold request падал | **SUPERSEDED** для final generated Xray: post-fix `ozon.ru` и `www.ozon.ru` прошли 5/5 | использовать как регрессионный сценарий, не как current failure |
-| Xray `eu-auto`/`ru-auto` balancers и observatory | **SUPERSEDED** и удалено из production JSON | body с этими objects считать stale |
+| Старые Xray `eu-auto`/`ru-auto` balancers и EU-only observatory | **SUPERSEDED** и удалены из stable JSON | не путать с новым isolated canary: exact `eu-primary`/`ru-primary`, RU-safe probe и server-owned opt-in |
 | Moscow relay upstream `msk-origin-v6` | **SUPERSEDED** | current SPB relay идет на Moscow IPv4 `178.159.94.225` |
 | 8/8 transport delay smoke | **VALID BUT LIMITED** | доказывает наличие transports, не destination reliability и не phone TUN |
 | Moscow RAW + `www.ozon.ru` 3/5 | **OPEN RISK** | RAW reliability не считать закрытой |
@@ -572,12 +589,10 @@ checks; отсутствие alert не является доказательс�
 Проверять только sanitized structural summary:
 
 ```text
-outbounds=10
-rules=17
-balancers=absent
-observatory=absent
-final=eu-de-2
-ru=ru-spb-2
+stable: outbounds=10 rules=18 balancers=absent observatory=absent
+stable: final=eu-de-2 ru=ru-spb-2
+canary: outbounds=12 rules=20 balancers=4 observatory=1
+canary: final=eu-primary ru=ru-primary probe=https://www.ozon.ru/
 ```
 
 Разрешено сохранять tags и counts. Не сохранять UUID, subscription URL,
@@ -588,9 +603,12 @@ Reality keys, short IDs, cookies, tokens, email или другие PII.
 | Scenario | Expected selected outbound | Expected terminal region | Automatic fallback |
 |---|---|---|---|
 | INCY/HAPP default destination | `eu-de-2` | DE | нет |
+| Opted-in canary default | `eu-primary`: DE, затем NL | DE primary | да, regional only |
 | Generic/XRAY_BASE64 | выбранный пользователем VLESS link | регион выбранного link/profile | единого client-side failover нет |
 | EU exception | `eu-de-2` | DE | нет |
 | RU service / broad RU | `ru-spb-2` | SPB | нет |
+| Opted-in canary RU service | `ru-primary`: SPB, затем Moscow | SPB primary | да, regional only |
+| Canary оба пути региона недоступны | `block` | нет egress | fail closed |
 | Manual Moscow XHTTP test | `ru-msk-2` | Moscow | manual only |
 | Mihomo `RU Sites` | SPB, затем Moscow | SPB primary | да, Mihomo only |
 
@@ -601,7 +619,7 @@ selected outbound также не доказывает правильный ре
 
 | Симптом | Вероятный слой | Проверить первым | Не считать доказательством |
 |---|---|---|---|
-| JSON содержит balancers или observatory | stale template/cache/Response Rule | новый generated body и cache invalidation | наличие нового source file |
+| Stable JSON содержит balancers/observatory или canary JSON их не содержит | wrong Response Rule, stale template/cache или неверный opt-in | response profile marker, exact service context, structural fingerprint и cache invalidation | наличие нового source file |
 | Counts не `10/18` | injection или stale generation | product, squad, Response Rule, injected Hosts | HTTP `200` |
 | Default идет не через `eu-de-2` | stale rules или client mutation | final rule и runtime selected outbound | DE listener health |
 | RU/Ozon идет не через `ru-spb-2` | stale rules/geodata/client mutation | rules 14-16 и selected outbound | Ozon открыт через другой регион |
@@ -610,7 +628,7 @@ selected outbound также не доказывает правильный ре
 | Moscow RAW нестабилен | известная reliability boundary | repeated `ru-msk` destination matrix; relay `2053` -> `178.159.94.225:443` | ранний 8/8 delay smoke |
 | Relay `.service` inactive, но `.socket` active/listening | normal socket activation | connection trigger и end-to-end relay outcome | inactive idle service как outage |
 | systemd `remnanode` inactive, Docker node Up | разные service owners | container `remnawave/node:2.8.0`, node logs и control-plane state | systemd unit name сам по себе |
-| Ожидается automatic INCY failover | неверное ожидание current architecture | explicit static tags и отсутствие balancers | наличие резервных outbounds в JSON |
+| Canary ожидается, но body остается stable | Remnawave template cache или marker не exact JSON `true` | backend-owned service context, response profile marker и exact named cache keys | request header/User-Agent |
 | Task2 выдается при readiness false | backend fail-closed regression | readiness decision, entitlement side effect и response | наличие plan/invite |
 | Нет monitoring alerts | monitoring maintenance | direct runtime checks и logs | отсутствие alert |
 
@@ -631,12 +649,13 @@ selected outbound также не доказывает правильный ре
 flowchart TD
     P["Typed Premium Smart RU policy"] --> C["Policy compiler/renderers"]
     C --> MI["Mihomo YAML\nautomatic groups"]
-    C --> XJ["INCY/HAPP Xray template"]
+    C --> XJ["Stable and failover-canary Xray templates"]
     XJ --> G["Generate/inject final JSON"]
-    G --> S["10 outbounds / 18 static rules\nno balancers / no observatory"]
+    G --> S["Stable 10/18 static\nCanary 12/20 regional failover"]
     S --> RW["Seed Remnawave templates, Hosts and Response Rules"]
+    RW --> CI["Invalidate exact named and UUID template cache keys"]
     MI --> RW
-    RW --> GW["CyberVPN r8-task2-live gateway"]
+    CI --> GW["CyberVPN r8-task2-live gateway"]
     GW -->|"Premium Smart RU"| OUT["Generated client response"]
     GW -->|"Task2 readiness=true"| T2OUT["Task2 generated client response"]
     GW -. "Task2 readiness invalid" .-> FC["Fail closed"]
@@ -668,7 +687,8 @@ SPB `2a01:e5c0:1368::3` -> DE `2a0b:4140:ba84::2:9444`; IPv4 bridge fallback
 После изменения Xray template required checks должны включать:
 
 1. final generated body, а не только source template;
-2. exact `10/18` structure и отсутствие balancers/observatory;
+2. stable exact `10/18` без balancers/observatory и canary exact `12/20` с
+   четырьмя regional balancers, одним observatory и двумя loopback rules;
 3. official Xray `26.6.27` cold parse/run;
 4. default DE and RU SPB route/egress matrix;
 5. Ozon repeated HTTP outcome;
@@ -963,18 +983,20 @@ Email, UUID, short UUID, provider subject и subscription body в докумен
 
 ## 19. Final INCY/HAPP Xray: подробная sanitized схема
 
-Статус: template fields ниже являются **SOURCE**; counts и static route targets
-подтверждены **LIVE/EVIDENCE** final generated body. Transport credentials,
-Reality keys, UUID и short IDs исключены.
+Статус: template fields ниже являются **SOURCE**; stable и canary counts,
+route targets и failover topology подтверждены **LIVE/EVIDENCE** final generated
+body. Transport credentials, Reality keys, UUID и short IDs исключены.
 
 ### 19.1. Template и final body
 
 | Стадия | Outbounds | Что находится в artifact |
 |---|---:|---|
-| Saved XRAY_JSON template | 2 | `direct` и `block`; восемь proxy outbounds еще не материализованы |
-| Remnawave final generation | 10 | 8 customer-specific injected VLESS + `direct` + `block` |
+| Saved stable XRAY_JSON template | 2 | `direct` и `block`; восемь proxy outbounds еще не материализованы |
+| Stable Remnawave final generation | 10 | 8 customer-specific injected VLESS + `direct` + `block` |
+| Saved canary XRAY_JSON template | 4 | `direct`, `block` и два regional loopback outbounds |
+| Canary Remnawave final generation | 12 | stable eight VLESS outbounds + four service/loopback outbounds |
 
-Top-level saved template:
+Top-level stable saved template:
 
 ```text
 remnawave
@@ -994,13 +1016,13 @@ stats
 | `routing.domainStrategy` | `IPIfNonMatch` | domain rules проверяются до IP resolution fallback |
 | `direct` | `freedom`, `domainStrategy=UseIP` | direct path может использовать resolved IP |
 | `block` | `blackhole`, response `none` | silent reject at Xray layer |
-| `routing.balancers` | absent | runtime automatic Xray failover отсутствует |
-| `observatory` | absent | XHTTP-stalling probe mechanism удален |
+| `routing.balancers` | stable absent; canary exactly four | canary выполняет two-stage regional fallback и заканчивает каждый регион на `block` |
+| `observatory` | stable absent; canary one object | shared Ozon probe, exact selectors, `10s`, concurrency enabled |
 
-Поле `remnawave.routePolicy.regionalHealth` сохраняет canonical metadata о
-primary/fallback, probe и degraded events для compiler/Mihomo parity. В Xray это
-**не исполняемый failover object**. Наличие metadata нельзя интерпретировать как
-работающий INCY automatic fallback.
+Поле `remnawave.routePolicy.regionalHealth` само по себе остается metadata.
+В stable Xray оно не исполняет fallback. В canary исполняемыми объектами являются
+отдельные `routing.balancers`, loopback rules/outbounds и `observatory`; opt-in
+доказывается response profile и backend-owned identity marker, а не metadata.
 
 ### 19.2. Local inbounds, sniffing и TUN boundary
 
@@ -1282,16 +1304,17 @@ after latest restart; validate active plugin and node logs separately.
 
 | Client/path | Automatic behavior | What is not automatic |
 |---|---|---|
-| INCY/HAPP Xray | none; rules point directly to `eu-de-2` and `ru-spb-2` | DE -> NL, SPB -> Moscow, RAW <-> XHTTP |
+| INCY/HAPP stable Xray | none; rules point directly to `eu-de-2` and `ru-spb-2` | DE -> NL, SPB -> Moscow, RAW <-> XHTTP |
+| INCY/HAPP opted-in canary | DE -> NL and SPB -> Moscow, then regional `BLOCK`; recovery returns to primaries | cross-region fallback, `DIRECT`, RAW <-> XHTTP |
 | Mihomo EU | `World / EU`: DE -> NL fallback | cross-region RU fallback и generic/Base64 links |
 | Mihomo RU | `RU Sites`: SPB -> Moscow fallback | cross-region DE fallback; fallback outside Mihomo |
 | Generic/XRAY_BASE64 | user-selected link plus server profile behavior | unified client health/fallback |
 | Server profile bridge | deterministic routing by destination category | client transport failover |
 
-Canonical route metadata still declares regional fallback, but Xray renderer
-deviation intentionally leaves fallback manual. Automatic INCY failover remains
-unresolved until a design can prove no XHTTP stalls on Xray `26.6.27` and pass
-device TUN tests.
+Stable renderer intentionally leaves fallback manual. Separate canary renderer
+is runtime-proven server-side on Xray `26.6.27`, including recovery and all-down
+fail-closed. Physical phone TUN behavior remains a separate acceptance boundary;
+it does not invalidate the proven server-generated canary topology.
 
 ### 22.2. Cache layers
 
@@ -1299,7 +1322,7 @@ device TUN tests.
 |---|---|---|
 | Gateway HTTP | forces `Cache-Control: no-store` | verify response header; это не invalidation device state |
 | CyberVPN mobile subscription DTO | SOURCE TTL `300s`; отдельный application cache | не путать с public gateway или INCY; проверить key age/invalidation без вывода customer identifier |
-| Remnawave process/settings | may retain generated/template state across DB change | compare fresh generated structural fingerprint after required process/cache refresh |
+| Remnawave template cache | named XRAY_JSON and UUID cache keys have one-hour TTL | seed-runner invalidates only the two exact Smart RU template names and their resolved UUID keys after successful DB commit; compare fresh generated fingerprint |
 | Mihomo profile | generated source enables stored selected group and Fake-IP state | reset selection/Fake-IP cache when testing policy changes |
 | INCY local profile/cache | implementation details not present in this repo; current phone state UNKNOWN | use explicit refresh; if stale, remove/re-add profile through UI and fully restart app |
 | HAPP local cache | UNKNOWN | fresh import/refresh and sanitized versioned device evidence |
@@ -1320,7 +1343,7 @@ device TUN tests.
 | P1 | Task2 DNS опубликован, но не в Terraform state | **LIVE:** public A отвечает, AAAA удален; narrow API mutation еще не импортирована в canonical state | следующий Terraform plan может предложить duplicate create или конфликт | импортировать A record в production DNS state и проверить no-delete/no-replace plan |
 | P1 | Cloudflare DNS tags несовместимы с account quota | **LIVE:** API code `9300`, quota `0`; Task2 source tags removed | plan/apply с tags для новой записи fail; metadata expectation расходится с plan capabilities | не задавать Task2 tags на этом account или повысить quota; focused source test фиксирует omission |
 | RESOLVED | Subscription short UUID недостаточно унифицирован как bearer secret | **LIVE/PASS:** `r8` сохраняет redaction normal, exception и Sentry paths; case-insensitive `/api/sub/*` использует shared `subscription_gateway` bucket | regression снова раскроет bearer path или позволит unique-path bucket spray | сохранять negative redaction/bucket/Sentry tests и production image smoke в release gate |
-| P1 | No automatic INCY failover | **LIVE/SOURCE:** no balancers/observatory; static `eu-de-2`/`ru-spb-2` | outage primary XHTTP не переключится на NL/Moscow автоматически | fault-inject primary transport на canary, подтвердить expected failure; отдельный safe failover design без observatory stalls |
+| RESOLVED canary / P1 stable rollout | Automatic INCY/HAPP failover | **LIVE/PASS for exact opted-in identity:** canonical Remnawave-generated canary passed normal, DE/SPB primary-down, all-down BLOCK and recovery; stable users remain static | массовый rollout без phone soak может перенести client-specific stall/cache risk на всех пользователей | расширять opt-in постепенно; сохранять exact server marker, four-phase runtime gate и rollback by marker removal |
 | P1 | Moscow RAW reliability | **EVIDENCE:** repeated `www.ozon.ru` only 3/5; старый 8/8 был delay smoke | manual RAW fallback может быть intermittent, listener/delay PASS даст false confidence | cold repeated RAW handshake + DNS + selected tag + terminal egress + HTTP outcome, сравнить XHTTP |
 | P1 | Phone TUN/cache/DNS | **UNKNOWN:** post-fix phone run отсутствует | server 5/5 может не воспроизводиться из-за stale profile, device DNS/TUN или client mutation | fresh import, version/OS, default/RU/EU/BLOCK/local matrix и sanitized device logs |
 | P1 | Literal bootstrap operational coupling | **LIVE:** DE/NL tied to `138.16.140.44`, Moscow/SPB to `193.233.91.99` | IP/relay migration без regeneration ломает сразу две region families; DNS failover не поможет | change-impact test для literal IP, generated-body scan, relay/origin health и coordinated rollout/rollback |
@@ -1354,8 +1377,12 @@ Primary references были проверены для текущих механ�
   resolvers и nameserver policy объясняют split-DNS behavior generated Mihomo;
   этих semantics нет в current INCY/HAPP Xray JSON.
 - [Xray Core routing](https://xtls.github.io/en/config/routing.html): first-match
-  rules направляют трафик в exact `outboundTag`. Current config использует
-  static `eu-de-2`/`ru-spb-2` и не содержит balancers/observatory.
+  rules направляют трафик в exact `outboundTag` или `balancerTag`. Stable config
+  использует static `eu-de-2`/`ru-spb-2`, isolated canary - regional balancers.
+- [Xray background observatory source, v26.6.27](https://github.com/XTLS/Xray-core/blob/v26.6.27/app/observatory/observer.go#L160-L194):
+  redirects не follow-ятся, но status code не проверяется; любой полученный HTTP
+  response считается alive. Поэтому Ozon `307` допустим как liveness response,
+  а route/HTTP/fail-closed outcome проверяет отдельный external harness.
 - [Antifilter BGP enrollment](https://antifilter.network/bgp): current provider
   form связывает первый summarized/RKN option с communities `65444:100` и
   `65444:110`, а остальные выбранные services с `:700..:800` и `:65444`.
@@ -1372,18 +1399,20 @@ customer configs в этот документ не включаются.
 Current Premium Smart RU server/generated path после fix:
 
 ```text
-INCY/HAPP full Xray JSON
-  -> 10 outbounds, 18 rules
-  -> no routing.balancers, no observatory
-  -> default/EU exceptions -> eu-de-2 -> DE XHTTP
-  -> RU services/broad RU -> ru-spb-2 -> SPB XHTTP
-  -> Moscow XHTTP retained for manual fallback
+INCY/HAPP stable Xray JSON
+  -> 10 outbounds, 18 rules, no balancers/observatory
+  -> default/EU -> eu-de-2; RU -> ru-spb-2
+INCY/HAPP exact opted-in canary
+  -> 12 outbounds, 20 rules, four regional balancers, one shared observatory
+  -> DE -> NL; SPB -> Moscow; regional all-down -> BLOCK; recovery -> primaries
+  -> opt-in only by exact backend-owned JSON true marker
   -> literal bootstrap IP, Reality SNI www.yandex.ru unchanged
 ```
 
-Official Xray `26.6.27` cold test закрыл прежний generated-config Ozon failure:
-default DE, `ozon.ru` и `www.ozon.ru` прошли по 5/5. Это не закрывает
-phone-side INCY TUN и не превращает Moscow RAW 3/5 в reliable path.
+Official Xray `26.6.27` cold test закрыл прежний generated-config Ozon failure.
+Дополнительно canonical canary из final Remnawave response прошел normal,
+primary-down, all-down и recovery. Это не закрывает phone-side INCY TUN и не
+превращает Moscow RAW 3/5 в reliable RAW path.
 
 Mihomo остается отдельным automatic-fallback client path с RU order
 SPB -> Moscow и Ozon probe `307` каждые `60s`. Task2 live: backend
