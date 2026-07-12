@@ -57,7 +57,7 @@ snapshot того же файла.
 | Task2 BGP | LIVE/PASS | session `Established`, около 29.5k IPv4 routes; все 13 required communities непусты, `65444:110` исключен owner decision |
 | Task2 DNS | LIVE/PASS | `spb-exceptions.cyber-vpn.org` возвращает только DNS-only A `193.233.91.99`; customer AAAA удален; generated customer profiles dial literal IPv4 to avoid client-resolver stalls |
 | Task2 data plane | LIVE/PASS | active/LKG `0b4748aa...` (21 415 IPv4 prefixes), IPv6 bridge, peer-only firewall и RAW/XHTTP route matrix подтверждены |
-| Task2 signed readiness | LIVE/PASS with evidence caveat | signature, policy и expiry valid; текущий JWT все еще содержит manifest hash предыдущего LKG, потому что offline signing key отсутствует на app host |
+| Task2 signed readiness | LIVE/DEGRADED | signature, policy и expiry valid, но JWT содержит manifest hash предыдущего LKG; backend пока не связывает attestation с current active/LKG, а offline signing key отсутствует на app host |
 | Monitoring host | maintenance | свежего monitoring/dashboard evidence нет |
 
 Главная граница snapshot: успешный официальный cold test final generated JSON
@@ -506,7 +506,7 @@ real backend configuration для `cybervpn-terraform-state`; иначе буд�
 |---|---|---|
 | Backend kill switch | **LIVE/PASS** | running `r9-xray-failover-canary-71728ebe`, boolean `true`; доступ разрешен только после signature/policy/squad verification |
 | Signed EdDSA verifier | **LIVE/PASS** | attestation проверена внутри running backend; Task1 остается отдельным product scope |
-| Readiness files | **LIVE/PASS** | Ed25519 JWT + public key read-only; private signing key хранится отдельно `0600`; expiry 2026-10-10 |
+| Readiness files | **LIVE/DEGRADED** | Ed25519 JWT + public key read-only; signature/expiry valid, но manifest hash относится к предыдущему LKG; private signing key хранится отдельно `0600` |
 | Compose mount | **LIVE** | `/srv/cybervpn/readiness/task2 -> /run/cybervpn/readiness/task2`, `rw=false` |
 | Backend dependencies | **LIVE/PASS** | `/readiness`: database, Redis, queue `ok`, queue depth `0` |
 | BGP transport | **LIVE/PASS** | `Established`, около 29 451-29 478 routes imported, 0 exported |
