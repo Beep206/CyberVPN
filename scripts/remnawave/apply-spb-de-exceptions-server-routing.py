@@ -1037,7 +1037,7 @@ def _validate_spb_connect_address(address: str, *, node_address: str) -> str:
         raise RuntimeError(
             "SPB connect address must be a literal IPv4 address"
         ) from exc
-    if parsed.version != 4 or not parsed.is_global:
+    if parsed.version != 4 or not parsed.is_global or parsed.is_multicast:
         raise RuntimeError("SPB connect address must be a literal IPv4 address")
     if parsed_node.version != 4 or parsed != parsed_node:
         raise RuntimeError("SPB connect address must match the selected SPB node")

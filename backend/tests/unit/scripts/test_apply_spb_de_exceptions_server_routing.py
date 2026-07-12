@@ -181,6 +181,8 @@ def test_spb_connect_address_requires_literal_ipv4() -> None:
         module._validate_spb_connect_address("2a01:e5c0:1368::3", node_address="193.233.91.99")
     with pytest.raises(RuntimeError, match="literal IPv4"):
         module._validate_spb_connect_address("127.0.0.1", node_address="127.0.0.1")
+    with pytest.raises(RuntimeError, match="literal IPv4"):
+        module._validate_spb_connect_address("224.0.0.1", node_address="224.0.0.1")
     with pytest.raises(RuntimeError, match="selected SPB node"):
         module._validate_spb_connect_address("193.233.91.99", node_address="203.0.113.10")
 
