@@ -233,8 +233,10 @@ cross-product routing leak and must fail review:
 ```
 
 Domain destinations require `routing.domainStrategy=IPOnDemand` and a
-non-empty built-in DNS server list. The operator uses `localhost` only when the
-source profile has no DNS servers. `IPIfNonMatch` is insufficient here because
+non-empty built-in DNS server list. For disabled/fallback IPv6 mode the operator
+uses Xray server-side local DoH (`https+local://1.1.1.1/dns-query` and
+`https+local://8.8.8.8/dns-query`), which bypasses the routing table but sends
+DNS metadata to those reviewed third-party resolvers. `IPIfNonMatch` is insufficient here because
 the final scoped `DIRECT` rule matches during the first pass and prevents the
 second IP-matching pass. This follows the Xray routing and built-in DNS
 contracts documented at <https://xtls.github.io/en/config/routing> and

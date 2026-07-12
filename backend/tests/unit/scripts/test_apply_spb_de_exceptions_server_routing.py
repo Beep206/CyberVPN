@@ -174,11 +174,15 @@ def test_operator_object_names_fit_remnawave_2_8_0_limits() -> None:
 def test_spb_connect_address_requires_literal_ipv4() -> None:
     module = _load_module()
 
-    assert module._validate_spb_connect_address("193.233.91.99") == "193.233.91.99"
+    assert module._validate_spb_connect_address("193.233.91.99", node_address="193.233.91.99") == "193.233.91.99"
     with pytest.raises(RuntimeError, match="literal IPv4"):
-        module._validate_spb_connect_address("spb-exceptions.cyber-vpn.org")
+        module._validate_spb_connect_address("spb-exceptions.cyber-vpn.org", node_address="193.233.91.99")
     with pytest.raises(RuntimeError, match="literal IPv4"):
-        module._validate_spb_connect_address("2a01:e5c0:1368::3")
+        module._validate_spb_connect_address("2a01:e5c0:1368::3", node_address="193.233.91.99")
+    with pytest.raises(RuntimeError, match="literal IPv4"):
+        module._validate_spb_connect_address("127.0.0.1", node_address="127.0.0.1")
+    with pytest.raises(RuntimeError, match="selected SPB node"):
+        module._validate_spb_connect_address("193.233.91.99", node_address="203.0.113.10")
 
 
 def test_artifact_loader_validates_manifest_rules_and_checksum(tmp_path: Path) -> None:
@@ -1552,6 +1556,38 @@ def test_rollback_restores_snapshot_when_first_mutation_response_is_ambiguous(
     assert ("PATCH", "/config-profiles") in [call[:2] for call in api.calls]
     assert result == {"mode": "rollback", "status": "rolled_back"}
     assert json.loads(manifest_path.read_text(encoding="utf-8"))["phase"] == "rolled_back"
+
+
+def test_public_host_rollback_restores_legacy_remark_by_uuid() -> None:
+    module = _load_module()
+    calls: list[tuple[str, str, object]] = []
+    snapshot = {
+        "uuid": "host-uuid",
+        "remark": "CyberVPN SPB DE Reality 443",
+        "address": "old.example.test",
+    }
+
+    class FakeRemnawaveApi:
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            calls.append((method, path, kwargs.get("json")))
+            if (method, path) == ("GET", "/hosts"):
+                return {
+                    "hosts": [
+                        {
+                            "uuid": "host-uuid",
+                            "remark": "CyberVPN SPB DE Reality 4443",
+                            "address": module.SPB_CONNECT_ADDRESS,
+                        }
+                    ]
+                }
+            return kwargs.get("json") or {}
+
+    asyncio.run(module._rollback_spb_public_hosts(FakeRemnawaveApi(), {"spbHosts": [snapshot]}))
+
+    assert calls == [
+        ("GET", "/hosts", None),
+        ("PATCH", "/hosts", snapshot),
+    ]
 
 
 def test_rollback_restores_spb_before_de_and_is_idempotent(tmp_path: Path) -> None:

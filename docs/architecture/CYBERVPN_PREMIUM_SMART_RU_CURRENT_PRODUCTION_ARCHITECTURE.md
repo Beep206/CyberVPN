@@ -197,7 +197,7 @@ Live recheck около `2026-07-11T21:42+05:00`, дополненный BGP rol
 | `bird` | active, BIRD `2.14` | protocol `antifilter_v4` `Established`, channel `UP`, около 29 451-29 478 imported и 0 exported |
 | Antifilter collector timer | active | exporter формирует deterministic 13-community candidate без `65444:110` |
 | Antifilter exporter | pass | owner decision 2026-07-12 исключил `65444:110`; safety/category gates принимают feed |
-| Antifilter manifest | active/LKG | version `ebc9e9e499bf1c63...`, union 21 407 IPv4 prefixes, IPv6 policy `fallback_block` |
+| Antifilter manifest | active/LKG | version `0b4748aaa22e...`, union 21 415 IPv4 prefixes, IPv6 policy `fallback_block` |
 | Task2 listener IPv6 address | PASS persistent address | `cybervpn-spb-listener-ipv6.service` enabled/active, ownership marker matches `2a01:e5c0:1368::3/48` |
 | Task2 public DNS | LIVE/PASS | Cloudflare DNS-only A `193.233.91.99`; AAAA удален, чтобы customer traffic не попадал на bridge-source IPv6 |
 | Task2 bridge firewall на DE | active, IPv6 peer-only | TCP/UDP `9444` разрешен только от SPB `2a01:e5c0:1368::3/128`; остальные источники drop, IPv4 allow удален |
@@ -469,10 +469,11 @@ session state по-прежнему не заменяет compile/publish gates,
 8. Official FAQ связывает `:110` с direct-RKN JSON upstream. Владелец продукта
    явно принял текущий provider feed без этой companion community; локальный
    required contract и документация были синхронизированы с этим решением.
-9. Финальный collector candidate создан 2026-07-12: 13 category files,
-   21 407 prefixes в union, manifest SHA-256
-   `f91c659b19257b6d5d1f689af7814076de53d81f0c0711afdc7c6450be27597f`.
-   Safety gates приняли candidate, после чего он стал active и LKG.
+9. Первый accepted candidate `06:03:30Z` содержал 21 407 prefixes и manifest
+   SHA-256 `f91c659b...`; это исторический predecessor, а не current pointer.
+10. Current candidate `15:26:39Z` содержит 13 category files и 21 415 prefixes,
+    version `0b4748aaa22e...`, manifest SHA-256 `dc045130d1a532b7...`.
+    Predecessors опубликованы по порядку; current active и LKG совпадают.
 
 Следовательно, отсутствие `65444:110` больше не является blocker или degraded
 состоянием. Fail-closed сохраняется для любой из 13 обязательных communities,
@@ -510,14 +511,14 @@ real backend configuration для `cybervpn-terraform-state`; иначе буд�
 | Backend dependencies | **LIVE/PASS** | `/readiness`: database, Redis, queue `ok`, queue depth `0` |
 | BGP transport | **LIVE/PASS** | `Established`, около 29 451-29 478 routes imported, 0 exported |
 | BGP policy content | **LIVE/PASS** | все 13 required communities принимаются; `65444:110` исключен owner decision |
-| Candidate/manifest | **LIVE/PASS** | active/LKG `ebc9e9e499bf1c63...`, union 21 407 IPv4 prefixes |
+| Candidate/manifest | **LIVE/PASS** | active/LKG `0b4748aaa22e...`, union 21 415 IPv4 prefixes |
 | Public DNS | **LIVE/PASS** | A `193.233.91.99` возвращается; customer AAAA отсутствует |
 | SPB dedicated IPv6 | **LIVE/PASS** | address present/reachable; `cybervpn-spb-listener-ipv6.service` enabled and active with matching ownership marker |
 | DE bridge firewall | **LIVE/PASS** | IPv6 TCP/UDP `9444` allow только от `2a01:e5c0:1368::3/128`, затем explicit drop |
 | DE bridge listener | **LIVE/PASS** | `2a0b:4140:ba84::2:9444`, AEAD, один service credential, bridge не публикуется как Host |
 | SPB customer profile/Host | **LIVE/PASS** | dedicated IPv4 RAW `4443`/XHTTP `8444`; Task2 rules/squad содержат только два Task2 tags; generic/INCY/HAPP/Mihomo проверены |
 | XHTTP synchronization | **LIVE/PASS** | public Host и все customer-facing XHTTP inbounds используют общий текущий path `/s1-xhttp-9fec0898` |
-| Matched/unmatched route matrix | **LIVE/PASS** | `IPOnDemand` с localhost DNS fallback; RAW/XHTTP: unmatched -> SPB, matched domain/literal -> DE; TCP и UDP подтверждены |
+| Matched/unmatched route matrix | **LIVE/PASS** | `IPOnDemand` с Xray local DoH (`https+local`); RAW/XHTTP: unmatched -> SPB, matched domain/literal -> DE; TCP и UDP подтверждены |
 | Bridge-down behavior | **LIVE/PASS** | matched timeout/fail-closed; unmatched продолжает SPB DIRECT; temporary diagnostic rule удален |
 
 Эта матрица фиксирует границу завершенного server-side rollout. Она не заменяет
@@ -670,7 +671,7 @@ Task2 проходит отдельную цепочку и не использ�
 flowchart TD
     AF["Antifilter AS65444"] --> BGP["SPB BIRD AS64999\nEstablished / 29 462 routes"]
     BGP --> PC["Required community gate\n13 categories; no 65444:110"]
-    PC --> CAN["Canonical candidate\n21 407 IPv4 prefixes"]
+    PC --> CAN["Canonical candidate\n21 415 IPv4 prefixes"]
     CAN --> CMP["Compile + checksum + delta + freshness gates"]
     CMP --> LKG["Approved last-known-good manifest"]
     LKG --> SPB["SPB server profile\nmatched -> DE bridge\nunmatched -> SPB DIRECT"]

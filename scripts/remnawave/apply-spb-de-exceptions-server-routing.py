@@ -1029,16 +1029,19 @@ def _validate_dedicated_listen_address(address: str | None) -> str | None:
     return str(parsed)
 
 
-def _validate_spb_connect_address(address: str) -> str:
+def _validate_spb_connect_address(address: str, *, node_address: str) -> str:
     try:
-        normalized = _validate_dedicated_listen_address(address)
-    except RuntimeError as exc:
+        parsed = ipaddress.ip_address(str(address).strip())
+        parsed_node = ipaddress.ip_address(str(node_address).strip())
+    except ValueError as exc:
         raise RuntimeError(
             "SPB connect address must be a literal IPv4 address"
         ) from exc
-    if normalized is None or ipaddress.ip_address(normalized).version != 4:
+    if parsed.version != 4 or not parsed.is_global:
         raise RuntimeError("SPB connect address must be a literal IPv4 address")
-    return normalized
+    if parsed_node.version != 4 or parsed != parsed_node:
+        raise RuntimeError("SPB connect address must match the selected SPB node")
+    return str(parsed)
 
 
 ListenAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
@@ -1571,20 +1574,40 @@ async def _rollback_spb_public_hosts(
         for snapshot in snapshots
         if isinstance(snapshot, dict) and snapshot.get("remark")
     }
+    snapshot_by_uuid = {
+        snapshot.get("uuid"): snapshot
+        for snapshot in snapshots
+        if isinstance(snapshot, dict) and snapshot.get("uuid")
+    }
     hosts = _collection(await api.request("GET", "/hosts"), "hosts")
     current_by_remark = {
         host.get("remark"): host
         for host in hosts
         if host.get("remark") in _task2_host_remarks()
     }
+    current_by_uuid = {
+        host.get("uuid"): host
+        for host in current_by_remark.values()
+        if host.get("uuid")
+    }
+    restored_uuids: set[str] = set()
     for remark, snapshot in snapshot_by_remark.items():
-        current = current_by_remark.get(remark)
+        current = current_by_uuid.get(snapshot.get("uuid")) or current_by_remark.get(
+            remark
+        )
         if current and snapshot.get("uuid"):
             await api.request(
-                "PATCH", "/hosts", json={**snapshot, "uuid": snapshot["uuid"]}
+                "PATCH", "/hosts", json={**snapshot, "uuid": current["uuid"]}
             )
+            restored_uuids.add(str(current["uuid"]))
     for remark, current in current_by_remark.items():
-        if remark not in snapshot_by_remark and current.get("uuid"):
+        current_uuid = str(current.get("uuid") or "")
+        if (
+            current_uuid
+            and current_uuid not in restored_uuids
+            and current.get("uuid") not in snapshot_by_uuid
+            and remark not in snapshot_by_remark
+        ):
             await _delete_if_present(api, f"/hosts/{current['uuid']}")
 
 
@@ -1920,7 +1943,10 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
     spb_preserved_listen_address = _validate_dedicated_listen_address(
         args.spb_preserved_listen_address
     )
-    spb_connect_address = _validate_spb_connect_address(args.spb_connect_address)
+    spb_connect_address = _validate_spb_connect_address(
+        args.spb_connect_address,
+        node_address=args.spb_node_address,
+    )
 
     api = RemnawaveApi(
         args.remnawave_url,
