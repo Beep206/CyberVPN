@@ -286,8 +286,9 @@ canary marker remains enabled after the successful run.
 | Command | Working directory | Exit | Result/evidence |
 |---|---|---:|---|
 | `backend/.venv/Scripts/python.exe -m pytest backend/tests/contract/test_remnawave_tz_manifest.py -q --no-cov` | `F:\CyberVPN` | 0 | raw-byte manifest contract pass |
-| `backend/.venv/Scripts/python.exe -m ruff check backend/tests/contract/test_remnawave_tz_manifest.py scripts/testing/check-remnawave-tz-evidence.py scripts/testing/check-task2-cloudflare-dns.py` | `F:\CyberVPN` | 0 | changed Python lint pass |
-| `backend/.venv/Scripts/python.exe -m ruff format --check backend/tests/contract/test_remnawave_tz_manifest.py scripts/testing/check-remnawave-tz-evidence.py scripts/testing/check-task2-cloudflare-dns.py` | `F:\CyberVPN` | 0 | changed Python format pass |
+| `backend/.venv/Scripts/python.exe -m pytest backend/tests/contract/remnawave/test_repo_docs_alignment.py -q --no-cov` | `F:\CyberVPN` | 0 | four repository/document alignment contracts pass |
+| `backend/.venv/Scripts/python.exe -m ruff check backend/tests/contract/test_remnawave_tz_manifest.py backend/tests/contract/remnawave/test_repo_docs_alignment.py scripts/testing/check-remnawave-tz-evidence.py scripts/testing/check-task2-cloudflare-dns.py` | `F:\CyberVPN` | 0 | changed Python lint pass |
+| `backend/.venv/Scripts/python.exe -m ruff format --check backend/tests/contract/test_remnawave_tz_manifest.py backend/tests/contract/remnawave/test_repo_docs_alignment.py scripts/testing/check-remnawave-tz-evidence.py scripts/testing/check-task2-cloudflare-dns.py` | `F:\CyberVPN` | 0 | changed Python format pass |
 | `backend/.venv/Scripts/python.exe -m json.tool docs/plans/CyberVPN_Remnawave_2_8_0_TZ_manifest.json` | `F:\CyberVPN` | 0 | JSON pass |
 | `backend/.venv/Scripts/python.exe scripts/testing/check-remnawave-tz-evidence.py` | `F:\CyberVPN` | 0 | links, fences and secret patterns pass |
 | `git diff --check` | `F:\CyberVPN` | 0 | pass |
