@@ -148,11 +148,11 @@ def _validate_incy(content: bytes, *, automatic_failover: bool = False) -> None:
             },
         ]
         regional_health = route_policy.get("regionalHealth")
-        eu_health = (
-            regional_health.get("eu") if isinstance(regional_health, dict) else None
+        ru_health = (
+            regional_health.get("ru") if isinstance(regional_health, dict) else None
         )
-        eu_probe = eu_health.get("probe") if isinstance(eu_health, dict) else None
-        expected_probe_url = eu_probe.get("url") if isinstance(eu_probe, dict) else None
+        ru_probe = ru_health.get("probe") if isinstance(ru_health, dict) else None
+        expected_probe_url = ru_probe.get("url") if isinstance(ru_probe, dict) else None
         expected_observatory = {
             "subjectSelector": ["eu-de-2", "eu-nl-2", "ru-spb-2", "ru-msk-2"],
             "probeUrl": expected_probe_url,

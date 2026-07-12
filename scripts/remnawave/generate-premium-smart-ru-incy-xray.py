@@ -244,10 +244,10 @@ def build_template(
     renderer_deviations = (
         [
             {
-                "id": "xray-canary-single-observatory-global-204-probe",
+                "id": "xray-canary-single-observatory-shared-ru-safe-probe",
                 "reason": "Xray 26.6.27 must use one deterministic observatory feature for all failover balancers",
-                "effect": "All four transports use the EU HTTP 204 probe for liveness; RU destination routing remains policy-driven and is validated separately",
-                "probeUrl": str(eu_transport["probe"]["url"]),
+                "effect": "All four transports use the shared RU-accessible probe for liveness; destination routing remains policy-driven and is validated separately",
+                "probeUrl": shared_probe_url,
             }
         ]
         if automatic_failover
@@ -399,8 +399,6 @@ def build_template(
         route_policy = route_policy["routePolicy"]
         assert isinstance(route_policy, dict)
         route_policy["rendererMode"] = "automatic-failover-canary"
-        eu_probe = eu_transport["probe"]
-        assert isinstance(eu_probe, dict)
         template["observatory"] = {
             "subjectSelector": [
                 eu_primary_tag,
@@ -408,7 +406,7 @@ def build_template(
                 ru_primary_tag,
                 ru_fallback_tag,
             ],
-            "probeUrl": str(eu_probe["url"]),
+            "probeUrl": shared_probe_url,
             "probeInterval": "10s",
             "enableConcurrency": True,
         }

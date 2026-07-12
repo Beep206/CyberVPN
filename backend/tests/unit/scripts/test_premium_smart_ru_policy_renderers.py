@@ -341,13 +341,13 @@ def test_xray_generator_builds_isolated_fail_closed_automatic_failover_canary(
     assert canary["remnawave"]["routePolicy"]["rendererMode"] == "automatic-failover-canary"
     assert canary["remnawave"]["routePolicy"]["rendererDeviations"] == [
         {
-            "id": "xray-canary-single-observatory-global-204-probe",
+            "id": "xray-canary-single-observatory-shared-ru-safe-probe",
             "reason": "Xray 26.6.27 must use one deterministic observatory feature for all failover balancers",
             "effect": (
-                "All four transports use the EU HTTP 204 probe for liveness; "
-                "RU destination routing remains policy-driven and is validated separately"
+                "All four transports use the shared RU-accessible probe for liveness; "
+                "destination routing remains policy-driven and is validated separately"
             ),
-            "probeUrl": "https://www.gstatic.com/generate_204",
+            "probeUrl": "https://www.ozon.ru/",
         }
     ]
     assert canary["observatory"]["subjectSelector"] == [
@@ -356,6 +356,7 @@ def test_xray_generator_builds_isolated_fail_closed_automatic_failover_canary(
         "ru-spb-2",
         "ru-msk-2",
     ]
+    assert canary["observatory"]["probeUrl"] == "https://www.ozon.ru/"
     assert "burstObservatory" not in canary
 
     balancers = {item["tag"]: item for item in canary["routing"]["balancers"]}

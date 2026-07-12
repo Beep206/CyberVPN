@@ -120,10 +120,10 @@
       },
       "rendererDeviations": [
         {
-          "id": "xray-canary-single-observatory-global-204-probe",
+          "id": "xray-canary-single-observatory-shared-ru-safe-probe",
           "reason": "Xray 26.6.27 must use one deterministic observatory feature for all failover balancers",
-          "effect": "All four transports use the EU HTTP 204 probe for liveness; RU destination routing remains policy-driven and is validated separately",
-          "probeUrl": "https://www.gstatic.com/generate_204"
+          "effect": "All four transports use the shared RU-accessible probe for liveness; destination routing remains policy-driven and is validated separately",
+          "probeUrl": "https://www.ozon.ru/"
         }
       ],
       "providerSources": [
@@ -975,7 +975,7 @@
       "ru-spb-2",
       "ru-msk-2"
     ],
-    "probeUrl": "https://www.gstatic.com/generate_204",
+    "probeUrl": "https://www.ozon.ru/",
     "probeInterval": "10s",
     "enableConcurrency": true
   }

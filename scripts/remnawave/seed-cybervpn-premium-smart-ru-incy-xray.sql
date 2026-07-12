@@ -161,7 +161,7 @@ begin
        or jsonb_typeof(v_incy_canary->'observatory') is distinct from 'object'
        or v_incy_canary->'observatory' is distinct from '{
             "subjectSelector":["eu-de-2","eu-nl-2","ru-spb-2","ru-msk-2"],
-            "probeUrl":"https://www.gstatic.com/generate_204",
+            "probeUrl":"https://www.ozon.ru/",
             "probeInterval":"10s",
             "enableConcurrency":true
        }'::jsonb
