@@ -16,7 +16,7 @@ from src.config.settings import settings
 from src.domain.enums import AccessDeliveryChannelType, DeviceCredentialType
 from src.presentation.api.v1.access_delivery_channels.schemas import GetCurrentServiceStateRequest
 from src.presentation.api.v1.customer_subscriptions import routes as customer_subscription_routes
-from tests.helpers.spb_de_readiness import enable_spb_de_readiness
+from tests.helpers.spb_de_readiness import enable_spb_de_readiness, manifest_pointer_json
 
 
 def _subscription_summary() -> SimpleNamespace:
@@ -775,8 +775,10 @@ async def test_selected_subscription_lazy_provisioning_uses_spb_de_exceptions_sq
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("readiness_state", ["disabled", "stale_manifest"])
 async def test_selected_subscription_task2_readiness_gate_blocks_new_provisioning_before_provider_mutation(
     monkeypatch: pytest.MonkeyPatch,
+    readiness_state: str,
 ) -> None:
     customer_account_id = uuid.uuid4()
     auth_realm_id = uuid.uuid4()
@@ -785,7 +787,13 @@ async def test_selected_subscription_task2_readiness_gate_blocks_new_provisionin
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_internal_squad_uuid", str(uuid.uuid4()))
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_bridge_squad_uuid", str(uuid.uuid4()))
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_plan_codes", "premium_spb_de_exceptions")
-    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", False)
+    if readiness_state == "stale_manifest":
+        enable_spb_de_readiness(monkeypatch)
+        stale_pointer = manifest_pointer_json(manifest_sha256="c" * 64)
+        monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", stale_pointer)
+        monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer", stale_pointer)
+    else:
+        monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", False)
     monkeypatch.setattr(settings, "remnawave_smart_ru_plan_codes", "premium_smart_ru")
 
     class FailIfConstructedRemnawaveUserGateway:

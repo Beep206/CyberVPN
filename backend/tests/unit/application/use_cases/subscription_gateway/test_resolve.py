@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.vpn_product_readiness import (
     PRODUCT_PLAN_MISMATCH_REASON,
+    TASK2_READINESS_MANIFEST_MISMATCH_REASON,
     TASK2_READINESS_SIGNATURE_INVALID_REASON,
 )
 from src.application.use_cases.subscription_gateway.resolve import (
@@ -21,7 +22,11 @@ from src.application.use_cases.subscription_gateway.resolve import (
 from src.config.settings import settings
 from src.infrastructure.database.repositories.service_access_repo import ServiceAccessRepository
 from src.infrastructure.remnawave.client import RemnawaveClient
-from tests.helpers.spb_de_readiness import enable_spb_de_readiness, make_spb_de_readiness_attestation
+from tests.helpers.spb_de_readiness import (
+    enable_spb_de_readiness,
+    make_spb_de_readiness_attestation,
+    manifest_pointer_json,
+)
 
 OVERLAPPING_PLAN_CODES = "premium_smart_ru,premium_spb_de_exceptions"
 SMART_RU_EXTERNAL_SQUAD_UUID = "409147a7-a03c-4db5-bccf-33d3caaf8d52"
@@ -420,6 +425,23 @@ async def test_task2_malformed_public_key_fails_closed_as_gateway_unavailable(
         await use_case.execute("abcdefghijklmnop")
 
     assert exc_info.value.reason == TASK2_READINESS_SIGNATURE_INVALID_REASON
+
+
+@pytest.mark.asyncio
+async def test_task2_stale_manifest_attestation_fails_closed_as_gateway_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    stale_pointer = manifest_pointer_json(manifest_sha256="c" * 64)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", stale_pointer)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer", stale_pointer)
+    identity = _identity("premium_spb_de_exceptions")
+    use_case, _ = _use_case([identity], {identity.id: _grant(identity)})
+
+    with pytest.raises(SubscriptionGatewayUnavailableError) as exc_info:
+        await use_case.execute("abcdefghijklmnop")
+
+    assert exc_info.value.reason == TASK2_READINESS_MANIFEST_MISMATCH_REASON
 
 
 @pytest.mark.asyncio

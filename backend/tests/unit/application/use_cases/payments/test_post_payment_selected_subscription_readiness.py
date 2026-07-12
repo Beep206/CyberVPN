@@ -11,11 +11,12 @@ import src.application.use_cases.payments.post_payment as post_payment_module
 from src.application.services.vpn_product_readiness import (
     PRODUCT_PLAN_MISMATCH_REASON,
     TASK2_DATA_PLANE_NOT_READY_REASON,
+    TASK2_READINESS_MANIFEST_MISMATCH_REASON,
     VpnProductReadinessError,
 )
 from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
 from src.config.settings import settings
-from tests.helpers.spb_de_readiness import enable_spb_de_readiness
+from tests.helpers.spb_de_readiness import enable_spb_de_readiness, manifest_pointer_json
 
 OVERLAPPING_PLAN_CODES = "premium_smart_ru,premium_spb_de_exceptions"
 
@@ -149,6 +150,40 @@ async def test_selected_subscription_task2_write_preserves_behavior_when_readine
     assert grant.source_snapshot["existing"] == "kept"
     assert grant.source_snapshot["selected_subscription_events"][0]["payment_id"] == str(payment.id)
     session.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_selected_subscription_task2_write_rejects_stale_manifest_before_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    stale_pointer = manifest_pointer_json(manifest_sha256="c" * 64)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_active_pointer", stale_pointer)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer", stale_pointer)
+    customer_id = uuid4()
+    grant = _grant(customer_id=customer_id, plan_code="premium_spb_de_exceptions")
+    service_identity = SimpleNamespace(
+        id=grant.service_identity_id,
+        service_context={"plan_code": "premium_spb_de_exceptions"},
+    )
+    payment = _payment(customer_id=customer_id, grant_id=grant.id, plan_code="premium_spb_de_exceptions")
+    original_snapshot = dict(grant.grant_snapshot)
+    original_source_snapshot = dict(grant.source_snapshot)
+    use_case, session = _use_case(monkeypatch, grant=grant, service_identity=service_identity)
+
+    with pytest.raises(VpnProductReadinessError) as exc_info:
+        await use_case._apply_selected_subscription_write(
+            payment=payment,
+            checkout_mode="selected_subscription_upgrade",
+            target_subscription_key=f"grant:{grant.id}",
+        )
+
+    assert exc_info.value.reason == TASK2_READINESS_MANIFEST_MISMATCH_REASON
+    assert grant.grant_snapshot == original_snapshot
+    assert grant.expires_at is None
+    assert grant.grant_status == "pending"
+    assert grant.source_snapshot == original_source_snapshot
+    session.flush.assert_not_awaited()
 
 
 @pytest.mark.asyncio

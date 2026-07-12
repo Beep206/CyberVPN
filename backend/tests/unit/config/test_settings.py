@@ -153,6 +153,10 @@ class TestWeakSecretPatterns:
         assert settings.remnawave_spb_de_exceptions_readiness_attestation_path == ""
         assert settings.remnawave_spb_de_exceptions_readiness_public_key == ""
         assert settings.remnawave_spb_de_exceptions_readiness_public_key_path == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_active_pointer == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_active_pointer_path == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_lkg_pointer == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_lkg_pointer_path == ""
         assert settings.remnawave_spb_de_exceptions_readiness_revoked_attestation_ids == ""
         assert settings.remnawave_spb_de_exceptions_plan_codes != settings.remnawave_smart_ru_plan_codes
 
@@ -195,6 +199,21 @@ class TestWeakSecretPatterns:
         monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_ATTESTATION_PATH", "/run/cybervpn/task2.jwt")
         monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_PUBLIC_KEY", "-----BEGIN PUBLIC KEY-----")
         monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_PUBLIC_KEY_PATH", "/run/cybervpn/task2.pub")
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_ACTIVE_POINTER", '{"version":"active"}')
+        monkeypatch.setenv(
+            "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_ACTIVE_POINTER_PATH",
+            "/run/cybervpn/task2-active.json",
+        )
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_LKG_POINTER", '{"version":"lkg"}')
+        monkeypatch.setenv(
+            "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_LKG_POINTER_PATH",
+            "/run/cybervpn/task2-lkg.json",
+        )
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_MANIFEST", '{"version":"manifest"}')
+        monkeypatch.setenv(
+            "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_STORE_PATH",
+            "/run/cybervpn/task2-store",
+        )
         monkeypatch.setenv(
             "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_REVOKED_ATTESTATION_IDS",
             "task2-attestation-20260711",
@@ -212,6 +231,12 @@ class TestWeakSecretPatterns:
         assert settings.remnawave_spb_de_exceptions_readiness_attestation_path == "/run/cybervpn/task2.jwt"
         assert settings.remnawave_spb_de_exceptions_readiness_public_key == "-----BEGIN PUBLIC KEY-----"
         assert settings.remnawave_spb_de_exceptions_readiness_public_key_path == "/run/cybervpn/task2.pub"
+        assert settings.remnawave_spb_de_exceptions_readiness_active_pointer == '{"version":"active"}'
+        assert settings.remnawave_spb_de_exceptions_readiness_active_pointer_path == ("/run/cybervpn/task2-active.json")
+        assert settings.remnawave_spb_de_exceptions_readiness_lkg_pointer == '{"version":"lkg"}'
+        assert settings.remnawave_spb_de_exceptions_readiness_lkg_pointer_path == "/run/cybervpn/task2-lkg.json"
+        assert settings.remnawave_spb_de_exceptions_readiness_manifest == '{"version":"manifest"}'
+        assert settings.remnawave_spb_de_exceptions_readiness_store_path == "/run/cybervpn/task2-store"
         assert settings.remnawave_spb_de_exceptions_readiness_revoked_attestation_ids == ("task2-attestation-20260711")
 
     def test_spb_de_exceptions_data_plane_ready_false_is_allowed_in_production(self) -> None:
