@@ -46,6 +46,10 @@ PUBLIC_GET_EXACT_PATHS = {
     "/api/v1/legal-documents/",
 }
 
+SUBSCRIPTION_TOKEN_GET_EXACT_PATHS = {
+    "/api/sub/{short_uuid}",
+}
+
 PUBLIC_PREFIXES = (
     "/api/v1/auth",
     "/api/v1/mobile/auth",
@@ -199,6 +203,8 @@ def classify_route_boundary(route: RouteBoundary) -> str:
         return "principal-protected"
     if route.path.startswith("/api/v1/webhooks") and ("signature" in source or "webhook_secret" in source):
         return "webhook-signature-protected"
+    if route.path in SUBSCRIPTION_TOKEN_GET_EXACT_PATHS and route.methods <= {"GET", "HEAD"}:
+        return "subscription-token-protected"
     if route.path in PUBLIC_GET_EXACT_PATHS and route.methods <= {"GET", "HEAD"}:
         return "public-allowlisted"
     if route.path in PUBLIC_EXACT_PATHS or any(route.path.startswith(prefix) for prefix in PUBLIC_PREFIXES):
@@ -234,8 +240,19 @@ def test_stage1_route_boundary_expected_categories_exist():
         "partner-reporting-token",
         "principal-protected",
         "public-allowlisted",
+        "subscription-token-protected",
         "webhook-signature-protected",
     }
+
+
+def test_stage1_subscription_gateway_is_token_protected():
+    subscription_routes = [
+        route for route in _iter_route_boundaries() if route.path in SUBSCRIPTION_TOKEN_GET_EXACT_PATHS
+    ]
+
+    assert len(subscription_routes) == 1
+    assert subscription_routes[0].methods <= {"GET", "HEAD"}
+    assert classify_route_boundary(subscription_routes[0]) == "subscription-token-protected"
 
 
 def test_stage1_websocket_routes_depend_on_ws_authenticate():

@@ -1,0 +1,70 @@
+{
+  "consumer": "remnawave-legacy-routing-header",
+  "decoded": {
+    "BlockIp": [],
+    "BlockSites": [
+      "domain:1337x.to",
+      "domain:eztv.re",
+      "domain:limetorrents.lol",
+      "domain:nnmclub.to",
+      "domain:thepiratebay.org",
+      "domain:torrentdownload.info",
+      "domain:torrentgalaxy.to",
+      "domain:rutracker.org",
+      "domain:rutor.info",
+      "domain:kinozal.tv",
+      "domain:yts.mx",
+      "geosite:category-ads-all",
+      "domain:app-measurement.com",
+      "domain:doubleclick.net",
+      "domain:googleadservices.com",
+      "domain:googlesyndication.com",
+      "domain:googletagmanager.com",
+      "domain:googletagservices.com",
+      "domain:scorecardresearch.com",
+      "regexp:\\.onion$",
+      "domain:torproject.org",
+      "domain:torproject.net",
+      "keyword:torproject",
+      "keyword:tor2web"
+    ],
+    "DirectIp": [
+      "0.0.0.0/8",
+      "10.0.0.0/8",
+      "100.64.0.0/10",
+      "127.0.0.0/8",
+      "169.254.0.0/16",
+      "172.16.0.0/12",
+      "192.0.0.0/24",
+      "192.0.2.0/24",
+      "192.88.99.0/24",
+      "192.168.0.0/16",
+      "198.51.100.0/24",
+      "203.0.113.0/24",
+      "224.0.0.0/3",
+      "::/127",
+      "fc00::/7",
+      "fe80::/10",
+      "ff00::/8"
+    ],
+    "DirectSites": [
+      "geosite:private"
+    ],
+    "DomainStrategy": "AsIs",
+    "FakeDNS": "false",
+    "GlobalProxy": "true",
+    "Name": "CyberVPN Premium Smart RU",
+    "RemoteDNSDomain": "https://cloudflare-dns.com/dns-query",
+    "RemoteDNSIP": "1.1.1.1",
+    "RemoteDNSType": "DoH"
+  },
+  "encoding": "base64-json",
+  "product": "premium_smart_ru",
+  "schemaVersion": 1,
+  "sourceStages": [
+    "torrent_sources",
+    "ads_trackers",
+    "tor"
+  ],
+  "value": "eyJOYW1lIjoiQ3liZXJWUE4gUHJlbWl1bSBTbWFydCBSVSIsIkdsb2JhbFByb3h5IjoidHJ1ZSIsIlJlbW90ZUROU1R5cGUiOiJEb0giLCJSZW1vdGVETlNEb21haW4iOiJodHRwczovL2Nsb3VkZmxhcmUtZG5zLmNvbS9kbnMtcXVlcnkiLCJSZW1vdGVETlNJUCI6IjEuMS4xLjEiLCJCbG9ja1NpdGVzIjpbImRvbWFpbjoxMzM3eC50byIsImRvbWFpbjplenR2LnJlIiwiZG9tYWluOmxpbWV0b3JyZW50cy5sb2wiLCJkb21haW46bm5tY2x1Yi50byIsImRvbWFpbjp0aGVwaXJhdGViYXkub3JnIiwiZG9tYWluOnRvcnJlbnRkb3dubG9hZC5pbmZvIiwiZG9tYWluOnRvcnJlbnRnYWxheHkudG8iLCJkb21haW46cnV0cmFja2VyLm9yZyIsImRvbWFpbjpydXRvci5pbmZvIiwiZG9tYWluOmtpbm96YWwudHYiLCJkb21haW46eXRzLm14IiwiZ2Vvc2l0ZTpjYXRlZ29yeS1hZHMtYWxsIiwiZG9tYWluOmFwcC1tZWFzdXJlbWVudC5jb20iLCJkb21haW46ZG91YmxlY2xpY2submV0IiwiZG9tYWluOmdvb2dsZWFkc2VydmljZXMuY29tIiwiZG9tYWluOmdvb2dsZXN5bmRpY2F0aW9uLmNvbSIsImRvbWFpbjpnb29nbGV0YWdtYW5hZ2VyLmNvbSIsImRvbWFpbjpnb29nbGV0YWdzZXJ2aWNlcy5jb20iLCJkb21haW46c2NvcmVjYXJkcmVzZWFyY2guY29tIiwicmVnZXhwOlxcLm9uaW9uJCIsImRvbWFpbjp0b3Jwcm9qZWN0Lm9yZyIsImRvbWFpbjp0b3Jwcm9qZWN0Lm5ldCIsImtleXdvcmQ6dG9ycHJvamVjdCIsImtleXdvcmQ6dG9yMndlYiJdLCJCbG9ja0lwIjpbXSwiRGlyZWN0U2l0ZXMiOlsiZ2Vvc2l0ZTpwcml2YXRlIl0sIkRpcmVjdElwIjpbIjAuMC4wLjAvOCIsIjEwLjAuMC4wLzgiLCIxMDAuNjQuMC4wLzEwIiwiMTI3LjAuMC4wLzgiLCIxNjkuMjU0LjAuMC8xNiIsIjE3Mi4xNi4wLjAvMTIiLCIxOTIuMC4wLjAvMjQiLCIxOTIuMC4yLjAvMjQiLCIxOTIuODguOTkuMC8yNCIsIjE5Mi4xNjguMC4wLzE2IiwiMTk4LjUxLjEwMC4wLzI0IiwiMjAzLjAuMTEzLjAvMjQiLCIyMjQuMC4wLjAvMyIsIjo6LzEyNyIsImZjMDA6Oi83IiwiZmU4MDo6LzEwIiwiZmYwMDo6LzgiXSwiRG9tYWluU3RyYXRlZ3kiOiJBc0lzIiwiRmFrZUROUyI6ImZhbHNlIn0="
+}

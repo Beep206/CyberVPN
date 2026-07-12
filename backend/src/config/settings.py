@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     remnawave_lifetime_expiry_mode: Literal["sentinel", "none"] = "sentinel"
     remnawave_lifetime_expire_at: str = "2099-12-31T23:59:59Z"
     remnawave_default_internal_squad_uuid: str = ""
-    remnawave_default_internal_squad_name: str = "Default-Squad"
+    remnawave_default_internal_squad_name: str = "CYBERVPN_PREMIUM_SMART_RU_NODES"
     remnawave_subscription_public_base_url: str = "https://cyber-vpn.org/api/sub"
     remnawave_ru_bundle_external_squad_uuid: str = ""
     remnawave_ru_bundle_plan_codes: str = "ru_start,ru_basic"
@@ -80,6 +80,18 @@ class Settings(BaseSettings):
     remnawave_smart_ru_internal_squad_uuid: str = ""
     remnawave_smart_ru_plan_codes: str = "premium_smart_ru"
     remnawave_smart_ru_subscription_template_name: str = "CyberVPN Premium Smart RU"
+    remnawave_spb_de_exceptions_external_squad_uuid: str = ""
+    remnawave_spb_de_exceptions_internal_squad_uuid: str = ""
+    remnawave_spb_de_exceptions_bridge_squad_uuid: str = ""
+    remnawave_spb_de_exceptions_plan_codes: str = "premium_spb_de_exceptions"
+    remnawave_spb_de_exceptions_profile_name: str = "S1 SPB DE Exceptions"
+    remnawave_spb_de_exceptions_policy_version: str = "premium_spb_de_exceptions.v1"
+    remnawave_spb_de_exceptions_data_plane_ready: bool = False
+    remnawave_spb_de_exceptions_readiness_attestation: str = ""
+    remnawave_spb_de_exceptions_readiness_attestation_path: str = ""
+    remnawave_spb_de_exceptions_readiness_public_key: str = ""
+    remnawave_spb_de_exceptions_readiness_public_key_path: str = ""
+    remnawave_spb_de_exceptions_readiness_revoked_attestation_ids: str = ""
     remnawave_request_retries: int = 1
     remnawave_retry_backoff_seconds: float = 0.25
     remnawave_token_expires_at: str = ""
@@ -108,6 +120,10 @@ class Settings(BaseSettings):
     vpn_tester_retention_days: int = 30
     vpn_test_agent_url: str = ""
     vpn_test_agent_secret: SecretStr | None = None
+    vpn_test_agent_moscow_url: str = ""
+    vpn_test_agent_moscow_secret: SecretStr | None = None
+    vpn_test_agent_spb_url: str = ""
+    vpn_test_agent_spb_secret: SecretStr | None = None
     vpn_test_agent_timeout_seconds: int = 20
     stage1_trial_provisioning_enabled: bool = False
     stage1_paid_provisioning_enabled: bool = False
@@ -693,6 +709,31 @@ class Settings(BaseSettings):
         if worker_secret and hmac.compare_digest(backend_secret, worker_secret):
             raise ValueError("BACKEND_INTERNAL_SECRET must differ from PAYMENT_SETTLEMENT_WORKER_SECRET.")
 
+        return self
+
+    @model_validator(mode="after")
+    def validate_vpn_test_agent_secrets(self) -> Self:
+        if self.environment.lower() != "production" or not self.vpn_tester_runtime_enabled:
+            return self
+
+        targets = (
+            ("VPN_TEST_AGENT", self.vpn_test_agent_url, self.vpn_test_agent_secret),
+            ("VPN_TEST_AGENT_MOSCOW", self.vpn_test_agent_moscow_url, self.vpn_test_agent_moscow_secret),
+            ("VPN_TEST_AGENT_SPB", self.vpn_test_agent_spb_url, self.vpn_test_agent_spb_secret),
+        )
+        for label, url, secret_value in targets:
+            secret = secret_value.get_secret_value().strip() if secret_value is not None else ""
+            if bool(url.strip()) != bool(secret):
+                raise ValueError(f"{label}_URL and {label}_SECRET must be configured together in production.")
+            if not url.strip():
+                continue
+            if len(secret) < 16:
+                raise ValueError(f"{label}_SECRET must be a real internal credential in production.")
+            secret_lower = secret.lower()
+            if any(marker in secret_lower for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS):
+                raise ValueError(f"{label}_SECRET must not be a placeholder/test value in production.")
+        if not self.vpn_test_agent_url.strip():
+            raise ValueError("VPN_TEST_AGENT_URL is required when production runtime VPN testing is enabled.")
         return self
 
     @field_validator("cookie_domain", mode="before")

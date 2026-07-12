@@ -1,4 +1,12 @@
+locals {
+  edge_records = {
+    for name, record in var.records : name => record
+    if record.record_class == "edge"
+  }
+}
+
 data "terraform_remote_state" "edge" {
+  count   = length(local.edge_records) > 0 ? 1 : 0
   backend = "s3"
   config = {
     bucket       = var.edge_state.bucket
@@ -15,7 +23,7 @@ resource "cloudflare_dns_record" "this" {
   name    = each.value.name
   ttl     = each.value.ttl
   type    = each.value.type
-  content = data.terraform_remote_state.edge.outputs.edge_nodes[each.value.node].ip
+  content = each.value.record_class == "vpn-node" ? trimspace(each.value.content) : data.terraform_remote_state.edge[0].outputs.edge_nodes[each.value.node].ip
   proxied = each.value.proxied
   comment = each.value.comment
   tags    = each.value.tags

@@ -17,7 +17,6 @@ from src.infrastructure.remnawave.server_gateway import RemnawaveServerGateway
 from src.presentation.dependencies.remnawave import get_remnawave_client
 
 from .schemas import (
-    PublicNetworkDpiMeasurementWindowResponse,
     PublicNetworkDpiScorePublishRequest,
     PublicNetworkDpiScorePublishResponse,
     PublicNetworkDpiScoreResponse,
@@ -31,9 +30,7 @@ from .schemas import (
     PublicNetworkRegionResponse,
     PublicNetworkRegionsResponse,
     PublicNetworkUptimeResponse,
-    PublicNetworkUptimeSummaryResponse,
     PublicNetworkWidgetResponse,
-    PublicNetworkWidgetSummaryResponse,
 )
 
 PublicNetworkStatus = Literal["online", "degraded", "major_outage"]
@@ -100,18 +97,20 @@ def _build_incidents(*, regions: list[dict[str, Any]], generated_at: datetime) -
     if major_outage_regions:
         affected_ids = [region["id"] for region in major_outage_regions]
         incidents.append(
-            PublicNetworkIncidentResponse(
-                id="incident-major-outage",
-                severity="critical",
-                status="identified",
-                publicTitle="Regional outage detected",
-                publicSummary=(
-                    f"{len(major_outage_regions)} of {total_regions} tracked regions "
-                    "currently report no online servers."
-                ),
-                affectedRegions=affected_ids,
-                startedAt=generated_at,
-                resolvedAt=None,
+            PublicNetworkIncidentResponse.model_validate(
+                {
+                    "id": "incident-major-outage",
+                    "severity": "critical",
+                    "status": "identified",
+                    "public_title": "Regional outage detected",
+                    "public_summary": (
+                        f"{len(major_outage_regions)} of {total_regions} tracked regions "
+                        "currently report no online servers."
+                    ),
+                    "affected_regions": affected_ids,
+                    "started_at": generated_at,
+                    "resolved_at": None,
+                }
             )
         )
 
@@ -119,18 +118,20 @@ def _build_incidents(*, regions: list[dict[str, Any]], generated_at: datetime) -
     if degraded_only_regions:
         affected_ids = [region["id"] for region in degraded_only_regions]
         incidents.append(
-            PublicNetworkIncidentResponse(
-                id="incident-regional-degradation",
-                severity="major" if len(degraded_only_regions) > 1 else "minor",
-                status="monitoring" if not major_outage_regions else "identified",
-                publicTitle="Regional degradation detected",
-                publicSummary=(
-                    f"{len(degraded_only_regions)} of {total_regions} tracked regions "
-                    "currently run with partial server availability."
-                ),
-                affectedRegions=affected_ids,
-                startedAt=generated_at,
-                resolvedAt=None,
+            PublicNetworkIncidentResponse.model_validate(
+                {
+                    "id": "incident-regional-degradation",
+                    "severity": "major" if len(degraded_only_regions) > 1 else "minor",
+                    "status": "monitoring" if not major_outage_regions else "identified",
+                    "public_title": "Regional degradation detected",
+                    "public_summary": (
+                        f"{len(degraded_only_regions)} of {total_regions} tracked regions "
+                        "currently run with partial server availability."
+                    ),
+                    "affected_regions": affected_ids,
+                    "started_at": generated_at,
+                    "resolved_at": None,
+                }
             )
         )
 
@@ -214,20 +215,22 @@ async def _get_public_network_snapshot(*, client) -> dict[str, Any]:
             bucket["active_users"] += max(server.users_online or 0, 0)
             bucket["total_traffic_bytes"] += max(server.used_traffic_bytes or 0, 0)
 
-        regions = [
-            PublicNetworkRegionResponse(
-                id=region["id"],
-                countryCode=region["country_code"],
-                publicName=region["public_name"],
-                status=_derive_region_status(
-                    total_servers=region["total_servers"],
-                    online_servers=region["online_servers"],
-                ),
-                totalServers=region["total_servers"],
-                onlineServers=region["online_servers"],
-                activeUsers=region["active_users"],
-                totalTrafficBytes=region["total_traffic_bytes"],
-            ).model_dump(by_alias=True, mode="json")
+        region_models = [
+            PublicNetworkRegionResponse.model_validate(
+                {
+                    "id": region["id"],
+                    "country_code": region["country_code"],
+                    "public_name": region["public_name"],
+                    "status": _derive_region_status(
+                        total_servers=region["total_servers"],
+                        online_servers=region["online_servers"],
+                    ),
+                    "total_servers": region["total_servers"],
+                    "online_servers": region["online_servers"],
+                    "active_users": region["active_users"],
+                    "total_traffic_bytes": region["total_traffic_bytes"],
+                }
+            )
             for region in sorted(
                 region_buckets.values(),
                 key=lambda item: (
@@ -238,31 +241,34 @@ async def _get_public_network_snapshot(*, client) -> dict[str, Any]:
                 ),
             )
         ]
+        regions = [region.model_dump(by_alias=True, mode="json") for region in region_models]
 
         now = datetime.now(UTC)
-        overview_global = PublicNetworkOverviewGlobalResponse(
-            status=_derive_public_status(
-                total_servers=int(stats.get("total_servers") or 0),
-                online_servers=int(stats.get("online_servers") or 0),
-            ),
-            totalUsers=int(stats.get("total_users") or 0),
-            activeUsers=int(stats.get("active_users") or 0),
-            totalServers=int(stats.get("total_servers") or 0),
-            onlineServers=int(stats.get("online_servers") or 0),
-            totalNodes=int(((recap.get("total") or {}).get("nodes")) or 0),
-            distinctCountries=int(((recap.get("total") or {}).get("distinct_countries")) or 0),
-            totalTrafficBytes=int(stats.get("total_traffic_bytes") or 0),
-            monthlyTrafficBytes=int(((recap.get("this_month") or {}).get("traffic_bytes")) or 0),
-            todayBytesIn=int(bandwidth.get("bytes_in") or 0),
-            todayBytesOut=int(bandwidth.get("bytes_out") or 0),
+        overview_global = PublicNetworkOverviewGlobalResponse.model_validate(
+            {
+                "status": _derive_public_status(
+                    total_servers=int(stats.get("total_servers") or 0),
+                    online_servers=int(stats.get("online_servers") or 0),
+                ),
+                "total_users": int(stats.get("total_users") or 0),
+                "active_users": int(stats.get("active_users") or 0),
+                "total_servers": int(stats.get("total_servers") or 0),
+                "online_servers": int(stats.get("online_servers") or 0),
+                "total_nodes": int(((recap.get("total") or {}).get("nodes")) or 0),
+                "distinct_countries": int(((recap.get("total") or {}).get("distinct_countries")) or 0),
+                "total_traffic_bytes": int(stats.get("total_traffic_bytes") or 0),
+                "monthly_traffic_bytes": int(((recap.get("this_month") or {}).get("traffic_bytes")) or 0),
+                "today_bytes_in": int(bandwidth.get("bytes_in") or 0),
+                "today_bytes_out": int(bandwidth.get("bytes_out") or 0),
+            }
         )
         overview = PublicNetworkOverviewResponse.model_validate(
             {
-                "schemaVersion": "public-network-overview.v1",
-                "generatedAt": now,
-                "expiresAt": now + timedelta(seconds=60),
-                "freshnessStatus": "degraded" if degraded else "fresh",
-                "global": overview_global,
+                "schema_version": "public-network-overview.v1",
+                "generated_at": now,
+                "expires_at": now + timedelta(seconds=60),
+                "freshness_status": "degraded" if degraded else "fresh",
+                "global_metrics": overview_global,
             }
         ).model_dump(by_alias=True, mode="json")
 
@@ -276,50 +282,60 @@ async def _get_public_network_snapshot(*, client) -> dict[str, Any]:
         )
 
         leaderboard = [
-            PublicNetworkLeaderboardEntryResponse(
-                rank=index + 1,
-                **region,
+            PublicNetworkLeaderboardEntryResponse.model_validate(
+                {
+                    "rank": index + 1,
+                    **region.model_dump(),
+                }
             ).model_dump(by_alias=True, mode="json")
-            for index, region in enumerate(regions)
+            for index, region in enumerate(region_models)
         ]
 
-        uptime = PublicNetworkUptimeResponse(
-            schemaVersion="public-network-uptime.v1",
-            generatedAt=now,
-            expiresAt=now + timedelta(seconds=60),
-            freshnessStatus="degraded" if degraded else "fresh",
-            summary=PublicNetworkUptimeSummaryResponse(
-                status=overview["global"]["status"],
-                currentAvailabilityPct=current_availability_pct,
-                historyAvailable=False,
-                windowDays=90,
-                coverageDays=0,
-            ),
-            history=[],
+        uptime = PublicNetworkUptimeResponse.model_validate(
+            {
+                "schema_version": "public-network-uptime.v1",
+                "generated_at": now,
+                "expires_at": now + timedelta(seconds=60),
+                "freshness_status": "degraded" if degraded else "fresh",
+                "summary": {
+                    "status": overview["global"]["status"],
+                    "current_availability_pct": current_availability_pct,
+                    "history_available": False,
+                    "window_days": 90,
+                    "coverage_days": 0,
+                },
+                "history": [],
+            }
         ).model_dump(by_alias=True, mode="json")
 
-        incidents = PublicNetworkIncidentsResponse(
-            schemaVersion="public-network-incidents.v1",
-            generatedAt=now,
-            expiresAt=now + timedelta(seconds=60),
-            freshnessStatus="degraded" if degraded else "fresh",
-            incidents=_build_incidents(regions=regions, generated_at=now),
+        incidents = PublicNetworkIncidentsResponse.model_validate(
+            {
+                "schema_version": "public-network-incidents.v1",
+                "generated_at": now,
+                "expires_at": now + timedelta(seconds=60),
+                "freshness_status": "degraded" if degraded else "fresh",
+                "incidents": _build_incidents(regions=regions, generated_at=now),
+            }
         ).model_dump(by_alias=True, mode="json")
 
-        regions_response = PublicNetworkRegionsResponse(
-            schemaVersion="public-network-regions.v1",
-            generatedAt=now,
-            expiresAt=now + timedelta(seconds=60),
-            freshnessStatus="degraded" if degraded else "fresh",
-            regions=[PublicNetworkRegionResponse.model_validate(region) for region in regions],
+        regions_response = PublicNetworkRegionsResponse.model_validate(
+            {
+                "schema_version": "public-network-regions.v1",
+                "generated_at": now,
+                "expires_at": now + timedelta(seconds=60),
+                "freshness_status": "degraded" if degraded else "fresh",
+                "regions": region_models,
+            }
         ).model_dump(by_alias=True, mode="json")
 
-        leaderboard_response = PublicNetworkLeaderboardResponse(
-            schemaVersion="public-network-leaderboard.v1",
-            generatedAt=now,
-            expiresAt=now + timedelta(seconds=60),
-            freshnessStatus="degraded" if degraded else "fresh",
-            leaderboard=[PublicNetworkLeaderboardEntryResponse.model_validate(entry) for entry in leaderboard],
+        leaderboard_response = PublicNetworkLeaderboardResponse.model_validate(
+            {
+                "schema_version": "public-network-leaderboard.v1",
+                "generated_at": now,
+                "expires_at": now + timedelta(seconds=60),
+                "freshness_status": "degraded" if degraded else "fresh",
+                "leaderboard": [PublicNetworkLeaderboardEntryResponse.model_validate(entry) for entry in leaderboard],
+            }
         ).model_dump(by_alias=True, mode="json")
 
         return {
@@ -366,25 +382,27 @@ def _build_widget_payload(
             focused_entry = PublicNetworkLeaderboardEntryResponse(rank=0, **focus_region.model_dump())
         top_regions = [focused_entry, *[entry for entry in top_regions if entry.id != focus_region.id]][:3]
 
-    return PublicNetworkWidgetResponse(
-        schemaVersion="public-network-widget.v1",
-        generatedAt=overview.generated_at,
-        expiresAt=overview.expires_at,
-        freshnessStatus=overview.freshness_status,
-        widgetType=widget_type,
-        locale=locale,
-        themeVariant=theme_variant,
-        recommendedHeight=recommended_height,
-        summary=PublicNetworkWidgetSummaryResponse(
-            status=overview.global_metrics.status,
-            currentAvailabilityPct=uptime.summary.current_availability_pct,
-            onlineServers=overview.global_metrics.online_servers,
-            activeUsers=overview.global_metrics.active_users,
-            monthlyTrafficBytes=overview.global_metrics.monthly_traffic_bytes,
-            incidentsCount=len(incidents.incidents),
-        ),
-        focusRegion=focus_region,
-        topRegions=top_regions,
+    return PublicNetworkWidgetResponse.model_validate(
+        {
+            "schema_version": "public-network-widget.v1",
+            "generated_at": overview.generated_at,
+            "expires_at": overview.expires_at,
+            "freshness_status": overview.freshness_status,
+            "widget_type": widget_type,
+            "locale": locale,
+            "theme_variant": theme_variant,
+            "recommended_height": recommended_height,
+            "summary": {
+                "status": overview.global_metrics.status,
+                "current_availability_pct": uptime.summary.current_availability_pct,
+                "online_servers": overview.global_metrics.online_servers,
+                "active_users": overview.global_metrics.active_users,
+                "monthly_traffic_bytes": overview.global_metrics.monthly_traffic_bytes,
+                "incidents_count": len(incidents.incidents),
+            },
+            "focus_region": focus_region,
+            "top_regions": top_regions,
+        }
     )
 
 
@@ -392,22 +410,24 @@ def _build_dpi_score_payload(*, snapshot: dict[str, Any]) -> PublicNetworkDpiSco
     overview = PublicNetworkOverviewResponse.model_validate(snapshot["overview"])
     regions = PublicNetworkRegionsResponse.model_validate(snapshot["regions"])
 
-    return PublicNetworkDpiScoreResponse(
-        schemaVersion="public-network-dpi-score.v1",
-        generatedAt=overview.generated_at,
-        expiresAt=overview.expires_at,
-        freshnessStatus=overview.freshness_status,
-        methodologyVersion="dpi-score.methodology.v3.reachability-baseline",
-        measurementWindow=PublicNetworkDpiMeasurementWindowResponse(
-            hours=24,
-            minimumProbeCount=12,
-        ),
-        enabled=False,
-        confidence="low",
-        lastUpdatedAt=None,
-        reasonCode="public_dpi_not_enabled",
-        countriesTracked=len(regions.regions),
-        countries=[],
+    return PublicNetworkDpiScoreResponse.model_validate(
+        {
+            "schema_version": "public-network-dpi-score.v1",
+            "generated_at": overview.generated_at,
+            "expires_at": overview.expires_at,
+            "freshness_status": overview.freshness_status,
+            "methodology_version": "dpi-score.methodology.v3.reachability-baseline",
+            "measurement_window": {
+                "hours": 24,
+                "minimum_probe_count": 12,
+            },
+            "enabled": False,
+            "confidence": "low",
+            "last_updated_at": None,
+            "reason_code": "public_dpi_not_enabled",
+            "countries_tracked": len(regions.regions),
+            "countries": [],
+        }
     )
 
 
@@ -452,12 +472,14 @@ async def get_public_network_region(
     if region is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Region not found")
 
-    return PublicNetworkRegionDetailResponse(
-        schemaVersion=regions_payload.schema_version,
-        generatedAt=regions_payload.generated_at,
-        expiresAt=regions_payload.expires_at,
-        freshnessStatus=regions_payload.freshness_status,
-        region=region,
+    return PublicNetworkRegionDetailResponse.model_validate(
+        {
+            "schema_version": regions_payload.schema_version,
+            "generated_at": regions_payload.generated_at,
+            "expires_at": regions_payload.expires_at,
+            "freshness_status": regions_payload.freshness_status,
+            "region": region,
+        }
     )
 
 
@@ -540,9 +562,11 @@ async def publish_public_network_dpi_score(
         snapshot.model_dump(by_alias=True, mode="json"),
         ttl=ttl_seconds,
     )
-    return PublicNetworkDpiScorePublishResponse(
-        published=True,
-        source=payload.source,
-        cacheKey=PUBLIC_NETWORK_DPI_SCORE_CACHE_KEY,
-        expiresAt=snapshot.expires_at,
+    return PublicNetworkDpiScorePublishResponse.model_validate(
+        {
+            "published": True,
+            "source": payload.source,
+            "cache_key": PUBLIC_NETWORK_DPI_SCORE_CACHE_KEY,
+            "expires_at": snapshot.expires_at,
+        }
     )

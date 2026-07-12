@@ -1,0 +1,6 @@
+---
+- name: Deploy the control-plane relay for an IPv6 regional VPN test agent
+  hosts: "{{ vpn_test_agent_relay_hosts | default('control_plane_production') }}"
+  become: true
+  roles:
+    - role: vpn_test_agent_relay

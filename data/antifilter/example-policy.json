@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "managementNetworks": [
+    "192.0.2.0/24",
+    "198.51.100.0/24",
+    "203.0.113.0/24",
+    "2001:db8::/32"
+  ],
+  "selfEndpoints": [
+    "192.0.2.10",
+    "2001:db8::10"
+  ],
+  "thresholds": {
+    "default": {
+      "minPrefixes": 1,
+      "maxPrefixes": 1000000
+    },
+    "categories": {},
+    "maxAddedPercent": 200.0,
+    "maxRemovedPercent": 50.0,
+    "maxIpv4UnionPercent": 25.0,
+    "maxIpv6UnionPercent": 25.0,
+    "maxExclusionDelta": 100000
+  },
+  "freshness": {
+    "maxAgeSeconds": 604800,
+    "maxFutureSkewSeconds": 300
+  },
+  "ipv6Policy": {
+    "mode": "disabled",
+    "reason": "Offline fixture has no proven equivalent IPv6 feed; the tariff profile must disable IPv6."
+  },
+  "resourceLimits": {
+    "maxManifestBytes": 262144,
+    "maxFileBytes": 16777216,
+    "maxTotalBytes": 134217728,
+    "maxFiles": 64,
+    "maxLinesPerFile": 1000000,
+    "maxLineBytes": 128,
+    "maxCompiledPrefixes": 2000000
+  }
+}

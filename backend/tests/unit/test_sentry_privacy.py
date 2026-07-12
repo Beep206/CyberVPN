@@ -77,3 +77,21 @@ class TestSentryPrivacy:
         scrubbed = before_send_transaction(regular_event, {})
         assert scrubbed is regular_event
         assert scrubbed["request"]["url"] == "https://api.cybervpn.io/api/v1/orders"
+
+    def test_before_send_redacts_subscription_bearer_url(self) -> None:
+        event = {"request": {"url": "https://api.cyber-vpn.net/api/sub/synthetic-bearer-token?client=xray#fragment"}}
+
+        scrubbed = before_send(event, {})
+
+        assert scrubbed is event
+        assert scrubbed["request"]["url"] == "https://api.cyber-vpn.net/api/sub/[REDACTED]"
+        assert "synthetic-bearer-token" not in str(scrubbed)
+
+    def test_before_send_transaction_redacts_subscription_bearer_url(self) -> None:
+        event = {"request": {"url": "https://api.cyber-vpn.net/API/SUB/synthetic-bearer-token?client=xray#fragment"}}
+
+        scrubbed = before_send_transaction(event, {})
+
+        assert scrubbed is event
+        assert scrubbed["request"]["url"] == "https://api.cyber-vpn.net/API/SUB/[REDACTED]"
+        assert "synthetic-bearer-token" not in str(scrubbed)

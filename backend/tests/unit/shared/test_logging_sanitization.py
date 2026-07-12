@@ -46,3 +46,23 @@ class TestLoggingSanitization:
         sanitized = sanitize_path_params("/api/v1/vpn/config/vless-secret-token")
 
         assert sanitized == f"/api/v1/vpn/config/{REDACTED}"
+
+    def test_sanitize_path_params_redacts_subscription_token(self) -> None:
+        sanitized = sanitize_path_params("/api/sub/aBcD0123_-secret-token")
+
+        assert sanitized == f"/api/sub/{REDACTED}"
+
+    def test_sanitize_path_params_redacts_admin_invite_token(self) -> None:
+        sanitized = sanitize_path_params("/api/v1/admin/invites/synthetic-invite-token")
+
+        assert sanitized == f"/api/v1/admin/invites/{REDACTED}"
+
+    def test_sanitize_path_params_redacts_telegram_magic_link_tokens(self) -> None:
+        assert (
+            sanitize_path_params("/api/v1/oauth/telegram/magic-link/synthetic-login-token/status")
+            == f"/api/v1/oauth/telegram/magic-link/{REDACTED}/status"
+        )
+        assert (
+            sanitize_path_params("/api/v1/oauth/telegram/account-link/magic-link/synthetic-link-token/status")
+            == f"/api/v1/oauth/telegram/account-link/magic-link/{REDACTED}/status"
+        )

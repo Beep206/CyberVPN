@@ -104,6 +104,7 @@ class RemnawaveClient:
             timeout=timeout_config,
             limits=limits_config,
             transport=transport,
+            trust_env=False,
         )
 
         logger.info("remnawave_client_initialized", base_url=self._base_url)

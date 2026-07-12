@@ -8,7 +8,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.auth.permissions import Permission, has_permission
@@ -140,15 +140,24 @@ class InternalScheduledRunRequest(BaseModel):
 
     suite_key: str = Field(default="default_subscription_smoke_v1", min_length=3, max_length=80)
     mode: str = Field(default="contract", pattern="^(contract|runtime|all_tariffs|balancer_preview)$")
-    trigger: str = Field(default="scheduled", min_length=3, max_length=60)
+    trigger: str = Field(default="scheduled", min_length=3, max_length=40)
     execute_immediately: bool = True
     context: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def reject_persisted_generated_artifact(self) -> InternalScheduledRunRequest:
+        if (
+            not self.execute_immediately
+            and VpnTesterService.transient_generated_mihomo_artifact(self.context) is not None
+        ):
+            raise ValueError("generated_vpn_artifacts_require_immediate_execution")
+        return self
 
 
 class InternalScheduleGateRunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    trigger: str = Field(default="scheduled", min_length=3, max_length=60)
+    trigger: str = Field(default="scheduled", min_length=3, max_length=40)
     execute_immediately: bool = True
     idempotency_window: str = Field(default="minute", pattern="^(none|disabled|off|minute|hour|hourly|day|daily)$")
 
@@ -466,6 +475,11 @@ async def create_vpn_tester_run(
         "client_host": request.client.host if request.client else None,
         "requested_context": payload.context,
     }
+    if service.transient_generated_mihomo_artifact(context) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Generated VPN artifacts are accepted only by the immediate internal runtime path.",
+        )
     run = await service.create_manual_run(
         suite_key=payload.suite_key,
         mode=payload.mode,
@@ -675,6 +689,12 @@ async def internal_create_scheduled_vpn_tester_run(
     _require_backend_internal_secret(x_backend_internal_secret)
     if not settings.vpn_tester_enabled:
         return InternalWorkerResultResponse(skipped=True, reason="vpn_tester_disabled")
+    generated_mihomo_artifact = service.transient_generated_mihomo_artifact(payload.context)
+    if generated_mihomo_artifact is not None and not payload.execute_immediately:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Generated VPN artifacts cannot be queued or persisted.",
+        )
     run = await service.create_scheduled_run(
         suite_key=payload.suite_key,
         mode=payload.mode,
@@ -682,7 +702,7 @@ async def internal_create_scheduled_vpn_tester_run(
         request_context=payload.context,
     )
     if payload.execute_immediately:
-        run = await service.execute_run(run)
+        run = await service.execute_run(run, generated_mihomo_artifact=generated_mihomo_artifact)
     refreshed = await service.get_run(run.id)
     return InternalWorkerResultResponse(run=_serialize_run(refreshed or run))
 

@@ -1,0 +1,68 @@
+---
+- name: Task2 SPB listener IPv6 | Check installed systemd unit
+  ansible.builtin.stat:
+    path: "/etc/systemd/system/{{ spb_listener_ipv6_address_unit_name }}.service"
+  register: spb_listener_ipv6_address_unit_stat
+
+- name: Task2 SPB listener IPv6 | Check installed address manager
+  ansible.builtin.stat:
+    path: "{{ spb_listener_ipv6_address_script_path }}"
+  register: spb_listener_ipv6_address_script_stat
+
+- name: Task2 SPB listener IPv6 | Stop persistent address unit
+  ansible.builtin.systemd_service:
+    name: "{{ spb_listener_ipv6_address_unit_name }}.service"
+    daemon_reload: true
+    enabled: false
+    state: stopped
+  when: spb_listener_ipv6_address_unit_stat.stat.exists
+
+- name: Task2 SPB listener IPv6 | Remove address through guarded manager
+  ansible.builtin.command:
+    argv:
+      - "{{ spb_listener_ipv6_address_script_path }}"
+      - remove
+  changed_when: false
+  when: spb_listener_ipv6_address_script_stat.stat.exists
+
+- name: Task2 SPB listener IPv6 | Read configured IPv6 addresses after removal
+  ansible.builtin.command:
+    argv:
+      - "{{ spb_listener_ipv6_address_ip_binary }}"
+      - -6
+      - -o
+      - addr
+      - show
+      - dev
+      - "{{ spb_listener_ipv6_address_interface }}"
+      - scope
+      - global
+  register: spb_listener_ipv6_address_removed_ipv6_state
+  changed_when: false
+
+- name: Task2 SPB listener IPv6 | Assert listener address is absent
+  ansible.builtin.assert:
+    that:
+      - >-
+        ('inet6 ' ~ spb_listener_ipv6_address_address ~ '/') not in
+        spb_listener_ipv6_address_removed_ipv6_state.stdout
+    fail_msg: "Task2 SPB listener address is still present after rollback/remove."
+
+- name: Task2 SPB listener IPv6 | Remove systemd unit
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ spb_listener_ipv6_address_unit_name }}.service"
+    state: absent
+
+- name: Task2 SPB listener IPv6 | Remove guarded address manager
+  ansible.builtin.file:
+    path: "{{ spb_listener_ipv6_address_script_path }}"
+    state: absent
+
+- name: Task2 SPB listener IPv6 | Remove runtime ownership marker directory
+  ansible.builtin.file:
+    path: "{{ spb_listener_ipv6_address_state_dir }}"
+    state: absent
+
+- name: Task2 SPB listener IPv6 | Reload systemd after removal
+  ansible.builtin.systemd_service:
+    daemon_reload: true

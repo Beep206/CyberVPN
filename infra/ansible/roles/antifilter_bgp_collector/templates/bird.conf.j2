@@ -1,0 +1,67 @@
+# Managed by Ansible. CyberVPN Antifilter BGP collector.
+
+log syslog all;
+router id {{ antifilter_bgp_collector_router_id }};
+
+ipv4 table {{ antifilter_bgp_collector_table_ipv4 }};
+{% if antifilter_bgp_collector_ipv6_enabled | bool %}
+ipv6 table {{ antifilter_bgp_collector_table_ipv6 }};
+{% endif %}
+
+function antifilter_has_required_community() -> bool
+{
+{% for community in antifilter_bgp_collector_required_communities %}
+  if ({{ community | replace(':', ',') }}) ~ bgp_community then return true;
+{% endfor %}
+  return false;
+}
+
+filter antifilter_required_ipv4
+{
+  if antifilter_has_required_community() then accept;
+  reject;
+}
+
+{% if antifilter_bgp_collector_ipv6_enabled | bool %}
+filter antifilter_required_ipv6
+{
+  if antifilter_has_required_community() then accept;
+  reject;
+}
+
+{% endif %}
+protocol bgp {{ antifilter_bgp_collector_protocol_ipv4 }} {
+  local as {{ antifilter_bgp_collector_local_as }};
+  neighbor {{ antifilter_bgp_collector_neighbor_ipv4 }} as {{ antifilter_bgp_collector_remote_as }};
+  multihop {{ antifilter_bgp_collector_multihop_ttl }};
+  source address {{ antifilter_bgp_collector_source_ipv4 }};
+{% if antifilter_bgp_collector_bgp_password | length > 0 %}
+  password "{{ antifilter_bgp_collector_bgp_password }}";
+{% endif %}
+  hold time {{ antifilter_bgp_collector_hold_time }};
+
+  ipv4 {
+    table {{ antifilter_bgp_collector_table_ipv4 }};
+    import filter antifilter_required_ipv4;
+    export none;
+  };
+}
+
+{% if antifilter_bgp_collector_ipv6_enabled | bool %}
+protocol bgp {{ antifilter_bgp_collector_protocol_ipv6 }} {
+  local as {{ antifilter_bgp_collector_local_as }};
+  neighbor {{ antifilter_bgp_collector_neighbor_ipv6 }} as {{ antifilter_bgp_collector_remote_as }};
+  multihop {{ antifilter_bgp_collector_multihop_ttl }};
+  source address {{ antifilter_bgp_collector_source_ipv6 }};
+{% if antifilter_bgp_collector_bgp_password | length > 0 %}
+  password "{{ antifilter_bgp_collector_bgp_password }}";
+{% endif %}
+  hold time {{ antifilter_bgp_collector_hold_time }};
+
+  ipv6 {
+    table {{ antifilter_bgp_collector_table_ipv6 }};
+    import filter antifilter_required_ipv6;
+    export none;
+  };
+}
+{% endif %}

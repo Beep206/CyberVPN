@@ -1,0 +1,66 @@
+---
+antifilter_bgp_collector_enabled: false
+antifilter_bgp_collector_action: deploy
+
+antifilter_bgp_collector_remote_as: 65444
+antifilter_bgp_collector_local_as: 64999
+antifilter_bgp_collector_hold_time: 240
+antifilter_bgp_collector_multihop_ttl: 32
+antifilter_bgp_collector_neighbor_ipv4: "45.148.244.55"
+antifilter_bgp_collector_neighbor_ipv6: "2001:41d0:701:1100::1db1"
+antifilter_bgp_collector_source_ipv4: ""
+antifilter_bgp_collector_source_ipv6: ""
+antifilter_bgp_collector_router_id: ""
+antifilter_bgp_collector_router_id_override_justification: ""
+antifilter_bgp_collector_bgp_password: "{{ vault_antifilter_bgp_collector_bgp_password | default('') }}"
+
+antifilter_bgp_collector_ipv6_enabled: false
+antifilter_bgp_collector_ipv6_policy_mode: "{{ 'enabled' if antifilter_bgp_collector_ipv6_enabled | bool else 'disabled' }}"
+antifilter_bgp_collector_ipv6_policy_reason: >-
+  Antifilter IPv6 BGP export is explicitly disabled until the equivalent IPv6
+  feed is registration-approved and monitored as complete for every required
+  community.
+
+antifilter_bgp_collector_required_communities:
+  - "65444:100"
+  - "65444:700"
+  - "65444:710"
+  - "65444:720"
+  - "65444:730"
+  - "65444:740"
+  - "65444:750"
+  - "65444:760"
+  - "65444:770"
+  - "65444:780"
+  - "65444:790"
+  - "65444:800"
+  - "65444:65444"
+
+antifilter_bgp_collector_bird_package: bird2
+antifilter_bgp_collector_bird_service: bird
+antifilter_bgp_collector_bird_binary: /usr/sbin/bird
+antifilter_bgp_collector_birdc_path: /usr/sbin/birdc
+antifilter_bgp_collector_bird_socket: /run/bird/bird.ctl
+antifilter_bgp_collector_bird_config_path: /etc/bird/bird.conf
+antifilter_bgp_collector_table_ipv4: antifilter4
+antifilter_bgp_collector_table_ipv6: antifilter6
+antifilter_bgp_collector_protocol_ipv4: antifilter_v4
+antifilter_bgp_collector_protocol_ipv6: antifilter_v6
+
+antifilter_bgp_collector_root_dir: /var/lib/cybervpn/antifilter-bgp
+antifilter_bgp_collector_output_root: "{{ antifilter_bgp_collector_root_dir }}/candidates"
+antifilter_bgp_collector_exporter_src: "{{ playbook_dir }}/../../../scripts/remnawave/export-antifilter-bird-routes.py"
+antifilter_bgp_collector_exporter_path: /usr/local/lib/cybervpn/export-antifilter-bird-routes.py
+antifilter_bgp_collector_python_path: /usr/bin/python3
+antifilter_bgp_collector_collector_name: cybervpn-antifilter-bgp-bird2
+antifilter_bgp_collector_command_timeout_seconds: 20
+antifilter_bgp_collector_max_output_bytes: 67108864
+antifilter_bgp_collector_max_lines_per_community: 1000000
+
+antifilter_bgp_collector_service_name: cybervpn-antifilter-bgp-collector
+antifilter_bgp_collector_timer_name: cybervpn-antifilter-bgp-collector
+antifilter_bgp_collector_timer_on_boot_sec: 5min
+antifilter_bgp_collector_timer_on_unit_active_sec: 15min
+antifilter_bgp_collector_timer_randomized_delay_sec: 2min
+antifilter_bgp_collector_unit_memory_max: 256M
+antifilter_bgp_collector_unit_tasks_max: 64

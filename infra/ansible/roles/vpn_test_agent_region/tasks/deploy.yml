@@ -1,0 +1,108 @@
+---
+- name: VPN test agent region | Ensure release directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ vpn_test_agent_region_root }}"
+    - "{{ vpn_test_agent_region_nftables_include_dir }}"
+
+- name: VPN test agent region | Render env file
+  ansible.builtin.template:
+    src: envfile.j2
+    dest: "{{ vpn_test_agent_region_root }}/{{ vpn_test_agent_region_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: VPN test agent region | Render compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ vpn_test_agent_region_root }}/{{ vpn_test_agent_region_compose_filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: VPN test agent region | Install nftables
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+    update_cache: true
+  when: vpn_test_agent_region_manage_nftables
+
+- name: VPN test agent region | Render nftables allowlist
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: "{{ vpn_test_agent_region_nftables_include_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: vpn_test_agent_region_manage_nftables
+
+- name: VPN test agent region | Render isolated firewall unit
+  ansible.builtin.template:
+    src: firewall.service.j2
+    dest: "/etc/systemd/system/{{ vpn_test_agent_region_firewall_unit_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  when: vpn_test_agent_region_manage_nftables
+
+- name: VPN test agent region | Remove previous isolated firewall table before validation
+  ansible.builtin.command:
+    argv:
+      - nft
+      - delete
+      - table
+      - inet
+      - "{{ vpn_test_agent_region_nftables_table_name }}"
+  register: vpn_test_agent_region_firewall_table_delete
+  changed_when: vpn_test_agent_region_firewall_table_delete.rc == 0
+  failed_when: false
+  when: vpn_test_agent_region_manage_nftables
+
+- name: VPN test agent region | Validate isolated nftables configuration
+  ansible.builtin.command:
+    argv:
+      - nft
+      - -c
+      - -f
+      - "{{ vpn_test_agent_region_nftables_include_path }}"
+  changed_when: false
+  when: vpn_test_agent_region_manage_nftables
+
+- name: VPN test agent region | Apply isolated firewall unit
+  ansible.builtin.systemd:
+    name: "{{ vpn_test_agent_region_firewall_unit_name }}"
+    daemon_reload: true
+    enabled: true
+    state: restarted
+  when: vpn_test_agent_region_manage_nftables
+
+- name: VPN test agent region | Allow the control plane through UFW
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    from_ip: "{{ item }}"
+    to_port: "{{ vpn_test_agent_region_port | string }}"
+    comment: "CyberVPN regional VPN tester {{ vpn_test_agent_region_name }}"
+  loop: "{{ vpn_test_agent_region_firewall_allowed_ipv4_cidrs + vpn_test_agent_region_firewall_allowed_ipv6_cidrs }}"
+  when: vpn_test_agent_region_manage_ufw
+
+- name: VPN test agent region | Apply compose project
+  community.docker.docker_compose_v2:
+    project_name: "{{ vpn_test_agent_region_project_name }}"
+    project_src: "{{ vpn_test_agent_region_root }}"
+    files:
+      - "{{ vpn_test_agent_region_compose_filename }}"
+    state: present
+    pull: missing
+    recreate: auto
+    remove_orphans: false
+    wait: true
+    wait_timeout: 90

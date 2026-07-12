@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -25,6 +26,14 @@ PREMIUM_SMART_RU_MIHOMO_GROUPS = (
     "🇷🇺 SPB Auto",
     "🧲 Torrents",
 )
+EXPECTED_PREMIUM_SMART_RU_TRANSPORT_PROFILE_COUNT = 4
+PREMIUM_SMART_RU_ENDPOINT_PORTS = {
+    "de-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
+    "nl-4.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
+    "msk-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
+    "ru-spb-3.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
+}
+PREMIUM_SMART_RU_REQUIRED_SERVERS = frozenset(PREMIUM_SMART_RU_ENDPOINT_PORTS)
 
 
 def _str_list(value: Any) -> list[str]:
@@ -41,6 +50,60 @@ def _list_dicts(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
+
+
+def _reality_opts(proxy: Mapping[str, Any]) -> Mapping[str, Any]:
+    reality = proxy.get("reality-opts")
+    return reality if isinstance(reality, Mapping) else {}
+
+
+def _port_equals(proxy: Mapping[str, Any], expected: int) -> bool:
+    try:
+        return int(proxy.get("port") or 0) == expected
+    except (TypeError, ValueError):
+        return False
+
+
+def _expected_port(proxy: Mapping[str, Any], transport: str) -> int | None:
+    server = str(proxy.get("server") or "").strip().lower()
+    return PREMIUM_SMART_RU_ENDPOINT_PORTS.get(server, {}).get(transport)
+
+
+def _has_reality_sni(proxy: Mapping[str, Any]) -> bool:
+    return bool(proxy.get("servername") or proxy.get("sni"))
+
+
+def _has_reality_public_fields(proxy: Mapping[str, Any]) -> bool:
+    reality = _reality_opts(proxy)
+    return bool(reality.get("public-key")) and "short-id" in reality
+
+
+def _is_xhttp_reality_vless(proxy: Mapping[str, Any]) -> bool:
+    expected_port = _expected_port(proxy, "xhttp")
+    return (
+        str(proxy.get("type") or "").lower() == "vless"
+        and str(proxy.get("network") or "").lower() == "xhttp"
+        and expected_port is not None
+        and _port_equals(proxy, expected_port)
+        and proxy.get("tls") is True
+        and _has_reality_sni(proxy)
+        and _has_reality_public_fields(proxy)
+    )
+
+
+def _is_raw_tcp_reality_vless(proxy: Mapping[str, Any]) -> bool:
+    network = str(proxy.get("network") or "tcp").lower()
+    expected_port = _expected_port(proxy, "raw")
+    return (
+        str(proxy.get("type") or "").lower() == "vless"
+        and network in {"", "tcp", "raw"}
+        and expected_port is not None
+        and _port_equals(proxy, expected_port)
+        and proxy.get("tls") is True
+        and str(proxy.get("flow") or "") == "xtls-rprx-vision"
+        and _has_reality_sni(proxy)
+        and _has_reality_public_fields(proxy)
+    )
 
 
 def _plan_code(plan: SubscriptionPlanModel) -> str:
@@ -110,6 +173,9 @@ def generated_mihomo_artifact_summary(artifact: Any) -> dict[str, Any]:
 
     groups: list[str] = []
     xhttp_proxy_count = 0
+    vless_reality_tcp_proxy_count = 0
+    raw_server_counts: Counter[str] = Counter()
+    xhttp_server_counts: Counter[str] = Counter()
     proxy_count = 0
     if mapping is not None:
         if isinstance(mapping.get("groups"), list):
@@ -122,9 +188,16 @@ def generated_mihomo_artifact_summary(artifact: Any) -> dict[str, Any]:
             ]
         proxies = _list_dicts(mapping.get("proxies"))
         proxy_count = len(proxies)
-        xhttp_proxy_count = sum(
-            1 for proxy in proxies if "xhttp" in json.dumps(proxy, ensure_ascii=False, sort_keys=True).lower()
-        )
+        valid_xhttp = [proxy for proxy in proxies if _is_xhttp_reality_vless(proxy)]
+        valid_raw = [proxy for proxy in proxies if _is_raw_tcp_reality_vless(proxy)]
+        xhttp_proxy_count = len(valid_xhttp)
+        vless_reality_tcp_proxy_count = len(valid_raw)
+        raw_server_counts.update(str(proxy.get("server") or "").strip().lower() for proxy in valid_raw)
+        xhttp_server_counts.update(str(proxy.get("server") or "").strip().lower() for proxy in valid_xhttp)
+
+    expected_server_counts = Counter({server: 1 for server in PREMIUM_SMART_RU_REQUIRED_SERVERS})
+    raw_location_matrix_valid = raw_server_counts == expected_server_counts
+    xhttp_location_matrix_valid = xhttp_server_counts == expected_server_counts
 
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest() if text is not None else None
     return {
@@ -135,6 +208,9 @@ def generated_mihomo_artifact_summary(artifact: Any) -> dict[str, Any]:
         "group_count": len(groups),
         "proxy_count": proxy_count,
         "xhttp_proxy_count": xhttp_proxy_count,
+        "vless_reality_tcp_proxy_count": vless_reality_tcp_proxy_count,
+        "raw_location_matrix_valid": raw_location_matrix_valid,
+        "xhttp_location_matrix_valid": xhttp_location_matrix_valid,
         "byte_count": len(text.encode("utf-8")) if text is not None else 0,
         "sha256": digest,
     }
@@ -249,6 +325,7 @@ def generated_subscription_checks(
                 "group_count": artifact_summary["group_count"],
                 "proxy_count": artifact_summary["proxy_count"],
                 "xhttp_proxy_count": artifact_summary["xhttp_proxy_count"],
+                "vless_reality_tcp_proxy_count": artifact_summary["vless_reality_tcp_proxy_count"],
                 "byte_count": artifact_summary["byte_count"],
                 "sha256": artifact_summary["sha256"],
                 "groups": artifact_groups,
@@ -271,7 +348,36 @@ def generated_subscription_checks(
         },
     ]
     if assignment["is_premium_smart_ru"]:
-        xhttp_transport_ok = artifact_summary["xhttp_proxy_count"] > 0
+        expected_profile_count = EXPECTED_PREMIUM_SMART_RU_TRANSPORT_PROFILE_COUNT
+        raw_vless_ok = (
+            artifact_summary["vless_reality_tcp_proxy_count"] == expected_profile_count
+            and artifact_summary["raw_location_matrix_valid"] is True
+        )
+        checks.append(
+            {
+                "check_key": "generated_subscription.vless_reality_raw_tcp",
+                "check_name": "Generated VLESS Reality RAW/TCP profiles",
+                "category": "generated_subscription",
+                "status": "pass" if raw_vless_ok else "fail",
+                "severity": "error",
+                "target": target,
+                "safe_summary": "Generated subscription contains four valid VLESS Reality RAW/TCP profiles"
+                if raw_vless_ok
+                else "Generated subscription does not contain four valid VLESS Reality RAW/TCP profiles",
+                "details": {
+                    "expected_count": expected_profile_count,
+                    "actual_count": artifact_summary["vless_reality_tcp_proxy_count"],
+                    "required_location_count": len(PREMIUM_SMART_RU_REQUIRED_SERVERS),
+                    "location_matrix_valid": artifact_summary["raw_location_matrix_valid"],
+                    "links_redacted": True,
+                },
+                "duration_ms": 0,
+            }
+        )
+        xhttp_transport_ok = (
+            artifact_summary["xhttp_proxy_count"] == expected_profile_count
+            and artifact_summary["xhttp_location_matrix_valid"] is True
+        )
         checks.append(
             {
                 "check_key": "generated_subscription.xhttp_transport",
@@ -280,13 +386,18 @@ def generated_subscription_checks(
                 "status": "pass" if xhttp_transport_ok else "fail",
                 "severity": "error",
                 "target": target,
-                "safe_summary": "Generated Mihomo artifact includes XHTTP-capable proxies"
+                "safe_summary": "Generated subscription contains four valid XHTTP Reality profiles"
                 if xhttp_transport_ok
-                else "Generated Mihomo artifact has no XHTTP proxy evidence",
+                else "Generated subscription does not contain four valid XHTTP Reality profiles",
                 "details": {
                     "artifact_source": artifact_summary["source"],
                     "artifact_present": artifact_summary["present"],
+                    "expected_count": expected_profile_count,
+                    "actual_count": artifact_summary["xhttp_proxy_count"],
+                    "required_location_count": len(PREMIUM_SMART_RU_REQUIRED_SERVERS),
+                    "location_matrix_valid": artifact_summary["xhttp_location_matrix_valid"],
                     "xhttp_proxy_count": artifact_summary["xhttp_proxy_count"],
+                    "vless_reality_tcp_proxy_count": artifact_summary["vless_reality_tcp_proxy_count"],
                     "proxy_count": artifact_summary["proxy_count"],
                     "links_redacted": True,
                 },

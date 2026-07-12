@@ -1,0 +1,676 @@
+{
+  "$defs": {
+    "Blocks": {
+      "additionalProperties": false,
+      "properties": {
+        "ads": {
+          "const": true,
+          "title": "Ads",
+          "type": "boolean"
+        },
+        "quic_doq": {
+          "const": "block",
+          "title": "Quic Doq",
+          "type": "string"
+        },
+        "smtp_abuse_ports": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Smtp Abuse Ports",
+          "type": "array"
+        },
+        "tor": {
+          "const": "best_effort",
+          "title": "Tor",
+          "type": "string"
+        },
+        "torrent": {
+          "const": true,
+          "title": "Torrent",
+          "type": "boolean"
+        },
+        "trackers": {
+          "const": true,
+          "title": "Trackers",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ads",
+        "trackers",
+        "torrent",
+        "tor",
+        "quic_doq",
+        "smtp_abuse_ports"
+      ],
+      "title": "Blocks",
+      "type": "object"
+    },
+    "DegradedSemantics": {
+      "additionalProperties": false,
+      "properties": {
+        "cross_region_fallback": {
+          "const": false,
+          "title": "Cross Region Fallback",
+          "type": "boolean"
+        },
+        "event": {
+          "pattern": "^[a-z][a-z0-9_.]+$",
+          "title": "Event",
+          "type": "string"
+        },
+        "metric": {
+          "pattern": "^[a-z][a-z0-9_]+$",
+          "title": "Metric",
+          "type": "string"
+        },
+        "on_all_unavailable": {
+          "const": "explicit_degraded",
+          "title": "On All Unavailable",
+          "type": "string"
+        },
+        "on_fallback_unavailable": {
+          "const": "use_primary_if_healthy",
+          "title": "On Fallback Unavailable",
+          "type": "string"
+        },
+        "on_primary_unavailable": {
+          "const": "use_fallback",
+          "title": "On Primary Unavailable",
+          "type": "string"
+        }
+      },
+      "required": [
+        "on_primary_unavailable",
+        "on_fallback_unavailable",
+        "on_all_unavailable",
+        "cross_region_fallback",
+        "event",
+        "metric"
+      ],
+      "title": "DegradedSemantics",
+      "type": "object"
+    },
+    "Health": {
+      "additionalProperties": false,
+      "properties": {
+        "constrain_probe_to_region": {
+          "const": true,
+          "title": "Constrain Probe To Region",
+          "type": "boolean"
+        },
+        "expected_status": {
+          "maximum": 599,
+          "minimum": 100,
+          "title": "Expected Status",
+          "type": "integer"
+        },
+        "interval_seconds": {
+          "maximum": 3600,
+          "minimum": 30,
+          "title": "Interval Seconds",
+          "type": "integer"
+        },
+        "lazy": {
+          "title": "Lazy",
+          "type": "boolean"
+        },
+        "probe_url": {
+          "title": "Probe Url",
+          "type": "string"
+        },
+        "transport_checks": {
+          "const": "independent",
+          "title": "Transport Checks",
+          "type": "string"
+        }
+      },
+      "required": [
+        "probe_url",
+        "expected_status",
+        "interval_seconds",
+        "lazy",
+        "transport_checks",
+        "constrain_probe_to_region"
+      ],
+      "title": "Health",
+      "type": "object"
+    },
+    "PolicyRule": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "direct",
+            "block",
+            "eu",
+            "ru"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "assurance": {
+          "default": "enforced",
+          "enum": [
+            "enforced",
+            "best_effort"
+          ],
+          "title": "Assurance",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "network": {
+          "anyOf": [
+            {
+              "const": "tcp,udp",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Network"
+        },
+        "source_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Group"
+        },
+        "stage": {
+          "enum": [
+            "private_networks",
+            "direct_processes",
+            "bittorrent_protocol",
+            "torrent_processes",
+            "torrent_sources",
+            "ads_trackers",
+            "tor",
+            "quic_doq",
+            "smtp_abuse",
+            "eu_exceptions",
+            "ru_services",
+            "broad_ru",
+            "final"
+          ],
+          "title": "Stage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stage",
+        "action"
+      ],
+      "title": "PolicyRule",
+      "type": "object"
+    },
+    "PolicySource": {
+      "additionalProperties": false,
+      "properties": {
+        "behavior": {
+          "enum": [
+            "classical",
+            "domain",
+            "ipcidr",
+            "protocol"
+          ],
+          "title": "Behavior",
+          "type": "string"
+        },
+        "entries": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "enum": [
+                "mrs",
+                "text",
+                "yaml"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Format"
+        },
+        "integrity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceIntegrity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "interval_seconds": {
+          "anyOf": [
+            {
+              "maximum": 604800,
+              "minimum": 300,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Seconds"
+        },
+        "kind": {
+          "enum": [
+            "builtin",
+            "http",
+            "inline",
+            "process"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "kind",
+        "behavior"
+      ],
+      "title": "PolicySource",
+      "type": "object"
+    },
+    "Region": {
+      "additionalProperties": false,
+      "properties": {
+        "fallback": {
+          "enum": [
+            "de",
+            "nl",
+            "moscow",
+            "spb"
+          ],
+          "title": "Fallback",
+          "type": "string"
+        },
+        "primary": {
+          "enum": [
+            "de",
+            "nl",
+            "moscow",
+            "spb"
+          ],
+          "title": "Primary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "primary",
+        "fallback"
+      ],
+      "title": "Region",
+      "type": "object"
+    },
+    "Regions": {
+      "additionalProperties": false,
+      "properties": {
+        "eu": {
+          "$ref": "#/$defs/Region"
+        },
+        "ru": {
+          "$ref": "#/$defs/Region"
+        }
+      },
+      "required": [
+        "eu",
+        "ru"
+      ],
+      "title": "Regions",
+      "type": "object"
+    },
+    "Routes": {
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "const": "eu",
+          "title": "Default",
+          "type": "string"
+        },
+        "eu_exceptions": {
+          "const": "eu",
+          "title": "Eu Exceptions",
+          "type": "string"
+        },
+        "private": {
+          "const": "direct",
+          "title": "Private",
+          "type": "string"
+        },
+        "ru_services": {
+          "const": "ru",
+          "title": "Ru Services",
+          "type": "string"
+        }
+      },
+      "required": [
+        "private",
+        "default",
+        "ru_services",
+        "eu_exceptions"
+      ],
+      "title": "Routes",
+      "type": "object"
+    },
+    "SourceGroups": {
+      "additionalProperties": false,
+      "properties": {
+        "ads_trackers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ads Trackers",
+          "type": "array"
+        },
+        "bittorrent_protocol": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Bittorrent Protocol",
+          "type": "array"
+        },
+        "broad_ru": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Broad Ru",
+          "type": "array"
+        },
+        "direct_processes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Direct Processes",
+          "type": "array"
+        },
+        "eu_exceptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Eu Exceptions",
+          "type": "array"
+        },
+        "private_networks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Private Networks",
+          "type": "array"
+        },
+        "quic_doq": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Quic Doq",
+          "type": "array"
+        },
+        "ru_services": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ru Services",
+          "type": "array"
+        },
+        "smtp_abuse": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Smtp Abuse",
+          "type": "array"
+        },
+        "tor": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tor",
+          "type": "array"
+        },
+        "torrent_processes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Torrent Processes",
+          "type": "array"
+        },
+        "torrent_sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Torrent Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "private_networks",
+        "direct_processes",
+        "bittorrent_protocol",
+        "torrent_processes",
+        "torrent_sources",
+        "ads_trackers",
+        "tor",
+        "quic_doq",
+        "smtp_abuse",
+        "eu_exceptions",
+        "ru_services",
+        "broad_ru"
+      ],
+      "title": "SourceGroups",
+      "type": "object"
+    },
+    "SourceIntegrity": {
+      "additionalProperties": false,
+      "properties": {
+        "pinned": {
+          "title": "Pinned",
+          "type": "boolean"
+        },
+        "revision": {
+          "minLength": 1,
+          "title": "Revision",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "revision",
+        "pinned"
+      ],
+      "title": "SourceIntegrity",
+      "type": "object"
+    },
+    "TransportGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "degraded": {
+          "$ref": "#/$defs/DegradedSemantics"
+        },
+        "fallback": {
+          "enum": [
+            "de",
+            "nl",
+            "moscow",
+            "spb"
+          ],
+          "title": "Fallback",
+          "type": "string"
+        },
+        "fallback_transport": {
+          "enum": [
+            "raw",
+            "xhttp"
+          ],
+          "title": "Fallback Transport",
+          "type": "string"
+        },
+        "health": {
+          "$ref": "#/$defs/Health"
+        },
+        "members": {
+          "additionalProperties": {
+            "items": {
+              "enum": [
+                "raw",
+                "xhttp"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Members",
+          "type": "object"
+        },
+        "primary": {
+          "enum": [
+            "de",
+            "nl",
+            "moscow",
+            "spb"
+          ],
+          "title": "Primary",
+          "type": "string"
+        },
+        "primary_transport": {
+          "enum": [
+            "raw",
+            "xhttp"
+          ],
+          "title": "Primary Transport",
+          "type": "string"
+        }
+      },
+      "required": [
+        "primary",
+        "fallback",
+        "primary_transport",
+        "fallback_transport",
+        "members",
+        "health",
+        "degraded"
+      ],
+      "title": "TransportGroup",
+      "type": "object"
+    },
+    "TransportGroups": {
+      "additionalProperties": false,
+      "properties": {
+        "eu": {
+          "$ref": "#/$defs/TransportGroup"
+        },
+        "ru": {
+          "$ref": "#/$defs/TransportGroup"
+        }
+      },
+      "required": [
+        "eu",
+        "ru"
+      ],
+      "title": "TransportGroups",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "blocks": {
+      "$ref": "#/$defs/Blocks"
+    },
+    "product": {
+      "const": "premium_smart_ru",
+      "title": "Product",
+      "type": "string"
+    },
+    "regions": {
+      "$ref": "#/$defs/Regions"
+    },
+    "routes": {
+      "$ref": "#/$defs/Routes"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/PolicyRule"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "source_groups": {
+      "$ref": "#/$defs/SourceGroups"
+    },
+    "sources": {
+      "additionalProperties": {
+        "$ref": "#/$defs/PolicySource"
+      },
+      "title": "Sources",
+      "type": "object"
+    },
+    "transport_groups": {
+      "$ref": "#/$defs/TransportGroups"
+    },
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "product",
+    "routes",
+    "blocks",
+    "regions",
+    "transport_groups",
+    "sources",
+    "source_groups",
+    "rules"
+  ],
+  "title": "PremiumSmartRuPolicy",
+  "type": "object"
+}

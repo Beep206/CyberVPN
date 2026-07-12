@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "type": "external-canonical-cidr",
+    "provider": "antifilter.network",
+    "collector": "offline-fixture",
+    "generatedAt": "2026-07-11T00:00:00Z",
+    "sourceVersion": "offline-fixture-v1"
+  },
+  "files": [
+    {
+      "community": "65444:100",
+      "family": 4,
+      "path": "65444_100.ipv4.cidr",
+      "sha256": "1c37a4bc449b2427c7e7373390cf0d692b0034bfaa0ce175a582898140b4e719"
+    },
+    {
+      "community": "65444:700",
+      "family": 4,
+      "path": "65444_700.ipv4.cidr",
+      "sha256": "b6ed91285a6cf5c0c947123f9c005eb888693c594fb4810000507d54c31fb56f"
+    },
+    {
+      "community": "65444:710",
+      "family": 4,
+      "path": "65444_710.ipv4.cidr",
+      "sha256": "c56704346b506cdc727de91d4a9dbcd37acc4f8c8d72430e7e9914f57dcd63f3"
+    },
+    {
+      "community": "65444:720",
+      "family": 4,
+      "path": "65444_720.ipv4.cidr",
+      "sha256": "55e315a94e9dedbbe1456df26df0f14d7a409a3c46bb8d74c3685a011990826c"
+    },
+    {
+      "community": "65444:730",
+      "family": 4,
+      "path": "65444_730.ipv4.cidr",
+      "sha256": "561009472d3d3091eaf0c0f186941ae35c223c6c9606aef6110e20c9e3edc7b2"
+    },
+    {
+      "community": "65444:740",
+      "family": 4,
+      "path": "65444_740.ipv4.cidr",
+      "sha256": "bf4f38a9c162b2577cde90672f02d8883481477fed05d3a6235a0f43c2b5ce2d"
+    },
+    {
+      "community": "65444:750",
+      "family": 4,
+      "path": "65444_750.ipv4.cidr",
+      "sha256": "879a6732638e93a5027ff557d84ff53ee3dab79dc3afa367e20aef08c175e439"
+    },
+    {
+      "community": "65444:760",
+      "family": 4,
+      "path": "65444_760.ipv4.cidr",
+      "sha256": "1e7959887b706233f900a09069e93114276e0630bdb2ee196e72721ef72a6ce4"
+    },
+    {
+      "community": "65444:770",
+      "family": 4,
+      "path": "65444_770.ipv4.cidr",
+      "sha256": "2dfb6abe763eee64e9f183787e5e2a26b289370aae4857dcb776e2e0bcdc08d4"
+    },
+    {
+      "community": "65444:780",
+      "family": 4,
+      "path": "65444_780.ipv4.cidr",
+      "sha256": "d301996d335a9f0d6e4cd96681c7429502d1d30a7ceae56fb19fb51c706119cd"
+    },
+    {
+      "community": "65444:790",
+      "family": 4,
+      "path": "65444_790.ipv4.cidr",
+      "sha256": "6a7f40b2b5569559ce6bc344cad663e7e69c5bbc204e2e604eb95c8561f93dd9"
+    },
+    {
+      "community": "65444:800",
+      "family": 4,
+      "path": "65444_800.ipv4.cidr",
+      "sha256": "a36f334bd9c39b89ab9e1f06d33daef6d7a11119ae2546fe5068aca16df8e1ae"
+    },
+    {
+      "community": "65444:65444",
+      "family": 4,
+      "path": "65444_65444.ipv4.cidr",
+      "sha256": "1f93c10e75931a34530ae32dadcd33a710f21d712979b6346cdba0c97370c856"
+    }
+  ],
+  "ipv6Policy": {
+    "mode": "disabled",
+    "reason": "Offline fixture has no proven equivalent IPv6 feed; the tariff profile must disable IPv6."
+  }
+}

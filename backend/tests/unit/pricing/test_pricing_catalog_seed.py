@@ -10,12 +10,13 @@ from src.application.services.stage1_plan_policy import S1_PAID_PLAN_DURATIONS, 
 def test_plan_seed_contains_full_canonical_matrix() -> None:
     specs = build_plan_seed_specs()
 
-    assert len(specs) == 40
+    assert len(specs) == 44
     assert {spec.plan_code for spec in specs} == {
         "start",
         "ru_start",
         "ru_basic",
         "premium_smart_ru",
+        "premium_spb_de_exceptions",
         "basic",
         "plus",
         "pro",
@@ -88,8 +89,43 @@ def test_plan_seed_matches_public_and_hidden_examples() -> None:
     assert specs["premium_smart_ru_30"].features["price_status"] == "TODO_OWNER_APPROVAL"
     assert specs["premium_smart_ru_30"].features["remnawave_external_squad"] == "CYBERVPN_PREMIUM_SMART_RU"
     assert specs["premium_smart_ru_30"].features["remnawave_subscription_template"] == "CyberVPN Premium Smart RU"
+    assert (
+        specs["premium_smart_ru_30"].features["remnawave_subscription_template_scope"]
+        == "product_scoped_multi_client"
+    )
     assert specs["premium_smart_ru_30"].features["torrent_policy"] == "blocked"
     assert specs["premium_smart_ru_30"].features["tor_policy"] == "blocked"
+
+    assert specs["premium_spb_de_exceptions_30"].display_name == "Premium SPB + DE Exceptions"
+    assert specs["premium_spb_de_exceptions_30"].catalog_visibility == "hidden"
+    assert specs["premium_spb_de_exceptions_30"].sale_channels == ["admin"]
+    assert specs["premium_spb_de_exceptions_30"].device_limit == 5
+    assert specs["premium_spb_de_exceptions_30"].price_usd == Decimal("0.00")
+    assert specs["premium_spb_de_exceptions_30"].traffic_policy["enforcement_profile"] == ("premium_spb_de_exceptions")
+    assert specs["premium_spb_de_exceptions_30"].connection_modes == [
+        "standard",
+        "stealth",
+        "server_side_de_exceptions",
+    ]
+    assert specs["premium_spb_de_exceptions_30"].server_pool == ["premium_spb_de_exceptions"]
+    assert specs["premium_spb_de_exceptions_30"].support_sla == "priority"
+    assert specs["premium_spb_de_exceptions_30"].features["default_egress"] == "spb"
+    assert specs["premium_spb_de_exceptions_30"].features["exception_egress"] == "de"
+    assert specs["premium_spb_de_exceptions_30"].features["fail_closed_for_matched_exceptions"] is True
+    assert specs["premium_spb_de_exceptions_30"].features["remnawave_external_squad"] == ("CYBERVPN_SPB_DE_EXCEPTIONS")
+    assert specs["premium_spb_de_exceptions_30"].features["remnawave_internal_squad"] == ("CYBERVPN_SPB_DE_NODES")
+    assert specs["premium_spb_de_exceptions_30"].features["remnawave_config_profile"] == (
+        "S1 SPB DE Exceptions"
+    )
+    assert specs["premium_spb_de_exceptions_30"].features["remnawave_policy_version"] == (
+        "premium_spb_de_exceptions.v1"
+    )
+    assert specs["premium_spb_de_exceptions_30"].features["torrent_policy"] == "blocked"
+    assert specs["premium_spb_de_exceptions_30"].features["tor_policy"] == "blocked"
+    assert (
+        specs["premium_spb_de_exceptions_30"].features["remnawave_external_squad"]
+        != (specs["premium_smart_ru_30"].features["remnawave_external_squad"])
+    )
 
     assert specs["test_365"].connection_modes[-1] == "experimental"
     assert specs["test_365"].invite_bundle == {"count": 3, "friend_days": 14, "expiry_days": 60}
@@ -112,6 +148,7 @@ def test_addon_seed_matches_phase1_catalog() -> None:
     assert addons["extra_device"].price_usd == Decimal("6.00")
     assert addons["extra_device"].max_quantity_by_plan["plus"] == 3
     assert addons["extra_device"].max_quantity_by_plan["premium_smart_ru"] == 3
+    assert "premium_spb_de_exceptions" not in addons["extra_device"].max_quantity_by_plan
     assert addons["extra_device"].max_quantity_by_plan["development"] == 0
     assert addons["extra_device"].delta_entitlements == {"device_limit": 1}
 
@@ -120,6 +157,7 @@ def test_addon_seed_matches_phase1_catalog() -> None:
     assert addons["dedicated_ip"].max_quantity_by_plan["ru_start"] == 0
     assert addons["dedicated_ip"].max_quantity_by_plan["ru_basic"] == 0
     assert addons["dedicated_ip"].max_quantity_by_plan["premium_smart_ru"] == 1
+    assert "premium_spb_de_exceptions" not in addons["dedicated_ip"].max_quantity_by_plan
     assert addons["dedicated_ip"].max_quantity_by_plan["plus"] == 1
     assert addons["dedicated_ip"].max_quantity_by_plan["max"] == 3
     assert addons["dedicated_ip"].delta_entitlements == {"dedicated_ip_count": 1}
@@ -128,8 +166,10 @@ def test_addon_seed_matches_phase1_catalog() -> None:
     assert addons["ru_traffic_30gb"].price_rub == Decimal("199.00")
     assert addons["ru_traffic_30gb"].max_quantity_by_plan["ru_start"] == 10
     assert addons["ru_traffic_30gb"].max_quantity_by_plan["ru_basic"] == 10
+    assert "premium_spb_de_exceptions" not in addons["ru_traffic_30gb"].max_quantity_by_plan
     assert addons["ru_traffic_30gb"].max_quantity_by_plan["plus"] == 0
     assert addons["ru_traffic_30gb"].delta_entitlements == {"traffic_limit_bytes": 30 * 1024**3}
 
     assert addons["ru_traffic_50gb"].delta_entitlements == {"traffic_limit_bytes": 50 * 1024**3}
     assert addons["ru_traffic_100gb"].delta_entitlements == {"traffic_limit_bytes": 100 * 1024**3}
+    assert all("premium_spb_de_exceptions" not in spec.max_quantity_by_plan for spec in addons.values())

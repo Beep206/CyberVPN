@@ -1,0 +1,9 @@
+---
+# The listener is bound only to the Docker egress bridge, never to a public IP.
+vpn_test_agent_relay_enabled: true
+vpn_test_agent_relay_name: spb-target
+vpn_test_agent_relay_listen_ipv4: 172.30.2.1
+vpn_test_agent_relay_listen_port: 18082
+vpn_test_agent_relay_target_ipv6: 2a12:5940:e38b::2
+vpn_test_agent_relay_target_port: 18080
+vpn_test_agent_relay_allowed_source_ipv4_cidr: 172.30.2.0/24

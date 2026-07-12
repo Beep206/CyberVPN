@@ -13,6 +13,7 @@ from src.application.use_cases.public_catalog import (
 )
 from src.config.settings import settings
 from src.domain.entities.commercial_context import CommercialContextSignals
+from src.presentation.api.v1.catalog.routes import _serialize_catalog
 
 
 class FakePlanRepo:
@@ -95,6 +96,31 @@ async def test_same_context_returns_same_public_catalog_cache_and_items() -> Non
     assert first.cache_key == second.cache_key
     assert first.plans == second.plans
     assert [period.duration_days for period in first.plans[0].billing_periods] == [30, 365]
+
+
+@pytest.mark.asyncio
+async def test_catalog_route_serialization_preserves_public_aliases() -> None:
+    use_case = ResolvePublicCommercialCatalogUseCase(
+        None,
+        plan_repo=FakePlanRepo([_plan()]),
+        addon_repo=FakeAddonRepo(),
+        offer_repo=FakeOfferRepo(),
+        pricebook_repo=FakePricebookRepo(),
+    )
+    catalog = await use_case.execute(signals=CommercialContextSignals(channel_key="web"), channel="web")
+
+    payload = _serialize_catalog(catalog).model_dump(by_alias=True, mode="json")
+    plan = payload["plans"][0]
+    period = plan["billingPeriods"][0]
+
+    assert {"catalogVersion", "cacheKey", "trialEligible", "promoEligible"} <= payload.keys()
+    assert {"uiLocale", "paymentMethods", "resolutionTrace"} <= payload["context"].keys()
+    assert "availableMethods" in payload["context"]["paymentMethods"]
+    assert {"planCode", "displayName", "billingPeriods", "devicesIncluded"} <= plan.keys()
+    assert {"catalogItemKey", "durationDays", "displayPrice", "includedAddonCodes"} <= period.keys()
+    assert "minorUnits" in period["displayPrice"]
+    assert {"billingPeriodDays", "contextCacheKey"} <= period["quote"].keys()
+    assert {"policyIds", "checkoutCodeDiscountsEnabled", "invalidationEvents"} <= payload["metadata"].keys()
 
 
 @pytest.mark.asyncio

@@ -3,9 +3,9 @@
   "version": "v1",
   "display_name": "Premium Smart RU Contract",
   "mode": "contract",
-  "description": "Contract checks for Premium Smart RU routing, XHTTP readiness, and safe generated subscription invariants.",
+  "description": "Contract checks for Premium Smart RU routing, RAW/TCP and XHTTP readiness, and safe generated subscription invariants.",
   "target_plan_codes": ["premium_smart_ru"],
-  "required_connection_modes": ["xhttp"],
+  "required_connection_modes": ["raw", "xhttp"],
   "required_server_pool": ["ru", "premium_smart_ru"],
   "forbidden_modes": ["tun", "amnezia", "helix"],
   "required_route_registry": "premium_smart_ru_v2",
@@ -15,6 +15,9 @@
     {"key": "premium_smart_ru.connection_modes", "category": "plans", "severity": "error"},
     {"key": "premium_smart_ru.route_registry", "category": "route_registry", "severity": "error"},
     {"key": "remnawave.xhttp.flags", "category": "remnawave", "severity": "warning"},
-    {"key": "remnawave.nodes.contract", "category": "remnawave", "severity": "warning"}
+    {"key": "remnawave.nodes.contract", "category": "remnawave", "severity": "error"},
+    {"key": "remnawave.inbounds.vless_reality_raw_tcp", "category": "remnawave", "severity": "error"},
+    {"key": "remnawave.inbounds.vless_reality_xhttp", "category": "remnawave", "severity": "error"},
+    {"key": "remnawave.hosts.transport_matrix", "category": "remnawave", "severity": "error"}
   ]
 }

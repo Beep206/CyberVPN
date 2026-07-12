@@ -1,0 +1,406 @@
+{
+  "artifacts": {
+    "legacy-routing-header.json": {
+      "bytes": 3197,
+      "sha256": "7e9b6da648330de1f9cb78f399d0e8fa556e0be893d18c4879ed82dbce67e918"
+    },
+    "mihomo.yaml": {
+      "bytes": 24550,
+      "sha256": "ee81cc7d2a05a5930c8a2d0957e300a17631f39df3b97574f74f9db178457b26"
+    },
+    "policy.normalized.json": {
+      "bytes": 29716,
+      "sha256": "c0257fb8c4840a8ac90c75bc8488139abd6b5d1ad6aa9df3fec6da6ac9156faf"
+    },
+    "policy.schema.json": {
+      "bytes": 14783,
+      "sha256": "d57e4e7b94abae6be450663b1ce950cd4f2107001efd017b93f4f6b3fdf26557"
+    },
+    "xray-client.json": {
+      "bytes": 29708,
+      "sha256": "0cfb73b8022de78aa16941eac24feb8d360df3360ce0bcc45bc294ccb5df5a60"
+    },
+    "xray-server.json": {
+      "bytes": 27995,
+      "sha256": "f548ac396a12de74613197c75095f4978b30fd01773fec287fcf6600a23281ee"
+    }
+  },
+  "compiler": "cybervpn.remnawave.policy_compiler.v1",
+  "counts": {
+    "criticalInlineEntries": 224,
+    "criticalSourceReferences": 42,
+    "mutableRemoteSources": 0,
+    "pinnedRemoteSources": 29,
+    "remoteSources": 29,
+    "rules": 13,
+    "sources": 42,
+    "transportVariants": 8
+  },
+  "product": "premium_smart_ru",
+  "rendererCoverage": {
+    "legacyHeader": {
+      "artifact": "legacy-routing-header.json",
+      "reason": "canonical compatibility routing header",
+      "risk": "none",
+      "status": "rendered"
+    },
+    "mihomo": {
+      "artifact": "mihomo.yaml",
+      "reason": "full deterministic Mihomo config rendered from canonical policy",
+      "risk": "none",
+      "status": "rendered"
+    },
+    "normalizedPolicy": {
+      "reason": "typed canonical intermediate representation",
+      "risk": "none",
+      "status": "rendered"
+    },
+    "xrayClient": {
+      "artifact": "xray-client.json",
+      "reason": "typed INCY/HAPP routing and regional transport policy",
+      "risk": "none",
+      "status": "rendered"
+    },
+    "xrayServer": {
+      "artifact": "xray-server.json",
+      "reason": "typed server routing rules consumed by the operator",
+      "risk": "none",
+      "status": "rendered"
+    }
+  },
+  "schemaVersion": 1,
+  "source": {
+    "path": "scripts/remnawave/policies/premium_smart_ru.yaml",
+    "sha256": "7df49c9dca98fa79a105669af05ecf9c51747da262b70a1503f822beb7688a7a"
+  },
+  "sourceIntegrity": {
+    "inventory": {
+      "additional-telegram-domains": {
+        "contentSha256": "17310935e7c919fdd426a58f759c7be85a02973b2e540c3f57c43240007d6baa",
+        "descriptorSha256": "53e572fc15be45f9fba9d54c1ba30eeef46f4866e34a0d8c6bdac45092948c21",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "836b578f61d71de43cea3a2b0658e239e7fabd27"
+      },
+      "additional-telegram-ips": {
+        "contentSha256": "8998206dadd831b471ea95138c4090ec63362e10575f19c241e3199b32bec55a",
+        "descriptorSha256": "159924261364e2d12a70492edd441a4ece01b59520ee3ebd661687e4dbb9a787",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "836b578f61d71de43cea3a2b0658e239e7fabd27"
+      },
+      "ads-all": {
+        "contentSha256": "6dfc9cde6a802d9641594df0c8ed8b1c5df646faa05e74c06f9bfba202080335",
+        "descriptorSha256": "dfc1491e51b9e45dcae2ee7da7f8014be3b317d897c57edfe91d306803a3dd19",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "ai": {
+        "contentSha256": "256a3b73663caab55e6c7af9eb2e87113ceb80d9e70eff1a6d5bee82f344f65f",
+        "descriptorSha256": "3209dc3c56cfdce6d35861930eb2422fd687cd0a66b0a99ddbe6daf01b4e19df",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "bittorrent-protocol": {
+        "contentSha256": "d11750f2b99d5efde05806b3fa55be89ba13266d6a1699e41964ea8d5dd04ea0",
+        "descriptorSha256": "586656d778eec8d90268cd4a0bc2d855484abbbf0177daab18123ee5f83e9a1a",
+        "entryCount": 1,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "cloudflare-ips": {
+        "contentSha256": "a483f5947ebc8e0d77bf0bc3e1108e36a88006a494a95a92538bf4a43c48b19b",
+        "descriptorSha256": "22a688635b497d9d913b97d9ce9999821f0fd18b95b3cffb788fb3c0e09cc52b",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "direct-processes": {
+        "contentSha256": "811714ace932e938a68a1a35beb611f90e89b19f83405dd4dd874e3d642fb672",
+        "descriptorSha256": "630e84a7338055679a5939cee4c52245aba1181d9d8f2c4ffb25674928a39bb3",
+        "entryCount": 7,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "discord-domains": {
+        "contentSha256": "d7387b23e75ca9a93086ee7f9d398efb936c64bdbb85d97aa7dea99de2381891",
+        "descriptorSha256": "3fa1ef22cfb8f55c9053f7e3ecd18c2e04ea3909686f3985cb5790667d662aff",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "discord-voice": {
+        "contentSha256": "51af199e7aa95a6a939e7853a5405df328bd8ca54cb24953a6c9e3a189db5d68",
+        "descriptorSha256": "475952cfff6912f97c3f40f837f55c97d4421faa8e0097d326ad143c7c052bc3",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "geoip-for-ru": {
+        "contentSha256": "897bca0c49492fe839d359e059ef2c2456c43524b0f8742e5c5f5db50ec54dfe",
+        "descriptorSha256": "da61112939c2e85a06c12ed6c8775c61acd0fb1903f0d46f16d0cba566e14910",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "836b578f61d71de43cea3a2b0658e239e7fabd27"
+      },
+      "geosite-private": {
+        "contentSha256": "0f9ba48d4d0b0d192a4e7c3548486dde05e5a92e6e58e8ea8c9cc302712a1420",
+        "descriptorSha256": "0c3c82ec534a199d9abd1c2f7b6c5089a8214dcd139b496e608a9c5458c72ba9",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "geosite-ru": {
+        "contentSha256": "835c69e57b4671da175a75ca854e5376832572f38c4a8baf848a12c0110ed825",
+        "descriptorSha256": "8300bd1bb0b3335bc08c899cfb038a3fa7b930522fec91a7326add3f4d444b4f",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "836b578f61d71de43cea3a2b0658e239e7fabd27"
+      },
+      "github": {
+        "contentSha256": "fdfb28a7fda4ee6ea13b04a143bed8de8f583a029355929f7a38322406cec35c",
+        "descriptorSha256": "4b6552f1e7773638c468c7a5aa361c78b744a20902b2edc8dc75af2d4c40fff4",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "2041bdc2748776fd083ea3bb8790eab14a7aed25"
+      },
+      "google-deepmind": {
+        "contentSha256": "785863d3232bbfa561463aa00d2913b94b98a36d80690e4bb6dd96f4a6c74e94",
+        "descriptorSha256": "b4e825bc4e3353f2ec93b470e584bf21dd956bbe12c7c9bd1aa4b3f9cd05ee80",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "manual-eu-inline": {
+        "contentSha256": "6d105d193fad79081ae4fe21811b6677e05ec304ec8f540d5b93792656240545",
+        "descriptorSha256": "51eeb5cfb127e9b0e021e289af3e4e5f3cd045cd4933684ddaa72205a695b285",
+        "entryCount": 19,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "meta-ips": {
+        "contentSha256": "9523a6fe895fb1ecb8e9fee31e2064b68a882dc160e604279ed01490ce2a7ea6",
+        "descriptorSha256": "03829e14c7027d371b6e4982b6c994373203dc02832ddcc16e99c2223b2db54d",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "oisd-big": {
+        "contentSha256": "7629b91ce2f3324e9aa0b4b45de545f8e9712a4d700f5abbb6face0c8959af5f",
+        "descriptorSha256": "bfc91a0f598d77335bee3f4698800ffa1b49484fefe8765fed6b59fc1502d372",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "private-ips": {
+        "contentSha256": "86412a79dec807da64ac82b288fb2e2a9fbb460ae3bf5cb647454e33c81c4690",
+        "descriptorSha256": "1a0cf2e3ff6f1ef2d01cf52d4099617aaf935604849724a32daf26f8d399399f",
+        "entryCount": 17,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "quic-doq": {
+        "contentSha256": "b4805367e8314a80fe8b66a9dfca015b835ba06604ee2b0c0a8a15241bcf4894",
+        "descriptorSha256": "4fbe235f4864f108089ca425776032d25cc357e5ce6771e6d179f51c69841bc8",
+        "entryCount": 2,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "refilter-domains": {
+        "contentSha256": "34e2be7cc1760f6103305da3fd660f8257678617e2c5aba60ed088e26f45b43d",
+        "descriptorSha256": "57e8dc3f81f2b1f0a3f49de773bc81b31a02aa65940d791d039d88ebfcc71668",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "refilter-ipsum": {
+        "contentSha256": "5db46438f3ceb0f17a5ad78a1285932d35340c5f36a8216ed22ef04af92bb942",
+        "descriptorSha256": "910adef8481512260eb3f1daea4a6acd1ffa54ba8b7ce94bdbfd92695c61594c",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "remote-control": {
+        "contentSha256": "0d1fdf64b303a04d4b6f524dccb4334c38cfc722ccbb94663395ece2da917d7a",
+        "descriptorSha256": "a11ac98febae9ea0a17d9c0b6bb54c15fc9f2bea03df6772242c5eccf7be49f1",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "rknasnblock": {
+        "contentSha256": "70f3de23618786ef1241a4dbd691c5fab483e6d702b7c5b391efd7ea5c7ef173",
+        "descriptorSha256": "cee81e8ec442ce07fd5b9500e814be70172595774efa32f28d1bc53d1c26ceee",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "ru-apps": {
+        "contentSha256": "9c8a4ef4d04fbc32692e6d9969e06177e2f278bc09d990c2f49514a50f040406",
+        "descriptorSha256": "d5784496f6e96e2078faaff455da1b72ad955562d6cc3bf2209672f4b6f982da",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "ru-bundle": {
+        "contentSha256": "981318366bf53e357ce8dcd923b61128d49820ab329acf57701c689aa0a279d0",
+        "descriptorSha256": "8bf23a3871608de9f0d4c5c2d60e4d4276358fb309a8114f31c106f3fbe86b70",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "ru-eu-exceptions": {
+        "contentSha256": "4560c7d7dd9eeb208613a42bc423ebfbcf74c13f5ffe296e9a620fd66f81aeec",
+        "descriptorSha256": "904c355035a6c7cc250a118151df684501f1d6aa916ac54e6ce56cbc27017faf",
+        "entryCount": 32,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "ru-inside": {
+        "contentSha256": "e6facd2ea06200a73e991ccd18041de85be4e0122d0995950fd895dfb916f769",
+        "descriptorSha256": "660c324b3cf727e3a00d7de2ea0942055dfb05c145a8c4614a04de5bb10cc072",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "8d45624fdd6b09113a93835f1f69a458a83cd911"
+      },
+      "ru-services-inline": {
+        "contentSha256": "cc24021711ff0521d116517d9eab04b6e76f3a4af81bcff70125c869f52121b8",
+        "descriptorSha256": "4a0a228a3bff1507f9b429b8634e05bbcf358982f5b7158d381463970e7e68a1",
+        "entryCount": 118,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "smtp-abuse": {
+        "contentSha256": "a55c291ce6236671a200c8114cd0af06afde53076fdba2fc843d5d13a24c5dc3",
+        "descriptorSha256": "be46c4602e56a584625840a4bcbd845ffc000eb22f01bb3ca86d4e617b0731b6",
+        "entryCount": 3,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "telegram-domains": {
+        "contentSha256": "ffa4d1d3e8649965e529c1c570d8add75a0d6f70aa8503ece8add841ce48c0e7",
+        "descriptorSha256": "183e2aab94200aa5911900601b2f1ee93011ebbb55b1c4c3fa30f4c4bb3db747",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "telegram-ips": {
+        "contentSha256": "d121af95b9aeca3d8c29b2112d5e6685b2a6716383df8ae31b5fbb3408c527b3",
+        "descriptorSha256": "5df0ce10c019bf0552efe37a5388c374ff4fd4e00852406240380b4e0c764d12",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "tor-inline": {
+        "contentSha256": "ce1ef552d0393af69b5ef17e7b43ac66be49f391476033e17dd1b2174c629718",
+        "descriptorSha256": "4b1cc998f36b450b18ef99c2437a8665a1dfad07619b5ed34cf9f59116f4b8e4",
+        "entryCount": 5,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "tor-processes": {
+        "contentSha256": "6d98680afce57e001e55b7dc29af9e95d6d8bb774645279aec1771170ce5c188",
+        "descriptorSha256": "7e5972442748441373914af469e7a8bad2977eda6b8ca0d09d4a74aeab943b71",
+        "entryCount": 1,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "torrent-clients": {
+        "contentSha256": "31b26f266129bac396f523c3309f768430ef487fb9e16d8eafcffbcd52aab9ba",
+        "descriptorSha256": "58c81da09fa2235b3cc469e587257f5aadf4f6101794992d552717923ddfe019",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "torrent-domains-inline": {
+        "contentSha256": "3af29863da6bc0333da6e2496ed068d51a20566b8821e4db8cd3de3e2a54378f",
+        "descriptorSha256": "0d433cbf805f2d9a125661302aed5ebbd89cef73128bb29d66dbaf7c90c1e866",
+        "entryCount": 11,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "torrent-processes": {
+        "contentSha256": "d70a3947a6d262b70ca8006e44c1743aba568d88623aca9838625aad4f84e4bb",
+        "descriptorSha256": "676ec10247685341279d3e09913cd5c1d0b6f029a30369b16b4175f8eb809a17",
+        "entryCount": 1,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "torrent-trackers": {
+        "contentSha256": "f2832fedc058999ba039052d684f1b8b05433dc378cd041d36bf625e209848c5",
+        "descriptorSha256": "ea2a531131e8e254eb67618007237d9dee5e8dd5e5837c824847cad422d9cf71",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "torrent-websites": {
+        "contentSha256": "68efec804d027ba03a76bf4baaf6be7fd6c92571930cb439eab25143821448ce",
+        "descriptorSha256": "14ed581259ef7ad8e1f5396e86dd36b641a5224f0f777b02344273601fbb7555",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35"
+      },
+      "tracker-domains-inline": {
+        "contentSha256": "e44ed336cba69550b98f31a823f51c6595c18f20ca7e264b6e76842cf33acaa6",
+        "descriptorSha256": "509babe9d39b697bc80bf31684992697c2bdfac4fb813ca137c01b8844a4c03d",
+        "entryCount": 7,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "whatsapp": {
+        "contentSha256": "bdcf58fcbea6c962e307aac8b452c39b55644ec02e92e29919eb69d0bd40985f",
+        "descriptorSha256": "7192f74809d8a879877a058ff92a1a982cb41f66e32f6f8702a01bbd17453433",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      },
+      "win-spy": {
+        "contentSha256": "ef83021ce3a116a8c2bb30d259963f3061c7f4a71e17d3a4f5f90abbf3d11a24",
+        "descriptorSha256": "2d9c2a9cda134612d48b15c2fac26da9fb08f18cf9ba5672c5e1bf574186126c",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "2041bdc2748776fd083ea3bb8790eab14a7aed25"
+      },
+      "youtube": {
+        "contentSha256": "e212b2ce9f39b30f4e2ab57da9ed0937673606bc56bb46e5d55ad7dd9af00aef",
+        "descriptorSha256": "a5db396513768cd939c5060ed111d7e37ac2d81073c8c12503342d6e91a6a6c5",
+        "entryCount": 0,
+        "pinned": true,
+        "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959"
+      }
+    },
+    "mutable": [],
+    "pinned": [
+      "additional-telegram-domains",
+      "additional-telegram-ips",
+      "ads-all",
+      "ai",
+      "cloudflare-ips",
+      "discord-domains",
+      "discord-voice",
+      "geoip-for-ru",
+      "geosite-private",
+      "geosite-ru",
+      "github",
+      "google-deepmind",
+      "meta-ips",
+      "oisd-big",
+      "refilter-domains",
+      "refilter-ipsum",
+      "remote-control",
+      "rknasnblock",
+      "ru-apps",
+      "ru-bundle",
+      "ru-inside",
+      "telegram-domains",
+      "telegram-ips",
+      "torrent-clients",
+      "torrent-trackers",
+      "torrent-websites",
+      "whatsapp",
+      "win-spy",
+      "youtube"
+    ]
+  }
+}

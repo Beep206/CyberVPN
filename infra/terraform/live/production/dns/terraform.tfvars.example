@@ -25,4 +25,53 @@ records = {
     comment = "CyberVPN production edge de-prod-01"
     tags    = ["environment:production", "component:edge"]
   }
+  de-3-vpn-ipv4 = {
+    name         = "de-3.cyber-vpn.org"
+    content      = "138.124.115.206"
+    record_class = "vpn-node"
+    type         = "A"
+    ttl          = 1
+    proxied      = false
+    comment      = "CyberVPN DE3 direct VLESS Reality and XHTTP IPv4"
+    tags         = ["environment:production", "component:vpn-node", "region:de"]
+  }
+  de-3-vpn-ipv6 = {
+    name         = "de-3.cyber-vpn.org"
+    content      = "2a0b:4140:ba84::2"
+    record_class = "vpn-node"
+    type         = "AAAA"
+    ttl          = 1
+    proxied      = false
+    comment      = "CyberVPN DE3 direct VLESS Reality and XHTTP IPv6"
+    tags         = ["environment:production", "component:vpn-node", "region:de"]
+  }
+  de-relay-vpn-ipv4 = {
+    name         = "de-relay.cyber-vpn.org"
+    content      = "138.16.140.44"
+    record_class = "vpn-node"
+    type         = "A"
+    ttl          = 1
+    proxied      = false
+    comment      = "CyberVPN DE Reality ingress relay through NL4"
+    tags         = ["environment:production", "component:vpn-relay", "ingress:nl", "egress:de"]
+  }
+  msk-relay-vpn-ipv4 = {
+    name         = "msk-relay.cyber-vpn.org"
+    content      = "193.233.91.99"
+    record_class = "vpn-node"
+    type         = "A"
+    ttl          = 1
+    proxied      = false
+    comment      = "CyberVPN Moscow Reality ingress relay through SPB"
+    tags         = ["environment:production", "component:vpn-relay", "ingress:spb", "egress:msk"]
+  }
+  spb-exceptions-vpn-ipv4 = {
+    name         = "spb-exceptions.cyber-vpn.org"
+    content      = "193.233.91.99"
+    record_class = "vpn-node"
+    type         = "A"
+    ttl          = 300
+    proxied      = false
+    comment      = "CyberVPN Task2 SPB exceptions shared customer ingress IPv4"
+  }
 }

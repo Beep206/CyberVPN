@@ -1,0 +1,29 @@
+---
+- name: Task2 SPB listener IPv6 | Assert supported action
+  ansible.builtin.assert:
+    that:
+      - spb_listener_ipv6_address_action in ['deploy', 'verify', 'rollback', 'remove']
+    fail_msg: "Unsupported spb_listener_ipv6_address_action={{ spb_listener_ipv6_address_action }}."
+
+- name: Task2 SPB listener IPv6 | Validate enabled configuration
+  ansible.builtin.import_tasks: validate.yml
+  when: spb_listener_ipv6_address_enabled | bool
+
+- name: Task2 SPB listener IPv6 | Deploy persistent secondary address
+  ansible.builtin.import_tasks: deploy.yml
+  when:
+    - spb_listener_ipv6_address_enabled | bool
+    - spb_listener_ipv6_address_action == 'deploy'
+
+- name: Task2 SPB listener IPv6 | Verify persistent secondary address
+  ansible.builtin.import_tasks: verify.yml
+  when:
+    - spb_listener_ipv6_address_enabled | bool
+    - spb_listener_ipv6_address_action in ['deploy', 'verify']
+    - not ansible_check_mode
+
+- name: Task2 SPB listener IPv6 | Remove persistent secondary address
+  ansible.builtin.import_tasks: rollback.yml
+  when:
+    - spb_listener_ipv6_address_enabled | bool
+    - spb_listener_ipv6_address_action in ['rollback', 'remove']

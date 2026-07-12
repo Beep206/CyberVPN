@@ -18,7 +18,6 @@ from .schemas import (
     TorrentBlockerReportsQuery,
     TorrentBlockerReportsResponse,
     TorrentBlockerReportsStatsResponse,
-    TorrentBlockerStatsResponse,
     UpdateNodePluginRequest,
 )
 
@@ -52,15 +51,17 @@ async def get_torrent_blocker_stats(
             "/node-plugins/torrent-blocker/reports/stats",
             TorrentBlockerReportsStatsResponse,
         ),
-        fallback=TorrentBlockerReportsStatsResponse(
-            stats=TorrentBlockerStatsResponse(
-                distinctNodes=0,
-                distinctUsers=0,
-                totalReports=0,
-                reportsLast24Hours=0,
-            ),
-            topUsers=[],
-            topNodes=[],
+        fallback=TorrentBlockerReportsStatsResponse.model_validate(
+            {
+                "stats": {
+                    "distinct_nodes": 0,
+                    "distinct_users": 0,
+                    "total_reports": 0,
+                    "reports_last_24_hours": 0,
+                },
+                "top_users": [],
+                "top_nodes": [],
+            }
         ),
     )
     return result
@@ -88,7 +89,7 @@ async def list_node_plugins(
         route="node_plugins",
         action="list",
         fetch=lambda: client.get_validated("/node-plugins", NodePluginCollectionResponse),
-        fallback=NodePluginCollectionResponse(total=0, nodePlugins=[]),
+        fallback=NodePluginCollectionResponse.model_validate({"total": 0, "node_plugins": []}),
     )
 
 

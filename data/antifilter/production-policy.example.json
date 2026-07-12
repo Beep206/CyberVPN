@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "managementNetworks": [
+    "45.87.41.146/32",
+    "138.124.115.206/32",
+    "138.16.140.44/32",
+    "178.159.94.225/32",
+    "193.233.91.99/32",
+    "45.148.244.55/32",
+    "2a0d:2787:1b:12f5::/64",
+    "2001:41d0:701:1100::1db1/128"
+  ],
+  "selfEndpoints": [
+    "45.87.41.146",
+    "138.124.115.206",
+    "138.16.140.44",
+    "178.159.94.225",
+    "193.233.91.99",
+    "2001:41d0:701:1100::1db1"
+  ],
+  "thresholds": {
+    "default": {
+      "minPrefixes": 1,
+      "maxPrefixes": 50000
+    },
+    "categories": {
+      "rkn": {"minPrefixes": 15000, "maxPrefixes": 30000},
+      "meta": {"minPrefixes": 20, "maxPrefixes": 60},
+      "twitter_x": {"minPrefixes": 20, "maxPrefixes": 70},
+      "netflix": {"minPrefixes": 700, "maxPrefixes": 1600},
+      "amazon_cloudfront": {"minPrefixes": 100, "maxPrefixes": 300},
+      "microsoft": {"minPrefixes": 250, "maxPrefixes": 700},
+      "amazon": {"minPrefixes": 1000, "maxPrefixes": 2500},
+      "openai": {"minPrefixes": 150, "maxPrefixes": 500},
+      "youtube": {"minPrefixes": 800, "maxPrefixes": 1800},
+      "google": {"minPrefixes": 50, "maxPrefixes": 180},
+      "telegram": {"minPrefixes": 3, "maxPrefixes": 20},
+      "discord": {"minPrefixes": 1800, "maxPrefixes": 4500},
+      "custom_networks": {"minPrefixes": 30, "maxPrefixes": 150}
+    },
+    "maxAddedPercent": 25.0,
+    "maxRemovedPercent": 25.0,
+    "maxIpv4UnionPercent": 25.0,
+    "maxIpv6UnionPercent": 25.0,
+    "maxExclusionDelta": 1000
+  },
+  "freshness": {
+    "maxAgeSeconds": 7200,
+    "maxFutureSkewSeconds": 300
+  },
+  "ipv6Policy": {
+    "mode": "fallback_block",
+    "reason": "IPv6 is blocked for premium_spb_de_exceptions until Antifilter registration, complete per-community IPv6 export, the SPB-to-DE bridge, and external IPv6 route evidence are all proven together."
+  },
+  "resourceLimits": {
+    "maxManifestBytes": 262144,
+    "maxFileBytes": 16777216,
+    "maxTotalBytes": 134217728,
+    "maxFiles": 64,
+    "maxLinesPerFile": 1000000,
+    "maxLineBytes": 128,
+    "maxCompiledPrefixes": 2000000
+  }
+}

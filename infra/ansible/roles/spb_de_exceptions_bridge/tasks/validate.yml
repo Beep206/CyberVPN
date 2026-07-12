@@ -1,0 +1,51 @@
+---
+- name: Task2 SPB DE exceptions | Assert supported action
+  ansible.builtin.assert:
+    that:
+      - spb_de_exceptions_bridge_action in ['deploy', 'verify', 'rollback']
+    fail_msg: "Unsupported spb_de_exceptions_bridge_action={{ spb_de_exceptions_bridge_action }}."
+
+- name: Task2 SPB DE exceptions | Assert bridge constants
+  ansible.builtin.assert:
+    that:
+      - spb_de_exceptions_bridge_port | int == 9444
+      - spb_de_exceptions_bridge_inbound_tag == 'DE_SPB_EXCEPTIONS_BRIDGE_9444'
+      - spb_de_exceptions_bridge_outbound_tag == 'DE_EXCEPTIONS_BRIDGE'
+      - spb_de_exceptions_bridge_product_code == 'premium_spb_de_exceptions'
+    fail_msg: "Task2 bridge constants must stay pinned to the SPB->DE exceptions contract."
+
+- name: Task2 SPB DE exceptions | Assert service identity is not privileged
+  ansible.builtin.assert:
+    that:
+      - spb_de_exceptions_bridge_service_user not in ['root', 'admin', 'ubuntu']
+      - spb_de_exceptions_bridge_service_group not in ['root', 'admin', 'ubuntu']
+      - spb_de_exceptions_bridge_service_user | length >= 8
+      - spb_de_exceptions_bridge_service_group | length >= 8
+    fail_msg: "Task2 bridge support user/group must be isolated and unprivileged."
+
+- name: Task2 SPB DE exceptions | Assert IPv4 bridge path is disabled
+  ansible.builtin.assert:
+    that:
+      - spb_de_exceptions_bridge_allowed_ipv4_cidrs | length == 0
+      - spb_de_exceptions_bridge_required_source_ipv4_cidr == ''
+      - spb_de_exceptions_bridge_deprecated_ipv4_cidrs | difference(['0.0.0.0/0']) | length == spb_de_exceptions_bridge_deprecated_ipv4_cidrs | length
+      - spb_de_exceptions_bridge_deprecated_ipv4_cidrs | select('match', '^([0-9]{1,3}\\.){3}[0-9]{1,3}/32$') | list | length == spb_de_exceptions_bridge_deprecated_ipv4_cidrs | length
+    fail_msg: "Task2 bridge IPv4 path must stay disabled; deprecated exact /32 rules are cleanup-only."
+  when: spb_de_exceptions_bridge_enabled | bool
+
+- name: Task2 SPB DE exceptions | Assert exact SPB peer IPv6 allowlist
+  ansible.builtin.assert:
+    that:
+      - spb_de_exceptions_bridge_allowed_ipv6_cidrs | length == 1
+      - "'::/0' not in spb_de_exceptions_bridge_allowed_ipv6_cidrs"
+      - spb_de_exceptions_bridge_allowed_ipv6_cidrs | select('match', '.+/128$') | list | length == spb_de_exceptions_bridge_allowed_ipv6_cidrs | length
+      - spb_de_exceptions_bridge_required_source_ipv6_cidr in spb_de_exceptions_bridge_allowed_ipv6_cidrs
+    fail_msg: "Task2 bridge IPv6 firewall must allow exactly the canonical SPB peer /128."
+  when: spb_de_exceptions_bridge_enabled | bool
+
+- name: Task2 SPB DE exceptions | Assert firewall management is explicit
+  ansible.builtin.assert:
+    that:
+      - spb_de_exceptions_bridge_manage_nftables | bool
+    fail_msg: "Task2 bridge requires nftables peer-only firewall management."
+  when: spb_de_exceptions_bridge_enabled | bool

@@ -1,0 +1,7 @@
+---
+- name: Deploy a regional VPN test agent
+  hosts: "{{ vpn_test_agent_region_hosts | default('vpn_test_agent_region') }}"
+  become: true
+  roles:
+    - role: docker
+    - role: vpn_test_agent_region

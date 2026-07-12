@@ -1,0 +1,14 @@
+[Unit]
+Description=CyberVPN regional VPN test agent firewall ({{ vpn_test_agent_region_name }})
+After=network-pre.target
+Before=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=-/usr/sbin/nft delete table inet {{ vpn_test_agent_region_nftables_table_name }}
+ExecStart=/usr/sbin/nft -f {{ vpn_test_agent_region_nftables_include_path }}
+ExecStop=-/usr/sbin/nft delete table inet {{ vpn_test_agent_region_nftables_table_name }}
+
+[Install]
+WantedBy=multi-user.target

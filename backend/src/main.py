@@ -35,6 +35,7 @@ from src.infrastructure.messaging.nats_messaging_runtime import NatsMessagingRun
 from src.infrastructure.messaging.nats_partner_runtime import NatsPartnerRuntime
 from src.infrastructure.monitoring.http_metrics import add_http_metrics_middleware, build_metrics_response
 from src.infrastructure.payments.cryptobot.client import cryptobot_client
+from src.presentation.api.subscription_gateway.routes import router as subscription_gateway_router
 from src.presentation.api.v1.router import api_router
 from src.presentation.api.v3.router import api_v3_router
 from src.presentation.api.well_known.security_txt import router as security_txt_router
@@ -218,6 +219,13 @@ async def lifespan(app: FastAPI):
         await remnawave_client.close()
     except Exception as e:
         logger.warning("Shutdown error in remnawave_client: %s", e, exc_info=True)
+
+    try:
+        from src.infrastructure.remnawave.subscription_proxy import remnawave_subscription_proxy_client
+
+        await remnawave_subscription_proxy_client.close()
+    except Exception as e:
+        logger.warning("Shutdown error in remnawave_subscription_proxy_client: %s", e, exc_info=True)
 
     try:
         from src.infrastructure.helix.client import helix_adapter_client
@@ -480,6 +488,7 @@ register_exception_handler(Exception, unhandled_exception_handler)
 # Routes
 app.include_router(api_router)
 app.include_router(api_v3_router)
+app.include_router(subscription_gateway_router)
 app.include_router(security_txt_router)  # SEC-017: /.well-known/security.txt
 
 

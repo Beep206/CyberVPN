@@ -55,3 +55,15 @@ def test_helix_docs_keep_node_plugins_boundary_explicit() -> None:
 
     assert "Node Plugins" in architecture
     assert "Node Plugins" in decision_log
+
+
+def test_current_vpn_architecture_names_the_deployed_canary_runtime() -> None:
+    content = _read("docs/architecture/CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md")
+
+    assert "r9-xray-failover-canary-71728ebe" in content
+    for stale_current_claim in (
+        "current readiness=true только при valid r8 attestation",
+        "Current production\\nr8 readiness=true with signed verifier",
+        "**LIVE/PASS:** r8 readiness=true",
+    ):
+        assert stale_current_claim not in content

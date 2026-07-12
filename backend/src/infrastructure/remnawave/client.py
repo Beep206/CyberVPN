@@ -58,6 +58,7 @@ class RemnawaveClient:
                     "X-Forwarded-For": "127.0.0.1",
                 },
                 timeout=30.0,
+                trust_env=False,
             )
         return self._client
 

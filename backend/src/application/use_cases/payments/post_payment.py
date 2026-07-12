@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.events import EventOutboxService
 from src.application.services.config_service import ConfigService
 from src.application.services.entitlements_service import EntitlementsService
+from src.application.services.vpn_product_readiness import ensure_entitlement_grant_data_plane_ready
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.attribution.qualifying_events import EvaluateOrderPolicyUseCase
 from src.application.use_cases.gifts.service import IssueGiftCodeUseCase
@@ -704,6 +705,14 @@ class PostPaymentProcessingUseCase:
             return {"selected_subscription_updated": False, "selected_subscription_update_error": "grant_not_found"}
         if payment.entitlements_snapshot is None:
             return {"selected_subscription_updated": False, "selected_subscription_update_error": "missing_snapshot"}
+
+        service_identity = await repo.get_service_identity_by_id(grant.service_identity_id)
+        service_context = service_identity.service_context if service_identity is not None else None
+        ensure_entitlement_grant_data_plane_ready(
+            grant_snapshot=grant.grant_snapshot,
+            service_context=service_context,
+            candidate_snapshot=payment.entitlements_snapshot,
+        )
 
         grant.grant_snapshot = dict(payment.entitlements_snapshot or {})
         if payment.subscription_days > 0:

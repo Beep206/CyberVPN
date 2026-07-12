@@ -182,8 +182,16 @@ def test_stage1_compose_uses_backend_internal_secret_for_backend_worker_and_sche
     )
     assert compose.count(dedicated_secret) == 3
     assert compose.count(telegram_secret) == 3
-    assert "BACKEND_INTERNAL_SECRET: ${TELEGRAM_BOT_INTERNAL_SECRET" not in compose
-    assert "BACKEND_INTERNAL_SECRET: ${PAYMENT_SETTLEMENT_WORKER_SECRET" not in compose
+    forbidden_backend_secret_lines = [
+        line.strip()
+        for line in compose.splitlines()
+        if line.strip().startswith("BACKEND_INTERNAL_SECRET: ${")
+        and (
+            "TELEGRAM_BOT_INTERNAL_SECRET" in line
+            or "PAYMENT_SETTLEMENT_WORKER_SECRET" in line
+        )
+    ]
+    assert forbidden_backend_secret_lines == []
 
 
 def test_local_compose_worker_and_scheduler_do_not_reuse_telegram_secret() -> None:

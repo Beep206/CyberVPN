@@ -4,6 +4,7 @@ import httpx
 import pytest
 from pydantic import BaseModel
 
+from src.infrastructure.remnawave import client as remnawave_client_module
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveDeleteResponse
 
@@ -17,6 +18,26 @@ def test_normalize_path_prefixes_api_once():
     assert RemnawaveClient._normalize_path("/system/health") == "/api/system/health"
     assert RemnawaveClient._normalize_path("/api/system/health") == "/api/system/health"
     assert RemnawaveClient._normalize_path("node-plugins") == "/api/node-plugins"
+
+
+@pytest.mark.unit
+async def test_http_client_ignores_ambient_proxy_environment(monkeypatch):
+    captured: dict[str, object] = {}
+
+    class _Client:
+        is_closed = False
+
+    def _factory(**kwargs):
+        captured.update(kwargs)
+        return _Client()
+
+    monkeypatch.setenv("HTTPS_PROXY", "http://proxy.invalid:3128")
+    monkeypatch.setenv("ALL_PROXY", "http://proxy.invalid:3128")
+    monkeypatch.setattr(remnawave_client_module, "AsyncClient", _factory)
+
+    await RemnawaveClient()._get_client()
+
+    assert captured["trust_env"] is False
 
 
 class _CollectionItem(BaseModel):

@@ -1,0 +1,12 @@
+[Unit]
+Description=CyberVPN Antifilter BGP canonical candidate exporter timer
+
+[Timer]
+OnBootSec={{ antifilter_bgp_collector_timer_on_boot_sec }}
+OnUnitActiveSec={{ antifilter_bgp_collector_timer_on_unit_active_sec }}
+RandomizedDelaySec={{ antifilter_bgp_collector_timer_randomized_delay_sec }}
+Persistent=true
+Unit={{ antifilter_bgp_collector_service_name }}.service
+
+[Install]
+WantedBy=timers.target

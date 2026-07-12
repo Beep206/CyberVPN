@@ -46,6 +46,9 @@ remnawave_edge_certificates_dir: /opt/cybervpn/remnanode/certs
 
 remnawave_edge_extra_env: {}
 remnawave_edge_extra_volumes: []
+remnawave_edge_managed_host_aliases: []
+remnawave_edge_public_ingress_rules: []
+remnawave_edge_restricted_ingress_rules: []
 
 remnawave_edge_verify_host: 127.0.0.1
 remnawave_edge_verify_timeout: 30

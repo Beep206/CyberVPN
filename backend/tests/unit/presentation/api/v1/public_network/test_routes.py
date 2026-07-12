@@ -140,6 +140,9 @@ def test_get_public_network_overview_returns_sanitized_metrics(monkeypatch) -> N
     assert response.global_metrics.distinct_countries == 8
     assert response.global_metrics.monthly_traffic_bytes == 900_000_000_000
     assert response.global_metrics.today_bytes_out == 3_750_000_000
+    payload = response.model_dump(by_alias=True, mode="json")
+    assert {"schemaVersion", "generatedAt", "expiresAt", "freshnessStatus", "global"} <= payload.keys()
+    assert {"totalUsers", "onlineServers", "monthlyTrafficBytes", "todayBytesOut"} <= payload["global"].keys()
 
 
 def test_get_public_network_regions_aggregates_country_buckets(monkeypatch) -> None:
@@ -306,6 +309,9 @@ def test_get_public_network_widget_returns_embed_ready_payload(monkeypatch) -> N
     assert response.focus_region.id == "us"
     assert response.top_regions[0].id == "us"
     assert response.recommended_height == 420
+    payload = response.model_dump(by_alias=True, mode="json")
+    assert {"widgetType", "themeVariant", "recommendedHeight", "focusRegion", "topRegions"} <= payload.keys()
+    assert {"currentAvailabilityPct", "onlineServers", "incidentsCount"} <= payload["summary"].keys()
 
 
 def test_get_public_network_dpi_score_returns_truthful_disabled_contract(monkeypatch) -> None:
@@ -356,6 +362,9 @@ def test_get_public_network_dpi_score_returns_truthful_disabled_contract(monkeyp
     assert response.reason_code == "public_dpi_not_enabled"
     assert response.countries_tracked == 2
     assert response.countries == []
+    payload = response.model_dump(by_alias=True, mode="json")
+    assert {"methodologyVersion", "measurementWindow", "lastUpdatedAt", "countriesTracked"} <= payload.keys()
+    assert "minimumProbeCount" in payload["measurementWindow"]
 
 
 def test_get_public_network_dpi_score_prefers_published_snapshot(monkeypatch) -> None:
@@ -445,3 +454,4 @@ def test_publish_public_network_dpi_score_writes_cache(monkeypatch) -> None:
     assert captured["key"] == public_network_routes.PUBLIC_NETWORK_DPI_SCORE_CACHE_KEY
     assert isinstance(captured["ttl"], int)
     assert captured["ttl"] > 0
+    assert {"cacheKey", "expiresAt"} <= response.model_dump(by_alias=True, mode="json").keys()

@@ -1,0 +1,89 @@
+---
+- name: Task2 SPB listener IPv6 | Verify systemd unit syntax
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/systemd-analyze
+      - verify
+      - "/etc/systemd/system/{{ spb_listener_ipv6_address_unit_name }}.service"
+  changed_when: false
+
+- name: Task2 SPB listener IPv6 | Verify unit is enabled
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/systemctl
+      - is-enabled
+      - "{{ spb_listener_ipv6_address_unit_name }}.service"
+  changed_when: false
+
+- name: Task2 SPB listener IPv6 | Verify unit is active
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/systemctl
+      - is-active
+      - "{{ spb_listener_ipv6_address_unit_name }}.service"
+  changed_when: false
+
+- name: Task2 SPB listener IPv6 | Read configured IPv6 addresses
+  ansible.builtin.command:
+    argv:
+      - "{{ spb_listener_ipv6_address_ip_binary }}"
+      - -6
+      - -o
+      - addr
+      - show
+      - dev
+      - "{{ spb_listener_ipv6_address_interface }}"
+      - scope
+      - global
+  register: spb_listener_ipv6_address_verify_ipv6_state
+  changed_when: false
+
+- name: Task2 SPB listener IPv6 | Assert exact secondary address is present
+  ansible.builtin.assert:
+    that:
+      - >-
+        ('inet6 ' ~ spb_listener_ipv6_address_cidr ~ ' ') in
+        spb_listener_ipv6_address_verify_ipv6_state.stdout
+      - >-
+        not (
+          ('inet6 ' ~ spb_listener_ipv6_address_address ~ '/') in
+          spb_listener_ipv6_address_verify_ipv6_state.stdout and
+          ('inet6 ' ~ spb_listener_ipv6_address_cidr ~ ' ') not in
+          spb_listener_ipv6_address_verify_ipv6_state.stdout
+        )
+      - >-
+        spb_listener_ipv6_address_verify_ipv6_state.stdout is not search(
+          '(?m)inet6\\s+' ~
+          (spb_listener_ipv6_address_cidr | regex_escape) ~
+          '\\s+.*\\b(dadfailed|tentative|deprecated)\\b'
+        )
+    fail_msg: >-
+      The production SPB listener must expose exactly
+      2a01:e5c0:1368::3/48, must not contain that address with another
+      prefix length, and must not leave it in dadfailed, tentative, or
+      deprecated state.
+
+- name: Task2 SPB listener IPv6 | Check runtime ownership marker
+  ansible.builtin.slurp:
+    src: "{{ spb_listener_ipv6_address_state_dir }}/owned"
+  register: spb_listener_ipv6_address_owned_marker
+
+- name: Task2 SPB listener IPv6 | Assert runtime ownership marker is exact
+  ansible.builtin.assert:
+    that:
+      - >-
+        (spb_listener_ipv6_address_owned_marker.content | b64decode | trim) ==
+        spb_listener_ipv6_address_cidr
+    fail_msg: >-
+      The listener address is present but the runtime ownership marker does
+      not prove that this role owns 2a01:e5c0:1368::3/48.
+
+- name: Task2 SPB listener IPv6 | Read IPv6 default routes without changing them
+  ansible.builtin.command:
+    argv:
+      - "{{ spb_listener_ipv6_address_ip_binary }}"
+      - -6
+      - route
+      - show
+      - default
+  changed_when: false

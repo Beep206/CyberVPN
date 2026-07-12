@@ -1,0 +1,10 @@
+---
+vpn_test_agent_relay_enabled: false
+vpn_test_agent_relay_name: ""
+vpn_test_agent_relay_listen_ipv4: ""
+vpn_test_agent_relay_listen_port: 18082
+vpn_test_agent_relay_target_ipv6: ""
+vpn_test_agent_relay_target_port: 18080
+vpn_test_agent_relay_allowed_source_ipv4_cidr: ""
+vpn_test_agent_relay_manage_ufw: true
+vpn_test_agent_relay_unit_name: "cybervpn-vpn-test-agent-{{ vpn_test_agent_relay_name }}-relay"

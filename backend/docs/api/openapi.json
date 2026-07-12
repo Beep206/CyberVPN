@@ -50712,7 +50712,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 20,
+                "maxLength": 40,
                 "minLength": 1
               },
               {
@@ -73828,7 +73828,7 @@
           },
           "plan_code": {
             "type": "string",
-            "maxLength": 20,
+            "maxLength": 40,
             "minLength": 1,
             "title": "Plan Code"
           },
@@ -82656,7 +82656,7 @@
         "properties": {
           "trigger": {
             "type": "string",
-            "maxLength": 60,
+            "maxLength": 40,
             "minLength": 3,
             "title": "Trigger",
             "default": "scheduled"
@@ -111341,7 +111341,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 20,
+                "maxLength": 40,
                 "minLength": 1
               },
               {

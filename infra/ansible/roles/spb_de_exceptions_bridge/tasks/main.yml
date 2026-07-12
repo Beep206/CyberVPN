@@ -1,0 +1,17 @@
+---
+- import_tasks: validate.yml
+
+- import_tasks: deploy.yml
+  when:
+    - spb_de_exceptions_bridge_enabled | bool
+    - spb_de_exceptions_bridge_action == 'deploy'
+
+- import_tasks: verify.yml
+  when:
+    - spb_de_exceptions_bridge_enabled | bool
+    - spb_de_exceptions_bridge_action == 'verify'
+
+- import_tasks: rollback.yml
+  when:
+    - spb_de_exceptions_bridge_enabled | bool
+    - spb_de_exceptions_bridge_action == 'rollback'

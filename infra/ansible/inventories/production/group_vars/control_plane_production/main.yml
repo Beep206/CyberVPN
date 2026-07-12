@@ -31,6 +31,9 @@ control_plane_stack_enable_helix_adapter: true
 control_plane_public_base_url: https://panel.example.com
 control_plane_panel_domain: panel.example.com
 control_plane_subscription_domain: sub.example.com
+control_plane_stack_vpn_test_agent_url: ""
+control_plane_stack_vpn_test_agent_moscow_url: ""
+control_plane_stack_vpn_test_agent_spb_url: ""
 
 control_plane_postgres_user: cybervpn
 control_plane_postgres_db: cybervpn
@@ -83,6 +86,12 @@ control_plane_stack_backend_env: >-
       'TELEGRAM_BOT_USERNAME': vault_control_plane_backend_telegram_bot_username,
       'TELEGRAM_BOT_INTERNAL_SECRET': vault_control_plane_backend_telegram_bot_internal_secret,
       'BACKEND_INTERNAL_SECRET': vault_control_plane_backend_internal_secret,
+      'VPN_TEST_AGENT_URL': control_plane_stack_vpn_test_agent_url | default(''),
+      'VPN_TEST_AGENT_SECRET': vault_control_plane_vpn_test_agent_secret | default(''),
+      'VPN_TEST_AGENT_MOSCOW_URL': control_plane_stack_vpn_test_agent_moscow_url | default(''),
+      'VPN_TEST_AGENT_MOSCOW_SECRET': vault_control_plane_vpn_test_agent_moscow_secret | default(''),
+      'VPN_TEST_AGENT_SPB_URL': control_plane_stack_vpn_test_agent_spb_url | default(''),
+      'VPN_TEST_AGENT_SPB_SECRET': vault_control_plane_vpn_test_agent_spb_secret | default(''),
       'PAYMENT_SETTLEMENT_WORKER_SECRET': vault_control_plane_backend_payment_settlement_worker_secret,
       'ENVIRONMENT': control_plane_stack_environment,
       'LOG_LEVEL': 'INFO',
@@ -107,6 +116,12 @@ control_plane_stack_worker_env: >-
       'HELIX_ADAPTER_TOKEN': vault_control_plane_helix_internal_auth_token,
       'BACKEND_API_URL': 'http://cybervpn-backend:8000/api/v1',
       'BACKEND_INTERNAL_SECRET': vault_control_plane_backend_internal_secret,
+      'VPN_TEST_AGENT_URL': control_plane_stack_vpn_test_agent_url | default(''),
+      'VPN_TEST_AGENT_SECRET': vault_control_plane_vpn_test_agent_secret | default(''),
+      'VPN_TEST_AGENT_MOSCOW_URL': control_plane_stack_vpn_test_agent_moscow_url | default(''),
+      'VPN_TEST_AGENT_MOSCOW_SECRET': vault_control_plane_vpn_test_agent_moscow_secret | default(''),
+      'VPN_TEST_AGENT_SPB_URL': control_plane_stack_vpn_test_agent_spb_url | default(''),
+      'VPN_TEST_AGENT_SPB_SECRET': vault_control_plane_vpn_test_agent_spb_secret | default(''),
       'TELEGRAM_BOT_INTERNAL_SECRET': vault_control_plane_backend_telegram_bot_internal_secret,
       'PAYMENT_SETTLEMENT_WORKER_SECRET': vault_control_plane_backend_payment_settlement_worker_secret,
       'TELEGRAM_BOT_TOKEN': vault_control_plane_worker_telegram_bot_token,

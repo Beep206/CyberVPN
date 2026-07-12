@@ -1,0 +1,32 @@
+---
+- name: VPN test agent region | Wait for local health
+  ansible.builtin.uri:
+    url: "http://{{ vpn_test_agent_region_health_host }}:{{ vpn_test_agent_region_port }}/health"
+    method: GET
+    status_code: 200
+  register: vpn_test_agent_region_health
+  retries: 15
+  delay: 2
+  until: vpn_test_agent_region_health.status == 200
+
+- name: VPN test agent region | Inspect container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ vpn_test_agent_region_container_name }}"
+  register: vpn_test_agent_region_inspect
+  changed_when: false
+
+- name: VPN test agent region | Parse container inspection
+  ansible.builtin.set_fact:
+    vpn_test_agent_region_container: "{{ (vpn_test_agent_region_inspect.stdout | from_json | first) }}"
+
+- name: VPN test agent region | Assert container is host-networked and healthy
+  ansible.builtin.assert:
+    that:
+      - vpn_test_agent_region_container.State.Running | bool
+      - vpn_test_agent_region_container.Config.Image == vpn_test_agent_region_image
+      - vpn_test_agent_region_container.HostConfig.NetworkMode == 'host'
+      - vpn_test_agent_region_container.NetworkSettings.Ports | length == 0
+    fail_msg: "Regional VPN test agent is not running with host networking and no Docker-published ports."

@@ -1,0 +1,203 @@
+---
+- name: Antifilter BGP collector | Assert official Antifilter contract
+  ansible.builtin.assert:
+    that:
+      - antifilter_bgp_collector_remote_as | int == 65444
+      - antifilter_bgp_collector_local_as | int == 64999
+      - antifilter_bgp_collector_hold_time | int == 240
+      - antifilter_bgp_collector_multihop_ttl | int >= 16
+      - antifilter_bgp_collector_multihop_ttl | int <= 64
+      - antifilter_bgp_collector_neighbor_ipv4 == '45.148.244.55'
+      - antifilter_bgp_collector_neighbor_ipv6 == '2001:41d0:701:1100::1db1'
+      - antifilter_bgp_collector_required_communities | sort == [
+          '65444:100',
+          '65444:700',
+          '65444:710',
+          '65444:720',
+          '65444:730',
+          '65444:740',
+          '65444:750',
+          '65444:760',
+          '65444:770',
+          '65444:780',
+          '65444:790',
+          '65444:800',
+          '65444:65444'
+        ] | sort
+      - antifilter_bgp_collector_required_communities | unique | length == 13
+      - antifilter_bgp_collector_required_communities | length == 13
+    fail_msg: >-
+      The collector must stay pinned to the reviewed official Antifilter BGP
+      contract before live registration or deployment, including bounded eBGP
+      multihop for the Internet peer.
+
+- name: Antifilter BGP collector | Assert public source address and router id
+  ansible.builtin.assert:
+    that:
+      - >-
+        antifilter_bgp_collector_source_ipv4 is
+        match(antifilter_bgp_collector_public_ipv4_re)
+      - >-
+        antifilter_bgp_collector_router_id is
+        match(antifilter_bgp_collector_public_ipv4_re)
+      - >-
+        antifilter_bgp_collector_source_ipv4 is not
+        search(antifilter_bgp_collector_ipv4_bogon_re)
+      - >-
+        antifilter_bgp_collector_router_id is not
+        search(antifilter_bgp_collector_ipv4_bogon_re)
+      - >-
+        antifilter_bgp_collector_source_ipv4 is not
+        search(antifilter_bgp_collector_ipv4_multicast_re)
+      - >-
+        antifilter_bgp_collector_router_id is not
+        search(antifilter_bgp_collector_ipv4_multicast_re)
+      - >-
+        antifilter_bgp_collector_router_id ==
+        antifilter_bgp_collector_source_ipv4 or
+        antifilter_bgp_collector_router_id_override_justification | length >= 20
+      - >-
+        not antifilter_bgp_collector_ipv6_enabled | bool or
+        antifilter_bgp_collector_source_ipv6 is match('^[0-9A-Fa-f:]+$')
+      - >-
+        not antifilter_bgp_collector_ipv6_enabled | bool or
+        antifilter_bgp_collector_source_ipv6 is not
+        search(antifilter_bgp_collector_ipv6_bogon_re)
+    fail_msg: >-
+      Set source_ipv4 to the registered public collector IPv4 address and keep
+      router_id equal to it unless a reviewed override justification is
+      recorded. Documentation, private, CGNAT, link-local, multicast and other
+      bogon addresses are rejected when the collector is enabled.
+  vars:
+    antifilter_bgp_collector_public_ipv4_re: >-
+      (?x)^(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]?)
+      (?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]|[1-9][0-9]?)){3}$
+    antifilter_bgp_collector_ipv4_bogon_re: >-
+      (?x)^(?:10|127|169\.254|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168|
+      192\.0\.(?:0|2)|192\.88\.99|198\.51\.100|203\.0\.113|
+      198\.(?:18|19)|100\.(?:6[4-9]|[789][0-9]|1[01][0-9]|12[0-7]))\.
+    antifilter_bgp_collector_ipv4_multicast_re: >-
+      (?x)^(?:22[4-9]|23[0-9]|24[0-9]|25[0-5])\.
+    antifilter_bgp_collector_ipv6_bogon_re: >-
+      ^(?i:(?:fc|fd|fe80|ff|2001:db8|::1$|::$))
+
+- name: Antifilter BGP collector | Assert paths and exporter bounds
+  ansible.builtin.assert:
+    that:
+      - antifilter_bgp_collector_router_id is match('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$')
+      - >-
+        antifilter_bgp_collector_bird_binary is
+        match(antifilter_bgp_collector_safe_abs_path_re)
+      - >-
+        antifilter_bgp_collector_birdc_path is
+        match(antifilter_bgp_collector_safe_abs_path_re)
+      - >-
+        antifilter_bgp_collector_python_path is
+        match(antifilter_bgp_collector_safe_abs_path_re)
+      - >-
+        antifilter_bgp_collector_bird_socket is
+        match(antifilter_bgp_collector_safe_abs_path_re)
+      - >-
+        antifilter_bgp_collector_bird_config_path is
+        match(antifilter_bgp_collector_safe_abs_path_re)
+      - >-
+        antifilter_bgp_collector_root_dir is
+        match(antifilter_bgp_collector_safe_abs_path_re)
+      - >-
+        antifilter_bgp_collector_output_root is
+        match(antifilter_bgp_collector_safe_abs_path_re)
+      - >-
+        antifilter_bgp_collector_exporter_path is
+        match(antifilter_bgp_collector_safe_abs_path_re)
+      - >-
+        antifilter_bgp_collector_table_ipv4 is
+        match(antifilter_bgp_collector_bird_identifier_re)
+      - >-
+        antifilter_bgp_collector_table_ipv6 is
+        match(antifilter_bgp_collector_bird_identifier_re)
+      - >-
+        antifilter_bgp_collector_protocol_ipv4 is
+        match(antifilter_bgp_collector_bird_identifier_re)
+      - >-
+        antifilter_bgp_collector_protocol_ipv6 is
+        match(antifilter_bgp_collector_bird_identifier_re)
+      - >-
+        antifilter_bgp_collector_bird_service is
+        match(antifilter_bgp_collector_systemd_name_re)
+      - >-
+        antifilter_bgp_collector_collector_name is
+        match(antifilter_bgp_collector_cli_token_re)
+      - antifilter_bgp_collector_command_timeout_seconds | int >= 1
+      - antifilter_bgp_collector_command_timeout_seconds | int <= 120
+      - antifilter_bgp_collector_max_output_bytes | int >= 1048576
+      - antifilter_bgp_collector_max_output_bytes | int <= 268435456
+      - antifilter_bgp_collector_max_lines_per_community | int >= 1
+      - antifilter_bgp_collector_max_lines_per_community | int <= 2000000
+      - >-
+        antifilter_bgp_collector_ipv6_policy_mode in
+        ['enabled', 'disabled', 'fallback_block']
+      - >-
+        antifilter_bgp_collector_ipv6_policy_mode ==
+        ('enabled' if antifilter_bgp_collector_ipv6_enabled | bool else
+        antifilter_bgp_collector_ipv6_policy_mode)
+      - antifilter_bgp_collector_ipv6_policy_reason | length >= 20
+      - antifilter_bgp_collector_ipv6_policy_reason | length <= 500
+      - >-
+        antifilter_bgp_collector_ipv6_policy_reason is not
+        search(antifilter_bgp_collector_systemd_unsafe_text_re)
+      - >-
+        antifilter_bgp_collector_service_name is
+        match(antifilter_bgp_collector_systemd_name_re)
+      - >-
+        antifilter_bgp_collector_timer_name is
+        match(antifilter_bgp_collector_systemd_name_re)
+    fail_msg: >-
+      Configure safe absolute collector paths, BIRD identifiers, explicit IPv6
+      policy, bounded birdc output limits, and stable systemd service names
+      before rendering BIRD or systemd templates.
+  vars:
+    antifilter_bgp_collector_safe_abs_path_re: >-
+      ^/[A-Za-z0-9._/@+=:-]+(?:/[A-Za-z0-9._/@+=:-]+)*$
+    antifilter_bgp_collector_bird_identifier_re: >-
+      ^[A-Za-z_][A-Za-z0-9_]{0,63}$
+    antifilter_bgp_collector_systemd_name_re: >-
+      ^[A-Za-z0-9][A-Za-z0-9_.@-]{0,63}$
+    antifilter_bgp_collector_cli_token_re: >-
+      ^[A-Za-z0-9][A-Za-z0-9_.@:-]{0,199}$
+    antifilter_bgp_collector_systemd_unsafe_text_re: '[\r\n%]'
+
+- name: Antifilter BGP collector | Assert optional BGP password is vault-backed when set
+  ansible.builtin.assert:
+    that:
+      - >-
+        antifilter_bgp_collector_bgp_password | length == 0 or
+        vault_antifilter_bgp_collector_bgp_password is defined
+      - >-
+        antifilter_bgp_collector_bgp_password | length == 0 or
+        antifilter_bgp_collector_bgp_password ==
+        vault_antifilter_bgp_collector_bgp_password
+      - >-
+        antifilter_bgp_collector_bgp_password | length == 0 or
+        antifilter_bgp_collector_bgp_password | length >= 16
+      - >-
+        antifilter_bgp_collector_bgp_password | length == 0 or
+        antifilter_bgp_collector_bgp_password | length <= 200
+      - >-
+        antifilter_bgp_collector_bgp_password | length == 0 or
+        antifilter_bgp_collector_bgp_password is not
+        search(antifilter_bgp_collector_bird_string_unsafe_re)
+      - >-
+        antifilter_bgp_collector_bgp_password | length == 0 or
+        (antifilter_bgp_collector_bgp_password | lower) is not
+        search(antifilter_bgp_collector_secret_placeholder_re)
+    fail_msg: >-
+      The official Antifilter BGP onboarding may not provide a password. Leave
+      antifilter_bgp_collector_bgp_password empty in that case. If a password is
+      ever issued, set it only through vault_antifilter_bgp_collector_bgp_password
+      from Ansible Vault or an equivalent encrypted inventory source.
+  no_log: true
+  vars:
+    antifilter_bgp_collector_secret_placeholder_re: >-
+      (?x)replace|example|test|placeholder|changeme|dummy|local|development|dev-|
+      redacted|your_|password
+    antifilter_bgp_collector_bird_string_unsafe_re: '["\\\r\n;{}#]'

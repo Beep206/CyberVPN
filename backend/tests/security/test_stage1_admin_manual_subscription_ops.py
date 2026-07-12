@@ -27,6 +27,8 @@ from src.presentation.api.v1.admin.customer_support_schemas import (
     AdminCustomerManualSubscriptionRequest,
 )
 
+TASK2_PLAN_CODE = "premium_spb_de_exceptions"
+
 
 class FakeRemnawaveUserGateway:
     def __init__(self, *, current_user: User | None = None, applied_user: User | None = None) -> None:
@@ -58,6 +60,16 @@ def test_stage1_manual_subscription_permission_matrix_uses_subscription_create()
     assert not can_apply_stage1_manual_subscription(AdminRole.FINANCE)
     assert not can_apply_stage1_manual_subscription(AdminRole.VIEWER)
     assert has_permission(AdminRole.OPERATOR, Permission.SUBSCRIPTION_CREATE)
+
+
+def test_admin_manual_subscription_schema_accepts_task2_plan_code() -> None:
+    request = AdminCustomerManualSubscriptionRequest(
+        reason="grant Task2 access",
+        plan_code=TASK2_PLAN_CODE,
+        duration_days=30,
+    )
+
+    assert request.plan_code == TASK2_PLAN_CODE
 
 
 @pytest.mark.asyncio

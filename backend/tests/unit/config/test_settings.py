@@ -122,6 +122,116 @@ class TestWeakSecretPatterns:
 
         assert settings.debug is False
 
+    def test_default_remnawave_squad_targets_premium_smart_ru(self) -> None:
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+        )
+
+        assert settings.remnawave_default_internal_squad_name == "CYBERVPN_PREMIUM_SMART_RU_NODES"
+
+    def test_default_spb_de_exceptions_settings_are_explicit_and_isolated(self) -> None:
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+        )
+
+        assert settings.remnawave_spb_de_exceptions_plan_codes == "premium_spb_de_exceptions"
+        assert settings.remnawave_spb_de_exceptions_external_squad_uuid == ""
+        assert settings.remnawave_spb_de_exceptions_internal_squad_uuid == ""
+        assert settings.remnawave_spb_de_exceptions_bridge_squad_uuid == ""
+        assert settings.remnawave_spb_de_exceptions_profile_name == "S1 SPB DE Exceptions"
+        assert settings.remnawave_spb_de_exceptions_policy_version == "premium_spb_de_exceptions.v1"
+        assert settings.remnawave_spb_de_exceptions_data_plane_ready is False
+        assert settings.remnawave_spb_de_exceptions_readiness_attestation == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_attestation_path == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_public_key == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_public_key_path == ""
+        assert settings.remnawave_spb_de_exceptions_readiness_revoked_attestation_ids == ""
+        assert settings.remnawave_spb_de_exceptions_plan_codes != settings.remnawave_smart_ru_plan_codes
+
+    def test_spb_de_exceptions_data_plane_ready_must_be_explicitly_enabled(self) -> None:
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+            remnawave_spb_de_exceptions_data_plane_ready=True,
+        )
+
+        assert settings.remnawave_spb_de_exceptions_data_plane_ready is True
+
+    @pytest.mark.parametrize(("raw_value", "expected"), [("true", True), ("false", False)])
+    def test_spb_de_exceptions_data_plane_ready_env_override(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        raw_value: str,
+        expected: bool,
+    ) -> None:
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_DATA_PLANE_READY", raw_value)
+
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+        )
+
+        assert settings.remnawave_spb_de_exceptions_data_plane_ready is expected
+
+    def test_spb_de_exceptions_readiness_attestation_settings_accept_env_overrides(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_ATTESTATION", "signed.jwt")
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_ATTESTATION_PATH", "/run/cybervpn/task2.jwt")
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_PUBLIC_KEY", "-----BEGIN PUBLIC KEY-----")
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_PUBLIC_KEY_PATH", "/run/cybervpn/task2.pub")
+        monkeypatch.setenv(
+            "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_REVOKED_ATTESTATION_IDS",
+            "task2-attestation-20260711",
+        )
+
+        settings = Settings(
+            _env_file=None,
+            environment="development",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+        )
+
+        assert settings.remnawave_spb_de_exceptions_readiness_attestation == "signed.jwt"
+        assert settings.remnawave_spb_de_exceptions_readiness_attestation_path == "/run/cybervpn/task2.jwt"
+        assert settings.remnawave_spb_de_exceptions_readiness_public_key == "-----BEGIN PUBLIC KEY-----"
+        assert settings.remnawave_spb_de_exceptions_readiness_public_key_path == "/run/cybervpn/task2.pub"
+        assert settings.remnawave_spb_de_exceptions_readiness_revoked_attestation_ids == ("task2-attestation-20260711")
+
+    def test_spb_de_exceptions_data_plane_ready_false_is_allowed_in_production(self) -> None:
+        settings = Settings(
+            _env_file=None,
+            environment="production",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            payment_settlement_worker_secret=SecretStr(self.VALID_WORKER_SECRET),
+            telegram_bot_internal_secret=SecretStr(""),
+            oauth_token_encryption_key=SecretStr(self.STRONG_SECRET),
+            oauth_enabled_login_providers=[],
+            cors_origins=self.PRODUCTION_CORS_ORIGINS,
+            cookie_secure=True,
+            admin_2fa_required=True,
+        )
+
+        assert settings.remnawave_spb_de_exceptions_data_plane_ready is False
+
 
 class TestS1CorsAndCookieSettings:
     """Test S1 production browser-origin and cookie constraints."""
@@ -448,6 +558,49 @@ class TestPaymentSettlementWorkerSettings:
         )
 
         assert settings.payment_settlement_worker_enabled is False
+
+
+class TestVpnRuntimeAgentProductionSettings:
+    def _production_settings(self, **overrides):
+        values = {
+            "environment": "production",
+            "jwt_secret": SecretStr(TestWeakSecretPatterns.STRONG_SECRET),
+            "remnawave_token": SecretStr(TestWeakSecretPatterns.VALID_TOKEN),
+            "cryptobot_token": SecretStr(TestWeakSecretPatterns.VALID_PRODUCTION_PROVIDER_TOKEN),
+            "payment_settlement_worker_secret": SecretStr(TestWeakSecretPatterns.VALID_WORKER_SECRET),
+            "telegram_bot_internal_secret": SecretStr(""),
+            "oauth_token_encryption_key": SecretStr(TestWeakSecretPatterns.STRONG_SECRET),
+            "oauth_enabled_login_providers": [],
+            "cors_origins": list(S1_PRODUCTION_CORS_ORIGINS),
+            "cookie_secure": True,
+            "admin_2fa_required": True,
+            "vpn_tester_runtime_enabled": True,
+            "vpn_test_agent_url": "http://cybervpn-vpn-test-agent:8080",
+            "vpn_test_agent_secret": SecretStr("liveVpnRuntimeAgentCredentialAlpha123456"),
+        }
+        values.update(overrides)
+        return Settings(**values)
+
+    @pytest.mark.parametrize("secret", ["short", "replace-before-live-vpn-test-agent", "example-test-secret-value"])
+    def test_production_runtime_rejects_weak_agent_secret(self, secret: str) -> None:
+        with pytest.raises(ValidationError, match="VPN_TEST_AGENT_SECRET"):
+            self._production_settings(vpn_test_agent_secret=SecretStr(secret))
+
+    def test_production_runtime_requires_primary_agent_url_and_secret(self) -> None:
+        with pytest.raises(ValidationError, match="configured together|required"):
+            self._production_settings(vpn_test_agent_url="", vpn_test_agent_secret=None)
+
+    def test_production_runtime_rejects_partial_regional_target(self) -> None:
+        with pytest.raises(ValidationError, match="VPN_TEST_AGENT_MOSCOW"):
+            self._production_settings(vpn_test_agent_moscow_url="http://moscow-agent:18080")
+
+    def test_production_runtime_accepts_strong_agent_targets(self) -> None:
+        configured = self._production_settings(
+            vpn_test_agent_moscow_url="http://moscow-agent:18080",
+            vpn_test_agent_moscow_secret=SecretStr("liveMoscowRuntimeAgentCredentialAlpha123"),
+        )
+
+        assert configured.vpn_tester_runtime_enabled is True
 
 
 class TestS2OAuthProductionReadiness:

@@ -1,0 +1,80 @@
+---
+- name: Antifilter BGP collector | Install BIRD2 and Python runtime
+  ansible.builtin.apt:
+    name:
+      - "{{ antifilter_bgp_collector_bird_package }}"
+      - python3
+    state: present
+    update_cache: true
+
+- name: Antifilter BGP collector | Ensure root-owned directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ antifilter_bgp_collector_root_dir }}"
+      mode: "0750"
+    - path: "{{ antifilter_bgp_collector_output_root }}"
+      mode: "0750"
+    - path: "{{ antifilter_bgp_collector_exporter_path | dirname }}"
+      mode: "0755"
+    - path: "{{ antifilter_bgp_collector_bird_config_path | dirname }}"
+      mode: "0755"
+
+- name: Antifilter BGP collector | Install deterministic exporter
+  ansible.builtin.copy:
+    src: "{{ antifilter_bgp_collector_exporter_src }}"
+    dest: "{{ antifilter_bgp_collector_exporter_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Antifilter BGP collector | Render BIRD2 read-only BGP configuration
+  ansible.builtin.template:
+    src: bird.conf.j2
+    dest: "{{ antifilter_bgp_collector_bird_config_path }}"
+    owner: root
+    group: bird
+    mode: "0640"
+    validate: "{{ antifilter_bgp_collector_bird_binary }} -p -c %s"
+  notify: Antifilter BGP collector | Restart BIRD
+  no_log: true
+
+- name: Antifilter BGP collector | Render candidate exporter service
+  ansible.builtin.template:
+    src: collector.service.j2
+    dest: "/etc/systemd/system/{{ antifilter_bgp_collector_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Antifilter BGP collector | Reload systemd
+
+- name: Antifilter BGP collector | Render candidate exporter timer
+  ansible.builtin.template:
+    src: collector.timer.j2
+    dest: "/etc/systemd/system/{{ antifilter_bgp_collector_timer_name }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Antifilter BGP collector | Reload systemd
+
+- name: Antifilter BGP collector | Flush service handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Antifilter BGP collector | Enable BIRD2 service
+  ansible.builtin.systemd_service:
+    name: "{{ antifilter_bgp_collector_bird_service }}"
+    enabled: true
+    state: started
+  when: not ansible_check_mode
+
+- name: Antifilter BGP collector | Enable candidate generation timer
+  ansible.builtin.systemd_service:
+    name: "{{ antifilter_bgp_collector_timer_name }}.timer"
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: not ansible_check_mode

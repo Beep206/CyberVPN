@@ -1,0 +1,15 @@
+---
+- name: Deploy CyberVPN Antifilter BGP collector
+  hosts: "{{ antifilter_bgp_collector_target_group | default('antifilter_bgp_collector') }}"
+  become: true
+  pre_tasks:
+    - name: Antifilter BGP collector | Refuse silent no-op deploy
+      ansible.builtin.assert:
+        that:
+          - antifilter_bgp_collector_enabled | default(false) | bool
+        fail_msg: >-
+          Set antifilter_bgp_collector_enabled=true plus reviewed source/router
+          variables for this target. The dedicated deploy playbook must not
+          succeed as a silent no-op.
+  roles:
+    - role: antifilter_bgp_collector

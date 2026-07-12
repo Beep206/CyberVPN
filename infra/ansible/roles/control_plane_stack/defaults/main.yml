@@ -37,7 +37,7 @@ control_plane_stack_enable_worker: true
 control_plane_stack_enable_scheduler: true
 control_plane_stack_enable_helix_adapter: true
 
-control_plane_stack_remnawave_image: remnawave/backend:2.8.0
+control_plane_stack_remnawave_image: cybervpn/remnawave-backend:2.8.0-raw-vision-flow.2
 control_plane_stack_postgres_image: postgres:17.10
 control_plane_stack_valkey_image: valkey/valkey:8.1.8-alpine
 control_plane_stack_db_backup_image: prodrigestivill/postgres-backup-local:17-debian-d257e5d
@@ -64,6 +64,10 @@ control_plane_stack_worker_metrics_port: 9092
 control_plane_stack_helix_adapter_bind_host: 127.0.0.1
 control_plane_stack_helix_adapter_port: 8088
 control_plane_stack_helix_adapter_metrics_prefix: helix
+
+control_plane_stack_vpn_test_agent_url: ""
+control_plane_stack_vpn_test_agent_moscow_url: ""
+control_plane_stack_vpn_test_agent_spb_url: ""
 
 control_plane_stack_postgres_data_dir: /var/lib/cybervpn/control-plane/postgres
 control_plane_stack_db_backup_dir: /var/backups/cybervpn/postgres

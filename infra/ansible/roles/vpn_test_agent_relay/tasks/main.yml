@@ -1,0 +1,69 @@
+---
+- name: VPN test agent relay | Validate configuration
+  ansible.builtin.assert:
+    that:
+      - vpn_test_agent_relay_name is match('^[a-z0-9][a-z0-9-]{1,31}$')
+      - vpn_test_agent_relay_listen_ipv4 | length > 0
+      - vpn_test_agent_relay_listen_ipv4 is match('^(?:10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)')
+      - vpn_test_agent_relay_listen_port | int >= 1024
+      - vpn_test_agent_relay_listen_port | int <= 65535
+      - vpn_test_agent_relay_target_ipv6 | length > 0
+      - vpn_test_agent_relay_target_port | int >= 1024
+      - vpn_test_agent_relay_target_port | int <= 65535
+      - vpn_test_agent_relay_allowed_source_ipv4_cidr | length > 0
+      - vpn_test_agent_relay_allowed_source_ipv4_cidr is match('^(?:10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.).*/(?:2[4-9]|3[0-2])$')
+      - vpn_test_agent_relay_allowed_source_ipv4_cidr != '0.0.0.0/0'
+      - vpn_test_agent_relay_allowed_source_ipv4_cidr == '172.30.2.0/24'
+      - vpn_test_agent_relay_manage_ufw | bool
+    fail_msg: >-
+      Configure a bridge-only IPv4 listener, an IPv6 regional-agent target,
+      and the exact Docker source subnet before enabling the relay.
+  when: vpn_test_agent_relay_enabled
+
+- name: VPN test agent relay | Install socat
+  ansible.builtin.apt:
+    name: socat
+    state: present
+    update_cache: true
+  when: vpn_test_agent_relay_enabled
+
+- name: VPN test agent relay | Render hardened systemd unit
+  ansible.builtin.template:
+    src: relay.service.j2
+    dest: "/etc/systemd/system/{{ vpn_test_agent_relay_unit_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  when: vpn_test_agent_relay_enabled
+
+- name: VPN test agent relay | Allow only the Docker egress subnet
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    from_ip: "{{ vpn_test_agent_relay_allowed_source_ipv4_cidr }}"
+    to_ip: "{{ vpn_test_agent_relay_listen_ipv4 }}"
+    to_port: "{{ vpn_test_agent_relay_listen_port | string }}"
+    comment: "CyberVPN VPN tester {{ vpn_test_agent_relay_name }} relay"
+  when:
+    - vpn_test_agent_relay_enabled
+    - vpn_test_agent_relay_manage_ufw
+
+- name: VPN test agent relay | Start systemd unit
+  ansible.builtin.systemd:
+    name: "{{ vpn_test_agent_relay_unit_name }}"
+    daemon_reload: true
+    enabled: true
+    state: restarted
+  when: vpn_test_agent_relay_enabled
+
+- name: VPN test agent relay | Verify relayed health
+  ansible.builtin.uri:
+    url: "http://{{ vpn_test_agent_relay_listen_ipv4 }}:{{ vpn_test_agent_relay_listen_port }}/health"
+    method: GET
+    status_code: 200
+  register: vpn_test_agent_relay_health
+  retries: 15
+  delay: 2
+  until: vpn_test_agent_relay_health.status == 200
+  when: vpn_test_agent_relay_enabled

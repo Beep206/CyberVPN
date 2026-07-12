@@ -1,0 +1,18 @@
+[Unit]
+Description=CyberVPN Task2 SPB DE exceptions bridge port 9444 preflight
+Documentation=file:/opt/cybervpn/docs/runbooks/SPB_DE_EXCEPTIONS_ROLLBACK.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -c 'if /usr/bin/ss -H -lntu sport = :9444 | /usr/bin/grep -q .; then echo "Task2 bridge port 9444 is already in use"; exit 1; fi'
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK
+MemoryMax=64M
+TasksMax=64

@@ -85,12 +85,16 @@ def test_optional_remnawave_admin_objects_degrade_to_safe_empty_shapes() -> None
     node_plugins = asyncio.run(node_plugin_routes.list_node_plugins(_current_user=object(), client=client))
     assert node_plugins.total == 0
     assert node_plugins.node_plugins == []
+    assert node_plugins.model_dump(by_alias=True) == {"total": 0, "nodePlugins": []}
 
     torrent_stats = asyncio.run(node_plugin_routes.get_torrent_blocker_stats(_current_user=object(), client=client))
     assert torrent_stats.stats.total_reports == 0
     assert torrent_stats.stats.reports_last_24_hours == 0
     assert torrent_stats.top_users == []
     assert torrent_stats.top_nodes == []
+    torrent_payload = torrent_stats.model_dump(by_alias=True)
+    assert {"distinctNodes", "distinctUsers", "totalReports", "reportsLast24Hours"} <= torrent_payload["stats"].keys()
+    assert {"topUsers", "topNodes"} <= torrent_payload.keys()
 
     xray_config = asyncio.run(xray_routes.get_xray_config(current_user=object(), client=client))
     assert xray_config.inbounds == []

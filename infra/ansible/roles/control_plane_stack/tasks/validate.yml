@@ -92,6 +92,40 @@
   when: control_plane_stack_enable_backend
   no_log: true
 
+- name: Control plane | Assert VPN test agent endpoints and secrets are complete
+  vars:
+    vpn_test_agent_placeholder_pattern: 'replace|example|test|placeholder|changeme|dummy|local|development|dev-|redacted|your_'
+  ansible.builtin.assert:
+    that:
+      - (control_plane_stack_backend_env.VPN_TEST_AGENT_URL | length > 0) == (control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET | length > 0)
+      - (control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_URL | length > 0) == (control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET | length > 0)
+      - (control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_URL | length > 0) == (control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET | length > 0)
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET | length == 0 or control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET | length >= 16
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET | length == 0 or control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET | length >= 16
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET | length == 0 or control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET | length >= 16
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET | length == 0 or (control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET | lower) is not search(vpn_test_agent_placeholder_pattern)
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET | length == 0 or (control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET | lower) is not search(vpn_test_agent_placeholder_pattern)
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET | length == 0 or (control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET | lower) is not search(vpn_test_agent_placeholder_pattern)
+      - not (control_plane_stack_backend_env.VPN_TESTER_RUNTIME_ENABLED | default('false') | bool) or control_plane_stack_backend_env.VPN_TEST_AGENT_URL | length > 0
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_URL == control_plane_stack_worker_env.VPN_TEST_AGENT_URL
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET == control_plane_stack_worker_env.VPN_TEST_AGENT_SECRET
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_URL == control_plane_stack_worker_env.VPN_TEST_AGENT_MOSCOW_URL
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET == control_plane_stack_worker_env.VPN_TEST_AGENT_MOSCOW_SECRET
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_URL == control_plane_stack_worker_env.VPN_TEST_AGENT_SPB_URL
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET == control_plane_stack_worker_env.VPN_TEST_AGENT_SPB_SECRET
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_URL == control_plane_stack_effective_scheduler_env.VPN_TEST_AGENT_URL
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET == control_plane_stack_effective_scheduler_env.VPN_TEST_AGENT_SECRET
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_URL == control_plane_stack_effective_scheduler_env.VPN_TEST_AGENT_MOSCOW_URL
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET == control_plane_stack_effective_scheduler_env.VPN_TEST_AGENT_MOSCOW_SECRET
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_URL == control_plane_stack_effective_scheduler_env.VPN_TEST_AGENT_SPB_URL
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET == control_plane_stack_effective_scheduler_env.VPN_TEST_AGENT_SPB_SECRET
+    fail_msg: >-
+      Configure complete VPN test agent URL/secret pairs for primary and optional
+      regional agents. Secrets must be dedicated non-placeholder values, and
+      backend, worker, and scheduler must receive the same routing configuration.
+  when: control_plane_stack_enable_backend
+  no_log: true
+
 - name: Control plane | Assert backend internal secrets use distinct audiences
   ansible.builtin.assert:
     that:
