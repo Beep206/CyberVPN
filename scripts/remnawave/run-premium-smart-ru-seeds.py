@@ -47,6 +47,10 @@ STAGED_NAMES = {
     "incy_canary": "incy-xray-failover-canary.json",
     "legacy_header": "legacy-routing-header.json",
 }
+INCY_TEMPLATE_NAMES = (
+    "CyberVPN Premium Smart RU INCY",
+    "CyberVPN Premium Smart RU INCY Failover Canary",
+)
 
 
 def _sha256(content: bytes) -> str:
@@ -564,6 +568,92 @@ def _run_container_psql(
         subprocess.run(base, input=seed.read_bytes(), check=True)
 
 
+def _validate_cache_key_prefix(value: str) -> str:
+    if (
+        not value
+        or len(value) > 128
+        or any(character.isspace() or ord(character) < 32 for character in value)
+        or any(character in "*?[]" for character in value)
+    ):
+        raise RuntimeError("Cache key prefix is invalid")
+    return value
+
+
+def _invalidate_container_template_cache(
+    *,
+    docker: str,
+    database_container: str,
+    cache_container: str,
+    cache_binary: str,
+    cache_key_prefix: str,
+    database_user: str | None,
+    database_name: str | None,
+) -> int:
+    prefix = _validate_cache_key_prefix(cache_key_prefix)
+    query = """
+select uuid::text
+from subscription_templates
+where template_type = 'XRAY_JSON'
+  and name in (
+    'CyberVPN Premium Smart RU INCY',
+    'CyberVPN Premium Smart RU INCY Failover Canary'
+  )
+order by name;
+""".lstrip()
+    command = [
+        docker,
+        "exec",
+        "-i",
+        database_container,
+        "psql",
+        "-X",
+        "-At",
+        "-v",
+        "ON_ERROR_STOP=1",
+    ]
+    if database_user:
+        command.extend(["-U", database_user])
+    if database_name:
+        command.extend(["-d", database_name])
+    result = subprocess.run(
+        command,
+        input=query.encode(),
+        stdout=subprocess.PIPE,
+        check=True,
+    )
+    uuids = [
+        line.strip() for line in result.stdout.decode().splitlines() if line.strip()
+    ]
+    if len(uuids) != len(INCY_TEMPLATE_NAMES):
+        raise RuntimeError(
+            "Expected both INCY subscription templates before cache invalidation"
+        )
+    try:
+        normalized_uuids = [str(uuid.UUID(value)) for value in uuids]
+    except ValueError as exc:
+        raise RuntimeError("Subscription template UUID is invalid") from exc
+
+    keys = [
+        *(
+            f"{prefix}subscription_template:{name}:XRAY_JSON"
+            for name in INCY_TEMPLATE_NAMES
+        ),
+        *(f"{prefix}xray_json_template:{value}" for value in normalized_uuids),
+    ]
+    deleted = subprocess.run(
+        [docker, "exec", cache_container, cache_binary, "--raw", "UNLINK", *keys],
+        stdout=subprocess.PIPE,
+        check=True,
+    )
+    try:
+        deleted_count = int(deleted.stdout.decode().strip())
+    except ValueError as exc:
+        raise RuntimeError("Cache invalidation returned an invalid result") from exc
+    if not 0 <= deleted_count <= len(keys):
+        raise RuntimeError("Cache invalidation returned an impossible key count")
+    return deleted_count
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -586,6 +676,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--container-stage-owner", default="postgres")
     parser.add_argument("--database-user")
     parser.add_argument("--database-name")
+    parser.add_argument(
+        "--cache-container",
+        help="Invalidate exact Remnawave template cache keys after a successful Docker seed",
+    )
+    parser.add_argument("--cache-binary", default="valkey-cli")
+    parser.add_argument("--cache-key-prefix", default="ioraw:")
     parser.add_argument(
         "--execute",
         action="store_true",
@@ -625,6 +721,17 @@ def main() -> int:
                         database_user=args.database_user,
                         database_name=args.database_name,
                     )
+                    if args.cache_container:
+                        deleted = _invalidate_container_template_cache(
+                            docker=args.docker_binary,
+                            database_container=args.docker_container,
+                            cache_container=args.cache_container,
+                            cache_binary=args.cache_binary,
+                            cache_key_prefix=args.cache_key_prefix,
+                            database_user=args.database_user,
+                            database_name=args.database_name,
+                        )
+                        print(json.dumps({"invalidatedTemplateCacheKeys": deleted}))
                 finally:
                     _remove_container_stage(
                         docker=args.docker_binary,

@@ -278,6 +278,68 @@ def test_container_stage_root_and_cleanup_are_path_confined() -> None:
         )
 
 
+def test_container_seed_invalidates_only_exact_incy_template_cache_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_module()
+    template_uuids = (
+        "11111111-1111-4111-8111-111111111111",
+        "22222222-2222-4222-8222-222222222222",
+    )
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
+    def fake_run(command: list[str], **kwargs: object) -> object:
+        calls.append((list(command), dict(kwargs)))
+        if "psql" in command:
+            stdout = ("\n".join(template_uuids) + "\n").encode()
+        else:
+            stdout = b"3\n"
+        return module.subprocess.CompletedProcess(command, 0, stdout=stdout)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    deleted = module._invalidate_container_template_cache(
+        docker="docker",
+        database_container="remnawave-db",
+        cache_container="remnawave-valkey",
+        cache_binary="valkey-cli",
+        cache_key_prefix="ioraw:",
+        database_user="remnawave",
+        database_name="remnawave",
+    )
+
+    assert deleted == 3
+    assert len(calls) == 2
+    query_command, query_kwargs = calls[0]
+    assert query_command[:6] == ["docker", "exec", "-i", "remnawave-db", "psql", "-X"]
+    assert query_kwargs["check"] is True
+    assert query_kwargs["stdout"] is module.subprocess.PIPE
+    cache_command, cache_kwargs = calls[1]
+    assert cache_command[:6] == [
+        "docker",
+        "exec",
+        "remnawave-valkey",
+        "valkey-cli",
+        "--raw",
+        "UNLINK",
+    ]
+    assert cache_command[6:] == [
+        "ioraw:subscription_template:CyberVPN Premium Smart RU INCY:XRAY_JSON",
+        "ioraw:subscription_template:CyberVPN Premium Smart RU INCY Failover Canary:XRAY_JSON",
+        f"ioraw:xray_json_template:{template_uuids[0]}",
+        f"ioraw:xray_json_template:{template_uuids[1]}",
+    ]
+    assert cache_kwargs["check"] is True
+
+
+@pytest.mark.parametrize("prefix", ["", "ioraw:*", "ioraw:\n", "x" * 129])
+def test_cache_key_prefix_rejects_wildcards_controls_and_unbounded_values(prefix: str) -> None:
+    module = _load_module()
+
+    with pytest.raises(RuntimeError, match="Cache key prefix is invalid"):
+        module._validate_cache_key_prefix(prefix)
+
+
 @pytest.mark.skipif(os.name == "nt", reason="POSIX ownership and mode contract")
 def test_stage_contract_refuses_world_writable_or_symlink_root(tmp_path: Path) -> None:
     module = _load_module()
