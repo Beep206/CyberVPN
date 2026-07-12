@@ -10,6 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.subscription_gateway.resolve import (
+    PREMIUM_SMART_RU_XRAY_FAILOVER_CANARY_CONTEXT_KEY,
     ResolveSubscriptionProductUseCase,
     SubscriptionGatewayNotFoundError,
     SubscriptionGatewayUnavailableError,
@@ -20,6 +21,7 @@ from src.infrastructure.database.models.entitlement_grant_model import Entitleme
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.remnawave.subscription_proxy import SubscriptionProxyResponse
 from src.presentation.api.subscription_gateway import routes as subscription_gateway_routes
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
@@ -50,6 +52,19 @@ class _RemnawaveClient:
             "status": "ACTIVE",
             "externalSquadUuid": "409147a7-a03c-4db5-bccf-33d3caaf8d52",
         }
+
+
+class _CaptureSubscriptionProxy:
+    def __init__(self) -> None:
+        self.headers: dict[str, str] | None = None
+
+    async def fetch(self, short_uuid: str, *, headers: dict[str, str]):
+        assert short_uuid == SHORT_UUID
+        self.headers = headers
+        return SubscriptionProxyResponse(
+            content=b'{"outbounds":[]}',
+            headers={"content-type": "application/json", "cache-control": "no-store"},
+        )
 
 
 async def test_provider_subject_conflict_older_than_newest_three_fails_closed() -> None:
@@ -144,6 +159,71 @@ async def test_provider_active_with_expired_backend_grant_is_not_authorized() ->
 
             assert client.paths == [f"/users/by-short-uuid/{SHORT_UUID}"]
             assert identity.provider_subject_ref == PROVIDER_SUBJECT_REF
+    finally:
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+async def test_public_gateway_emits_canary_only_from_persisted_active_smart_ru_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        settings,
+        "remnawave_smart_ru_external_squad_uuid",
+        "409147a7-a03c-4db5-bccf-33d3caaf8d52",
+    )
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+    realm_id = uuid.uuid4()
+
+    try:
+        with sessionmaker() as db:
+            _insert_realm(db, realm_id)
+            _insert_identity_with_optional_grant(
+                db,
+                realm_id=realm_id,
+                sequence=5,
+                plan_code="premium_smart_ru",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+                grant_status="active",
+                xray_failover_canary=True,
+            )
+            db.commit()
+
+            management_client = _RemnawaveClient()
+            proxy = _CaptureSubscriptionProxy()
+            app = FastAPI()
+            app.include_router(subscription_gateway_routes.router)
+
+            async def _db_override():
+                yield cast(AsyncSession, SyncSessionAdapter(db))
+
+            async def _management_override():
+                return cast(RemnawaveClient, management_client)
+
+            async def _proxy_override():
+                return proxy
+
+            app.dependency_overrides[get_db] = _db_override
+            app.dependency_overrides[get_remnawave_client] = _management_override
+            app.dependency_overrides[get_remnawave_subscription_proxy_client] = _proxy_override
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="https://cyber-vpn.org",
+            ) as client:
+                response = await client.get(
+                    f"/api/sub/{SHORT_UUID}",
+                    headers={
+                        "User-Agent": "INCY/3.3.1",
+                        "X-CyberVPN-Xray-Failover-Canary": "spoofed",
+                    },
+                )
+
+            assert response.status_code == 200
+            assert proxy.headers is not None
+            assert proxy.headers["X-CyberVPN-Xray-Failover-Canary"] == "1"
+            assert "spoofed" not in proxy.headers.values()
     finally:
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)
@@ -457,6 +537,7 @@ def _insert_identity_with_optional_grant(
     grant_plan_code: str | None = None,
     grant_snapshot: object = _DEFAULT_GRANT_SNAPSHOT,
     expires_at: datetime | None = None,
+    xray_failover_canary: bool = False,
 ) -> ServiceIdentityModel:
     customer_id = uuid.uuid4()
     service_identity_id = uuid.uuid4()
@@ -480,7 +561,11 @@ def _insert_identity_with_optional_grant(
         subscription_key=subscription_key,
         provider_subject_ref=PROVIDER_SUBJECT_REF,
         identity_status="active",
-        service_context={"plan_code": plan_code, "subscription_key": subscription_key},
+        service_context={
+            "plan_code": plan_code,
+            "subscription_key": subscription_key,
+            **({PREMIUM_SMART_RU_XRAY_FAILOVER_CANARY_CONTEXT_KEY: True} if xray_failover_canary else {}),
+        },
         created_at=created_at,
         updated_at=created_at,
     )

@@ -30,6 +30,10 @@ MIHOMO_SOURCE = GENERATED_DIR / "mihomo.yaml"
 INCY_SOURCE = (
     REPO_ROOT / "scripts/remnawave/templates/cybervpn-premium-smart-ru-incy-xray.json"
 )
+INCY_CANARY_SOURCE = REPO_ROOT / (
+    "scripts/remnawave/templates/"
+    "cybervpn-premium-smart-ru-incy-xray-failover-canary.json"
+)
 LEGACY_HEADER_SOURCE = GENERATED_DIR / "legacy-routing-header.json"
 COMPILER_MANIFEST_SOURCE = GENERATED_DIR / "manifest.json"
 INCY_GENERATOR_SOURCE = (
@@ -40,6 +44,7 @@ INCY_SEED = REPO_ROOT / "scripts/remnawave/seed-cybervpn-premium-smart-ru-incy-x
 STAGED_NAMES = {
     "mihomo": "mihomo.yaml",
     "incy": "incy-xray.json",
+    "incy_canary": "incy-xray-failover-canary.json",
     "legacy_header": "legacy-routing-header.json",
 }
 
@@ -86,7 +91,7 @@ def _validate_mihomo(content: bytes) -> None:
         raise RuntimeError("Mihomo artifact semantics are invalid")
 
 
-def _validate_incy(content: bytes) -> None:
+def _validate_incy(content: bytes, *, automatic_failover: bool = False) -> None:
     artifact = _load_json(content, "INCY artifact")
     remnawave = artifact.get("remnawave")
     routing = artifact.get("routing")
@@ -106,19 +111,103 @@ def _validate_incy(content: bytes) -> None:
         raise RuntimeError("INCY artifact must define exactly two local inbounds")
     if not isinstance(routing.get("rules"), list) or not routing["rules"]:
         raise RuntimeError("INCY artifact contains no routing rules")
-    if "balancers" in routing or "observatory" in artifact:
+    if not automatic_failover and (
+        "balancers" in routing
+        or "observatory" in artifact
+        or "burstObservatory" in artifact
+    ):
         raise RuntimeError(
             "INCY artifact must not enable unstable Xray observatory failover"
         )
+    if automatic_failover:
+        balancers = routing.get("balancers")
+        expected_balancers = [
+            {
+                "tag": "eu-primary",
+                "selector": ["eu-de-2"],
+                "strategy": {"type": "leastPing"},
+                "fallbackTag": "eu-fallback-loop",
+            },
+            {
+                "tag": "eu-fallback",
+                "selector": ["eu-nl-2"],
+                "strategy": {"type": "leastPing"},
+                "fallbackTag": "block",
+            },
+            {
+                "tag": "ru-primary",
+                "selector": ["ru-spb-2"],
+                "strategy": {"type": "leastPing"},
+                "fallbackTag": "ru-fallback-loop",
+            },
+            {
+                "tag": "ru-fallback",
+                "selector": ["ru-msk-2"],
+                "strategy": {"type": "leastPing"},
+                "fallbackTag": "block",
+            },
+        ]
+        regional_health = route_policy.get("regionalHealth")
+        eu_health = (
+            regional_health.get("eu") if isinstance(regional_health, dict) else None
+        )
+        eu_probe = eu_health.get("probe") if isinstance(eu_health, dict) else None
+        expected_probe_url = eu_probe.get("url") if isinstance(eu_probe, dict) else None
+        expected_observatory = {
+            "subjectSelector": ["eu-de-2", "eu-nl-2", "ru-spb-2", "ru-msk-2"],
+            "probeUrl": expected_probe_url,
+            "probeInterval": "10s",
+            "enableConcurrency": True,
+        }
+        if (
+            route_policy.get("rendererMode") != "automatic-failover-canary"
+            or balancers != expected_balancers
+            or not isinstance(expected_probe_url, str)
+            or artifact.get("observatory") != expected_observatory
+            or artifact.get("burstObservatory") is not None
+        ):
+            raise RuntimeError(
+                "INCY canary artifact lacks regional failover health checks"
+            )
     routes_by_tag = {
         rule.get("ruleTag"): rule
         for rule in routing["rules"]
         if isinstance(rule, dict) and isinstance(rule.get("ruleTag"), str)
     }
-    if routes_by_tag.get("route_final_eu", {}).get("outboundTag") != "eu-de-2":
-        raise RuntimeError("INCY artifact must route default traffic to DE XHTTP")
-    if routes_by_tag.get("route_ru_services", {}).get("outboundTag") != "ru-spb-2":
-        raise RuntimeError("INCY artifact must route RU services to SPB XHTTP")
+    route_key = "balancerTag" if automatic_failover else "outboundTag"
+    expected_eu = "eu-primary" if automatic_failover else "eu-de-2"
+    expected_ru = "ru-primary" if automatic_failover else "ru-spb-2"
+    if routes_by_tag.get("route_final_eu", {}).get(route_key) != expected_eu:
+        raise RuntimeError(
+            "INCY artifact must route default traffic to the DE-first path"
+        )
+    if routes_by_tag.get("route_ru_services", {}).get(route_key) != expected_ru:
+        raise RuntimeError("INCY artifact must route RU services to the SPB-first path")
+    if automatic_failover:
+        expected_loop_rules = [
+            {
+                "type": "field",
+                "ruleTag": "route_eu_failover_loop",
+                "inboundTag": ["eu-fallback-in"],
+                "network": "tcp,udp",
+                "balancerTag": "eu-fallback",
+            },
+            {
+                "type": "field",
+                "ruleTag": "route_ru_failover_loop",
+                "inboundTag": ["ru-fallback-in"],
+                "network": "tcp,udp",
+                "balancerTag": "ru-fallback",
+            },
+        ]
+        if (
+            routing["rules"][:2] != expected_loop_rules
+            or routes_by_tag.get("route_eu_failover_loop") != expected_loop_rules[0]
+            or routes_by_tag.get("route_ru_failover_loop") != expected_loop_rules[1]
+        ):
+            raise RuntimeError(
+                "INCY canary failover must remain regional and fail closed"
+            )
     smtp_rule = routes_by_tag.get("block_smtp_abuse", {})
     if smtp_rule != {
         "type": "field",
@@ -185,6 +274,7 @@ def _load_and_validate_sources() -> dict[str, bytes]:
     try:
         generator = runpy.run_path(str(INCY_GENERATOR_SOURCE))
         expected_incy = generator["build_template"]()
+        expected_incy_canary = generator["build_template"](automatic_failover=True)
     except (KeyError, OSError, RuntimeError) as exc:
         raise RuntimeError(
             "Cannot regenerate INCY artifact from the canonical compiler output"
@@ -193,8 +283,12 @@ def _load_and_validate_sources() -> dict[str, bytes]:
         json.dumps(expected_incy, ensure_ascii=False, indent=2) + "\n"
     ).encode()
     artifacts["incy"] = expected_incy_content
+    artifacts["incy_canary"] = (
+        json.dumps(expected_incy_canary, ensure_ascii=False, indent=2) + "\n"
+    ).encode()
     _validate_mihomo(artifacts["mihomo"])
     _validate_incy(artifacts["incy"])
+    _validate_incy(artifacts["incy_canary"], automatic_failover=True)
     _validate_legacy_header(artifacts["legacy_header"])
     compiler_manifest = _load_json(compiler_manifest_content, "compiler manifest")
     if (
@@ -276,6 +370,9 @@ class StageContract:
             "cybervpn_premium_smart_ru_stage_manifest_sha256": self.manifest_sha256,
             "cybervpn_premium_smart_ru_mihomo_sha256": self.artifact_sha256["mihomo"],
             "cybervpn_premium_smart_ru_incy_sha256": self.artifact_sha256["incy"],
+            "cybervpn_premium_smart_ru_incy_canary_sha256": self.artifact_sha256[
+                "incy_canary"
+            ],
             "cybervpn_premium_smart_ru_legacy_header_sha256": self.artifact_sha256[
                 "legacy_header"
             ],

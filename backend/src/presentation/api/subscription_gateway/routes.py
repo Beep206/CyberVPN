@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.vpn_product_readiness import SMART_RU_PRODUCT_CODE
 from src.application.use_cases.subscription_gateway.resolve import (
     ResolveSubscriptionProductUseCase,
     SubscriptionGatewayNotFoundError,
@@ -40,6 +41,8 @@ FORWARDED_CLIENT_HEADERS = frozenset(
         "x-ver-os",
     }
 )
+XRAY_FAILOVER_CANARY_CLIENT_FAMILIES = frozenset({"incy", "happ"})
+XRAY_FAILOVER_CANARY_HEADER = "X-CyberVPN-Xray-Failover-Canary"
 
 
 def classify_client_family(request: Request) -> str:
@@ -79,6 +82,7 @@ def build_upstream_headers(
     *,
     product_code: str,
     client_family: str,
+    xray_failover_canary: bool = False,
 ) -> dict[str, str]:
     headers = {
         name: value
@@ -101,6 +105,12 @@ def build_upstream_headers(
     )
     if client_ip != "unknown":
         headers["X-Forwarded-For"] = client_ip
+    if (
+        product_code == SMART_RU_PRODUCT_CODE
+        and xray_failover_canary
+        and client_family in XRAY_FAILOVER_CANARY_CLIENT_FAMILIES
+    ):
+        headers[XRAY_FAILOVER_CANARY_HEADER] = "1"
     return headers
 
 
@@ -135,6 +145,7 @@ async def get_product_scoped_subscription(
                 request,
                 product_code=resolved.product_code,
                 client_family=client_family,
+                xray_failover_canary=resolved.xray_failover_canary,
             ),
         )
     except SubscriptionUpstreamNotFoundError:

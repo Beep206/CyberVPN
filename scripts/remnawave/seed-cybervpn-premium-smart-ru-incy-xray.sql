@@ -12,9 +12,11 @@ create temporary table cybervpn_premium_smart_ru_artifact_contract (
     stage_manifest_sha256 text not null,
     mihomo_sha256 text not null,
     incy_sha256 text not null,
+    incy_canary_sha256 text not null,
     legacy_header_sha256 text not null,
     stage_manifest jsonb,
     incy_template jsonb,
+    incy_canary_template jsonb,
     legacy_header jsonb
 ) on commit drop;
 
@@ -23,6 +25,7 @@ insert into cybervpn_premium_smart_ru_artifact_contract (
     stage_manifest_sha256,
     mihomo_sha256,
     incy_sha256,
+    incy_canary_sha256,
     legacy_header_sha256
 )
 values (
@@ -30,6 +33,7 @@ values (
     :'cybervpn_premium_smart_ru_stage_manifest_sha256',
     :'cybervpn_premium_smart_ru_mihomo_sha256',
     :'cybervpn_premium_smart_ru_incy_sha256',
+    :'cybervpn_premium_smart_ru_incy_canary_sha256',
     :'cybervpn_premium_smart_ru_legacy_header_sha256'
 );
 
@@ -38,9 +42,11 @@ declare
     v_contract cybervpn_premium_smart_ru_artifact_contract%rowtype;
     v_manifest_bytes bytea;
     v_incy_bytes bytea;
+    v_incy_canary_bytes bytea;
     v_legacy_header_bytes bytea;
     v_manifest jsonb;
     v_incy jsonb;
+    v_incy_canary jsonb;
     v_legacy_header jsonb;
     v_legacy_decoded jsonb;
     v_legacy_value text;
@@ -54,12 +60,16 @@ begin
        or v_contract.stage_manifest_sha256 !~ '^[0-9a-f]{64}$'
        or v_contract.mihomo_sha256 !~ '^[0-9a-f]{64}$'
        or v_contract.incy_sha256 !~ '^[0-9a-f]{64}$'
+       or v_contract.incy_canary_sha256 !~ '^[0-9a-f]{64}$'
        or v_contract.legacy_header_sha256 !~ '^[0-9a-f]{64}$' then
         raise exception 'CyberVPN Premium Smart RU trusted artifact variables are invalid';
     end if;
 
     v_manifest_bytes := pg_read_binary_file(v_contract.stage_dir || '/manifest.json');
     v_incy_bytes := pg_read_binary_file(v_contract.stage_dir || '/incy-xray.json');
+    v_incy_canary_bytes := pg_read_binary_file(
+        v_contract.stage_dir || '/incy-xray-failover-canary.json'
+    );
     v_legacy_header_bytes := pg_read_binary_file(
         v_contract.stage_dir || '/legacy-routing-header.json'
     );
@@ -70,22 +80,30 @@ begin
     if encode(sha256(v_incy_bytes), 'hex') <> v_contract.incy_sha256 then
         raise exception 'CyberVPN Premium Smart RU INCY SHA-256 mismatch';
     end if;
+    if encode(sha256(v_incy_canary_bytes), 'hex') <> v_contract.incy_canary_sha256 then
+        raise exception 'CyberVPN Premium Smart RU INCY canary SHA-256 mismatch';
+    end if;
     if encode(sha256(v_legacy_header_bytes), 'hex') <> v_contract.legacy_header_sha256 then
         raise exception 'CyberVPN Premium Smart RU legacy header SHA-256 mismatch';
     end if;
 
     v_manifest := convert_from(v_manifest_bytes, 'UTF8')::jsonb;
     v_incy := convert_from(v_incy_bytes, 'UTF8')::jsonb;
+    v_incy_canary := convert_from(v_incy_canary_bytes, 'UTF8')::jsonb;
     v_legacy_header := convert_from(v_legacy_header_bytes, 'UTF8')::jsonb;
 
     if v_manifest->>'schemaVersion' is distinct from '1'
        or v_manifest->>'product' is distinct from 'premium_smart_ru'
        or v_manifest#>>'{artifacts,mihomo.yaml,sha256}' is distinct from v_contract.mihomo_sha256
        or v_manifest#>>'{artifacts,incy-xray.json,sha256}' is distinct from v_contract.incy_sha256
+       or v_manifest#>>'{artifacts,incy-xray-failover-canary.json,sha256}'
+            is distinct from v_contract.incy_canary_sha256
        or v_manifest#>>'{artifacts,legacy-routing-header.json,sha256}'
             is distinct from v_contract.legacy_header_sha256
        or octet_length(v_incy_bytes) is distinct from
             (v_manifest#>>'{artifacts,incy-xray.json,bytes}')::bigint
+       or octet_length(v_incy_canary_bytes) is distinct from
+            (v_manifest#>>'{artifacts,incy-xray-failover-canary.json,bytes}')::bigint
        or octet_length(v_legacy_header_bytes) is distinct from
             (v_manifest#>>'{artifacts,legacy-routing-header.json,bytes}')::bigint then
         raise exception 'CyberVPN Premium Smart RU stage manifest contract is invalid';
@@ -125,6 +143,83 @@ begin
         raise exception 'CyberVPN Premium Smart RU INCY artifact semantics are invalid';
     end if;
 
+    if jsonb_typeof(v_incy_canary) is distinct from 'object'
+       or v_incy_canary#>>'{remnawave,routePolicy,schemaVersion}' is distinct from '1'
+       or v_incy_canary#>>'{remnawave,routePolicy,product}' is distinct from 'premium_smart_ru'
+       or v_incy_canary#>>'{remnawave,routePolicy,rendererMode}'
+            is distinct from 'automatic-failover-canary'
+       or jsonb_typeof(v_incy_canary#>'{remnawave,injectHosts}') is distinct from 'array'
+       or jsonb_array_length(v_incy_canary#>'{remnawave,injectHosts}') <> 4
+       or jsonb_typeof(v_incy_canary#>'{routing,balancers}') is distinct from 'array'
+       or jsonb_array_length(v_incy_canary#>'{routing,balancers}') <> 4
+       or v_incy_canary#>'{routing,balancers}' is distinct from '[
+            {"tag":"eu-primary","selector":["eu-de-2"],"strategy":{"type":"leastPing"},"fallbackTag":"eu-fallback-loop"},
+            {"tag":"eu-fallback","selector":["eu-nl-2"],"strategy":{"type":"leastPing"},"fallbackTag":"block"},
+            {"tag":"ru-primary","selector":["ru-spb-2"],"strategy":{"type":"leastPing"},"fallbackTag":"ru-fallback-loop"},
+            {"tag":"ru-fallback","selector":["ru-msk-2"],"strategy":{"type":"leastPing"},"fallbackTag":"block"}
+       ]'::jsonb
+       or jsonb_typeof(v_incy_canary->'observatory') is distinct from 'object'
+       or v_incy_canary->'observatory' is distinct from '{
+            "subjectSelector":["eu-de-2","eu-nl-2","ru-spb-2","ru-msk-2"],
+            "probeUrl":"https://www.gstatic.com/generate_204",
+            "probeInterval":"10s",
+            "enableConcurrency":true
+       }'::jsonb
+       or v_incy_canary->'burstObservatory' is not null
+       or v_incy_canary#>'{routing,rules,0}' is distinct from '{
+            "type":"field",
+            "ruleTag":"route_eu_failover_loop",
+            "inboundTag":["eu-fallback-in"],
+            "network":"tcp,udp",
+            "balancerTag":"eu-fallback"
+       }'::jsonb
+       or v_incy_canary#>'{routing,rules,1}' is distinct from '{
+            "type":"field",
+            "ruleTag":"route_ru_failover_loop",
+            "inboundTag":["ru-fallback-in"],
+            "network":"tcp,udp",
+            "balancerTag":"ru-fallback"
+       }'::jsonb
+       or exists (
+            select 1
+            from jsonb_array_elements(v_incy_canary#>'{routing,balancers}') as balancer
+            where balancer->>'fallbackTag' = 'direct'
+       )
+       or not exists (
+            select 1
+            from jsonb_array_elements(v_incy_canary#>'{routing,rules}') as rule
+            where rule->>'ruleTag' = 'route_final_eu'
+              and rule->>'balancerTag' = 'eu-primary'
+       )
+       or not exists (
+            select 1
+            from jsonb_array_elements(v_incy_canary#>'{routing,rules}') as rule
+            where rule->>'ruleTag' = 'route_ru_services'
+              and rule->>'balancerTag' = 'ru-primary'
+       )
+       or not exists (
+            select 1
+            from jsonb_array_elements(v_incy_canary#>'{routing,rules}') as rule
+            where rule->>'ruleTag' = 'route_eu_failover_loop'
+              and rule->>'balancerTag' = 'eu-fallback'
+       )
+       or not exists (
+            select 1
+            from jsonb_array_elements(v_incy_canary#>'{routing,rules}') as rule
+            where rule->>'ruleTag' = 'route_ru_failover_loop'
+              and rule->>'balancerTag' = 'ru-fallback'
+       )
+       or not exists (
+            select 1
+            from jsonb_array_elements(v_incy_canary#>'{routing,rules}') as rule
+            where rule->>'ruleTag' = 'block_smtp_abuse'
+              and rule->>'network' = 'tcp'
+              and rule->>'port' = '25,465,587'
+              and rule->>'outboundTag' = 'block'
+       ) then
+        raise exception 'CyberVPN Premium Smart RU INCY canary semantics are invalid';
+    end if;
+
     v_legacy_value := v_legacy_header->>'value';
     if v_legacy_header->>'schemaVersion' is distinct from '1'
        or v_legacy_header->>'product' is distinct from 'premium_smart_ru'
@@ -155,6 +250,7 @@ begin
     update cybervpn_premium_smart_ru_artifact_contract
     set stage_manifest = v_manifest,
         incy_template = v_incy,
+        incy_canary_template = v_incy_canary,
         legacy_header = v_legacy_header;
 end
 $cybervpn_premium_smart_ru_incy_artifact_preflight$;
@@ -185,6 +281,32 @@ set template_json = excluded.template_json,
     updated_at = now(),
     view_position = excluded.view_position;
 
+insert into subscription_templates (
+    uuid,
+    template_type,
+    template_yaml,
+    template_json,
+    created_at,
+    updated_at,
+    name,
+    view_position
+)
+values (
+    gen_random_uuid(),
+    'XRAY_JSON',
+    null,
+    (select incy_canary_template from cybervpn_premium_smart_ru_artifact_contract),
+    now(),
+    now(),
+    'CyberVPN Premium Smart RU INCY Failover Canary',
+    221
+)
+on conflict (template_type, name) do update
+set template_json = excluded.template_json,
+    template_yaml = null,
+    updated_at = now(),
+    view_position = excluded.view_position;
+
 create temporary table incy_host_specs (
     source_tag text not null,
     target_tag text unique not null,
@@ -196,6 +318,9 @@ create temporary table incy_host_specs (
 ) on commit drop;
 
 insert into incy_host_specs values
+    -- DE/NL and Moscow/SPB intentionally share literal relay bootstrap IPs.
+    -- Distinct source inbounds, Reality SNI/path and vless_route_id select the
+    -- terminal region; generated-subscription runtime evidence must verify it.
     ('PREMIUM_SMART_RU_DE_REALITY_443', 'PREMIUM_SMART_RU_INCY_DE_RAW', 'CyberVPN INCY DE RAW', '138.16.140.44', 320, true, false),
     ('PREMIUM_SMART_RU_DE_XHTTP_REALITY_8443', 'PREMIUM_SMART_RU_INCY_DE_XHTTP', 'CyberVPN INCY DE XHTTP', '138.16.140.44', 321, true, false),
     ('PREMIUM_SMART_RU_NL_REALITY_443', 'PREMIUM_SMART_RU_INCY_NL_RAW', 'CyberVPN INCY NL RAW', '138.16.140.44', 322, true, false),
@@ -420,6 +545,82 @@ with new_rules as (
             )
         ),
         jsonb_build_object(
+            'name', 'HAPP Premium Smart RU Failover Canary',
+            'description', 'Serve the isolated Smart RU automatic failover canary to an opted-in HAPP identity',
+            'enabled', true,
+            'operator', 'AND',
+            'conditions', jsonb_build_array(
+                jsonb_build_object(
+                    'caseSensitive', false,
+                    'headerName', 'x-cybervpn-product',
+                    'operator', 'EQUALS',
+                    'value', 'premium_smart_ru'
+                ),
+                jsonb_build_object(
+                    'caseSensitive', false,
+                    'headerName', 'x-cybervpn-client-family',
+                    'operator', 'EQUALS',
+                    'value', 'happ'
+                ),
+                jsonb_build_object(
+                    'caseSensitive', true,
+                    'headerName', 'x-cybervpn-xray-failover-canary',
+                    'operator', 'EQUALS',
+                    'value', '1'
+                )
+            ),
+            'responseType', 'XRAY_JSON',
+            'responseModifications', jsonb_build_object(
+                'subscriptionTemplate', 'CyberVPN Premium Smart RU INCY Failover Canary',
+                'ignoreHostXrayJsonTemplate', true,
+                'applyHeadersToEnd', true,
+                'headers', jsonb_build_array(
+                    jsonb_build_object(
+                        'key', 'X-CyberVPN-Profile',
+                        'value', 'premium_smart_ru_xray_failover_canary'
+                    )
+                )
+            )
+        ),
+        jsonb_build_object(
+            'name', 'INCY Premium Smart RU Failover Canary',
+            'description', 'Serve the isolated Smart RU automatic failover canary to an opted-in INCY identity',
+            'enabled', true,
+            'operator', 'AND',
+            'conditions', jsonb_build_array(
+                jsonb_build_object(
+                    'caseSensitive', false,
+                    'headerName', 'x-cybervpn-product',
+                    'operator', 'EQUALS',
+                    'value', 'premium_smart_ru'
+                ),
+                jsonb_build_object(
+                    'caseSensitive', false,
+                    'headerName', 'x-cybervpn-client-family',
+                    'operator', 'EQUALS',
+                    'value', 'incy'
+                ),
+                jsonb_build_object(
+                    'caseSensitive', true,
+                    'headerName', 'x-cybervpn-xray-failover-canary',
+                    'operator', 'EQUALS',
+                    'value', '1'
+                )
+            ),
+            'responseType', 'XRAY_JSON',
+            'responseModifications', jsonb_build_object(
+                'subscriptionTemplate', 'CyberVPN Premium Smart RU INCY Failover Canary',
+                'ignoreHostXrayJsonTemplate', true,
+                'applyHeadersToEnd', true,
+                'headers', jsonb_build_array(
+                    jsonb_build_object(
+                        'key', 'X-CyberVPN-Profile',
+                        'value', 'premium_smart_ru_xray_failover_canary'
+                    )
+                )
+            )
+        ),
+        jsonb_build_object(
             'name', 'HAPP Premium Smart RU',
             'description', 'Serve one client-side Smart RU Xray config to HAPP for an authoritative product identity',
             'enabled', true,
@@ -492,8 +693,10 @@ rules_without_target as (
                jsonb_agg(rule_element.value order by rule_element.ordinality)
                    filter (
                        where rule_element.value->>'name' not in (
-                           'Mihomo Premium Smart RU',
-                           'HAPP Premium Smart RU',
+                            'Mihomo Premium Smart RU',
+                            'HAPP Premium Smart RU Failover Canary',
+                            'INCY Premium Smart RU Failover Canary',
+                            'HAPP Premium Smart RU',
                            'INCY Premium Smart RU'
                        )
                    ),
@@ -580,7 +783,10 @@ declare
     v_virtual_host_count integer;
     v_visible_xray_host_count integer;
     v_wrong_bootstrap_count integer;
+    v_invalid_target_count integer;
     v_mihomo_rule_position integer;
+    v_happ_canary_rule_position integer;
+    v_incy_canary_rule_position integer;
     v_happ_rule_position integer;
     v_incy_rule_position integer;
     v_fallback_rule_position integer;
@@ -588,7 +794,10 @@ begin
     select count(*) into v_template_count
     from subscription_templates
     where template_type = 'XRAY_JSON'
-      and name = 'CyberVPN Premium Smart RU INCY';
+      and name in (
+          'CyberVPN Premium Smart RU INCY',
+          'CyberVPN Premium Smart RU INCY Failover Canary'
+      );
 
     select count(*) into v_injected_host_count
     from hosts
@@ -616,6 +825,17 @@ begin
     where specs.target_address is not null
       and target_host.address is distinct from specs.target_address;
 
+    select count(*) into v_invalid_target_count
+    from (
+        select specs.target_tag
+        from incy_host_specs specs
+        left join hosts target_host
+          on target_host.tags @> array[specs.target_tag]::text[]
+         and target_host.is_disabled = false
+        group by specs.target_tag
+        having count(target_host.uuid) <> 1
+    ) invalid_targets;
+
     select count(*) into v_visible_xray_host_count
     from hosts
     where is_disabled = false
@@ -637,32 +857,47 @@ begin
       );
 
     select min(ordinality) filter (where value->>'name' = 'Mihomo Premium Smart RU'),
+           min(ordinality) filter (where value->>'name' = 'HAPP Premium Smart RU Failover Canary'),
+           min(ordinality) filter (where value->>'name' = 'INCY Premium Smart RU Failover Canary'),
            min(ordinality) filter (where value->>'name' = 'HAPP Premium Smart RU'),
            min(ordinality) filter (where value->>'name' = 'INCY Premium Smart RU'),
            min(ordinality) filter (where value->>'responseType' = 'XRAY_BASE64')
-    into v_mihomo_rule_position, v_happ_rule_position, v_incy_rule_position, v_fallback_rule_position
+    into v_mihomo_rule_position,
+         v_happ_canary_rule_position,
+         v_incy_canary_rule_position,
+         v_happ_rule_position,
+         v_incy_rule_position,
+         v_fallback_rule_position
     from subscription_settings,
          jsonb_array_elements(response_rules->'rules') with ordinality rules(value, ordinality);
 
-    if v_template_count <> 1
+    if v_template_count <> 2
        or v_injected_host_count <> 8
        or v_virtual_host_count <> 1
        or v_visible_xray_host_count <> 1
        or v_wrong_bootstrap_count <> 0
+       or v_invalid_target_count <> 0
        or v_mihomo_rule_position is null
+       or v_happ_canary_rule_position is null
+       or v_incy_canary_rule_position is null
        or v_happ_rule_position is null
        or v_incy_rule_position is null
        or v_fallback_rule_position is null
-       or v_mihomo_rule_position >= v_happ_rule_position
+       or v_mihomo_rule_position >= v_happ_canary_rule_position
+       or v_happ_canary_rule_position >= v_incy_canary_rule_position
+       or v_incy_canary_rule_position >= v_happ_rule_position
        or v_happ_rule_position >= v_incy_rule_position
        or v_incy_rule_position >= v_fallback_rule_position then
-        raise exception 'Smart RU delivery validation failed: template %, injected %, virtual %, visible %, wrong bootstrap %, Mihomo %, HAPP %, INCY %, fallback %',
+        raise exception 'Smart RU delivery validation failed: template %, injected %, virtual %, visible %, wrong bootstrap %, invalid targets %, Mihomo %, HAPP canary %, INCY canary %, HAPP %, INCY %, fallback %',
             v_template_count,
             v_injected_host_count,
             v_virtual_host_count,
             v_visible_xray_host_count,
             v_wrong_bootstrap_count,
+            v_invalid_target_count,
             v_mihomo_rule_position,
+            v_happ_canary_rule_position,
+            v_incy_canary_rule_position,
             v_happ_rule_position,
             v_incy_rule_position,
             v_fallback_rule_position;
@@ -673,7 +908,7 @@ $cybervpn_incy_validation$;
 commit;
 
 select
-    (select count(*) from subscription_templates where template_type = 'XRAY_JSON' and name = 'CyberVPN Premium Smart RU INCY') as template_count,
+    (select count(*) from subscription_templates where template_type = 'XRAY_JSON' and name in ('CyberVPN Premium Smart RU INCY', 'CyberVPN Premium Smart RU INCY Failover Canary')) as template_count,
     (select count(*) from hosts where is_hidden = true and exists (
         select 1 from unnest(coalesce(tags, array[]::text[])) tag
         where tag like 'PREMIUM\_SMART\_RU\_INCY\_%' escape '\'

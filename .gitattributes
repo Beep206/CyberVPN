@@ -8,6 +8,7 @@
 frontend/src/i18n/messages/generated/*.json text eol=lf
 admin/src/i18n/messages/generated/*.json text eol=lf
 partner/src/i18n/messages/generated/*.json text eol=lf
+scripts/remnawave/templates/cybervpn-premium-smart-ru-incy-xray*.json text eol=lf
 
 # Release and container entrypoints should stay LF on Windows workstations.
 *.sh text eol=lf

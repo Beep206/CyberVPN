@@ -47,6 +47,7 @@ def test_stage_contract_is_private_complete_and_bound_to_out_of_band_hashes(
         assert set(manifest["artifacts"]) == {
             "mihomo.yaml",
             "incy-xray.json",
+            "incy-xray-failover-canary.json",
             "legacy-routing-header.json",
         }
         assert variables["cybervpn_premium_smart_ru_stage_manifest_sha256"] == _sha256(manifest_path)
@@ -107,10 +108,65 @@ def test_stage_regenerates_incy_instead_of_trusting_mutable_template(
         staged = (contract.directory / "incy-xray.json").read_bytes()
         generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
         expected = (json.dumps(generator["build_template"](), ensure_ascii=False, indent=2) + "\n").encode()
+        expected_canary = (
+            json.dumps(
+                generator["build_template"](automatic_failover=True),
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n"
+        ).encode()
         assert staged == expected
+        assert (contract.directory / "incy-xray-failover-canary.json").read_bytes() == expected_canary
         assert staged != tampered_path.read_bytes()
     finally:
         module._remove_stage(contract)
+
+
+def test_checked_xray_templates_match_canonical_generator_bytes() -> None:
+    module = _load_module()
+    generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
+    stable = (json.dumps(generator["build_template"](), ensure_ascii=False, indent=2) + "\n").encode()
+    canary = (
+        json.dumps(
+            generator["build_template"](automatic_failover=True),
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n"
+    ).encode()
+
+    assert module.INCY_SOURCE.read_bytes() == stable
+    assert module.INCY_CANARY_SOURCE.read_bytes() == canary
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "wrong_selector",
+        "swapped_fallback",
+        "wrong_observatory",
+        "late_loopback_rule",
+    ],
+)
+def test_canary_validator_rejects_topology_drift(mutation: str) -> None:
+    module = _load_module()
+    generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
+    canary = generator["build_template"](automatic_failover=True)
+    if mutation == "wrong_selector":
+        canary["routing"]["balancers"][0]["selector"] = ["ru-msk-2"]
+    elif mutation == "swapped_fallback":
+        canary["routing"]["balancers"][0]["fallbackTag"] = "block"
+    elif mutation == "wrong_observatory":
+        canary["observatory"]["subjectSelector"] = ["eu-de-2"]
+    else:
+        canary["routing"]["rules"].append(canary["routing"]["rules"].pop(0))
+
+    with pytest.raises(RuntimeError, match="INCY canary"):
+        module._validate_incy(
+            (json.dumps(canary, ensure_ascii=False, indent=2) + "\n").encode(),
+            automatic_failover=True,
+        )
 
 
 def test_psql_command_passes_digests_directly_and_requires_explicit_sql_files(
@@ -182,7 +238,7 @@ def test_docker_transport_stages_private_files_runs_psql_and_cleans_up(
 
     commands = [command for command, _ in calls]
     assert commands[0][:4] == ["docker", "exec", "remnawave-db", "install"]
-    assert sum(command[:2] == ["docker", "cp"] for command in commands) == 4
+    assert sum(command[:2] == ["docker", "cp"] for command in commands) == 5
     psql_calls = [
         (command, kwargs)
         for command, kwargs in calls

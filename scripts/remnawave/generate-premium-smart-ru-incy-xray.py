@@ -11,6 +11,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = (
     REPO_ROOT / "scripts/remnawave/templates/cybervpn-premium-smart-ru-incy-xray.json"
 )
+CANARY_OUTPUT_PATH = REPO_ROOT / (
+    "scripts/remnawave/templates/"
+    "cybervpn-premium-smart-ru-incy-xray-failover-canary.json"
+)
 POLICY_ARTIFACT_DIR = REPO_ROOT / "scripts/remnawave/generated/premium_smart_ru"
 POLICY_PATH = REPO_ROOT / "scripts/remnawave/policies/premium_smart_ru.yaml"
 XRAY_CLIENT_ARTIFACT = "xray-client.json"
@@ -69,7 +73,7 @@ def _inject_group(pattern: str, tag_prefix: str) -> dict[str, object]:
 
 
 def _xray_rules(
-    policy: dict[str, Any], automatic_outbound_tags: dict[str, str]
+    policy: dict[str, Any], automatic_destinations: dict[str, dict[str, str]]
 ) -> list[dict[str, object]]:
     target = {"direct": "direct", "block": "block"}
     rules: list[dict[str, object]] = []
@@ -90,7 +94,7 @@ def _xray_rules(
             destination = (
                 {"outboundTag": target[action]}
                 if action in target
-                else {"outboundTag": automatic_outbound_tags[action]}
+                else automatic_destinations[action]
             )
             rules.append(
                 {
@@ -109,16 +113,16 @@ def _transport_metadata(policy: dict[str, Any]) -> dict[str, object]:
         raise RuntimeError(
             "Compiled Xray client policy lacks regional transport policy"
         )
-    for region, expected_locations in (
-        ("eu", {"de", "nl"}),
-        ("ru", {"moscow", "spb"}),
+    for region, expected_order in (
+        ("eu", ("de", "nl")),
+        ("ru", ("spb", "moscow")),
     ):
         group = transport_policy.get(region)
         if not isinstance(group, dict):
             raise RuntimeError(
                 f"Compiled Xray client policy lacks {region} transport group"
             )
-        if {group.get("primary"), group.get("fallback")} != expected_locations:
+        if (group.get("primary"), group.get("fallback")) != expected_order:
             raise RuntimeError(
                 f"Compiled Xray client policy has invalid {region} order"
             )
@@ -161,8 +165,43 @@ def _automatic_outbound_tag(group: dict[str, object], role: str) -> str:
     return prefix if transport == "raw" else f"{prefix}-2"
 
 
+def _failover_balancer(
+    *, tag: str, selector: str, fallback_tag: str, strategy: str
+) -> dict[str, object]:
+    strategy_config: dict[str, object] = {"type": strategy}
+    if strategy == "leastLoad":
+        strategy_config["settings"] = {"expected": 1}
+    return {
+        "tag": tag,
+        "selector": [selector],
+        "strategy": strategy_config,
+        "fallbackTag": fallback_tag,
+    }
+
+
+def _loopback_outbound(tag: str, inbound_tag: str) -> dict[str, object]:
+    return {
+        "tag": tag,
+        "protocol": "loopback",
+        "settings": {"inboundTag": inbound_tag},
+    }
+
+
+def _validate_failover_selectors(
+    selectors: tuple[str, ...], outbound_tags: tuple[str, ...]
+) -> None:
+    for selector in selectors:
+        matches = [tag for tag in outbound_tags if tag.startswith(selector)]
+        if matches != [selector]:
+            raise RuntimeError(
+                f"Xray failover selector {selector!r} must match exactly one outbound"
+            )
+
+
 def build_template(
     artifact_dir: Path = POLICY_ARTIFACT_DIR,
+    *,
+    automatic_failover: bool = False,
 ) -> dict[str, object]:
     policy = _load_policy_artifact(artifact_dir)
     transport_policy = _transport_metadata(policy)
@@ -174,8 +213,124 @@ def build_template(
     assert isinstance(ru_probe, dict)
     shared_probe_url = str(ru_probe["url"])
     eu_primary_tag = _automatic_outbound_tag(eu_transport, "primary")
+    eu_fallback_tag = _automatic_outbound_tag(eu_transport, "fallback")
     ru_primary_tag = _automatic_outbound_tag(ru_transport, "primary")
-    return {
+    ru_fallback_tag = _automatic_outbound_tag(ru_transport, "fallback")
+    failover_selectors = (
+        eu_primary_tag,
+        eu_fallback_tag,
+        ru_primary_tag,
+        ru_fallback_tag,
+    )
+    injected_outbound_tags = (
+        "eu-de",
+        "eu-de-2",
+        "eu-nl",
+        "eu-nl-2",
+        "ru-msk",
+        "ru-msk-2",
+        "ru-spb",
+        "ru-spb-2",
+    )
+    _validate_failover_selectors(failover_selectors, injected_outbound_tags)
+    automatic_destinations = {
+        "eu": {"balancerTag": "eu-primary"}
+        if automatic_failover
+        else {"outboundTag": eu_primary_tag},
+        "ru": {"balancerTag": "ru-primary"}
+        if automatic_failover
+        else {"outboundTag": ru_primary_tag},
+    }
+    renderer_deviations = (
+        [
+            {
+                "id": "xray-canary-single-observatory-global-204-probe",
+                "reason": "Xray 26.6.27 must use one deterministic observatory feature for all failover balancers",
+                "effect": "All four transports use the EU HTTP 204 probe for liveness; RU destination routing remains policy-driven and is validated separately",
+                "probeUrl": str(eu_transport["probe"]["url"]),
+            }
+        ]
+        if automatic_failover
+        else [
+            {
+                "id": "xray-single-observatory-shared-ru-safe-probe",
+                "reason": "Xray 26.6.27 observatory caused user-traffic stalls with XHTTP",
+                "effect": "INCY uses deterministic XHTTP primaries; fallback transports remain manual",
+                "probeUrl": shared_probe_url,
+            }
+        ]
+    )
+    outbounds: list[dict[str, object]] = [
+        {
+            "tag": "direct",
+            "protocol": "freedom",
+            "settings": {"domainStrategy": "UseIP"},
+        },
+        {
+            "tag": "block",
+            "protocol": "blackhole",
+            "settings": {"response": {"type": "none"}},
+        },
+    ]
+    routing_rules: list[dict[str, object]] = []
+    routing: dict[str, object] = {
+        "domainMatcher": "hybrid",
+        "domainStrategy": "IPIfNonMatch",
+    }
+    if automatic_failover:
+        outbounds.extend(
+            [
+                _loopback_outbound("eu-fallback-loop", "eu-fallback-in"),
+                _loopback_outbound("ru-fallback-loop", "ru-fallback-in"),
+            ]
+        )
+        routing["balancers"] = [
+            _failover_balancer(
+                tag="eu-primary",
+                selector=eu_primary_tag,
+                fallback_tag="eu-fallback-loop",
+                strategy="leastPing",
+            ),
+            _failover_balancer(
+                tag="eu-fallback",
+                selector=eu_fallback_tag,
+                fallback_tag="block",
+                strategy="leastPing",
+            ),
+            _failover_balancer(
+                tag="ru-primary",
+                selector=ru_primary_tag,
+                fallback_tag="ru-fallback-loop",
+                strategy="leastPing",
+            ),
+            _failover_balancer(
+                tag="ru-fallback",
+                selector=ru_fallback_tag,
+                fallback_tag="block",
+                strategy="leastPing",
+            ),
+        ]
+        routing_rules.extend(
+            [
+                {
+                    "type": "field",
+                    "ruleTag": "route_eu_failover_loop",
+                    "inboundTag": ["eu-fallback-in"],
+                    "network": "tcp,udp",
+                    "balancerTag": "eu-fallback",
+                },
+                {
+                    "type": "field",
+                    "ruleTag": "route_ru_failover_loop",
+                    "inboundTag": ["ru-fallback-in"],
+                    "network": "tcp,udp",
+                    "balancerTag": "ru-fallback",
+                },
+            ]
+        )
+    routing_rules.extend(_xray_rules(policy, automatic_destinations))
+    routing["rules"] = routing_rules
+    template: dict[str, object] = {
         "remnawave": {
             "injectHosts": [
                 _inject_group(r"^PREMIUM_SMART_RU_INCY_DE_", "eu-de"),
@@ -188,14 +343,7 @@ def build_template(
                 "product": policy["product"],
                 "ruleOrder": policy["ruleOrder"],
                 "regionalHealth": transport_policy,
-                "rendererDeviations": [
-                    {
-                        "id": "xray-single-observatory-shared-ru-safe-probe",
-                        "reason": "Xray 26.6.27 observatory caused user-traffic stalls with XHTTP",
-                        "effect": "INCY uses deterministic XHTTP primaries; fallback transports remain manual",
-                        "probeUrl": shared_probe_url,
-                    }
-                ],
+                "rendererDeviations": renderer_deviations,
                 "providerSources": [
                     provider
                     for rule in policy["rules"]
@@ -241,40 +389,53 @@ def build_template(
                 },
             },
         ],
-        "outbounds": [
-            {
-                "tag": "direct",
-                "protocol": "freedom",
-                "settings": {"domainStrategy": "UseIP"},
-            },
-            {
-                "tag": "block",
-                "protocol": "blackhole",
-                "settings": {"response": {"type": "none"}},
-            },
-        ],
-        "routing": {
-            "domainMatcher": "hybrid",
-            "domainStrategy": "IPIfNonMatch",
-            "rules": _xray_rules(
-                policy,
-                {"eu": eu_primary_tag, "ru": ru_primary_tag},
-            ),
-        },
+        "outbounds": outbounds,
+        "routing": routing,
         "stats": {},
     }
+    if automatic_failover:
+        route_policy = template["remnawave"]
+        assert isinstance(route_policy, dict)
+        route_policy = route_policy["routePolicy"]
+        assert isinstance(route_policy, dict)
+        route_policy["rendererMode"] = "automatic-failover-canary"
+        eu_probe = eu_transport["probe"]
+        assert isinstance(eu_probe, dict)
+        template["observatory"] = {
+            "subjectSelector": [
+                eu_primary_tag,
+                eu_fallback_tag,
+                ru_primary_tag,
+                ru_fallback_tag,
+            ],
+            "probeUrl": str(eu_probe["url"]),
+            "probeInterval": "10s",
+            "enableConcurrency": True,
+        }
+    return template
 
 
 def main() -> int:
     template = build_template()
-    OUTPUT_PATH.write_text(
-        json.dumps(template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    OUTPUT_PATH.write_bytes(
+        (json.dumps(template, ensure_ascii=False, indent=2) + "\n").encode()
     )
     routing = template["routing"]
     assert isinstance(routing, dict)
     rules = routing["rules"]
     assert isinstance(rules, list)
-    print(f"generated={OUTPUT_PATH} routing_rules={len(rules)}")
+    canary_template = build_template(automatic_failover=True)
+    CANARY_OUTPUT_PATH.write_bytes(
+        (json.dumps(canary_template, ensure_ascii=False, indent=2) + "\n").encode()
+    )
+    canary_routing = canary_template["routing"]
+    assert isinstance(canary_routing, dict)
+    canary_rules = canary_routing["rules"]
+    assert isinstance(canary_rules, list)
+    print(
+        f"generated={OUTPUT_PATH} routing_rules={len(rules)} "
+        f"canary={CANARY_OUTPUT_PATH} canary_routing_rules={len(canary_rules)}"
+    )
     return 0
 
 

@@ -137,16 +137,10 @@ def test_critical_inline_block_entries_are_shared_by_all_renderers() -> None:
         for source_id in getattr(policy.source_groups, stage):
             source = policy.sources[source_id]
             if source.kind == "process":
-                assert all(
-                    f"PROCESS-NAME-REGEX,{entry}," in "\n".join(mihomo_rules)
-                    for entry in source.entries
-                )
+                assert all(f"PROCESS-NAME-REGEX,{entry}," in "\n".join(mihomo_rules) for entry in source.entries)
             else:
                 target = "Torrents" if stage == "torrent_sources" else "REJECT"
-                assert any(
-                    rule.startswith(f"RULE-SET,{source_id},{target}")
-                    for rule in mihomo_rules
-                )
+                assert any(rule.startswith(f"RULE-SET,{source_id},{target}") for rule in mihomo_rules)
     assert all(rules_by_stage[stage].action == "block" for stage in block_stages)
 
 
@@ -160,9 +154,7 @@ def test_xray_network_port_pairs_do_not_expand_to_a_cross_product() -> None:
             "AND,((NETWORK,udp),(DST-PORT,853))",
         ),
     )
-    mixed_policy = policy.model_copy(
-        update={"sources": {**policy.sources, "mixed-network-port": mixed}}
-    )
+    mixed_policy = policy.model_copy(update={"sources": {**policy.sources, "mixed-network-port": mixed}})
 
     matches, providers = _xray_matches(mixed_policy, ("mixed-network-port",))
 
@@ -171,6 +163,7 @@ def test_xray_network_port_pairs_do_not_expand_to_a_cross_product() -> None:
         {"network": "tcp", "port": "25"},
         {"network": "udp", "port": "853"},
     ]
+
 
 def test_outputs_are_deterministic_and_manifest_hashes_every_renderer() -> None:
     _policy, first = build_outputs(POLICY_PATH)
@@ -285,11 +278,7 @@ def test_xray_generator_uses_regional_policy_without_ru_to_eu_fallback(
 
     assert "balancers" not in template["routing"]
 
-    smtp_rules = [
-        rule
-        for rule in template["routing"]["rules"]
-        if rule["ruleTag"] == "block_smtp_abuse"
-    ]
+    smtp_rules = [rule for rule in template["routing"]["rules"] if rule["ruleTag"] == "block_smtp_abuse"]
     assert smtp_rules == [
         {
             "type": "field",
@@ -335,6 +324,84 @@ def test_xray_generator_uses_regional_policy_without_ru_to_eu_fallback(
     } <= provider_ids
     assert rule_tags[-1] == "route_final_eu"
     assert template["routing"]["rules"][-1]["network"] == "tcp,udp"
+
+
+def test_xray_generator_builds_isolated_fail_closed_automatic_failover_canary(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "compiled"
+    generate(POLICY_PATH, output_dir)
+    generator = _load_script(GENERATOR_PATH, "premium_smart_ru_xray_failover_generator")
+
+    stable = generator.build_template(output_dir)
+    canary = generator.build_template(output_dir, automatic_failover=True)
+
+    assert "balancers" not in stable["routing"]
+    assert "observatory" not in stable
+    assert canary["remnawave"]["routePolicy"]["rendererMode"] == "automatic-failover-canary"
+    assert canary["remnawave"]["routePolicy"]["rendererDeviations"] == [
+        {
+            "id": "xray-canary-single-observatory-global-204-probe",
+            "reason": "Xray 26.6.27 must use one deterministic observatory feature for all failover balancers",
+            "effect": (
+                "All four transports use the EU HTTP 204 probe for liveness; "
+                "RU destination routing remains policy-driven and is validated separately"
+            ),
+            "probeUrl": "https://www.gstatic.com/generate_204",
+        }
+    ]
+    assert canary["observatory"]["subjectSelector"] == [
+        "eu-de-2",
+        "eu-nl-2",
+        "ru-spb-2",
+        "ru-msk-2",
+    ]
+    assert "burstObservatory" not in canary
+
+    balancers = {item["tag"]: item for item in canary["routing"]["balancers"]}
+    assert balancers["eu-primary"]["selector"] == ["eu-de-2"]
+    assert balancers["eu-primary"]["strategy"] == {"type": "leastPing"}
+    assert balancers["eu-primary"]["fallbackTag"] == "eu-fallback-loop"
+    assert balancers["eu-fallback"]["selector"] == ["eu-nl-2"]
+    assert balancers["eu-fallback"]["fallbackTag"] == "block"
+    assert balancers["ru-primary"]["selector"] == ["ru-spb-2"]
+    assert balancers["ru-primary"]["strategy"] == {"type": "leastPing"}
+    assert balancers["ru-primary"]["fallbackTag"] == "ru-fallback-loop"
+    assert balancers["ru-fallback"]["selector"] == ["ru-msk-2"]
+    assert balancers["ru-fallback"]["fallbackTag"] == "block"
+    assert all(item["fallbackTag"] != "direct" for item in balancers.values())
+
+    rules = canary["routing"]["rules"]
+    assert rules[0]["ruleTag"] == "route_eu_failover_loop"
+    assert rules[0]["balancerTag"] == "eu-fallback"
+    assert rules[1]["ruleTag"] == "route_ru_failover_loop"
+    assert rules[1]["balancerTag"] == "ru-fallback"
+    by_tag = {item["ruleTag"]: item for item in rules}
+    assert by_tag["route_ru_services"]["balancerTag"] == "ru-primary"
+    assert by_tag["route_final_eu"]["balancerTag"] == "eu-primary"
+    assert by_tag["block_smtp_abuse"]["outboundTag"] == "block"
+
+
+def test_xray_generator_rejects_reversed_primary_fallback_order(tmp_path: Path) -> None:
+    output_dir = tmp_path / "compiled"
+    generate(POLICY_PATH, output_dir)
+    generator = _load_script(GENERATOR_PATH, "premium_smart_ru_xray_order_guard")
+    artifact = json.loads((output_dir / XRAY_CLIENT_NAME).read_text(encoding="utf-8"))
+    artifact["transportPolicy"]["eu"]["primary"] = "nl"
+    artifact["transportPolicy"]["eu"]["fallback"] = "de"
+
+    with pytest.raises(RuntimeError, match="invalid eu order"):
+        generator._transport_metadata(artifact)
+
+
+def test_xray_generator_rejects_prefix_selector_collisions() -> None:
+    generator = _load_script(GENERATOR_PATH, "premium_smart_ru_xray_selector_guard")
+
+    with pytest.raises(RuntimeError, match="must match exactly one outbound"):
+        generator._validate_failover_selectors(
+            ("eu-de-2",),
+            ("eu-de-2", "eu-de-20"),
+        )
 
 
 def test_consumers_validate_compiled_artifact_checksums_fail_closed(

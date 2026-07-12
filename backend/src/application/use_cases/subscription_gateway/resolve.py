@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
@@ -24,6 +25,7 @@ SHORT_UUID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 SUPPORTED_PRODUCT_CODES = frozenset({SMART_RU_PRODUCT_CODE, SPB_DE_EXCEPTIONS_PRODUCT_CODE})
 EXTERNAL_SQUAD_MISMATCH_REASON = "subscription_gateway_external_squad_mismatch"
 EXTERNAL_SQUAD_UNCONFIGURED_REASON = "subscription_gateway_external_squad_unconfigured"
+PREMIUM_SMART_RU_XRAY_FAILOVER_CANARY_CONTEXT_KEY = "premium_smart_ru_xray_failover_canary"
 
 
 class SubscriptionGatewayNotFoundError(Exception):
@@ -49,6 +51,7 @@ class _RemnawaveUser(BaseModel):
 @dataclass(frozen=True)
 class ResolvedSubscriptionProduct:
     product_code: str
+    xray_failover_canary: bool = False
 
 
 class ResolveSubscriptionProductUseCase:
@@ -70,7 +73,7 @@ class ResolveSubscriptionProductUseCase:
             provider_name="remnawave",
             provider_subject_ref=provider_user.uuid,
         )
-        candidates: list[str] = []
+        candidates: list[tuple[str, bool]] = []
         active_grant_plan_codes: list[str] = []
         now = datetime.now(UTC)
 
@@ -98,14 +101,22 @@ class ResolveSubscriptionProductUseCase:
             active_grant_plan_codes.append(product_code)
             if product_code not in SUPPORTED_PRODUCT_CODES:
                 continue
-            candidates.append(product_code)
+            candidates.append(
+                (
+                    product_code,
+                    _is_premium_smart_ru_xray_failover_canary(
+                        product_code=product_code,
+                        service_context=identity.service_context,
+                    ),
+                )
+            )
 
         if not candidates:
             raise SubscriptionGatewayNotFoundError
         if len(active_grant_plan_codes) != 1 or len(candidates) != 1:
             raise SubscriptionGatewayUnavailableError
 
-        product_code = candidates[0]
+        product_code, xray_failover_canary = candidates[0]
         try:
             ensure_spb_de_exceptions_data_plane_ready(product_code)
         except VpnProductReadinessError as exc:
@@ -115,7 +126,10 @@ class ResolveSubscriptionProductUseCase:
             product_code=product_code,
         )
 
-        return ResolvedSubscriptionProduct(product_code=product_code)
+        return ResolvedSubscriptionProduct(
+            product_code=product_code,
+            xray_failover_canary=xray_failover_canary,
+        )
 
     async def _get_provider_user(self, short_uuid: str) -> _RemnawaveUser:
         try:
@@ -167,3 +181,9 @@ def _normalize_uuid_or_unavailable(value: str | None, *, reason: str) -> str:
         return str(UUID(value.strip()))
     except ValueError as exc:
         raise SubscriptionGatewayUnavailableError(reason) from exc
+
+
+def _is_premium_smart_ru_xray_failover_canary(*, product_code: str, service_context: object) -> bool:
+    if product_code != SMART_RU_PRODUCT_CODE or not isinstance(service_context, Mapping):
+        return False
+    return service_context.get(PREMIUM_SMART_RU_XRAY_FAILOVER_CANARY_CONTEXT_KEY) is True

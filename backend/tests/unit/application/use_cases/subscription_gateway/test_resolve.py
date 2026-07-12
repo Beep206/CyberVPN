@@ -13,6 +13,7 @@ from src.application.services.vpn_product_readiness import (
 )
 from src.application.use_cases.subscription_gateway.resolve import (
     EXTERNAL_SQUAD_MISMATCH_REASON,
+    PREMIUM_SMART_RU_XRAY_FAILOVER_CANARY_CONTEXT_KEY,
     ResolveSubscriptionProductUseCase,
     SubscriptionGatewayNotFoundError,
     SubscriptionGatewayUnavailableError,
@@ -131,6 +132,7 @@ async def test_resolves_one_active_supported_product(plan_code: str, monkeypatch
     result = await use_case.execute("abcdefghijklmnop")
 
     assert result.product_code == plan_code
+    assert result.xray_failover_canary is False
     assert client.paths == ["/users/by-short-uuid/abcdefghijklmnop"]
 
 
@@ -192,6 +194,61 @@ async def test_smart_ru_resolves_when_task2_data_plane_is_not_ready(monkeypatch:
     result = await use_case.execute("abcdefghijklmnop")
 
     assert result.product_code == "premium_smart_ru"
+
+
+@pytest.mark.asyncio
+async def test_smart_ru_xray_failover_canary_resolves_only_from_service_context_json_true() -> None:
+    identity = _identity("premium_smart_ru")
+    identity.service_context[PREMIUM_SMART_RU_XRAY_FAILOVER_CANARY_CONTEXT_KEY] = True
+    use_case, _ = _use_case(
+        [identity],
+        {identity.id: _grant(identity)},
+        external_squad_uuid=SMART_RU_EXTERNAL_SQUAD_UUID,
+    )
+
+    result = await use_case.execute("abcdefghijklmnop")
+
+    assert result.product_code == "premium_smart_ru"
+    assert result.xray_failover_canary is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "stored_value",
+    [False, "true", "1", 1, "yes", None],
+)
+async def test_smart_ru_xray_failover_canary_rejects_non_json_true_values(stored_value: object) -> None:
+    identity = _identity("premium_smart_ru")
+    identity.service_context[PREMIUM_SMART_RU_XRAY_FAILOVER_CANARY_CONTEXT_KEY] = stored_value
+    use_case, _ = _use_case(
+        [identity],
+        {identity.id: _grant(identity)},
+        external_squad_uuid=SMART_RU_EXTERNAL_SQUAD_UUID,
+    )
+
+    result = await use_case.execute("abcdefghijklmnop")
+
+    assert result.product_code == "premium_smart_ru"
+    assert result.xray_failover_canary is False
+
+
+@pytest.mark.asyncio
+async def test_xray_failover_canary_marker_is_ignored_for_non_smart_ru_product(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    enable_spb_de_readiness(monkeypatch)
+    identity = _identity("premium_spb_de_exceptions")
+    identity.service_context[PREMIUM_SMART_RU_XRAY_FAILOVER_CANARY_CONTEXT_KEY] = True
+    use_case, _ = _use_case(
+        [identity],
+        {identity.id: _grant(identity)},
+        external_squad_uuid=TASK2_EXTERNAL_SQUAD_UUID,
+    )
+
+    result = await use_case.execute("abcdefghijklmnop")
+
+    assert result.product_code == "premium_spb_de_exceptions"
+    assert result.xray_failover_canary is False
 
 
 @pytest.mark.asyncio
