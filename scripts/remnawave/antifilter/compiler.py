@@ -62,6 +62,22 @@ def _address_exclude(container: Network, excluded: Network) -> list[Network]:
     raise AssertionError("address exclusion requires matching families")
 
 
+def _network_bounds(network: Network) -> tuple[int, int]:
+    first = int(network.network_address)
+    return first, first + network.num_addresses - 1
+
+
+def _append_summarized_range(
+    result: list[Network], version: int, first: int, last: int
+) -> None:
+    if first > last:
+        return
+    address_type = ipaddress.IPv4Address if version == 4 else ipaddress.IPv6Address
+    result.extend(
+        ipaddress.summarize_address_range(address_type(first), address_type(last))
+    )
+
+
 def _subtract_networks(
     networks: Iterable[Network], exclusions: Iterable[Network]
 ) -> tuple[list[Network], int, int]:
@@ -90,10 +106,52 @@ def _subtract_networks(
 def _network_difference(
     left: Iterable[Network], right: Iterable[Network]
 ) -> list[Network]:
-    result = _collapse(left)
-    for excluded in _collapse(right):
-        result, _, _ = _subtract_networks(result, [excluded])
-    return _collapse(result)
+    left_collapsed = _collapse(left)
+    right_collapsed = _collapse(right)
+    result: list[Network] = []
+
+    for family in (4, 6):
+        left_family = [
+            network for network in left_collapsed if network.version == family
+        ]
+        right_family = [
+            network for network in right_collapsed if network.version == family
+        ]
+        right_index = 0
+
+        for network in left_family:
+            current_start, left_end = _network_bounds(network)
+            while right_index < len(right_family):
+                _, excluded_end = _network_bounds(right_family[right_index])
+                if excluded_end >= current_start:
+                    break
+                right_index += 1
+
+            scan_index = right_index
+            while scan_index < len(right_family):
+                excluded_start, excluded_end = _network_bounds(right_family[scan_index])
+                if excluded_start > left_end:
+                    break
+                if excluded_end < current_start:
+                    scan_index += 1
+                    continue
+                if excluded_start > current_start:
+                    _append_summarized_range(
+                        result,
+                        family,
+                        current_start,
+                        min(excluded_start - 1, left_end),
+                    )
+                if excluded_end >= left_end:
+                    current_start = left_end + 1
+                    break
+                current_start = excluded_end + 1
+                scan_index += 1
+
+            if current_start <= left_end:
+                _append_summarized_range(result, family, current_start, left_end)
+
+    return result
 
 
 def _cidr_bytes(networks: Iterable[Network]) -> bytes:

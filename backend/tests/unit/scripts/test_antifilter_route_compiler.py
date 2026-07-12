@@ -149,6 +149,21 @@ def _publish(
     )
 
 
+def _slow_network_difference(
+    left: list[ipaddress.IPv4Network | ipaddress.IPv6Network],
+    right: list[ipaddress.IPv4Network | ipaddress.IPv6Network],
+) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    result = _collapse(left)
+    for excluded in _collapse(right):
+        result, _, _ = compiler_module._subtract_networks(result, [excluded])
+    return _collapse(result)
+
+
+def _spaced_ipv4_host_routes(start: str, count: int) -> list[ipaddress.IPv4Network]:
+    base = int(ipaddress.IPv4Address(start))
+    return [ipaddress.IPv4Network((base + index * 2, 32)) for index in range(count)]
+
+
 def test_required_communities_have_exact_explicit_category_mapping() -> None:
     assert CATEGORY_COMMUNITIES == {
         "rkn": ("65444:100",),
@@ -249,6 +264,78 @@ def test_property_like_collapse_is_deterministic_idempotent_and_exact() -> None:
         assert _collapse(first) == first
         assert not _network_difference(inputs, first)
         assert not _network_difference(first, inputs)
+
+
+def test_network_difference_splits_multiple_ipv4_and_ipv6_exclusions() -> None:
+    left = [
+        ipaddress.ip_network("10.0.0.0/24"),
+        ipaddress.ip_network("2001:db8::/120"),
+    ]
+    right = [
+        ipaddress.ip_network("10.0.0.64/26"),
+        ipaddress.ip_network("10.0.0.192/27"),
+        ipaddress.ip_network("2001:db8::40/122"),
+    ]
+
+    assert [str(network) for network in _network_difference(left, right)] == [
+        "10.0.0.0/26",
+        "10.0.0.128/26",
+        "10.0.0.224/27",
+        "2001:db8::/122",
+        "2001:db8::80/121",
+    ]
+
+
+def test_property_like_network_difference_matches_slow_reference_for_nested_cidrs() -> None:
+    randomizer = random.Random(20260712)  # noqa: S311 - deterministic property-like cases, not security data
+    for _ in range(120):
+        left: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
+        right: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
+        for family in (4, 6):
+            for _ in range(randomizer.randint(1, 10)):
+                if family == 4:
+                    parent = ipaddress.IPv4Network((randomizer.randrange(0, 1 << 24) << 8, 24))
+                else:
+                    parent = ipaddress.IPv6Network((randomizer.getrandbits(120) << 8, 120))
+                if randomizer.random() < 0.25:
+                    left.append(randomizer.choice(list(parent.subnets(new_prefix=parent.prefixlen + 2))))
+                    right.append(parent)
+                    continue
+                left.append(parent)
+                for _ in range(randomizer.randint(0, 4)):
+                    prefix = randomizer.randint(parent.prefixlen + 1, parent.max_prefixlen)
+                    right.append(randomizer.choice(list(parent.subnets(new_prefix=prefix))))
+                if randomizer.random() < 0.15:
+                    right.append(parent.supernet(new_prefix=parent.prefixlen - 1))
+
+        result = _network_difference(left, right)
+
+        assert result == _slow_network_difference(left, right)
+        assert result == _collapse(result)
+        assert _network_difference(result, right) == result
+
+
+def test_network_difference_large_route_sets_do_not_recollapse_per_exclusion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    left = _spaced_ipv4_host_routes("11.0.0.0", 29_000)
+    right = _spaced_ipv4_host_routes("44.0.0.0", 21_407)
+    original_collapse_addresses = compiler_module.ipaddress.collapse_addresses
+    collapse_calls = 0
+
+    def counting_collapse_addresses(
+        addresses: list[ipaddress.IPv4Network] | list[ipaddress.IPv6Network],
+    ):
+        nonlocal collapse_calls
+        collapse_calls += 1
+        if collapse_calls > 6:
+            raise AssertionError("network difference re-collapsed per excluded prefix")
+        return original_collapse_addresses(addresses)
+
+    monkeypatch.setattr(compiler_module.ipaddress, "collapse_addresses", counting_collapse_addresses)
+
+    assert _network_difference(left, right) == left
+    assert collapse_calls == 4
 
 
 @pytest.mark.parametrize(
