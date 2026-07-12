@@ -115,7 +115,7 @@ jobs:
       - name: Check for critical/high severity findings
         if: always()
         run: |
-          SARIF_FILE="sarif-results/javascript-typescript.sarif"
+          SARIF_FILE="sarif-results/javascript.sarif"
           if [ ! -s "$SARIF_FILE" ]; then
             echo "::error::Expected CodeQL SARIF output is missing or empty: $SARIF_FILE"
             find sarif-results -maxdepth 2 -type f -print 2>/dev/null || true
