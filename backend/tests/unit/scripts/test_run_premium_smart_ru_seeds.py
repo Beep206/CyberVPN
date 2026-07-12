@@ -304,6 +304,7 @@ def test_container_seed_invalidates_only_exact_incy_template_cache_keys(
         cache_container="remnawave-valkey",
         cache_binary="valkey-cli",
         cache_key_prefix="ioraw:",
+        allow_empty_cache=False,
         database_user="remnawave",
         database_name="remnawave",
     )
@@ -341,24 +342,28 @@ def test_cache_key_prefix_rejects_wildcards_controls_and_unbounded_values(prefix
 
 
 @pytest.mark.parametrize(
-    ("execute", "docker_container", "selection", "message"),
+    ("execute", "docker_container", "selection", "cache_container", "message"),
     [
-        (False, "remnawave-db", "incy", "requires --execute"),
-        (True, None, "incy", "requires --execute"),
-        (True, "remnawave-db", "main", "requires the INCY seed"),
+        (False, "remnawave-db", "incy", "remnawave-valkey", "requires --execute"),
+        (True, None, "incy", "remnawave-valkey", "requires --execute"),
+        (True, "remnawave-db", "main", "remnawave-valkey", "requires the INCY seed"),
+        (True, "remnawave-db", "both", None, "requires --cache-container"),
     ],
 )
 def test_cache_invalidation_rejects_modes_that_cannot_refresh_incy_templates(
     execute: bool,
     docker_container: str | None,
     selection: str,
+    cache_container: str | None,
     message: str,
 ) -> None:
     module = _load_module()
 
     with pytest.raises(RuntimeError, match=message):
         module._validate_cache_execution(
-            cache_container="remnawave-valkey",
+            allow_empty_cache=False,
+            allow_skip_cache_invalidation=False,
+            cache_container=cache_container,
             docker_container=docker_container,
             execute=execute,
             selection=selection,
@@ -369,10 +374,77 @@ def test_cache_invalidation_accepts_docker_incy_execution() -> None:
     module = _load_module()
 
     module._validate_cache_execution(
+        allow_empty_cache=False,
+        allow_skip_cache_invalidation=False,
         cache_container="remnawave-valkey",
         docker_container="remnawave-db",
         execute=True,
         selection="incy",
+    )
+
+
+def test_cache_invalidation_allows_only_explicit_skip_override() -> None:
+    module = _load_module()
+
+    module._validate_cache_execution(
+        allow_empty_cache=False,
+        allow_skip_cache_invalidation=True,
+        cache_container=None,
+        docker_container="remnawave-db",
+        execute=True,
+        selection="both",
+    )
+
+    with pytest.raises(RuntimeError, match="Cannot combine"):
+        module._validate_cache_execution(
+            allow_empty_cache=False,
+            allow_skip_cache_invalidation=True,
+            cache_container="remnawave-valkey",
+            docker_container="remnawave-db",
+            execute=True,
+            selection="both",
+        )
+
+
+def test_template_cache_invalidation_rejects_zero_without_explicit_empty_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_module()
+    template_uuids = (
+        "11111111-1111-4111-8111-111111111111",
+        "22222222-2222-4222-8222-222222222222",
+    )
+
+    def fake_run(command: list[str], **kwargs: object) -> object:
+        stdout = ("\n".join(template_uuids) + "\n").encode() if "psql" in command else b"0\n"
+        return module.subprocess.CompletedProcess(command, 0, stdout=stdout)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="No template cache key was invalidated"):
+        module._invalidate_container_template_cache(
+            docker="docker",
+            database_container="remnawave-db",
+            cache_container="remnawave-valkey",
+            cache_binary="valkey-cli",
+            cache_key_prefix="ioraw:",
+            allow_empty_cache=False,
+            database_user="remnawave",
+            database_name="remnawave",
+        )
+
+    assert (
+        module._invalidate_container_template_cache(
+            docker="docker",
+            database_container="remnawave-db",
+            cache_container="remnawave-valkey",
+            cache_binary="valkey-cli",
+            cache_key_prefix="ioraw:",
+            allow_empty_cache=True,
+            database_user="remnawave",
+            database_name="remnawave",
+        )
+        == 0
     )
 
 

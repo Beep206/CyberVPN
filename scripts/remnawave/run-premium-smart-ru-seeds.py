@@ -581,11 +581,27 @@ def _validate_cache_key_prefix(value: str) -> str:
 
 def _validate_cache_execution(
     *,
+    allow_empty_cache: bool,
+    allow_skip_cache_invalidation: bool,
     cache_container: str | None,
     docker_container: str | None,
     execute: bool,
     selection: str,
 ) -> None:
+    requires_cache = (
+        execute and docker_container is not None and selection in {"incy", "both"}
+    )
+    if requires_cache and not cache_container and not allow_skip_cache_invalidation:
+        raise RuntimeError(
+            "Docker INCY seed requires --cache-container or an explicit "
+            "--allow-skip-cache-invalidation override"
+        )
+    if allow_skip_cache_invalidation and cache_container:
+        raise RuntimeError(
+            "Cannot combine cache invalidation with --allow-skip-cache-invalidation"
+        )
+    if allow_empty_cache and not cache_container:
+        raise RuntimeError("--allow-empty-template-cache requires --cache-container")
     if not cache_container:
         return
     if not execute or not docker_container:
@@ -603,6 +619,7 @@ def _invalidate_container_template_cache(
     cache_container: str,
     cache_binary: str,
     cache_key_prefix: str,
+    allow_empty_cache: bool,
     database_user: str | None,
     database_name: str | None,
 ) -> int:
@@ -668,6 +685,12 @@ order by name;
         raise RuntimeError("Cache invalidation returned an invalid result") from exc
     if not 0 <= deleted_count <= len(keys):
         raise RuntimeError("Cache invalidation returned an impossible key count")
+    if deleted_count == 0 and not allow_empty_cache:
+        raise RuntimeError(
+            "No template cache key was invalidated; verify the cache container, "
+            "database and prefix or use --allow-empty-template-cache with an "
+            "external generated-subscription freshness proof"
+        )
     return deleted_count
 
 
@@ -700,6 +723,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--cache-binary", default="valkey-cli")
     parser.add_argument("--cache-key-prefix", default="ioraw:")
     parser.add_argument(
+        "--allow-empty-template-cache",
+        action="store_true",
+        help="Allow zero invalidated keys only when an external generated-body freshness proof will follow",
+    )
+    parser.add_argument(
+        "--allow-skip-cache-invalidation",
+        action="store_true",
+        help="Emergency override for Docker INCY seed without cache refresh; requires external freshness proof",
+    )
+    parser.add_argument(
         "--execute",
         action="store_true",
         help="Run psql; without this flag only stage and validate artifacts",
@@ -710,6 +743,8 @@ def _parse_args() -> argparse.Namespace:
 def main() -> int:
     args = _parse_args()
     _validate_cache_execution(
+        allow_empty_cache=args.allow_empty_template_cache,
+        allow_skip_cache_invalidation=args.allow_skip_cache_invalidation,
         cache_container=args.cache_container,
         docker_container=args.docker_container,
         execute=args.execute,
@@ -751,6 +786,7 @@ def main() -> int:
                             cache_container=args.cache_container,
                             cache_binary=args.cache_binary,
                             cache_key_prefix=args.cache_key_prefix,
+                            allow_empty_cache=args.allow_empty_template_cache,
                             database_user=args.database_user,
                             database_name=args.database_name,
                         )

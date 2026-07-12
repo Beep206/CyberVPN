@@ -82,7 +82,7 @@ snapshot того же файла.
 
 | Уровень | Владелец состояния | Типичный drift |
 |---|---|---|
-| Product/backend | CyberVPN catalog, entitlement и readiness gate | readiness может drift-ить; Task2 current readiness=true только при valid r8 attestation, иначе выдача fail-closed |
+| Product/backend | CyberVPN catalog, entitlement и readiness gate | readiness может drift-ить; Task2 current readiness=true только при valid attestation в `r9-xray-failover-canary-71728ebe`, иначе выдача fail-closed |
 | Remnawave control plane | squads, Hosts, Config Profiles, Response Rules, templates | DB обновлена, а process/cache отдает предыдущий artifact |
 | Generated subscription | фактический body для конкретного client family | сохраненный template и injected final JSON структурно различаются |
 | Node runtime | загруженные Xray profiles, listeners и relay units | control plane healthy, но relay origin или profile на узле другой |
@@ -677,7 +677,7 @@ flowchart TD
     DE --> MAT["RAW/XHTTP x TCP/UDP\nmatched/unmatched/failure matrix"]
     MAT --> ATT["Signed readiness attestation"]
     ATT --> GW2["Task2 public gateway enabled"]
-    ATT --> FC2["Current production\nr8 readiness=true with signed verifier"]
+    ATT --> FC2["Current production r9\nreadiness=true with signed verifier"]
 ```
 
 В current snapshot вся цепочка завершена. Bridge transport использует IPv6
@@ -721,17 +721,30 @@ Backup создан **до** перехода на этот known-good IPv4 mapp
 После rollback listener presence недостаточен: повторить RAW/XHTTP Reality
 handshake, selected outbound, terminal Moscow egress и destination matrix.
 
-### 15.2. Xray routing rollback
+### 15.2. Xray routing и canary rollback
 
-Не возвращать balancers/observatory только ради automatic failover: именно
-observatory на Xray `26.6.27` вызвал XHTTP user-traffic stalls. Перед любым
-альтернативным failover design необходимы отдельный canary, no-stall test,
-route/egress evidence и device TUN proof.
+Старый EU-only observatory нельзя возвращать в stable template: на Xray
+`26.6.27` он вызывал XHTTP stalls. Новый RU-safe design остается отдельным
+server-owned canary и не переносится в stable body без device TUN soak.
+
+Canary rollback считается успешным только после полной последовательности:
+
+1. удалить exact `premium_smart_ru_xray_failover_canary` marker только из
+   authoritative Smart RU service identity;
+2. получить INCY и HAPP через gateway и доказать отсутствие trusted upstream
+   canary header и response profile `premium_smart_ru_xray_failover_canary`;
+3. если template/Response Rules менялись через SQL, выполнить exact named+UUID
+   Valkey invalidation либо явный process restart; zero-key/skip path требует
+   отдельного final generated-body freshness proof;
+4. проверить оба final body: exactly 10 outbounds, 18 rules, no balancers, no
+   observatory, final `eu-de-2`, RU `ru-spb-2`;
+5. official Xray parse/run должен подтвердить DE default, SPB RU route и zero
+   fatal lines; только после этого rollback marker/status можно считать PASS.
 
 При rollback subscription generation сохранять согласованным один change set:
 template, injected Hosts, Response Rules, Remnawave cache/process и backend
-gateway. Частичное восстановление только DB не доказывает, что HTTP body стал
-соответствовать ожидаемому artifact.
+gateway. Частичное восстановление только DB или marker без final generated
+fingerprint не доказывает, что HTTP body стал stable artifact.
 
 ## 16. Current evidence and ownership map
 
@@ -794,8 +807,8 @@ logger, validation/unhandled exception handlers и Sentry event/transaction
 URL. Rate limiter объединяет все case variants `/api/sub/*` в non-secret bucket
 `subscription_gateway`; admin invite и Telegram magic-link paths используют
 redacted fallback buckets. Это подтверждено focused unit/security и fake-Redis
-tests, smoke внутри production `r8` и отсутствием synthetic bearer-значения в
-post-deploy logs.
+tests, historical smoke внутри production `r8`, повторным current `r9` gateway
+audit и отсутствием synthetic bearer-значения в post-deploy logs.
 
 Для расследований использовать только форму `/api/sub/[REDACTED]`, timestamp,
 correlation ID и structural fingerprint body. Нельзя помещать short UUID в
@@ -876,27 +889,35 @@ Source seed устанавливает product-scoped rules в таком пор
 ```text
 existing BROWSER rules
   -> Mihomo Premium Smart RU
+  -> HAPP Premium Smart RU Failover Canary
+  -> INCY Premium Smart RU Failover Canary
   -> HAPP Premium Smart RU
   -> INCY Premium Smart RU
   -> remaining non-browser/non-Base64 rules
   -> XRAY_BASE64 fallback rules
 ```
 
-Все три product rules требуют одновременно:
+Все пять product rules требуют authoritative product и client family. Две
+canary rules дополнительно требуют точный case-sensitive trusted header:
 
 ```text
 X-CyberVPN-Product = premium_smart_ru
 X-CyberVPN-Client-Family = mihomo | happ | incy
+X-CyberVPN-Xray-Failover-Canary = 1  # только HAPP/INCY canary rules
 ```
 
 | Rule | Response type | Modification |
 |---|---|---|
 | Mihomo | `MIHOMO` | template `CyberVPN Premium Smart RU` |
+| HAPP canary | `XRAY_JSON` | template `CyberVPN Premium Smart RU INCY Failover Canary`, stable Host template ignored, canary profile header |
+| INCY canary | `XRAY_JSON` | тот же canary template и exact trusted canary condition |
 | HAPP | `XRAY_JSON` | template `CyberVPN Premium Smart RU INCY`, Host template ignored, final headers applied |
 | INCY | `XRAY_JSON` | тот же XRAY_JSON template и profile marker |
 
 Remnawave вычисляет Response Rules сверху вниз и останавливается на первом
-match. Поэтому порядок rules является production contract, а не косметикой.
+match. Поэтому обе canary rules обязаны стоять перед stable HAPP/INCY; иначе
+stable family rule затенит canary. Порядок rules является production contract,
+а не косметикой.
 HTTP `200` без проверки response type и structural body не доказывает, что
 сработало правильное правило.
 
@@ -1322,7 +1343,7 @@ it does not invalidate the proven server-generated canary topology.
 |---|---|---|
 | Gateway HTTP | forces `Cache-Control: no-store` | verify response header; это не invalidation device state |
 | CyberVPN mobile subscription DTO | SOURCE TTL `300s`; отдельный application cache | не путать с public gateway или INCY; проверить key age/invalidation без вывода customer identifier |
-| Remnawave template cache | named XRAY_JSON and UUID cache keys have one-hour TTL | seed-runner invalidates only the two exact Smart RU template names and their resolved UUID keys after successful DB commit; compare fresh generated fingerprint |
+| Remnawave template cache | named XRAY_JSON and UUID cache keys have one-hour TTL | Docker INCY/both execution requires cache container; runner invalidates only two exact Smart RU names and resolved UUID keys, zero/skip fails unless an explicit emergency override is paired with external generated-body freshness proof |
 | Mihomo profile | generated source enables stored selected group and Fake-IP state | reset selection/Fake-IP cache when testing policy changes |
 | INCY local profile/cache | implementation details not present in this repo; current phone state UNKNOWN | use explicit refresh; if stale, remove/re-add profile through UI and fully restart app |
 | HAPP local cache | UNKNOWN | fresh import/refresh and sanitized versioned device evidence |
@@ -1338,11 +1359,11 @@ it does not invalidate the proven server-generated canary topology.
 
 | Priority | Risk | Evidence/status | Diagnostic impact | Как проверить |
 |---|---|---|---|---|
-| RESOLVED | Task2 server-side rollout | **LIVE/PASS:** r8 readiness=true, 13-community artifact active/LKG, IPv6 bridge, isolated IPv4 RAW/XHTTP `4443/8444` и route matrix passed | regression создаст readiness/gateway/data-plane mismatch | сохранять signed-readiness expiry/revocation, artifact freshness и route matrix в release gate |
+| RESOLVED | Task2 server-side rollout | **LIVE/PASS:** current `r9-xray-failover-canary-71728ebe` readiness=true, 13-community artifact active/LKG, IPv6 bridge, isolated IPv4 RAW/XHTTP `4443/8444` и route matrix passed | regression создаст readiness/gateway/data-plane mismatch | сохранять signed-readiness expiry/revocation, artifact freshness и route matrix в release gate |
 | RESOLVED | Antifilter companion community `:110` | owner decision исключил `65444:110`; около 29.5k routes и все 13 required categories принимаются | stale docs/tools могут снова заблокировать корректный feed | не возвращать `:110` в required contract без нового owner decision |
 | P1 | Task2 DNS опубликован, но не в Terraform state | **LIVE:** public A отвечает, AAAA удален; narrow API mutation еще не импортирована в canonical state | следующий Terraform plan может предложить duplicate create или конфликт | импортировать A record в production DNS state и проверить no-delete/no-replace plan |
 | P1 | Cloudflare DNS tags несовместимы с account quota | **LIVE:** API code `9300`, quota `0`; Task2 source tags removed | plan/apply с tags для новой записи fail; metadata expectation расходится с plan capabilities | не задавать Task2 tags на этом account или повысить quota; focused source test фиксирует omission |
-| RESOLVED | Subscription short UUID недостаточно унифицирован как bearer secret | **LIVE/PASS:** `r8` сохраняет redaction normal, exception и Sentry paths; case-insensitive `/api/sub/*` использует shared `subscription_gateway` bucket | regression снова раскроет bearer path или позволит unique-path bucket spray | сохранять negative redaction/bucket/Sentry tests и production image smoke в release gate |
+| RESOLVED | Subscription short UUID недостаточно унифицирован как bearer secret | **LIVE/PASS:** historical `r8` evidence и current `r9` gateway audit сохраняют redaction normal, exception и Sentry paths; case-insensitive `/api/sub/*` использует shared `subscription_gateway` bucket | regression снова раскроет bearer path или позволит unique-path bucket spray | сохранять negative redaction/bucket/Sentry tests и production image smoke в release gate |
 | RESOLVED canary / P1 stable rollout | Automatic INCY/HAPP failover | **LIVE/PASS for exact opted-in identity:** canonical Remnawave-generated canary passed normal, DE/SPB primary-down, all-down BLOCK and recovery; stable users remain static | массовый rollout без phone soak может перенести client-specific stall/cache risk на всех пользователей | расширять opt-in постепенно; сохранять exact server marker, four-phase runtime gate и rollback by marker removal |
 | P1 | Moscow RAW reliability | **EVIDENCE:** repeated `www.ozon.ru` only 3/5; старый 8/8 был delay smoke | manual RAW fallback может быть intermittent, listener/delay PASS даст false confidence | cold repeated RAW handshake + DNS + selected tag + terminal egress + HTTP outcome, сравнить XHTTP |
 | P1 | Phone TUN/cache/DNS | **UNKNOWN:** post-fix phone run отсутствует | server 5/5 может не воспроизводиться из-за stale profile, device DNS/TUN или client mutation | fresh import, version/OS, default/RU/EU/BLOCK/local matrix и sanitized device logs |
