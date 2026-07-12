@@ -113,6 +113,14 @@ begin
             from jsonb_array_elements(v_incy#>'{routing,rules}') as rule
             where rule->>'ruleTag' = 'route_ru_services'
               and rule->>'outboundTag' = 'ru-spb-2'
+       )
+       or not exists (
+            select 1
+            from jsonb_array_elements(v_incy#>'{routing,rules}') as rule
+            where rule->>'ruleTag' = 'block_smtp_abuse'
+              and rule->>'network' = 'tcp'
+              and rule->>'port' = '25,465,587'
+              and rule->>'outboundTag' = 'block'
        ) then
         raise exception 'CyberVPN Premium Smart RU INCY artifact semantics are invalid';
     end if;

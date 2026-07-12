@@ -10,6 +10,7 @@
     "ads_trackers",
     "tor",
     "quic_doq",
+    "smtp_abuse",
     "eu_exceptions",
     "ru_services",
     "broad_ru",
@@ -317,6 +318,23 @@
         "quic-doq"
       ],
       "stage": "quic_doq"
+    },
+    {
+      "action": "block",
+      "assurance": "enforced",
+      "id": "block_smtp_abuse",
+      "matches": [
+        {
+          "network": "tcp",
+          "port": "25,465,587"
+        }
+      ],
+      "providers": [],
+      "sourceGroup": "smtp_abuse",
+      "sourceIds": [
+        "smtp-abuse"
+      ],
+      "stage": "smtp_abuse"
     },
     {
       "action": "eu",

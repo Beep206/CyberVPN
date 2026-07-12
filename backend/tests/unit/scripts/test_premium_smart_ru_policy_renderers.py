@@ -24,12 +24,14 @@ from scripts.remnawave.policy_compiler.compiler import (  # noqa: E402
     generate,
 )
 from scripts.remnawave.policy_compiler.loader import load_policy  # noqa: E402
+from scripts.remnawave.policy_compiler.models import PolicySource  # noqa: E402
 from scripts.remnawave.policy_compiler.renderers import (  # noqa: E402
     LEGACY_HEADER_NAME,
     MIHOMO_NAME,
     XRAY_CLIENT_NAME,
     XRAY_SERVER_NAME,
     _xray_domain,
+    _xray_matches,
 )
 
 
@@ -55,7 +57,7 @@ def test_renderers_preserve_canonical_rule_and_eu_provider_order() -> None:
     expected_stages = [rule.stage for rule in policy.rules]
     expected_eu_sources = list(policy.source_groups.eu_exceptions)
 
-    assert len(policy.sources) == 41
+    assert len(policy.sources) == 42
     assert sum(source.kind == "http" for source in policy.sources.values()) == 29
     assert expected_eu_sources[:14] == [
         "manual-eu-inline",
@@ -135,12 +137,40 @@ def test_critical_inline_block_entries_are_shared_by_all_renderers() -> None:
         for source_id in getattr(policy.source_groups, stage):
             source = policy.sources[source_id]
             if source.kind == "process":
-                assert all(f"PROCESS-NAME-REGEX,{entry}," in "\n".join(mihomo_rules) for entry in source.entries)
+                assert all(
+                    f"PROCESS-NAME-REGEX,{entry}," in "\n".join(mihomo_rules)
+                    for entry in source.entries
+                )
             else:
                 target = "Torrents" if stage == "torrent_sources" else "REJECT"
-                assert any(rule.startswith(f"RULE-SET,{source_id},{target}") for rule in mihomo_rules)
+                assert any(
+                    rule.startswith(f"RULE-SET,{source_id},{target}")
+                    for rule in mihomo_rules
+                )
     assert all(rules_by_stage[stage].action == "block" for stage in block_stages)
 
+
+def test_xray_network_port_pairs_do_not_expand_to_a_cross_product() -> None:
+    policy = load_policy(POLICY_PATH)
+    mixed = PolicySource(
+        kind="inline",
+        behavior="classical",
+        entries=(
+            "AND,((NETWORK,tcp),(DST-PORT,25))",
+            "AND,((NETWORK,udp),(DST-PORT,853))",
+        ),
+    )
+    mixed_policy = policy.model_copy(
+        update={"sources": {**policy.sources, "mixed-network-port": mixed}}
+    )
+
+    matches, providers = _xray_matches(mixed_policy, ("mixed-network-port",))
+
+    assert providers == []
+    assert matches == [
+        {"network": "tcp", "port": "25"},
+        {"network": "udp", "port": "853"},
+    ]
 
 def test_outputs_are_deterministic_and_manifest_hashes_every_renderer() -> None:
     _policy, first = build_outputs(POLICY_PATH)
@@ -255,7 +285,23 @@ def test_xray_generator_uses_regional_policy_without_ru_to_eu_fallback(
 
     assert "balancers" not in template["routing"]
 
+    smtp_rules = [
+        rule
+        for rule in template["routing"]["rules"]
+        if rule["ruleTag"] == "block_smtp_abuse"
+    ]
+    assert smtp_rules == [
+        {
+            "type": "field",
+            "ruleTag": "block_smtp_abuse",
+            "network": "tcp",
+            "port": "25,465,587",
+            "outboundTag": "block",
+        }
+    ]
+
     rule_tags = [rule["ruleTag"] for rule in template["routing"]["rules"]]
+    assert rule_tags.index("block_smtp_abuse") < rule_tags.index("route_eu_exceptions")
     assert rule_tags.index("route_eu_exceptions") < rule_tags.index("route_ru_services")
     eu_rules = [rule for rule in template["routing"]["rules"] if rule["ruleTag"] == "route_eu_exceptions"]
     eu_domains = {domain for rule in eu_rules for domain in rule.get("domain", [])}

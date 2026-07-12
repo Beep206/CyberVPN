@@ -19,6 +19,7 @@ RULE_STAGES = (
     "ads_trackers",
     "tor",
     "quic_doq",
+    "smtp_abuse",
     "eu_exceptions",
     "ru_services",
     "broad_ru",
@@ -34,6 +35,7 @@ RULE_ACTIONS: dict[str, RouteTarget] = {
     "ads_trackers": "block",
     "tor": "block",
     "quic_doq": "block",
+    "smtp_abuse": "block",
     "eu_exceptions": "eu",
     "ru_services": "ru",
     "broad_ru": "ru",
@@ -157,6 +159,7 @@ class SourceGroups(StrictModel):
     ads_trackers: tuple[str, ...]
     tor: tuple[str, ...]
     quic_doq: tuple[str, ...]
+    smtp_abuse: tuple[str, ...]
     eu_exceptions: tuple[str, ...]
     ru_services: tuple[str, ...]
     broad_ru: tuple[str, ...]
@@ -267,6 +270,7 @@ class PolicyRule(StrictModel):
         "ads_trackers",
         "tor",
         "quic_doq",
+        "smtp_abuse",
         "eu_exceptions",
         "ru_services",
         "broad_ru",

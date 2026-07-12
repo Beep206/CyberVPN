@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import copy
 import json
+import re
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -39,6 +40,11 @@ _XRAY_SOURCE_ALIASES: dict[str, dict[str, tuple[str, ...]]] = {
     "geosite-ru": {"domain": ("geosite:category-ru",)},
     "geoip-for-ru": {"ip": ("geoip:ru",)},
 }
+
+_NETWORK_PORT_RULE = re.compile(
+    r"AND,\(\(NETWORK,(?P<network>TCP|UDP)\),\(DST-PORT,(?P<port>[0-9,-]+)\)\)",
+    re.IGNORECASE,
+)
 
 
 def _json_bytes(value: object) -> bytes:
@@ -105,8 +111,7 @@ def _xray_matches(
     ips: list[str] = []
     protocols: list[str] = []
     processes: list[str] = []
-    networks: list[str] = []
-    ports: list[str] = []
+    network_ports: dict[str, list[str]] = {}
     providers: list[dict[str, object]] = []
 
     for source_id in source_ids:
@@ -130,12 +135,13 @@ def _xray_matches(
             if entry.upper().startswith("IP-CIDR,"):
                 _append_unique(ips, (entry.split(",", 1)[1].strip(),))
                 continue
-            if entry.upper() == "AND,((NETWORK,UDP),(DST-PORT,443))":
-                _append_unique(networks, ("udp",))
-                _append_unique(ports, ("443",))
-            elif entry.upper() == "AND,((NETWORK,UDP),(DST-PORT,853))":
-                _append_unique(networks, ("udp",))
-                _append_unique(ports, ("853",))
+            network_port = _NETWORK_PORT_RULE.fullmatch(entry.strip())
+            if network_port is not None:
+                network = network_port.group("network").casefold()
+                _append_unique(
+                    network_ports.setdefault(network, []),
+                    (network_port.group("port"),),
+                )
 
     matches: list[dict[str, object]] = []
     for key, values in (
@@ -146,13 +152,10 @@ def _xray_matches(
     ):
         if values:
             matches.append({key: values})
-    if networks or ports:
-        network_match: dict[str, object] = {}
-        if networks:
-            network_match["network"] = ",".join(networks)
-        if ports:
-            network_match["port"] = ",".join(ports)
-        matches.append(network_match)
+    matches.extend(
+        {"network": network, "port": ",".join(ports)}
+        for network, ports in network_ports.items()
+    )
     return matches, providers
 
 

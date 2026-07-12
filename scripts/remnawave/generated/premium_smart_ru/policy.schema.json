@@ -199,6 +199,7 @@
             "ads_trackers",
             "tor",
             "quic_doq",
+            "smtp_abuse",
             "eu_exceptions",
             "ru_services",
             "broad_ru",
@@ -449,6 +450,13 @@
           "title": "Ru Services",
           "type": "array"
         },
+        "smtp_abuse": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Smtp Abuse",
+          "type": "array"
+        },
         "tor": {
           "items": {
             "type": "string"
@@ -480,6 +488,7 @@
         "ads_trackers",
         "tor",
         "quic_doq",
+        "smtp_abuse",
         "eu_exceptions",
         "ru_services",
         "broad_ru"

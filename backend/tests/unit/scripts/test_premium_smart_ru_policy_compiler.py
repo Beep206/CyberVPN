@@ -34,6 +34,7 @@ EXPECTED_SOURCE_GROUPS = (
     "ads_trackers",
     "tor",
     "quic_doq",
+    "smtp_abuse",
     "eu_exceptions",
     "ru_services",
     "broad_ru",
@@ -47,6 +48,7 @@ EXPECTED_RULE_STAGES = (
     "ads_trackers",
     "tor",
     "quic_doq",
+    "smtp_abuse",
     "eu_exceptions",
     "ru_services",
     "broad_ru",
@@ -61,6 +63,7 @@ EXPECTED_RULE_IDS = (
     "block_ads_trackers",
     "block_tor_best_effort",
     "block_quic_doq",
+    "block_smtp_abuse",
     "route_eu_exceptions",
     "route_ru_services",
     "route_broad_ru",
@@ -134,6 +137,7 @@ def test_canonical_policy_preserves_smart_ru_semantics() -> None:
     assert [rule.action for rule in policy.rules] == [
         "direct",
         "direct",
+        "block",
         "block",
         "block",
         "block",
@@ -290,13 +294,13 @@ def test_manifest_records_counts_checksums_source_inventory_and_renderer_gaps() 
         "sha256": _sha256(POLICY_PATH.read_bytes()),
     }
     assert manifest["counts"] == {
-        "rules": 12,
-        "sources": 41,
+        "rules": 13,
+        "sources": 42,
         "remoteSources": 29,
         "pinnedRemoteSources": 29,
         "mutableRemoteSources": 0,
-        "criticalSourceReferences": 41,
-        "criticalInlineEntries": 221,
+        "criticalSourceReferences": 42,
+        "criticalInlineEntries": 224,
         "transportVariants": 8,
     }
     assert manifest["artifacts"] == {

@@ -213,6 +213,13 @@ sources:
     entries:
       - AND,((NETWORK,udp),(DST-PORT,443))
       - AND,((NETWORK,udp),(DST-PORT,853))
+  smtp-abuse:
+    kind: inline
+    behavior: classical
+    entries:
+      - AND,((NETWORK,tcp),(DST-PORT,25))
+      - AND,((NETWORK,tcp),(DST-PORT,465))
+      - AND,((NETWORK,tcp),(DST-PORT,587))
   manual-eu-inline:
     kind: inline
     behavior: classical
@@ -551,6 +558,7 @@ source_groups:
   ads_trackers: [oisd-big, ads-all, win-spy, tracker-domains-inline]
   tor: [tor-inline, tor-processes]
   quic_doq: [quic-doq]
+  smtp_abuse: [smtp-abuse]
   eu_exceptions:
     - manual-eu-inline
     - youtube
@@ -584,6 +592,7 @@ rules:
   - {id: block_ads_trackers, stage: ads_trackers, action: block, source_group: ads_trackers}
   - {id: block_tor_best_effort, stage: tor, action: block, source_group: tor, assurance: best_effort}
   - {id: block_quic_doq, stage: quic_doq, action: block, source_group: quic_doq}
+  - {id: block_smtp_abuse, stage: smtp_abuse, action: block, source_group: smtp_abuse}
   - {id: route_eu_exceptions, stage: eu_exceptions, action: eu, source_group: eu_exceptions}
   - {id: route_ru_services, stage: ru_services, action: ru, source_group: ru_services}
   - {id: route_broad_ru, stage: broad_ru, action: ru, source_group: broad_ru}

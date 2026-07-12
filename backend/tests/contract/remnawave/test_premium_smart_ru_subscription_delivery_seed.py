@@ -81,6 +81,9 @@ def test_incy_template_is_semantically_validated_before_first_mutation() -> None
     assert "rule->>'outboundTag' = 'eu-de-2'" in sql
     assert "rule->>'ruleTag' = 'route_ru_services'" in sql
     assert "rule->>'outboundTag' = 'ru-spb-2'" in sql
+    assert "rule->>'ruleTag' = 'block_smtp_abuse'" in sql
+    assert "rule->>'port' = '25,465,587'" in sql
+    assert "rule->>'outboundTag' = 'block'" in sql
 
 
 def test_incy_injected_hosts_pin_bootstrap_addresses_without_changing_reality_sni() -> None:

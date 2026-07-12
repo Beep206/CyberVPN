@@ -424,6 +424,13 @@ rule-providers:
     payload:
     - AND,((NETWORK,udp),(DST-PORT,443))
     - AND,((NETWORK,udp),(DST-PORT,853))
+  smtp-abuse:
+    type: inline
+    behavior: classical
+    payload:
+    - AND,((NETWORK,tcp),(DST-PORT,25))
+    - AND,((NETWORK,tcp),(DST-PORT,465))
+    - AND,((NETWORK,tcp),(DST-PORT,587))
   manual-eu-inline:
     type: inline
     behavior: classical
@@ -796,6 +803,7 @@ rules:
 - RULE-SET,tor-inline,REJECT
 - PROCESS-NAME-REGEX,(?i).*(tor|torbrowser|obfs4proxy|snowflake-client).*,REJECT
 - RULE-SET,quic-doq,REJECT
+- RULE-SET,smtp-abuse,REJECT
 - RULE-SET,manual-eu-inline,World / EU
 - RULE-SET,youtube,World / EU
 - RULE-SET,discord-domains,World / EU

@@ -86,6 +86,13 @@
       "stage": "quic_doq"
     },
     {
+      "action": "block",
+      "assurance": "enforced",
+      "id": "block_smtp_abuse",
+      "source_group": "smtp_abuse",
+      "stage": "smtp_abuse"
+    },
+    {
       "action": "eu",
       "assurance": "enforced",
       "id": "route_eu_exceptions",
@@ -164,6 +171,9 @@
     "ru_services": [
       "ru-services-inline",
       "ru-apps"
+    ],
+    "smtp_abuse": [
+      "smtp-abuse"
     ],
     "tor": [
       "tor-inline",
@@ -688,6 +698,15 @@
         "DOMAIN-KEYWORD,tinkoff",
         "DOMAIN-KEYWORD,gosslugi",
         "DOMAIN-KEYWORD,gosuslugi"
+      ],
+      "kind": "inline"
+    },
+    "smtp-abuse": {
+      "behavior": "classical",
+      "entries": [
+        "AND,((NETWORK,tcp),(DST-PORT,25))",
+        "AND,((NETWORK,tcp),(DST-PORT,465))",
+        "AND,((NETWORK,tcp),(DST-PORT,587))"
       ],
       "kind": "inline"
     },

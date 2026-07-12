@@ -46,6 +46,7 @@
         "ads_trackers",
         "tor",
         "quic_doq",
+        "smtp_abuse",
         "eu_exceptions",
         "ru_services",
         "broad_ru",
@@ -659,6 +660,13 @@
         "ruleTag": "block_quic_doq",
         "network": "udp",
         "port": "443,853",
+        "outboundTag": "block"
+      },
+      {
+        "type": "field",
+        "ruleTag": "block_smtp_abuse",
+        "network": "tcp",
+        "port": "25,465,587",
         "outboundTag": "block"
       },
       {

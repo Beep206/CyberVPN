@@ -5,35 +5,35 @@
       "sha256": "7e9b6da648330de1f9cb78f399d0e8fa556e0be893d18c4879ed82dbce67e918"
     },
     "mihomo.yaml": {
-      "bytes": 24331,
-      "sha256": "5036c1dfec53e6dc9b3d9e5c69868f82225ca9f72ecad876c1b3ad4d7690ddf1"
+      "bytes": 24550,
+      "sha256": "ee81cc7d2a05a5930c8a2d0957e300a17631f39df3b97574f74f9db178457b26"
     },
     "policy.normalized.json": {
-      "bytes": 29260,
-      "sha256": "c1333269dce354d06806cfdd971bbc4308bfc51bc015094483a6141ca1c3424f"
+      "bytes": 29716,
+      "sha256": "c0257fb8c4840a8ac90c75bc8488139abd6b5d1ad6aa9df3fec6da6ac9156faf"
     },
     "policy.schema.json": {
-      "bytes": 14578,
-      "sha256": "eacd28f0c3b302e731052a2975965e1fadba4623f87836a86e2e4e2c7e0d56ee"
+      "bytes": 14783,
+      "sha256": "d57e4e7b94abae6be450663b1ce950cd4f2107001efd017b93f4f6b3fdf26557"
     },
     "xray-client.json": {
-      "bytes": 29345,
-      "sha256": "883eeea91fa1c4ad447a366e379f19dc740ab5270b943c9458930e5fff2acc35"
+      "bytes": 29708,
+      "sha256": "0cfb73b8022de78aa16941eac24feb8d360df3360ce0bcc45bc294ccb5df5a60"
     },
     "xray-server.json": {
-      "bytes": 27632,
-      "sha256": "9c984f942e1d7bfd4e16e1292c0ae97334d49e589f32e0d30a786b85c1d7b671"
+      "bytes": 27995,
+      "sha256": "f548ac396a12de74613197c75095f4978b30fd01773fec287fcf6600a23281ee"
     }
   },
   "compiler": "cybervpn.remnawave.policy_compiler.v1",
   "counts": {
-    "criticalInlineEntries": 221,
-    "criticalSourceReferences": 41,
+    "criticalInlineEntries": 224,
+    "criticalSourceReferences": 42,
     "mutableRemoteSources": 0,
     "pinnedRemoteSources": 29,
     "remoteSources": 29,
-    "rules": 12,
-    "sources": 41,
+    "rules": 13,
+    "sources": 42,
     "transportVariants": 8
   },
   "product": "premium_smart_ru",
@@ -71,7 +71,7 @@
   "schemaVersion": 1,
   "source": {
     "path": "scripts/remnawave/policies/premium_smart_ru.yaml",
-    "sha256": "0397ce0785930a067eeb31422b2477767a7994f3aa482f8fddda529fcb31e865"
+    "sha256": "7df49c9dca98fa79a105669af05ecf9c51747da262b70a1503f822beb7688a7a"
   },
   "sourceIntegrity": {
     "inventory": {
@@ -268,6 +268,13 @@
         "contentSha256": "cc24021711ff0521d116517d9eab04b6e76f3a4af81bcff70125c869f52121b8",
         "descriptorSha256": "4a0a228a3bff1507f9b429b8634e05bbcf358982f5b7158d381463970e7e68a1",
         "entryCount": 118,
+        "pinned": true,
+        "revision": "local-policy-v1"
+      },
+      "smtp-abuse": {
+        "contentSha256": "a55c291ce6236671a200c8114cd0af06afde53076fdba2fc843d5d13a24c5dc3",
+        "descriptorSha256": "be46c4602e56a584625840a4bcbd845ffc000eb22f01bb3ca86d4e617b0731b6",
+        "entryCount": 3,
         "pinned": true,
         "revision": "local-policy-v1"
       },

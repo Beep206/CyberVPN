@@ -80,6 +80,7 @@ def _validate_mihomo(content: bytes) -> None:
         "name: Torrents",
         "name: RU Sites",
         "name: World / EU",
+        "RULE-SET,smtp-abuse,REJECT",
     )
     if any(marker not in text for marker in required) or "MATCH,DIRECT" in text:
         raise RuntimeError("Mihomo artifact semantics are invalid")
@@ -118,6 +119,15 @@ def _validate_incy(content: bytes) -> None:
         raise RuntimeError("INCY artifact must route default traffic to DE XHTTP")
     if routes_by_tag.get("route_ru_services", {}).get("outboundTag") != "ru-spb-2":
         raise RuntimeError("INCY artifact must route RU services to SPB XHTTP")
+    smtp_rule = routes_by_tag.get("block_smtp_abuse", {})
+    if smtp_rule != {
+        "type": "field",
+        "ruleTag": "block_smtp_abuse",
+        "network": "tcp",
+        "port": "25,465,587",
+        "outboundTag": "block",
+    }:
+        raise RuntimeError("INCY artifact must block SMTP abuse ports")
 
 
 def _validate_legacy_header(content: bytes) -> None:

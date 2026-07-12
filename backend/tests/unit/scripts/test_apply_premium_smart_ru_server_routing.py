@@ -86,11 +86,12 @@ def test_build_config_isolates_bridge_and_enforces_ordered_policy() -> None:
     ]
 
     rules = config["routing"]["rules"]
-    assert len(rules) == 14
+    assert len(rules) == 15
     assert [rule["outboundTag"] for rule in rules] == [
         "DIRECT",
         "DIRECT",
         "DIRECT",
+        "BLOCK",
         "BLOCK",
         "BLOCK",
         "BLOCK",
@@ -108,6 +109,13 @@ def test_build_config_isolates_bridge_and_enforces_ordered_policy() -> None:
     assert "domain:torproject.org" in rules[6]["domain"]
     assert rules[7]["network"] == "udp"
     assert rules[7]["port"] == "443,853"
+    assert rules[8] == {
+        "network": "tcp",
+        "port": "25,465,587",
+        "ruleTag": "block_smtp_abuse",
+        "inboundTag": ["DE_SMART_REALITY_443", "DE_SMART_XHTTP_REALITY_8443"],
+        "outboundTag": "BLOCK",
+    }
     eu_rules = [rule for rule in rules if rule["ruleTag"] == "route_eu_exceptions"]
     assert "geosite:youtube" in eu_rules[0]["domain"]
     ru_service_rule = next(rule for rule in rules if rule["ruleTag"] == "route_ru_services")
@@ -157,11 +165,12 @@ def test_build_moscow_global_config_scopes_customer_routing_and_bridge_falls_dir
     ]
 
     rules = config["routing"]["rules"]
-    assert len(rules) == 14
+    assert len(rules) == 15
     assert [rule["outboundTag"] for rule in rules] == [
         "DIRECT",
         "DIRECT",
         "DIRECT",
+        "BLOCK",
         "BLOCK",
         "BLOCK",
         "BLOCK",
@@ -175,6 +184,13 @@ def test_build_moscow_global_config_scopes_customer_routing_and_bridge_falls_dir
         "DE_GLOBAL_BRIDGE",
     ]
     assert all(rule["inboundTag"] == ["MSK_SMART_REALITY_443", "MSK_SMART_XHTTP_REALITY_8443"] for rule in rules)
+    assert rules[8] == {
+        "network": "tcp",
+        "port": "25,465,587",
+        "ruleTag": "block_smtp_abuse",
+        "inboundTag": ["MSK_SMART_REALITY_443", "MSK_SMART_XHTTP_REALITY_8443"],
+        "outboundTag": "BLOCK",
+    }
     assert "MSK_SMART_RU_BRIDGE_V2_9443" not in {tag for rule in rules for tag in rule["inboundTag"]}
     eu_rules = [rule for rule in rules if rule["ruleTag"] == "route_eu_exceptions"]
     assert "geosite:youtube" in eu_rules[0]["domain"]
@@ -513,8 +529,8 @@ def test_dry_run_reports_reverse_bridge_and_does_not_mutate(
         "moscowProfileInboundCount": 3,
         "directDomainCount": module._policy_domain_count(_compiled_artifacts()[0], "eu"),
         "ruDomainCount": module._policy_domain_count(_compiled_artifacts()[0], "ru"),
-        "routingRuleCount": 14,
-        "moscowRoutingRuleCount": 14,
+        "routingRuleCount": 15,
+        "moscowRoutingRuleCount": 15,
     }
     assert len(instances) == 1
     assert instances[0].trusted_proxy_headers is False

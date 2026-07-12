@@ -43,7 +43,7 @@ snapshot того же файла.
 |---|---|---|
 | CyberVPN backend | image `r8-task2-live`, `healthy` на `18080` | signed Task2 readiness=true, Sentry/path redaction, squad isolation и replay guard LIVE; invalid readiness остается fail-closed |
 | Remnawave | image `2.8.0-raw-vision-flow.2`, `healthy` | control plane и генерация подписки доступны |
-| INCY/HAPP final Xray JSON | 10 outbounds, 17 rules | нет `routing.balancers`, нет `observatory` |
+| INCY/HAPP final Xray JSON | 10 outbounds, 18 rules | нет `routing.balancers`, нет `observatory` |
 | Default route | `eu-de-2` | DE XHTTP является статическим final/default outbound |
 | RU route | `ru-spb-2` | SPB XHTTP является production RU primary |
 | Moscow XHTTP | присутствует | только ручной fallback; автоматический INCY failover не реализован |
@@ -121,7 +121,7 @@ flowchart LR
     G -->|"Task2 readiness=true + product grant"| R
     G -. "Task2 readiness invalid" .-> FC["Fail closed"]
     G -->|"Premium Smart RU ready"| R["Remnawave 2.8.0"]
-    R -->|"INCY/HAPP"| X["Final Xray JSON\n10 outbounds / 17 rules"]
+    R -->|"INCY/HAPP"| X["Final Xray JSON\n10 outbounds / 18 rules"]
     R -->|"Mihomo"| M["Mihomo YAML\nautomatic fallback"]
     R -->|"generic"| B["VLESS links"]
 
@@ -291,7 +291,7 @@ production.
 
 ### 8.2. Rule order
 
-Xray применяет первое совпавшее правило. Current 17-rule structure:
+Xray применяет первое совпавшее правило. Current 18-rule structure:
 
 | # | Match | Outbound |
 |---:|---|---|
@@ -306,12 +306,13 @@ Xray применяет первое совпавшее правило. Current 
 | 9 | TOR domains and `.onion` | `block` |
 | 10 | TOR processes | `block` |
 | 11 | selected UDP `443/853` | `block` |
-| 12 | EU exception domains | `eu-de-2` |
-| 13 | EU exception IP sets | `eu-de-2` |
-| 14 | explicit RU service domains | `ru-spb-2` |
-| 15 | broad RU geosite | `ru-spb-2` |
-| 16 | RU geoip | `ru-spb-2` |
-| 17 | remaining TCP/UDP | `eu-de-2` |
+| 12 | TCP SMTP abuse ports `25/465/587` | `block` |
+| 13 | EU exception domains | `eu-de-2` |
+| 14 | EU exception IP sets | `eu-de-2` |
+| 15 | explicit RU service domains | `ru-spb-2` |
+| 16 | broad RU geosite | `ru-spb-2` |
+| 17 | RU geoip | `ru-spb-2` |
+| 18 | remaining TCP/UDP | `eu-de-2` |
 
 Порядок `EU exceptions -> RU domains -> RU geoip -> final DE` сохраняется.
 Широкое RU правило нельзя поднимать выше EU exceptions.
@@ -601,7 +602,7 @@ selected outbound также не доказывает правильный ре
 | Симптом | Вероятный слой | Проверить первым | Не считать доказательством |
 |---|---|---|---|
 | JSON содержит balancers или observatory | stale template/cache/Response Rule | новый generated body и cache invalidation | наличие нового source file |
-| Counts не `10/17` | injection или stale generation | product, squad, Response Rule, injected Hosts | HTTP `200` |
+| Counts не `10/18` | injection или stale generation | product, squad, Response Rule, injected Hosts | HTTP `200` |
 | Default идет не через `eu-de-2` | stale rules или client mutation | final rule и runtime selected outbound | DE listener health |
 | RU/Ozon идет не через `ru-spb-2` | stale rules/geodata/client mutation | rules 14-16 и selected outbound | Ozon открыт через другой регион |
 | Generated Ozon 5/5, телефон не открывает | device cache/DNS/TUN | fresh import, INCY version, sanitized device log | server cold-test PASS |
@@ -632,7 +633,7 @@ flowchart TD
     C --> MI["Mihomo YAML\nautomatic groups"]
     C --> XJ["INCY/HAPP Xray template"]
     XJ --> G["Generate/inject final JSON"]
-    G --> S["10 outbounds / 17 static rules\nno balancers / no observatory"]
+    G --> S["10 outbounds / 18 static rules\nno balancers / no observatory"]
     S --> RW["Seed Remnawave templates, Hosts and Response Rules"]
     MI --> RW
     RW --> GW["CyberVPN r8-task2-live gateway"]
@@ -667,7 +668,7 @@ SPB `2a01:e5c0:1368::3` -> DE `2a0b:4140:ba84::2:9444`; IPv4 bridge fallback
 После изменения Xray template required checks должны включать:
 
 1. final generated body, а не только source template;
-2. exact `10/17` structure и отсутствие balancers/observatory;
+2. exact `10/18` structure и отсутствие balancers/observatory;
 3. official Xray `26.6.27` cold parse/run;
 4. default DE and RU SPB route/egress matrix;
 5. Ozon repeated HTTP outcome;
@@ -824,7 +825,7 @@ Gateway source behavior:
 |---|---|---|---|
 | External squad | `CYBERVPN_PREMIUM_SMART_RU` | template, profile metadata, response headers | существование current object ранее подтверждено; UUID скрыт |
 | Internal customer squad | `CYBERVPN_PREMIUM_SMART_RU_NODES` | разрешенные customer inbounds/Hosts | exact current member count не перепроверен после 16:40Z |
-| XRAY_JSON template | `CyberVPN Premium Smart RU INCY` | seed body с policy/rules и virtual Host injection | final 10/17 body подтвержден post-fix |
+| XRAY_JSON template | `CyberVPN Premium Smart RU INCY` | seed body с policy/rules и virtual Host injection | final 10/18 body подтвержден post-fix |
 | Mihomo template | compiler artifact `generated/premium_smart_ru/mihomo.yaml` | automatic group path | RU fallback semantics подтверждены source и supplied LIVE fact |
 | Hidden injection Hosts | 8: DE/NL/Moscow/SPB x RAW/XHTTP | добавляют customer-specific VLESS outbounds | final body имеет 8 proxy outbounds |
 | Visible virtual Host | 1 `CyberVPN Premium Smart RU` | привязывает XRAY_JSON template к одному profile | exact production row не публикуется |
@@ -953,7 +954,7 @@ Email, UUID, short UUID, provider subject и subscription body в докумен
 | Artifact | Что он доказывает | Чего он не доказывает |
 |---|---|---|
 | `generated/premium_smart_ru/xray-client.json` | typed compiler policy: consumer/product/rule order/transport policy | это не executable Xray config и не final injected body |
-| INCY/HAPP Xray template | 2 local outbounds и 17 routing rules до injection | не доказывает 8 customer-specific proxy outbounds или live Remnawave cache |
+| INCY/HAPP Xray template | 2 local outbounds и 18 routing rules до injection | не доказывает 8 customer-specific proxy outbounds или live Remnawave cache |
 | Generated Mihomo YAML | deterministic deployable source artifact | не доказывает client import, selected group или live health |
 | SQL seed | intended idempotent Remnawave object model/guards | не доказывает process cache, loaded node profile или user outcome |
 | Task2 operator dry-run placeholder | позволяет строить sanitized plan без реального bridge secret | не является production credential и не может использоваться для listener activation |
@@ -1063,7 +1064,7 @@ loaded inbound, не предполагать mode по redacted path.
 
 ### 19.5. Policy behavior
 
-17 rules и их exact targets описаны в разделе 8. Дополнительные ограничения:
+18 rules и их exact targets описаны в разделе 8. Дополнительные ограничения:
 
 - `UseIPv4`/`IPIfNonMatch` уменьшают IPv6 ambiguity, но не равны full IPv6 leak
   prevention на device TUN;
@@ -1084,6 +1085,11 @@ Deployable **SOURCE** для seed path:
 [`manifest.json`](../../scripts/remnawave/generated/premium_smart_ru/manifest.json).
 [`run-premium-smart-ru-seeds.py`](../../scripts/remnawave/run-premium-smart-ru-seeds.py)
 стадирует именно generated artifact и проверяет manifest/checksum перед SQL.
+После успешного SQL оператор обязан обновить Remnawave process/template cache,
+а затем проверить structural fingerprint всех live ответов: Mihomo, INCY, HAPP
+и generic/Base64. Rollback требует того же cache refresh после восстановления
+DB/template state; успешный exit seed без post-refresh fingerprint не является
+доказательством live выдачи.
 
 Hand-authored
 [`templates/cybervpn-premium-smart-ru.yaml`](../../scripts/remnawave/templates/cybervpn-premium-smart-ru.yaml)
@@ -1318,7 +1324,7 @@ device TUN tests.
 | P1 | Moscow RAW reliability | **EVIDENCE:** repeated `www.ozon.ru` only 3/5; старый 8/8 был delay smoke | manual RAW fallback может быть intermittent, listener/delay PASS даст false confidence | cold repeated RAW handshake + DNS + selected tag + terminal egress + HTTP outcome, сравнить XHTTP |
 | P1 | Phone TUN/cache/DNS | **UNKNOWN:** post-fix phone run отсутствует | server 5/5 может не воспроизводиться из-за stale profile, device DNS/TUN или client mutation | fresh import, version/OS, default/RU/EU/BLOCK/local matrix и sanitized device logs |
 | P1 | Literal bootstrap operational coupling | **LIVE:** DE/NL tied to `138.16.140.44`, Moscow/SPB to `193.233.91.99` | IP/relay migration без regeneration ломает сразу две region families; DNS failover не поможет | change-impact test для literal IP, generated-body scan, relay/origin health и coordinated rollout/rollback |
-| P1 | SMTP block объявлен, но client routing его не рендерит | **SOURCE:** canonical `smtp_abuse_ports=25,465,587`, но current 17-rule Xray/Mihomo artifacts не имеют отдельного TCP SMTP block; server plugin policy заявляет block | abuse traffic может уйти через VPN, а документация/manifest создают ложное ожидание client-layer enforcement | принять product decision, затем добавить canonical rule до final, regenerated Xray/Mihomo checks и TCP/25 route evidence |
+| RESOLVED | SMTP abuse block | **LIVE/PASS:** canonical rule генерируется в 18-rule Xray и Mihomo до regional routes; production INCY/HAPP/Mihomo содержат `25,465,587 -> block`; Xray `26.6.27` synthetic TCP/25 probe выбрал `[socks -> block]` без fatal errors | regression может убрать rule из одного renderer или оставить stale Remnawave cache | сохранять compiler drift, seed preflight, generated-subscription checks и synthetic Xray route evidence |
 | P2 | Xray `UseIPv4` и отсутствие Mihomo-equivalent split DNS | **SOURCE:** Xray DoH `UseIPv4`, no FakeDNS/split policy; не доказанный outage | IPv6-only/IPv6-preferred destinations и RU/EU DNS locality могут вести себя иначе, чем Mihomo | dual-stack destination matrix, DNS capture в TUN, compare Xray vs Mihomo without claiming parity |
 | P2 | UDP `443/853` block | **SOURCE:** rule 11 precedes regional routes | QUIC/HTTP3 and DoQ are forced to fallback or fail; latency/page behavior may differ by app | UDP/TCP A/B, browser netlog, verify TCP fallback and DoH continuity |
 | P2 | Direct-process bypass/leak boundary | **SOURCE:** mesh/remote-control processes and private destinations are DIRECT; mobile process finder uncertain | intended compatibility can expose traffic outside VPN or fail to match and create loops | per-process route/egress capture, private/LAN tests, platform-specific process matcher evidence |
@@ -1367,7 +1373,7 @@ Current Premium Smart RU server/generated path после fix:
 
 ```text
 INCY/HAPP full Xray JSON
-  -> 10 outbounds, 17 rules
+  -> 10 outbounds, 18 rules
   -> no routing.balancers, no observatory
   -> default/EU exceptions -> eu-de-2 -> DE XHTTP
   -> RU services/broad RU -> ru-spb-2 -> SPB XHTTP

@@ -502,7 +502,7 @@ deployment and rollback history. The owner-approved Task2 BGP contract now has
 | Invites | PASS | replacement Task1 and Task2 lifetime invite rows are active; the legacy row remains revoked; literal codes are not recorded here |
 | Final logs | PASS | backend, Remnawave and both Remnanodes reported zero `ERROR`/`CRITICAL`/traceback/fatal pattern lines in the final 30-minute audit window |
 | Canary and temporary artifacts | PASS removed | activation canary, temporary Xray containers/configs and remote audit files were removed; timestamped rollback manifests remain mode `0600` outside the repository |
-| Rollback | PREPARED/PARTIAL | ordered rollback manifests and fail-closed bridge test exist; a full production restore drill was not run |
+| Rollback | SUPERSEDED | this r8 snapshot predates the production drill; the later `v13 -> v14` section records the completed rollback, restore and post-restore route matrix |
 
 The final exact-account data-plane check used the official Xray core without
 persisting the subscription URL, VLESS UUID, short UUID, account identifier or
@@ -527,3 +527,51 @@ error lines. Rollback manifest
 `remnawave-task2-dedicated-ipv4-v13.json` is retained mode `0600` outside the
 repository. This section supersedes the r8 shared-ingress rows above as the
 current customer-ingress design.
+
+### Production rollback drill `v13 -> v14` and SMTP enforcement
+
+On `2026-07-12`, Task2 completed an actual rollback-and-restore drill against
+production Remnawave state. A fresh PostgreSQL dump and checksum were captured
+before mutation. A private copy of the mode `0600` v13 manifest reached
+`rolled_back`; the current operator then reapplied the same reviewed artifact
+into a fresh mode `0600` v14 manifest with phase `applied`.
+
+Post-restore exact-account checks used the official Xray `26.6.27` image:
+
+| Check | Result | Sanitized evidence |
+|---|---|---|
+| Task2 RAW unmatched | PASS | terminal egress `193.233.91.99` (SPB) |
+| Task2 RAW matched | PASS | terminal egress `138.124.115.206` (DE) |
+| Task2 XHTTP unmatched | PASS | terminal egress `193.233.91.99` (SPB) |
+| Task2 XHTTP matched | PASS | terminal egress `138.124.115.206` (DE) |
+| Xray runtime errors | PASS | zero error lines for both transports |
+| Gateway outputs | PASS | generic, INCY, HAPP and Mihomo returned HTTP `200`; dedicated `4443/8444` remained present and bridge `9444` absent |
+
+The canonical Smart RU policy was also corrected so the already-declared SMTP
+abuse ports are executable policy rather than metadata only. The compiler now
+emits a TCP `25,465,587 -> block` rule before EU/RU routing in Xray and a
+`smtp-abuse -> REJECT` rule in Mihomo. Production seeds were applied from a
+checksum-bound private stage after another PostgreSQL backup. Remnawave was
+restarted to invalidate its in-process template cache.
+
+Production generated-subscription checks proved that INCY, HAPP and Mihomo all
+contain the rule. An official Xray `26.6.27` run loaded the final injected INCY
+body with 10 outbounds and 18 routing rules; a synthetic connection to
+`example.com:25` was rejected with access route `[socks -> block]` and zero
+fatal error lines. No subscription URL, user UUID, VLESS credential, template
+body or rollback manifest content was persisted in this evidence.
+
+The generated `xray-server.json` was then applied to the existing Frankfurt
+and Moscow Smart RU server profiles with the dedicated Task1 operator. Its
+read-only plan changed only the two owned profiles from 14 to 15 rules; base
+profile and legacy routing header were no-ops. Apply captured another database
+backup and a mode `0600` version-3 rollback manifest, switched both nodes and
+restarted them successfully.
+
+The exact-account generic/Base64 path was exported without printing links or
+credentials. Official Xray `26.6.27` loaded the DE RAW compatibility profile;
+normal HTTPS traffic exited DE `138.124.115.206`, while the synthetic SMTP
+connection was rejected (`curl` exit `56`) and the client had zero fatal error
+lines. This closes the server-side enforcement gap for generic clients in
+addition to the full-config INCY/HAPP/Mihomo rule proof. Browser delivery is a
+subscription webpage and does not itself create a VPN data plane.
