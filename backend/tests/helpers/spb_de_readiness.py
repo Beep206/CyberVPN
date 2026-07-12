@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -19,8 +20,13 @@ from src.application.services.vpn_product_readiness import (
 )
 from src.config.settings import settings
 
-TEST_MANIFEST_SHA256 = "a" * 64
 TEST_MANIFEST_VERSION = "b" * 64
+TEST_MANIFEST_JSON = json.dumps(
+    {"version": TEST_MANIFEST_VERSION},
+    separators=(",", ":"),
+    sort_keys=True,
+)
+TEST_MANIFEST_SHA256 = hashlib.sha256(TEST_MANIFEST_JSON.encode("utf-8")).hexdigest()
 
 
 def manifest_pointer_json(
@@ -112,5 +118,7 @@ def enable_spb_de_readiness(monkeypatch: pytest.MonkeyPatch) -> SpbDeReadinessTe
         manifest_pointer_json(),
     )
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_lkg_pointer_path", "")
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_manifest", TEST_MANIFEST_JSON)
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_store_path", "")
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_readiness_revoked_attestation_ids", "")
     return artifact

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -39,9 +40,11 @@ SPB_DE_EXCEPTIONS_READINESS_JWT_ALGORITHM = "EdDSA"
 _MAX_READINESS_ATTESTATION_BYTES = 64 * 1024
 _MAX_READINESS_PUBLIC_KEY_BYTES = 16 * 1024
 _MAX_READINESS_POINTER_BYTES = 4 * 1024
+_MAX_READINESS_MANIFEST_BYTES = 4 * 1024 * 1024
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
 _PRODUCTION_ATTESTATION_PATH = "/run/cybervpn/readiness/task2/attestation.jwt"
 _PRODUCTION_PUBLIC_KEY_PATH = "/run/cybervpn/readiness/task2/public-key.pem"
+_PRODUCTION_READINESS_STORE_PATH = "/run/cybervpn/readiness/task2"
 _PRODUCTION_POINTER_PATHS = {
     "active": "/run/cybervpn/readiness/task2/active.json",
     "last-known-good": "/run/cybervpn/readiness/task2/last-known-good.json",
@@ -67,6 +70,8 @@ def configured_plan_codes(raw_codes: str) -> set[str]:
 def _text_or_empty(value: Any) -> str:
     if isinstance(value, str):
         return value.strip()
+    if isinstance(value, os.PathLike):
+        return os.fspath(value).strip()
     if hasattr(value, "get_secret_value"):
         secret = value.get_secret_value()
         return secret.strip() if isinstance(secret, str) else ""
@@ -77,7 +82,7 @@ def _is_production_environment() -> bool:
     return _text_or_empty(settings.environment).lower() == "production"
 
 
-def _read_config_file_text(
+def _read_config_file_bytes(
     path_value: Any,
     *,
     max_bytes: int,
@@ -85,7 +90,7 @@ def _read_config_file_text(
     invalid_reason: str,
     missing_message: str,
     invalid_message: str,
-) -> str:
+) -> bytes:
     path_text = _text_or_empty(path_value)
     if not path_text:
         raise VpnProductReadinessError(missing_reason, missing_message)
@@ -117,6 +122,26 @@ def _read_config_file_text(
 
     if len(raw) > max_bytes:
         raise VpnProductReadinessError(invalid_reason, invalid_message)
+    return raw
+
+
+def _read_config_file_text(
+    path_value: Any,
+    *,
+    max_bytes: int,
+    missing_reason: str,
+    invalid_reason: str,
+    missing_message: str,
+    invalid_message: str,
+) -> str:
+    raw = _read_config_file_bytes(
+        path_value,
+        max_bytes=max_bytes,
+        missing_reason=missing_reason,
+        invalid_reason=invalid_reason,
+        missing_message=missing_message,
+        invalid_message=invalid_message,
+    )
     try:
         return raw.decode("utf-8").strip()
     except UnicodeDecodeError as exc:
@@ -305,6 +330,81 @@ def _attested_manifest_sha256(value: str | None) -> str:
             "Premium SPB/DE readiness attestation has no usable manifest hash",
         )
     return normalized
+
+
+def _configured_promoted_manifest(pointer: AntifilterManifestPointer) -> bytes:
+    inline_manifest = _text_or_empty(settings.remnawave_spb_de_exceptions_readiness_manifest)
+    store_value = _text_or_empty(settings.remnawave_spb_de_exceptions_readiness_store_path)
+    if inline_manifest and _is_production_environment():
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            "Premium SPB/DE readiness manifest must use the read-only store in production",
+        )
+    if _is_production_environment() and store_value != _PRODUCTION_READINESS_STORE_PATH:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            "Premium SPB/DE readiness store path is not trusted",
+        )
+
+    if inline_manifest:
+        raw = inline_manifest.encode("utf-8")
+    else:
+        if not store_value:
+            raise VpnProductReadinessError(
+                TASK2_READINESS_STATE_MISSING_REASON,
+                "Premium SPB/DE readiness store is not configured",
+            )
+        root = Path(store_value).expanduser()
+        versions = root / "versions"
+        version_dir = versions / pointer.version
+        manifest_path = version_dir / "manifest.json"
+        try:
+            for component in (root, versions, version_dir, manifest_path):
+                if component.is_symlink():
+                    raise VpnProductReadinessError(
+                        TASK2_READINESS_STATE_INVALID_REASON,
+                        "Premium SPB/DE promoted manifest path is not trusted",
+                    )
+            manifest_path.resolve(strict=True).relative_to(root.resolve(strict=True))
+        except VpnProductReadinessError:
+            raise
+        except FileNotFoundError as exc:
+            raise VpnProductReadinessError(
+                TASK2_READINESS_STATE_MISSING_REASON,
+                "Premium SPB/DE promoted manifest is missing",
+            ) from exc
+        except (OSError, ValueError) as exc:
+            raise VpnProductReadinessError(
+                TASK2_READINESS_STATE_INVALID_REASON,
+                "Premium SPB/DE promoted manifest path is not trusted",
+            ) from exc
+        raw = _read_config_file_bytes(
+            manifest_path,
+            max_bytes=_MAX_READINESS_MANIFEST_BYTES,
+            missing_reason=TASK2_READINESS_STATE_MISSING_REASON,
+            invalid_reason=TASK2_READINESS_STATE_INVALID_REASON,
+            missing_message="Premium SPB/DE promoted manifest is missing",
+            invalid_message="Premium SPB/DE promoted manifest cannot be loaded safely",
+        )
+
+    if hashlib.sha256(raw).hexdigest() != pointer.manifest_sha256:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_MANIFEST_MISMATCH_REASON,
+            "Premium SPB/DE promoted manifest checksum does not match its pointer",
+        )
+    try:
+        manifest = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            "Premium SPB/DE promoted manifest is invalid",
+        ) from exc
+    if not isinstance(manifest, dict) or manifest.get("version") != pointer.version:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            "Premium SPB/DE promoted manifest version does not match its pointer",
+        )
+    return raw
 
 
 def ensure_spb_de_exceptions_manifest_state(
@@ -502,6 +602,16 @@ def ensure_spb_de_exceptions_data_plane_ready(plan_code: Any) -> bool:
         active_pointer=active_pointer,
         lkg_pointer=lkg_pointer,
     )
+    _configured_promoted_manifest(active_pointer)
+    final_snapshot = tuple(
+        _configured_manifest_pointer(pointer_value=value, path_value=path, pointer_name=name)
+        for value, path, name in pointer_inputs
+    )
+    if final_snapshot != confirmed_snapshot:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_CHANGED_REASON,
+            "Premium SPB/DE readiness state changed during manifest verification",
+        )
     return True
 
 

@@ -58,6 +58,11 @@ def test_task2_readiness_uses_read_only_signed_artifacts_and_defaults_closed() -
         "/run/cybervpn/readiness/task2/last-known-good.json"
     ) in backend
     assert (
+        "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_STORE_PATH: "
+        "/run/cybervpn/readiness/task2"
+    ) in backend
+    assert "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_MANIFEST:" not in backend
+    assert (
         "${CYBERVPN_READINESS_DIR:-/srv/cybervpn/readiness}/task2:"
         "/run/cybervpn/readiness/task2:ro"
     ) in backend

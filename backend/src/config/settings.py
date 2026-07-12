@@ -95,6 +95,8 @@ class Settings(BaseSettings):
     remnawave_spb_de_exceptions_readiness_active_pointer_path: str = ""
     remnawave_spb_de_exceptions_readiness_lkg_pointer: str = ""
     remnawave_spb_de_exceptions_readiness_lkg_pointer_path: str = ""
+    remnawave_spb_de_exceptions_readiness_manifest: str = ""
+    remnawave_spb_de_exceptions_readiness_store_path: str = ""
     remnawave_spb_de_exceptions_readiness_revoked_attestation_ids: str = ""
     remnawave_request_retries: int = 1
     remnawave_retry_backoff_seconds: float = 0.25

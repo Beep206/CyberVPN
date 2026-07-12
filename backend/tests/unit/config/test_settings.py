@@ -209,6 +209,11 @@ class TestWeakSecretPatterns:
             "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_LKG_POINTER_PATH",
             "/run/cybervpn/task2-lkg.json",
         )
+        monkeypatch.setenv("REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_MANIFEST", '{"version":"manifest"}')
+        monkeypatch.setenv(
+            "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_STORE_PATH",
+            "/run/cybervpn/task2-store",
+        )
         monkeypatch.setenv(
             "REMNAWAVE_SPB_DE_EXCEPTIONS_READINESS_REVOKED_ATTESTATION_IDS",
             "task2-attestation-20260711",
@@ -230,6 +235,8 @@ class TestWeakSecretPatterns:
         assert settings.remnawave_spb_de_exceptions_readiness_active_pointer_path == ("/run/cybervpn/task2-active.json")
         assert settings.remnawave_spb_de_exceptions_readiness_lkg_pointer == '{"version":"lkg"}'
         assert settings.remnawave_spb_de_exceptions_readiness_lkg_pointer_path == "/run/cybervpn/task2-lkg.json"
+        assert settings.remnawave_spb_de_exceptions_readiness_manifest == '{"version":"manifest"}'
+        assert settings.remnawave_spb_de_exceptions_readiness_store_path == "/run/cybervpn/task2-store"
         assert settings.remnawave_spb_de_exceptions_readiness_revoked_attestation_ids == ("task2-attestation-20260711")
 
     def test_spb_de_exceptions_data_plane_ready_false_is_allowed_in_production(self) -> None:
