@@ -6,11 +6,15 @@ on:
       - main
     paths:
       - 'backend/**'
+      - '.gitleaks.toml'
       - '.github/workflows/backend-security.yml'
+      - 'scripts/security/validate_gitleaks_config.py'
   pull_request:
     paths:
       - 'backend/**'
+      - '.gitleaks.toml'
       - '.github/workflows/backend-security.yml'
+      - 'scripts/security/validate_gitleaks_config.py'
   schedule:
     # Run weekly on Monday at 09:00 UTC
     - cron: '0 9 * * 1'
@@ -123,6 +127,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Validate Gitleaks allowlist policy
+        working-directory: .
+        run: python scripts/security/validate_gitleaks_config.py
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
