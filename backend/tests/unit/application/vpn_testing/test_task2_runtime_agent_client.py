@@ -212,8 +212,19 @@ def test_task2_profile_parser_accepts_only_exact_raw_xhttp_pair() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("bridge_down_evidence_claimed", "expected_status", "expected_reason", "expected_matrix_status"),
+    [
+        (False, "partial", "bridge_down_evidence_not_claimed", "degraded"),
+        (True, "pass", "signed_bridge_down_evidence_verified", "pass"),
+    ],
+)
 async def test_task2_runtime_correlates_server_results_without_agent_selected_outbound(
     monkeypatch: pytest.MonkeyPatch,
+    bridge_down_evidence_claimed: bool,
+    expected_status: str,
+    expected_reason: str,
+    expected_matrix_status: str,
 ) -> None:
     specs = _specs()
     monkeypatch.setattr(client, "build_task2_route_probe_specs", lambda _routes: specs)
@@ -248,12 +259,14 @@ async def test_task2_runtime_correlates_server_results_without_agent_selected_ou
         generated_mihomo_artifact=_generated_mihomo(),
         synthetic_vless_uuid=SYNTHETIC_VLESS_UUID,
         evidence_store=store,  # type: ignore[arg-type]
+        bridge_down_evidence_claimed=bridge_down_evidence_claimed,
     )
 
-    assert result["status"] == "partial"
-    assert result["reason"] == "bridge_down_evidence_not_claimed"
+    assert result["status"] == expected_status
+    assert result["reason"] == expected_reason
     matrix = next(check for check in result["checks"] if check["check_key"].endswith(".matrix"))
-    assert matrix["status"] == "degraded"
+    assert matrix["status"] == expected_matrix_status
+    assert matrix["details"]["bridge_down_evidence_claimed"] is bridge_down_evidence_claimed
     assert all(
         check["details"].get("selected_outbound") in {"DE_EXCEPTIONS_BRIDGE", "DIRECT"}
         for check in result["checks"]

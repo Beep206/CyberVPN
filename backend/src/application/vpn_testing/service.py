@@ -1218,6 +1218,17 @@ class VpnTesterService:
             ),
             None,
         )
+        declared_runtime_not_claimed = str(suite_metadata.get("runtime_evidence_status") or "") == "not_claimed"
+        readiness_setting_enabled = bool(settings.remnawave_spb_de_exceptions_data_plane_ready)
+        readiness_enabled = False
+        readiness_reason = "kill_switch_disabled"
+        if readiness_setting_enabled:
+            try:
+                readiness_enabled = ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+                readiness_reason = "signed_attestation_verified"
+            except VpnProductReadinessError as exc:
+                readiness_reason = exc.reason
+        runtime_evidence_verified = readiness_enabled
         bridge_failure_ok = bool(
             matched_failure
             and matched_failure.get("expected_failure") == "connection_fails"
@@ -1231,11 +1242,20 @@ class VpnTesterService:
                 check_key="premium_spb_de_exceptions.bridge_down_fail_closed",
                 check_name="Task2 DE bridge failure semantics",
                 category="runtime",
-                status="degraded" if bridge_failure_ok else "fail",
-                safe_summary="Registry declares fail-closed behavior; live bridge-down evidence is not claimed"
-                if bridge_failure_ok
-                else "Task2 bridge-down registry semantics are incomplete",
-                details={"metadata_contract_only": True, "runtime_evidence_claimed": False},
+                status="pass"
+                if bridge_failure_ok and runtime_evidence_verified
+                else ("degraded" if bridge_failure_ok else "fail"),
+                safe_summary=(
+                    "Signed Task2 evidence verifies the declared bridge-down behavior"
+                    if bridge_failure_ok and runtime_evidence_verified
+                    else "Registry declares fail-closed behavior; live bridge-down evidence is not claimed"
+                    if bridge_failure_ok
+                    else "Task2 bridge-down registry semantics are incomplete"
+                ),
+                details={
+                    "metadata_contract_only": not runtime_evidence_verified,
+                    "runtime_evidence_claimed": runtime_evidence_verified,
+                },
             )
         )
 
@@ -1308,30 +1328,26 @@ class VpnTesterService:
             )
         )
 
-        runtime_not_claimed = str(suite_metadata.get("runtime_evidence_status") or "") == "not_claimed"
-        readiness_setting_enabled = bool(settings.remnawave_spb_de_exceptions_data_plane_ready)
-        readiness_enabled = False
-        readiness_reason = "kill_switch_disabled"
-        if readiness_setting_enabled:
-            try:
-                readiness_enabled = ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
-                readiness_reason = "signed_attestation_verified"
-            except VpnProductReadinessError as exc:
-                readiness_reason = exc.reason
-        readiness_contract_ok = (runtime_not_claimed and not readiness_setting_enabled) or (
-            not runtime_not_claimed and readiness_enabled
-        )
+        readiness_contract_ok = readiness_enabled or (declared_runtime_not_claimed and not readiness_setting_enabled)
         results.append(
             _result(
                 check_key="premium_spb_de_exceptions.readiness_gate",
                 check_name="Task2 production readiness remains fail closed",
                 category="runtime",
                 status="pass" if readiness_contract_ok else "fail",
-                safe_summary="Task2 remains disabled while runtime evidence is not claimed"
-                if runtime_not_claimed and not readiness_enabled
-                else "Task2 readiness conflicts with the suite runtime evidence state",
+                safe_summary=(
+                    "Signed Task2 runtime evidence and readiness are verified"
+                    if readiness_enabled
+                    else "Task2 remains disabled while runtime evidence is not claimed"
+                    if declared_runtime_not_claimed and not readiness_setting_enabled
+                    else "Task2 readiness conflicts with the suite runtime evidence state"
+                ),
                 details={
-                    "runtime_evidence_status": suite_metadata.get("runtime_evidence_status"),
+                    "runtime_evidence_status": (
+                        "signed_attestation_verified"
+                        if runtime_evidence_verified
+                        else suite_metadata.get("runtime_evidence_status")
+                    ),
                     "kill_switch_enabled": readiness_setting_enabled,
                     "data_plane_ready": readiness_enabled,
                     "readiness_reason": readiness_reason,
@@ -1343,12 +1359,20 @@ class VpnTesterService:
                 check_key="premium_spb_de_exceptions.runtime_evidence",
                 check_name="Task2 production runtime evidence",
                 category="runtime",
-                status="degraded" if runtime_not_claimed else "pass",
+                status="pass" if runtime_evidence_verified else "degraded",
                 severity="warning",
-                safe_summary="Production route evidence is intentionally not claimed"
-                if runtime_not_claimed
-                else "Production route evidence is declared by the suite",
-                details={"runtime_evidence_status": suite_metadata.get("runtime_evidence_status")},
+                safe_summary=(
+                    "Signed production route evidence is verified"
+                    if runtime_evidence_verified
+                    else "Production route evidence is intentionally not claimed"
+                ),
+                details={
+                    "runtime_evidence_status": (
+                        "signed_attestation_verified"
+                        if runtime_evidence_verified
+                        else suite_metadata.get("runtime_evidence_status")
+                    )
+                },
             )
         )
         return results
@@ -1592,12 +1616,21 @@ class VpnTesterService:
                     result_ttl_seconds=settings.vpn_tester_task2_route_evidence_result_ttl_seconds,
                     webhook_secret=(settings.vpn_tester_task2_xray_webhook_secret.get_secret_value().strip()),
                 )
+                bridge_down_evidence_claimed = False
+                if settings.remnawave_spb_de_exceptions_data_plane_ready:
+                    try:
+                        bridge_down_evidence_claimed = ensure_spb_de_exceptions_data_plane_ready(
+                            SPB_DE_EXCEPTIONS_PRODUCT_CODE
+                        )
+                    except VpnProductReadinessError:
+                        bridge_down_evidence_claimed = False
                 payload = await call_task2_runtime_agent(
                     run_id=str(run.id),
                     route_entries=route_entries,
                     generated_mihomo_artifact=generated_mihomo_artifact,
                     synthetic_vless_uuid=synthetic_vless_uuid,
                     evidence_store=evidence_store,
+                    bridge_down_evidence_claimed=bridge_down_evidence_claimed,
                 )
             else:
                 payload = await call_runtime_agent(

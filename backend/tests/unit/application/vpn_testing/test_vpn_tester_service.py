@@ -340,6 +340,14 @@ async def test_task2_contract_uses_spb_de_semantics_without_smart_ru_false_passe
 @pytest.mark.asyncio
 async def test_task2_contract_fails_if_readiness_is_enabled_without_runtime_evidence(monkeypatch) -> None:
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", True)
+
+    def reject_readiness(_plan_code: str) -> bool:
+        raise service_module.VpnProductReadinessError(
+            "task2_readiness_attestation_missing",
+            "Task2 readiness attestation is missing",
+        )
+
+    monkeypatch.setattr(service_module, "ensure_spb_de_exceptions_data_plane_ready", reject_readiness)
     suite, routes = _spb_de_exceptions_suite_and_routes()
     service = VpnTesterService(SimpleNamespace())
 
@@ -350,6 +358,31 @@ async def test_task2_contract_fails_if_readiness_is_enabled_without_runtime_evid
     assert by_key["premium_spb_de_exceptions.readiness_gate"]["details"]["data_plane_ready"] is False
     assert "attestation" in by_key["premium_spb_de_exceptions.readiness_gate"]["details"]["readiness_reason"]
     assert by_key["premium_spb_de_exceptions.runtime_evidence"]["status"] == "degraded"
+
+
+@pytest.mark.asyncio
+async def test_task2_contract_accepts_verified_signed_runtime_evidence(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", True)
+    monkeypatch.setattr(service_module, "ensure_spb_de_exceptions_data_plane_ready", lambda _plan_code: True)
+    suite, routes = _spb_de_exceptions_suite_and_routes()
+    service = VpnTesterService(SimpleNamespace())
+
+    results = await service._contract_results(suite, [_spb_de_exceptions_plan()], routes)
+
+    by_key = {item["check_key"]: item for item in results}
+    bridge_down = by_key["premium_spb_de_exceptions.bridge_down_fail_closed"]
+    assert bridge_down["status"] == "pass"
+    assert bridge_down["details"] == {
+        "metadata_contract_only": False,
+        "runtime_evidence_claimed": True,
+    }
+    readiness = by_key["premium_spb_de_exceptions.readiness_gate"]
+    assert readiness["status"] == "pass"
+    assert readiness["details"]["runtime_evidence_status"] == "signed_attestation_verified"
+    assert readiness["details"]["data_plane_ready"] is True
+    runtime_evidence = by_key["premium_spb_de_exceptions.runtime_evidence"]
+    assert runtime_evidence["status"] == "pass"
+    assert runtime_evidence["details"]["runtime_evidence_status"] == "signed_attestation_verified"
 
 
 @pytest.mark.asyncio
