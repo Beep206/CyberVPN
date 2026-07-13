@@ -143,3 +143,49 @@ def test_gitleaks_allowlist_policy_rejects_additional_generic_allowlists(
 
     assert result.returncode != 0
     assert expected_error in result.stderr
+
+
+def test_gitleaks_allowlist_policy_rejects_generic_rule_override(
+    tmp_path: Path,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    reviewed_rule = 'id = "generic-api-key"\n\n[[rules.allowlists]]'
+    assert reviewed_rule in config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(
+        config.replace(
+            reviewed_rule,
+            'id = "generic-api-key"\nregex = "(?i)nevermatchgenericapikey"\n\n[[rules.allowlists]]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert "generic-api-key rule extension shape changed" in result.stderr
+
+
+def test_gitleaks_allowlist_policy_rejects_disabling_generic_default_rule(
+    tmp_path: Path,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    reviewed_extend = "[extend]\nuseDefault = true"
+    assert reviewed_extend in config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(
+        config.replace(
+            reviewed_extend,
+            reviewed_extend + '\ndisabledRules = ["generic-api-key"]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert "Gitleaks default-rule extension shape changed" in result.stderr

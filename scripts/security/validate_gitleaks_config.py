@@ -56,11 +56,14 @@ def _iter_allowlists(
 def _require_exact_allowlist_shape(
     allowlist: Mapping[str, Any],
     *,
+    keys: set[str],
     condition: str,
     regex_target: str,
     paths: set[str],
     regexes: set[str],
 ) -> None:
+    if set(allowlist) != keys:
+        raise ValueError("Reviewed Gitleaks allowlist keys changed")
     if allowlist.get("condition") != condition:
         raise ValueError("Reviewed Gitleaks allowlist condition changed")
     if allowlist.get("regexTarget") != regex_target:
@@ -75,16 +78,23 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     with config_path.open("rb") as config_file:
         config = tomllib.load(config_file)
 
-    if config.get("extend", {}).get("useDefault") is not True:
-        raise ValueError("Gitleaks default rules must remain enabled")
+    if set(config) != {"title", "extend", "allowlists", "rules"}:
+        raise ValueError("Gitleaks top-level configuration shape changed")
+    if config.get("extend") != {"useDefault": True}:
+        raise ValueError("Gitleaks default-rule extension shape changed")
 
-    generic_rule_count = sum(
-        1
+    generic_rules = [
+        rule
         for rule in config.get("rules", [])
         if rule.get("id") == GENERIC_API_KEY_RULE_ID
-    )
-    if generic_rule_count != 1:
+    ]
+    if len(generic_rules) != 1:
         raise ValueError("Exactly one generic-api-key rule extension is required")
+    generic_rule = generic_rules[0]
+    if set(generic_rule) != {"id", "allowlists"}:
+        raise ValueError("generic-api-key rule extension shape changed")
+    if len(generic_rule.get("allowlists", [])) != 1:
+        raise ValueError("generic-api-key rule must contain one reviewed allowlist")
 
     allowlists = list(_iter_allowlists(config))
     for _, allowlist in allowlists:
@@ -108,6 +118,7 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     try:
         _require_exact_allowlist_shape(
             task2_allowlist,
+            keys={"description", "condition", "regexTarget", "paths", "regexes"},
             condition="AND",
             regex_target="line",
             paths=expected_patterns,
@@ -136,6 +147,14 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
         raise ValueError("Reviewed global allowlist target rules changed")
     _require_exact_allowlist_shape(
         reviewed_global_allowlist,
+        keys={
+            "description",
+            "targetRules",
+            "condition",
+            "regexTarget",
+            "paths",
+            "regexes",
+        },
         condition="AND",
         regex_target="match",
         paths=REVIEWED_GLOBAL_GENERIC_ALLOWLIST_PATHS,
