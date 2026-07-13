@@ -44,7 +44,11 @@ id = "jfrog-identity-token"
 
 [[rules.allowlists]]
 description = "Pinned public Xray release checksum is not a JFrog credential"
+condition = "AND"
 regexTarget = "line"
+paths = [
+  '''^(.*/)?services/vpn-test-agent/Dockerfile$''',
+]
 regexes = [
-  '''ARG XRAY_SHA256=[a-f0-9]{64}''',
+  '''^\n?ARG XRAY_SHA256=[a-f0-9]{64}$''',
 ]

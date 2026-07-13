@@ -44,7 +44,9 @@ REVIEWED_GLOBAL_GENERIC_ALLOWLIST_REGEXES = {
     ),
 }
 JFROG_ALLOWLIST_DESCRIPTION = "Pinned public Xray release checksum is not a JFrog credential"
-JFROG_ALLOWLIST_REGEXES = {r"ARG XRAY_SHA256=[a-f0-9]{64}"}
+JFROG_ALLOWED_PATHS = {"services/vpn-test-agent/Dockerfile"}
+JFROG_ALLOWLIST_PATHS = {r"^(.*/)?services/vpn-test-agent/Dockerfile$"}
+JFROG_ALLOWLIST_REGEXES = {r"^\n?ARG XRAY_SHA256=[a-f0-9]{64}$"}
 
 
 def _iter_allowlists(
@@ -169,14 +171,19 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     )
 
     jfrog_allowlist = jfrog_rule["allowlists"][0]
-    if set(jfrog_allowlist) != {"description", "regexTarget", "regexes"}:
-        raise ValueError("JFrog checksum allowlist shape changed")
     if jfrog_allowlist.get("description") != JFROG_ALLOWLIST_DESCRIPTION:
         raise ValueError("JFrog checksum allowlist description changed")
-    if jfrog_allowlist.get("regexTarget") != "line":
-        raise ValueError("JFrog checksum allowlist regex target changed")
-    if set(jfrog_allowlist.get("regexes", [])) != JFROG_ALLOWLIST_REGEXES:
-        raise ValueError("JFrog checksum allowlist regexes changed")
+    try:
+        _require_exact_allowlist_shape(
+            jfrog_allowlist,
+            keys={"description", "condition", "regexTarget", "paths", "regexes"},
+            condition="AND",
+            regex_target="line",
+            paths=JFROG_ALLOWLIST_PATHS,
+            regexes=JFROG_ALLOWLIST_REGEXES,
+        )
+    except ValueError as exc:
+        raise ValueError("JFrog checksum allowlist differs from the reviewed exact shape") from exc
 
     for path in TASK2_ALLOWED_PATHS:
         pattern = re.compile(f"^{re.escape(path)}$")

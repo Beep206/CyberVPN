@@ -7,6 +7,7 @@ on:
     paths:
       - 'backend/**'
       - 'infra/tests/test_antifilter_bgp_collector.py'
+      - 'services/vpn-test-agent/Dockerfile'
       - 'docs/evidence/partner-platform/stage3-outbox*'
       - 'docs/evidence/partner-platform/stage3-outbox*/**'
       - '.gitleaks.toml'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'backend/**'
       - 'infra/tests/test_antifilter_bgp_collector.py'
+      - 'services/vpn-test-agent/Dockerfile'
       - 'docs/evidence/partner-platform/stage3-outbox*'
       - 'docs/evidence/partner-platform/stage3-outbox*/**'
       - '.gitleaks.toml'

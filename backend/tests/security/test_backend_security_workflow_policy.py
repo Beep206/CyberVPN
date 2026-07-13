@@ -15,9 +15,11 @@ def _reviewed_security_workflow_paths() -> set[str]:
     namespace = runpy.run_path(str(validator), run_name="gitleaks_policy")
     task2_paths = namespace["TASK2_ALLOWED_PATHS"]
     global_paths = namespace["REVIEWED_GLOBAL_GENERIC_WORKFLOW_PATHS"]
+    jfrog_paths = namespace["JFROG_ALLOWED_PATHS"]
     assert isinstance(task2_paths, set)
     assert isinstance(global_paths, set)
-    return {path for path in task2_paths if not path.startswith("backend/")} | global_paths
+    assert isinstance(jfrog_paths, set)
+    return {path for path in task2_paths if not path.startswith("backend/")} | global_paths | jfrog_paths
 
 
 def test_backend_security_workflow_fails_closed() -> None:
@@ -209,6 +211,51 @@ def test_gitleaks_allowlist_policy_rejects_jfrog_rule_override(
 
     assert result.returncode != 0
     assert "jfrog-identity-token rule extension shape changed" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("reviewed_fragment", "invalid_fragment"),
+    [
+        ('condition = "AND"', 'condition = "OR"'),
+        (
+            "paths = [\n  '''^(.*/)?services/vpn-test-agent/Dockerfile$''',\n]",
+            "",
+        ),
+        (
+            "'''^(.*/)?services/vpn-test-agent/Dockerfile$'''",
+            "'''^(.*/)?services/vpn-test-agent/.*$'''",
+        ),
+        (
+            "'''^\\n?ARG XRAY_SHA256=[a-f0-9]{64}$'''",
+            "'''\\n?ARG XRAY_SHA256=[a-f0-9]{64}$'''",
+        ),
+        (
+            "'''^\\n?ARG XRAY_SHA256=[a-f0-9]{64}$'''",
+            "'''^\\n?ARG XRAY_SHA256=[a-f0-9]{64}.*$'''",
+        ),
+    ],
+)
+def test_gitleaks_allowlist_policy_rejects_broad_jfrog_checksum_allowlist(
+    tmp_path: Path,
+    reviewed_fragment: str,
+    invalid_fragment: str,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    marker = 'description = "Pinned public Xray release checksum is not a JFrog credential"'
+    before, separator, jfrog_config = config.partition(marker)
+    assert separator
+    assert reviewed_fragment in jfrog_config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(
+        before + separator + jfrog_config.replace(reviewed_fragment, invalid_fragment, 1),
+        encoding="utf-8",
+    )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert "JFrog checksum allowlist differs from the reviewed exact shape" in result.stderr
 
 
 def test_gitleaks_allowlist_policy_rejects_disabling_generic_default_rule(
