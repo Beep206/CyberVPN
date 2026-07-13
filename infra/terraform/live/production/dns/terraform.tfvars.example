@@ -74,4 +74,13 @@ records = {
     proxied      = false
     comment      = "CyberVPN Task2 SPB exceptions shared customer ingress IPv4"
   }
+  task2-evidence-origin-ipv4 = {
+    name         = "task2-evidence.cyber-vpn.org"
+    content      = "45.87.41.146"
+    record_class = "vpn-node"
+    type         = "A"
+    ttl          = 300
+    proxied      = false
+    comment      = "CyberVPN Task2 synthetic route evidence DNS-only origin IPv4"
+  }
 }

@@ -367,6 +367,8 @@ async def test_task2_contract_rejects_matched_transport_without_explicit_no_dire
 async def test_task2_runtime_does_not_dispatch_to_smart_ru_agent(monkeypatch) -> None:
     runtime_agent = AsyncMock()
     monkeypatch.setattr(service_module, "call_runtime_agent", runtime_agent)
+    monkeypatch.setattr(settings, "vpn_tester_runtime_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_enabled", False)
     service = VpnTesterService(SimpleNamespace())
     run = SimpleNamespace(id=uuid4(), suite_key="premium_spb_de_exceptions_v1", mode="runtime")
 
@@ -376,6 +378,45 @@ async def test_task2_runtime_does_not_dispatch_to_smart_ru_agent(monkeypatch) ->
     assert results[0]["status"] == "fail"
     assert results[0]["details"]["runtime_agent_dispatched"] is False
     runtime_agent.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_task2_runtime_dispatches_only_to_task2_client_when_enabled(monkeypatch) -> None:
+    smart_runtime_agent = AsyncMock()
+    task2_runtime_agent = AsyncMock(
+        return_value={
+            "status": "partial",
+            "reason": "bridge_down_evidence_not_claimed",
+            "checks": [
+                {
+                    "check_key": "premium_spb_de_exceptions.selected_outbound.matrix",
+                    "check_name": "Task2 selected-outbound matrix",
+                    "status": "degraded",
+                    "severity": "warning",
+                    "target": "spb-xray",
+                    "safe_summary": "All declared Task2 selected-outbound events matched",
+                    "details": {"bridge_down_evidence_claimed": False},
+                }
+            ],
+        }
+    )
+    monkeypatch.setattr(service_module, "call_runtime_agent", smart_runtime_agent)
+    monkeypatch.setattr(service_module, "call_task2_runtime_agent", task2_runtime_agent)
+    monkeypatch.setattr(service_module, "task2_runtime_agent_configured", lambda: True)
+    monkeypatch.setattr(settings, "vpn_tester_runtime_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_synthetic_users_enabled", True)
+    service = VpnTesterService(SimpleNamespace(), redis_client=SimpleNamespace())
+    run = SimpleNamespace(id=uuid4(), suite_key="premium_spb_de_exceptions_v1", mode="runtime")
+
+    results = await service._runtime_results(run, [], generated_mihomo_artifact={"proxies": []})
+
+    assert results[0]["check_key"] == "premium_spb_de_exceptions.selected_outbound.matrix"
+    assert results[0]["status"] == "degraded"
+    assert results[-1]["check_key"] == "premium_spb_de_exceptions.runtime.completeness"
+    assert results[-1]["status"] == "degraded"
+    task2_runtime_agent.assert_awaited_once()
+    smart_runtime_agent.assert_not_awaited()
 
 
 @pytest.mark.asyncio

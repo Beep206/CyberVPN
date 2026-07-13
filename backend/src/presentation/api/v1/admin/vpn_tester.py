@@ -3,18 +3,29 @@
 from __future__ import annotations
 
 import hmac
+import time
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.auth.permissions import Permission, has_permission
 from src.application.vpn_testing import VpnTesterService
+from src.application.vpn_testing.task2_route_evidence import (
+    TASK2_XRAY_WEBHOOK_SECRET_HEADER,
+    Task2RouteEvidenceRejected,
+    Task2RouteEvidenceResult,
+    Task2RouteEvidenceStore,
+    Task2RouteEvidenceUnavailable,
+    Task2XrayRoutingWebhook,
+)
 from src.config.settings import settings
 from src.domain.enums import AdminRole
+from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.vpn_tester_model import (
     VpnBalancerRecommendationModel,
@@ -28,6 +39,9 @@ from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_remnawave_client
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_role
+
+TASK2_ROUTE_EVIDENCE_INGRESS_HEADER = "X-CyberVPN-Task2-Evidence-Ingress"
+TASK2_ROUTE_EVIDENCE_INGRESS_MARKER = "spb-source-verified-v1"
 
 router = APIRouter(prefix="/admin/vpn-tester", tags=["admin", "vpn-tester"])
 
@@ -170,6 +184,16 @@ class InternalWorkerResultResponse(BaseModel):
     run: VpnTesterRunResponse | None = None
     schedule: VpnTesterScheduleResponse | None = None
     cleanup: dict[str, Any] | None = None
+
+
+class Task2RouteEvidenceCollectorResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str
+    route_key: str
+    selected_outbound: str
+    verdict: str
+    digest: str
 
 
 class VpnTesterTariffMatrixResponse(BaseModel):
@@ -403,8 +427,9 @@ def _sanitize_tariff_matrix(matrix: dict[str, Any], *, include_sensitive: bool) 
 async def get_vpn_tester_service(
     db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
+    redis_client: Redis = Depends(get_redis),
 ) -> VpnTesterService:
-    return VpnTesterService(VpnTesterRepository(db), remnawave_client)
+    return VpnTesterService(VpnTesterRepository(db), remnawave_client, redis_client)
 
 
 def _require_enabled() -> None:
@@ -430,6 +455,99 @@ def _require_backend_internal_secret(secret: str | None) -> None:
     if configured and secret and hmac.compare_digest(configured, secret.strip()):
         return
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def _require_task2_route_evidence_enabled() -> None:
+    if settings.vpn_tester_task2_route_evidence_enabled:
+        return
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task2_route_evidence_disabled")
+
+
+def _require_task2_xray_webhook_secret(secret: str | None) -> None:
+    configured = settings.vpn_tester_task2_xray_webhook_secret.get_secret_value().strip()
+    if not configured:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="task2_route_evidence_unavailable")
+    candidate = (secret or "").strip()
+    if hmac.compare_digest(configured, candidate):
+        return
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def _require_task2_route_evidence_ingress(marker: str | None) -> None:
+    if marker is not None and hmac.compare_digest(marker.strip(), TASK2_ROUTE_EVIDENCE_INGRESS_MARKER):
+        return
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task2_route_evidence_not_found")
+
+
+def _task2_route_evidence_store(redis_client: Redis) -> Task2RouteEvidenceStore:
+    return Task2RouteEvidenceStore(
+        redis_client,
+        expectation_ttl_seconds=settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds,
+        result_ttl_seconds=settings.vpn_tester_task2_route_evidence_result_ttl_seconds,
+        webhook_secret=settings.vpn_tester_task2_xray_webhook_secret.get_secret_value().strip(),
+    )
+
+
+def _header_count(request: Request, header_name: str) -> int:
+    target = header_name.lower().encode("ascii")
+    return sum(1 for name, _value in request.scope.get("headers", []) if name.lower() == target)
+
+
+def _reject_task2_webhook_transport(request: Request) -> None:
+    if request.url.query:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="query_string_not_allowed")
+    if _header_count(request, TASK2_XRAY_WEBHOOK_SECRET_HEADER) > 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="duplicate_webhook_secret_header")
+    if _header_count(request, "Authorization") > 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="authorization_header_not_allowed")
+    if _header_count(request, "Cookie") > 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="cookie_header_not_allowed")
+
+    content_type = request.headers.get("content-type", "")
+    media_type = content_type.split(";", 1)[0].strip().lower()
+    if media_type != "application/json":
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="json_required")
+
+
+def _reject_task2_body_if_too_large(request: Request, body: bytes | None = None) -> None:
+    max_body_bytes = settings.vpn_tester_task2_xray_webhook_max_body_bytes
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            if int(content_length) > max_body_bytes:
+                raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="body_too_large")
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_content_length") from exc
+    if body is not None and len(body) > max_body_bytes:
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="body_too_large")
+
+
+async def _read_task2_bounded_body(request: Request) -> bytes:
+    max_body_bytes = settings.vpn_tester_task2_xray_webhook_max_body_bytes
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > max_body_bytes:
+            raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="body_too_large")
+        body.extend(chunk)
+    return bytes(body)
+
+
+def _map_task2_route_evidence_rejection(exc: Task2RouteEvidenceRejected) -> HTTPException:
+    if exc.reason == "expectation_not_found":
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task2_route_evidence_not_found")
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="task2_route_evidence_rejected")
+
+
+def _serialize_task2_route_evidence_result(
+    result: Task2RouteEvidenceResult,
+) -> Task2RouteEvidenceCollectorResponse:
+    return Task2RouteEvidenceCollectorResponse(
+        run_id=result.run_id,
+        route_key=result.route_key,
+        selected_outbound=result.selected_outbound,
+        verdict=result.verdict,
+        digest=result.digest,
+    )
 
 
 @router.get("/overview", response_model=VpnTesterOverviewResponse)
@@ -650,6 +768,53 @@ async def dismiss_vpn_tester_balancer_recommendation(
     if recommendation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recommendation not found")
     return _serialize_balancer_recommendation(recommendation)
+
+
+@router.post(
+    "/internal/task2/route-evidence/xray-routing-webhook",
+    response_model=Task2RouteEvidenceCollectorResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    include_in_schema=False,
+)
+async def internal_collect_task2_xray_route_evidence(
+    request: Request,
+    x_task2_xray_webhook_secret: str | None = Header(default=None, alias=TASK2_XRAY_WEBHOOK_SECRET_HEADER),
+    x_task2_route_evidence_ingress: str | None = Header(default=None, alias=TASK2_ROUTE_EVIDENCE_INGRESS_HEADER),
+    redis_client: Redis = Depends(get_redis),
+) -> Task2RouteEvidenceCollectorResponse:
+    _require_task2_route_evidence_enabled()
+    _reject_task2_webhook_transport(request)
+    if _header_count(request, TASK2_ROUTE_EVIDENCE_INGRESS_HEADER) > 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="duplicate_ingress_marker_header")
+    _require_task2_route_evidence_ingress(x_task2_route_evidence_ingress)
+    _require_task2_xray_webhook_secret(x_task2_xray_webhook_secret)
+    _reject_task2_body_if_too_large(request)
+
+    raw_body = await _read_task2_bounded_body(request)
+    try:
+        webhook = Task2XrayRoutingWebhook.model_validate_json(raw_body)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="invalid_xray_routing_webhook",
+        ) from exc
+
+    store = _task2_route_evidence_store(redis_client)
+    try:
+        result = await store.record_xray_routing_webhook(
+            webhook,
+            synthetic_user=settings.vpn_tester_task2_synthetic_user,
+            max_skew_seconds=settings.vpn_tester_task2_xray_webhook_max_skew_seconds,
+            now_epoch_seconds=int(time.time()),
+        )
+    except Task2RouteEvidenceUnavailable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="task2_route_evidence_unavailable",
+        ) from exc
+    except Task2RouteEvidenceRejected as exc:
+        raise _map_task2_route_evidence_rejection(exc) from exc
+    return _serialize_task2_route_evidence_result(result)
 
 
 @router.post("/internal/runs/{run_id}/execute", response_model=InternalWorkerResultResponse, include_in_schema=False)

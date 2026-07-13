@@ -716,3 +716,101 @@ class TestS2OAuthProductionReadiness:
     def test_runtime_rejects_unsupported_oauth_login_provider(self) -> None:
         with pytest.raises(ValidationError, match="only supports google and github"):
             self._production_settings(oauth_enabled_login_providers=["google", "facebook"])
+
+
+class TestTask2RouteEvidenceSettings:
+    STRONG_SECRET = TestWeakSecretPatterns.STRONG_SECRET
+    VALID_TOKEN = TestWeakSecretPatterns.VALID_TOKEN
+    VALID_PRODUCTION_PROVIDER_TOKEN = TestWeakSecretPatterns.VALID_PRODUCTION_PROVIDER_TOKEN
+    VALID_WORKER_SECRET = TestWeakSecretPatterns.VALID_WORKER_SECRET
+    VALID_WEBHOOK_SECRET = "liveRouteEvidenceWebhookCredentialAlpha123456"
+
+    def _base_settings(self, **overrides):
+        values = {
+            "_env_file": None,
+            "environment": "development",
+            "jwt_secret": SecretStr(self.STRONG_SECRET),
+            "remnawave_token": SecretStr(self.VALID_TOKEN),
+            "cryptobot_token": SecretStr(self.VALID_TOKEN),
+        }
+        values.update(overrides)
+        return Settings(**values)
+
+    def _production_settings(self, **overrides):
+        values = {
+            "_env_file": None,
+            "environment": "production",
+            "jwt_secret": SecretStr(self.STRONG_SECRET),
+            "remnawave_token": SecretStr(self.VALID_TOKEN),
+            "cryptobot_token": SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            "payment_settlement_worker_secret": SecretStr(self.VALID_WORKER_SECRET),
+            "telegram_bot_internal_secret": SecretStr(""),
+            "backend_internal_secret": SecretStr("liveBackendInternalCredentialAlpha123456"),
+            "oauth_token_encryption_key": SecretStr(self.STRONG_SECRET),
+            "oauth_enabled_login_providers": [],
+            "cors_origins": list(S1_PRODUCTION_CORS_ORIGINS),
+            "cookie_secure": True,
+            "admin_2fa_required": True,
+            "vpn_tester_enabled": True,
+            "vpn_tester_runtime_enabled": True,
+            "vpn_tester_synthetic_users_enabled": True,
+            "vpn_test_agent_url": "http://cybervpn-vpn-test-agent:8080",
+            "vpn_test_agent_secret": SecretStr("liveRegionalAgentCredentialAlpha123456"),
+        }
+        values.update(overrides)
+        return Settings(**values)
+
+    def test_task2_route_evidence_defaults_are_disabled_and_bounded(self) -> None:
+        settings = self._base_settings()
+
+        assert settings.vpn_tester_task2_route_evidence_enabled is False
+        assert settings.vpn_tester_task2_xray_webhook_secret.get_secret_value() == ""
+        assert settings.vpn_tester_task2_synthetic_user == "cybervpn-task2-route-evidence"
+        assert settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds == 300
+        assert settings.vpn_tester_task2_route_evidence_result_ttl_seconds == 86400
+        assert settings.vpn_tester_task2_xray_webhook_max_skew_seconds == 60
+        assert settings.vpn_tester_task2_xray_webhook_max_body_bytes == 4096
+
+    def test_task2_route_evidence_exact_env_names_override_settings(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED", "true")
+        monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET", self.VALID_WEBHOOK_SECRET)
+        monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_USER", "task2-route@cybervpn.internal")
+        monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_EXPECTATION_TTL_SECONDS", "120")
+        monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_RESULT_TTL_SECONDS", "7200")
+        monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_MAX_SKEW_SECONDS", "45")
+        monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_MAX_BODY_BYTES", "2048")
+
+        settings = self._base_settings()
+
+        assert settings.vpn_tester_task2_route_evidence_enabled is True
+        assert settings.vpn_tester_task2_xray_webhook_secret.get_secret_value() == self.VALID_WEBHOOK_SECRET
+        assert settings.vpn_tester_task2_synthetic_user == "task2-route@cybervpn.internal"
+        assert settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds == 120
+        assert settings.vpn_tester_task2_route_evidence_result_ttl_seconds == 7200
+        assert settings.vpn_tester_task2_xray_webhook_max_skew_seconds == 45
+        assert settings.vpn_tester_task2_xray_webhook_max_body_bytes == 2048
+
+    def test_task2_route_evidence_production_rejects_weak_enabled_secret(self) -> None:
+        with pytest.raises(ValidationError, match="VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET"):
+            self._production_settings(
+                vpn_tester_task2_route_evidence_enabled=True,
+                vpn_tester_task2_xray_webhook_secret=SecretStr("short"),
+            )
+
+    def test_task2_route_evidence_production_rejects_shared_internal_secret(self) -> None:
+        with pytest.raises(ValidationError, match="must differ from BACKEND_INTERNAL_SECRET"):
+            self._production_settings(
+                vpn_tester_task2_route_evidence_enabled=True,
+                vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+                backend_internal_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+            )
+
+    def test_task2_route_evidence_production_accepts_strong_dedicated_secret(self) -> None:
+        settings = self._production_settings(
+            vpn_tester_task2_route_evidence_enabled=True,
+            vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+            vpn_tester_task2_synthetic_user="task2-route@cybervpn.internal",
+        )
+
+        assert settings.vpn_tester_task2_route_evidence_enabled is True
+        assert settings.vpn_tester_task2_xray_webhook_secret.get_secret_value() == self.VALID_WEBHOOK_SECRET

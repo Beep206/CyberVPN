@@ -19,6 +19,9 @@
 }
 
 (stage1_api_routes) {
+	@task2_route_evidence_private path /api/v1/admin/vpn-tester/internal/task2/route-evidence/xray-routing-webhook
+	respond @task2_route_evidence_private "Not found" 404
+
 	@remnawave_subscription path /api/sub*
 	handle @remnawave_subscription {
 		reverse_proxy cybervpn-backend:8000 {
@@ -27,7 +30,9 @@
 	}
 
 	@api path /api/v1/* /.well-known/security.txt
-	reverse_proxy @api cybervpn-backend:8000
+	reverse_proxy @api cybervpn-backend:8000 {
+		header_up -X-CyberVPN-Task2-Evidence-Ingress
+	}
 
 	@telegram_webhook path /webhook/telegram /webhook/telegram/diagnostics
 	handle @telegram_webhook {
@@ -117,9 +122,6 @@ api.cyber-vpn.net {
 	import stage1_security_headers
 	import stage1_api_routes
 
-	@healthz path /healthz
-	respond @healthz "ok" 200
-
 	respond "Not found" 404
 }
 
@@ -131,6 +133,23 @@ cyber-vpn.org {
 		not path /api/sub*
 	}
 	redir @non_subscription https://cyber-vpn.net{uri} permanent
+}
+
+task2-evidence.cyber-vpn.org {
+	import stage1_security_headers
+
+	@task2_route_evidence_spb {
+		path /api/v1/admin/vpn-tester/internal/task2/route-evidence/xray-routing-webhook
+		remote_ip 193.233.91.99
+	}
+	handle @task2_route_evidence_spb {
+		reverse_proxy cybervpn-backend:8000 {
+			header_up -X-CyberVPN-Task2-Evidence-Ingress
+			header_up X-CyberVPN-Task2-Evidence-Ingress spb-source-verified-v1
+		}
+	}
+
+	respond "Not found" 404
 }
 
 admin.cyber-vpn.net {

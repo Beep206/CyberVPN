@@ -91,6 +91,91 @@ def _xhttp_profile(index: int) -> dict[str, Any]:
     }
 
 
+def _task2_raw_profile() -> dict[str, Any]:
+    return {
+        "name": "task2-raw",
+        "location": "SPB Task2",
+        "node": "task2-node-raw",
+        "server": agent.TASK2_ENDPOINT_SERVER,
+        "port": 4443,
+        "network": "raw",
+        "uuid": "00000000-0000-4000-8000-000000000201",
+        "flow": "xtls-rprx-vision",
+        "sni": "task2-secret-sni.example",
+        "public_key": "Task2RawPublicKeyAbc",
+        "short_id": "00000201",
+        "fingerprint": "chrome",
+    }
+
+
+def _task2_xhttp_profile() -> dict[str, Any]:
+    return {
+        "name": "task2-xhttp",
+        "location": "SPB Task2",
+        "node": "task2-node-xhttp",
+        "server": agent.TASK2_ENDPOINT_SERVER,
+        "port": 8444,
+        "network": "xhttp",
+        "uuid": "00000000-0000-4000-8000-000000000202",
+        "sni": "task2-secret-xhttp-sni.example",
+        "public_key": "Task2XhttpPublicKeyAbc",
+        "short_id": "00000202",
+        "xhttp_path": "/task2/secret-path",
+        "xhttp_mode": "auto",
+        "fingerprint": "chrome",
+    }
+
+
+def _task2_profiles() -> list[dict[str, Any]]:
+    return [_task2_raw_profile(), _task2_xhttp_profile()]
+
+
+def _task2_route(
+    index: int,
+    *,
+    transport: str,
+    probe_network: str,
+    target_ip: str,
+    target_port: int = 443,
+) -> dict[str, Any]:
+    return {
+        "expectation_id": f"task2-exp-{index}",
+        "route_key": f"task2-route-{index}",
+        "transport": transport,
+        "probe_network": probe_network,
+        "target_ip": target_ip,
+        "target_port": target_port,
+        "expected_outbound": "DE_EXCEPTIONS_BRIDGE" if index % 2 == 0 else "DIRECT",
+        "membership": "member" if index % 2 == 0 else "non_member",
+        "manifest_sha256": "a" * 64,
+        "route_feed_version": "feed-v1",
+    }
+
+
+def _task2_routes() -> list[dict[str, Any]]:
+    return [
+        _task2_route(1, transport="raw", probe_network="tcp", target_ip="1.1.1.1"),
+        _task2_route(2, transport="raw", probe_network="udp", target_ip="8.8.8.8", target_port=53),
+        _task2_route(3, transport="xhttp", probe_network="tcp", target_ip="9.9.9.9"),
+        _task2_route(4, transport="xhttp", probe_network="udp", target_ip="1.0.0.1", target_port=53),
+    ]
+
+
+def _task2_payload(
+    profiles: list[dict[str, Any]] | None = None,
+    routes: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    return {
+        "run_id": "task2-run-1",
+        "suite_key": agent.TASK2_SUITE_ID,
+        "mode": "runtime",
+        "runtime_mode": "proxy-only",
+        "request_scope": "full",
+        "routes": routes if routes is not None else _task2_routes(),
+        "transport_profiles": profiles if profiles is not None else _task2_profiles(),
+    }
+
+
 def test_transport_profile_rejects_unapproved_destination() -> None:
     profile = _raw_profile(0)
     profile["server"] = "127.0.0.1"
@@ -227,6 +312,7 @@ def _install_success_boundaries(monkeypatch: pytest.MonkeyPatch) -> list[FakePro
         config = await agent.asyncio.to_thread(lambda: json.loads(config_path.read_text(encoding="utf-8")))
         assert config["inbounds"][0]["listen"] == "127.0.0.1"
         assert config["inbounds"][0]["protocol"] == "socks"
+        assert config["inbounds"][0]["settings"]["udp"] is False
         assert config["outbounds"][0]["protocol"] == "vless"
         process = FakeProcess()
         processes.append(process)
@@ -248,6 +334,55 @@ def _install_success_boundaries(monkeypatch: pytest.MonkeyPatch) -> list[FakePro
     monkeypatch.setattr(agent, "_probe_https_generate_204", probe_ok)
     monkeypatch.setattr(agent, "_probe_exit_country", country_ok)
     return processes
+
+
+def _install_task2_boundaries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[list[FakeProcess], list[tuple[int, str, int]], list[tuple[int, str, int]]]:
+    processes: list[FakeProcess] = []
+    tcp_calls: list[tuple[int, str, int]] = []
+    udp_calls: list[tuple[int, str, int]] = []
+    ports = iter((12001, 12002))
+
+    async def dns_ok(_server: str, _port: int, _timeout_seconds: float) -> bool:
+        return True
+
+    async def tcp_ok(_server: str, _port: int, _timeout_seconds: float) -> bool:
+        return True
+
+    async def start_ok(config_path: Path) -> FakeProcess:
+        mode = await agent.asyncio.to_thread(lambda: stat.S_IMODE(config_path.stat().st_mode))
+        if os.name != "nt":
+            assert mode == 0o600
+        else:
+            assert mode & stat.S_IWUSR
+        config = await agent.asyncio.to_thread(lambda: json.loads(config_path.read_text(encoding="utf-8")))
+        assert config["inbounds"][0]["listen"] == "127.0.0.1"
+        assert config["inbounds"][0]["settings"]["udp"] is True
+        assert config["outbounds"][0]["settings"]["vnext"][0]["address"] == agent.TASK2_ENDPOINT_SERVER
+        process = FakeProcess()
+        processes.append(process)
+        return process
+
+    async def port_ready(_port: int, _timeout_seconds: float) -> bool:
+        return True
+
+    async def socks_tcp(socks_port: int, target_ip: str, target_port: int, _timeout_seconds: float) -> str:
+        tcp_calls.append((socks_port, target_ip, target_port))
+        return "tcp_connect_established"
+
+    async def socks_udp(socks_port: int, target_ip: str, target_port: int, _timeout_seconds: float) -> str:
+        udp_calls.append((socks_port, target_ip, target_port))
+        return "udp_datagram_sent"
+
+    monkeypatch.setattr(agent, "_resolve_dns", dns_ok)
+    monkeypatch.setattr(agent, "_tcp_connect", tcp_ok)
+    monkeypatch.setattr(agent, "_allocate_loopback_port", lambda: next(ports))
+    monkeypatch.setattr(agent, "_start_xray", start_ok)
+    monkeypatch.setattr(agent, "_wait_for_local_port", port_ready)
+    monkeypatch.setattr(agent, "_socks5_tcp_connect", socks_tcp)
+    monkeypatch.setattr(agent, "_socks5_udp_associate", socks_udp)
+    return processes, tcp_calls, udp_calls
 
 
 @pytest.mark.asyncio
@@ -881,3 +1016,206 @@ def test_profile_validation_blocks_injection_hosts_paths_and_hard_max() -> None:
     }
     with pytest.raises(ValidationError):
         agent.RuntimeCheckRequest.model_validate(invalid_extra)
+
+
+@pytest.mark.asyncio
+async def test_task2_signed_v2_runtime_returns_attempt_evidence_without_outbound_claims(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    processes, tcp_calls, udp_calls = _install_task2_boundaries(monkeypatch)
+    payload = _task2_payload()
+    body = _request_body(payload)
+
+    response = await _post_runtime_check(body, _signing_headers(body, nonce="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+
+    assert response.status_code == 200
+    response_body_hash = hashlib.sha256(response.content).hexdigest()
+    assert response.headers[agent.RESPONSE_SIGNATURE_HEADER] == _response_signature(
+        AGENT_AUTH_VALUE,
+        200,
+        str(FIXED_NOW),
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "primary",
+        response_body_hash,
+    )
+    result = response.json()
+    assert result["status"] == "partial"
+    assert result["reason"] == "backend_correlation_required"
+    assert result["route_attempts"] == [
+        {
+            "expectation_id": "task2-exp-1",
+            "route_key": "task2-route-1",
+            "transport": "raw",
+            "probe_network": "tcp",
+            "terminal_class": "tcp_connect_established",
+        },
+        {
+            "expectation_id": "task2-exp-2",
+            "route_key": "task2-route-2",
+            "transport": "raw",
+            "probe_network": "udp",
+            "terminal_class": "udp_datagram_sent",
+        },
+        {
+            "expectation_id": "task2-exp-3",
+            "route_key": "task2-route-3",
+            "transport": "xhttp",
+            "probe_network": "tcp",
+            "terminal_class": "tcp_connect_established",
+        },
+        {
+            "expectation_id": "task2-exp-4",
+            "route_key": "task2-route-4",
+            "transport": "xhttp",
+            "probe_network": "udp",
+            "terminal_class": "udp_datagram_sent",
+        },
+    ]
+    assert tcp_calls == [(12001, "1.1.1.1", 443), (12002, "9.9.9.9", 443)]
+    assert udp_calls == [(12001, "8.8.8.8", 53), (12002, "1.0.0.1", 53)]
+    assert len(processes) == 2
+    assert all(process.terminated for process in processes)
+    assert all(process.communicated for process in processes)
+    bridge_check = next(
+        check for check in result["checks"] if check["check_key"] == "runtime.task2.bridge_down_injection.unsupported"
+    )
+    assert bridge_check["status"] == "unsupported"
+    serialized = json.dumps(result, ensure_ascii=False)
+    assert "selected_outbound" not in serialized
+    for profile in payload["transport_profiles"]:
+        assert profile["uuid"] not in serialized
+        assert profile["public_key"] not in serialized
+        assert profile["short_id"] not in serialized
+        assert profile["sni"] not in serialized
+        if profile.get("xhttp_path"):
+            assert profile["xhttp_path"] not in serialized
+    for route in payload["routes"]:
+        assert route["target_ip"] not in serialized
+        assert route["expected_outbound"] not in serialized
+        assert route["manifest_sha256"] not in serialized
+
+
+@pytest.mark.asyncio
+async def test_task2_is_rejected_on_legacy_v1_even_when_legacy_rollout_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent.settings.vpn_test_agent_legacy_v1_enabled = True
+
+    async def forbidden_runtime_checks(_payload: agent.RuntimeCheckRequest) -> dict[str, Any]:
+        raise AssertionError("Task2 must not dispatch through legacy v1")
+
+    monkeypatch.setattr(agent, "_run_runtime_checks", forbidden_runtime_checks)
+    transport = httpx.ASGITransport(app=agent.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.post(
+            "/internal/v1/runtime-checks",
+            json=_task2_payload(),
+            headers={agent.REQUEST_SECRET_HEADER: LEGACY_AUTH_VALUE},
+        )
+
+    assert response.status_code == 422
+
+
+def test_task2_contract_rejects_wrong_server_ports_counts_and_smart_profiles() -> None:
+    one_profile_payload = _task2_payload(profiles=[_task2_raw_profile()])
+    with pytest.raises(ValidationError):
+        agent.RuntimeCheckRequest.model_validate(one_profile_payload)
+
+    wrong_raw_port = _task2_payload()
+    wrong_raw_port["transport_profiles"][0]["port"] = 443
+    with pytest.raises(ValidationError):
+        agent.RuntimeCheckRequest.model_validate(wrong_raw_port)
+
+    wrong_xhttp_port = _task2_payload()
+    wrong_xhttp_port["transport_profiles"][1]["port"] = 8443
+    with pytest.raises(ValidationError):
+        agent.RuntimeCheckRequest.model_validate(wrong_xhttp_port)
+
+    wrong_server = _task2_payload()
+    wrong_server["transport_profiles"][0]["server"] = "ru-spb-3.cyber-vpn.org"
+    with pytest.raises(ValidationError):
+        agent.RuntimeCheckRequest.model_validate(wrong_server)
+
+    smart_profile_payload = _task2_payload(profiles=[_raw_profile(0), _xhttp_profile(0)])
+    with pytest.raises(ValidationError, match="task2_requires_task2_profiles"):
+        agent.RuntimeCheckRequest.model_validate(smart_profile_payload)
+
+
+def test_task2_contract_rejects_duplicate_and_incomplete_route_declarations() -> None:
+    duplicate_expectation_id = _task2_payload()
+    duplicate_expectation_id["routes"][1]["expectation_id"] = duplicate_expectation_id["routes"][0]["expectation_id"]
+    with pytest.raises(ValidationError, match="task2_duplicate_expectation_id"):
+        agent.RuntimeCheckRequest.model_validate(duplicate_expectation_id)
+
+    duplicate_route_key = _task2_payload()
+    duplicate_route_key["routes"][1]["route_key"] = duplicate_route_key["routes"][0]["route_key"]
+    with pytest.raises(ValidationError, match="task2_duplicate_route_key"):
+        agent.RuntimeCheckRequest.model_validate(duplicate_route_key)
+
+    only_raw_routes = _task2_payload(routes=[route for route in _task2_routes() if route["transport"] == "raw"])
+    with pytest.raises(ValidationError, match="task2_route_probe_matrix_incomplete"):
+        agent.RuntimeCheckRequest.model_validate(only_raw_routes)
+
+    only_tcp_routes = _task2_payload(routes=[route for route in _task2_routes() if route["probe_network"] == "tcp"])
+    with pytest.raises(ValidationError, match="task2_route_probe_matrix_incomplete"):
+        agent.RuntimeCheckRequest.model_validate(only_tcp_routes)
+
+
+@pytest.mark.asyncio
+async def test_task2_tun_bridge_request_reaches_task2_fail_closed_handler() -> None:
+    payload = _task2_payload()
+    payload["runtime_mode"] = "tun-sandbox"
+    payload["tun_sandbox_requested"] = True
+    request = agent.RuntimeCheckRequest.model_validate(payload)
+
+    result = await agent._run_runtime_checks(request)
+
+    assert result["status"] == "fail"
+    assert result["reason"] == "task2_bridge_down_unsupported"
+    assert result["route_attempts"] == []
+    assert any(check["check_key"] == "runtime.task2.bridge_down_injection.unsupported" for check in result["checks"])
+
+
+@pytest.mark.parametrize(
+    "target_ip",
+    [
+        "127.0.0.1",
+        "10.0.0.1",
+        "169.254.169.254",
+        "224.0.0.1",
+        ".".join(("0", "0", "0", "0")),
+        "193.233.91.99",
+        "not-an-ip",
+    ],
+)
+def test_task2_rejects_bad_target_ips(target_ip: str) -> None:
+    payload = _task2_payload()
+    payload["routes"][0]["target_ip"] = target_ip
+
+    with pytest.raises(ValidationError):
+        agent.RuntimeCheckRequest.model_validate(payload)
+
+
+def test_task2_rejects_extra_fields_and_more_than_64_route_expectations() -> None:
+    route_extra = _task2_payload()
+    route_extra["routes"][0]["selected_outbound"] = "DIRECT"
+    with pytest.raises(ValidationError):
+        agent.RuntimeCheckRequest.model_validate(route_extra)
+
+    profile_extra = _task2_payload()
+    profile_extra["transport_profiles"][0]["subscription_url"] = "vless://secret"
+    with pytest.raises(ValidationError):
+        agent.RuntimeCheckRequest.model_validate(profile_extra)
+
+    too_many_routes = [
+        _task2_route(
+            index,
+            transport="raw" if index % 2 == 0 else "xhttp",
+            probe_network="tcp" if index % 4 in {0, 1} else "udp",
+            target_ip="1.1.1.1" if index % 2 == 0 else "8.8.8.8",
+            target_port=443 if index % 4 in {0, 1} else 53,
+        )
+        for index in range(agent.MAX_TASK2_ROUTE_EXPECTATIONS + 1)
+    ]
+    with pytest.raises(ValidationError, match="task2_route_expectations_too_large"):
+        agent.RuntimeCheckRequest.model_validate(_task2_payload(routes=too_many_routes))

@@ -25,7 +25,7 @@ import socket
 import sys
 import tempfile
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -57,6 +57,19 @@ CUSTOMER_SQUAD_NAME = "CYBERVPN_SPB_DE_NODES"
 EXTERNAL_SQUAD_NAME = "CYBERVPN_SPB_DE_EXCEPTIONS"
 BRIDGE_SQUAD_NAME = "CYBERVPN_SPB_DE_BRIDGE"
 BRIDGE_USERNAME = "CYBERVPN_SPB_DE_BRIDGE_USER"
+TASK2_ROUTE_EVIDENCE_HOST = "task2-evidence.cyber-vpn.org"
+TASK2_ROUTE_EVIDENCE_PATH = "/api/v1/admin/vpn-tester/internal/task2/route-evidence/xray-routing-webhook"
+TASK2_ROUTE_EVIDENCE_WEBHOOK_URL = f"https://{TASK2_ROUTE_EVIDENCE_HOST}{TASK2_ROUTE_EVIDENCE_PATH}"
+TASK2_XRAY_WEBHOOK_AUTH_HEADER = "X-CyberVPN-Task2-Xray-Webhook-Secret"
+# Each synthetic route expectation must emit its own event. Xray deduplicates
+# webhook events by user when this value is positive, which would collapse the
+# TCP/UDP and RAW/XHTTP matrix into a single callback.
+TASK2_XRAY_WEBHOOK_DEDUPLICATION_SECONDS = 0
+TASK2_XRAY_WEBHOOK_MAX_URL_LENGTH = 512
+TASK2_XRAY_WEBHOOK_MAX_SECRET_LENGTH = 512
+TASK2_SYNTHETIC_USERNAME_MAX_LENGTH = 128
+TASK2_SYNTHETIC_USER_TAG = "TASK2_ROUTE_EVIDENCE"
+TASK2_SYNTHETIC_USER_DESCRIPTION = "CyberVPN Task2 synthetic Xray routing evidence probe"
 
 BRIDGE_INBOUND_TAG = "DE_SPB_EXCEPTIONS_BRIDGE_9444"
 BRIDGE_OUTBOUND_TAG = "DE_EXCEPTIONS_BRIDGE"
@@ -171,10 +184,16 @@ class AntifilterArtifact:
     raw_rules: list[dict[str, Any]]
 
 
+@dataclass(frozen=True)
+class Task2RouteEvidenceConfig:
+    enabled: bool
+    synthetic_user: str = ""
+    webhook_url: str = ""
+    webhook_secret: str = field(default="", repr=False)
+
+
 class RemnawaveApi:
-    def __init__(
-        self, base_url: str, token: str, *, trusted_proxy_headers: bool = False
-    ) -> None:
+    def __init__(self, base_url: str, token: str, *, trusted_proxy_headers: bool = False) -> None:
         normalized = base_url.rstrip("/").removesuffix("/api")
         headers = {"Authorization": f"Bearer {token}"}
         if trusted_proxy_headers:
@@ -239,9 +258,7 @@ def _parse_utc_timestamp(value: Any) -> datetime:
     return parsed.astimezone(UTC)
 
 
-def _artifact_path_from_manifest(
-    manifest_path: Path, manifest: dict[str, Any], override_path: Path | None
-) -> Path:
+def _artifact_path_from_manifest(manifest_path: Path, manifest: dict[str, Any], override_path: Path | None) -> Path:
     if override_path is not None:
         candidate = override_path.expanduser().resolve(strict=False)
     else:
@@ -253,16 +270,12 @@ def _artifact_path_from_manifest(
             or (manifest.get("xray") or {}).get("rulesPath")
         )
         if not isinstance(raw_path, str) or not raw_path:
-            raise RuntimeError(
-                "Antifilter manifest must reference an Xray rules artifact"
-            )
+            raise RuntimeError("Antifilter manifest must reference an Xray rules artifact")
         candidate = (manifest_path.parent / raw_path).resolve(strict=False)
 
     root = manifest_path.parent.resolve(strict=False)
     if candidate != root and root not in candidate.parents:
-        raise RuntimeError(
-            "Antifilter artifact path must stay under the manifest directory"
-        )
+        raise RuntimeError("Antifilter artifact path must stay under the manifest directory")
     return candidate
 
 
@@ -311,20 +324,14 @@ def _actual_raw_rule_ipv6_prefix_count(raw_rules: list[dict[str, Any]]) -> int:
     for raw_rule in raw_rules:
         ips = raw_rule.get("ip")
         if not isinstance(ips, list) or not ips:
-            raise RuntimeError(
-                "Antifilter exception rules must contain non-empty ip matchers"
-            )
+            raise RuntimeError("Antifilter exception rules must contain non-empty ip matchers")
         for item in ips:
             if not isinstance(item, str) or not item:
-                raise RuntimeError(
-                    "Antifilter exception rules must contain non-empty ip matchers"
-                )
+                raise RuntimeError("Antifilter exception rules must contain non-empty ip matchers")
             try:
                 network = ipaddress.ip_network(item, strict=False)
             except ValueError as exc:
-                raise RuntimeError(
-                    f"Antifilter exception matcher is not a CIDR: {item}"
-                ) from exc
+                raise RuntimeError(f"Antifilter exception matcher is not a CIDR: {item}") from exc
             if network.version == 6:
                 count += 1
     return count
@@ -337,9 +344,7 @@ def _load_antifilter_artifact(
     max_age_hours: int = 72,
 ) -> AntifilterArtifact:
     resolved_manifest = manifest_path.expanduser().resolve(strict=False)
-    manifest_bytes = _read_limited_bytes(
-        resolved_manifest, max_bytes=2 * 1024 * 1024, label="Antifilter manifest"
-    )
+    manifest_bytes = _read_limited_bytes(resolved_manifest, max_bytes=2 * 1024 * 1024, label="Antifilter manifest")
     manifest = _load_json(manifest_bytes, label="Antifilter manifest")
     if not isinstance(manifest, dict):
         raise RuntimeError("Antifilter manifest must be a JSON object")
@@ -365,13 +370,9 @@ def _load_antifilter_artifact(
     ipv6_policy_mode = _ipv6_policy_mode(manifest)
     union_ipv6_prefix_count = _union_family_count(manifest, "ipv6")
     if ipv6_policy_mode == "enabled" and union_ipv6_prefix_count <= 0:
-        raise RuntimeError(
-            "Antifilter IPv6 policy is enabled but the IPv6 artifact is empty"
-        )
+        raise RuntimeError("Antifilter IPv6 policy is enabled but the IPv6 artifact is empty")
 
-    resolved_rules = _artifact_path_from_manifest(
-        resolved_manifest, manifest, rules_path
-    )
+    resolved_rules = _artifact_path_from_manifest(resolved_manifest, manifest, rules_path)
     rules_bytes = _read_limited_bytes(
         resolved_rules,
         max_bytes=16 * 1024 * 1024,
@@ -381,24 +382,16 @@ def _load_antifilter_artifact(
     if rules_sha != _expected_rules_sha256(manifest):
         raise RuntimeError("Antifilter Xray rules artifact checksum mismatch")
     rules_payload = _load_json(rules_bytes, label="Antifilter Xray rules artifact")
-    raw_rules = (
-        rules_payload.get("rules") if isinstance(rules_payload, dict) else rules_payload
-    )
+    raw_rules = rules_payload.get("rules") if isinstance(rules_payload, dict) else rules_payload
     if not isinstance(raw_rules, list) or not raw_rules:
-        raise RuntimeError(
-            "Antifilter Xray rules artifact must contain non-empty rules"
-        )
+        raise RuntimeError("Antifilter Xray rules artifact must contain non-empty rules")
     if not all(isinstance(rule, dict) for rule in raw_rules):
         raise RuntimeError("Antifilter Xray rules must be JSON objects")
     actual_ipv6_prefix_count = _actual_raw_rule_ipv6_prefix_count(raw_rules)
     if actual_ipv6_prefix_count != union_ipv6_prefix_count:
-        raise RuntimeError(
-            "Antifilter manifest IPv6 prefix count does not match the Xray artifact"
-        )
+        raise RuntimeError("Antifilter manifest IPv6 prefix count does not match the Xray artifact")
     if ipv6_policy_mode == "enabled" and actual_ipv6_prefix_count <= 0:
-        raise RuntimeError(
-            "Antifilter IPv6 policy is enabled but the IPv6 artifact is empty"
-        )
+        raise RuntimeError("Antifilter IPv6 policy is enabled but the IPv6 artifact is empty")
     return AntifilterArtifact(
         manifest_path=resolved_manifest,
         rules_path=resolved_rules,
@@ -426,33 +419,21 @@ MANAGEMENT_NETWORKS = _management_networks()
 
 def _canonical_exception_ip_matchers(ips: list[Any]) -> list[str]:
     if len(ips) > MAX_EXCEPTION_PREFIXES:
-        raise RuntimeError(
-            "Antifilter exception rule exceeds the per-rule prefix limit"
-        )
+        raise RuntimeError("Antifilter exception rule exceeds the per-rule prefix limit")
     canonical: list[str] = []
     for item in ips:
         if not isinstance(item, str) or not item:
-            raise RuntimeError(
-                "Antifilter exception rules must contain non-empty ip matchers"
-            )
+            raise RuntimeError("Antifilter exception rules must contain non-empty ip matchers")
         try:
             network = ipaddress.ip_network(item, strict=False)
         except ValueError as exc:
-            raise RuntimeError(
-                f"Antifilter exception matcher is not a CIDR: {item}"
-            ) from exc
+            raise RuntimeError(f"Antifilter exception matcher is not a CIDR: {item}") from exc
         if network.prefixlen == 0:
-            raise RuntimeError(
-                "Antifilter exception rules must not contain wildcard routes"
-            )
+            raise RuntimeError("Antifilter exception rules must not contain wildcard routes")
         if any(
-            network.overlaps(management)
-            for management in MANAGEMENT_NETWORKS
-            if management.version == network.version
+            network.overlaps(management) for management in MANAGEMENT_NETWORKS if management.version == network.version
         ):
-            raise RuntimeError(
-                "Antifilter exception rules must not contain management or node networks"
-            )
+            raise RuntimeError("Antifilter exception rules must not contain management or node networks")
         canonical.append(str(network))
     return canonical
 
@@ -469,20 +450,15 @@ def _normalize_exception_rules(
     for index, raw_rule in enumerate(raw_rules, start=1):
         ips = raw_rule.get("ip")
         if not isinstance(ips, list) or not ips:
-            raise RuntimeError(
-                "Antifilter exception rules must contain non-empty ip matchers"
-            )
+            raise RuntimeError("Antifilter exception rules must contain non-empty ip matchers")
         canonical_ips = _canonical_exception_ip_matchers(ips)
         total_prefixes += len(canonical_ips)
         if total_prefixes > MAX_EXCEPTION_PREFIXES:
-            raise RuntimeError(
-                "Antifilter exception artifact contains too many prefixes"
-            )
+            raise RuntimeError("Antifilter exception artifact contains too many prefixes")
         normalized.append(
             {
                 "type": "field",
-                "ruleTag": raw_rule.get("ruleTag")
-                or f"de-exceptions-artifact-{index:04d}",
+                "ruleTag": raw_rule.get("ruleTag") or f"de-exceptions-artifact-{index:04d}",
                 "inboundTag": list(customer_inbound_tags or SPB_CUSTOMER_INBOUND_TAGS),
                 "ip": canonical_ips,
                 "network": "tcp,udp",
@@ -511,15 +487,9 @@ def _bridge_inbound() -> dict[str, Any]:
     }
 
 
-def _require_outbound(
-    config: dict[str, Any], tag: str, protocol: str
-) -> dict[str, Any]:
+def _require_outbound(config: dict[str, Any], tag: str, protocol: str) -> dict[str, Any]:
     outbound = next(
-        (
-            item
-            for item in config.get("outbounds", [])
-            if isinstance(item, dict) and item.get("tag") == tag
-        ),
+        (item for item in config.get("outbounds", []) if isinstance(item, dict) and item.get("tag") == tag),
         None,
     )
     if outbound is None or outbound.get("protocol") != protocol:
@@ -567,9 +537,7 @@ def _replace_tagged(items: Any, replacements: list[dict[str, Any]]) -> list[Any]
     items = items if isinstance(items, list) else []
     replacement_tags = {item["tag"] for item in replacements}
     preserved = [
-        copy.deepcopy(item)
-        for item in items
-        if not (isinstance(item, dict) and item.get("tag") in replacement_tags)
+        copy.deepcopy(item) for item in items if not (isinstance(item, dict) and item.get("tag") in replacement_tags)
     ]
     return [*preserved, *copy.deepcopy(replacements)]
 
@@ -588,9 +556,7 @@ def _task2_preserved_tag(scope: str, source_tag: str) -> str:
     return f"{prefix}{normalized[:max_base_length]}_{digest}"
 
 
-def _preserved_inbound_tag_map(
-    config: dict[str, Any], scope: str, *, exclude_tags: set[str]
-) -> dict[str, str]:
+def _preserved_inbound_tag_map(config: dict[str, Any], scope: str, *, exclude_tags: set[str]) -> dict[str, str]:
     mapping: dict[str, str] = {}
     for inbound in config.get("inbounds", []):
         if not isinstance(inbound, dict) or not inbound.get("tag"):
@@ -605,9 +571,7 @@ def _preserved_inbound_tag_map(
     return mapping
 
 
-def _spb_shared_public_source_tags(
-    config: dict[str, Any], active_tags: list[str]
-) -> list[str]:
+def _spb_shared_public_source_tags(config: dict[str, Any], active_tags: list[str]) -> list[str]:
     active_tag_set = set(active_tags)
     selected: dict[int, str] = {}
     for inbound in config.get("inbounds", []):
@@ -625,20 +589,14 @@ def _spb_shared_public_source_tags(
         if port == 8443 and network != "xhttp":
             continue
         if port in selected:
-            raise RuntimeError(
-                f"SPB shared IPv4 port {port} maps to multiple active inbounds"
-            )
+            raise RuntimeError(f"SPB shared IPv4 port {port} maps to multiple active inbounds")
         selected[port] = tag
     if set(selected) != {443, 8443}:
-        raise RuntimeError(
-            "SPB shared IPv4 RAW 443 and XHTTP 8443 inbounds are required"
-        )
+        raise RuntimeError("SPB shared IPv4 RAW 443 and XHTTP 8443 inbounds are required")
     return [selected[443], selected[8443]]
 
 
-def _spb_shared_xhttp_path(
-    config: dict[str, Any], shared_public_source_tags: list[str]
-) -> str:
+def _spb_shared_xhttp_path(config: dict[str, Any], shared_public_source_tags: list[str]) -> str:
     shared_tags = set(shared_public_source_tags)
     candidates: list[str] = []
     for inbound in config.get("inbounds", []):
@@ -647,11 +605,7 @@ def _spb_shared_xhttp_path(
         if int(inbound.get("port") or 0) != 8443:
             continue
         stream_settings = inbound.get("streamSettings")
-        xhttp_settings = (
-            stream_settings.get("xhttpSettings")
-            if isinstance(stream_settings, dict)
-            else None
-        )
+        xhttp_settings = stream_settings.get("xhttpSettings") if isinstance(stream_settings, dict) else None
         path = xhttp_settings.get("path") if isinstance(xhttp_settings, dict) else None
         if isinstance(path, str) and path.startswith("/") and len(path) <= 256:
             candidates.append(path)
@@ -676,9 +630,7 @@ def _rewrite_inbound_tag_references(value: Any, mapping: dict[str, str]) -> Any:
     return rewritten
 
 
-def _rename_preserved_inbounds(
-    config: dict[str, Any], mapping: dict[str, str]
-) -> dict[str, Any]:
+def _rename_preserved_inbounds(config: dict[str, Any], mapping: dict[str, str]) -> dict[str, Any]:
     renamed = _rewrite_inbound_tag_references(config, mapping)
     for inbound in renamed.get("inbounds", []):
         if isinstance(inbound, dict) and inbound.get("tag") in mapping:
@@ -689,11 +641,7 @@ def _rename_preserved_inbounds(
 def _routing_rules(config: dict[str, Any]) -> list[dict[str, Any]]:
     routing = config.get("routing")
     routing = routing if isinstance(routing, dict) else {}
-    return [
-        copy.deepcopy(rule)
-        for rule in routing.get("rules", [])
-        if isinstance(rule, dict)
-    ]
+    return [copy.deepcopy(rule) for rule in routing.get("rules", []) if isinstance(rule, dict)]
 
 
 def _rule_inbound_tags(rule: dict[str, Any]) -> set[str]:
@@ -717,9 +665,7 @@ def _is_task2_spb_rule(rule: dict[str, Any]) -> bool:
         return True
     if inbound_tags and inbound_tags.issubset(SPB_CUSTOMER_INBOUND_TAG_SET):
         return True
-    return inbound_tags == {BRIDGE_INBOUND_TAG} and str(
-        rule.get("ruleTag") or ""
-    ).startswith("task2-")
+    return inbound_tags == {BRIDGE_INBOUND_TAG} and str(rule.get("ruleTag") or "").startswith("task2-")
 
 
 def _routing_with_prepended_rules(
@@ -728,9 +674,7 @@ def _routing_with_prepended_rules(
     *,
     drop_rule: Any,
 ) -> dict[str, Any]:
-    routing = copy.deepcopy(
-        config.get("routing") if isinstance(config.get("routing"), dict) else {}
-    )
+    routing = copy.deepcopy(config.get("routing") if isinstance(config.get("routing"), dict) else {})
     existing_rules = [rule for rule in _routing_rules(config) if not drop_rule(rule)]
     routing["rules"] = [*copy.deepcopy(task2_rules), *existing_rules]
     return routing
@@ -742,9 +686,7 @@ def _build_de_bridge_config(
     config = _rename_preserved_inbounds(base_config, preserved_tag_map or {})
     _require_outbound(config, "DIRECT", "freedom")
     _require_outbound(config, "BLOCK", "blackhole")
-    config["inbounds"] = _replace_tagged(
-        config.get("inbounds", []), [_bridge_inbound()]
-    )
+    config["inbounds"] = _replace_tagged(config.get("inbounds", []), [_bridge_inbound()])
     bridge_rules = [
         {
             "type": "field",
@@ -761,9 +703,7 @@ def _build_de_bridge_config(
             "outboundTag": "DIRECT",
         },
     ]
-    config["routing"] = _routing_with_prepended_rules(
-        config, bridge_rules, drop_rule=_is_task2_de_rule
-    )
+    config["routing"] = _routing_with_prepended_rules(config, bridge_rules, drop_rule=_is_task2_de_rule)
     _validate_no_empty_routing_rules(config)
     return config
 
@@ -788,10 +728,131 @@ def _bridge_outbound(bridge_password: str, de_upstream_address: str) -> dict[str
     }
 
 
+def _parse_bool_flag(value: Any, *, label: str) -> bool:
+    normalized = str(value or "").strip().casefold()
+    if normalized in {"", "0", "false", "no", "off"}:
+        return False
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    raise RuntimeError(f"{label} must be a boolean flag")
+
+
+def _validate_task2_synthetic_user(value: Any) -> str:
+    username = str(value or "").strip()
+    if not username:
+        raise RuntimeError("Task2 route evidence synthetic user is required")
+    if username != str(value):
+        raise RuntimeError("Task2 route evidence synthetic user must not be padded")
+    if len(username) > TASK2_SYNTHETIC_USERNAME_MAX_LENGTH:
+        raise RuntimeError("Task2 route evidence synthetic user is too long")
+    if re.search(r"[\x00-\x20\x7f]", username):
+        raise RuntimeError("Task2 route evidence synthetic user contains whitespace")
+    return username
+
+
+def _validate_task2_webhook_secret(value: Any) -> str:
+    secret = str(value or "")
+    if not secret:
+        raise RuntimeError("Task2 route evidence webhook secret is required")
+    if len(secret) > TASK2_XRAY_WEBHOOK_MAX_SECRET_LENGTH:
+        raise RuntimeError("Task2 route evidence webhook secret is too long")
+    if any(char in secret for char in ("\x00", "\r", "\n")):
+        raise RuntimeError("Task2 route evidence webhook secret is invalid")
+    return secret
+
+
+def _validate_task2_webhook_url(value: Any) -> str:
+    webhook_url = str(value or "").strip()
+    if not webhook_url:
+        raise RuntimeError("Task2 route evidence webhook URL is required")
+    if webhook_url != str(value):
+        raise RuntimeError("Task2 route evidence webhook URL must not be padded")
+    if len(webhook_url) > TASK2_XRAY_WEBHOOK_MAX_URL_LENGTH:
+        raise RuntimeError("Task2 route evidence webhook URL is too long")
+    parsed = urlsplit(webhook_url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise RuntimeError("Task2 route evidence webhook URL must use HTTPS")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise RuntimeError("Task2 route evidence webhook URL must not contain credentials, query, or fragment")
+    if parsed.hostname.casefold() != TASK2_ROUTE_EVIDENCE_HOST:
+        raise RuntimeError("Task2 route evidence webhook URL host is not allowed")
+    if parsed.port not in {None, 443}:
+        raise RuntimeError("Task2 route evidence webhook URL port is not allowed")
+    if parsed.path != TASK2_ROUTE_EVIDENCE_PATH:
+        raise RuntimeError("Task2 route evidence webhook URL path is not allowed")
+    return webhook_url
+
+
+def _task2_route_evidence_config(args: argparse.Namespace) -> Task2RouteEvidenceConfig:
+    enabled = _parse_bool_flag(
+        getattr(args, "task2_route_evidence_enabled", False),
+        label="Task2 route evidence enabled",
+    )
+    if not enabled:
+        return Task2RouteEvidenceConfig(enabled=False)
+    return Task2RouteEvidenceConfig(
+        enabled=True,
+        synthetic_user=_validate_task2_synthetic_user(getattr(args, "task2_synthetic_user", "")),
+        webhook_url=_validate_task2_webhook_url(getattr(args, "task2_route_evidence_webhook_url", "")),
+        webhook_secret=_validate_task2_webhook_secret(getattr(args, "task2_xray_webhook_secret", "")),
+    )
+
+
+def _task2_route_evidence_webhook(
+    route_evidence: Task2RouteEvidenceConfig,
+) -> dict[str, Any]:
+    if not route_evidence.enabled:
+        raise RuntimeError("Task2 route evidence webhook is disabled")
+    return {
+        "url": route_evidence.webhook_url,
+        "deduplication": TASK2_XRAY_WEBHOOK_DEDUPLICATION_SECONDS,
+        "headers": {
+            TASK2_XRAY_WEBHOOK_AUTH_HEADER: route_evidence.webhook_secret,
+        },
+    }
+
+
+def _task2_route_evidence_rule_tag(rule: dict[str, Any], index: int) -> str:
+    raw_source = str(rule.get("ruleTag") or "compiled-union")
+    source = re.sub(r"[^A-Za-z0-9_.:-]+", "-", raw_source).strip("-")
+    return f"task2-route-evidence-matched-{index:04d}-{source[:48]}"
+
+
+def _task2_route_evidence_rules(
+    exception_rules: list[dict[str, Any]],
+    customer_inbound_tags: list[str],
+    route_evidence: Task2RouteEvidenceConfig | None,
+) -> list[dict[str, Any]]:
+    if route_evidence is None or not route_evidence.enabled:
+        return []
+    webhook = _task2_route_evidence_webhook(route_evidence)
+    user_matcher = [route_evidence.synthetic_user]
+    synthetic_rules: list[dict[str, Any]] = []
+    for index, exception_rule in enumerate(exception_rules, start=1):
+        rule = copy.deepcopy(exception_rule)
+        rule["ruleTag"] = _task2_route_evidence_rule_tag(exception_rule, index)
+        rule["user"] = user_matcher
+        rule["webhook"] = copy.deepcopy(webhook)
+        synthetic_rules.append(rule)
+    synthetic_rules.append(
+        {
+            "type": "field",
+            "ruleTag": "task2-route-evidence-unmatched-direct",
+            "inboundTag": list(customer_inbound_tags),
+            "user": user_matcher,
+            "network": "tcp,udp",
+            "outboundTag": "DIRECT",
+            "webhook": copy.deepcopy(webhook),
+        },
+    )
+    return synthetic_rules
+
+
 def _static_spb_rules(
     exception_rules: list[dict[str, Any]],
     ipv6_policy_mode: str,
     customer_inbound_tags: list[str] | None = None,
+    route_evidence: Task2RouteEvidenceConfig | None = None,
 ) -> list[dict[str, Any]]:
     resolved_customer_tags = list(customer_inbound_tags or SPB_CUSTOMER_INBOUND_TAGS)
     scoped = {"type": "field", "inboundTag": resolved_customer_tags}
@@ -854,6 +915,12 @@ def _static_spb_rules(
                 "outboundTag": "BLOCK",
             }
         )
+    synthetic_rules = _task2_route_evidence_rules(
+        exception_rules,
+        resolved_customer_tags,
+        route_evidence,
+    )
+    rules.extend(synthetic_rules)
     rules.extend(exception_rules)
     rules.append(
         {
@@ -878,6 +945,7 @@ def _build_spb_customer_config(
     preserved_tag_map: dict[str, str] | None = None,
     customer_inbound_tags: list[str] | None = None,
     shared_xhttp_path: str = SPB_XHTTP_PATH,
+    route_evidence: Task2RouteEvidenceConfig | None = None,
 ) -> dict[str, Any]:
     if ipv6_policy_mode not in IPV6_POLICY_MODES:
         raise RuntimeError("Unsupported Antifilter IPv6 policy mode")
@@ -907,14 +975,13 @@ def _build_spb_customer_config(
             exception_rules,
             ipv6_policy_mode,
             customer_inbound_tags=customer_inbound_tags,
+            route_evidence=route_evidence,
         ),
         drop_rule=_is_task2_spb_rule,
     )
     config["routing"]["domainStrategy"] = "IPOnDemand"
     if ipv6_policy_mode in IPV6_BLOCK_POLICY_MODES:
-        dns = copy.deepcopy(
-            config.get("dns") if isinstance(config.get("dns"), dict) else {}
-        )
+        dns = copy.deepcopy(config.get("dns") if isinstance(config.get("dns"), dict) else {})
         dns["queryStrategy"] = "UseIPv4"
         dns["servers"] = list(SPB_IPV4_DNS_SERVERS)
         config["dns"] = dns
@@ -924,27 +991,21 @@ def _build_spb_customer_config(
 
 
 def _validate_no_empty_routing_rules(config: dict[str, Any]) -> None:
-    match_keys = {"inboundTag", "ip", "domain", "protocol", "network", "port"}
+    match_keys = {"inboundTag", "ip", "domain", "protocol", "network", "port", "user"}
     for index, rule in enumerate(config.get("routing", {}).get("rules", []), start=1):
         if not isinstance(rule, dict):
             raise RuntimeError(f"Routing rule {index} is not an object")
-        if not any(
-            key in rule and rule[key] not in (None, [], "") for key in match_keys
-        ):
+        if not any(key in rule and rule[key] not in (None, [], "") for key in match_keys):
             raise RuntimeError(f"Routing rule {index} has no matcher")
         if not rule.get("outboundTag"):
             raise RuntimeError(f"Routing rule {index} has no outboundTag")
 
 
-def _validate_final_direct_rule(
-    config: dict[str, Any], *, customer_inbound_tags: list[str] | None = None
-) -> None:
+def _validate_final_direct_rule(config: dict[str, Any], *, customer_inbound_tags: list[str] | None = None) -> None:
     rules = config.get("routing", {}).get("rules", [])
     if not rules:
         raise RuntimeError("SPB profile routing rules are empty")
-    task2_rules = [
-        rule for rule in rules if isinstance(rule, dict) and _is_task2_spb_rule(rule)
-    ]
+    task2_rules = [rule for rule in rules if isinstance(rule, dict) and _is_task2_spb_rule(rule)]
     expected = {
         "type": "field",
         "ruleTag": "task2-final-spb-direct",
@@ -967,10 +1028,7 @@ def _profile_inbound_uuid_by_tag(profile: dict[str, Any] | None) -> dict[str, st
 
 
 def _profile_inbound_tag_by_uuid(profile: dict[str, Any] | None) -> dict[str, str]:
-    return {
-        inbound_uuid: tag
-        for tag, inbound_uuid in _profile_inbound_uuid_by_tag(profile).items()
-    }
+    return {inbound_uuid: tag for tag, inbound_uuid in _profile_inbound_uuid_by_tag(profile).items()}
 
 
 def _active_inbound_tags(
@@ -980,10 +1038,7 @@ def _active_inbound_tags(
     exclude_tags: set[str],
 ) -> list[str]:
     tag_by_uuid = _profile_inbound_tag_by_uuid(profile)
-    active_uuids = (
-        _normalize_node_config_profile(node.get("configProfile")).get("activeInbounds")
-        or []
-    )
+    active_uuids = _normalize_node_config_profile(node.get("configProfile")).get("activeInbounds") or []
     tags: list[str] = []
     for inbound_uuid in active_uuids:
         tag = tag_by_uuid.get(str(inbound_uuid))
@@ -991,9 +1046,7 @@ def _active_inbound_tags(
             tags.append(tag)
     if tags:
         return tags
-    return [
-        tag for tag in _profile_inbound_uuid_by_tag(profile) if tag not in exclude_tags
-    ]
+    return [tag for tag in _profile_inbound_uuid_by_tag(profile) if tag not in exclude_tags]
 
 
 def _mapped_active_inbounds(
@@ -1034,9 +1087,7 @@ def _validate_spb_connect_address(address: str, *, node_address: str) -> str:
         parsed = ipaddress.ip_address(str(address).strip())
         parsed_node = ipaddress.ip_address(str(node_address).strip())
     except ValueError as exc:
-        raise RuntimeError(
-            "SPB connect address must be a literal IPv4 address"
-        ) from exc
+        raise RuntimeError("SPB connect address must be a literal IPv4 address") from exc
     if parsed.version != 4 or not parsed.is_global or parsed.is_multicast:
         raise RuntimeError("SPB connect address must be a literal IPv4 address")
     if parsed_node.version != 4 or parsed != parsed_node:
@@ -1099,22 +1150,16 @@ def _pin_preserved_spb_listeners(
             continue
         current = _listen_address_for_conflict(inbound.get("listen"))
         if current is not None and current != parsed_target:
-            raise RuntimeError(
-                f"SPB preserved inbound {tag} already uses a different concrete listen address"
-            )
+            raise RuntimeError(f"SPB preserved inbound {tag} already uses a different concrete listen address")
         inbound["listen"] = listen_address
         pinned += 1
 
     if pinned == 0:
-        raise RuntimeError(
-            "SPB preserved listen address did not match an active 443/8443 inbound"
-        )
+        raise RuntimeError("SPB preserved listen address did not match an active 443/8443 inbound")
     return config
 
 
-def _validate_no_active_listener_conflicts(
-    config: dict[str, Any], active_tags: list[str], *, label: str
-) -> None:
+def _validate_no_active_listener_conflicts(config: dict[str, Any], active_tags: list[str], *, label: str) -> None:
     active_tag_set = set(active_tags)
     listeners: list[tuple[str, int, ListenAddress | None]] = []
     for inbound in config.get("inbounds", []):
@@ -1126,16 +1171,12 @@ def _validate_no_active_listener_conflicts(
         try:
             port = int(inbound.get("port", 0))
         except (TypeError, ValueError) as exc:
-            raise RuntimeError(
-                f"{label} active inbound {tag} has invalid port"
-            ) from exc
+            raise RuntimeError(f"{label} active inbound {tag} has invalid port") from exc
         if port <= 0:
             continue
         listen = _listen_address_for_conflict(inbound.get("listen"))
         for existing_tag, existing_port, existing_listen in listeners:
-            if existing_port == port and _listen_addresses_conflict(
-                existing_listen, listen
-            ):
+            if existing_port == port and _listen_addresses_conflict(existing_listen, listen):
                 raise RuntimeError(
                     f"{label} would activate duplicate Xray listeners on port "
                     f"{port} for {existing_tag} and {tag}; set "
@@ -1173,9 +1214,7 @@ def _host_inbound_uuid(host: dict[str, Any]) -> str:
     return ""
 
 
-def _validate_no_public_bridge_hosts(
-    hosts: list[dict[str, Any]], *profiles: dict[str, Any] | None
-) -> None:
+def _validate_no_public_bridge_hosts(hosts: list[dict[str, Any]], *profiles: dict[str, Any] | None) -> None:
     bridge_inbound_uuids = _bridge_inbound_uuids_from_profiles(*profiles)
     for host in hosts:
         if _host_inbound_uuid(host) in bridge_inbound_uuids:
@@ -1193,9 +1232,7 @@ def _validate_bridge_port_available(profiles: list[dict[str, Any]]) -> None:
                 continue
             tag = str(inbound.get("tag") or "")
             if port == BRIDGE_PORT and tag != BRIDGE_INBOUND_TAG:
-                raise RuntimeError(
-                    f"Bridge port {BRIDGE_PORT} is already used by inbound {tag}"
-                )
+                raise RuntimeError(f"Bridge port {BRIDGE_PORT} is already used by inbound {tag}")
 
 
 def _validate_local_bridge_socket_available(port: int = BRIDGE_PORT) -> None:
@@ -1206,9 +1243,7 @@ def _validate_local_bridge_socket_available(port: int = BRIDGE_PORT) -> None:
             try:
                 probe.settimeout(0.2)
                 if probe.connect_ex(("127.0.0.1", port)) == 0:
-                    raise RuntimeError(
-                        f"Bridge port {port} is already in use locally for TCP"
-                    )
+                    raise RuntimeError(f"Bridge port {port} is already in use locally for TCP")
             finally:
                 probe.close()
         for sock_type, _label in (
@@ -1220,19 +1255,14 @@ def _validate_local_bridge_socket_available(port: int = BRIDGE_PORT) -> None:
             sock.bind(("0.0.0.0", port))  # noqa: S104 - wildcard preflight is intentional.
         return
     except OSError as exc:
-        raise RuntimeError(
-            f"Bridge port {port} is already in use locally for TCP or UDP"
-        ) from exc
+        raise RuntimeError(f"Bridge port {port} is already in use locally for TCP or UDP") from exc
     finally:
         for sock in sockets:
             sock.close()
 
 
 def _inbound_uuids(squad: dict[str, Any]) -> list[str]:
-    return [
-        item["uuid"] if isinstance(item, dict) else str(item)
-        for item in squad.get("inbounds", [])
-    ]
+    return [item["uuid"] if isinstance(item, dict) else str(item) for item in squad.get("inbounds", [])]
 
 
 def _preserved_squad_snapshots(
@@ -1241,9 +1271,7 @@ def _preserved_squad_snapshots(
     preserved_tags: list[str],
 ) -> list[dict[str, Any]]:
     source_uuids = _profile_inbound_uuid_by_tag(source_profile)
-    preserved_uuids = {
-        source_uuids[tag] for tag in preserved_tags if tag in source_uuids
-    }
+    preserved_uuids = {source_uuids[tag] for tag in preserved_tags if tag in source_uuids}
     snapshots: list[dict[str, Any]] = []
     for squad in squads:
         inbound_uuids = _inbound_uuids(squad)
@@ -1293,9 +1321,7 @@ async def _extend_preserved_squads(
                 target_tag = tag_map.get(source_tag, source_tag)
                 target_uuid = target_uuids.get(target_tag)
                 if not target_uuid:
-                    raise RuntimeError(
-                        f"Superset profile is missing preserved inbound tag {target_tag}"
-                    )
+                    raise RuntimeError(f"Superset profile is missing preserved inbound tag {target_tag}")
                 if target_uuid not in desired_uuids:
                     desired_uuids.append(target_uuid)
         if desired_uuids != original_uuids:
@@ -1307,10 +1333,7 @@ async def _extend_preserved_squads(
 
 
 def _squad_uuids(user: dict[str, Any]) -> list[str]:
-    return [
-        item["uuid"] if isinstance(item, dict) else str(item)
-        for item in user.get("activeInternalSquads", [])
-    ]
+    return [item["uuid"] if isinstance(item, dict) else str(item) for item in user.get("activeInternalSquads", [])]
 
 
 def _isolated_squad_inbounds(inbound_uuid: str) -> list[str]:
@@ -1330,11 +1353,119 @@ def _validate_existing_bridge_user_isolation(
     allowed = {str(squad["uuid"])} if squad is not None else set()
     assigned = set(_squad_uuids(user))
     if not assigned.issubset(allowed):
-        raise RuntimeError(
-            "Existing Task2 bridge user has non-bridge squad assignments"
-        )
+        raise RuntimeError("Existing Task2 bridge user has non-bridge squad assignments")
     if user.get("externalSquadUuid") or user.get("externalSquad"):
         raise RuntimeError("Existing Task2 bridge user must not have an external squad")
+
+
+def _external_squad_uuid(user: dict[str, Any]) -> str | None:
+    external_squad = user.get("externalSquad")
+    if isinstance(external_squad, dict) and external_squad.get("uuid"):
+        return str(external_squad["uuid"])
+    value = user.get("externalSquadUuid")
+    return str(value) if value else None
+
+
+def _is_marked_task2_synthetic_user(user: dict[str, Any]) -> bool:
+    return user.get("tag") == TASK2_SYNTHETIC_USER_TAG or user.get("description") == TASK2_SYNTHETIC_USER_DESCRIPTION
+
+
+def _validate_existing_task2_synthetic_user(
+    user: dict[str, Any] | None,
+    *,
+    expected_username: str,
+) -> None:
+    if user is None:
+        return
+    if user.get("username") != expected_username:
+        raise RuntimeError("Existing Task2 synthetic user lookup returned a mismatch")
+    if not _is_marked_task2_synthetic_user(user):
+        raise RuntimeError("Existing Task2 synthetic user is not marked as the dedicated probe")
+
+
+def _safe_task2_synthetic_user_snapshot(user: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "uuid": user["uuid"],
+        "username": user.get("username"),
+        "status": user.get("status"),
+        "trafficLimitBytes": user.get("trafficLimitBytes"),
+        "trafficLimitStrategy": user.get("trafficLimitStrategy"),
+        "expireAt": user.get("expireAt"),
+        "description": user.get("description"),
+        "tag": user.get("tag"),
+        "activeInternalSquads": _squad_uuids(user),
+        "externalSquadUuid": _external_squad_uuid(user),
+    }
+
+
+def _task2_synthetic_user_base_payload(
+    username: str,
+    customer_squad: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "username": username,
+        "status": "ACTIVE",
+        "vlessUuid": str(uuid.uuid4()),
+        "trafficLimitBytes": 0,
+        "trafficLimitStrategy": "NO_RESET",
+        "expireAt": "2099-12-31T23:59:59.000Z",
+        "description": TASK2_SYNTHETIC_USER_DESCRIPTION,
+        "tag": TASK2_SYNTHETIC_USER_TAG,
+        "activeInternalSquads": _isolated_user_squads(customer_squad["uuid"]),
+        "externalSquadUuid": None,
+    }
+
+
+def _task2_synthetic_user_patch_payload(
+    user: dict[str, Any],
+    customer_squad: dict[str, Any],
+) -> dict[str, Any]:
+    payload = _task2_synthetic_user_base_payload(
+        str(user["username"]),
+        customer_squad,
+    )
+    payload.pop("username", None)
+    payload.pop("vlessUuid", None)
+    payload["uuid"] = user["uuid"]
+    return payload
+
+
+async def _ensure_task2_synthetic_user(
+    api: RemnawaveApi,
+    *,
+    current_user: dict[str, Any] | None,
+    username: str,
+    customer_squad: dict[str, Any],
+) -> tuple[dict[str, Any], bool]:
+    if current_user is None:
+        try:
+            created = await api.request(
+                "POST",
+                "/users",
+                json=_task2_synthetic_user_base_payload(username, customer_squad),
+            )
+            if not isinstance(created, dict) or not created.get("uuid"):
+                raise RuntimeError("Task2 synthetic user create returned no UUID")
+            return created, True
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 409:
+                raise
+            reread = await _get_user(api, username)
+            _validate_existing_task2_synthetic_user(
+                reread,
+                expected_username=username,
+            )
+            current_user = reread
+    if current_user is None:
+        raise RuntimeError("Task2 synthetic user create conflict could not be resolved")
+    patched = await api.request(
+        "PATCH",
+        "/users",
+        json=_task2_synthetic_user_patch_payload(current_user, customer_squad),
+    )
+    if not isinstance(patched, dict):
+        patched = {}
+    return {**current_user, **patched}, False
 
 
 def _validate_bridge_squad_inbound_isolation(
@@ -1345,9 +1476,7 @@ def _validate_bridge_squad_inbound_isolation(
         return
     assigned = set(_inbound_uuids(squad))
     if assigned and not assigned.issubset(allowed_bridge_inbound_uuids):
-        raise RuntimeError(
-            "Existing Task2 bridge squad has non-bridge inbound assignments"
-        )
+        raise RuntimeError("Existing Task2 bridge squad has non-bridge inbound assignments")
 
 
 def _normalize_node_config_profile(
@@ -1357,17 +1486,14 @@ def _normalize_node_config_profile(
     return {
         "activeConfigProfileUuid": config_profile.get("activeConfigProfileUuid"),
         "activeInbounds": [
-            item["uuid"] if isinstance(item, dict) else str(item)
-            for item in config_profile.get("activeInbounds", [])
+            item["uuid"] if isinstance(item, dict) else str(item) for item in config_profile.get("activeInbounds", [])
         ],
     }
 
 
 def _task2_host_remarks() -> set[str]:
     return {
-        str(remark)
-        for spec in SPB_PUBLIC_HOST_SPECS
-        for remark in [spec["remark"], *spec.get("legacy_remarks", [])]
+        str(remark) for spec in SPB_PUBLIC_HOST_SPECS for remark in [spec["remark"], *spec.get("legacy_remarks", [])]
     }
 
 
@@ -1375,9 +1501,7 @@ def _safe_host_snapshot(host: dict[str, Any]) -> dict[str, Any]:
     return copy.deepcopy(host)
 
 
-def _host_payload(
-    spec: dict[str, Any], public_host: str, profile_uuid: str, inbound_uuid: str
-) -> dict[str, Any]:
+def _host_payload(spec: dict[str, Any], public_host: str, profile_uuid: str, inbound_uuid: str) -> dict[str, Any]:
     return {
         "remark": spec["remark"],
         "address": public_host,
@@ -1403,24 +1527,16 @@ async def _upsert_spb_public_hosts(
     *,
     xhttp_path: str = SPB_XHTTP_PATH,
 ) -> list[dict[str, Any]]:
-    existing_by_remark = {
-        host.get("remark"): host
-        for host in hosts
-        if host.get("remark") in _task2_host_remarks()
-    }
+    existing_by_remark = {host.get("remark"): host for host in hosts if host.get("remark") in _task2_host_remarks()}
     upserted: list[dict[str, Any]] = []
     for spec in SPB_PUBLIC_HOST_SPECS:
         spec = {
             **spec,
-            "path": xhttp_path
-            if spec["inbound_tag"] == "SPB_EXCEPTIONS_XHTTP_REALITY_8443"
-            else spec["path"],
+            "path": xhttp_path if spec["inbound_tag"] == "SPB_EXCEPTIONS_XHTTP_REALITY_8443" else spec["path"],
         }
         inbound_uuid = tag_to_uuid.get(str(spec["inbound_tag"]))
         if not inbound_uuid:
-            raise RuntimeError(
-                f"SPB profile is missing public Host inbound {spec['inbound_tag']}"
-            )
+            raise RuntimeError(f"SPB profile is missing public Host inbound {spec['inbound_tag']}")
         payload = _host_payload(spec, public_host, profile_uuid, inbound_uuid)
         existing = existing_by_remark.get(spec["remark"])
         if existing is None:
@@ -1474,9 +1590,7 @@ def _host_remap_payload(
             "configProfileInboundUuid": inbound_uuid,
         },
     }
-    current_exclusions = {
-        str(item) for item in host.get("excludedInternalSquads", []) if item
-    }
+    current_exclusions = {str(item) for item in host.get("excludedInternalSquads", []) if item}
     desired_exclusions = set(current_exclusions)
     if exclude_from_squad_uuid is not None:
         desired_exclusions.add(exclude_from_squad_uuid)
@@ -1505,24 +1619,12 @@ async def _remap_profile_hosts(
         source_tag = source_tag_by_uuid.get(current_uuid)
         if not source_tag or source_tag in exclude_tags:
             continue
-        target_uuid = target_uuid_by_tag.get(
-            (tag_map or {}).get(source_tag, source_tag)
-        )
+        target_uuid = target_uuid_by_tag.get((tag_map or {}).get(source_tag, source_tag))
         if not target_uuid:
-            raise RuntimeError(
-                f"Superset profile is missing preserved inbound tag {source_tag}"
-            )
-        current_exclusions = {
-            str(item) for item in host.get("excludedInternalSquads", []) if item
-        }
-        needs_exclusion = (
-            exclude_from_squad_uuid is not None
-            and exclude_from_squad_uuid not in current_exclusions
-        )
-        needs_exclusion_removal = (
-            remove_from_squad_uuid is not None
-            and remove_from_squad_uuid in current_exclusions
-        )
+            raise RuntimeError(f"Superset profile is missing preserved inbound tag {source_tag}")
+        current_exclusions = {str(item) for item in host.get("excludedInternalSquads", []) if item}
+        needs_exclusion = exclude_from_squad_uuid is not None and exclude_from_squad_uuid not in current_exclusions
+        needs_exclusion_removal = remove_from_squad_uuid is not None and remove_from_squad_uuid in current_exclusions
         if target_uuid != current_uuid or needs_exclusion or needs_exclusion_removal:
             await api.request(
                 "PATCH",
@@ -1537,16 +1639,13 @@ async def _remap_profile_hosts(
             )
 
 
-async def _restore_host_snapshots(
-    api: RemnawaveApi, snapshots: list[dict[str, Any]]
-) -> None:
+async def _restore_host_snapshots(api: RemnawaveApi, snapshots: list[dict[str, Any]]) -> None:
     for host in snapshots:
         if not isinstance(host, dict) or not host.get("uuid"):
             continue
         inbound = host.get("inbound")
         if not isinstance(inbound, dict) or not all(
-            inbound.get(key)
-            for key in ("configProfileUuid", "configProfileInboundUuid")
+            inbound.get(key) for key in ("configProfileUuid", "configProfileInboundUuid")
         ):
             raise RuntimeError("Host rollback snapshot is missing inbound identity")
         payload = {
@@ -1564,9 +1663,7 @@ async def _restore_host_snapshots(
         )
 
 
-async def _rollback_spb_public_hosts(
-    api: RemnawaveApi, manifest: dict[str, Any]
-) -> None:
+async def _rollback_spb_public_hosts(api: RemnawaveApi, manifest: dict[str, Any]) -> None:
     snapshots = manifest.get("spbHosts")
     snapshots = snapshots if isinstance(snapshots, list) else []
     snapshot_by_remark = {
@@ -1575,30 +1672,16 @@ async def _rollback_spb_public_hosts(
         if isinstance(snapshot, dict) and snapshot.get("remark")
     }
     snapshot_by_uuid = {
-        snapshot.get("uuid"): snapshot
-        for snapshot in snapshots
-        if isinstance(snapshot, dict) and snapshot.get("uuid")
+        snapshot.get("uuid"): snapshot for snapshot in snapshots if isinstance(snapshot, dict) and snapshot.get("uuid")
     }
     hosts = _collection(await api.request("GET", "/hosts"), "hosts")
-    current_by_remark = {
-        host.get("remark"): host
-        for host in hosts
-        if host.get("remark") in _task2_host_remarks()
-    }
-    current_by_uuid = {
-        host.get("uuid"): host
-        for host in current_by_remark.values()
-        if host.get("uuid")
-    }
+    current_by_remark = {host.get("remark"): host for host in hosts if host.get("remark") in _task2_host_remarks()}
+    current_by_uuid = {host.get("uuid"): host for host in current_by_remark.values() if host.get("uuid")}
     restored_uuids: set[str] = set()
     for remark, snapshot in snapshot_by_remark.items():
-        current = current_by_uuid.get(snapshot.get("uuid")) or current_by_remark.get(
-            remark
-        )
+        current = current_by_uuid.get(snapshot.get("uuid")) or current_by_remark.get(remark)
         if current and snapshot.get("uuid"):
-            await api.request(
-                "PATCH", "/hosts", json={**snapshot, "uuid": current["uuid"]}
-            )
+            await api.request("PATCH", "/hosts", json={**snapshot, "uuid": current["uuid"]})
             restored_uuids.add(str(current["uuid"]))
     for remark, current in current_by_remark.items():
         current_uuid = str(current.get("uuid") or "")
@@ -1616,9 +1699,7 @@ def _validate_remnawave_url(base_url: str, allowed_hosts: list[str]) -> None:
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
         raise RuntimeError("Remnawave URL must use http or https with a hostname")
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
-        raise RuntimeError(
-            "Remnawave URL must not contain credentials, query, or fragment"
-        )
+        raise RuntimeError("Remnawave URL must not contain credentials, query, or fragment")
     if parsed.path.rstrip("/") not in {"", "/api"}:
         raise RuntimeError("Remnawave URL path must be empty or /api")
     normalized_allowed = {host.casefold() for host in allowed_hosts}
@@ -1633,9 +1714,7 @@ def _validate_manifest_path(path: Path) -> Path:
     resolved = path.expanduser().resolve(strict=False)
     if any(part.casefold() == ".codex" for part in resolved.parts):
         raise RuntimeError("Rollback manifest must not be under a .codex directory")
-    if REPO_ROOT is not None and (
-        resolved == REPO_ROOT or REPO_ROOT in resolved.parents
-    ):
+    if REPO_ROOT is not None and (resolved == REPO_ROOT or REPO_ROOT in resolved.parents):
         raise RuntimeError("Rollback manifest must be outside the repository")
     return resolved
 
@@ -1645,18 +1724,14 @@ def _write_manifest(path: Path, payload: dict[str, Any]) -> None:
         raise RuntimeError("Rollback manifest path must not be a symlink")
     path.parent.mkdir(parents=True, exist_ok=True)
     if os.name != "nt" and path.parent.stat().st_mode & 0o002:
-        raise RuntimeError(
-            "Rollback manifest parent directory must not be world-writable"
-        )
+        raise RuntimeError("Rollback manifest parent directory must not be world-writable")
 
     disk_payload = copy.deepcopy(payload)
     if not isinstance(disk_payload, dict):
         raise RuntimeError("Rollback manifest payload must be an object")
 
     temp_name: str | None = None
-    fd, temp_name = tempfile.mkstemp(
-        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
-    )
+    fd, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
     temp_path = Path(temp_name)
     try:
         os.chmod(temp_path, 0o600)
@@ -1725,19 +1800,51 @@ async def _restore_profile_or_delete(
             },
         )
         return
-    profiles = _collection(
-        await api.request("GET", "/config-profiles"), "configProfiles"
-    )
-    created = next(
-        (item for item in profiles if item.get("name") == profile_name), None
-    )
+    profiles = _collection(await api.request("GET", "/config-profiles"), "configProfiles")
+    created = next((item for item in profiles if item.get("name") == profile_name), None)
     if created:
         await _delete_if_present(api, f"/config-profiles/{created['uuid']}")
 
 
-async def _rollback(
-    api: RemnawaveApi, manifest: dict[str, Any], manifest_path: Path
-) -> dict[str, Any]:
+async def _restore_or_delete_task2_synthetic_user(
+    api: RemnawaveApi,
+    manifest: dict[str, Any],
+) -> None:
+    if not manifest.get("task2RouteEvidenceEnabled"):
+        return
+    snapshot = manifest.get("task2SyntheticUser")
+    if isinstance(snapshot, dict) and snapshot.get("uuid"):
+        payload: dict[str, Any] = {
+            "uuid": snapshot["uuid"],
+            "activeInternalSquads": snapshot.get("activeInternalSquads") or [],
+            "externalSquadUuid": snapshot.get("externalSquadUuid"),
+        }
+        for key in (
+            "status",
+            "trafficLimitBytes",
+            "trafficLimitStrategy",
+            "expireAt",
+            "description",
+            "tag",
+        ):
+            if key in snapshot:
+                payload[key] = snapshot[key]
+        await api.request("PATCH", "/users", json=payload)
+        return
+
+    created_uuid = manifest.get("task2SyntheticUserCreatedUuid")
+    if created_uuid:
+        await _delete_if_present(api, f"/users/{created_uuid}")
+        return
+
+    username = manifest.get("task2SyntheticUsername")
+    if username:
+        current_user = await _get_user(api, str(username))
+        if current_user and _is_marked_task2_synthetic_user(current_user):
+            await _delete_if_present(api, f"/users/{current_user['uuid']}")
+
+
+async def _rollback(api: RemnawaveApi, manifest: dict[str, Any], manifest_path: Path) -> dict[str, Any]:
     if manifest.get("phase") == "rolled_back":
         return {"mode": "rollback", "status": "already_rolled_back"}
     spb_node = manifest.get("spbNode")
@@ -1747,9 +1854,7 @@ async def _rollback(
             "/nodes",
             json={
                 "uuid": spb_node["uuid"],
-                "configProfile": _normalize_node_config_profile(
-                    spb_node["configProfile"]
-                ),
+                "configProfile": _normalize_node_config_profile(spb_node["configProfile"]),
             },
         )
     customer_squad = manifest.get("customerSquad")
@@ -1796,6 +1901,8 @@ async def _rollback(
             json={"forceRestart": True},
         )
 
+    await _restore_or_delete_task2_synthetic_user(api, manifest)
+
     bridge_user = manifest.get("bridgeUser")
     if bridge_user:
         await api.request(
@@ -1820,15 +1927,9 @@ async def _rollback(
             json={"uuid": bridge_squad["uuid"], "inbounds": bridge_squad["inbounds"]},
         )
     else:
-        squads = _collection(
-            await api.request("GET", "/internal-squads"), "internalSquads"
-        )
+        squads = _collection(await api.request("GET", "/internal-squads"), "internalSquads")
         created_squad = next(
-            (
-                item
-                for item in squads
-                if item.get("name") == manifest["bridgeSquadName"]
-            ),
+            (item for item in squads if item.get("name") == manifest["bridgeSquadName"]),
             None,
         )
         if created_squad:
@@ -1841,9 +1942,7 @@ async def _rollback(
             "/nodes",
             json={
                 "uuid": de_node["uuid"],
-                "configProfile": _normalize_node_config_profile(
-                    de_node["configProfile"]
-                ),
+                "configProfile": _normalize_node_config_profile(de_node["configProfile"]),
             },
         )
     await _restore_host_snapshots(api, manifest.get("deRemappedHosts") or [])
@@ -1881,16 +1980,10 @@ async def _node_source_profile(
     *,
     exclude_tags: set[str],
 ) -> dict[str, Any]:
-    active_uuid = _normalize_node_config_profile(node.get("configProfile")).get(
-        "activeConfigProfileUuid"
-    )
+    active_uuid = _normalize_node_config_profile(node.get("configProfile")).get("activeConfigProfileUuid")
     if active_uuid and active_uuid != base_profile.get("uuid"):
         active_profile = await api.request("GET", f"/config-profiles/{active_uuid}")
-        preserved_tags = {
-            tag
-            for tag in _profile_inbound_uuid_by_tag(active_profile)
-            if tag not in exclude_tags
-        }
+        preserved_tags = {tag for tag in _profile_inbound_uuid_by_tag(active_profile) if tag not in exclude_tags}
         if preserved_tags:
             return active_profile
     return base_profile
@@ -1899,9 +1992,7 @@ async def _node_source_profile(
 def _ordered_inbound_uuids(tag_to_uuid: dict[str, str], tags: list[str]) -> list[str]:
     missing = [tag for tag in tags if tag not in tag_to_uuid]
     if missing:
-        raise RuntimeError(
-            f"Config profile is missing inbound tag(s): {', '.join(missing)}"
-        )
+        raise RuntimeError(f"Config profile is missing inbound tag(s): {', '.join(missing)}")
     return [tag_to_uuid[tag] for tag in tags]
 
 
@@ -1912,13 +2003,8 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
 
     _validate_remnawave_url(args.remnawave_url, args.allow_remnawave_host)
     remnawave_host = urlsplit(args.remnawave_url).hostname
-    if (
-        args.trusted_proxy_headers
-        and (remnawave_host or "").casefold() not in INTERNAL_HTTP_REMNAWAVE_HOSTS
-    ):
-        raise RuntimeError(
-            "Trusted proxy headers are allowed only for local/internal Remnawave API hosts"
-        )
+    if args.trusted_proxy_headers and (remnawave_host or "").casefold() not in INTERNAL_HTTP_REMNAWAVE_HOSTS:
+        raise RuntimeError("Trusted proxy headers are allowed only for local/internal Remnawave API hosts")
     manifest_path = _validate_manifest_path(args.rollback_manifest)
 
     if args.rollback:
@@ -1937,16 +2023,13 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         rules_path=args.xray_rules_artifact,
         max_age_hours=args.max_artifact_age_hours,
     )
-    spb_task2_listen_address = _validate_dedicated_listen_address(
-        args.spb_task2_listen_address
-    )
-    spb_preserved_listen_address = _validate_dedicated_listen_address(
-        args.spb_preserved_listen_address
-    )
+    spb_task2_listen_address = _validate_dedicated_listen_address(args.spb_task2_listen_address)
+    spb_preserved_listen_address = _validate_dedicated_listen_address(args.spb_preserved_listen_address)
     spb_connect_address = _validate_spb_connect_address(
         args.spb_connect_address,
         node_address=args.spb_node_address,
     )
+    route_evidence = _task2_route_evidence_config(args)
 
     api = RemnawaveApi(
         args.remnawave_url,
@@ -1954,30 +2037,20 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         trusted_proxy_headers=args.trusted_proxy_headers,
     )
     try:
-        profiles = _collection(
-            await api.request("GET", "/config-profiles"), "configProfiles"
-        )
+        profiles = _collection(await api.request("GET", "/config-profiles"), "configProfiles")
         spb_base_ref = _find_by_name(profiles, args.spb_base_profile)
         de_base_ref = _find_by_name(profiles, args.de_base_profile)
         if spb_base_ref is None or de_base_ref is None:
             raise RuntimeError("Required SPB or DE base profile was not found")
-        spb_base_profile = await api.request(
-            "GET", f"/config-profiles/{spb_base_ref['uuid']}"
-        )
-        de_base_profile = await api.request(
-            "GET", f"/config-profiles/{de_base_ref['uuid']}"
-        )
+        spb_base_profile = await api.request("GET", f"/config-profiles/{spb_base_ref['uuid']}")
+        de_base_profile = await api.request("GET", f"/config-profiles/{de_base_ref['uuid']}")
         existing_spb_ref = _find_by_name(profiles, args.spb_profile)
         existing_de_bridge_ref = _find_by_name(profiles, args.de_bridge_profile)
         existing_spb_profile = (
-            await api.request("GET", f"/config-profiles/{existing_spb_ref['uuid']}")
-            if existing_spb_ref
-            else None
+            await api.request("GET", f"/config-profiles/{existing_spb_ref['uuid']}") if existing_spb_ref else None
         )
         existing_de_bridge_profile = (
-            await api.request(
-                "GET", f"/config-profiles/{existing_de_bridge_ref['uuid']}"
-            )
+            await api.request("GET", f"/config-profiles/{existing_de_bridge_ref['uuid']}")
             if existing_de_bridge_ref
             else None
         )
@@ -1985,11 +2058,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             [
                 spb_base_profile,
                 de_base_profile,
-                *(
-                    profile
-                    for profile in (existing_spb_profile, existing_de_bridge_profile)
-                    if profile
-                ),
+                *(profile for profile in (existing_spb_profile, existing_de_bridge_profile) if profile),
             ]
         )
         if not args.skip_local_socket_preflight:
@@ -2032,12 +2101,8 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             existing_de_bridge_profile,
         )
 
-        squads = _collection(
-            await api.request("GET", "/internal-squads"), "internalSquads"
-        )
-        external_squads = _collection(
-            await api.request("GET", "/external-squads"), "externalSquads"
-        )
+        squads = _collection(await api.request("GET", "/internal-squads"), "internalSquads")
+        external_squads = _collection(await api.request("GET", "/external-squads"), "externalSquads")
         customer_squad = _find_by_name(squads, args.customer_squad)
         external_squad = _find_by_name(external_squads, args.external_squad)
         bridge_squad = _find_by_name(squads, args.bridge_squad)
@@ -2045,13 +2110,19 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         _validate_existing_bridge_user_isolation(bridge_user, bridge_squad)
         _validate_bridge_squad_inbound_isolation(
             bridge_squad,
-            _bridge_inbound_uuids_from_profiles(
-                de_base_profile, de_source_profile, existing_de_bridge_profile
-            ),
+            _bridge_inbound_uuids_from_profiles(de_base_profile, de_source_profile, existing_de_bridge_profile),
         )
         if customer_squad is None or external_squad is None:
-            raise RuntimeError(
-                "Task2 customer internal/external squads must be seeded first"
+            raise RuntimeError("Task2 customer internal/external squads must be seeded first")
+        task2_synthetic_user = None
+        if route_evidence.enabled:
+            task2_synthetic_user = await _get_user(
+                api,
+                route_evidence.synthetic_user,
+            )
+            _validate_existing_task2_synthetic_user(
+                task2_synthetic_user,
+                expected_username=route_evidence.synthetic_user,
             )
 
         de_preserved_tag_map = _preserved_inbound_tag_map(
@@ -2064,12 +2135,8 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             "spb",
             exclude_tags=SPB_CUSTOMER_INBOUND_TAG_SET | {BRIDGE_INBOUND_TAG},
         )
-        de_preserved_target_tags = [
-            de_preserved_tag_map.get(tag, tag) for tag in de_preserved_active_tags
-        ]
-        spb_preserved_target_tags = [
-            spb_preserved_tag_map.get(tag, tag) for tag in spb_preserved_active_tags
-        ]
+        de_preserved_target_tags = [de_preserved_tag_map.get(tag, tag) for tag in de_preserved_active_tags]
+        spb_preserved_target_tags = [spb_preserved_tag_map.get(tag, tag) for tag in spb_preserved_active_tags]
         spb_base_preserved_tag_map = _preserved_inbound_tag_map(
             spb_base_profile["config"],
             "spb",
@@ -2094,19 +2161,13 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             spb_source_profile["config"], spb_preserved_active_tags
         )
         spb_customer_routing_tags = list(SPB_CUSTOMER_INBOUND_TAGS)
-        spb_shared_xhttp_path = _spb_shared_xhttp_path(
-            spb_source_profile["config"], spb_shared_public_source_tags
-        )
+        spb_shared_xhttp_path = _spb_shared_xhttp_path(spb_source_profile["config"], spb_shared_public_source_tags)
         preserved_squads = _merge_squad_snapshots(
-            _preserved_squad_snapshots(
-                squads, spb_base_profile, spb_base_preserved_tags
-            ),
+            _preserved_squad_snapshots(squads, spb_base_profile, spb_base_preserved_tags),
             _preserved_squad_snapshots(squads, de_base_profile, de_base_preserved_tags),
         )
 
-        de_bridge_config = _build_de_bridge_config(
-            de_source_profile["config"], de_preserved_tag_map
-        )
+        de_bridge_config = _build_de_bridge_config(de_source_profile["config"], de_preserved_tag_map)
         spb_source_config = _pin_preserved_spb_listeners(
             spb_source_profile["config"],
             spb_preserved_active_tags,
@@ -2114,9 +2175,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         )
         spb_config = _build_spb_customer_config(
             spb_source_config,
-            bridge_user.get("ssPassword", "dry-run-placeholder")
-            if bridge_user
-            else "dry-run-placeholder",
+            bridge_user.get("ssPassword", "dry-run-placeholder") if bridge_user else "dry-run-placeholder",
             args.de_bridge_upstream_address,
             artifact.raw_rules,
             ipv6_policy_mode=artifact.ipv6_policy_mode,
@@ -2124,10 +2183,9 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             preserved_tag_map=spb_preserved_tag_map,
             customer_inbound_tags=spb_customer_routing_tags,
             shared_xhttp_path=spb_shared_xhttp_path,
+            route_evidence=route_evidence,
         )
-        spb_next_active_tags = _ordered_active_tags(
-            spb_preserved_target_tags, SPB_CUSTOMER_INBOUND_TAGS
-        )
+        spb_next_active_tags = _ordered_active_tags(spb_preserved_target_tags, SPB_CUSTOMER_INBOUND_TAGS)
         _validate_no_active_listener_conflicts(
             spb_config,
             spb_next_active_tags,
@@ -2143,9 +2201,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             "ipv6PolicyMode": artifact.ipv6_policy_mode,
             "bridgePort": BRIDGE_PORT,
             "bridgePortFree": True,
-            "bridgeSocketPreflight": "skipped"
-            if args.skip_local_socket_preflight
-            else "passed-local",
+            "bridgeSocketPreflight": "skipped" if args.skip_local_socket_preflight else "passed-local",
             "bridgeProtocol": "shadowsocks",
             "bridgeAeadMethod": BRIDGE_AEAD_METHOD,
             "bridgeInboundTag": BRIDGE_INBOUND_TAG,
@@ -2155,6 +2211,14 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             "spbConnectAddress": spb_connect_address,
             "spbPublicHostCount": len(SPB_PUBLIC_HOST_SPECS),
             "bridgeUser": "reuse" if bridge_user else "create",
+            "task2RouteEvidence": "enabled" if route_evidence.enabled else "disabled",
+            "task2SyntheticProbeUser": (
+                "patch"
+                if route_evidence.enabled and task2_synthetic_user
+                else "create"
+                if route_evidence.enabled
+                else "disabled"
+            ),
             "bridgeSquad": "update" if bridge_squad else "create",
             "spbProfile": "update" if existing_spb_profile else "create",
             "deBridgeProfile": "update" if existing_de_bridge_profile else "create",
@@ -2186,15 +2250,11 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             "deBridgeProfileName": args.de_bridge_profile,
             "spbNode": {
                 "uuid": spb_node["uuid"],
-                "configProfile": _normalize_node_config_profile(
-                    spb_node.get("configProfile")
-                ),
+                "configProfile": _normalize_node_config_profile(spb_node.get("configProfile")),
             },
             "deNode": {
                 "uuid": de_node["uuid"],
-                "configProfile": _normalize_node_config_profile(
-                    de_node.get("configProfile")
-                ),
+                "configProfile": _normalize_node_config_profile(de_node.get("configProfile")),
             },
             "customerSquad": {
                 "uuid": customer_squad["uuid"],
@@ -2215,16 +2275,10 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 de_source_profile,
                 exclude_tags={BRIDGE_INBOUND_TAG},
             ),
-            "spbHosts": [
-                _safe_host_snapshot(host)
-                for host in hosts
-                if host.get("remark") in _task2_host_remarks()
-            ],
+            "spbHosts": [_safe_host_snapshot(host) for host in hosts if host.get("remark") in _task2_host_remarks()],
             "spbHostRemarks": sorted(_task2_host_remarks()),
             "bridgeSquad": (
-                {"uuid": bridge_squad["uuid"], "inbounds": _inbound_uuids(bridge_squad)}
-                if bridge_squad
-                else None
+                {"uuid": bridge_squad["uuid"], "inbounds": _inbound_uuids(bridge_squad)} if bridge_squad else None
             ),
             "bridgeSquadName": args.bridge_squad,
             "bridgeUser": (
@@ -2237,6 +2291,12 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 else None
             ),
             "bridgeUsername": args.bridge_username,
+            "task2RouteEvidenceEnabled": route_evidence.enabled,
+            "task2SyntheticUsername": (route_evidence.synthetic_user if route_evidence.enabled else None),
+            "task2SyntheticUser": (
+                _safe_task2_synthetic_user_snapshot(task2_synthetic_user) if task2_synthetic_user else None
+            ),
+            "task2SyntheticUserCreatedUuid": None,
         }
         _checkpoint(manifest_path, manifest, "planned")
 
@@ -2259,15 +2319,11 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                     },
                 )
             _checkpoint(manifest_path, manifest, "de_bridge_profile_ready")
-            de_bridge_profile = await api.request(
-                "GET", f"/config-profiles/{de_bridge_profile['uuid']}"
-            )
+            de_bridge_profile = await api.request("GET", f"/config-profiles/{de_bridge_profile['uuid']}")
             de_bridge_tags = _profile_inbound_uuid_by_tag(de_bridge_profile)
             bridge_inbound_uuid = de_bridge_tags.get(BRIDGE_INBOUND_TAG)
             if not bridge_inbound_uuid:
-                raise RuntimeError(
-                    "DE bridge profile did not expose the bridge inbound"
-                )
+                raise RuntimeError("DE bridge profile did not expose the bridge inbound")
             de_node_active_inbounds = _mapped_active_inbounds(
                 de_bridge_tags, de_preserved_target_tags, [BRIDGE_INBOUND_TAG]
             )
@@ -2305,9 +2361,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                         "expireAt": "2099-12-31T23:59:59.000Z",
                         "description": "CyberVPN internal SPB to DE exceptions bridge",
                         "tag": "BRIDGE",
-                        "activeInternalSquads": _isolated_user_squads(
-                            bridge_squad["uuid"]
-                        ),
+                        "activeInternalSquads": _isolated_user_squads(bridge_squad["uuid"]),
                         "externalSquadUuid": None,
                     },
                 )
@@ -2317,18 +2371,25 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                     "/users",
                     json={
                         "uuid": bridge_user["uuid"],
-                        "activeInternalSquads": _isolated_user_squads(
-                            bridge_squad["uuid"]
-                        ),
+                        "activeInternalSquads": _isolated_user_squads(bridge_squad["uuid"]),
                         "externalSquadUuid": None,
                     },
                 )
                 bridge_user = {**bridge_user, **patched_user}
             if not bridge_user.get("ssPassword"):
-                raise RuntimeError(
-                    "Task2 bridge service user has no Shadowsocks credential"
-                )
+                raise RuntimeError("Task2 bridge service user has no Shadowsocks credential")
             _checkpoint(manifest_path, manifest, "bridge_user_ready")
+
+            if route_evidence.enabled:
+                task2_synthetic_user, synthetic_user_created = await _ensure_task2_synthetic_user(
+                    api,
+                    current_user=task2_synthetic_user,
+                    username=route_evidence.synthetic_user,
+                    customer_squad=customer_squad,
+                )
+                if synthetic_user_created:
+                    manifest["task2SyntheticUserCreatedUuid"] = task2_synthetic_user["uuid"]
+                _checkpoint(manifest_path, manifest, "task2_synthetic_user_ready")
 
             spb_config = _build_spb_customer_config(
                 spb_source_config,
@@ -2340,6 +2401,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 preserved_tag_map=spb_preserved_tag_map,
                 customer_inbound_tags=spb_customer_routing_tags,
                 shared_xhttp_path=spb_shared_xhttp_path,
+                route_evidence=route_evidence,
             )
             if existing_spb_profile is None:
                 spb_profile = await api.request(
@@ -2358,13 +2420,9 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                     },
                 )
             _checkpoint(manifest_path, manifest, "spb_profile_ready")
-            spb_profile = await api.request(
-                "GET", f"/config-profiles/{spb_profile['uuid']}"
-            )
+            spb_profile = await api.request("GET", f"/config-profiles/{spb_profile['uuid']}")
             spb_tags = _profile_inbound_uuid_by_tag(spb_profile)
-            spb_customer_inbounds = _ordered_inbound_uuids(
-                spb_tags, spb_customer_routing_tags
-            )
+            spb_customer_inbounds = _ordered_inbound_uuids(spb_tags, spb_customer_routing_tags)
             spb_node_active_inbounds = _mapped_active_inbounds(
                 spb_tags, spb_preserved_target_tags, SPB_CUSTOMER_INBOUND_TAGS
             )
@@ -2492,12 +2550,8 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 await _rollback(api, manifest, manifest_path)
             except Exception:
                 _checkpoint(manifest_path, manifest, "rollback_failed")
-                raise RuntimeError(
-                    "Task2 apply and automatic rollback failed"
-                ) from None
-            raise RuntimeError(
-                "Task2 apply failed and was rolled back"
-            ) from apply_error
+                raise RuntimeError("Task2 apply and automatic rollback failed") from None
+            raise RuntimeError("Task2 apply failed and was rolled back") from apply_error
     finally:
         await api.close()
 
@@ -2505,12 +2559,8 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument(
-        "--apply", action="store_true", help="Apply changes; dry-run is the default"
-    )
-    mode.add_argument(
-        "--rollback", action="store_true", help="Restore state from --rollback-manifest"
-    )
+    mode.add_argument("--apply", action="store_true", help="Apply changes; dry-run is the default")
+    mode.add_argument("--rollback", action="store_true", help="Restore state from --rollback-manifest")
     parser.add_argument(
         "--artifact-manifest",
         type=Path,
@@ -2549,9 +2599,7 @@ def _parse_args() -> argparse.Namespace:
         default=os.environ.get("SPB_TASK2_LISTEN_ADDRESS"),
         help=("Dedicated SPB bind IP for isolated Task2 RAW 4443/XHTTP 8444 inbounds"),
     )
-    parser.add_argument(
-        "--de-bridge-upstream-address", default=DE_BRIDGE_UPSTREAM_ADDRESS
-    )
+    parser.add_argument("--de-bridge-upstream-address", default=DE_BRIDGE_UPSTREAM_ADDRESS)
     parser.add_argument(
         "--skip-local-socket-preflight",
         action="store_true",
@@ -2561,6 +2609,26 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--external-squad", default=EXTERNAL_SQUAD_NAME)
     parser.add_argument("--bridge-squad", default=BRIDGE_SQUAD_NAME)
     parser.add_argument("--bridge-username", default=BRIDGE_USERNAME)
+    parser.add_argument(
+        "--task2-route-evidence-enabled",
+        default=os.environ.get("VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED", "false"),
+        help="Enable synthetic-only Xray routing webhook evidence rules",
+    )
+    parser.add_argument(
+        "--task2-xray-webhook-secret",
+        default=os.environ.get("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET", ""),
+        help=("Secret value sent as X-CyberVPN-Task2-Xray-Webhook-Secret by Xray webhook rules"),
+    )
+    parser.add_argument(
+        "--task2-synthetic-user",
+        default=os.environ.get("VPN_TESTER_TASK2_SYNTHETIC_USER", ""),
+        help="Dedicated Remnawave username used by synthetic Task2 route evidence probes",
+    )
+    parser.add_argument(
+        "--task2-route-evidence-webhook-url",
+        default=TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
+        help="Strict HTTPS Task2 route evidence collector URL",
+    )
     parser.add_argument(
         "--allow-remnawave-host",
         action="append",
@@ -2604,9 +2672,7 @@ def main() -> int:
                 0 < len(reason) <= 500
                 and "\n" not in reason
                 and "\r" not in reason
-                and not any(
-                    marker in reason.casefold() for marker in forbidden_reason_markers
-                )
+                and not any(marker in reason.casefold() for marker in forbidden_reason_markers)
             ):
                 payload["reason"] = reason
         print(
