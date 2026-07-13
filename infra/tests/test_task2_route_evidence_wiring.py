@@ -116,7 +116,9 @@ def test_task2_operator_evidence_public_backend_proxies_strip_ingress_marker() -
         edge_caddy, "cybervpn-stage1-cybervpn-backend-1:8000"
     )
     assert len(edge_backend_proxies) == 3
-    assert sum("header_up -X-CyberVPN-*" in proxy for proxy in edge_backend_proxies) == 2
+    assert (
+        sum("header_up -X-CyberVPN-*" in proxy for proxy in edge_backend_proxies) == 2
+    )
 
     assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in edge_caddy
     assert edge_caddy.count(OPERATOR_EVIDENCE_HEADER) == 1

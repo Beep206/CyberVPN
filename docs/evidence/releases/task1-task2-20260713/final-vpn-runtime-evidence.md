@@ -2,7 +2,8 @@
 
 - Date: 2026-07-13
 - Production application host: `prod-app-1` (`45.87.41.146`)
-- Backend implementation exercised in production: `742598b1098f14b922e7bb874b4be8933962cdd6`
+- Signed artifact and live routing checks exercised backend implementation: `742598b1098f14b922e7bb874b4be8933962cdd6`
+- Current backend after cleanup-deadline validator remediation: `4e1974a9692864574b8a0a2740a42a6f0fd5100b`
 - Final edge configuration exercised in production: `151c9cd7f2d7a23dfc8bcd2e44511cadd1ea67c5`
 - Overall status: server-side VPN data plane verified; physical INCY/HAPP phone checks not run
 
@@ -106,6 +107,8 @@ The complete envelope bound the current run and attempt, backend and agent Git/i
 
 The exact retry proves idempotent ingestion. Promotion affected only the four explicitly promotable checks for the same execution attempt.
 
+The signed artifact above was accepted on backend r20 (`742598b1`). Backend r21 (`4e1974a9`) adds an explicit rejection when `cleanup_verified_at` is later than `watchdog_deadline_at`; focused schema and ingestion tests prove that such evidence cannot be promoted or persisted. The production artifact was not re-signed or re-ingested after this validator-only deployment, so it is not cited as proof that the new rejection branch ran in production. AC-07 and AC-13 remain partial under that strict repository-proof distinction.
+
 ## Task2 Live Customer Policy
 
 The current target subscription was fetched again and both transports were exercised with Xray 26.6.27:
@@ -119,13 +122,21 @@ The signed selected-outbound matrix and fault counters provide server-side route
 
 ## Production Deployment
 
-The exercised backend image was:
+The signed runtime evidence and live customer route checks used:
 
 `cybervpn/cybervpn-backend:task1-task2-20260713-r20-signed-fault-742598b1`
 
 Image ID:
 
 `sha256:fec0610265d6925cc32e39653ee704156fd944affd8546e9f294d97974ba64e3`
+
+The current backend image after the validator-only deployment is:
+
+`cybervpn/cybervpn-backend:task1-task2-20260713-r21-cleanup-evidence-4e1974a9`
+
+Image ID:
+
+`sha256:e1f2b0d66effef45b5099415ecee6f749e2da62c9ddef440ce566b3e791f015d`
 
 Both VPN test agents used:
 
@@ -142,7 +153,7 @@ At final inspection:
 - backend, Remnawave, the primary VPN test agent, and the SPB-target agent were healthy with restart count zero;
 - edge Caddy was running with restart count zero;
 - backend `/health` and `/readiness` returned HTTP 200;
-- the 30-minute backend, Remnawave, agent, and Caddy log window contained zero panic, fatal, or traceback markers;
+- the post-deployment backend, Remnawave, agent, and Caddy log window contained zero panic, fatal, or traceback markers;
 - no transient profile config, signed envelope, or private signing key remained on production.
 
 ## Target Account And Invite Audit
@@ -162,7 +173,7 @@ A final sanitized read-only audit established:
 ## Rollback
 
 - Git rollback point: `origin/main@64289f2dee89f995bf0d453958dcf749ee1c9633`.
-- Backend rollback: `/srv/cybervpn/backups/task1-task2-remnawave-20260713T141558Z/backend-before-r20-signed-fault-742598b1`.
+- Backend rollback: `/srv/cybervpn/backups/task1-task2-remnawave-20260713T155727Z/backend-before-r21-cleanup-evidence-4e1974a9` (restores r20/`742598b1`).
 - Edge rollback: `/srv/cybervpn/backups/task1-task2-remnawave-20260713T143909Z/caddy-before-webhook-auth-151c9cd7`.
 - The Task2 transient bridge-fault table and watchdog are absent from the final state.
 
