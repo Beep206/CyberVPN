@@ -68,6 +68,16 @@ def test_helix_docs_keep_node_plugins_boundary_explicit() -> None:
     assert "Node Plugins" in decision_log
 
 
+def test_premium_smart_ru_hashed_json_artifacts_are_lf_stable() -> None:
+    attributes = {
+        line.strip()
+        for line in _read(".gitattributes").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+
+    assert "scripts/remnawave/generated/premium_smart_ru/*.json text eol=lf" in attributes
+
+
 def test_current_vpn_architecture_names_the_audited_runtime() -> None:
     architecture = _read("docs/architecture/CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md")
     audit = _read("docs/evidence/releases/task1-task2-20260712/final-main-production-audit-20260712.md")
