@@ -1,11 +1,19 @@
 ---
 # Logical Moscow-target checks should use a physically SPB agent.
-vpn_test_agent_region_enabled: true
+# Set true only after replacing every placeholder and the zero image digest.
+vpn_test_agent_region_enabled: false
 vpn_test_agent_region_name: moscow
+vpn_test_agent_region_tls_server_name: vpn-test-moscow.cyber-vpn.net
+vpn_test_agent_region_tls_cert_pem: "{{ vault_vpn_test_agent_moscow_tls_cert_pem }}"
+vpn_test_agent_region_tls_key_pem: "{{ vault_vpn_test_agent_moscow_tls_key_pem }}"
 vpn_test_agent_region_physical_region: spb
 vpn_test_agent_region_target_region: moscow
-vpn_test_agent_region_image: ghcr.io/REPLACE_ME/cybervpn-vpn-test-agent@sha256:REPLACE_ME
+# Replace the zero digest with the verified immutable image digest from CI.
+vpn_test_agent_region_image: ghcr.io/REPLACE_ME/cybervpn-vpn-test-agent@sha256:0000000000000000000000000000000000000000000000000000000000000000
 vpn_test_agent_region_secret: "{{ vault_vpn_test_agent_moscow_secret }}"
+# Enable only while the old backend still calls v1 during an agent-first rollout.
+# vpn_test_agent_region_legacy_v1_enabled: true
+# vpn_test_agent_region_legacy_v1_secret: "{{ vault_vpn_test_agent_moscow_legacy_v1_secret }}"
 vpn_test_agent_region_bind_address: 0.0.0.0
 vpn_test_agent_region_port: 18080
 vpn_test_agent_region_firewall_allowed_ipv4_cidrs:
@@ -14,6 +22,9 @@ vpn_test_agent_region_firewall_allowed_ipv4_cidrs:
 # Logical SPB-target checks should use a physically Moscow agent.
 # Override these values for the Moscow-hosted node:
 # vpn_test_agent_region_name: spb
+# vpn_test_agent_region_tls_server_name: vpn-test-spb.cyber-vpn.net
+# vpn_test_agent_region_tls_cert_pem: "{{ vault_vpn_test_agent_spb_tls_cert_pem }}"
+# vpn_test_agent_region_tls_key_pem: "{{ vault_vpn_test_agent_spb_tls_key_pem }}"
 # vpn_test_agent_region_physical_region: moscow
 # vpn_test_agent_region_target_region: spb
 # vpn_test_agent_region_secret: "{{ vault_vpn_test_agent_spb_secret }}"

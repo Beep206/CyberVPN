@@ -9,6 +9,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INFRA_ROOT = REPO_ROOT / "infra"
+AGENT_DOCKERFILE = REPO_ROOT / "services" / "vpn-test-agent" / "Dockerfile"
 
 STAGE1_COMPOSE = INFRA_ROOT / "deploy" / "stage1" / "docker-compose.stage1.yml"
 LOCAL_COMPOSE = INFRA_ROOT / "docker-compose.yml"
@@ -131,6 +132,15 @@ def test_stage1_backend_worker_scheduler_receive_optional_regional_env() -> None
     assert "app.env" not in agent_service
     assert "sentry-runtime.env" not in agent_service
     assert "VPN_TEST_AGENT_SECRET: ${VPN_TEST_AGENT_SECRET:-}" in agent_service
+    assert "VPN_TEST_AGENT_ROLE: primary" in agent_service
+    assert (
+        "VPN_TEST_AGENT_LEGACY_V1_ENABLED: ${VPN_TEST_AGENT_LEGACY_V1_ENABLED:-false}"
+        in agent_service
+    )
+    assert (
+        "VPN_TEST_AGENT_LEGACY_V1_SECRET: ${VPN_TEST_AGENT_LEGACY_V1_SECRET:-}"
+        in agent_service
+    )
     assert "replace-before-live-vpn-test-agent" not in compose
     assert "read_only: true" in agent_service
     assert "cap_drop:" in agent_service
@@ -161,9 +171,7 @@ def test_control_plane_ansible_env_uses_empty_urls_and_secret_references() -> No
         assert inventory.count("'VPN_TEST_AGENT_MOSCOW_SECRET':") == 2
         assert inventory.count("'VPN_TEST_AGENT_SPB_URL':") == 2
         assert inventory.count("'VPN_TEST_AGENT_SPB_SECRET':") == 2
-        assert (
-            "vault_control_plane_vpn_test_agent_secret | default('')" in inventory
-        )
+        assert "vault_control_plane_vpn_test_agent_secret | default('')" in inventory
         assert (
             "vault_control_plane_vpn_test_agent_moscow_secret | default('')"
             in inventory
@@ -171,6 +179,18 @@ def test_control_plane_ansible_env_uses_empty_urls_and_secret_references() -> No
         assert (
             "vault_control_plane_vpn_test_agent_spb_secret | default('')" in inventory
         )
+
+    validation = _read(
+        INFRA_ROOT
+        / "ansible"
+        / "roles"
+        / "control_plane_stack"
+        / "tasks"
+        / "validate.yml"
+    )
+    assert "^http://cybervpn-vpn-test-agent(?::[0-9]+)?/?$" in validation
+    assert "VPN_TEST_AGENT_MOSCOW_URL is match('^https://[A-Za-z0-9.-]+" in validation
+    assert "VPN_TEST_AGENT_SPB_URL is match('^https://[A-Za-z0-9.-]+" in validation
 
     for path in (PRODUCTION_VAULT_EXAMPLE, STAGING_VAULT_EXAMPLE):
         vault_example = _read(path)
@@ -206,6 +226,21 @@ def test_regional_role_is_generic_disabled_by_default_and_firewall_guarded() -> 
 
     assert "vpn_test_agent_region_enabled: false" in defaults
     assert "vpn_test_agent_region_name:" in defaults
+    assert 'vpn_test_agent_region_role: "{{ vpn_test_agent_region_name }}"' in defaults
+    assert 'VPN_TEST_AGENT_ROLE: "{{ vpn_test_agent_region_role }}"' in defaults
+    assert "vpn_test_agent_region_legacy_v1_enabled: false" in defaults
+    assert 'vpn_test_agent_region_legacy_v1_secret: ""' in defaults
+    assert "VPN_TEST_AGENT_LEGACY_V1_ENABLED:" in defaults
+    assert "VPN_TEST_AGENT_LEGACY_V1_SECRET:" in defaults
+    assert 'vpn_test_agent_region_tls_server_name: ""' in defaults
+    assert 'vpn_test_agent_region_tls_cert_pem: ""' in defaults
+    assert 'vpn_test_agent_region_tls_key_pem: ""' in defaults
+
+    compose_template = _read(REGION_COMPOSE_TEMPLATE)
+    assert "--ssl-certfile" in compose_template
+    assert "--ssl-keyfile" in compose_template
+    assert "https://{{ vpn_test_agent_region_tls_server_name }}:" in compose_template
+    assert ":{{ vpn_test_agent_region_tls_container_key_path }}:ro" in compose_template
     assert "vpn_test_agent_region_physical_region:" in defaults
     assert "vpn_test_agent_region_target_region:" in defaults
     assert "vpn_test_agent_region_port: 18080" in defaults
@@ -220,8 +255,14 @@ def test_regional_role_is_generic_disabled_by_default_and_firewall_guarded() -> 
     assert "/32$" in validate
     assert "/128$" in validate
     assert "vpn_test_agent_region_manage_nftables | bool" in validate
+    assert "BEGIN CERTIFICATE" in validate
+    assert "~ 'PRIVATE' ~ ' KEY-----'" in validate
+    assert "vpn_test_agent_region_legacy_v1_secret | lower" in validate
+    assert "@sha256:[0-9a-f]{64}$" in validate
+    assert "@sha256:0{64}$" in validate
 
     assert "network_mode: host" in compose_template
+    assert 'user: "10001:10001"' in compose_template
     assert "ports:" not in compose_template
     assert "--port" in compose_template
     assert "vpn_test_agent_region_port" in compose_template
@@ -236,7 +277,13 @@ def test_regional_role_is_generic_disabled_by_default_and_firewall_guarded() -> 
     assert "vpn_test_agent_region_manage_ufw" in deploy
     assert "from_ip:" in deploy
     assert "to_port:" in deploy
+    assert 'mode: "0440"' in deploy
+    assert 'group: "10001"' in deploy
+    assert deploy.count("no_log: true") >= 3
     assert "NetworkSettings.Ports | length == 0" in verify
+    assert "Config.User == '10001:10001'" in verify
+    assert "health.json.agent_role == vpn_test_agent_region_role" in verify
+    assert "health.json.legacy_v1_enabled" in verify
 
     assert "ip saddr @allowed_ipv4 accept" in nftables_template
     assert "ip6 saddr @allowed_ipv6 accept" in nftables_template
@@ -246,12 +293,18 @@ def test_regional_role_is_generic_disabled_by_default_and_firewall_guarded() -> 
     assert "ExecStartPre=-/usr/sbin/nft delete table inet" in firewall_unit_template
     assert "ExecStart=/usr/sbin/nft -f" in firewall_unit_template
     assert "45.87.41.146/32" in example
+    assert "vpn_test_agent_region_enabled: false" in example
+    assert "vpn_test_agent_region_enabled: true" not in example
     assert "vpn_test_agent_region_name: moscow" in example
     assert "vpn_test_agent_region_physical_region: spb" in example
     assert "vpn_test_agent_region_target_region: moscow" in example
     assert "vpn_test_agent_region_name: spb" in example
     assert "vpn_test_agent_region_physical_region: moscow" in example
     assert "vpn_test_agent_region_target_region: spb" in example
+
+    dockerfile = _read(AGENT_DOCKERFILE)
+    assert "addgroup -S -g 10001 vpnagent" in dockerfile
+    assert "adduser -S -u 10001" in dockerfile
 
 
 def test_ipv6_relay_is_bridge_only_hardened_and_opt_in() -> None:

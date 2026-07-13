@@ -3,25 +3,27 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import hmac
 import json
 import os
 import re
 import socket
 import tempfile
-from collections import Counter
+from collections import Counter, OrderedDict
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, time
 from typing import Any, Literal
 from uuid import UUID
 
 import httpx
 import structlog
-from fastapi import FastAPI, Header, HTTPException, status
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
+from fastapi import FastAPI, HTTPException, Request, Response, status
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from starlette.datastructures import Headers
 
 logger = structlog.get_logger(__name__)
 
@@ -31,8 +33,26 @@ EXPECTED_RAW_COUNT = 4
 EXPECTED_XHTTP_COUNT = 4
 MAX_REQUEST_PROFILE_COUNT = EXPECTED_PROFILE_COUNT
 MAX_PROFILE_PROBE_ATTEMPTS = 4
+MAX_REPLAY_NONCES = 4096
+MAX_REQUEST_BODY_BYTES = 256 * 1024
+MAX_CONCURRENT_RUNTIME_CHECKS = 2
+DEFAULT_PROTOCOL_MAX_SKEW_SECONDS = 60
+SIGNED_RUNTIME_METHOD = "POST"
+SIGNED_RUNTIME_PATH = "/internal/v2/runtime-checks"
+SIGNED_RUNTIME_CONTENT_TYPE = "application/json"
 GENERATE_204_URL = "https://example.com/"
 EXIT_COUNTRY_URL = "https://ipwho.is/"
+REQUEST_SECRET_HEADER = "X-VPN-Test-Agent-Secret"  # noqa: S105 - public protocol header name, not a secret.
+REQUEST_TIMESTAMP_HEADER = "X-VPN-Test-Timestamp"
+REQUEST_NONCE_HEADER = "X-VPN-Test-Nonce"
+REQUEST_AUDIENCE_HEADER = "X-VPN-Test-Agent-Audience"
+REQUEST_BODY_SHA256_HEADER = "X-VPN-Test-Body-SHA256"
+REQUEST_SIGNATURE_HEADER = "X-VPN-Test-Signature"
+RESPONSE_TIMESTAMP_HEADER = "X-VPN-Test-Response-Timestamp"
+RESPONSE_NONCE_HEADER = "X-VPN-Test-Response-Nonce"
+RESPONSE_AUDIENCE_HEADER = "X-VPN-Test-Response-Audience"
+RESPONSE_BODY_SHA256_HEADER = "X-VPN-Test-Response-Body-SHA256"
+RESPONSE_SIGNATURE_HEADER = "X-VPN-Test-Response-Signature"
 PREMIUM_SMART_RU_ENDPOINT_PORTS = {
     "de-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
     "nl-4.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
@@ -47,6 +67,9 @@ PREMIUM_SMART_RU_LOCATION_KEYS_BY_SERVER = {
     "ru-spb-3.cyber-vpn.org": "spb",
 }
 HOST_RE = re.compile(r"^(?=.{1,253}$)(?!-)[A-Za-z0-9.-]+(?<!-)$")
+DECIMAL_UNIX_SECONDS_RE = re.compile(r"^(0|[1-9][0-9]{0,15})$")
+LOWER_HEX_32_RE = re.compile(r"^[0-9a-f]{32}$")
+LOWER_HEX_64_RE = re.compile(r"^[0-9a-f]{64}$")
 PUBLIC_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{10,120}$")
 SHORT_ID_RE = re.compile(r"^[0-9A-Fa-f]{0,32}$")
 SAFE_TOKEN_RE = re.compile(r"^[A-Za-z0-9_.-]{1,120}$")
@@ -80,6 +103,9 @@ class Settings(BaseSettings):
 
     vpn_test_agent_secret: str = ""
     vpn_test_agent_id: str = "stage1-vpn-test-agent"
+    vpn_test_agent_role: Literal["primary", "moscow", "spb"] = "primary"
+    vpn_test_agent_legacy_v1_enabled: bool = False
+    vpn_test_agent_legacy_v1_secret: str = ""
     vpn_test_agent_tun_enabled: bool = False
     vpn_test_agent_proxy_only_enabled: bool = True
     vpn_test_agent_xray_binary: str = "xray"
@@ -89,8 +115,9 @@ class Settings(BaseSettings):
     vpn_test_agent_xray_start_timeout_seconds: float = 5.0
     vpn_test_agent_http_probe_url: str = GENERATE_204_URL
     vpn_test_agent_exit_country_url: str = EXIT_COUNTRY_URL
+    vpn_test_agent_signature_max_skew_seconds: int = DEFAULT_PROTOCOL_MAX_SKEW_SECONDS
 
-    @field_validator("vpn_test_agent_secret")
+    @field_validator("vpn_test_agent_secret", "vpn_test_agent_legacy_v1_secret")
     @classmethod
     def _validate_agent_secret(cls, value: str) -> str:
         normalized = value.strip()
@@ -113,9 +140,93 @@ class Settings(BaseSettings):
             raise ValueError("vpn_test_agent_secret_must_be_non_placeholder")
         return normalized
 
+    @model_validator(mode="after")
+    def _validate_legacy_v1_rollout_secret(self) -> Settings:
+        if not self.vpn_test_agent_legacy_v1_enabled:
+            return self
+        if not self.vpn_test_agent_secret:
+            raise ValueError("vpn_test_agent_v2_secret_required_during_legacy_rollout")
+        if not self.vpn_test_agent_legacy_v1_secret:
+            raise ValueError("vpn_test_agent_legacy_v1_secret_required_when_enabled")
+        if hmac.compare_digest(self.vpn_test_agent_secret, self.vpn_test_agent_legacy_v1_secret):
+            raise ValueError("vpn_test_agent_legacy_v1_secret_must_differ_from_v2_secret")
+        return self
+
+    @field_validator("vpn_test_agent_signature_max_skew_seconds")
+    @classmethod
+    def _validate_signature_max_skew_seconds(cls, value: int) -> int:
+        if value < 1 or value > 300:
+            raise ValueError("vpn_test_agent_signature_max_skew_seconds_out_of_range")
+        return value
+
 
 settings = Settings()
 app = FastAPI(title="CyberVPN VPN Test Agent", docs_url=None, redoc_url=None, openapi_url=None)
+
+
+@dataclass(frozen=True)
+class SignedRequestContext:
+    secret: str
+    nonce: str
+    audience: str
+
+
+class ReplayNonceCache:
+    def __init__(self, *, capacity: int = MAX_REPLAY_NONCES) -> None:
+        self._capacity = capacity
+        self._entries: OrderedDict[str, float] = OrderedDict()
+        self._lock = asyncio.Lock()
+
+    async def mark_seen(self, nonce: str, *, now_seconds: float, ttl_seconds: int) -> bool:
+        async with self._lock:
+            self._prune_expired_locked(now_seconds)
+            if nonce in self._entries:
+                return False
+            if len(self._entries) >= self._capacity:
+                return False
+            self._entries[nonce] = now_seconds + ttl_seconds
+            return True
+
+    def clear(self) -> None:
+        self._entries.clear()
+
+    def _prune_expired_locked(self, now_seconds: float) -> None:
+        while self._entries:
+            _, expires_at = next(iter(self._entries.items()))
+            if expires_at > now_seconds:
+                return
+            self._entries.popitem(last=False)
+
+
+# Restart-window replay can only repeat read-only probes; it cannot forge backend evidence because
+# responses are bound to the backend's pending nonce. The capacity guard below bounds that residual cost.
+_request_replay_cache = ReplayNonceCache()
+
+
+class RuntimeCheckCapacity:
+    def __init__(self, *, capacity: int) -> None:
+        self._capacity = capacity
+        self._active = 0
+        self._lock = asyncio.Lock()
+
+    async def try_acquire(self) -> bool:
+        async with self._lock:
+            if self._active >= self._capacity:
+                return False
+            self._active += 1
+            return True
+
+    async def release(self) -> None:
+        async with self._lock:
+            if self._active <= 0:
+                raise RuntimeError("runtime_check_capacity_release_without_acquire")
+            self._active -= 1
+
+    def clear(self) -> None:
+        self._active = 0
+
+
+_runtime_check_capacity = RuntimeCheckCapacity(capacity=MAX_CONCURRENT_RUNTIME_CHECKS)
 
 
 class RuntimeRoute(BaseModel):
@@ -320,15 +431,156 @@ def _xray_start_timeout_seconds() -> float:
     return max(1.0, min(float(settings.vpn_test_agent_xray_start_timeout_seconds), 15.0))
 
 
+def _protocol_max_skew_seconds() -> int:
+    return int(settings.vpn_test_agent_signature_max_skew_seconds)
+
+
+def _current_unix_seconds() -> int:
+    return int(time())
+
+
 def _elapsed_ms(started: float) -> int:
     return max(0, int((perf_counter() - started) * 1000))
 
 
-def _require_secret(secret: str | None) -> None:
-    configured = settings.vpn_test_agent_secret.strip()
-    if configured and secret and hmac.compare_digest(configured, secret.strip()):
+def _auth_failed() -> HTTPException:
+    return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def _require_legacy_secret(secret: str | None) -> None:
+    configured = settings.vpn_test_agent_legacy_v1_secret.strip()
+    supplied = secret.strip() if secret is not None else ""
+    if configured and supplied and hmac.compare_digest(configured, supplied):
         return
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+    raise _auth_failed()
+
+
+def _single_header(headers: Headers, name: str) -> str:
+    values = headers.getlist(name)
+    if len(values) != 1:
+        raise _auth_failed()
+    value = values[0]
+    if value != value.strip():
+        raise _auth_failed()
+    return value
+
+
+def _parse_timestamp_header(value: str, *, now_seconds: int, max_skew_seconds: int) -> None:
+    if not DECIMAL_UNIX_SECONDS_RE.fullmatch(value):
+        raise _auth_failed()
+    timestamp = int(value)
+    if timestamp < now_seconds - max_skew_seconds or timestamp > now_seconds + max_skew_seconds:
+        raise _auth_failed()
+
+
+def _request_signature(secret: str, timestamp: str, nonce: str, audience: str, body_sha256: str) -> str:
+    message = (
+        f"v2\n{SIGNED_RUNTIME_METHOD}\n{SIGNED_RUNTIME_PATH}\n\n{SIGNED_RUNTIME_CONTENT_TYPE}\n"
+        f"{timestamp}\n{nonce}\n{audience}\n{body_sha256}"
+    ).encode("ascii")
+    return hmac.new(secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
+
+
+def _response_signature(
+    secret: str,
+    status_code: int,
+    timestamp: str,
+    nonce: str,
+    audience: str,
+    body_sha256: str,
+) -> str:
+    message = (
+        f"v2-response\n{SIGNED_RUNTIME_METHOD}\n{SIGNED_RUNTIME_PATH}\n{status_code}\n"
+        f"{SIGNED_RUNTIME_CONTENT_TYPE}\n{timestamp}\n{nonce}\n{audience}\n{body_sha256}"
+    ).encode("ascii")
+    return hmac.new(secret.encode("utf-8"), message, hashlib.sha256).hexdigest()
+
+
+async def _verify_signed_request(request: Request, body: bytes) -> SignedRequestContext:
+    headers = request.headers
+    secret = settings.vpn_test_agent_secret
+    if not secret:
+        raise _auth_failed()
+    if request.method != SIGNED_RUNTIME_METHOD or request.url.path != SIGNED_RUNTIME_PATH:
+        raise _auth_failed()
+    if _single_header(headers, "Content-Type") != SIGNED_RUNTIME_CONTENT_TYPE:
+        raise _auth_failed()
+    now_seconds = _current_unix_seconds()
+    max_skew_seconds = _protocol_max_skew_seconds()
+
+    timestamp = _single_header(headers, REQUEST_TIMESTAMP_HEADER)
+    _parse_timestamp_header(timestamp, now_seconds=now_seconds, max_skew_seconds=max_skew_seconds)
+
+    nonce = _single_header(headers, REQUEST_NONCE_HEADER)
+    if not LOWER_HEX_32_RE.fullmatch(nonce):
+        raise _auth_failed()
+
+    audience = _single_header(headers, REQUEST_AUDIENCE_HEADER)
+    if audience != settings.vpn_test_agent_role:
+        raise _auth_failed()
+
+    body_sha256 = _single_header(headers, REQUEST_BODY_SHA256_HEADER)
+    if not LOWER_HEX_64_RE.fullmatch(body_sha256):
+        raise _auth_failed()
+    expected_body_sha256 = hashlib.sha256(body).hexdigest()
+    if not hmac.compare_digest(expected_body_sha256, body_sha256):
+        raise _auth_failed()
+
+    signature = _single_header(headers, REQUEST_SIGNATURE_HEADER)
+    if not LOWER_HEX_64_RE.fullmatch(signature):
+        raise _auth_failed()
+    expected_signature = _request_signature(secret, timestamp, nonce, audience, body_sha256)
+    if not hmac.compare_digest(expected_signature, signature):
+        raise _auth_failed()
+
+    replay_accepted = await _request_replay_cache.mark_seen(
+        nonce,
+        now_seconds=float(now_seconds),
+        ttl_seconds=max_skew_seconds * 2,
+    )
+    if not replay_accepted:
+        raise _auth_failed()
+
+    return SignedRequestContext(secret=secret, nonce=nonce, audience=audience)
+
+
+def _response_json_bytes(content: dict[str, Any]) -> bytes:
+    return json.dumps(content, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+async def _read_bounded_request_body(request: Request) -> bytes:
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > MAX_REQUEST_BODY_BYTES:
+            raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="Request too large.")
+        body.extend(chunk)
+    return bytes(body)
+
+
+def _signed_json_response(
+    content: dict[str, Any],
+    context: SignedRequestContext,
+    *,
+    status_code: int = status.HTTP_200_OK,
+) -> Response:
+    body = _response_json_bytes(content)
+    timestamp = str(_current_unix_seconds())
+    body_sha256 = hashlib.sha256(body).hexdigest()
+    headers = {
+        RESPONSE_TIMESTAMP_HEADER: timestamp,
+        RESPONSE_NONCE_HEADER: context.nonce,
+        RESPONSE_AUDIENCE_HEADER: context.audience,
+        RESPONSE_BODY_SHA256_HEADER: body_sha256,
+        RESPONSE_SIGNATURE_HEADER: _response_signature(
+            context.secret,
+            status_code,
+            timestamp,
+            context.nonce,
+            context.audience,
+            body_sha256,
+        ),
+    }
+    return Response(content=body, media_type="application/json", headers=headers, status_code=status_code)
 
 
 def _check(
@@ -774,6 +1026,8 @@ async def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "agent_id": settings.vpn_test_agent_id,
+        "agent_role": settings.vpn_test_agent_role,
+        "legacy_v1_enabled": settings.vpn_test_agent_legacy_v1_enabled,
         "proxy_only_enabled": settings.vpn_test_agent_proxy_only_enabled,
         "tun_enabled": settings.vpn_test_agent_tun_enabled,
         "xray_configured": bool(settings.vpn_test_agent_xray_binary.strip()),
@@ -782,11 +1036,49 @@ async def health() -> dict[str, Any]:
 
 
 @app.post("/internal/v1/runtime-checks")
-async def runtime_checks(
-    payload: RuntimeCheckRequest,
-    x_vpn_test_agent_secret: str | None = Header(default=None, alias="X-VPN-Test-Agent-Secret"),
-) -> dict[str, Any]:
-    _require_secret(x_vpn_test_agent_secret)
+async def legacy_runtime_checks(request: Request) -> dict[str, Any]:
+    if not settings.vpn_test_agent_legacy_v1_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found.")
+    secret_values = request.headers.getlist(REQUEST_SECRET_HEADER)
+    _require_legacy_secret(secret_values[0] if len(secret_values) == 1 else None)
+    body = await _read_bounded_request_body(request)
+    try:
+        payload = RuntimeCheckRequest.model_validate_json(body)
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid request.") from exc
+    if not await _runtime_check_capacity.try_acquire():
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Runtime capacity exhausted.")
+    try:
+        return await _run_runtime_checks(payload)
+    finally:
+        await _runtime_check_capacity.release()
+
+
+@app.post(SIGNED_RUNTIME_PATH)
+async def runtime_checks(request: Request) -> Response:
+    body = await _read_bounded_request_body(request)
+    signed_context = await _verify_signed_request(request, body)
+    try:
+        payload = RuntimeCheckRequest.model_validate_json(body)
+    except ValidationError:
+        return _signed_json_response(
+            {"detail": "Invalid request."},
+            signed_context,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+    if not await _runtime_check_capacity.try_acquire():
+        return _signed_json_response(
+            {"detail": "Runtime capacity exhausted."},
+            signed_context,
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+    try:
+        return _signed_json_response(await _run_runtime_checks(payload), signed_context)
+    finally:
+        await _runtime_check_capacity.release()
+
+
+async def _run_runtime_checks(payload: RuntimeCheckRequest) -> dict[str, Any]:
     if payload.runtime_mode == "tun-sandbox" and not settings.vpn_test_agent_tun_enabled:
         return {
             "status": "skipped",

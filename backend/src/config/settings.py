@@ -27,6 +27,7 @@ S1_PRODUCTION_COOKIE_DOMAINS = frozenset({"", "cyber-vpn.net"})
 S1_PRODUCTION_ADMIN_ALLOWED_HOSTS = frozenset({"admin.cyber-vpn.net"})
 S1_REDIRECT_ONLY_ADMIN_HOSTS = frozenset({"admin.cyber-vpn.org"})
 S1_PUBLIC_NON_ADMIN_HOSTS = frozenset({"cyber-vpn.net", "my.cyber-vpn.net", "cyber-vpn.org"})
+VPN_TEST_AGENT_LOCAL_HTTP_HOSTS = frozenset({"cybervpn-vpn-test-agent"})
 S1_PRODUCTION_PASSKEY_ORIGINS = frozenset(
     {
         "https://cyber-vpn.net",
@@ -131,6 +132,7 @@ class Settings(BaseSettings):
     vpn_test_agent_spb_url: str = ""
     vpn_test_agent_spb_secret: SecretStr | None = None
     vpn_test_agent_timeout_seconds: int = 20
+    vpn_test_agent_signature_max_skew_seconds: int = 60
     stage1_trial_provisioning_enabled: bool = False
     stage1_paid_provisioning_enabled: bool = False
     stage1_provisioning_retry_claiming_enabled: bool = False
@@ -733,6 +735,22 @@ class Settings(BaseSettings):
                 raise ValueError(f"{label}_URL and {label}_SECRET must be configured together in production.")
             if not url.strip():
                 continue
+            parsed_url = urlparse(url.strip())
+            local_plaintext = (
+                label == "VPN_TEST_AGENT"
+                and parsed_url.scheme == "http"
+                and parsed_url.hostname in VPN_TEST_AGENT_LOCAL_HTTP_HOSTS
+            )
+            if parsed_url.hostname is None or (parsed_url.scheme != "https" and not local_plaintext):
+                raise ValueError(f"{label}_URL must use HTTPS outside the local compose network.")
+            if (
+                parsed_url.username is not None
+                or parsed_url.password is not None
+                or parsed_url.query
+                or parsed_url.fragment
+                or parsed_url.path not in {"", "/"}
+            ):
+                raise ValueError(f"{label}_URL must be an origin URL without credentials, path, query or fragment.")
             if len(secret) < 16:
                 raise ValueError(f"{label}_SECRET must be a real internal credential in production.")
             secret_lower = secret.lower()
@@ -741,6 +759,13 @@ class Settings(BaseSettings):
         if not self.vpn_test_agent_url.strip():
             raise ValueError("VPN_TEST_AGENT_URL is required when production runtime VPN testing is enabled.")
         return self
+
+    @field_validator("vpn_test_agent_signature_max_skew_seconds", mode="after")
+    @classmethod
+    def validate_vpn_test_agent_signature_max_skew_seconds(cls, v: int) -> int:
+        if v < 1 or v > 300:
+            raise ValueError("VPN_TEST_AGENT_SIGNATURE_MAX_SKEW_SECONDS must be between 1 and 300 seconds.")
+        return v
 
     @field_validator("cookie_domain", mode="before")
     @classmethod

@@ -25,7 +25,7 @@ RUN curl -fsSLo /tmp/xray.zip "https://github.com/XTLS/Xray-core/releases/downlo
 FROM python:3.13.14-alpine AS runtime
 
 RUN apk add --no-cache ca-certificates && \
-    addgroup -S vpnagent && adduser -S -G vpnagent -h /app -s /sbin/nologin vpnagent
+    addgroup -S -g 10001 vpnagent && adduser -S -u 10001 -G vpnagent -h /app -s /sbin/nologin vpnagent
 
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv

@@ -5,6 +5,7 @@ services:
     image: {{ vpn_test_agent_region_image | to_json }}
     container_name: {{ vpn_test_agent_region_container_name }}
     hostname: {{ vpn_test_agent_region_container_name }}
+    user: "10001:10001"
     restart: unless-stopped
     network_mode: host
     env_file:
@@ -16,6 +17,15 @@ services:
       - {{ vpn_test_agent_region_bind_address | quote }}
       - --port
       - {{ vpn_test_agent_region_port | string | quote }}
+      - --ssl-certfile
+      - {{ vpn_test_agent_region_tls_container_cert_path | quote }}
+      - --ssl-keyfile
+      - {{ vpn_test_agent_region_tls_container_key_path | quote }}
+    extra_hosts:
+      - {{ (vpn_test_agent_region_tls_server_name ~ ':127.0.0.1') | quote }}
+    volumes:
+      - ./{{ vpn_test_agent_region_tls_cert_filename }}:{{ vpn_test_agent_region_tls_container_cert_path }}:ro
+      - ./{{ vpn_test_agent_region_tls_key_filename }}:{{ vpn_test_agent_region_tls_container_key_path }}:ro
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -27,7 +37,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python -c \"import urllib.request; urllib.request.urlopen('http://{{ vpn_test_agent_region_health_host }}:{{ vpn_test_agent_region_port }}/health', timeout=3).read()\"",
+          "python -c \"import urllib.request; urllib.request.urlopen('https://{{ vpn_test_agent_region_tls_server_name }}:{{ vpn_test_agent_region_port }}/health', timeout=3).read()\"",
         ]
       interval: 30s
       timeout: 5s
