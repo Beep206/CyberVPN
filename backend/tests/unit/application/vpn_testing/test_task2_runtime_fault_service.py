@@ -176,6 +176,27 @@ async def test_ingest_rejects_replayed_nonce_or_evidence_id(monkeypatch) -> None
 
 
 @pytest.mark.asyncio
+async def test_ingest_rejected_fault_cleanup_never_promotes_or_persists(monkeypatch) -> None:
+    run = _run()
+    repository = _repository(run)
+    verify_mock = MagicMock(
+        side_effect=Task2RuntimeFaultEvidenceRejected("invalid_evidence_schema"),
+    )
+    promote_mock = MagicMock()
+    monkeypatch.setattr(service_module, "verify_task2_runtime_fault_evidence", verify_mock)
+    monkeypatch.setattr(service_module, "promote_task2_runtime_fault_results", promote_mock)
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="invalid_evidence_schema"):
+        await VpnTesterService(repository).ingest_task2_runtime_fault_evidence(run.id, b"late-cleanup")
+
+    verify_mock.assert_called_once()
+    promote_mock.assert_not_called()
+    repository.lock_signed_evidence_identity.assert_not_awaited()
+    repository.replace_run_results.assert_not_awaited()
+    repository.add_evidence_artifact.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_ingest_returns_none_for_unknown_run() -> None:
     repository = SimpleNamespace(get_run_for_update=AsyncMock(return_value=None))
 

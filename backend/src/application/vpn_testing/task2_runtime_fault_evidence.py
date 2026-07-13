@@ -256,6 +256,8 @@ class Task2FaultWindowEvidence(_StrictModel):
             raise ValueError("fault_watchdog_deadline_too_early")
         if self.cleanup_verified_at < self.finished_at:
             raise ValueError("fault_cleanup_before_window_finished")
+        if self.cleanup_verified_at > self.watchdog_deadline_at:
+            raise ValueError("fault_cleanup_after_watchdog_deadline")
         if {item.protocol for item in self.firewall_rules} != {"tcp", "udp"}:
             raise ValueError("fault_firewall_protocol_matrix_missing")
         tuples = {(item.source_ipv6, item.destination_ipv6, item.destination_port) for item in self.firewall_rules}

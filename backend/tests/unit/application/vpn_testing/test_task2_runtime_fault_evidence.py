@@ -546,6 +546,15 @@ def test_matched_fault_direct_fallback_is_rejected_by_strict_schema(evidence_con
         Task2RuntimeFaultPayload.model_validate_json(canonical_json_bytes(envelope["payload"]))
 
 
+def test_cleanup_after_watchdog_deadline_is_rejected_by_strict_schema(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    envelope = _signed_envelope(run, private_key)
+    envelope["payload"]["fault"]["cleanup_verified_at"] = _iso(NOW)
+
+    with pytest.raises(ValidationError, match="fault_cleanup_after_watchdog_deadline"):
+        Task2RuntimeFaultPayload.model_validate_json(canonical_json_bytes(envelope["payload"]))
+
+
 def test_duplicate_json_keys_are_rejected_before_signature_verification(evidence_context) -> None:
     run, settings, route_entries, private_key = evidence_context
     body = canonical_json_bytes(_signed_envelope(run, private_key))

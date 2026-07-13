@@ -25,7 +25,11 @@ condition = "AND"
 regexTarget = "line"
 paths = [
   '''backend/tests/helpers/spb_de_readiness\.py''',
+  '''backend/tests/unit/application/vpn_testing/test_task2_runtime_fault_evidence\.py''',
+  '''backend/tests/unit/application/vpn_testing/test_task2_runtime_fault_service\.py''',
   '''backend/tests/unit/application/vpn_testing/test_vpn_tester_service\.py''',
+  '''backend/tests/unit/infrastructure/test_vpn_tester_repository\.py''',
+  '''backend/tests/unit/presentation/api/v1/admin/test_vpn_tester_task2_runtime_fault_evidence\.py''',
   '''infra/tests/test_antifilter_bgp_collector\.py''',
   '''backend/src/application/vpn_testing/suites/premium_spb_de_exceptions_v1\.yaml''',
   '''backend/src/application/vpn_testing/route_registry/premium_spb_de_exceptions_v1\.yaml''',
