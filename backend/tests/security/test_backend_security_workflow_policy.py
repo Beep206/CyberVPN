@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
@@ -32,6 +33,9 @@ def _reviewed_security_workflow_paths() -> set[str]:
 def test_backend_security_workflow_fails_closed() -> None:
     workflow_path = REPOSITORY_ROOT / ".github" / "workflows" / "backend-security.yml"
     workflow = workflow_path.read_text(encoding="utf-8")
+    workflow_document = yaml.safe_load(workflow)
+    secrets_scan_steps = workflow_document["jobs"]["secrets-scan"]["steps"]
+    gitleaks_steps = [step for step in secrets_scan_steps if step.get("name") == "Run Gitleaks"]
 
     assert "continue-on-error: true" not in workflow
     assert "|| true" not in workflow
@@ -40,6 +44,9 @@ def test_backend_security_workflow_fails_closed() -> None:
     assert "ruff check src/ --select S" in workflow
     assert workflow.count("- '.gitleaks.toml'") == 2
     assert "python scripts/security/validate_gitleaks_config.py" in workflow
+    assert len(gitleaks_steps) == 1
+    assert gitleaks_steps[0]["uses"] == "gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7"
+    assert gitleaks_steps[0]["env"]["GITLEAKS_VERSION"] == "8.30.1"
     for path in _reviewed_security_workflow_paths():
         assert workflow.count(f"- '{path}'") == 2
 
