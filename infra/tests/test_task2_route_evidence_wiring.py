@@ -75,7 +75,9 @@ def test_task2_evidence_caddy_site_is_dedicated_and_spb_source_restricted() -> N
     assert "remote_ip 172.30.0.1" in site
     assert "IPv6 userland proxy" in site
     assert "reverse_proxy cybervpn-stage1-cybervpn-backend-1:8000" in site
-    assert "request_header -X-CyberVPN-*" in site
+    assert "request_header -X-CyberVPN-Task2-Evidence-Ingress" in site
+    assert f"request_header -{OPERATOR_EVIDENCE_HEADER}" in site
+    assert "request_header -X-CyberVPN-Task2-Xray-Webhook-Secret" not in site
     assert "header_up X-CyberVPN-Task2-Evidence-Ingress spb-source-verified-v1" in site
     assert 'respond "Not found" 404' in site
     assert "import stage1_api_routes" not in site
@@ -105,7 +107,10 @@ def test_task2_operator_evidence_public_backend_proxies_strip_ingress_marker() -
     )[0]
 
     assert "header_up -X-CyberVPN-*" in backend_proxy
-    assert "request_header -X-CyberVPN-*" in dedicated_task2
+    assert "request_header -X-CyberVPN-Task2-Evidence-Ingress" in dedicated_task2
+    assert f"request_header -{OPERATOR_EVIDENCE_HEADER}" in dedicated_task2
+    assert "request_header -X-CyberVPN-Task2-Xray-Webhook-Secret" not in dedicated_task2
+    assert "request_header -X-CyberVPN-*" not in dedicated_task2
     assert "header_up -X-CyberVPN-*" not in dedicated_task2
     edge_backend_proxies = _backend_reverse_proxy_blocks(
         edge_caddy, "cybervpn-stage1-cybervpn-backend-1:8000"
@@ -114,7 +119,7 @@ def test_task2_operator_evidence_public_backend_proxies_strip_ingress_marker() -
     assert sum("header_up -X-CyberVPN-*" in proxy for proxy in edge_backend_proxies) == 2
 
     assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in edge_caddy
-    assert OPERATOR_EVIDENCE_HEADER not in edge_caddy
+    assert edge_caddy.count(OPERATOR_EVIDENCE_HEADER) == 1
     assert "task2-operator-evidence.cyber-vpn" not in edge_caddy.lower()
 
     stage1_caddy = _read("infra/deploy/stage1/Caddyfile.stage1.snippet")
