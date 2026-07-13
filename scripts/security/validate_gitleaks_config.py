@@ -11,9 +11,13 @@ from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = REPOSITORY_ROOT / ".gitleaks.toml"
+GENERIC_API_KEY_RULE_ID = "generic-api-key"
 TASK2_ALLOWLIST_DESCRIPTION = (
     "Task2 contract field names and synthetic test values are not credentials"
 )
+TASK2_ALLOWLIST_REGEXES = {
+    r"(?i)\b(private_key|suite_key|registry_key|bgp_secret)\b",
+}
 TASK2_ALLOWED_PATHS = {
     "backend/src/application/vpn_testing/route_registry/premium_spb_de_exceptions_v1.yaml",
     "backend/src/application/vpn_testing/service.py",
@@ -26,38 +30,129 @@ TASK2_ALLOWED_PATHS = {
     "backend/tests/unit/presentation/api/v1/admin/test_vpn_tester_task2_runtime_fault_evidence.py",
     "infra/tests/test_antifilter_bgp_collector.py",
 }
+REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION = (
+    "Synthetic test/evidence identifiers that are not credentials"
+)
+REVIEWED_GLOBAL_GENERIC_ALLOWLIST_PATHS = {
+    r"^backend/tests/e2e/test_phase4_(finance|settlement)_foundations\.py$",
+    r"^docs/evidence/partner-platform/stage3-outbox.*$",
+}
+REVIEWED_GLOBAL_GENERIC_ALLOWLIST_REGEXES = {
+    r"""(?i)(idempotency[-_ -]?key|period_key|event_key|dead_letter_event_key|backlog_event_key|partition_key)["'\s:=]+[A-Za-z0-9_.:-]{8,}""",
+}
 
 
-def _iter_allowlists(config: Mapping[str, Any]) -> Iterator[Mapping[str, Any]]:
-    yield from config.get("allowlists", [])
+def _iter_allowlists(
+    config: Mapping[str, Any],
+) -> Iterator[tuple[str | None, Mapping[str, Any]]]:
+    for allowlist in config.get("allowlists", []):
+        yield None, allowlist
     for rule in config.get("rules", []):
-        yield from rule.get("allowlists", [])
+        rule_id = str(rule.get("id") or "")
+        for allowlist in rule.get("allowlists", []):
+            yield rule_id, allowlist
+
+
+def _require_exact_allowlist_shape(
+    allowlist: Mapping[str, Any],
+    *,
+    condition: str,
+    regex_target: str,
+    paths: set[str],
+    regexes: set[str],
+) -> None:
+    if allowlist.get("condition") != condition:
+        raise ValueError("Reviewed Gitleaks allowlist condition changed")
+    if allowlist.get("regexTarget") != regex_target:
+        raise ValueError("Reviewed Gitleaks allowlist regex target changed")
+    if set(allowlist.get("paths", [])) != paths:
+        raise ValueError("Reviewed Gitleaks allowlist paths changed")
+    if set(allowlist.get("regexes", [])) != regexes:
+        raise ValueError("Reviewed Gitleaks allowlist regexes changed")
 
 
 def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     with config_path.open("rb") as config_file:
         config = tomllib.load(config_file)
 
+    if config.get("extend", {}).get("useDefault") is not True:
+        raise ValueError("Gitleaks default rules must remain enabled")
+
+    generic_rule_count = sum(
+        1
+        for rule in config.get("rules", [])
+        if rule.get("id") == GENERIC_API_KEY_RULE_ID
+    )
+    if generic_rule_count != 1:
+        raise ValueError("Exactly one generic-api-key rule extension is required")
+
     allowlists = list(_iter_allowlists(config))
-    for allowlist in allowlists:
+    for _, allowlist in allowlists:
         for pattern in allowlist.get("paths", []):
             if not pattern.startswith("^") or not pattern.endswith("$"):
                 raise ValueError(f"Gitleaks allowlist path must be anchored: {pattern}")
 
     task2_allowlists = [
-        allowlist
-        for allowlist in allowlists
+        (owner_rule_id, allowlist)
+        for owner_rule_id, allowlist in allowlists
         if allowlist.get("description") == TASK2_ALLOWLIST_DESCRIPTION
     ]
     if len(task2_allowlists) != 1:
         raise ValueError("Exactly one Task2 Gitleaks allowlist is required")
 
+    task2_owner_rule_id, task2_allowlist = task2_allowlists[0]
+    if task2_owner_rule_id != GENERIC_API_KEY_RULE_ID:
+        raise ValueError("Task2 Gitleaks allowlist must belong to generic-api-key")
+
     expected_patterns = {f"^{re.escape(path)}$" for path in TASK2_ALLOWED_PATHS}
-    configured_patterns = set(task2_allowlists[0].get("paths", []))
-    if configured_patterns != expected_patterns:
-        raise ValueError(
-            "Task2 Gitleaks allowlist paths differ from the reviewed exact set"
+    try:
+        _require_exact_allowlist_shape(
+            task2_allowlist,
+            condition="AND",
+            regex_target="line",
+            paths=expected_patterns,
+            regexes=TASK2_ALLOWLIST_REGEXES,
         )
+    except ValueError as exc:
+        raise ValueError(
+            "Task2 Gitleaks allowlist differs from the reviewed exact shape"
+        ) from exc
+
+    reviewed_global_allowlists = [
+        allowlist
+        for owner_rule_id, allowlist in allowlists
+        if owner_rule_id is None
+        and allowlist.get("description")
+        == REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION
+    ]
+    if len(reviewed_global_allowlists) != 1:
+        raise ValueError(
+            "Exactly one reviewed global generic-api-key allowlist is required"
+        )
+    reviewed_global_allowlist = reviewed_global_allowlists[0]
+    if set(reviewed_global_allowlist.get("targetRules", [])) != {
+        GENERIC_API_KEY_RULE_ID
+    }:
+        raise ValueError("Reviewed global allowlist target rules changed")
+    _require_exact_allowlist_shape(
+        reviewed_global_allowlist,
+        condition="AND",
+        regex_target="match",
+        paths=REVIEWED_GLOBAL_GENERIC_ALLOWLIST_PATHS,
+        regexes=REVIEWED_GLOBAL_GENERIC_ALLOWLIST_REGEXES,
+    )
+
+    for owner_rule_id, allowlist in allowlists:
+        target_rules = set(allowlist.get("targetRules", []))
+        affects_generic_api_key = owner_rule_id == GENERIC_API_KEY_RULE_ID or (
+            owner_rule_id is None
+            and (not target_rules or GENERIC_API_KEY_RULE_ID in target_rules)
+        )
+        if not affects_generic_api_key:
+            continue
+        if allowlist is task2_allowlist or allowlist is reviewed_global_allowlist:
+            continue
+        raise ValueError("Unreviewed generic-api-key allowlist is forbidden")
 
     for path in TASK2_ALLOWED_PATHS:
         pattern = re.compile(f"^{re.escape(path)}$")

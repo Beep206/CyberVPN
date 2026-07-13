@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from scripts.security.validate_gitleaks_config import TASK2_ALLOWED_PATHS
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
@@ -20,6 +21,9 @@ def test_backend_security_workflow_fails_closed() -> None:
     assert "ruff check src/ --select S" in workflow
     assert workflow.count("- '.gitleaks.toml'") == 2
     assert "python scripts/security/validate_gitleaks_config.py" in workflow
+    for path in TASK2_ALLOWED_PATHS:
+        if not path.startswith("backend/"):
+            assert workflow.count(f"- '{path}'") == 2
 
 
 def _run_gitleaks_policy_validator(
@@ -59,7 +63,7 @@ def test_gitleaks_allowlist_policy_accepts_only_exact_task2_paths() -> None:
         (
             "^backend/tests/helpers/spb_de_readiness\\.py$",
             "^backend/tests/helpers/spb_de_readiness\\.py.*$",
-            "Task2 Gitleaks allowlist paths differ from the reviewed exact set",
+            "Task2 Gitleaks allowlist differs from the reviewed exact shape",
         ),
     ],
 )
@@ -77,6 +81,63 @@ def test_gitleaks_allowlist_policy_rejects_broad_task2_paths(
         config.replace(reviewed_path, invalid_path, 1),
         encoding="utf-8",
     )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert expected_error in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("additional_allowlist", "expected_error"),
+    [
+        (
+            """
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Unreviewed broad nested allowlist"
+condition = "AND"
+regexTarget = "line"
+paths = ['''^backend/tests/helpers/spb_de_readiness\\.py.*$''']
+regexes = ['''(?i)private_key''']
+""",
+            "Exactly one generic-api-key rule extension is required",
+        ),
+        (
+            """
+[[allowlists]]
+description = "Unreviewed broad global allowlist"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''^backend/tests/helpers/spb_de_readiness\\.py.*$''']
+regexes = ['''(?i)private_key''']
+""",
+            "Unreviewed generic-api-key allowlist is forbidden",
+        ),
+        (
+            """
+[[allowlists]]
+description = "Unreviewed pathless global allowlist"
+targetRules = ["generic-api-key"]
+condition = "OR"
+regexTarget = "match"
+regexes = ['''.*''']
+""",
+            "Unreviewed generic-api-key allowlist is forbidden",
+        ),
+    ],
+)
+def test_gitleaks_allowlist_policy_rejects_additional_generic_allowlists(
+    tmp_path: Path,
+    additional_allowlist: str,
+    expected_error: str,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(config + additional_allowlist, encoding="utf-8")
 
     result = _run_gitleaks_policy_validator(invalid_config)
 

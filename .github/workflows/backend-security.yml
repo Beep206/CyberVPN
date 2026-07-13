@@ -6,12 +6,14 @@ on:
       - main
     paths:
       - 'backend/**'
+      - 'infra/tests/test_antifilter_bgp_collector.py'
       - '.gitleaks.toml'
       - '.github/workflows/backend-security.yml'
       - 'scripts/security/validate_gitleaks_config.py'
   pull_request:
     paths:
       - 'backend/**'
+      - 'infra/tests/test_antifilter_bgp_collector.py'
       - '.gitleaks.toml'
       - '.github/workflows/backend-security.yml'
       - 'scripts/security/validate_gitleaks_config.py'
