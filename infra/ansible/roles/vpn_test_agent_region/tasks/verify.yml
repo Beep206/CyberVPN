@@ -1,13 +1,21 @@
 ---
 - name: VPN test agent region | Wait for local health
   ansible.builtin.uri:
-    url: "http://{{ vpn_test_agent_region_health_host }}:{{ vpn_test_agent_region_port }}/health"
+    url: "https://{{ vpn_test_agent_region_tls_server_name }}:{{ vpn_test_agent_region_port }}/health"
     method: GET
     status_code: 200
+    validate_certs: true
   register: vpn_test_agent_region_health
   retries: 15
   delay: 2
   until: vpn_test_agent_region_health.status == 200
+
+- name: VPN test agent region | Assert health identity and rollout state
+  ansible.builtin.assert:
+    that:
+      - vpn_test_agent_region_health.json.agent_role == vpn_test_agent_region_role
+      - vpn_test_agent_region_health.json.legacy_v1_enabled | bool == vpn_test_agent_region_legacy_v1_enabled | bool
+    fail_msg: "Regional VPN test agent health identity or legacy-v1 rollout state does not match configuration."
 
 - name: VPN test agent region | Inspect container
   ansible.builtin.command:
@@ -27,6 +35,9 @@
     that:
       - vpn_test_agent_region_container.State.Running | bool
       - vpn_test_agent_region_container.Config.Image == vpn_test_agent_region_image
+      - vpn_test_agent_region_container.Config.User == '10001:10001'
       - vpn_test_agent_region_container.HostConfig.NetworkMode == 'host'
       - vpn_test_agent_region_container.NetworkSettings.Ports | length == 0
+      - (vpn_test_agent_region_container.Mounts | selectattr('Destination', 'equalto', vpn_test_agent_region_tls_container_cert_path) | map(attribute='RW') | list) == [false]
+      - (vpn_test_agent_region_container.Mounts | selectattr('Destination', 'equalto', vpn_test_agent_region_tls_container_key_path) | map(attribute='RW') | list) == [false]
     fail_msg: "Regional VPN test agent is not running with host networking and no Docker-published ports."

@@ -9,11 +9,19 @@
   ansible.builtin.assert:
     that:
       - vpn_test_agent_region_name is match('^[a-z0-9][a-z0-9-]{1,31}$')
+      - vpn_test_agent_region_role in ['moscow', 'spb']
+      - vpn_test_agent_region_tls_server_name is match('^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$')
+      - "'-----BEGIN CERTIFICATE-----' in vpn_test_agent_region_tls_cert_pem"
+      - "('-----BEGIN ' ~ 'PRIVATE' ~ ' KEY-----') in vpn_test_agent_region_tls_key_pem or ('-----BEGIN EC ' ~ 'PRIVATE' ~ ' KEY-----') in vpn_test_agent_region_tls_key_pem or ('-----BEGIN RSA ' ~ 'PRIVATE' ~ ' KEY-----') in vpn_test_agent_region_tls_key_pem"
       - vpn_test_agent_region_physical_region | length > 0
       - vpn_test_agent_region_target_region | length > 0
-      - vpn_test_agent_region_image | length > 0
+      - vpn_test_agent_region_image is match('^.+@sha256:[0-9a-f]{64}$')
+      - vpn_test_agent_region_image is not match('^.+@sha256:0{64}$')
       - vpn_test_agent_region_secret | length >= 16
       - (vpn_test_agent_region_secret | lower) is not search('replace|example|test|placeholder|changeme|dummy|local|development|dev-|redacted|your_')
+      - not vpn_test_agent_region_legacy_v1_enabled | bool or vpn_test_agent_region_legacy_v1_secret | length >= 16
+      - not vpn_test_agent_region_legacy_v1_enabled | bool or vpn_test_agent_region_legacy_v1_secret != vpn_test_agent_region_secret
+      - not vpn_test_agent_region_legacy_v1_enabled | bool or (vpn_test_agent_region_legacy_v1_secret | lower) is not search('replace|example|test|placeholder|changeme|dummy|local|development|dev-|redacted|your_')
       - vpn_test_agent_region_bind_address | length > 0
       - vpn_test_agent_region_port | int >= 1024
       - vpn_test_agent_region_port | int <= 65535
@@ -32,8 +40,9 @@
       - vpn_test_agent_region_proxy_only_enabled | bool
     fail_msg: >-
       Configure the regional VPN test agent with a pinned image, dedicated
-      secret, physical/target region labels, proxy-only mode, and a firewall
-      allowlist containing only the required production app /32 or /128 CIDR.
+      secrets, a publicly trusted TLS certificate/key from the secret store,
+      physical/target region labels, proxy-only mode, and a firewall allowlist
+      containing only the required production app /32 or /128 CIDR.
   when: vpn_test_agent_region_enabled
   no_log: true
 

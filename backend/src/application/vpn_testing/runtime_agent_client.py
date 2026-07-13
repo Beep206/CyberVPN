@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
 import json
-from collections import Counter
+import re
+import secrets
+import time
+from collections import Counter, OrderedDict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from threading import Lock
 from typing import Any, Literal
+from urllib.parse import urlparse
 from uuid import UUID
 
 import httpx
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
-from src.config.settings import settings
+from src.config.settings import VPN_TEST_AGENT_LOCAL_HTTP_HOSTS, settings
 
 try:  # PyYAML is an optional parser fallback in slim tooling environments.
     import yaml
@@ -25,8 +32,24 @@ EXPECTED_RUNTIME_RAW_PROFILE_COUNT = 4
 EXPECTED_RUNTIME_XHTTP_PROFILE_COUNT = 4
 EXPECTED_REGIONAL_TARGET_PROFILE_COUNT = 2
 HARD_MAX_RUNTIME_PROFILE_COUNT = 16
-RUNTIME_AGENT_ENDPOINT = "/internal/v1/runtime-checks"
-RUNTIME_AGENT_AUTH_HEADER = "X-VPN-Test-Agent-Secret"
+RUNTIME_AGENT_ENDPOINT = "/internal/v2/runtime-checks"
+RUNTIME_AGENT_TIMESTAMP_HEADER = "X-VPN-Test-Timestamp"
+RUNTIME_AGENT_NONCE_HEADER = "X-VPN-Test-Nonce"
+RUNTIME_AGENT_AUDIENCE_HEADER = "X-VPN-Test-Agent-Audience"
+RUNTIME_AGENT_BODY_SHA256_HEADER = "X-VPN-Test-Body-SHA256"
+RUNTIME_AGENT_SIGNATURE_HEADER = "X-VPN-Test-Signature"
+RUNTIME_AGENT_RESPONSE_TIMESTAMP_HEADER = "X-VPN-Test-Response-Timestamp"
+RUNTIME_AGENT_RESPONSE_NONCE_HEADER = "X-VPN-Test-Response-Nonce"
+RUNTIME_AGENT_RESPONSE_AUDIENCE_HEADER = "X-VPN-Test-Response-Audience"
+RUNTIME_AGENT_RESPONSE_BODY_SHA256_HEADER = "X-VPN-Test-Response-Body-SHA256"
+RUNTIME_AGENT_RESPONSE_SIGNATURE_HEADER = "X-VPN-Test-Response-Signature"
+RUNTIME_AGENT_SIGNATURE_MAX_SKEW_SECONDS = 60
+RUNTIME_AGENT_NONCE_CACHE_LIMIT = 4096
+RUNTIME_AGENT_MAX_RESPONSE_BODY_BYTES = 512 * 1024
+RUNTIME_AGENT_PROTOCOL_VERSION = "v2"
+RUNTIME_AGENT_RESPONSE_PROTOCOL_VERSION = "v2-response"
+RUNTIME_AGENT_METHOD = "POST"
+RUNTIME_AGENT_CONTENT_TYPE = "application/json"
 PREMIUM_SMART_RU_RUNTIME_ENDPOINTS = {
     "de-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
     "nl-4.cyber-vpn.org": {"raw": 443, "xhttp": 8443},
@@ -69,6 +92,11 @@ SENSITIVE_RESPONSE_KEYS = frozenset(
         "path",
     }
 )
+_DECIMAL_UNIX_SECONDS_RE = re.compile(r"(?:0|[1-9][0-9]*)")
+_LOWER_HEX_32_RE = re.compile(r"[0-9a-f]{32}")
+_LOWER_HEX_64_RE = re.compile(r"[0-9a-f]{64}")
+_runtime_agent_nonce_cache: OrderedDict[str, float] = OrderedDict()
+_runtime_agent_nonce_cache_lock = Lock()
 RuntimeAgentRole = Literal["primary", "moscow", "spb"]
 
 
@@ -168,6 +196,12 @@ class RuntimeAgentTarget:
     profiles: tuple[RuntimeAgentTransportProfile, ...]
 
 
+class RuntimeAgentProtocolError(Exception):
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(reason)
+
+
 def _secret_value(secret: SecretStr | None) -> str:
     return secret.get_secret_value().strip() if secret is not None else ""
 
@@ -181,7 +215,22 @@ def runtime_agent_configured() -> bool:
 
 
 def _agent_url(value: Any) -> str:
-    return str(value or "").strip().rstrip("/")
+    normalized = str(value or "").strip().rstrip("/")
+    if not normalized:
+        return ""
+    parsed = urlparse(normalized)
+    local_plaintext = parsed.scheme == "http" and parsed.hostname in VPN_TEST_AGENT_LOCAL_HTTP_HOSTS
+    if parsed.hostname is None or (parsed.scheme != "https" and not local_plaintext):
+        return ""
+    if (
+        parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or parsed.path not in {"", "/"}
+    ):
+        return ""
+    return normalized
 
 
 def _mapping_list(value: Any) -> list[Mapping[str, Any]]:
@@ -550,6 +599,20 @@ def _runtime_agent_targets(
         0,
         RuntimeAgentTarget(role="primary", url=primary_url, secret=primary_secret, profiles=primary_profiles),
     )
+    target_urls = [target.url for target in targets]
+    if len(target_urls) != len(set(target_urls)):
+        return _failure_payload(
+            "duplicate_agent_target_url",
+            expected_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+            actual_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+        )
+    secret_fingerprints = [hashlib.sha256(target.secret.encode("utf-8")).digest() for target in targets]
+    if len(secret_fingerprints) != len(set(secret_fingerprints)):
+        return _failure_payload(
+            "duplicate_agent_target_secret",
+            expected_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+            actual_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+        )
     return targets
 
 
@@ -561,6 +624,231 @@ def _agent_check_key(role: RuntimeAgentRole, check_key: Any) -> str:
 def _runtime_transport_check_key(profile: RuntimeAgentTransportProfile) -> str:
     location = PREMIUM_SMART_RU_RELEASE_LOCATION_KEY_BY_SERVER[profile.server]
     return f"runtime.transport.{profile.transport}.{location}"
+
+
+def _runtime_agent_max_skew_seconds() -> int:
+    value = int(
+        getattr(
+            settings,
+            "vpn_test_agent_signature_max_skew_seconds",
+            RUNTIME_AGENT_SIGNATURE_MAX_SKEW_SECONDS,
+        )
+    )
+    if value < 1:
+        raise RuntimeAgentProtocolError("signature_max_skew_invalid")
+    return value
+
+
+def _canonical_json_bytes(payload: Mapping[str, Any]) -> bytes:
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+
+
+def _sha256_hex(body: bytes) -> str:
+    return hashlib.sha256(body).hexdigest()
+
+
+def _runtime_agent_signature(
+    *,
+    secret: str,
+    protocol_version: str,
+    timestamp: str,
+    nonce: str,
+    audience: str,
+    body_sha256: str,
+    status_code: int | None = None,
+) -> str:
+    status_component = "" if status_code is None else str(status_code)
+    material = (
+        f"{protocol_version}\n{RUNTIME_AGENT_METHOD}\n{RUNTIME_AGENT_ENDPOINT}\n{status_component}\n"
+        f"{RUNTIME_AGENT_CONTENT_TYPE}\n{timestamp}\n{nonce}\n{audience}\n{body_sha256}"
+    ).encode("ascii")
+    return hmac.new(secret.encode("utf-8"), material, hashlib.sha256).hexdigest()
+
+
+def _prune_runtime_agent_nonce_cache(now_monotonic: float) -> None:
+    expired = [nonce for nonce, expires_at in _runtime_agent_nonce_cache.items() if expires_at <= now_monotonic]
+    for nonce in expired:
+        _runtime_agent_nonce_cache.pop(nonce, None)
+
+
+def _reserve_runtime_agent_nonce(*, ttl_seconds: int) -> str:
+    now_monotonic = time.monotonic()
+    expires_at = now_monotonic + max(1, ttl_seconds)
+    with _runtime_agent_nonce_cache_lock:
+        _prune_runtime_agent_nonce_cache(now_monotonic)
+        if len(_runtime_agent_nonce_cache) >= RUNTIME_AGENT_NONCE_CACHE_LIMIT:
+            raise RuntimeAgentProtocolError("nonce_replay_cache_full")
+        for _ in range(8):
+            nonce = secrets.token_hex(16)
+            if _LOWER_HEX_32_RE.fullmatch(nonce) is None:
+                raise RuntimeAgentProtocolError("nonce_generation_invalid")
+            if nonce in _runtime_agent_nonce_cache:
+                continue
+            _runtime_agent_nonce_cache[nonce] = expires_at
+            return nonce
+    raise RuntimeAgentProtocolError("nonce_generation_collision")
+
+
+def _signed_runtime_agent_request(
+    *,
+    payload: Mapping[str, Any],
+    secret: str,
+    audience: RuntimeAgentRole,
+) -> tuple[bytes, dict[str, str], str, int]:
+    max_skew_seconds = _runtime_agent_max_skew_seconds()
+    body = _canonical_json_bytes(payload)
+    body_sha256 = _sha256_hex(body)
+    timestamp = str(int(time.time()))
+    nonce = _reserve_runtime_agent_nonce(ttl_seconds=max_skew_seconds * 2)
+    signature = _runtime_agent_signature(
+        secret=secret,
+        protocol_version=RUNTIME_AGENT_PROTOCOL_VERSION,
+        timestamp=timestamp,
+        nonce=nonce,
+        audience=audience,
+        body_sha256=body_sha256,
+    )
+    return (
+        body,
+        {
+            "Content-Type": RUNTIME_AGENT_CONTENT_TYPE,
+            RUNTIME_AGENT_TIMESTAMP_HEADER: timestamp,
+            RUNTIME_AGENT_NONCE_HEADER: nonce,
+            RUNTIME_AGENT_AUDIENCE_HEADER: audience,
+            RUNTIME_AGENT_BODY_SHA256_HEADER: body_sha256,
+            RUNTIME_AGENT_SIGNATURE_HEADER: signature,
+        },
+        nonce,
+        max_skew_seconds,
+    )
+
+
+def _required_response_header(headers: httpx.Headers, name: str, reason: str) -> str:
+    value = headers.get(name)
+    if value is None:
+        raise RuntimeAgentProtocolError(reason)
+    return value
+
+
+def _validate_decimal_unix_seconds_header(value: str, reason: str) -> int:
+    if _DECIMAL_UNIX_SECONDS_RE.fullmatch(value) is None:
+        raise RuntimeAgentProtocolError(reason)
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise RuntimeAgentProtocolError(reason) from exc
+
+
+def _validate_lower_hex_header(value: str, pattern: re.Pattern[str], reason: str) -> str:
+    if pattern.fullmatch(value) is None:
+        raise RuntimeAgentProtocolError(reason)
+    return value
+
+
+def _validate_runtime_agent_response_evidence(
+    *,
+    response: httpx.Response,
+    response_body: bytes,
+    secret: str,
+    request_nonce: str,
+    expected_audience: RuntimeAgentRole,
+    max_skew_seconds: int,
+) -> bytes:
+    response_content_type = response.headers.get("Content-Type")
+    if response_content_type != RUNTIME_AGENT_CONTENT_TYPE:
+        raise RuntimeAgentProtocolError("response_content_type_mismatch")
+    response_timestamp = _required_response_header(
+        response.headers,
+        RUNTIME_AGENT_RESPONSE_TIMESTAMP_HEADER,
+        "response_timestamp_missing",
+    )
+    response_nonce = _required_response_header(
+        response.headers,
+        RUNTIME_AGENT_RESPONSE_NONCE_HEADER,
+        "response_nonce_missing",
+    )
+    response_audience = _required_response_header(
+        response.headers,
+        RUNTIME_AGENT_RESPONSE_AUDIENCE_HEADER,
+        "response_audience_missing",
+    )
+    response_body_sha256 = _required_response_header(
+        response.headers,
+        RUNTIME_AGENT_RESPONSE_BODY_SHA256_HEADER,
+        "response_body_sha256_missing",
+    )
+    response_signature = _required_response_header(
+        response.headers,
+        RUNTIME_AGENT_RESPONSE_SIGNATURE_HEADER,
+        "response_signature_missing",
+    )
+
+    timestamp = _validate_decimal_unix_seconds_header(response_timestamp, "response_timestamp_noncanonical")
+    response_nonce = _validate_lower_hex_header(response_nonce, _LOWER_HEX_32_RE, "response_nonce_noncanonical")
+    response_body_sha256 = _validate_lower_hex_header(
+        response_body_sha256,
+        _LOWER_HEX_64_RE,
+        "response_body_sha256_noncanonical",
+    )
+    response_signature = _validate_lower_hex_header(
+        response_signature,
+        _LOWER_HEX_64_RE,
+        "response_signature_noncanonical",
+    )
+
+    now = int(time.time())
+    if timestamp < now - max_skew_seconds:
+        raise RuntimeAgentProtocolError("response_timestamp_stale")
+    if timestamp > now + max_skew_seconds:
+        raise RuntimeAgentProtocolError("response_timestamp_future")
+    if not hmac.compare_digest(response_nonce, request_nonce):
+        raise RuntimeAgentProtocolError("response_nonce_mismatch")
+    if not hmac.compare_digest(response_audience, expected_audience):
+        raise RuntimeAgentProtocolError("response_audience_mismatch")
+
+    computed_body_sha256 = _sha256_hex(response_body)
+    if not hmac.compare_digest(response_body_sha256, computed_body_sha256):
+        raise RuntimeAgentProtocolError("response_body_sha256_mismatch")
+
+    expected_signature = _runtime_agent_signature(
+        secret=secret,
+        protocol_version=RUNTIME_AGENT_RESPONSE_PROTOCOL_VERSION,
+        timestamp=response_timestamp,
+        nonce=response_nonce,
+        audience=response_audience,
+        body_sha256=response_body_sha256,
+        status_code=response.status_code,
+    )
+    if not hmac.compare_digest(response_signature, expected_signature):
+        raise RuntimeAgentProtocolError("response_signature_mismatch")
+    return response_body
+
+
+async def _read_bounded_runtime_agent_response(response: httpx.Response) -> bytes:
+    body = bytearray()
+    async for chunk in response.aiter_bytes():
+        if len(body) + len(chunk) > RUNTIME_AGENT_MAX_RESPONSE_BODY_BYTES:
+            raise RuntimeAgentProtocolError("response_body_too_large")
+        body.extend(chunk)
+    return bytes(body)
+
+
+def _agent_protocol_failure_payload(
+    *,
+    reason: str,
+    evidence_error: str,
+    target: RuntimeAgentTarget,
+    redaction_values: set[str],
+) -> dict[str, Any]:
+    return _redact_response(
+        _failure_payload(
+            reason,
+            expected_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+            actual_count=len(target.profiles),
+            details={"target_role": target.role, "evidence_error": evidence_error},
+        ),
+        redaction_values,
+    )
 
 
 async def _post_runtime_agent(
@@ -578,16 +866,70 @@ async def _post_runtime_agent(
         write=10.0,
         pool=5.0,
     )
-    async with httpx.AsyncClient(base_url=target.url, timeout=timeout, trust_env=False) as client:
-        response = await client.post(
-            RUNTIME_AGENT_ENDPOINT,
-            json=payload,
-            headers={RUNTIME_AGENT_AUTH_HEADER: target.secret},
+    try:
+        body, headers, request_nonce, max_skew_seconds = _signed_runtime_agent_request(
+            payload=payload,
+            secret=target.secret,
+            audience=target.role,
         )
-        response.raise_for_status()
-        data = response.json()
+    except RuntimeAgentProtocolError as exc:
+        return target.role, _agent_protocol_failure_payload(
+            reason="agent_request_signature_failed",
+            evidence_error=exc.reason,
+            target=target,
+            redaction_values=redaction_values,
+        )
+    async with httpx.AsyncClient(base_url=target.url, timeout=timeout, trust_env=False) as client:
+        async with client.stream(
+            RUNTIME_AGENT_METHOD,
+            RUNTIME_AGENT_ENDPOINT,
+            content=body,
+            headers=headers,
+        ) as response:
+            try:
+                response_body = await _read_bounded_runtime_agent_response(response)
+                response_body = _validate_runtime_agent_response_evidence(
+                    response=response,
+                    response_body=response_body,
+                    secret=target.secret,
+                    request_nonce=request_nonce,
+                    expected_audience=target.role,
+                    max_skew_seconds=max_skew_seconds,
+                )
+            except RuntimeAgentProtocolError as exc:
+                return target.role, _agent_protocol_failure_payload(
+                    reason="agent_invalid_response_evidence",
+                    evidence_error=exc.reason,
+                    target=target,
+                    redaction_values=redaction_values,
+                )
+            if not 200 <= response.status_code < 300:
+                reason = {
+                    422: "agent_request_rejected",
+                    429: "agent_capacity_exhausted",
+                }.get(response.status_code, "agent_signed_http_error")
+                return target.role, _agent_protocol_failure_payload(
+                    reason=reason,
+                    evidence_error=f"response_http_status_{response.status_code}",
+                    target=target,
+                    redaction_values=redaction_values,
+                )
+        try:
+            data = json.loads(response_body)
+        except json.JSONDecodeError:
+            data = _agent_protocol_failure_payload(
+                reason="agent_invalid_json_response",
+                evidence_error="response_json_invalid",
+                target=target,
+                redaction_values=redaction_values,
+            )
         if not isinstance(data, dict):
-            data = {"status": "fail", "reason": "agent_invalid_response", "checks": []}
+            data = _agent_protocol_failure_payload(
+                reason="agent_invalid_response",
+                evidence_error="response_json_not_object",
+                target=target,
+                redaction_values=redaction_values,
+            )
         return target.role, _redact_response(data, redaction_values)
 
 
@@ -603,10 +945,27 @@ def _combine_agent_payloads(
     seen_check_keys: set[str] = set()
     agent_statuses: dict[str, str] = {}
     agent_ids: dict[str, Any] = {}
+    agent_failures: dict[str, dict[str, Any]] = {}
     for role, data in responses:
         status = str(data.get("status") or "degraded")
         agent_statuses[role] = status
-        agent_ids[role] = data.get("agent_id")
+        agent_id = data.get("agent_id")
+        if status == "pass" and (not isinstance(agent_id, str) or not agent_id.strip()):
+            return _failure_payload(
+                "agent_identity_missing",
+                expected_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+                actual_count=len(profiles),
+                details={"target_role": role},
+            )
+        agent_ids[role] = agent_id.strip() if isinstance(agent_id, str) and agent_id.strip() else None
+        if status != "pass":
+            failure: dict[str, Any] = {"reason": str(data.get("reason") or "runtime_agent_failure")}
+            failure_checks = data.get("checks")
+            if isinstance(failure_checks, list) and failure_checks and isinstance(failure_checks[0], Mapping):
+                failure_details = failure_checks[0].get("details")
+                if isinstance(failure_details, Mapping) and failure_details.get("evidence_error"):
+                    failure["evidence_error"] = str(failure_details["evidence_error"])
+            agent_failures[role] = failure
         agent_checks = data.get("checks")
         if not isinstance(agent_checks, list) or not agent_checks:
             return _failure_payload(
@@ -665,6 +1024,14 @@ def _combine_agent_payloads(
                 },
             )
 
+    known_agent_ids = [agent_id for agent_id in agent_ids.values() if isinstance(agent_id, str)]
+    if len(known_agent_ids) > 1 and len(set(known_agent_ids)) != len(known_agent_ids):
+        return _failure_payload(
+            "duplicate_agent_identity",
+            expected_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+            actual_count=len(profiles),
+        )
+
     checks.append(
         {
             "check_key": "runtime.transport_profile_matrix.required",
@@ -697,6 +1064,7 @@ def _combine_agent_payloads(
     }
     if combined_status != "pass":
         payload["reason"] = "runtime_agent_partial_failure"
+        payload["agent_failures"] = agent_failures
     return _redact_response(payload, redaction_values)
 
 
@@ -756,11 +1124,22 @@ async def call_runtime_agent(
     if isinstance(targets_or_failure, dict):
         return _redact_response(targets_or_failure, redaction_values)
     if len(targets_or_failure) == 1:
-        _, data = await _post_runtime_agent(
-            target=targets_or_failure[0],
-            base_payload=payload,
-            redaction_values=redaction_values,
-        )
+        try:
+            _, data = await _post_runtime_agent(
+                target=targets_or_failure[0],
+                base_payload=payload,
+                redaction_values=redaction_values,
+            )
+        except httpx.HTTPError as exc:
+            return _redact_response(
+                _failure_payload(
+                    "agent_request_failed",
+                    expected_count=EXPECTED_RUNTIME_PROFILE_COUNT,
+                    actual_count=len(profiles),
+                    details={"error_type": type(exc).__name__},
+                ),
+                redaction_values,
+            )
         return data
     try:
         responses = await asyncio.gather(

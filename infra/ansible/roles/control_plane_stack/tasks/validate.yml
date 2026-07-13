@@ -100,6 +100,9 @@
       - (control_plane_stack_backend_env.VPN_TEST_AGENT_URL | length > 0) == (control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET | length > 0)
       - (control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_URL | length > 0) == (control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET | length > 0)
       - (control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_URL | length > 0) == (control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET | length > 0)
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_URL | length == 0 or control_plane_stack_backend_env.VPN_TEST_AGENT_URL is match('^https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?/?$') or control_plane_stack_backend_env.VPN_TEST_AGENT_URL is match('^http://cybervpn-vpn-test-agent(?::[0-9]+)?/?$')
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_URL | length == 0 or control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_URL is match('^https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?/?$')
+      - control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_URL | length == 0 or control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_URL is match('^https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?/?$')
       - control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET | length == 0 or control_plane_stack_backend_env.VPN_TEST_AGENT_SECRET | length >= 16
       - control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET | length == 0 or control_plane_stack_backend_env.VPN_TEST_AGENT_MOSCOW_SECRET | length >= 16
       - control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET | length == 0 or control_plane_stack_backend_env.VPN_TEST_AGENT_SPB_SECRET | length >= 16

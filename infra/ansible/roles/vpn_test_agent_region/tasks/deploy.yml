@@ -19,6 +19,24 @@
     mode: "0600"
   no_log: true
 
+- name: VPN test agent region | Install TLS certificate
+  ansible.builtin.copy:
+    content: "{{ vpn_test_agent_region_tls_cert_pem }}"
+    dest: "{{ vpn_test_agent_region_root }}/{{ vpn_test_agent_region_tls_cert_filename }}"
+    owner: root
+    group: root
+    mode: "0444"
+  no_log: true
+
+- name: VPN test agent region | Install TLS private key for the pinned container group
+  ansible.builtin.copy:
+    content: "{{ vpn_test_agent_region_tls_key_pem }}"
+    dest: "{{ vpn_test_agent_region_root }}/{{ vpn_test_agent_region_tls_key_filename }}"
+    owner: root
+    group: "10001"
+    mode: "0440"
+  no_log: true
+
 - name: VPN test agent region | Render compose file
   ansible.builtin.template:
     src: docker-compose.yml.j2

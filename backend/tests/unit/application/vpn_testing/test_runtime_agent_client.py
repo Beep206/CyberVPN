@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 from collections.abc import Callable
+from itertools import count
 from typing import Any
 
 import httpx
@@ -18,6 +21,8 @@ _LOCATIONS = (
     ("RU Moscow", "msk-relay.cyber-vpn.org", 2053, 2083),
     ("RU SPB", "ru-spb-3.cyber-vpn.org", 443, 8443),
 )
+_FIXED_TIME = 1_800_000_000
+_FIXED_MONOTONIC = 10_000.0
 
 
 def _raw_proxy(index: int) -> dict[str, Any]:
@@ -75,15 +80,147 @@ def _transport_counts(profiles: list[dict[str, Any]]) -> dict[str, int]:
     }
 
 
+def _canonical_json_bytes(payload: Any) -> bytes:
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
+
+
+def _sha256_hex(body: bytes) -> str:
+    return hashlib.sha256(body).hexdigest()
+
+
+def _protocol_signature(
+    *,
+    secret: str,
+    protocol_version: str,
+    timestamp: str,
+    nonce: str,
+    audience: str,
+    body_sha256: str,
+    status_code: int | None = None,
+) -> str:
+    status_component = "" if status_code is None else str(status_code)
+    material = (
+        f"{protocol_version}\n{client.RUNTIME_AGENT_METHOD}\n{client.RUNTIME_AGENT_ENDPOINT}\n{status_component}\n"
+        f"{client.RUNTIME_AGENT_CONTENT_TYPE}\n{timestamp}\n{nonce}\n{audience}\n{body_sha256}"
+    ).encode("ascii")
+    return hmac.new(secret.encode("utf-8"), material, hashlib.sha256).hexdigest()
+
+
+def _request_secret(request: dict[str, Any]) -> str:
+    return {
+        "https://primary-agent.internal": "primary-agent-secret",
+        "https://moscow-target-agent.internal": "moscow-target-secret",
+        "https://spb-target-agent.internal": "spb-target-secret",
+    }[request["base_url"]]
+
+
+def _signed_response(
+    request: dict[str, Any],
+    data: Any,
+    *,
+    body: bytes | None = None,
+    timestamp: str | None = None,
+    nonce: str | None = None,
+    header_overrides: dict[str, str] | None = None,
+    drop_headers: tuple[str, ...] = (),
+    status_code: int = 200,
+) -> FakeResponse:
+    response_body = body if body is not None else _canonical_json_bytes(data)
+    response_timestamp = timestamp or request["headers"][client.RUNTIME_AGENT_TIMESTAMP_HEADER]
+    response_nonce = nonce or request["headers"][client.RUNTIME_AGENT_NONCE_HEADER]
+    response_audience = request["headers"][client.RUNTIME_AGENT_AUDIENCE_HEADER]
+    body_sha256 = _sha256_hex(response_body)
+    secret = _request_secret(request)
+    headers = {
+        client.RUNTIME_AGENT_RESPONSE_TIMESTAMP_HEADER: response_timestamp,
+        client.RUNTIME_AGENT_RESPONSE_NONCE_HEADER: response_nonce,
+        client.RUNTIME_AGENT_RESPONSE_AUDIENCE_HEADER: response_audience,
+        "Content-Type": client.RUNTIME_AGENT_CONTENT_TYPE,
+        client.RUNTIME_AGENT_RESPONSE_BODY_SHA256_HEADER: body_sha256,
+        client.RUNTIME_AGENT_RESPONSE_SIGNATURE_HEADER: _protocol_signature(
+            secret=secret,
+            protocol_version=client.RUNTIME_AGENT_RESPONSE_PROTOCOL_VERSION,
+            timestamp=response_timestamp,
+            nonce=response_nonce,
+            audience=response_audience,
+            body_sha256=body_sha256,
+            status_code=status_code,
+        ),
+    }
+    for header in drop_headers:
+        headers.pop(header, None)
+    if header_overrides:
+        headers.update(header_overrides)
+    return FakeResponse(content=response_body, headers=headers, status_code=status_code)
+
+
+def _response_with_tampered_status(request: dict[str, Any]) -> FakeResponse:
+    response = _signed_response(request, {"status": "pass", "checks": []})
+    response.status_code = 503
+    return response
+
+
+def _response_with_duplicate_signature_header(request: dict[str, Any]) -> FakeResponse:
+    response = _signed_response(request, {"status": "pass", "checks": []})
+    response.headers = httpx.Headers(
+        [*response.headers.multi_items(), (client.RUNTIME_AGENT_RESPONSE_SIGNATURE_HEADER, "0" * 64)]
+    )
+    return response
+
+
+def _assert_lower_hex(value: str, expected_length: int) -> None:
+    assert len(value) == expected_length
+    assert all(char in "0123456789abcdef" for char in value)
+
+
+def _assert_valid_request_signature(
+    request: dict[str, Any], secret: str, expected_audience: client.RuntimeAgentRole = "primary"
+) -> None:
+    headers = request["headers"]
+    body = request["content"]
+    body_sha256 = _sha256_hex(body)
+    assert body == _canonical_json_bytes(request["json"])
+    assert "X-VPN-Test-Agent-Secret" not in headers
+    assert headers["Content-Type"] == client.RUNTIME_AGENT_CONTENT_TYPE
+    assert headers[client.RUNTIME_AGENT_TIMESTAMP_HEADER] == str(_FIXED_TIME)
+    _assert_lower_hex(headers[client.RUNTIME_AGENT_NONCE_HEADER], 32)
+    assert headers[client.RUNTIME_AGENT_AUDIENCE_HEADER] == expected_audience
+    assert headers[client.RUNTIME_AGENT_BODY_SHA256_HEADER] == body_sha256
+    _assert_lower_hex(headers[client.RUNTIME_AGENT_BODY_SHA256_HEADER], 64)
+    _assert_lower_hex(headers[client.RUNTIME_AGENT_SIGNATURE_HEADER], 64)
+    assert hmac.compare_digest(
+        headers[client.RUNTIME_AGENT_SIGNATURE_HEADER],
+        _protocol_signature(
+            secret=secret,
+            protocol_version=client.RUNTIME_AGENT_PROTOCOL_VERSION,
+            timestamp=headers[client.RUNTIME_AGENT_TIMESTAMP_HEADER],
+            nonce=headers[client.RUNTIME_AGENT_NONCE_HEADER],
+            audience=expected_audience,
+            body_sha256=body_sha256,
+        ),
+    )
+
+
 class FakeResponse:
-    def __init__(self, data: Any) -> None:
-        self._data = data
+    def __init__(self, *, content: bytes, headers: dict[str, str] | None = None, status_code: int = 200) -> None:
+        self.content = content
+        self.headers = httpx.Headers(headers or {})
+        self.status_code = status_code
+        self.json_called = False
 
     def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            request = httpx.Request("POST", "https://runtime-agent.invalid/internal/v2/runtime-checks")
+            response = httpx.Response(self.status_code, request=request, content=self.content)
+            raise httpx.HTTPStatusError("runtime agent returned error", request=request, response=response)
         return None
 
     def json(self) -> Any:
-        return self._data
+        self.json_called = True
+        return json.loads(self.content)
+
+    async def aiter_bytes(self) -> Any:
+        yield self.content
 
 
 ResponseFactory = Callable[[dict[str, Any]], Any]
@@ -105,11 +242,13 @@ class FakeAsyncClient:
     async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
         return None
 
-    async def post(self, path: str, *, json: dict[str, Any], headers: dict[str, str]) -> FakeResponse:
+    async def post(self, path: str, *, content: bytes, headers: dict[str, str]) -> FakeResponse:
+        payload = json.loads(content)
         request = {
             "base_url": self.base_url,
             "path": path,
-            "json": json,
+            "content": content,
+            "json": payload,
             "headers": headers,
             "trust_env": self.trust_env,
         }
@@ -119,10 +258,29 @@ class FakeAsyncClient:
             raise failure
         response = self.__class__.responses_by_base_url.get(self.base_url)
         if callable(response):
-            return FakeResponse(response(request))
+            produced_response = response(request)
+            if isinstance(produced_response, FakeResponse):
+                return produced_response
+            return _signed_response(request, produced_response)
         if response is not None:
-            return FakeResponse(response)
-        return FakeResponse(_default_response(request))
+            if isinstance(response, FakeResponse):
+                return response
+            return _signed_response(request, response)
+        return _signed_response(request, _default_response(request))
+
+    def stream(self, method: str, path: str, *, content: bytes, headers: dict[str, str]) -> Any:
+        client = self
+
+        class FakeStreamContext:
+            async def __aenter__(self) -> FakeResponse:
+                assert method == "POST"
+                self.response = await client.post(path, content=content, headers=headers)
+                return self.response
+
+            async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+                return None
+
+        return FakeStreamContext()
 
     @classmethod
     def reset(cls) -> None:
@@ -133,7 +291,7 @@ class FakeAsyncClient:
 
 def _default_response(request: dict[str, Any]) -> dict[str, Any]:
     payload = request["json"]
-    secret = request["headers"][client.RUNTIME_AGENT_AUTH_HEADER]
+    secret = _request_secret(request)
     checks = [
         {
             "check_key": "runtime.transport_profile_matrix.required",
@@ -183,7 +341,14 @@ def _configure_primary(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "vpn_test_agent_spb_url", "")
     monkeypatch.setattr(settings, "vpn_test_agent_spb_secret", None)
     monkeypatch.setattr(settings, "vpn_test_agent_timeout_seconds", 20)
+    monkeypatch.setattr(settings, "vpn_test_agent_signature_max_skew_seconds", 60)
+    monkeypatch.setattr(client.time, "time", lambda: _FIXED_TIME)
+    monkeypatch.setattr(client.time, "monotonic", lambda: _FIXED_MONOTONIC)
+    nonces = count(1)
+    monkeypatch.setattr(client.secrets, "token_hex", lambda size: f"{next(nonces):0{size * 2}x}")
     monkeypatch.setattr(client.httpx, "AsyncClient", FakeAsyncClient)
+    with client._runtime_agent_nonce_cache_lock:
+        client._runtime_agent_nonce_cache.clear()
     FakeAsyncClient.reset()
 
 
@@ -212,6 +377,12 @@ def _assert_no_sensitive_values(result: dict[str, Any], requests: list[dict[str,
             assert profile["short_id"] not in serialized
 
 
+def _response_evidence_error(result: dict[str, Any]) -> str:
+    details = result["checks"][0]["details"]
+    assert isinstance(details, dict)
+    return str(details["evidence_error"])
+
+
 def test_settings_accept_optional_regional_agent_targets() -> None:
     configured = Settings(
         environment="development",
@@ -230,6 +401,33 @@ def test_settings_accept_optional_regional_agent_targets() -> None:
     assert configured.vpn_test_agent_spb_url == "https://spb-target-agent.internal"
     assert configured.vpn_test_agent_spb_secret is not None
     assert configured.vpn_test_agent_spb_secret.get_secret_value() == "spb-target-secret"
+    assert configured.vpn_test_agent_signature_max_skew_seconds == 60
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://regional-agent.example:18080", "https://regional-agent.example:18080"),
+        ("http://cybervpn-vpn-test-agent:8080", "http://cybervpn-vpn-test-agent:8080"),
+        ("http://regional-agent.example:18080", ""),
+        ("https://user:password@regional-agent.example:18080", ""),
+        ("https://regional-agent.example:18080/runtime", ""),
+    ],
+)
+def test_agent_url_allows_only_https_or_local_compose_http(url: str, expected: str) -> None:
+    assert client._agent_url(url) == expected
+
+
+@pytest.mark.parametrize("skew_seconds", [0, -1, 301])
+def test_settings_reject_invalid_runtime_agent_signature_skew(skew_seconds: int) -> None:
+    with pytest.raises(ValueError, match="VPN_TEST_AGENT_SIGNATURE_MAX_SKEW_SECONDS"):
+        Settings(
+            environment="development",
+            jwt_secret=SecretStr("xVanw-qakEZA0v_T5mJ9GSCJkTzoWYpHMJDX02lFg-B8"),
+            remnawave_token=SecretStr("valid_token_for_testing_purposes_32characters"),
+            cryptobot_token=SecretStr("valid_token_for_testing_purposes_32characters"),
+            vpn_test_agent_signature_max_skew_seconds=skew_seconds,
+        )
 
 
 @pytest.mark.asyncio
@@ -255,7 +453,12 @@ async def test_call_runtime_agent_derives_payload_from_generated_mihomo_and_reda
     assert request["base_url"] == "https://primary-agent.internal"
     assert request["path"] == client.RUNTIME_AGENT_ENDPOINT
     assert request["trust_env"] is False
-    assert request["headers"] == {client.RUNTIME_AGENT_AUTH_HEADER: "primary-agent-secret"}
+    _assert_valid_request_signature(request, "primary-agent-secret")
+    with client._runtime_agent_nonce_cache_lock:
+        assert (
+            client._runtime_agent_nonce_cache[request["headers"][client.RUNTIME_AGENT_NONCE_HEADER]]
+            == _FIXED_MONOTONIC + settings.vpn_test_agent_signature_max_skew_seconds * 2
+        )
     assert payload["runtime_mode"] == "proxy-only"
     assert payload["request_scope"] == "full"
     assert len(profiles) == client.EXPECTED_RUNTIME_PROFILE_COUNT
@@ -272,6 +475,156 @@ async def test_call_runtime_agent_derives_payload_from_generated_mihomo_and_reda
     assert profile_check["details"]["uuid"] == "<redacted>"
     assert "<redacted>" in profile_check["safe_summary"]
     _assert_no_sensitive_values(result, FakeAsyncClient.requests)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("response_factory", "expected_error"),
+    [
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                {"status": "pass", "checks": []},
+                drop_headers=(client.RUNTIME_AGENT_RESPONSE_TIMESTAMP_HEADER,),
+            ),
+            "response_timestamp_missing",
+            id="missing-timestamp",
+        ),
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                {"status": "pass", "checks": []},
+                timestamp=str(_FIXED_TIME - 61),
+            ),
+            "response_timestamp_stale",
+            id="stale-timestamp",
+        ),
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                {"status": "pass", "checks": []},
+                timestamp=str(_FIXED_TIME + 61),
+            ),
+            "response_timestamp_future",
+            id="future-timestamp",
+        ),
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                {"status": "pass", "checks": []},
+                nonce="f" * 32,
+            ),
+            "response_nonce_mismatch",
+            id="nonce-mismatch",
+        ),
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                {"status": "pass", "checks": []},
+                drop_headers=(client.RUNTIME_AGENT_RESPONSE_AUDIENCE_HEADER,),
+            ),
+            "response_audience_missing",
+            id="missing-audience",
+        ),
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                {"status": "pass", "checks": []},
+                header_overrides={client.RUNTIME_AGENT_RESPONSE_AUDIENCE_HEADER: "spb"},
+            ),
+            "response_audience_mismatch",
+            id="audience-mismatch",
+        ),
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                {"status": "pass", "checks": []},
+                header_overrides={"Content-Type": "text/plain"},
+            ),
+            "response_content_type_mismatch",
+            id="content-type-mismatch",
+        ),
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                None,
+                body=b"x" * (client.RUNTIME_AGENT_MAX_RESPONSE_BODY_BYTES + 1),
+            ),
+            "response_body_too_large",
+            id="oversized-body",
+        ),
+        pytest.param(
+            _response_with_tampered_status,
+            "response_signature_mismatch",
+            id="status-tamper",
+        ),
+        pytest.param(
+            _response_with_duplicate_signature_header,
+            "response_signature_noncanonical",
+            id="duplicate-signature-header",
+        ),
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                {"status": "pass", "checks": []},
+                header_overrides={client.RUNTIME_AGENT_RESPONSE_BODY_SHA256_HEADER: "0" * 64},
+            ),
+            "response_body_sha256_mismatch",
+            id="body-hash-mismatch",
+        ),
+        pytest.param(
+            lambda request: _signed_response(
+                request,
+                {"status": "pass", "checks": []},
+                header_overrides={client.RUNTIME_AGENT_RESPONSE_SIGNATURE_HEADER: "0" * 64},
+            ),
+            "response_signature_mismatch",
+            id="signature-mismatch",
+        ),
+    ],
+)
+async def test_call_runtime_agent_rejects_invalid_response_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    response_factory: ResponseFactory,
+    expected_error: str,
+) -> None:
+    _configure_primary(monkeypatch)
+    FakeAsyncClient.responses_by_base_url["https://primary-agent.internal"] = response_factory
+
+    result = await client.call_runtime_agent(
+        run_id="run-invalid-evidence",
+        suite_key="premium_smart_ru_v1",
+        mode="runtime",
+        route_entries=[],
+        generated_mihomo_artifact=_generated_mihomo(),
+    )
+
+    assert result["status"] == "fail"
+    assert result["reason"] == "agent_invalid_response_evidence"
+    assert _response_evidence_error(result) == expected_error
+    _assert_no_sensitive_values(result, FakeAsyncClient.requests)
+
+
+@pytest.mark.asyncio
+async def test_call_runtime_agent_rejects_signed_non_json_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    _configure_primary(monkeypatch)
+    FakeAsyncClient.responses_by_base_url["https://primary-agent.internal"] = lambda request: _signed_response(
+        request,
+        None,
+        body=b"not-json",
+    )
+
+    result = await client.call_runtime_agent(
+        run_id="run-invalid-json",
+        suite_key="premium_smart_ru_v1",
+        mode="runtime",
+        route_entries=[],
+        generated_mihomo_artifact=_generated_mihomo(),
+    )
+
+    assert result["status"] == "fail"
+    assert result["reason"] == "agent_invalid_json_response"
+    assert _response_evidence_error(result) == "response_json_invalid"
 
 
 @pytest.mark.asyncio
@@ -310,15 +663,14 @@ async def test_call_runtime_agent_splits_moscow_and_spb_targets_and_combines_uni
     assert by_url["https://spb-target-agent.internal"]["json"]["request_scope"] == "shard"
     assert _transport_counts(moscow_profiles) == {"raw": 1, "xhttp": 1}
     assert _transport_counts(spb_profiles) == {"raw": 1, "xhttp": 1}
-    assert by_url["https://primary-agent.internal"]["headers"] == {
-        client.RUNTIME_AGENT_AUTH_HEADER: "primary-agent-secret"
-    }
-    assert by_url["https://moscow-target-agent.internal"]["headers"] == {
-        client.RUNTIME_AGENT_AUTH_HEADER: "moscow-target-secret"
-    }
-    assert by_url["https://spb-target-agent.internal"]["headers"] == {
-        client.RUNTIME_AGENT_AUTH_HEADER: "spb-target-secret"
-    }
+    _assert_valid_request_signature(by_url["https://primary-agent.internal"], "primary-agent-secret")
+    _assert_valid_request_signature(
+        by_url["https://moscow-target-agent.internal"], "moscow-target-secret", expected_audience="moscow"
+    )
+    _assert_valid_request_signature(
+        by_url["https://spb-target-agent.internal"], "spb-target-secret", expected_audience="spb"
+    )
+    assert len({request["headers"][client.RUNTIME_AGENT_NONCE_HEADER] for request in by_url.values()}) == 3
     check_keys = [item["check_key"] for item in result["checks"]]
     assert len(check_keys) == len(set(check_keys))
     assert {key for key in check_keys if key.startswith(("runtime.transport.raw.", "runtime.transport.xhttp."))} == {
@@ -396,6 +748,36 @@ async def test_call_runtime_agent_fails_closed_for_partial_regional_target_confi
     assert result["reason"] == reason
     assert FakeAsyncClient.requests == []
     assert "regional-agent.internal" not in json.dumps(result)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("duplicate_kind", "expected_reason"),
+    [("url", "duplicate_agent_target_url"), ("secret", "duplicate_agent_target_secret")],
+)
+async def test_call_runtime_agent_rejects_duplicate_regional_target_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+    duplicate_kind: str,
+    expected_reason: str,
+) -> None:
+    _configure_primary(monkeypatch)
+    _configure_moscow_target(monkeypatch)
+    if duplicate_kind == "url":
+        monkeypatch.setattr(settings, "vpn_test_agent_moscow_url", settings.vpn_test_agent_url)
+    else:
+        monkeypatch.setattr(settings, "vpn_test_agent_moscow_secret", settings.vpn_test_agent_secret)
+
+    result = await client.call_runtime_agent(
+        run_id="run-duplicate-target",
+        suite_key="premium_smart_ru_v1",
+        mode="runtime",
+        route_entries=[],
+        generated_mihomo_artifact=_generated_mihomo(),
+    )
+
+    assert result["status"] == "fail"
+    assert result["reason"] == expected_reason
+    assert FakeAsyncClient.requests == []
 
 
 @pytest.mark.asyncio
@@ -515,6 +897,61 @@ async def test_call_runtime_agent_fails_closed_when_regional_request_errors(
 
 
 @pytest.mark.asyncio
+async def test_call_runtime_agent_preserves_regional_protocol_failure_diagnostic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _configure_primary(monkeypatch)
+    _configure_moscow_target(monkeypatch)
+    FakeAsyncClient.responses_by_base_url["https://moscow-target-agent.internal"] = FakeResponse(
+        content=b"{}",
+        headers={"Content-Type": client.RUNTIME_AGENT_CONTENT_TYPE},
+    )
+
+    result = await client.call_runtime_agent(
+        run_id="run-regional-protocol-failure",
+        suite_key="premium_smart_ru_v1",
+        mode="runtime",
+        route_entries=[],
+        generated_mihomo_artifact=_generated_mihomo(),
+    )
+
+    assert result["status"] == "fail"
+    assert result["reason"] == "runtime_agent_partial_failure"
+    assert result["agent_failures"]["moscow"] == {
+        "reason": "agent_invalid_response_evidence",
+        "evidence_error": "response_timestamp_missing",
+    }
+
+
+@pytest.mark.asyncio
+async def test_call_runtime_agent_preserves_signed_regional_capacity_diagnostic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _configure_primary(monkeypatch)
+    _configure_moscow_target(monkeypatch)
+    FakeAsyncClient.responses_by_base_url["https://moscow-target-agent.internal"] = lambda request: _signed_response(
+        request,
+        {"detail": "Runtime capacity exhausted."},
+        status_code=429,
+    )
+
+    result = await client.call_runtime_agent(
+        run_id="run-regional-capacity-failure",
+        suite_key="premium_smart_ru_v1",
+        mode="runtime",
+        route_entries=[],
+        generated_mihomo_artifact=_generated_mihomo(),
+    )
+
+    assert result["status"] == "fail"
+    assert result["reason"] == "runtime_agent_partial_failure"
+    assert result["agent_failures"]["moscow"] == {
+        "reason": "agent_capacity_exhausted",
+        "evidence_error": "response_http_status_429",
+    }
+
+
+@pytest.mark.asyncio
 async def test_call_runtime_agent_fails_closed_when_combined_check_keys_duplicate(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -541,6 +978,30 @@ async def test_call_runtime_agent_fails_closed_when_combined_check_keys_duplicat
     assert result["reason"] == "duplicate_agent_check_keys"
     check_keys = [item["check_key"] for item in result["checks"]]
     assert len(check_keys) == len(set(check_keys))
+
+
+@pytest.mark.asyncio
+async def test_call_runtime_agent_fails_closed_when_agent_identity_is_reused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _configure_primary(monkeypatch)
+    _configure_moscow_target(monkeypatch)
+    for url in ("https://primary-agent.internal", "https://moscow-target-agent.internal"):
+        FakeAsyncClient.responses_by_base_url[url] = lambda request: {
+            **_default_response(request),
+            "agent_id": "duplicate-agent-id",
+        }
+
+    result = await client.call_runtime_agent(
+        run_id="run-duplicate-agent-id",
+        suite_key="premium_smart_ru_v1",
+        mode="runtime",
+        route_entries=[],
+        generated_mihomo_artifact=_generated_mihomo(),
+    )
+
+    assert result["status"] == "fail"
+    assert result["reason"] == "duplicate_agent_identity"
 
 
 @pytest.mark.asyncio

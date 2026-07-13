@@ -621,11 +621,28 @@ class TestVpnRuntimeAgentProductionSettings:
 
     def test_production_runtime_accepts_strong_agent_targets(self) -> None:
         configured = self._production_settings(
-            vpn_test_agent_moscow_url="http://moscow-agent:18080",
+            vpn_test_agent_moscow_url="https://moscow-agent.example:18080",
             vpn_test_agent_moscow_secret=SecretStr("liveMoscowRuntimeAgentCredentialAlpha123"),
         )
 
         assert configured.vpn_tester_runtime_enabled is True
+
+    @pytest.mark.parametrize(
+        ("url_field", "secret_field"),
+        [
+            ("vpn_test_agent_url", "vpn_test_agent_secret"),
+            ("vpn_test_agent_moscow_url", "vpn_test_agent_moscow_secret"),
+            ("vpn_test_agent_spb_url", "vpn_test_agent_spb_secret"),
+        ],
+    )
+    def test_production_runtime_rejects_remote_plaintext_agent_urls(self, url_field: str, secret_field: str) -> None:
+        with pytest.raises(ValidationError, match="must use HTTPS"):
+            self._production_settings(
+                **{
+                    url_field: "http://remote-agent.example:18080",
+                    secret_field: SecretStr("liveRegionalRuntimeAgentCredentialAlpha123"),
+                }
+            )
 
 
 class TestS2OAuthProductionReadiness:
