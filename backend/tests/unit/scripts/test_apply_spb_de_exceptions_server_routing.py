@@ -157,6 +157,7 @@ def _args(tmp_path: Path, manifest_path: Path, module: ModuleType) -> argparse.N
         task2_route_evidence_enabled="false",
         task2_xray_webhook_secret="",
         task2_synthetic_user="",
+        task2_synthetic_xray_email="",
         task2_route_evidence_webhook_url=module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
         skip_local_socket_preflight=True,
         allow_remnawave_host=["remnawave", "localhost", "127.0.0.1", "::1"],
@@ -369,7 +370,15 @@ def test_task2_route_evidence_config_is_all_or_none_and_https_only(tmp_path: Pat
     config = module._task2_route_evidence_config(args)
     assert config.enabled is True
     assert config.synthetic_user == "task2_probe"
+    assert config.synthetic_xray_email == ""
     assert config.webhook_url == module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL
+
+    args.task2_synthetic_xray_email = "0042"
+    with pytest.raises(RuntimeError, match="positive decimal tId"):
+        module._task2_route_evidence_config(args)
+
+    args.task2_synthetic_xray_email = "42"
+    assert module._task2_route_evidence_config(args).synthetic_xray_email == "42"
 
 
 def test_task2_route_evidence_parser_uses_exact_env_names(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -377,6 +386,7 @@ def test_task2_route_evidence_parser_uses_exact_env_names(monkeypatch: pytest.Mo
     monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED", "true")
     monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET", "env-secret")
     monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_USER", "env_task2_probe")
+    monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL", "42")
     monkeypatch.setattr(sys, "argv", ["apply-spb-de-exceptions-server-routing.py"])
 
     args = module._parse_args()
@@ -384,7 +394,15 @@ def test_task2_route_evidence_parser_uses_exact_env_names(monkeypatch: pytest.Mo
     assert args.task2_route_evidence_enabled == "true"
     assert args.task2_xray_webhook_secret == "env-secret"
     assert args.task2_synthetic_user == "env_task2_probe"
+    assert args.task2_synthetic_xray_email == "42"
     assert args.task2_route_evidence_webhook_url == module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL
+
+
+def test_task2_synthetic_user_tag_fits_remnawave_2_8_contract() -> None:
+    module = _load_module()
+
+    assert module.TASK2_SYNTHETIC_USER_TAG == "TASK2_ROUTE_TEST"
+    assert len(module.TASK2_SYNTHETIC_USER_TAG) <= 16
 
 
 def test_task2_route_evidence_webhooks_are_synthetic_only_and_ordered() -> None:
@@ -392,6 +410,7 @@ def test_task2_route_evidence_webhooks_are_synthetic_only_and_ordered() -> None:
     route_evidence = module.Task2RouteEvidenceConfig(
         enabled=True,
         synthetic_user="task2_probe_username",
+        synthetic_xray_email="42",
         webhook_url=module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
         webhook_secret="unit-test-secret",
     )
@@ -429,7 +448,7 @@ def test_task2_route_evidence_webhooks_are_synthetic_only_and_ordered() -> None:
     assert synthetic_rules[2]["network"] == "tcp,udp"
 
     for rule in synthetic_rules:
-        assert rule["user"] == ["task2_probe_username"]
+        assert rule["user"] == ["42"]
         assert rule["webhook"] == {
             "url": module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
             "deduplication": module.TASK2_XRAY_WEBHOOK_DEDUPLICATION_SECONDS,
@@ -442,11 +461,12 @@ def test_task2_route_evidence_webhooks_are_synthetic_only_and_ordered() -> None:
     assert all("user" not in rule for rule in ordinary_rules)
 
 
-def test_task2_route_evidence_user_matcher_uses_exact_configured_username() -> None:
+def test_task2_route_evidence_user_matcher_uses_exact_remnawave_tid() -> None:
     module = _load_module()
     route_evidence = module.Task2RouteEvidenceConfig(
         enabled=True,
         synthetic_user="task2_probe_username",
+        synthetic_xray_email="42",
         webhook_url=module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
         webhook_secret="unit-test-secret",
     )
@@ -454,6 +474,7 @@ def test_task2_route_evidence_user_matcher_uses_exact_configured_username() -> N
         "uuid": "550e8400-e29b-41d4-a716-446655440000",
         "shortUuid": "SHORT123",
         "username": "task2_probe_username",
+        "tId": 42,
         "vlessUuid": "550e8400-e29b-41d4-a716-446655440002",
         "tag": module.TASK2_SYNTHETIC_USER_TAG,
     }
@@ -462,6 +483,7 @@ def test_task2_route_evidence_user_matcher_uses_exact_configured_username() -> N
         remnawave_user,
         expected_username=route_evidence.synthetic_user,
     )
+    bound = module._bind_task2_synthetic_xray_email(route_evidence, remnawave_user)
     rules = module._task2_route_evidence_rules(
         [
             {
@@ -472,14 +494,43 @@ def test_task2_route_evidence_user_matcher_uses_exact_configured_username() -> N
             }
         ],
         module.SPB_CUSTOMER_INBOUND_TAGS,
-        route_evidence,
+        bound,
     )
 
     assert remnawave_user["username"] != remnawave_user["shortUuid"]
     assert remnawave_user["username"] != remnawave_user["vlessUuid"]
-    assert rules[0]["user"] == ["task2_probe_username"]
+    assert rules[0]["user"] == ["42"]
+    assert rules[0]["user"] != [remnawave_user["username"]]
     assert rules[0]["user"] != [remnawave_user["shortUuid"]]
     assert rules[0]["user"] != [remnawave_user["vlessUuid"]]
+
+    with pytest.raises(RuntimeError, match="does not match"):
+        module._bind_task2_synthetic_xray_email(
+            module.Task2RouteEvidenceConfig(
+                enabled=True,
+                synthetic_user="task2_probe_username",
+                synthetic_xray_email="43",
+            ),
+            remnawave_user,
+        )
+
+
+def test_task2_route_evidence_rejects_missing_remnawave_tid() -> None:
+    module = _load_module()
+    route_evidence = module.Task2RouteEvidenceConfig(
+        enabled=True,
+        synthetic_user="task2_probe_username",
+    )
+
+    with pytest.raises(RuntimeError, match="positive tId"):
+        module._bind_task2_synthetic_xray_email(
+            route_evidence,
+            {
+                "uuid": "550e8400-e29b-41d4-a716-446655440000",
+                "username": "task2_probe_username",
+                "tag": module.TASK2_SYNTHETIC_USER_TAG,
+            },
+        )
 
 
 def test_preserved_inbounds_are_globally_unique_and_routing_references_follow() -> None:
@@ -1046,6 +1097,7 @@ def test_dry_run_route_evidence_redacts_secret_url_and_user_identifiers(
                     "uuid": "probe-user-uuid",
                     "shortUuid": "PROBE123",
                     "username": "task2_probe_username",
+                    "tId": 42,
                     "vlessUuid": "550e8400-e29b-41d4-a716-446655440002",
                     "ssPassword": "secret-ss-password",
                     "subscriptionUrl": "https://vpn.example.com/sub/task2_probe_username",
@@ -1077,6 +1129,7 @@ def test_dry_run_route_evidence_redacts_secret_url_and_user_identifiers(
         "task2_probe_username",
         "probe-user-uuid",
         "PROBE123",
+        '"42"',
         "550e8400-e29b-41d4-a716-446655440002",
         "secret-ss-password",
         "https://vpn.example.com/sub/task2_probe_username",
@@ -1317,7 +1370,7 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                     ]
                     assert synthetic_rules[0]["outboundTag"] == module.BRIDGE_OUTBOUND_TAG
                     assert synthetic_rules[1]["outboundTag"] == "DIRECT"
-                    assert all(rule["user"] == ["task2_probe_username"] for rule in synthetic_rules)
+                    assert all(rule["user"] == ["42"] for rule in synthetic_rules)
                     assert all(
                         rule["webhook"]["url"] == module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL for rule in synthetic_rules
                     )
@@ -1370,6 +1423,7 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                         "uuid": "task2-probe-user",
                         "shortUuid": "PROBE123",
                         "username": body["username"],
+                        "tId": 42,
                         "vlessUuid": body["vlessUuid"],
                         "activeInternalSquads": body["activeInternalSquads"],
                         "externalSquadUuid": None,

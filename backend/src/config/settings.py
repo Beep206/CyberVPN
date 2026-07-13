@@ -128,6 +128,7 @@ class Settings(BaseSettings):
     vpn_tester_task2_route_evidence_enabled: bool = False
     vpn_tester_task2_xray_webhook_secret: SecretStr = SecretStr("")
     vpn_tester_task2_synthetic_user: str = "cybervpn-task2-route-evidence"
+    vpn_tester_task2_synthetic_xray_email: str = ""
     vpn_tester_task2_route_evidence_expectation_ttl_seconds: int = 300
     vpn_tester_task2_route_evidence_result_ttl_seconds: int = 86400
     vpn_tester_task2_xray_webhook_max_skew_seconds: int = 60
@@ -793,6 +794,18 @@ class Settings(BaseSettings):
             raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_USER must not contain whitespace.")
         return v
 
+    @field_validator("vpn_tester_task2_synthetic_xray_email", mode="before")
+    @classmethod
+    def normalize_vpn_tester_task2_synthetic_xray_email(cls, v: str | int | None) -> str:
+        return str(v or "").strip()
+
+    @field_validator("vpn_tester_task2_synthetic_xray_email", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_synthetic_xray_email(cls, v: str) -> str:
+        if v and (not v.isascii() or not v.isdigit() or v.startswith("0") or len(v) > 19):
+            raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL must be a positive Remnawave tId decimal value.")
+        return v
+
     @field_validator("vpn_tester_task2_route_evidence_expectation_ttl_seconds", mode="after")
     @classmethod
     def validate_vpn_tester_task2_route_evidence_expectation_ttl_seconds(cls, v: int) -> int:
@@ -845,6 +858,8 @@ class Settings(BaseSettings):
             raise ValueError("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET must not be a placeholder/test value in production.")
         if not self.vpn_tester_task2_synthetic_user:
             raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_USER is required when Task2 route evidence is enabled.")
+        if not self.vpn_tester_task2_synthetic_xray_email:
+            raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL is required when Task2 route evidence is enabled.")
 
         for label, secret in (
             ("BACKEND_INTERNAL_SECRET", self.backend_internal_secret),

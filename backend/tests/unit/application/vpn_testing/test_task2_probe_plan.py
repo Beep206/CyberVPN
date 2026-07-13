@@ -9,7 +9,11 @@ import pytest
 
 from src.application.services.vpn_product_readiness import VpnProductReadinessError
 from src.application.vpn_testing.suite_loader import load_default_route_registries
-from src.application.vpn_testing.task2_probe_plan import build_task2_route_probe_specs
+from src.application.vpn_testing.task2_probe_plan import (
+    TASK2_ANTIFILTER_CATEGORIES,
+    TASK2_ARTIFACT_CATEGORY_NAMES,
+    build_task2_route_probe_specs,
+)
 from src.config.settings import settings
 
 
@@ -36,27 +40,13 @@ def _write_store(
     category_dir.mkdir(parents=True)
     union_dir.mkdir()
 
-    categories = (
-        "rkn",
-        "meta",
-        "twitter_x",
-        "netflix",
-        "cloudfront",
-        "microsoft",
-        "amazon",
-        "openai",
-        "youtube",
-        "google",
-        "telegram",
-        "discord",
-        "custom_networks",
-    )
     artifacts: dict[str, str] = {}
     union_lines: list[str] = []
-    for index, category in enumerate(categories):
+    for index, category in enumerate(TASK2_ANTIFILTER_CATEGORIES):
         line = "8.8.8.0/24" if shared_category_network else f"8.8.{index}.0/24"
         raw = f"{line}\n".encode("ascii")
-        relative = f"categories/{category}.ipv4.cidr"
+        artifact_category = TASK2_ARTIFACT_CATEGORY_NAMES.get(category, category)
+        relative = f"categories/{artifact_category}.ipv4.cidr"
         (version_dir / relative).write_bytes(raw)
         artifacts[relative] = hashlib.sha256(raw).hexdigest()
         union_lines.append(line)

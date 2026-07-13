@@ -322,7 +322,12 @@ async def test_task2_contract_uses_spb_de_semantics_without_smart_ru_false_passe
     assert by_key["premium_spb_de_exceptions.connection_modes"]["status"] == "pass"
     assert by_key["premium_spb_de_exceptions.exception_categories_de"]["status"] == "pass"
     assert by_key["premium_spb_de_exceptions.default_spb_direct"]["status"] == "pass"
-    assert by_key["premium_spb_de_exceptions.bridge_down_fail_closed"]["status"] == "pass"
+    bridge_down = by_key["premium_spb_de_exceptions.bridge_down_fail_closed"]
+    assert bridge_down["status"] == "degraded"
+    assert bridge_down["details"] == {
+        "metadata_contract_only": True,
+        "runtime_evidence_claimed": False,
+    }
     assert by_key["premium_spb_de_exceptions.route_registry"]["status"] == "pass"
     assert by_key["premium_spb_de_exceptions.readiness_gate"]["status"] == "pass"
     assert by_key["premium_spb_de_exceptions.runtime_evidence"]["status"] == "degraded"
@@ -406,7 +411,22 @@ async def test_task2_runtime_dispatches_only_to_task2_client_when_enabled(monkey
     monkeypatch.setattr(settings, "vpn_tester_runtime_enabled", True)
     monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_enabled", True)
     monkeypatch.setattr(settings, "vpn_tester_synthetic_users_enabled", True)
-    service = VpnTesterService(SimpleNamespace(), redis_client=SimpleNamespace())
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_user", "task2-route-probe")
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_xray_email", "94")
+    remnawave_client = SimpleNamespace(
+        get=AsyncMock(
+            return_value={
+                "id": 94,
+                "username": "task2-route-probe",
+                "vlessUuid": "00000000-0000-4000-8000-000000000094",
+            }
+        )
+    )
+    service = VpnTesterService(
+        SimpleNamespace(),
+        remnawave_client=remnawave_client,
+        redis_client=SimpleNamespace(),
+    )
     run = SimpleNamespace(id=uuid4(), suite_key="premium_spb_de_exceptions_v1", mode="runtime")
 
     results = await service._runtime_results(run, [], generated_mihomo_artifact={"proxies": []})
@@ -416,7 +436,73 @@ async def test_task2_runtime_dispatches_only_to_task2_client_when_enabled(monkey
     assert results[-1]["check_key"] == "premium_spb_de_exceptions.runtime.completeness"
     assert results[-1]["status"] == "degraded"
     task2_runtime_agent.assert_awaited_once()
+    assert task2_runtime_agent.await_args.kwargs["synthetic_vless_uuid"] == ("00000000-0000-4000-8000-000000000094")
+    remnawave_client.get.assert_awaited_once_with("/users/by-username/task2-route-probe")
     smart_runtime_agent.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_task2_runtime_fails_closed_when_synthetic_xray_identity_mismatches(monkeypatch) -> None:
+    task2_runtime_agent = AsyncMock()
+    monkeypatch.setattr(service_module, "call_task2_runtime_agent", task2_runtime_agent)
+    monkeypatch.setattr(service_module, "task2_runtime_agent_configured", lambda: True)
+    monkeypatch.setattr(settings, "vpn_tester_runtime_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_synthetic_users_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_user", "task2-route-probe")
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_xray_email", "94")
+    remnawave_client = SimpleNamespace(
+        get=AsyncMock(
+            return_value={
+                "id": 93,
+                "username": "task2-route-probe",
+                "vlessUuid": "00000000-0000-4000-8000-000000000094",
+            }
+        )
+    )
+    service = VpnTesterService(
+        SimpleNamespace(),
+        remnawave_client=remnawave_client,
+        redis_client=SimpleNamespace(),
+    )
+    run = SimpleNamespace(id=uuid4(), suite_key="premium_spb_de_exceptions_v1", mode="runtime")
+
+    results = await service._runtime_results(run, [], generated_mihomo_artifact={"proxies": []})
+
+    assert results[0]["check_key"] == "premium_spb_de_exceptions.runtime.synthetic_identity"
+    assert results[0]["status"] == "fail"
+    task2_runtime_agent.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_task2_runtime_fails_closed_when_synthetic_identity_lookup_fails(monkeypatch) -> None:
+    task2_runtime_agent = AsyncMock()
+    monkeypatch.setattr(service_module, "call_task2_runtime_agent", task2_runtime_agent)
+    monkeypatch.setattr(service_module, "task2_runtime_agent_configured", lambda: True)
+    monkeypatch.setattr(settings, "vpn_tester_runtime_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_synthetic_users_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_user", "task2-route-probe")
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_xray_email", "94")
+    remnawave_client = SimpleNamespace(get=AsyncMock(side_effect=service_module.HTTPError("provider unavailable")))
+    service = VpnTesterService(
+        SimpleNamespace(),
+        remnawave_client=remnawave_client,
+        redis_client=SimpleNamespace(),
+    )
+    run = SimpleNamespace(id=uuid4(), suite_key="premium_spb_de_exceptions_v1", mode="runtime")
+
+    results = await service._runtime_results(run, [], generated_mihomo_artifact={"proxies": []})
+
+    assert results[0]["check_key"] == "premium_spb_de_exceptions.runtime.synthetic_identity"
+    assert results[0]["status"] == "fail"
+    assert results[0]["details"] == {
+        "error_type": "HTTPError",
+        "runtime_agent_dispatched": False,
+        "runtime_evidence_status": "not_claimed",
+    }
+    assert "provider unavailable" not in str(results[0])
+    task2_runtime_agent.assert_not_awaited()
 
 
 @pytest.mark.asyncio

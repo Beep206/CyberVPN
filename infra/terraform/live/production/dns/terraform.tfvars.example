@@ -74,13 +74,31 @@ records = {
     proxied      = false
     comment      = "CyberVPN Task2 SPB exceptions shared customer ingress IPv4"
   }
-  task2-evidence-origin-ipv4 = {
+  task2-evidence-origin-ipv6 = {
     name         = "task2-evidence.cyber-vpn.org"
+    content      = "2a0d:2787:1b:12f5::a"
+    record_class = "vpn-node"
+    type         = "AAAA"
+    ttl          = 300
+    proxied      = false
+    comment      = "CyberVPN Task2 synthetic route evidence DNS-only origin IPv6"
+  }
+  vpn-test-moscow-agent-ipv4 = {
+    name         = "vpn-test-moscow.cyber-vpn.org"
+    content      = "193.233.91.99"
+    record_class = "vpn-node"
+    type         = "A"
+    ttl          = 300
+    proxied      = false
+    comment      = "CyberVPN Moscow-target regional VPN Tester TLS origin IPv4"
+  }
+  vpn-test-spb-agent-ipv4 = {
+    name         = "vpn-test-spb.cyber-vpn.org"
     content      = "45.87.41.146"
     record_class = "vpn-node"
     type         = "A"
     ttl          = 300
     proxied      = false
-    comment      = "CyberVPN Task2 synthetic route evidence DNS-only origin IPv4"
+    comment      = "CyberVPN SPB-target regional VPN Tester TLS origin IPv4"
   }
 }

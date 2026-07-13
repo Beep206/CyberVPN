@@ -36,6 +36,8 @@ from src.config.settings import settings
 
 TASK2_SUITE_ID = "premium_spb_de_exceptions_v1"
 TASK2_SERVER = "spb-exceptions.cyber-vpn.org"
+TASK2_SERVER_IPV4 = "193.233.91.99"
+TASK2_ALLOWED_SERVERS = frozenset({TASK2_SERVER, TASK2_SERVER_IPV4})
 TASK2_PORTS = {"raw": 4443, "xhttp": 8444}
 TASK2_RESULT_POLL_SECONDS = 5.0
 TASK2_RESULT_POLL_INTERVAL_SECONDS = 0.1
@@ -100,7 +102,7 @@ class Task2RuntimeProfile(BaseModel):
     @classmethod
     def validate_server(cls, value: str) -> str:
         normalized = value.lower()
-        if normalized != TASK2_SERVER:
+        if normalized not in TASK2_ALLOWED_SERVERS:
             raise ValueError("task2_runtime_server_not_allowed")
         return normalized
 
@@ -189,7 +191,7 @@ def task2_runtime_profiles_from_generated_mihomo(artifact: Any) -> list[Task2Run
         if not isinstance(proxy, Mapping) or str(proxy.get("type") or "").lower() != "vless":
             continue
         server = str(proxy.get("server") or "").lower()
-        if server != TASK2_SERVER:
+        if server not in TASK2_ALLOWED_SERVERS:
             continue
         network = str(proxy.get("network") or "tcp").lower()
         if network not in {"raw", "tcp", "xhttp"}:
@@ -409,6 +411,7 @@ async def call_task2_runtime_agent(
     run_id: str,
     route_entries: Sequence[Any],
     generated_mihomo_artifact: Any,
+    synthetic_vless_uuid: str,
     evidence_store: Task2RouteEvidenceStore,
 ) -> dict[str, Any]:
     """Dispatch Task2 probes and correlate only server-produced selected-outbound events."""
@@ -420,6 +423,11 @@ async def call_task2_runtime_agent(
     profiles = task2_runtime_profiles_from_generated_mihomo(generated_mihomo_artifact)
     if len(profiles) != 2:
         return _failure("task2_profile_matrix_invalid")
+    try:
+        normalized_synthetic_uuid = str(UUID(synthetic_vless_uuid))
+    except ValueError:
+        return _failure("task2_synthetic_profile_invalid")
+    profiles = [profile.model_copy(update={"uuid": normalized_synthetic_uuid}) for profile in profiles]
     try:
         feed_specs = build_task2_route_probe_specs(route_entries)
     except (ValueError, OSError):

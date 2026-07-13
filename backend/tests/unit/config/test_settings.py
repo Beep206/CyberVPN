@@ -766,6 +766,7 @@ class TestTask2RouteEvidenceSettings:
         assert settings.vpn_tester_task2_route_evidence_enabled is False
         assert settings.vpn_tester_task2_xray_webhook_secret.get_secret_value() == ""
         assert settings.vpn_tester_task2_synthetic_user == "cybervpn-task2-route-evidence"
+        assert settings.vpn_tester_task2_synthetic_xray_email == ""
         assert settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds == 300
         assert settings.vpn_tester_task2_route_evidence_result_ttl_seconds == 86400
         assert settings.vpn_tester_task2_xray_webhook_max_skew_seconds == 60
@@ -775,6 +776,7 @@ class TestTask2RouteEvidenceSettings:
         monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED", "true")
         monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET", self.VALID_WEBHOOK_SECRET)
         monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_USER", "task2-route@cybervpn.internal")
+        monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL", "1001")
         monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_EXPECTATION_TTL_SECONDS", "120")
         monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_RESULT_TTL_SECONDS", "7200")
         monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_MAX_SKEW_SECONDS", "45")
@@ -785,6 +787,7 @@ class TestTask2RouteEvidenceSettings:
         assert settings.vpn_tester_task2_route_evidence_enabled is True
         assert settings.vpn_tester_task2_xray_webhook_secret.get_secret_value() == self.VALID_WEBHOOK_SECRET
         assert settings.vpn_tester_task2_synthetic_user == "task2-route@cybervpn.internal"
+        assert settings.vpn_tester_task2_synthetic_xray_email == "1001"
         assert settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds == 120
         assert settings.vpn_tester_task2_route_evidence_result_ttl_seconds == 7200
         assert settings.vpn_tester_task2_xray_webhook_max_skew_seconds == 45
@@ -802,6 +805,7 @@ class TestTask2RouteEvidenceSettings:
             self._production_settings(
                 vpn_tester_task2_route_evidence_enabled=True,
                 vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+                vpn_tester_task2_synthetic_xray_email="1001",
                 backend_internal_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
             )
 
@@ -810,7 +814,17 @@ class TestTask2RouteEvidenceSettings:
             vpn_tester_task2_route_evidence_enabled=True,
             vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
             vpn_tester_task2_synthetic_user="task2-route@cybervpn.internal",
+            vpn_tester_task2_synthetic_xray_email="1001",
         )
 
         assert settings.vpn_tester_task2_route_evidence_enabled is True
         assert settings.vpn_tester_task2_xray_webhook_secret.get_secret_value() == self.VALID_WEBHOOK_SECRET
+
+    def test_task2_route_evidence_production_requires_numeric_xray_identity(self) -> None:
+        with pytest.raises(ValidationError, match="VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL"):
+            self._production_settings(
+                vpn_tester_task2_route_evidence_enabled=True,
+                vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+                vpn_tester_task2_synthetic_user="task2-route@cybervpn.internal",
+                vpn_tester_task2_synthetic_xray_email="task2-route@cybervpn.internal",
+            )

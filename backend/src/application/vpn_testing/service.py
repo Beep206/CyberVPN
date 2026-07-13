@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 from importlib.resources import files
 from time import perf_counter
 from typing import Any, cast
+from urllib.parse import quote
 from uuid import UUID
 
 from httpx import HTTPError
@@ -519,6 +520,25 @@ class VpnTesterService:
 
     async def _generated_mihomo_artifact(self, request_context: Mapping[str, Any] | None) -> Any:
         return _context_generated_mihomo_artifact(request_context)
+
+    async def _task2_synthetic_vless_uuid(self) -> str | None:
+        if self._remnawave_client is None:
+            return None
+        username = settings.vpn_tester_task2_synthetic_user.strip()
+        expected_xray_email = settings.vpn_tester_task2_synthetic_xray_email.strip()
+        if not username or not expected_xray_email:
+            return None
+        payload = await self._remnawave_client.get(f"/users/by-username/{quote(username, safe='')}")
+        user = payload.get("user", payload) if isinstance(payload, Mapping) else None
+        if not isinstance(user, Mapping):
+            return None
+        user_xray_email = str(user.get("tId", user.get("id", ""))).strip()
+        if user_xray_email != expected_xray_email:
+            return None
+        try:
+            return str(UUID(str(user.get("vlessUuid") or "")))
+        except ValueError:
+            return None
 
     async def ensure_seeded(self) -> None:
         for suite in load_default_suites():
@@ -1211,8 +1231,8 @@ class VpnTesterService:
                 check_key="premium_spb_de_exceptions.bridge_down_fail_closed",
                 check_name="Task2 DE bridge failure semantics",
                 category="runtime",
-                status="pass" if bridge_failure_ok else "fail",
-                safe_summary="Registry requires matched traffic to fail closed while unmatched traffic stays SPB DIRECT"
+                status="degraded" if bridge_failure_ok else "fail",
+                safe_summary="Registry declares fail-closed behavior; live bridge-down evidence is not claimed"
                 if bridge_failure_ok
                 else "Task2 bridge-down registry semantics are incomplete",
                 details={"metadata_contract_only": True, "runtime_evidence_claimed": False},
@@ -1531,6 +1551,41 @@ class VpnTesterService:
         try:
             if is_task2:
                 redis_client = cast(Redis, self._redis_client)
+                try:
+                    synthetic_vless_uuid = await self._task2_synthetic_vless_uuid()
+                except HTTPError as exc:
+                    vpn_tester_runtime_agent_unavailable_total.labels(reason="task2_synthetic_identity_lookup").inc()
+                    return [
+                        _result(
+                            check_key="premium_spb_de_exceptions.runtime.synthetic_identity",
+                            check_name="Task2 synthetic Remnawave identity",
+                            category="runtime",
+                            status="fail",
+                            severity="error",
+                            safe_summary="Task2 synthetic Remnawave identity lookup failed",
+                            details={
+                                "error_type": type(exc).__name__,
+                                "runtime_agent_dispatched": False,
+                                "runtime_evidence_status": "not_claimed",
+                            },
+                            started=started,
+                        )
+                    ]
+                if synthetic_vless_uuid is None:
+                    return [
+                        _result(
+                            check_key="premium_spb_de_exceptions.runtime.synthetic_identity",
+                            check_name="Task2 synthetic Remnawave identity",
+                            category="runtime",
+                            status="fail",
+                            severity="error",
+                            safe_summary="Task2 synthetic Remnawave identity is unavailable or mismatched",
+                            details={
+                                "runtime_agent_dispatched": False,
+                                "runtime_evidence_status": "not_claimed",
+                            },
+                        )
+                    ]
                 evidence_store = Task2RouteEvidenceStore(
                     redis_client,
                     expectation_ttl_seconds=(settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds),
@@ -1541,6 +1596,7 @@ class VpnTesterService:
                     run_id=str(run.id),
                     route_entries=route_entries,
                     generated_mihomo_artifact=generated_mihomo_artifact,
+                    synthetic_vless_uuid=synthetic_vless_uuid,
                     evidence_store=evidence_store,
                 )
             else:

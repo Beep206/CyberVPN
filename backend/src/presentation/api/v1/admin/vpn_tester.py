@@ -803,7 +803,7 @@ async def internal_collect_task2_xray_route_evidence(
     try:
         result = await store.record_xray_routing_webhook(
             webhook,
-            synthetic_user=settings.vpn_tester_task2_synthetic_user,
+            synthetic_user=settings.vpn_tester_task2_synthetic_xray_email,
             max_skew_seconds=settings.vpn_tester_task2_xray_webhook_max_skew_seconds,
             now_epoch_seconds=int(time.time()),
         )

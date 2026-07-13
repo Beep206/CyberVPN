@@ -1,0 +1,44 @@
+name: cybervpn-vpn-test-agent-spb-target
+
+services:
+  cybervpn-vpn-test-agent-spb-target:
+    image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-vpn-test-agent:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+    container_name: cybervpn-vpn-test-agent-spb-target
+    hostname: cybervpn-vpn-test-agent-spb-target
+    restart: unless-stopped
+    env_file:
+      - ${CYBERVPN_SPB_AGENT_ENV_FILE:-/srv/cybervpn/secrets/vpn-test-agent-spb.env}
+    environment:
+      VPN_TEST_AGENT_ID: app-host-spb-target
+      VPN_TEST_AGENT_ROLE: spb
+      VPN_TEST_AGENT_LEGACY_V1_ENABLED: "false"
+      VPN_TEST_AGENT_PROXY_ONLY_ENABLED: "true"
+      VPN_TEST_AGENT_TUN_ENABLED: "false"
+      LOG_LEVEL: INFO
+    networks:
+      cybervpn-backend: {}
+      cybervpn-egress: {}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "python healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 256m
+    cpus: "0.50"
+    pids_limit: 128
+
+networks:
+  cybervpn-backend:
+    name: cybervpn_stage1_backend
+    external: true
+  cybervpn-egress:
+    name: cybervpn_stage1_egress
+    external: true

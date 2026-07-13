@@ -1,0 +1,8 @@
+table inet cybervpn_task2_evidence_ingress {
+    chain input {
+        type filter hook input priority -10; policy accept;
+
+        ip6 daddr 2a0d:2787:1b:12f5::a ip6 saddr 2a01:e5c0:1368::3 tcp dport 9445 counter accept
+        ip6 daddr 2a0d:2787:1b:12f5::a tcp dport 9445 counter drop
+    }
+}

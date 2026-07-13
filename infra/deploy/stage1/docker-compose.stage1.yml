@@ -72,7 +72,9 @@ services:
       - cybervpn-caddy-config:/config
     networks:
       cybervpn-public: {}
-      cybervpn-backend: {}
+      cybervpn-backend:
+        aliases:
+          - vpn-test-spb.cyber-vpn.org
       cybervpn-egress: {}
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='Host: cyber-vpn.net' http://127.0.0.1/healthz"]
@@ -138,6 +140,7 @@ services:
       VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED: ${VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED:-false}
       VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET: ${VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET:-}
       VPN_TESTER_TASK2_SYNTHETIC_USER: ${VPN_TESTER_TASK2_SYNTHETIC_USER:-}
+      VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL: ${VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL:-}
       BACKEND_INTERNAL_SECRET: ${BACKEND_INTERNAL_SECRET:-replace-before-live-backend-internal}
       TELEGRAM_BOT_INTERNAL_SECRET: ${TELEGRAM_BOT_INTERNAL_SECRET:-replace-before-live-telegram-internal}
       TELEGRAM_BOT_REGISTRATION_MODE: ${TELEGRAM_BOT_REGISTRATION_MODE:-allow_pending_onboarding}
@@ -944,6 +947,10 @@ networks:
   cybervpn-backend:
     name: cybervpn_stage1_backend
     internal: true
+    ipam:
+      config:
+        - subnet: ${CYBERVPN_STAGE1_BACKEND_SUBNET:-172.30.3.0/24}
+          gateway: ${CYBERVPN_STAGE1_BACKEND_GATEWAY:-172.30.3.1}
   cybervpn-data:
     name: cybervpn_stage1_data
     internal: true

@@ -25,7 +25,7 @@ import socket
 import sys
 import tempfile
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -58,8 +58,11 @@ EXTERNAL_SQUAD_NAME = "CYBERVPN_SPB_DE_EXCEPTIONS"
 BRIDGE_SQUAD_NAME = "CYBERVPN_SPB_DE_BRIDGE"
 BRIDGE_USERNAME = "CYBERVPN_SPB_DE_BRIDGE_USER"
 TASK2_ROUTE_EVIDENCE_HOST = "task2-evidence.cyber-vpn.org"
+TASK2_ROUTE_EVIDENCE_PORT = 9445
 TASK2_ROUTE_EVIDENCE_PATH = "/api/v1/admin/vpn-tester/internal/task2/route-evidence/xray-routing-webhook"
-TASK2_ROUTE_EVIDENCE_WEBHOOK_URL = f"https://{TASK2_ROUTE_EVIDENCE_HOST}{TASK2_ROUTE_EVIDENCE_PATH}"
+TASK2_ROUTE_EVIDENCE_WEBHOOK_URL = (
+    f"https://{TASK2_ROUTE_EVIDENCE_HOST}:{TASK2_ROUTE_EVIDENCE_PORT}{TASK2_ROUTE_EVIDENCE_PATH}"
+)
 TASK2_XRAY_WEBHOOK_AUTH_HEADER = "X-CyberVPN-Task2-Xray-Webhook-Secret"
 # Each synthetic route expectation must emit its own event. Xray deduplicates
 # webhook events by user when this value is positive, which would collapse the
@@ -68,7 +71,8 @@ TASK2_XRAY_WEBHOOK_DEDUPLICATION_SECONDS = 0
 TASK2_XRAY_WEBHOOK_MAX_URL_LENGTH = 512
 TASK2_XRAY_WEBHOOK_MAX_SECRET_LENGTH = 512
 TASK2_SYNTHETIC_USERNAME_MAX_LENGTH = 128
-TASK2_SYNTHETIC_USER_TAG = "TASK2_ROUTE_EVIDENCE"
+# Remnawave 2.8 validates user tags at 16 characters maximum.
+TASK2_SYNTHETIC_USER_TAG = "TASK2_ROUTE_TEST"
 TASK2_SYNTHETIC_USER_DESCRIPTION = "CyberVPN Task2 synthetic Xray routing evidence probe"
 
 BRIDGE_INBOUND_TAG = "DE_SPB_EXCEPTIONS_BRIDGE_9444"
@@ -188,6 +192,7 @@ class AntifilterArtifact:
 class Task2RouteEvidenceConfig:
     enabled: bool
     synthetic_user: str = ""
+    synthetic_xray_email: str = ""
     webhook_url: str = ""
     webhook_secret: str = field(default="", repr=False)
 
@@ -750,6 +755,19 @@ def _validate_task2_synthetic_user(value: Any) -> str:
     return username
 
 
+def _validate_task2_synthetic_xray_email(value: Any) -> str:
+    xray_email = str(value or "").strip()
+    if not xray_email:
+        return ""
+    if xray_email != str(value):
+        raise RuntimeError("Task2 synthetic Xray email must not be padded")
+    if not xray_email.isascii() or not xray_email.isdigit() or xray_email.startswith("0"):
+        raise RuntimeError("Task2 synthetic Xray email must be a positive decimal tId")
+    if len(xray_email) > 19:
+        raise RuntimeError("Task2 synthetic Xray email is too long")
+    return xray_email
+
+
 def _validate_task2_webhook_secret(value: Any) -> str:
     secret = str(value or "")
     if not secret:
@@ -776,7 +794,7 @@ def _validate_task2_webhook_url(value: Any) -> str:
         raise RuntimeError("Task2 route evidence webhook URL must not contain credentials, query, or fragment")
     if parsed.hostname.casefold() != TASK2_ROUTE_EVIDENCE_HOST:
         raise RuntimeError("Task2 route evidence webhook URL host is not allowed")
-    if parsed.port not in {None, 443}:
+    if parsed.port != TASK2_ROUTE_EVIDENCE_PORT:
         raise RuntimeError("Task2 route evidence webhook URL port is not allowed")
     if parsed.path != TASK2_ROUTE_EVIDENCE_PATH:
         raise RuntimeError("Task2 route evidence webhook URL path is not allowed")
@@ -793,6 +811,9 @@ def _task2_route_evidence_config(args: argparse.Namespace) -> Task2RouteEvidence
     return Task2RouteEvidenceConfig(
         enabled=True,
         synthetic_user=_validate_task2_synthetic_user(getattr(args, "task2_synthetic_user", "")),
+        synthetic_xray_email=_validate_task2_synthetic_xray_email(
+            getattr(args, "task2_synthetic_xray_email", "")
+        ),
         webhook_url=_validate_task2_webhook_url(getattr(args, "task2_route_evidence_webhook_url", "")),
         webhook_secret=_validate_task2_webhook_secret(getattr(args, "task2_xray_webhook_secret", "")),
     )
@@ -825,8 +846,10 @@ def _task2_route_evidence_rules(
 ) -> list[dict[str, Any]]:
     if route_evidence is None or not route_evidence.enabled:
         return []
+    if not route_evidence.synthetic_xray_email:
+        raise RuntimeError("Task2 synthetic Xray email is required before rendering evidence rules")
     webhook = _task2_route_evidence_webhook(route_evidence)
-    user_matcher = [route_evidence.synthetic_user]
+    user_matcher = [route_evidence.synthetic_xray_email]
     synthetic_rules: list[dict[str, Any]] = []
     for index, exception_rule in enumerate(exception_rules, start=1):
         rule = copy.deepcopy(exception_rule)
@@ -1381,6 +1404,19 @@ def _validate_existing_task2_synthetic_user(
         raise RuntimeError("Existing Task2 synthetic user lookup returned a mismatch")
     if not _is_marked_task2_synthetic_user(user):
         raise RuntimeError("Existing Task2 synthetic user is not marked as the dedicated probe")
+
+
+def _bind_task2_synthetic_xray_email(
+    route_evidence: Task2RouteEvidenceConfig,
+    user: dict[str, Any],
+) -> Task2RouteEvidenceConfig:
+    actual_xray_email = _validate_task2_synthetic_xray_email(user.get("tId") or user.get("id"))
+    if not actual_xray_email:
+        raise RuntimeError("Task2 synthetic Remnawave user has no positive tId")
+    configured_xray_email = route_evidence.synthetic_xray_email
+    if configured_xray_email and configured_xray_email != actual_xray_email:
+        raise RuntimeError("Task2 synthetic Xray email does not match the Remnawave user tId")
+    return replace(route_evidence, synthetic_xray_email=actual_xray_email)
 
 
 def _safe_task2_synthetic_user_snapshot(user: dict[str, Any]) -> dict[str, Any]:
@@ -2124,6 +2160,10 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 task2_synthetic_user,
                 expected_username=route_evidence.synthetic_user,
             )
+            if task2_synthetic_user is not None:
+                route_evidence = _bind_task2_synthetic_xray_email(
+                    route_evidence, task2_synthetic_user
+                )
 
         de_preserved_tag_map = _preserved_inbound_tag_map(
             de_source_profile["config"],
@@ -2173,6 +2213,14 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             spb_preserved_active_tags,
             spb_preserved_listen_address,
         )
+        planning_route_evidence = route_evidence
+        if planning_route_evidence.enabled and not planning_route_evidence.synthetic_xray_email:
+            # A dry-run still validates the profile shape before the synthetic
+            # Remnawave user exists. Apply rebuilds it with the real tId.
+            planning_route_evidence = replace(
+                planning_route_evidence,
+                synthetic_xray_email="1",
+            )
         spb_config = _build_spb_customer_config(
             spb_source_config,
             bridge_user.get("ssPassword", "dry-run-placeholder") if bridge_user else "dry-run-placeholder",
@@ -2183,7 +2231,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             preserved_tag_map=spb_preserved_tag_map,
             customer_inbound_tags=spb_customer_routing_tags,
             shared_xhttp_path=spb_shared_xhttp_path,
-            route_evidence=route_evidence,
+            route_evidence=planning_route_evidence,
         )
         spb_next_active_tags = _ordered_active_tags(spb_preserved_target_tags, SPB_CUSTOMER_INBOUND_TAGS)
         _validate_no_active_listener_conflicts(
@@ -2389,6 +2437,9 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 )
                 if synthetic_user_created:
                     manifest["task2SyntheticUserCreatedUuid"] = task2_synthetic_user["uuid"]
+                route_evidence = _bind_task2_synthetic_xray_email(
+                    route_evidence, task2_synthetic_user
+                )
                 _checkpoint(manifest_path, manifest, "task2_synthetic_user_ready")
 
             spb_config = _build_spb_customer_config(
@@ -2623,6 +2674,11 @@ def _parse_args() -> argparse.Namespace:
         "--task2-synthetic-user",
         default=os.environ.get("VPN_TESTER_TASK2_SYNTHETIC_USER", ""),
         help="Dedicated Remnawave username used by synthetic Task2 route evidence probes",
+    )
+    parser.add_argument(
+        "--task2-synthetic-xray-email",
+        default=os.environ.get("VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL", ""),
+        help="Exact positive Remnawave tId used as the Xray routing user/email identity",
     )
     parser.add_argument(
         "--task2-route-evidence-webhook-url",

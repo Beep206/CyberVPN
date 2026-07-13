@@ -15,6 +15,8 @@ from src.application.vpn_testing.task2_route_evidence import (
 )
 from src.config.settings import settings
 
+SYNTHETIC_VLESS_UUID = "00000000-0000-4000-8000-000000000094"
+
 
 def _generated_mihomo() -> dict[str, Any]:
     common = {
@@ -196,6 +198,14 @@ def test_task2_profile_parser_accepts_only_exact_raw_xhttp_pair() -> None:
     profiles = client.task2_runtime_profiles_from_generated_mihomo(_generated_mihomo())
 
     assert [profile.transport for profile in profiles] == ["raw", "xhttp"]
+    literal_ip = _generated_mihomo()
+    for proxy in literal_ip["proxies"]:
+        proxy["server"] = client.TASK2_SERVER_IPV4
+    literal_profiles = client.task2_runtime_profiles_from_generated_mihomo(literal_ip)
+    assert [profile.server for profile in literal_profiles] == [
+        client.TASK2_SERVER_IPV4,
+        client.TASK2_SERVER_IPV4,
+    ]
     invalid = _generated_mihomo()
     invalid["proxies"][0]["server"] = "ru-spb-3.cyber-vpn.org"
     assert client.task2_runtime_profiles_from_generated_mihomo(invalid) == []
@@ -210,6 +220,7 @@ async def test_task2_runtime_correlates_server_results_without_agent_selected_ou
 
     async def signed_agent(**kwargs: Any) -> dict[str, Any]:
         payload = kwargs["payload"]
+        assert {profile["uuid"] for profile in payload["transport_profiles"]} == {SYNTHETIC_VLESS_UUID}
         return {
             "status": "partial",
             "agent_id": "spb-agent",
@@ -235,6 +246,7 @@ async def test_task2_runtime_correlates_server_results_without_agent_selected_ou
         run_id="00000000-0000-4000-8000-000000000099",
         route_entries=[],
         generated_mihomo_artifact=_generated_mihomo(),
+        synthetic_vless_uuid=SYNTHETIC_VLESS_UUID,
         evidence_store=store,  # type: ignore[arg-type]
     )
 
@@ -265,6 +277,7 @@ async def test_task2_runtime_rejects_agent_manufactured_selected_outbound(
         run_id="00000000-0000-4000-8000-000000000099",
         route_entries=[],
         generated_mihomo_artifact=_generated_mihomo(),
+        synthetic_vless_uuid=SYNTHETIC_VLESS_UUID,
         evidence_store=FakeEvidenceStore(),  # type: ignore[arg-type]
     )
 
@@ -302,6 +315,7 @@ async def test_task2_runtime_missing_webhook_result_fails_matrix(
         run_id="00000000-0000-4000-8000-000000000099",
         route_entries=[],
         generated_mihomo_artifact=_generated_mihomo(),
+        synthetic_vless_uuid=SYNTHETIC_VLESS_UUID,
         evidence_store=FakeEvidenceStore(missing_route=specs[0].route_key),  # type: ignore[arg-type]
     )
 
