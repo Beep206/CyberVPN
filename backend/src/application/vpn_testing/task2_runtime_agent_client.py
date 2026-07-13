@@ -413,7 +413,6 @@ async def call_task2_runtime_agent(
     generated_mihomo_artifact: Any,
     synthetic_vless_uuid: str,
     evidence_store: Task2RouteEvidenceStore,
-    bridge_down_evidence_claimed: bool = False,
 ) -> dict[str, Any]:
     """Dispatch Task2 probes and correlate only server-produced selected-outbound events."""
 
@@ -554,41 +553,30 @@ async def call_task2_runtime_agent(
             }
         )
     selected_outbound_pass = len(results) == len(specs) and all(check["status"] == "pass" for check in checks)
-    runtime_evidence_pass = selected_outbound_pass and bridge_down_evidence_claimed
     checks.append(
         {
             "check_key": "premium_spb_de_exceptions.selected_outbound.matrix",
             "check_name": "Task2 selected-outbound matrix",
             "category": "runtime",
-            "status": "pass" if runtime_evidence_pass else "degraded" if selected_outbound_pass else "fail",
-            "severity": "warning" if selected_outbound_pass and not runtime_evidence_pass else "error",
+            "status": "degraded" if selected_outbound_pass else "fail",
+            "severity": "warning" if selected_outbound_pass else "error",
             "target": "spb-xray",
-            "safe_summary": (
-                "Selected-outbound matrix and signed bridge-down evidence are verified"
-                if runtime_evidence_pass
-                else "Selected-outbound matrix matched; bridge-down evidence is still required"
-                if selected_outbound_pass
-                else "Task2 selected-outbound matrix is incomplete"
-            ),
+            "safe_summary": "Selected-outbound matrix matched; bridge-down evidence is still required"
+            if selected_outbound_pass
+            else "Task2 selected-outbound matrix is incomplete",
             "details": {
                 "expected_count": len(specs),
                 "actual_count": len(results),
                 "all_13_categories_declared": sum(spec.category is not None for spec in specs) >= 13,
                 "raw_xhttp_tcp_udp_declared": True,
-                "bridge_down_evidence_claimed": bridge_down_evidence_claimed,
+                "bridge_down_evidence_claimed": False,
             },
             "duration_ms": 0,
         }
     )
     return {
-        "status": "pass" if runtime_evidence_pass else "partial" if selected_outbound_pass else "fail",
-        "reason": (
-            "signed_bridge_down_evidence_verified"
-            if runtime_evidence_pass
-            else "bridge_down_evidence_not_claimed"
-            if selected_outbound_pass
-            else "selected_outbound_matrix_failed"
-        ),
+        "status": "partial" if selected_outbound_pass else "fail",
+        "reason": "bridge_down_evidence_not_claimed" if selected_outbound_pass else "selected_outbound_matrix_failed",
         "agent_id": agent_payload.get("agent_id"),
         "checks": checks,
     }

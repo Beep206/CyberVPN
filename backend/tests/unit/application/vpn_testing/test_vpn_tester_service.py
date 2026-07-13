@@ -361,7 +361,7 @@ async def test_task2_contract_fails_if_readiness_is_enabled_without_runtime_evid
 
 
 @pytest.mark.asyncio
-async def test_task2_contract_accepts_verified_signed_runtime_evidence(monkeypatch) -> None:
+async def test_task2_contract_does_not_promote_runtime_evidence_from_signed_readiness(monkeypatch) -> None:
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", True)
     monkeypatch.setattr(service_module, "ensure_spb_de_exceptions_data_plane_ready", lambda _plan_code: True)
     suite, routes = _spb_de_exceptions_suite_and_routes()
@@ -371,18 +371,18 @@ async def test_task2_contract_accepts_verified_signed_runtime_evidence(monkeypat
 
     by_key = {item["check_key"]: item for item in results}
     bridge_down = by_key["premium_spb_de_exceptions.bridge_down_fail_closed"]
-    assert bridge_down["status"] == "pass"
+    assert bridge_down["status"] == "degraded"
     assert bridge_down["details"] == {
-        "metadata_contract_only": False,
-        "runtime_evidence_claimed": True,
+        "metadata_contract_only": True,
+        "runtime_evidence_claimed": False,
     }
     readiness = by_key["premium_spb_de_exceptions.readiness_gate"]
     assert readiness["status"] == "pass"
-    assert readiness["details"]["runtime_evidence_status"] == "signed_attestation_verified"
+    assert readiness["details"]["runtime_evidence_status"] == "not_claimed"
     assert readiness["details"]["data_plane_ready"] is True
     runtime_evidence = by_key["premium_spb_de_exceptions.runtime_evidence"]
-    assert runtime_evidence["status"] == "pass"
-    assert runtime_evidence["details"]["runtime_evidence_status"] == "signed_attestation_verified"
+    assert runtime_evidence["status"] == "degraded"
+    assert runtime_evidence["details"]["runtime_evidence_status"] == "not_claimed"
 
 
 @pytest.mark.asyncio
