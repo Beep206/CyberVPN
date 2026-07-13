@@ -10,12 +10,14 @@ import pytest
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 
-def _task2_allowed_paths() -> set[str]:
+def _reviewed_security_workflow_paths() -> set[str]:
     validator = REPOSITORY_ROOT / "scripts" / "security" / "validate_gitleaks_config.py"
     namespace = runpy.run_path(str(validator), run_name="gitleaks_policy")
-    paths = namespace["TASK2_ALLOWED_PATHS"]
-    assert isinstance(paths, set)
-    return paths
+    task2_paths = namespace["TASK2_ALLOWED_PATHS"]
+    global_paths = namespace["REVIEWED_GLOBAL_GENERIC_WORKFLOW_PATHS"]
+    assert isinstance(task2_paths, set)
+    assert isinstance(global_paths, set)
+    return {path for path in task2_paths if not path.startswith("backend/")} | global_paths
 
 
 def test_backend_security_workflow_fails_closed() -> None:
@@ -29,9 +31,8 @@ def test_backend_security_workflow_fails_closed() -> None:
     assert "ruff check src/ --select S" in workflow
     assert workflow.count("- '.gitleaks.toml'") == 2
     assert "python scripts/security/validate_gitleaks_config.py" in workflow
-    for path in _task2_allowed_paths():
-        if not path.startswith("backend/"):
-            assert workflow.count(f"- '{path}'") == 2
+    for path in _reviewed_security_workflow_paths():
+        assert workflow.count(f"- '{path}'") == 2
 
 
 def _run_gitleaks_policy_validator(
@@ -123,7 +124,7 @@ regexTarget = "line"
 paths = ['''^backend/tests/helpers/spb_de_readiness\\.py.*$''']
 regexes = ['''(?i)private_key''']
 """,
-            "Unreviewed generic-api-key allowlist is forbidden",
+            "Exactly one reviewed top-level allowlist is required",
         ),
         (
             """
@@ -134,11 +135,22 @@ condition = "OR"
 regexTarget = "match"
 regexes = ['''.*''']
 """,
-            "Unreviewed generic-api-key allowlist is forbidden",
+            "Exactly one reviewed top-level allowlist is required",
+        ),
+        (
+            """
+[[allowlists]]
+description = "Unreviewed broad JFrog allowlist"
+targetRules = ["jfrog-identity-token"]
+condition = "OR"
+regexTarget = "match"
+regexes = ['''.*''']
+""",
+            "Exactly one reviewed top-level allowlist is required",
         ),
     ],
 )
-def test_gitleaks_allowlist_policy_rejects_additional_generic_allowlists(
+def test_gitleaks_allowlist_policy_rejects_additional_rule_or_global_allowlists(
     tmp_path: Path,
     additional_allowlist: str,
     expected_error: str,
@@ -174,6 +186,29 @@ def test_gitleaks_allowlist_policy_rejects_generic_rule_override(
 
     assert result.returncode != 0
     assert "generic-api-key rule extension shape changed" in result.stderr
+
+
+def test_gitleaks_allowlist_policy_rejects_jfrog_rule_override(
+    tmp_path: Path,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    reviewed_rule = 'id = "jfrog-identity-token"\n\n[[rules.allowlists]]'
+    assert reviewed_rule in config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(
+        config.replace(
+            reviewed_rule,
+            'id = "jfrog-identity-token"\nregex = "a^"\n\n[[rules.allowlists]]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert "jfrog-identity-token rule extension shape changed" in result.stderr
 
 
 def test_gitleaks_allowlist_policy_rejects_disabling_generic_default_rule(

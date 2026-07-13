@@ -7,6 +7,8 @@ on:
     paths:
       - 'backend/**'
       - 'infra/tests/test_antifilter_bgp_collector.py'
+      - 'docs/evidence/partner-platform/stage3-outbox*'
+      - 'docs/evidence/partner-platform/stage3-outbox*/**'
       - '.gitleaks.toml'
       - '.github/workflows/backend-security.yml'
       - 'scripts/security/validate_gitleaks_config.py'
@@ -14,6 +16,8 @@ on:
     paths:
       - 'backend/**'
       - 'infra/tests/test_antifilter_bgp_collector.py'
+      - 'docs/evidence/partner-platform/stage3-outbox*'
+      - 'docs/evidence/partner-platform/stage3-outbox*/**'
       - '.gitleaks.toml'
       - '.github/workflows/backend-security.yml'
       - 'scripts/security/validate_gitleaks_config.py'
