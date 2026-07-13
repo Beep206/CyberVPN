@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import runpy
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
-from scripts.security.validate_gitleaks_config import TASK2_ALLOWED_PATHS
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _task2_allowed_paths() -> set[str]:
+    validator = REPOSITORY_ROOT / "scripts" / "security" / "validate_gitleaks_config.py"
+    namespace = runpy.run_path(str(validator), run_name="gitleaks_policy")
+    paths = namespace["TASK2_ALLOWED_PATHS"]
+    assert isinstance(paths, set)
+    return paths
 
 
 def test_backend_security_workflow_fails_closed() -> None:
@@ -21,7 +29,7 @@ def test_backend_security_workflow_fails_closed() -> None:
     assert "ruff check src/ --select S" in workflow
     assert workflow.count("- '.gitleaks.toml'") == 2
     assert "python scripts/security/validate_gitleaks_config.py" in workflow
-    for path in TASK2_ALLOWED_PATHS:
+    for path in _task2_allowed_paths():
         if not path.startswith("backend/"):
             assert workflow.count(f"- '{path}'") == 2
 

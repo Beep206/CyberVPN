@@ -8,13 +8,10 @@ from collections.abc import Iterator, Mapping
 from pathlib import Path
 from typing import Any
 
-
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = REPOSITORY_ROOT / ".gitleaks.toml"
 GENERIC_API_KEY_RULE_ID = "generic-api-key"
-TASK2_ALLOWLIST_DESCRIPTION = (
-    "Task2 contract field names and synthetic test values are not credentials"
-)
+TASK2_ALLOWLIST_DESCRIPTION = "Task2 contract field names and synthetic test values are not credentials"
 TASK2_ALLOWLIST_REGEXES = {
     r"(?i)\b(private_key|suite_key|registry_key|bgp_secret)\b",
 }
@@ -30,15 +27,16 @@ TASK2_ALLOWED_PATHS = {
     "backend/tests/unit/presentation/api/v1/admin/test_vpn_tester_task2_runtime_fault_evidence.py",
     "infra/tests/test_antifilter_bgp_collector.py",
 }
-REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION = (
-    "Synthetic test/evidence identifiers that are not credentials"
-)
+REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION = "Synthetic test/evidence identifiers that are not credentials"
 REVIEWED_GLOBAL_GENERIC_ALLOWLIST_PATHS = {
     r"^backend/tests/e2e/test_phase4_(finance|settlement)_foundations\.py$",
     r"^docs/evidence/partner-platform/stage3-outbox.*$",
 }
 REVIEWED_GLOBAL_GENERIC_ALLOWLIST_REGEXES = {
-    r"""(?i)(idempotency[-_ -]?key|period_key|event_key|dead_letter_event_key|backlog_event_key|partition_key)["'\s:=]+[A-Za-z0-9_.:-]{8,}""",
+    (
+        r"(?i)(idempotency[-_ -]?key|period_key|event_key|dead_letter_event_key|"
+        r"""backlog_event_key|partition_key)["'\s:=]+[A-Za-z0-9_.:-]{8,}"""
+    ),
 }
 
 
@@ -83,11 +81,7 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     if config.get("extend") != {"useDefault": True}:
         raise ValueError("Gitleaks default-rule extension shape changed")
 
-    generic_rules = [
-        rule
-        for rule in config.get("rules", [])
-        if rule.get("id") == GENERIC_API_KEY_RULE_ID
-    ]
+    generic_rules = [rule for rule in config.get("rules", []) if rule.get("id") == GENERIC_API_KEY_RULE_ID]
     if len(generic_rules) != 1:
         raise ValueError("Exactly one generic-api-key rule extension is required")
     generic_rule = generic_rules[0]
@@ -125,25 +119,17 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
             regexes=TASK2_ALLOWLIST_REGEXES,
         )
     except ValueError as exc:
-        raise ValueError(
-            "Task2 Gitleaks allowlist differs from the reviewed exact shape"
-        ) from exc
+        raise ValueError("Task2 Gitleaks allowlist differs from the reviewed exact shape") from exc
 
     reviewed_global_allowlists = [
         allowlist
         for owner_rule_id, allowlist in allowlists
-        if owner_rule_id is None
-        and allowlist.get("description")
-        == REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION
+        if owner_rule_id is None and allowlist.get("description") == REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION
     ]
     if len(reviewed_global_allowlists) != 1:
-        raise ValueError(
-            "Exactly one reviewed global generic-api-key allowlist is required"
-        )
+        raise ValueError("Exactly one reviewed global generic-api-key allowlist is required")
     reviewed_global_allowlist = reviewed_global_allowlists[0]
-    if set(reviewed_global_allowlist.get("targetRules", [])) != {
-        GENERIC_API_KEY_RULE_ID
-    }:
+    if set(reviewed_global_allowlist.get("targetRules", [])) != {GENERIC_API_KEY_RULE_ID}:
         raise ValueError("Reviewed global allowlist target rules changed")
     _require_exact_allowlist_shape(
         reviewed_global_allowlist,
@@ -164,8 +150,7 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     for owner_rule_id, allowlist in allowlists:
         target_rules = set(allowlist.get("targetRules", []))
         affects_generic_api_key = owner_rule_id == GENERIC_API_KEY_RULE_ID or (
-            owner_rule_id is None
-            and (not target_rules or GENERIC_API_KEY_RULE_ID in target_rules)
+            owner_rule_id is None and (not target_rules or GENERIC_API_KEY_RULE_ID in target_rules)
         )
         if not affects_generic_api_key:
             continue
@@ -176,22 +161,13 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     for path in TASK2_ALLOWED_PATHS:
         pattern = re.compile(f"^{re.escape(path)}$")
         if pattern.fullmatch(path) is None:
-            raise ValueError(
-                f"Task2 Gitleaks allowlist does not match its exact path: {path}"
-            )
-        if (
-            pattern.fullmatch(f"{path}.bak") is not None
-            or pattern.fullmatch(f"tmp/{path}") is not None
-        ):
-            raise ValueError(
-                f"Task2 Gitleaks allowlist accepts a near-miss path: {path}"
-            )
+            raise ValueError(f"Task2 Gitleaks allowlist does not match its exact path: {path}")
+        if pattern.fullmatch(f"{path}.bak") is not None or pattern.fullmatch(f"tmp/{path}") is not None:
+            raise ValueError(f"Task2 Gitleaks allowlist accepts a near-miss path: {path}")
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Validate the repository Gitleaks allowlist policy."
-    )
+    parser = argparse.ArgumentParser(description="Validate the repository Gitleaks allowlist policy.")
     parser.add_argument(
         "--config",
         type=Path,
