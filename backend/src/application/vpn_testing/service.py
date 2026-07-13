@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import binascii
+import hmac
 import json
+import secrets
 from collections import Counter
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
@@ -37,10 +40,22 @@ from src.application.vpn_testing.task2_runtime_agent_client import (
     call_task2_runtime_agent,
     task2_runtime_agent_configured,
 )
+from src.application.vpn_testing.task2_runtime_fault_evidence import (
+    TASK2_RUNTIME_FAULT_EVIDENCE_ARTIFACT_TYPE,
+    Task2RuntimeFaultEvidenceConflict,
+    Task2RuntimeFaultEvidenceRejected,
+    promote_task2_runtime_fault_results,
+    task2_runtime_fault_artifact_key,
+    task2_runtime_identity_digest,
+    verify_task2_runtime_fault_evidence,
+)
 from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
-from src.infrastructure.database.models.vpn_tester_model import VpnTestRunModel
+from src.infrastructure.database.models.vpn_tester_model import (
+    VpnTestEvidenceArtifactModel,
+    VpnTestRunModel,
+)
 from src.infrastructure.database.repositories.vpn_tester_repo import VpnTesterRepository
 from src.infrastructure.monitoring.metrics import (
     vpn_tester_balancer_recommendations_total,
@@ -441,6 +456,48 @@ def _summary(results: list[dict[str, Any]], *, suite_key: str, mode: str) -> dic
     }
 
 
+def _task2_runtime_identity_snapshot(results: list[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:
+    agent_id = ""
+    for result in results:
+        if result.get("check_key") != "premium_spb_de_exceptions.selected_outbound.matrix":
+            continue
+        details = result.get("details")
+        if isinstance(details, Mapping):
+            agent_id = str(details.get("agent_id") or "").strip()
+        break
+
+    backend_identity = {
+        "label": "cybervpn-backend",
+        "git_sha": settings.runtime_git_sha.strip(),
+        "image_ref": settings.runtime_container_image.strip(),
+        "image_id": settings.vpn_tester_task2_operator_evidence_backend_image_id.strip(),
+        "instance": settings.runtime_origin_marker.strip(),
+    }
+    agent_identity = {
+        "label": "cybervpn-vpn-test-agent",
+        "git_sha": settings.vpn_tester_task2_operator_evidence_agent_git_sha.strip(),
+        "image_ref": settings.vpn_tester_task2_operator_evidence_agent_image_ref.strip(),
+        "image_id": settings.vpn_tester_task2_operator_evidence_agent_image_id.strip(),
+        "instance": agent_id,
+    }
+    try:
+        backend_sha256 = task2_runtime_identity_digest(backend_identity)
+        agent_sha256 = task2_runtime_identity_digest(agent_identity)
+    except ValueError:
+        return {
+            "bound": False,
+            "backend_sha256": "",
+            "agent_sha256": "",
+            "credentials_redacted": True,
+        }, agent_id or None
+    return {
+        "bound": True,
+        "backend_sha256": backend_sha256,
+        "agent_sha256": agent_sha256,
+        "credentials_redacted": True,
+    }, agent_id
+
+
 def _idempotency_bucket(now: datetime, window: str) -> str:
     normalized = (window or "minute").strip().lower()
     if normalized in {"none", "disabled", "off"}:
@@ -702,7 +759,8 @@ class VpnTesterService:
         if run.status == "cancelled":
             return run
         started = perf_counter()
-        await self._repository.mark_run_running(run)
+        execution_attempt_id = secrets.token_hex(16)
+        await self._repository.mark_run_running(run, execution_attempt_id=execution_attempt_id)
         suite = await self._repository.get_suite(run.suite_key, run.suite_version)
         suite_spec = dict(suite.spec if suite is not None else {})
         registry_key = str(suite_spec.get("required_route_registry") or "")
@@ -740,6 +798,11 @@ class VpnTesterService:
 
         summary = _summary(results, suite_key=run.suite_key, mode=run.mode)
         summary["route_registry_version"] = registry_key or run.route_registry_version
+        summary["execution_attempt_id"] = execution_attempt_id
+        if run.suite_key == "premium_spb_de_exceptions_v1" and run.mode == "runtime":
+            identity_snapshot, agent_id = _task2_runtime_identity_snapshot(results)
+            summary["task2_runtime_identity"] = identity_snapshot
+            run.agent_id = agent_id
         evidence = self._evidence(run, suite_spec=suite_spec, results=results, plans=plans)
         status = str(summary["status"])
         completed = await self._repository.replace_run_results(
@@ -771,6 +834,82 @@ class VpnTesterService:
             )
             vpn_tester_balancer_recommendations_total.labels(status="open").inc()
         return completed
+
+    async def ingest_task2_runtime_fault_evidence(
+        self,
+        run_id: UUID,
+        raw_body: bytes,
+    ) -> tuple[VpnTestRunModel, VpnTestEvidenceArtifactModel, bool] | None:
+        run = await self._repository.get_run_for_update(run_id)
+        if run is None:
+            return None
+
+        summary = dict(run.summary or {})
+        execution_attempt_id = str(summary.get("execution_attempt_id") or "")
+        artifact_key = task2_runtime_fault_artifact_key(execution_attempt_id)
+        suite = await self._repository.get_suite(run.suite_key, run.suite_version)
+        suite_spec = dict(suite.spec if suite is not None else {})
+        registry_key = str(suite_spec.get("required_route_registry") or run.route_registry_version or "")
+        route_entries = await self._repository.get_route_registry(run.suite_key, registry_key or None)
+        verified = await asyncio.to_thread(
+            verify_task2_runtime_fault_evidence,
+            raw_body,
+            run=run,
+            route_entries=route_entries,
+            settings_obj=settings,
+        )
+
+        existing = await self._repository.get_evidence_artifact(run.id, artifact_key)
+        if existing is not None:
+            if hmac.compare_digest(existing.sha256, verified.envelope_sha256):
+                return run, existing, False
+            raise Task2RuntimeFaultEvidenceConflict()
+
+        await self._repository.lock_signed_evidence_identity(
+            nonce=verified.nonce,
+            evidence_id=verified.evidence_id,
+        )
+        replayed = await self._repository.find_evidence_by_signed_identity(
+            artifact_type=TASK2_RUNTIME_FAULT_EVIDENCE_ARTIFACT_TYPE,
+            nonce=verified.nonce,
+            evidence_id=verified.evidence_id,
+        )
+        if replayed:
+            raise Task2RuntimeFaultEvidenceRejected("signed_evidence_identity_replayed")
+
+        results = promote_task2_runtime_fault_results(run, verified)
+        completed_summary = _summary(results, suite_key=run.suite_key, mode=run.mode)
+        completed_summary["route_registry_version"] = registry_key
+        completed_summary["execution_attempt_id"] = execution_attempt_id
+        completed_summary["task2_runtime_identity"] = summary["task2_runtime_identity"]
+        completed_summary["task2_runtime_fault_evidence"] = {
+            "status": "signed_pass",
+            "artifact_key": artifact_key,
+            "evidence_id": verified.evidence_id,
+            "payload_sha256": verified.payload_sha256,
+            "canonical_sha256": verified.envelope_sha256,
+            "credentials_redacted": True,
+        }
+        plans = await self._repository.list_active_plans()
+        evidence = self._evidence(
+            run,
+            suite_spec=suite_spec,
+            results=results,
+            plans=plans,
+        )
+        status_value = str(completed_summary["status"])
+        await self._repository.replace_run_results(
+            run,
+            results=results,
+            evidence=evidence,
+            summary=completed_summary,
+            status=status_value,
+        )
+        artifact_payload = verified.artifact()
+        artifact_payload["expires_at"] = _utc_now() + timedelta(days=max(1, settings.vpn_tester_retention_days))
+        artifact = await self._repository.add_evidence_artifact(run, artifact_payload)
+        refreshed = await self._repository.get_run(run.id)
+        return refreshed or run, artifact, True
 
     async def execute_next_queued_run(self) -> VpnTestRunModel | None:
         run = await self.claim_queued_run()
@@ -868,8 +1007,9 @@ class VpnTesterService:
                 "generated_at": _utc_now(),
             }
         vpn_tester_release_gate_blocking.set(1 if blocking else 0)
+        latest_status = latest.status if latest is not None else "blocked"
         return {
-            "status": "blocked" if blocking else latest.status,
+            "status": "blocked" if blocking else latest_status,
             "blocking": blocking,
             "latest_run_id": latest.id if latest else None,
             "reason": "latest_vpn_tester_run_missing_required_evidence"
@@ -1111,7 +1251,8 @@ class VpnTesterService:
                 )
             )
 
-        suite_metadata = suite_spec.get("metadata") if isinstance(suite_spec.get("metadata"), Mapping) else {}
+        raw_suite_metadata = suite_spec.get("metadata")
+        suite_metadata: Mapping[str, Any] = raw_suite_metadata if isinstance(raw_suite_metadata, Mapping) else {}
         expected_categories = {
             str(item.get("key") or "")
             for item in suite_metadata.get("antifilter_categories", [])
@@ -1648,6 +1789,9 @@ class VpnTesterService:
         for item in checks:
             if not isinstance(item, dict):
                 continue
+            details = dict(item.get("details") or {})
+            if is_task2 and str(item.get("check_key") or "") == "premium_spb_de_exceptions.selected_outbound.matrix":
+                details["agent_id"] = payload.get("agent_id")
             normalized.append(
                 _result(
                     check_key=str(item.get("check_key") or "runtime.agent.check"),
@@ -1657,7 +1801,7 @@ class VpnTesterService:
                     severity=str(item.get("severity") or "warning"),
                     target=str(item.get("target") or "runtime-agent"),
                     safe_summary=str(item.get("safe_summary") or "Runtime check completed"),
-                    details=dict(item.get("details") or {}),
+                    details=details,
                     started=started,
                 )
             )

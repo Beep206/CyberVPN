@@ -1866,3 +1866,8 @@ async def test_runtime_run_combines_contract_and_live_transport_results() -> Non
     )
     assert repository.replace_run_results.await_args.kwargs["results"] == [contract_result, runtime_result]
     assert repository.replace_run_results.await_args.kwargs["status"] == "pass"
+    execution_attempt_id = repository.mark_run_running.await_args.kwargs["execution_attempt_id"]
+    assert len(execution_attempt_id) == 32
+    assert int(execution_attempt_id, 16) >= 0
+    assert repository.replace_run_results.await_args.kwargs["summary"]["execution_attempt_id"] == execution_attempt_id
+    assert "preserve_evidence_types" not in repository.replace_run_results.await_args.kwargs

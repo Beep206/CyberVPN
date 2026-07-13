@@ -29,6 +29,7 @@
 (backend_proxy) {
   reverse_proxy cybervpn-stage1-cybervpn-backend-1:8000 {
     header_up -X-CyberVPN-Task2-Evidence-Ingress
+    header_up -X-CyberVPN-Task2-Operator-Evidence-Ingress
     header_up X-Real-IP {client_ip}
     header_up X-Forwarded-For {client_ip}
     header_up X-Forwarded-Port 443
@@ -224,6 +225,7 @@ https://task2-evidence.cyber-vpn.org:9445 {
   }
   handle @task2_route_evidence_spb {
     reverse_proxy cybervpn-stage1-cybervpn-backend-1:8000 {
+      header_up -X-CyberVPN-Task2-Operator-Evidence-Ingress
       header_up X-CyberVPN-Task2-Evidence-Ingress spb-source-verified-v1
       header_up X-Real-IP {client_ip}
       header_up X-Forwarded-For {client_ip}

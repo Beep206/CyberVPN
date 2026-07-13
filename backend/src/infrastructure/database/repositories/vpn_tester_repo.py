@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from uuid import UUID
@@ -207,6 +208,20 @@ class VpnTesterRepository:
                 selectinload(VpnTestRunModel.results),
                 selectinload(VpnTestRunModel.evidence_artifacts),
             )
+            .execution_options(populate_existing=True)
+        )
+        return result.scalars().first()
+
+    async def get_run_for_update(self, run_id: UUID) -> VpnTestRunModel | None:
+        result = await self._session.execute(
+            select(VpnTestRunModel)
+            .where(VpnTestRunModel.id == run_id)
+            .options(
+                selectinload(VpnTestRunModel.results),
+                selectinload(VpnTestRunModel.evidence_artifacts),
+            )
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         return result.scalars().first()
 
@@ -233,9 +248,18 @@ class VpnTesterRepository:
         await self._session.flush()
         return run
 
-    async def mark_run_running(self, run: VpnTestRunModel) -> None:
+    async def mark_run_running(self, run: VpnTestRunModel, *, execution_attempt_id: str) -> None:
+        await self._session.execute(
+            delete(VpnTestEvidenceArtifactModel).where(VpnTestEvidenceArtifactModel.run_id == run.id)
+        )
         run.status = "running"
-        run.started_at = run.started_at or datetime.now(UTC)
+        run.started_at = datetime.now(UTC)
+        run.finished_at = None
+        run.blocking = True
+        run.summary = {
+            "status": "running",
+            "execution_attempt_id": execution_attempt_id,
+        }
         await self._session.flush()
 
     async def replace_run_results(
@@ -261,9 +285,61 @@ class VpnTesterRepository:
         run.status = status
         run.summary = summary
         run.blocking = status in {"fail", "queued", "running"}
-        run.finished_at = datetime.now(UTC)
+        run.finished_at = run.finished_at or datetime.now(UTC)
         await self._session.flush()
         return run
+
+    async def get_evidence_artifact(
+        self,
+        run_id: UUID,
+        artifact_key: str,
+    ) -> VpnTestEvidenceArtifactModel | None:
+        result = await self._session.execute(
+            select(VpnTestEvidenceArtifactModel).where(
+                VpnTestEvidenceArtifactModel.run_id == run_id,
+                VpnTestEvidenceArtifactModel.artifact_key == artifact_key,
+            )
+        )
+        return result.scalars().first()
+
+    async def find_evidence_by_signed_identity(
+        self,
+        *,
+        artifact_type: str,
+        nonce: str,
+        evidence_id: str,
+    ) -> list[VpnTestEvidenceArtifactModel]:
+        summary = VpnTestEvidenceArtifactModel.preview["summary"]
+        result = await self._session.execute(
+            select(VpnTestEvidenceArtifactModel)
+            .where(
+                VpnTestEvidenceArtifactModel.artifact_type == artifact_type,
+                or_(
+                    summary["nonce"].astext == nonce,
+                    summary["evidence_id"].astext == evidence_id,
+                ),
+            )
+            .limit(2)
+        )
+        return list(result.scalars().all())
+
+    async def lock_signed_evidence_identity(self, *, nonce: str, evidence_id: str) -> None:
+        lock_keys = {
+            int.from_bytes(hashlib.sha256(value.encode("ascii")).digest()[:8], "big", signed=True)
+            for value in (f"nonce:{nonce}", f"evidence_id:{evidence_id}")
+        }
+        for lock_key in sorted(lock_keys):
+            await self._session.execute(select(func.pg_advisory_xact_lock(lock_key)))
+
+    async def add_evidence_artifact(
+        self,
+        run: VpnTestRunModel,
+        artifact: dict,
+    ) -> VpnTestEvidenceArtifactModel:
+        model = VpnTestEvidenceArtifactModel(run_id=run.id, **artifact)
+        self._session.add(model)
+        await self._session.flush()
+        return model
 
     async def cancel_run(self, run: VpnTestRunModel) -> VpnTestRunModel:
         if run.status in {"queued", "running"}:

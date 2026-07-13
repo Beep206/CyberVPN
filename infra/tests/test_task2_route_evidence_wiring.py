@@ -8,10 +8,52 @@ COLLECTOR_PATH = (
     "/api/v1/admin/vpn-tester/internal/task2/route-evidence/xray-routing-webhook"
 )
 RUNTIME_AGENT_PATH = "/internal/v2/runtime-checks"
+OPERATOR_EVIDENCE_HEADER = "X-CyberVPN-Task2-Operator-Evidence-Ingress"
+OPERATOR_EVIDENCE_PUBLIC_KEY_PATH = (
+    "/run/cybervpn/readiness/task2/runtime-evidence-public-key.pem"
+)
+OPERATOR_EVIDENCE_ENV_DEFAULTS = {
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_ENABLED": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_ENABLED:-false}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_PUBLIC_KEY_PATH": OPERATOR_EVIDENCE_PUBLIC_KEY_PATH,
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_KEY_ID": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_KEY_ID:-}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_REVOKED_KEY_IDS": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_REVOKED_KEY_IDS:-}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_BACKEND_IMAGE_ID": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_BACKEND_IMAGE_ID:-}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_GIT_SHA": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_GIT_SHA:-}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_IMAGE_REF": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_IMAGE_REF:-}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_IMAGE_ID": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_IMAGE_ID:-}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_SKEW_SECONDS": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_SKEW_SECONDS:-60}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_VALIDITY_SECONDS": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_VALIDITY_SECONDS:-900}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_FAULT_SECONDS": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_FAULT_SECONDS:-240}",
+    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_BODY_BYTES": "${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_BODY_BYTES:-65536}",
+}
 
 
 def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
+
+
+def _backend_proxy_block(caddy: str) -> str:
+    return caddy.split("(backend_proxy) {", 1)[1].split("\n}", 1)[0]
+
+
+def _backend_reverse_proxy_blocks(caddy: str, upstream: str) -> list[str]:
+    blocks: list[str] = []
+    lines = caddy.splitlines()
+    for index, line in enumerate(lines):
+        if "reverse_proxy" not in line or upstream not in line:
+            continue
+        if not line.rstrip().endswith("{"):
+            continue
+
+        depth = line.count("{") - line.count("}")
+        block = [line]
+        for nested in lines[index + 1 :]:
+            block.append(nested)
+            depth += nested.count("{") - nested.count("}")
+            if depth == 0:
+                break
+        blocks.append("\n".join(block))
+    return blocks
 
 
 def test_task2_evidence_caddy_site_is_dedicated_and_spb_source_restricted() -> None:
@@ -47,6 +89,50 @@ def test_task2_evidence_caddy_site_is_dedicated_and_spb_source_restricted() -> N
     assert "@task2_route_evidence_private path " + COLLECTOR_PATH in shared_api_routes
     assert 'respond @task2_route_evidence_private "Not found" 404' in shared_api_routes
     assert "header_up -X-CyberVPN-Task2-Evidence-Ingress" in shared_api_routes
+    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in shared_api_routes
+
+
+def test_task2_operator_evidence_public_backend_proxies_strip_ingress_marker() -> None:
+    edge_caddy = _read("infra/deploy/stage1/Caddyfile.edge-stage1.production")
+    backend_proxy = _backend_proxy_block(edge_caddy)
+    dedicated_task2 = edge_caddy.split(
+        "https://task2-evidence.cyber-vpn.org:9445 {",
+        1,
+    )[1].split(
+        "https://vpn-test-spb.cyber-vpn.org",
+        1,
+    )[0]
+
+    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in backend_proxy
+    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in dedicated_task2
+    edge_backend_proxies = _backend_reverse_proxy_blocks(
+        edge_caddy, "cybervpn-stage1-cybervpn-backend-1:8000"
+    )
+    assert len(edge_backend_proxies) == 3
+    for proxy in edge_backend_proxies:
+        assert (
+            f"header_up -{OPERATOR_EVIDENCE_HEADER}" in proxy
+            or "header_up -X-CyberVPN-*" in proxy
+        )
+
+    assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in edge_caddy
+    assert edge_caddy.count(OPERATOR_EVIDENCE_HEADER) == 2
+    assert "task2-operator-evidence.cyber-vpn" not in edge_caddy.lower()
+
+    stage1_caddy = _read("infra/deploy/stage1/Caddyfile.stage1.snippet")
+    stage1_backend_proxies = _backend_reverse_proxy_blocks(
+        stage1_caddy, "cybervpn-backend:8000"
+    )
+    assert len(stage1_backend_proxies) == 2
+    for proxy in stage1_backend_proxies:
+        assert (
+            f"header_up -{OPERATOR_EVIDENCE_HEADER}" in proxy
+            or "header_up -X-CyberVPN-*" in proxy
+        )
+
+    assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in stage1_caddy
+    assert stage1_caddy.count(OPERATOR_EVIDENCE_HEADER) == 1
+    assert "task2-operator-evidence.cyber-vpn" not in stage1_caddy.lower()
 
 
 def test_task2_evidence_host_firewall_restricts_dedicated_ipv6_before_docker() -> None:
@@ -121,6 +207,29 @@ def test_task2_evidence_compose_and_vault_env_defaults_are_disabled_or_empty() -
         "VPN_TESTER_TASK2_SYNTHETIC_USER": "",
         "VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL": "",
     }
+
+
+def test_task2_operator_evidence_compose_uses_public_key_mount_and_fail_closed_defaults() -> (
+    None
+):
+    compose = yaml.safe_load(_read("infra/deploy/stage1/docker-compose.stage1.yml"))
+    backend = compose["services"]["cybervpn-backend"]
+    backend_env = backend["environment"]
+
+    for key, expected in OPERATOR_EVIDENCE_ENV_DEFAULTS.items():
+        assert backend_env[key] == expected
+
+    assert (
+        "${CYBERVPN_READINESS_DIR:-/srv/cybervpn/readiness}/task2:"
+        "/run/cybervpn/readiness/task2:ro"
+    ) in backend["volumes"]
+    assert OPERATOR_EVIDENCE_PUBLIC_KEY_PATH.startswith(
+        "/run/cybervpn/readiness/task2/"
+    )
+    assert OPERATOR_EVIDENCE_PUBLIC_KEY_PATH.endswith("runtime-evidence-public-key.pem")
+    assert "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_PRIVATE_KEY" not in backend_env
+    assert "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_PRIVATE_KEY_PATH" not in backend_env
+    assert "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_SIGNING_KEY" not in backend_env
 
 
 def test_task2_evidence_dns_example_is_dns_only_origin_not_subscription_host() -> None:

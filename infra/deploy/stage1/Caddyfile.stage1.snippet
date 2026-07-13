@@ -32,6 +32,7 @@
 	@api path /api/v1/* /.well-known/security.txt
 	reverse_proxy @api cybervpn-backend:8000 {
 		header_up -X-CyberVPN-Task2-Evidence-Ingress
+		header_up -X-CyberVPN-Task2-Operator-Evidence-Ingress
 	}
 
 	@telegram_webhook path /webhook/telegram /webhook/telegram/diagnostics

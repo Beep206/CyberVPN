@@ -18,6 +18,8 @@ SPB_COMPOSE = (
 EDGE_CADDYFILE = (
     ROOT / "infra" / "deploy" / "stage1" / "Caddyfile.edge-stage1.production"
 )
+STAGE1_CADDYFILE = ROOT / "infra" / "deploy" / "stage1" / "Caddyfile.stage1.snippet"
+OPERATOR_EVIDENCE_HEADER = "X-CyberVPN-Task2-Operator-Evidence-Ingress"
 
 
 def _script() -> str:
@@ -32,10 +34,34 @@ def _edge_caddyfile() -> str:
     return EDGE_CADDYFILE.read_text(encoding="utf-8")
 
 
+def _stage1_caddyfile() -> str:
+    return STAGE1_CADDYFILE.read_text(encoding="utf-8")
+
+
 def _between(content: str, start: str, end: str) -> str:
     assert start in content, f"missing start marker: {start}"
     assert end in content, f"missing end marker: {end}"
     return content.split(start, 1)[1].split(end, 1)[0]
+
+
+def _backend_reverse_proxy_blocks(caddy: str, upstream: str) -> list[str]:
+    blocks: list[str] = []
+    lines = caddy.splitlines()
+    for index, line in enumerate(lines):
+        if "reverse_proxy" not in line or upstream not in line:
+            continue
+        if not line.rstrip().endswith("{"):
+            continue
+
+        depth = line.count("{") - line.count("}")
+        block = [line]
+        for nested in lines[index + 1 :]:
+            block.append(nested)
+            depth += nested.count("{") - nested.count("}")
+            if depth == 0:
+                break
+        blocks.append("\n".join(block))
+    return blocks
 
 
 def _assert_in_order(content: str, *markers: str) -> None:
@@ -108,6 +134,49 @@ def test_task2_edge_caddy_artifact_matches_production_edge_shape() -> None:
     assert "remote_ip 172.30.3.0/24" in caddy
     assert "reverse_proxy cybervpn-vpn-test-agent-spb-target:8080" in caddy
     assert "cybervpn-backend:8000" not in caddy
+
+
+def test_task2_operator_evidence_is_not_publicly_exposed_by_stage1_or_edge_caddy() -> None:
+    edge_caddy = _edge_caddyfile()
+    backend_proxy = _between(
+        edge_caddy, "(backend_proxy) {", "\n}\n\n(product_subscription_gateway)"
+    )
+    dedicated_task2 = _between(
+        edge_caddy,
+        "https://task2-evidence.cyber-vpn.org:9445 {",
+        "\n}\n\nhttps://vpn-test-spb.cyber-vpn.org",
+    )
+
+    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in backend_proxy
+    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in dedicated_task2
+    edge_backend_proxies = _backend_reverse_proxy_blocks(
+        edge_caddy, "cybervpn-stage1-cybervpn-backend-1:8000"
+    )
+    assert len(edge_backend_proxies) == 3
+    for proxy in edge_backend_proxies:
+        assert (
+            f"header_up -{OPERATOR_EVIDENCE_HEADER}" in proxy
+            or "header_up -X-CyberVPN-*" in proxy
+        )
+
+    assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in edge_caddy
+    assert edge_caddy.count(OPERATOR_EVIDENCE_HEADER) == 2
+    assert "task2-operator-evidence.cyber-vpn" not in edge_caddy.lower()
+
+    stage1_caddy = _stage1_caddyfile()
+    stage1_backend_proxies = _backend_reverse_proxy_blocks(
+        stage1_caddy, "cybervpn-backend:8000"
+    )
+    assert len(stage1_backend_proxies) == 2
+    for proxy in stage1_backend_proxies:
+        assert (
+            f"header_up -{OPERATOR_EVIDENCE_HEADER}" in proxy
+            or "header_up -X-CyberVPN-*" in proxy
+        )
+
+    assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in stage1_caddy
+    assert stage1_caddy.count(OPERATOR_EVIDENCE_HEADER) == 1
+    assert "task2-operator-evidence.cyber-vpn" not in stage1_caddy.lower()
 
 
 def test_manual_dry_run_branch_exits_before_remote_mutation() -> None:
