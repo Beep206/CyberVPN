@@ -223,8 +223,8 @@ https://task2-evidence.cyber-vpn.org:9445 {
     remote_ip 172.30.0.1
   }
   handle @task2_route_evidence_spb {
+    request_header -X-CyberVPN-*
     reverse_proxy cybervpn-stage1-cybervpn-backend-1:8000 {
-      header_up -X-CyberVPN-*
       header_up X-CyberVPN-Task2-Evidence-Ingress spb-source-verified-v1
       header_up X-Real-IP {client_ip}
       header_up X-Forwarded-For {client_ip}
