@@ -3,7 +3,7 @@
 - Date: 2026-07-13
 - Production application host: `prod-app-1` (`45.87.41.146`)
 - Signed artifact and live routing checks exercised backend implementation: `742598b1098f14b922e7bb874b4be8933962cdd6`
-- Current backend after cleanup-deadline validator remediation: `4e1974a9692864574b8a0a2740a42a6f0fd5100b`
+- Current backend after cleanup-deadline validator remediation: `4e1974a9948c48b366d4e7d6d89b1cb91d570464`
 - Final edge configuration exercised in production: `151c9cd7f2d7a23dfc8bcd2e44511cadd1ea67c5`
 - Overall status: server-side VPN data plane verified; physical INCY/HAPP phone checks not run
 
