@@ -147,20 +147,17 @@ def test_task2_operator_evidence_is_not_publicly_exposed_by_stage1_or_edge_caddy
         "\n}\n\nhttps://vpn-test-spb.cyber-vpn.org",
     )
 
-    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in backend_proxy
-    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in dedicated_task2
+    assert "header_up -X-CyberVPN-*" in backend_proxy
+    assert "header_up -X-CyberVPN-*" in dedicated_task2
     edge_backend_proxies = _backend_reverse_proxy_blocks(
         edge_caddy, "cybervpn-stage1-cybervpn-backend-1:8000"
     )
     assert len(edge_backend_proxies) == 3
     for proxy in edge_backend_proxies:
-        assert (
-            f"header_up -{OPERATOR_EVIDENCE_HEADER}" in proxy
-            or "header_up -X-CyberVPN-*" in proxy
-        )
+        assert "header_up -X-CyberVPN-*" in proxy
 
     assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in edge_caddy
-    assert edge_caddy.count(OPERATOR_EVIDENCE_HEADER) == 2
+    assert OPERATOR_EVIDENCE_HEADER not in edge_caddy
     assert "task2-operator-evidence.cyber-vpn" not in edge_caddy.lower()
 
     stage1_caddy = _stage1_caddyfile()
@@ -169,13 +166,10 @@ def test_task2_operator_evidence_is_not_publicly_exposed_by_stage1_or_edge_caddy
     )
     assert len(stage1_backend_proxies) == 2
     for proxy in stage1_backend_proxies:
-        assert (
-            f"header_up -{OPERATOR_EVIDENCE_HEADER}" in proxy
-            or "header_up -X-CyberVPN-*" in proxy
-        )
+        assert "header_up -X-CyberVPN-*" in proxy
 
     assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in stage1_caddy
-    assert stage1_caddy.count(OPERATOR_EVIDENCE_HEADER) == 1
+    assert OPERATOR_EVIDENCE_HEADER not in stage1_caddy
     assert "task2-operator-evidence.cyber-vpn" not in stage1_caddy.lower()
 
 

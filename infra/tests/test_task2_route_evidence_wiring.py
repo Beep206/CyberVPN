@@ -88,8 +88,8 @@ def test_task2_evidence_caddy_site_is_dedicated_and_spb_source_restricted() -> N
     assert COLLECTOR_PATH in shared_api_routes
     assert "@task2_route_evidence_private path " + COLLECTOR_PATH in shared_api_routes
     assert 'respond @task2_route_evidence_private "Not found" 404' in shared_api_routes
-    assert "header_up -X-CyberVPN-Task2-Evidence-Ingress" in shared_api_routes
-    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in shared_api_routes
+    assert "header_up -X-CyberVPN-*" in shared_api_routes
+    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" not in shared_api_routes
 
 
 def test_task2_operator_evidence_public_backend_proxies_strip_ingress_marker() -> None:
@@ -103,20 +103,17 @@ def test_task2_operator_evidence_public_backend_proxies_strip_ingress_marker() -
         1,
     )[0]
 
-    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in backend_proxy
-    assert f"header_up -{OPERATOR_EVIDENCE_HEADER}" in dedicated_task2
+    assert "header_up -X-CyberVPN-*" in backend_proxy
+    assert "header_up -X-CyberVPN-*" in dedicated_task2
     edge_backend_proxies = _backend_reverse_proxy_blocks(
         edge_caddy, "cybervpn-stage1-cybervpn-backend-1:8000"
     )
     assert len(edge_backend_proxies) == 3
     for proxy in edge_backend_proxies:
-        assert (
-            f"header_up -{OPERATOR_EVIDENCE_HEADER}" in proxy
-            or "header_up -X-CyberVPN-*" in proxy
-        )
+        assert "header_up -X-CyberVPN-*" in proxy
 
     assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in edge_caddy
-    assert edge_caddy.count(OPERATOR_EVIDENCE_HEADER) == 2
+    assert OPERATOR_EVIDENCE_HEADER not in edge_caddy
     assert "task2-operator-evidence.cyber-vpn" not in edge_caddy.lower()
 
     stage1_caddy = _read("infra/deploy/stage1/Caddyfile.stage1.snippet")
@@ -125,13 +122,10 @@ def test_task2_operator_evidence_public_backend_proxies_strip_ingress_marker() -
     )
     assert len(stage1_backend_proxies) == 2
     for proxy in stage1_backend_proxies:
-        assert (
-            f"header_up -{OPERATOR_EVIDENCE_HEADER}" in proxy
-            or "header_up -X-CyberVPN-*" in proxy
-        )
+        assert "header_up -X-CyberVPN-*" in proxy
 
     assert f"header_up {OPERATOR_EVIDENCE_HEADER} " not in stage1_caddy
-    assert stage1_caddy.count(OPERATOR_EVIDENCE_HEADER) == 1
+    assert OPERATOR_EVIDENCE_HEADER not in stage1_caddy
     assert "task2-operator-evidence.cyber-vpn" not in stage1_caddy.lower()
 
 
