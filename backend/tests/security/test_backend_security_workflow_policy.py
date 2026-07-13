@@ -14,12 +14,19 @@ def _reviewed_security_workflow_paths() -> set[str]:
     validator = REPOSITORY_ROOT / "scripts" / "security" / "validate_gitleaks_config.py"
     namespace = runpy.run_path(str(validator), run_name="gitleaks_policy")
     task2_paths = namespace["TASK2_ALLOWED_PATHS"]
+    task2_public_evidence_paths = namespace["TASK2_PUBLIC_EVIDENCE_WORKFLOW_PATHS"]
     global_paths = namespace["REVIEWED_GLOBAL_GENERIC_WORKFLOW_PATHS"]
     jfrog_paths = namespace["JFROG_ALLOWED_PATHS"]
     assert isinstance(task2_paths, set)
+    assert isinstance(task2_public_evidence_paths, set)
     assert isinstance(global_paths, set)
     assert isinstance(jfrog_paths, set)
-    return {path for path in task2_paths if not path.startswith("backend/")} | global_paths | jfrog_paths
+    return (
+        {path for path in task2_paths if not path.startswith("backend/")}
+        | task2_public_evidence_paths
+        | global_paths
+        | jfrog_paths
+    )
 
 
 def test_backend_security_workflow_fails_closed() -> None:
@@ -126,7 +133,7 @@ regexTarget = "line"
 paths = ['''^backend/tests/helpers/spb_de_readiness\\.py.*$''']
 regexes = ['''(?i)private_key''']
 """,
-            "Exactly one reviewed top-level allowlist is required",
+            "Exactly two reviewed top-level allowlists are required",
         ),
         (
             """
@@ -137,7 +144,7 @@ condition = "OR"
 regexTarget = "match"
 regexes = ['''.*''']
 """,
-            "Exactly one reviewed top-level allowlist is required",
+            "Exactly two reviewed top-level allowlists are required",
         ),
         (
             """
@@ -148,7 +155,7 @@ condition = "OR"
 regexTarget = "match"
 regexes = ['''.*''']
 """,
-            "Exactly one reviewed top-level allowlist is required",
+            "Exactly two reviewed top-level allowlists are required",
         ),
     ],
 )
@@ -160,6 +167,44 @@ def test_gitleaks_allowlist_policy_rejects_additional_rule_or_global_allowlists(
     config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
     invalid_config = tmp_path / ".gitleaks.toml"
     invalid_config.write_text(config + additional_allowlist, encoding="utf-8")
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert expected_error in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("reviewed_fragment", "invalid_fragment", "expected_error"),
+    [
+        (
+            "^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/signed-envelope\\.json$",
+            "docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/signed-envelope\\.json$",
+            "Gitleaks allowlist path must be anchored",
+        ),
+        (
+            "^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/signed-envelope\\.json$",
+            "^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/.*$",
+            "Task2 public evidence allowlist differs from the reviewed exact shape",
+        ),
+        (
+            """suite_key["']?\\s*:\\s*["']premium_spb_de_exceptions_v1["']""",
+            ".*",
+            "Task2 public evidence allowlist differs from the reviewed exact shape",
+        ),
+    ],
+)
+def test_gitleaks_allowlist_policy_rejects_broad_task2_public_evidence_allowlist(
+    tmp_path: Path,
+    reviewed_fragment: str,
+    invalid_fragment: str,
+    expected_error: str,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    assert reviewed_fragment in config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(config.replace(reviewed_fragment, invalid_fragment, 1), encoding="utf-8")
 
     result = _run_gitleaks_policy_validator(invalid_config)
 

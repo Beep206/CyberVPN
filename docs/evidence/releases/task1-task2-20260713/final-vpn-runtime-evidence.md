@@ -2,8 +2,8 @@
 
 - Date: 2026-07-13
 - Production application host: `prod-app-1` (`45.87.41.146`)
-- Signed artifact and live routing checks exercised backend implementation: `742598b1098f14b922e7bb874b4be8933962cdd6`
-- Current backend after cleanup-deadline validator remediation: `4e1974a9948c48b366d4e7d6d89b1cb91d570464`
+- Signed artifact and live routing checks exercised backend implementation: `2f7ce2cc8ab31e41c66d4383c8688d7db4dbe39d`
+- Current backend after signed-evidence v2 deployment: `2f7ce2cc8ab31e41c66d4383c8688d7db4dbe39d`
 - Final edge configuration exercised in production: `151c9cd7f2d7a23dfc8bcd2e44511cadd1ea67c5`
 - Overall status: server-side VPN data plane verified; physical INCY/HAPP phone checks not run
 
@@ -74,8 +74,8 @@ The safe DNS and IPv6 evidence hashes bound into the signed runtime record were:
 
 The current baseline VPN Tester run was:
 
-- run ID: `f2024184-10d9-4776-a758-5c038ae87b50`
-- execution attempt: `c1f3d73cdbf81ac9418f70d57ad375b4`
+- run ID: `7453efab-27e5-4117-a13e-64c8172c9373`
+- execution attempt: `5a2f6b567d6e2c5c1f1a6c421fd4e71d`
 - backend result before operator evidence: 34 pass, zero fail, four intentionally degraded
 - selected-outbound matrix: 21 of 21 pass, including RAW/XHTTP and TCP/UDP
 
@@ -83,8 +83,8 @@ A bounded production fault isolated only source `2a01:e5c0:1368::3` to destinati
 
 | Evidence | Result |
 | --- | --- |
-| Fault duration | 111 seconds |
-| TCP packets dropped | 1,676 |
+| Fault duration | 95 seconds |
+| TCP packets dropped | 1,660 |
 | UDP packets dropped | 10 |
 | RAW matched exception during fault | Timed out; no SPB `DIRECT` fallback |
 | XHTTP matched exception during fault | Timed out; no SPB `DIRECT` fallback |
@@ -93,21 +93,36 @@ A bounded production fault isolated only source `2a01:e5c0:1368::3` to destinati
 | Post-restore XHTTP matched route | DE restored after one stale-connection retry |
 | Cleanup | nftables table absent; watchdog inactive |
 
-The fault-window classification run was `df2c3378-8fae-498d-b6e7-52233a24e25c`; the post-restore classification run was `273832f9-5eaa-4657-a023-b7c5c4172ca8`.
+The fault-window classification run was `7f613d9e-dd66-4b0f-9422-d4d482841aa4`, execution attempt `e34f39258b1aa2dcc64187389443c394`. The post-restore classification run was `60662012-1898-40d6-9dd3-47b8b8b7eb47`, execution attempt `91bf302c27f6f36847c4fcfe75761e6e`.
 
-The complete envelope bound the current run and attempt, backend and agent Git/image identities, feed and manifest, all 21 pre-fault/fault/post-restore rows, exact firewall rule digests, packet counters, watchdog/cleanup timestamps, and DNS/IPv6 policy hashes. It was signed offline with the dedicated Ed25519 operator key and ingested over the trusted internal route.
+The canonical v2 envelope bound the current run and attempt, the canonical sanitized baseline capture, both auxiliary run and attempt IDs with their canonical capture hashes, backend and agent Git/image identities, feed and manifest, all 21 pre-fault/fault/post-restore rows, exact firewall rule digests, packet counters, watchdog/cleanup timestamps, and DNS/IPv6 policy hashes. It was signed offline with the dedicated Ed25519 operator key and ingested over the trusted internal route.
 
 | Signed evidence result | Value |
 | --- | --- |
-| Artifact SHA-256 | `6758f08f2d15632257298a58f6075795fcbb9f1f90c74a50e3bd17c586886125` |
+| Artifact SHA-256 | `235ff362b6dfb70d02fa82eac5071550a479777d943464d09f8e509980de6e92` |
 | First ingestion | HTTP 200, `created=true` |
 | Exact retry | HTTP 200, `created=false` |
 | Promoted run | 38 pass, zero fail, zero degraded |
 | Private operator key on production | Absent |
 
-The exact retry proves idempotent ingestion. Promotion affected only the four explicitly promotable checks for the same execution attempt.
+The exact retry proves idempotent ingestion. A read-only production database query confirmed the same run ID, execution attempt, artifact SHA, `signed_pass` marker, 38 persisted passing checks, and all 21 selected-outbound rows. Promotion affected only the four explicitly promotable checks for the same execution attempt.
 
-The signed artifact above was accepted on backend r20 (`742598b1`). Backend r21 (`4e1974a9`) adds an explicit rejection when `cleanup_verified_at` is later than `watchdog_deadline_at`; focused schema and ingestion tests prove that such evidence cannot be promoted or persisted. The production artifact was not re-signed or re-ingested after this validator-only deployment, so it is not cited as proof that the new rejection branch ran in production. AC-07 and AC-13 remain partial under that strict repository-proof distinction.
+The signed artifact was accepted on backend r22 (`2f7ce2cc`) after the v2 validator was deployed. The final cleanup timestamp was `2026-07-13T19:18:58Z`, before the automatic watchdog deadline `2026-07-13T19:21:23Z`.
+
+The complete sanitized evidence is retained as an independently replayable public bundle:
+
+- [bundle manifest](task2-runtime-fault-v2/manifest.json), SHA-256 `bfc0c791bffb428f39c83688d3d290cec792cc1f7f5d4de3c543423c3f9198cc`;
+- [operator public key](task2-runtime-fault-v2/operator-public-key.pem), raw Ed25519 key fingerprint `fc17bd7039554d281878ae5197868c12c4a24113be8e98eb6f3b8b863a0f76a9`;
+- [signed v2 envelope](task2-runtime-fault-v2/signed-envelope.json);
+- canonical sanitized [baseline](task2-runtime-fault-v2/baseline-run.json), [fault-window](task2-runtime-fault-v2/fault-window-run.json), and [post-restore](task2-runtime-fault-v2/post-restore-run.json) captures.
+
+The repository CLI verifies the bundle offline, without production credentials or network access. The trusted operator fingerprint is a required out-of-band input, and the release manifest hash can be pinned at the same boundary:
+
+```powershell
+backend/.venv/Scripts/python.exe scripts/remnawave/verify-task2-runtime-fault-evidence-bundle.py docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2 --expected-operator-public-key-sha256 fc17bd7039554d281878ae5197868c12c4a24113be8e98eb6f3b8b863a0f76a9 --expected-manifest-sha256 bfc0c791bffb428f39c83688d3d290cec792cc1f7f5d4de3c543423c3f9198cc
+```
+
+The verifier recomputes every manifest and canonical capture hash, verifies the Ed25519 signature and v2 schema against that trust anchor, recomputes the baseline result-set and row digests, checks all three 21-row route fingerprints, and rejects unexpected files, unsafe paths, malformed JSON, failed selected-outbound rows, private keys, customer email addresses, subscription material, and other recognized sensitive markers. A coherently replaced key, signature and manifest do not validate against the pinned operator fingerprint. This closes the strict repository-proof remainder for AC-07 and AC-13.
 
 ## Task2 Live Customer Policy
 
@@ -122,21 +137,13 @@ The signed selected-outbound matrix and fault counters provide server-side route
 
 ## Production Deployment
 
-The signed runtime evidence and live customer route checks used:
+The signed runtime evidence and final production checks used:
 
-`cybervpn/cybervpn-backend:task1-task2-20260713-r20-signed-fault-742598b1`
-
-Image ID:
-
-`sha256:fec0610265d6925cc32e39653ee704156fd944affd8546e9f294d97974ba64e3`
-
-The current backend image after the validator-only deployment is:
-
-`cybervpn/cybervpn-backend:task1-task2-20260713-r21-cleanup-evidence-4e1974a9`
+`cybervpn/cybervpn-backend:task1-task2-20260713-r22-signed-evidence-v2-2f7ce2cc`
 
 Image ID:
 
-`sha256:e1f2b0d66effef45b5099415ecee6f749e2da62c9ddef440ce566b3e791f015d`
+`sha256:77a3e14d24796fa49a3521f8578376d892c4fb8c75fc555ae12f3389390c5ffc`
 
 Both VPN test agents used:
 
@@ -154,7 +161,8 @@ At final inspection:
 - edge Caddy was running with restart count zero;
 - backend `/health` and `/readiness` returned HTTP 200;
 - the post-deployment backend, Remnawave, agent, and Caddy log window contained zero panic, fatal, or traceback markers;
-- no transient profile config, signed envelope, or private signing key remained on production.
+- the Task2 fault table was absent, its watchdog was inactive, and SPB reached the peer-restricted DE IPv6 bridge on TCP `9444`;
+- no transient Task2 capture, signed envelope, diagnostic log, or private signing key remained on the application host, backend container, or DE fault-state path.
 
 ## Target Account And Invite Audit
 
@@ -173,7 +181,7 @@ A final sanitized read-only audit established:
 ## Rollback
 
 - Git rollback point: `origin/main@64289f2dee89f995bf0d453958dcf749ee1c9633`.
-- Backend rollback: `/srv/cybervpn/backups/task1-task2-remnawave-20260713T155727Z/backend-before-r21-cleanup-evidence-4e1974a9` (restores r20/`742598b1`).
+- Backend rollback: `/srv/cybervpn/backups/task1-task2-remnawave-20260713T191206Z/backend-before-r22-signed-evidence-v2` (restores r21/`4e1974a9`).
 - Edge rollback: `/srv/cybervpn/backups/task1-task2-remnawave-20260713T143909Z/caddy-before-webhook-auth-151c9cd7`.
 - The Task2 transient bridge-fault table and watchdog are absent from the final state.
 

@@ -14,7 +14,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Final, Literal
+from typing import Any, ClassVar, Final, Literal
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -47,6 +47,9 @@ TASK2_PROMOTABLE_CHECK_KEYS: Final = frozenset(
 )
 
 _SAFE_LABEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:/@+-]{0,159}$")
+_JWT_TOKEN = re.compile(
+    r"(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}(?![A-Za-z0-9_-])"
+)
 _SENSITIVE_MARKERS = (
     "vless://",
     "ss://",
@@ -59,7 +62,6 @@ _SENSITIVE_MARKERS = (
     "cookie",
     "refresh_token",
     "access_token",
-    "jwt",
     "bearer ",
 )
 
@@ -85,7 +87,9 @@ class _StrictModel(BaseModel):
 
 
 class Task2EvidenceHeader(_StrictModel):
-    schema_name: Literal["cybervpn.task2.runtime-fault-evidence.envelope.v1"] = Field(alias="schema")
+    _expected_schema: ClassVar[str] = TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA
+
+    schema_name: str = Field(alias="schema")
     audience: Literal["cybervpn.backend.vpn-tester.task2.runtime-fault-evidence"]
     algorithm: Literal["Ed25519"]
     key_id: str = Field(..., pattern=r"^[a-z0-9][a-z0-9_.:-]{7,79}$")
@@ -102,9 +106,15 @@ class Task2EvidenceHeader(_StrictModel):
             raise ValueError("timestamp_must_be_aware")
         return value.astimezone(UTC)
 
+    @model_validator(mode="after")
+    def require_schema(self) -> Task2EvidenceHeader:
+        if self.schema_name != self._expected_schema:
+            raise ValueError("header_schema_mismatch")
+        return self
+
 
 class Task2EvidenceHeaderV2(Task2EvidenceHeader):
-    schema_name: Literal["cybervpn.task2.runtime-fault-evidence.envelope.v2"] = Field(alias="schema")
+    _expected_schema: ClassVar[str] = TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA_V2
 
 
 class Task2RuntimeIdentity(_StrictModel):
@@ -298,7 +308,9 @@ class Task2PolicyEvidence(_StrictModel):
 
 
 class Task2RuntimeFaultPayload(_StrictModel):
-    schema_name: Literal["cybervpn.task2.runtime-fault-evidence.payload.v1"] = Field(alias="schema")
+    _expected_schema: ClassVar[str] = TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA
+
+    schema_name: str = Field(alias="schema")
     evidence_id: str = Field(..., pattern=r"^[a-z0-9][a-z0-9_.:-]{7,79}$")
     run_id: str = Field(..., min_length=32, max_length=36)
     execution_attempt_id: str = Field(..., pattern=r"^[0-9a-f]{32}$")
@@ -328,6 +340,8 @@ class Task2RuntimeFaultPayload(_StrictModel):
 
     @model_validator(mode="after")
     def validate_rows(self) -> Task2RuntimeFaultPayload:
+        if self.schema_name != self._expected_schema:
+            raise ValueError("payload_schema_mismatch")
         if self.run_finished_at < self.run_started_at:
             raise ValueError("run_finished_before_started")
         _validate_task2_row_sets(self.pre_fault_rows, self.fault_rows, self.post_restore_rows)
@@ -350,7 +364,8 @@ class Task2AuxiliaryRuns(_StrictModel):
 
 
 class Task2RuntimeFaultPayloadV2(Task2RuntimeFaultPayload):
-    schema_name: Literal["cybervpn.task2.runtime-fault-evidence.payload.v2"] = Field(alias="schema")
+    _expected_schema: ClassVar[str] = TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA_V2
+
     baseline_capture_sha256: str = Field(..., pattern=r"^[0-9a-f]{64}$")
     auxiliary_runs: Task2AuxiliaryRuns
 
@@ -893,7 +908,7 @@ def _validate_against_run(payload: Task2RuntimeFaultPayload, run: Any, settings_
 
 
 def _validate_temporal_coherence(
-    envelope: Task2RuntimeFaultEnvelope,
+    envelope: Task2RuntimeFaultEnvelopeAny,
     settings_obj: Any,
 ) -> None:
     header = envelope.header
@@ -1116,7 +1131,7 @@ def _reject_float_values(value: Any) -> None:
 def _reject_sensitive_strings(value: Any) -> None:
     if isinstance(value, str):
         lowered = value.lower()
-        if "://" in lowered or any(marker in lowered for marker in _SENSITIVE_MARKERS):
+        if "://" in lowered or any(marker in lowered for marker in _SENSITIVE_MARKERS) or _JWT_TOKEN.search(value):
             raise Task2RuntimeFaultEvidenceRejected("sensitive_value_not_allowed")
     elif isinstance(value, Mapping):
         for nested in value.values():

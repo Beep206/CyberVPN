@@ -12,7 +12,9 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = REPOSITORY_ROOT / ".gitleaks.toml"
 GENERIC_API_KEY_RULE_ID = "generic-api-key"
 JFROG_RULE_ID = "jfrog-identity-token"
-TASK2_ALLOWLIST_DESCRIPTION = "Task2 contract field names and synthetic test values are not credentials"
+TASK2_ALLOWLIST_DESCRIPTION = (
+    "Task2 contract field names and synthetic test values are not credentials"
+)
 TASK2_ALLOWLIST_REGEXES = {
     r"(?i)\b(private_key|suite_key|registry_key|bgp_secret)\b",
 }
@@ -28,7 +30,9 @@ TASK2_ALLOWED_PATHS = {
     "backend/tests/unit/presentation/api/v1/admin/test_vpn_tester_task2_runtime_fault_evidence.py",
     "infra/tests/test_antifilter_bgp_collector.py",
 }
-REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION = "Synthetic test/evidence identifiers that are not credentials"
+REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION = (
+    "Synthetic test/evidence identifiers that are not credentials"
+)
 REVIEWED_GLOBAL_GENERIC_ALLOWLIST_PATHS = {
     r"^backend/tests/e2e/test_phase4_(finance|settlement)_foundations\.py$",
     r"^docs/evidence/partner-platform/stage3-outbox.*$",
@@ -43,7 +47,25 @@ REVIEWED_GLOBAL_GENERIC_ALLOWLIST_REGEXES = {
         r"""backlog_event_key|partition_key)["'\s:=]+[A-Za-z0-9_.:-]{8,}"""
     ),
 }
-JFROG_ALLOWLIST_DESCRIPTION = "Pinned public Xray release checksum is not a JFrog credential"
+TASK2_PUBLIC_EVIDENCE_ALLOWLIST_DESCRIPTION = (
+    "Task2 public evidence suite literal is not a credential"
+)
+TASK2_PUBLIC_EVIDENCE_ALLOWLIST_PATHS = {
+    r"^backend/tests/unit/application/vpn_testing/test_task2_runtime_fault_public_bundle\.py$",
+    r"^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/baseline-run\.json$",
+    r"^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/fault-window-run\.json$",
+    r"^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/post-restore-run\.json$",
+    r"^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/signed-envelope\.json$",
+}
+TASK2_PUBLIC_EVIDENCE_ALLOWLIST_REGEXES = {
+    r"""suite_key["']?\s*:\s*["']premium_spb_de_exceptions_v1["']""",
+}
+TASK2_PUBLIC_EVIDENCE_WORKFLOW_PATHS = {
+    "docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/**",
+}
+JFROG_ALLOWLIST_DESCRIPTION = (
+    "Pinned public Xray release checksum is not a JFrog credential"
+)
 JFROG_ALLOWED_PATHS = {"services/vpn-test-agent/Dockerfile"}
 JFROG_ALLOWLIST_PATHS = {r"^services/vpn-test-agent/Dockerfile$"}
 JFROG_ALLOWLIST_REGEXES = {r"^\n?ARG XRAY_SHA256=[a-f0-9]{64}$"}
@@ -90,7 +112,11 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     if config.get("extend") != {"useDefault": True}:
         raise ValueError("Gitleaks default-rule extension shape changed")
 
-    generic_rules = [rule for rule in config.get("rules", []) if rule.get("id") == GENERIC_API_KEY_RULE_ID]
+    generic_rules = [
+        rule
+        for rule in config.get("rules", [])
+        if rule.get("id") == GENERIC_API_KEY_RULE_ID
+    ]
     if len(generic_rules) != 1:
         raise ValueError("Exactly one generic-api-key rule extension is required")
     generic_rule = generic_rules[0]
@@ -99,7 +125,9 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     if len(generic_rule.get("allowlists", [])) != 1:
         raise ValueError("generic-api-key rule must contain one reviewed allowlist")
 
-    jfrog_rules = [rule for rule in config.get("rules", []) if rule.get("id") == JFROG_RULE_ID]
+    jfrog_rules = [
+        rule for rule in config.get("rules", []) if rule.get("id") == JFROG_RULE_ID
+    ]
     if len(jfrog_rules) != 1:
         raise ValueError("Exactly one jfrog-identity-token rule extension is required")
     if len(config.get("rules", [])) != 2:
@@ -108,10 +136,12 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
     if set(jfrog_rule) != {"id", "allowlists"}:
         raise ValueError("jfrog-identity-token rule extension shape changed")
     if len(jfrog_rule.get("allowlists", [])) != 1:
-        raise ValueError("jfrog-identity-token rule must contain one reviewed allowlist")
+        raise ValueError(
+            "jfrog-identity-token rule must contain one reviewed allowlist"
+        )
 
-    if len(config.get("allowlists", [])) != 1:
-        raise ValueError("Exactly one reviewed top-level allowlist is required")
+    if len(config.get("allowlists", [])) != 2:
+        raise ValueError("Exactly two reviewed top-level allowlists are required")
 
     allowlists = list(_iter_allowlists(config))
     for _, allowlist in allowlists:
@@ -142,17 +172,25 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
             regexes=TASK2_ALLOWLIST_REGEXES,
         )
     except ValueError as exc:
-        raise ValueError("Task2 Gitleaks allowlist differs from the reviewed exact shape") from exc
+        raise ValueError(
+            "Task2 Gitleaks allowlist differs from the reviewed exact shape"
+        ) from exc
 
     reviewed_global_allowlists = [
         allowlist
         for owner_rule_id, allowlist in allowlists
-        if owner_rule_id is None and allowlist.get("description") == REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION
+        if owner_rule_id is None
+        and allowlist.get("description")
+        == REVIEWED_GLOBAL_GENERIC_ALLOWLIST_DESCRIPTION
     ]
     if len(reviewed_global_allowlists) != 1:
-        raise ValueError("Exactly one reviewed global generic-api-key allowlist is required")
+        raise ValueError(
+            "Exactly one reviewed global generic-api-key allowlist is required"
+        )
     reviewed_global_allowlist = reviewed_global_allowlists[0]
-    if set(reviewed_global_allowlist.get("targetRules", [])) != {GENERIC_API_KEY_RULE_ID}:
+    if set(reviewed_global_allowlist.get("targetRules", [])) != {
+        GENERIC_API_KEY_RULE_ID
+    }:
         raise ValueError("Reviewed global allowlist target rules changed")
     _require_exact_allowlist_shape(
         reviewed_global_allowlist,
@@ -170,6 +208,40 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
         regexes=REVIEWED_GLOBAL_GENERIC_ALLOWLIST_REGEXES,
     )
 
+    task2_public_evidence_allowlists = [
+        allowlist
+        for owner_rule_id, allowlist in allowlists
+        if owner_rule_id is None
+        and allowlist.get("description") == TASK2_PUBLIC_EVIDENCE_ALLOWLIST_DESCRIPTION
+    ]
+    if len(task2_public_evidence_allowlists) != 1:
+        raise ValueError("Exactly one Task2 public evidence allowlist is required")
+    task2_public_evidence_allowlist = task2_public_evidence_allowlists[0]
+    if set(task2_public_evidence_allowlist.get("targetRules", [])) != {
+        GENERIC_API_KEY_RULE_ID
+    }:
+        raise ValueError("Task2 public evidence allowlist target rules changed")
+    try:
+        _require_exact_allowlist_shape(
+            task2_public_evidence_allowlist,
+            keys={
+                "description",
+                "targetRules",
+                "condition",
+                "regexTarget",
+                "paths",
+                "regexes",
+            },
+            condition="AND",
+            regex_target="match",
+            paths=TASK2_PUBLIC_EVIDENCE_ALLOWLIST_PATHS,
+            regexes=TASK2_PUBLIC_EVIDENCE_ALLOWLIST_REGEXES,
+        )
+    except ValueError as exc:
+        raise ValueError(
+            "Task2 public evidence allowlist differs from the reviewed exact shape"
+        ) from exc
+
     jfrog_allowlist = jfrog_rule["allowlists"][0]
     if jfrog_allowlist.get("description") != JFROG_ALLOWLIST_DESCRIPTION:
         raise ValueError("JFrog checksum allowlist description changed")
@@ -183,18 +255,29 @@ def validate_gitleaks_config(config_path: Path = CONFIG_PATH) -> None:
             regexes=JFROG_ALLOWLIST_REGEXES,
         )
     except ValueError as exc:
-        raise ValueError("JFrog checksum allowlist differs from the reviewed exact shape") from exc
+        raise ValueError(
+            "JFrog checksum allowlist differs from the reviewed exact shape"
+        ) from exc
 
     for path in TASK2_ALLOWED_PATHS:
         pattern = re.compile(f"^{re.escape(path)}$")
         if pattern.fullmatch(path) is None:
-            raise ValueError(f"Task2 Gitleaks allowlist does not match its exact path: {path}")
-        if pattern.fullmatch(f"{path}.bak") is not None or pattern.fullmatch(f"tmp/{path}") is not None:
-            raise ValueError(f"Task2 Gitleaks allowlist accepts a near-miss path: {path}")
+            raise ValueError(
+                f"Task2 Gitleaks allowlist does not match its exact path: {path}"
+            )
+        if (
+            pattern.fullmatch(f"{path}.bak") is not None
+            or pattern.fullmatch(f"tmp/{path}") is not None
+        ):
+            raise ValueError(
+                f"Task2 Gitleaks allowlist accepts a near-miss path: {path}"
+            )
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate the repository Gitleaks allowlist policy.")
+    parser = argparse.ArgumentParser(
+        description="Validate the repository Gitleaks allowlist policy."
+    )
     parser.add_argument(
         "--config",
         type=Path,

@@ -16,6 +16,22 @@ regexes = [
   '''(?i)(idempotency[-_ -]?key|period_key|event_key|dead_letter_event_key|backlog_event_key|partition_key)["'\s:=]+[A-Za-z0-9_.:-]{8,}''',
 ]
 
+[[allowlists]]
+description = "Task2 public evidence suite literal is not a credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "match"
+paths = [
+  '''^backend/tests/unit/application/vpn_testing/test_task2_runtime_fault_public_bundle\.py$''',
+  '''^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/baseline-run\.json$''',
+  '''^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/fault-window-run\.json$''',
+  '''^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/post-restore-run\.json$''',
+  '''^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/signed-envelope\.json$''',
+]
+regexes = [
+  '''suite_key["']?\s*:\s*["']premium_spb_de_exceptions_v1["']''',
+]
+
 [[rules]]
 id = "generic-api-key"
 

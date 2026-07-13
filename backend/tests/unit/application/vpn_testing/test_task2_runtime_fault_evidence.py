@@ -662,6 +662,27 @@ def test_signature_tampering_is_rejected(evidence_context) -> None:
         _verify(evidence_context, envelope)
 
 
+def test_signature_text_containing_jwt_letters_reaches_signature_verification(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    envelope = _signed_envelope(run, private_key)
+    envelope["signature"] = "jwt" + envelope["signature"][3:]
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="invalid_signature"):
+        _verify(evidence_context, envelope)
+
+
+def test_structured_jwt_value_is_rejected_as_sensitive(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    envelope = _signed_envelope(run, private_key)
+    envelope["payload"]["operator"]["label"] = (
+        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzeW50aGV0aWMifQ.synthetic-signature"  # gitleaks:allow
+    )
+    _resign(envelope, private_key)
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="sensitive_value_not_allowed"):
+        _verify(evidence_context, envelope)
+
+
 def test_execution_attempt_replay_is_rejected(evidence_context) -> None:
     run, _settings, _route_entries, private_key = evidence_context
     envelope = _signed_envelope(run, private_key)
