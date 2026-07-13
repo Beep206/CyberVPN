@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
@@ -16,16 +17,21 @@ from src.application.vpn_testing.task2_probe_plan import TASK2_ANTIFILTER_CATEGO
 from src.application.vpn_testing.task2_runtime_fault_evidence import (
     TASK2_RUNTIME_FAULT_EVIDENCE_AUDIENCE,
     TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA,
+    TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA_V2,
     TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA,
+    TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA_V2,
     Task2EvidenceHeader,
+    Task2EvidenceHeaderV2,
     Task2RuntimeFaultEvidenceRejected,
     Task2RuntimeFaultPayload,
+    Task2RuntimeFaultPayloadV2,
     backend_result_digest,
     backend_result_set_digest,
     canonical_json_bytes,
     envelope_signing_bytes,
     promote_task2_runtime_fault_results,
     task2_runtime_identity_digest,
+    verify_published_task2_runtime_fault_evidence,
     verify_task2_runtime_fault_evidence,
 )
 
@@ -317,6 +323,30 @@ def _payload(run: SimpleNamespace) -> dict[str, Any]:
     )
 
 
+def _payload_v2(run: SimpleNamespace) -> dict[str, Any]:
+    raw = {
+        **_payload(run),
+        "schema": TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA_V2,
+        "baseline_capture_sha256": "0" * 64,
+        "auxiliary_runs": {
+            "fault": {
+                "run_id": str(uuid4()),
+                "execution_attempt_id": "2" * 32,
+                "canonical_sanitized_capture_sha256": "a" * 64,
+            },
+            "post_restore": {
+                "run_id": str(uuid4()),
+                "execution_attempt_id": "3" * 32,
+                "canonical_sanitized_capture_sha256": "b" * 64,
+            },
+        },
+    }
+    return Task2RuntimeFaultPayloadV2.model_validate_json(canonical_json_bytes(raw)).model_dump(
+        mode="json",
+        by_alias=True,
+    )
+
+
 def _signed_envelope(run: SimpleNamespace, private_key: Ed25519PrivateKey) -> dict[str, Any]:
     payload = _payload(run)
     payload_sha256 = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
@@ -343,6 +373,32 @@ def _signed_envelope(run: SimpleNamespace, private_key: Ed25519PrivateKey) -> di
     }
 
 
+def _signed_envelope_v2(run: SimpleNamespace, private_key: Ed25519PrivateKey) -> dict[str, Any]:
+    payload = _payload_v2(run)
+    payload_sha256 = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    raw_header = {
+        "schema": TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA_V2,
+        "audience": TASK2_RUNTIME_FAULT_EVIDENCE_AUDIENCE,
+        "algorithm": "Ed25519",
+        "key_id": KEY_ID,
+        "nonce": "6" * 32,
+        "issued_at": _iso(NOW),
+        "not_before": _iso(NOW - timedelta(seconds=1)),
+        "expires_at": _iso(NOW + timedelta(minutes=10)),
+        "payload_sha256": payload_sha256,
+    }
+    header = Task2EvidenceHeaderV2.model_validate_json(canonical_json_bytes(raw_header)).model_dump(
+        mode="json",
+        by_alias=True,
+    )
+    signature = private_key.sign(envelope_signing_bytes(header, payload))
+    return {
+        "header": header,
+        "payload": payload,
+        "signature": base64.urlsafe_b64encode(signature).rstrip(b"=").decode("ascii"),
+    }
+
+
 def _resign(envelope: dict[str, Any], private_key: Ed25519PrivateKey) -> None:
     payload = Task2RuntimeFaultPayload.model_validate_json(canonical_json_bytes(envelope["payload"])).model_dump(
         mode="json",
@@ -358,6 +414,21 @@ def _resign(envelope: dict[str, Any], private_key: Ed25519PrivateKey) -> None:
     envelope["header"] = normalized_header
     envelope["payload"] = payload
     envelope["signature"] = base64.urlsafe_b64encode(signature).rstrip(b"=").decode("ascii")
+
+
+def _public_key_material(private_key: Ed25519PrivateKey) -> bytes:
+    return private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+
+
+def _operator_public_key_sha256(private_key: Ed25519PrivateKey) -> str:
+    raw = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    return hashlib.sha256(raw).hexdigest()
 
 
 @pytest.fixture
@@ -434,6 +505,8 @@ def test_valid_signed_fault_evidence_promotes_only_current_attempt(evidence_cont
     run, _settings, _route_entries, private_key = evidence_context
     verified = _verify(evidence_context, _signed_envelope(run, private_key))
 
+    assert verified.envelope.header.schema_name == TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA
+    assert verified.envelope.payload.schema_name == TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA
     assert verified.execution_attempt_id == ATTEMPT_ID
     assert verified.artifact()["artifact_key"] == f"task2-runtime-fault:{ATTEMPT_ID}"
     assert "envelope" not in verified.artifact()["preview"]
@@ -449,6 +522,135 @@ def test_valid_signed_fault_evidence_promotes_only_current_attempt(evidence_cont
     ):
         assert promoted_by_key[check_key]["status"] == "pass"
         assert promoted_by_key[check_key]["details"]["execution_attempt_id"] == ATTEMPT_ID
+
+
+def test_valid_v2_signed_fault_evidence_verifies_online_and_offline(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    envelope = _signed_envelope_v2(run, private_key)
+
+    online = _verify(evidence_context, envelope)
+    published = verify_published_task2_runtime_fault_evidence(
+        canonical_json_bytes(envelope),
+        public_key_material=_public_key_material(private_key),
+    )
+
+    expected_public_key_sha256 = _operator_public_key_sha256(private_key)
+    assert online.envelope.header.schema_name == TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA_V2
+    assert online.envelope.payload.schema_name == TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA_V2
+    assert online.payload_sha256 == published.payload_sha256
+    assert online.envelope_sha256 == published.envelope_sha256
+    assert published.operator_public_key_sha256 == expected_public_key_sha256
+    assert published.baseline_capture_sha256 == "0" * 64
+    assert published.envelope.payload.auxiliary_runs.fault.execution_attempt_id == "2" * 32
+    assert published.envelope.payload.auxiliary_runs.post_restore.execution_attempt_id == "3" * 32
+
+
+def test_published_v1_evidence_is_rejected_for_ac_close_publication(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    envelope = _signed_envelope(run, private_key)
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="published_evidence_requires_v2"):
+        verify_published_task2_runtime_fault_evidence(
+            canonical_json_bytes(envelope),
+            public_key_material=_public_key_material(private_key),
+        )
+
+
+def test_v2_auxiliary_run_id_tamper_is_rejected_by_payload_hash(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    envelope = _signed_envelope_v2(run, private_key)
+    envelope["payload"]["auxiliary_runs"]["fault"]["run_id"] = str(uuid4())
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="payload_digest_mismatch"):
+        verify_published_task2_runtime_fault_evidence(
+            canonical_json_bytes(envelope),
+            public_key_material=_public_key_material(private_key),
+        )
+
+
+def test_v2_auxiliary_capture_hash_tamper_is_rejected_by_payload_hash(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    envelope = _signed_envelope_v2(run, private_key)
+    envelope["payload"]["auxiliary_runs"]["fault"]["canonical_sanitized_capture_sha256"] = "c" * 64
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="payload_digest_mismatch"):
+        verify_published_task2_runtime_fault_evidence(
+            canonical_json_bytes(envelope),
+            public_key_material=_public_key_material(private_key),
+        )
+
+
+def test_v2_baseline_capture_hash_tamper_is_rejected_by_payload_hash(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    envelope = _signed_envelope_v2(run, private_key)
+    envelope["payload"]["baseline_capture_sha256"] = "d" * 64
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="payload_digest_mismatch"):
+        verify_published_task2_runtime_fault_evidence(
+            canonical_json_bytes(envelope),
+            public_key_material=_public_key_material(private_key),
+        )
+
+
+def test_published_v2_public_key_mismatch_is_rejected(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    wrong_private_key = Ed25519PrivateKey.generate()
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="invalid_signature"):
+        verify_published_task2_runtime_fault_evidence(
+            canonical_json_bytes(_signed_envelope_v2(run, private_key)),
+            public_key_material=_public_key_material(wrong_private_key),
+        )
+
+
+def test_published_v2_noncanonical_json_is_rejected(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    pretty_body = json.dumps(_signed_envelope_v2(run, private_key), indent=2, sort_keys=True).encode()
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="noncanonical_json"):
+        verify_published_task2_runtime_fault_evidence(
+            pretty_body,
+            public_key_material=_public_key_material(private_key),
+        )
+
+
+def test_published_v2_duplicate_json_keys_are_rejected(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    body = canonical_json_bytes(_signed_envelope_v2(run, private_key))
+    body = body.replace(b'{"header":', b'{"header":{},"header":', 1)
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="invalid_json"):
+        verify_published_task2_runtime_fault_evidence(
+            body,
+            public_key_material=_public_key_material(private_key),
+        )
+
+
+def test_published_v2_sensitive_strings_are_rejected(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    envelope = _signed_envelope_v2(run, private_key)
+    envelope["payload"]["operator"]["instance"] = "bearer token"
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="sensitive_value_not_allowed"):
+        verify_published_task2_runtime_fault_evidence(
+            canonical_json_bytes(envelope),
+            public_key_material=_public_key_material(private_key),
+        )
+
+
+def test_published_v2_private_key_pem_is_rejected(evidence_context) -> None:
+    run, _settings, _route_entries, private_key = evidence_context
+    private_key_material = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    with pytest.raises(Task2RuntimeFaultEvidenceRejected, match="operator_public_key_private_pem"):
+        verify_published_task2_runtime_fault_evidence(
+            canonical_json_bytes(_signed_envelope_v2(run, private_key)),
+            public_key_material=private_key_material,
+        )
 
 
 def test_signature_tampering_is_rejected(evidence_context) -> None:

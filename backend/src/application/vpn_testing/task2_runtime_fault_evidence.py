@@ -26,8 +26,12 @@ from src.application.vpn_testing.task2_probe_plan import TASK2_ANTIFILTER_CATEGO
 TASK2_RUNTIME_FAULT_EVIDENCE_ARTIFACT_TYPE: Final = "task2_runtime_fault_evidence"
 TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA: Final = "cybervpn.task2.runtime-fault-evidence.envelope.v1"
 TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA: Final = "cybervpn.task2.runtime-fault-evidence.payload.v1"
+TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA_V2: Final = "cybervpn.task2.runtime-fault-evidence.envelope.v2"
+TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA_V2: Final = "cybervpn.task2.runtime-fault-evidence.payload.v2"
 TASK2_RUNTIME_FAULT_EVIDENCE_AUDIENCE: Final = "cybervpn.backend.vpn-tester.task2.runtime-fault-evidence"
 TASK2_RUNTIME_FAULT_EVIDENCE_DOMAIN_SEPARATOR: Final = b"CYBERVPN TASK2 RUNTIME FAULT EVIDENCE ED25519 V1\n"
+TASK2_RUNTIME_FAULT_EVIDENCE_DOMAIN_SEPARATOR_V2: Final = b"CYBERVPN TASK2 RUNTIME FAULT EVIDENCE ED25519 V2\n"
+TASK2_RUNTIME_FAULT_EVIDENCE_PUBLIC_MAX_BODY_BYTES: Final = 65_536
 TASK2_SUITE_KEY: Final = "premium_spb_de_exceptions_v1"
 TASK2_RUNTIME_MODE: Final = "runtime"
 TASK2_FAULT_SOURCE_IPV6: Final = "2a01:e5c0:1368::3"
@@ -97,6 +101,10 @@ class Task2EvidenceHeader(_StrictModel):
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("timestamp_must_be_aware")
         return value.astimezone(UTC)
+
+
+class Task2EvidenceHeaderV2(Task2EvidenceHeader):
+    schema_name: Literal["cybervpn.task2.runtime-fault-evidence.envelope.v2"] = Field(alias="schema")
 
 
 class Task2RuntimeIdentity(_StrictModel):
@@ -330,17 +338,62 @@ class Task2RuntimeFaultPayload(_StrictModel):
         return self
 
 
+class Task2AuxiliaryRunBinding(_StrictModel):
+    run_id: str = Field(..., min_length=32, max_length=36)
+    execution_attempt_id: str = Field(..., pattern=r"^[0-9a-f]{32}$")
+    canonical_sanitized_capture_sha256: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+
+
+class Task2AuxiliaryRuns(_StrictModel):
+    fault: Task2AuxiliaryRunBinding
+    post_restore: Task2AuxiliaryRunBinding
+
+
+class Task2RuntimeFaultPayloadV2(Task2RuntimeFaultPayload):
+    schema_name: Literal["cybervpn.task2.runtime-fault-evidence.payload.v2"] = Field(alias="schema")
+    baseline_capture_sha256: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    auxiliary_runs: Task2AuxiliaryRuns
+
+    @model_validator(mode="after")
+    def validate_auxiliary_runs(self) -> Task2RuntimeFaultPayloadV2:
+        fault = self.auxiliary_runs.fault
+        post_restore = self.auxiliary_runs.post_restore
+        if fault.run_id == self.run_id or post_restore.run_id == self.run_id:
+            raise ValueError("auxiliary_run_reuses_primary_run")
+        if fault.run_id == post_restore.run_id:
+            raise ValueError("auxiliary_run_ids_not_distinct")
+        if fault.execution_attempt_id == self.execution_attempt_id:
+            raise ValueError("fault_auxiliary_attempt_reuses_primary_attempt")
+        if post_restore.execution_attempt_id == self.execution_attempt_id:
+            raise ValueError("post_restore_auxiliary_attempt_reuses_primary_attempt")
+        if fault.execution_attempt_id == post_restore.execution_attempt_id:
+            raise ValueError("auxiliary_execution_attempt_ids_not_distinct")
+        return self
+
+
 class Task2RuntimeFaultEnvelope(_StrictModel):
     header: Task2EvidenceHeader
     payload: Task2RuntimeFaultPayload
     signature: str = Field(..., pattern=r"^[A-Za-z0-9_-]{86}$")
 
 
+class Task2RuntimeFaultEnvelopeV2(_StrictModel):
+    header: Task2EvidenceHeaderV2
+    payload: Task2RuntimeFaultPayloadV2
+    signature: str = Field(..., pattern=r"^[A-Za-z0-9_-]{86}$")
+
+
+Task2EvidenceHeaderAny = Task2EvidenceHeader | Task2EvidenceHeaderV2
+Task2RuntimeFaultPayloadAny = Task2RuntimeFaultPayload | Task2RuntimeFaultPayloadV2
+Task2RuntimeFaultEnvelopeAny = Task2RuntimeFaultEnvelope | Task2RuntimeFaultEnvelopeV2
+
+
 @dataclass(frozen=True)
 class VerifiedTask2RuntimeFaultEvidence:
-    envelope: Task2RuntimeFaultEnvelope
+    envelope: Task2RuntimeFaultEnvelopeAny
     payload_sha256: str
     envelope_sha256: str
+    operator_public_key_sha256: str | None = None
 
     @property
     def evidence_id(self) -> str:
@@ -353,6 +406,13 @@ class VerifiedTask2RuntimeFaultEvidence:
     @property
     def nonce(self) -> str:
         return self.envelope.header.nonce
+
+    @property
+    def baseline_capture_sha256(self) -> str | None:
+        payload = self.envelope.payload
+        if isinstance(payload, Task2RuntimeFaultPayloadV2):
+            return payload.baseline_capture_sha256
+        return None
 
     def artifact(self) -> dict[str, Any]:
         payload = self.envelope.payload
@@ -396,7 +456,16 @@ def canonical_json_bytes(value: Any) -> bytes:
 def envelope_signing_bytes(header: Mapping[str, Any], payload: Mapping[str, Any]) -> bytes:
     payload_sha256 = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
     unsigned = canonical_json_bytes({"header": header, "payload": payload})
-    return TASK2_RUNTIME_FAULT_EVIDENCE_DOMAIN_SEPARATOR + payload_sha256.encode("ascii") + b"\n" + unsigned
+    return _domain_separator_for_header(header) + payload_sha256.encode("ascii") + b"\n" + unsigned
+
+
+def _domain_separator_for_header(header: Mapping[str, Any]) -> bytes:
+    schema_name = str(header.get("schema") or "")
+    if schema_name == TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA:
+        return TASK2_RUNTIME_FAULT_EVIDENCE_DOMAIN_SEPARATOR
+    if schema_name == TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA_V2:
+        return TASK2_RUNTIME_FAULT_EVIDENCE_DOMAIN_SEPARATOR_V2
+    raise Task2RuntimeFaultEvidenceRejected("invalid_evidence_schema")
 
 
 def backend_result_digest(result: Any) -> str:
@@ -472,7 +541,20 @@ def parse_task2_runtime_fault_envelope(
     raw_body: bytes,
     *,
     max_body_bytes: int,
-) -> tuple[Task2RuntimeFaultEnvelope, str]:
+) -> tuple[Task2RuntimeFaultEnvelopeAny, str]:
+    return _parse_task2_runtime_fault_envelope(
+        raw_body,
+        max_body_bytes=max_body_bytes,
+        require_canonical=False,
+    )
+
+
+def _parse_task2_runtime_fault_envelope(
+    raw_body: bytes,
+    *,
+    max_body_bytes: int,
+    require_canonical: bool,
+) -> tuple[Task2RuntimeFaultEnvelopeAny, str]:
     if len(raw_body) > max_body_bytes:
         raise Task2RuntimeFaultEvidenceRejected("body_too_large")
     try:
@@ -485,16 +567,44 @@ def parse_task2_runtime_fault_envelope(
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         raise Task2RuntimeFaultEvidenceRejected("invalid_json") from exc
+    if not isinstance(raw, Mapping):
+        raise Task2RuntimeFaultEvidenceRejected("invalid_evidence_schema")
     _reject_float_values(raw)
     _reject_sensitive_strings(raw)
     canonical_body = canonical_json_bytes(raw)
     try:
-        envelope = Task2RuntimeFaultEnvelope.model_validate_json(canonical_body)
+        envelope = _validate_task2_runtime_fault_envelope(canonical_body, raw)
     except ValidationError as exc:
         raise Task2RuntimeFaultEvidenceRejected("invalid_evidence_schema") from exc
     normalized_envelope = envelope.model_dump(mode="json", by_alias=True)
-    envelope_sha256 = hashlib.sha256(canonical_json_bytes(normalized_envelope)).hexdigest()
+    normalized_body = canonical_json_bytes(normalized_envelope)
+    if require_canonical and raw_body != normalized_body:
+        raise Task2RuntimeFaultEvidenceRejected("noncanonical_json")
+    envelope_sha256 = hashlib.sha256(normalized_body).hexdigest()
     return envelope, envelope_sha256
+
+
+def _validate_task2_runtime_fault_envelope(
+    canonical_body: bytes,
+    raw: Mapping[str, Any],
+) -> Task2RuntimeFaultEnvelopeAny:
+    header = raw.get("header")
+    payload = raw.get("payload")
+    if not isinstance(header, Mapping) or not isinstance(payload, Mapping):
+        raise Task2RuntimeFaultEvidenceRejected("invalid_evidence_schema")
+    header_schema = str(header.get("schema") or "")
+    payload_schema = str(payload.get("schema") or "")
+    if (
+        header_schema == TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA
+        and payload_schema == TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA
+    ):
+        return Task2RuntimeFaultEnvelope.model_validate_json(canonical_body)
+    if (
+        header_schema == TASK2_RUNTIME_FAULT_EVIDENCE_SCHEMA_V2
+        and payload_schema == TASK2_RUNTIME_FAULT_EVIDENCE_PAYLOAD_SCHEMA_V2
+    ):
+        return Task2RuntimeFaultEnvelopeV2.model_validate_json(canonical_body)
+    raise Task2RuntimeFaultEvidenceRejected("invalid_evidence_schema")
 
 
 def verify_task2_runtime_fault_evidence(
@@ -517,7 +627,7 @@ def verify_task2_runtime_fault_evidence(
     payload_sha256 = hashlib.sha256(canonical_json_bytes(payload_dict)).hexdigest()
     if envelope.header.payload_sha256 != payload_sha256:
         raise Task2RuntimeFaultEvidenceRejected("payload_digest_mismatch")
-    _verify_signature(envelope, payload_dict, settings_obj)
+    operator_public_key_sha256 = _verify_signature(envelope, payload_dict, settings_obj)
 
     _validate_against_run(envelope.payload, run, settings_obj)
     _validate_temporal_coherence(envelope, settings_obj)
@@ -527,6 +637,35 @@ def verify_task2_runtime_fault_evidence(
         envelope=envelope,
         payload_sha256=payload_sha256,
         envelope_sha256=envelope_sha256,
+        operator_public_key_sha256=operator_public_key_sha256,
+    )
+
+
+def verify_published_task2_runtime_fault_evidence(
+    raw_body: bytes,
+    *,
+    public_key_material: bytes,
+) -> VerifiedTask2RuntimeFaultEvidence:
+    envelope, envelope_sha256 = _parse_task2_runtime_fault_envelope(
+        raw_body,
+        max_body_bytes=TASK2_RUNTIME_FAULT_EVIDENCE_PUBLIC_MAX_BODY_BYTES,
+        require_canonical=True,
+    )
+    if not isinstance(envelope, Task2RuntimeFaultEnvelopeV2):
+        raise Task2RuntimeFaultEvidenceRejected("published_evidence_requires_v2")
+    payload_dict = envelope.payload.model_dump(mode="json", by_alias=True)
+    payload_sha256 = hashlib.sha256(canonical_json_bytes(payload_dict)).hexdigest()
+    if envelope.header.payload_sha256 != payload_sha256:
+        raise Task2RuntimeFaultEvidenceRejected("payload_digest_mismatch")
+    public_key = _load_ed25519_public_key(public_key_material)
+    operator_public_key_sha256 = _verify_signature_with_public_key(envelope, payload_dict, public_key)
+    _validate_public_v2_auxiliary_bindings(envelope.payload)
+    _validate_public_row_structure(envelope.payload)
+    return VerifiedTask2RuntimeFaultEvidence(
+        envelope=envelope,
+        payload_sha256=payload_sha256,
+        envelope_sha256=envelope_sha256,
+        operator_public_key_sha256=operator_public_key_sha256,
     )
 
 
@@ -594,8 +733,20 @@ def _validate_header(header: Task2EvidenceHeader, settings_obj: Any, *, now: dat
         raise Task2RuntimeFaultEvidenceRejected("evidence_validity_too_long")
 
 
-def _verify_signature(envelope: Task2RuntimeFaultEnvelope, payload_dict: Mapping[str, Any], settings_obj: Any) -> None:
+def _verify_signature(
+    envelope: Task2RuntimeFaultEnvelopeAny,
+    payload_dict: Mapping[str, Any],
+    settings_obj: Any,
+) -> str:
     public_key = _load_operator_public_key(settings_obj)
+    return _verify_signature_with_public_key(envelope, payload_dict, public_key)
+
+
+def _verify_signature_with_public_key(
+    envelope: Task2RuntimeFaultEnvelopeAny,
+    payload_dict: Mapping[str, Any],
+    public_key: Ed25519PublicKey,
+) -> str:
     try:
         signature = _decode_base64url(envelope.signature)
     except (binascii.Error, ValueError) as exc:
@@ -610,6 +761,7 @@ def _verify_signature(envelope: Task2RuntimeFaultEnvelope, payload_dict: Mapping
         public_key.verify(signature, envelope_signing_bytes(header_dict, payload_dict))
     except InvalidSignature as exc:
         raise Task2RuntimeFaultEvidenceRejected("invalid_signature") from exc
+    return _ed25519_public_key_sha256(public_key)
 
 
 def _load_operator_public_key(settings_obj: Any) -> Ed25519PublicKey:
@@ -656,6 +808,8 @@ def _load_operator_public_key(settings_obj: Any) -> Ed25519PublicKey:
 
 
 def _load_ed25519_public_key(material: bytes) -> Ed25519PublicKey:
+    if b"PRIVATE KEY" in material.upper():
+        raise Task2RuntimeFaultEvidenceRejected("operator_public_key_private_pem")
     try:
         key = serialization.load_pem_public_key(material)
     except ValueError as exc:
@@ -663,6 +817,40 @@ def _load_ed25519_public_key(material: bytes) -> Ed25519PublicKey:
     if not isinstance(key, Ed25519PublicKey):
         raise Task2RuntimeFaultEvidenceRejected("operator_public_key_not_ed25519")
     return key
+
+
+def _ed25519_public_key_sha256(public_key: Ed25519PublicKey) -> str:
+    raw = public_key.public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _validate_public_v2_auxiliary_bindings(payload: Task2RuntimeFaultPayloadV2) -> None:
+    if not payload.baseline_capture_sha256:
+        raise Task2RuntimeFaultEvidenceRejected("baseline_capture_digest_missing")
+    fault = payload.auxiliary_runs.fault
+    post_restore = payload.auxiliary_runs.post_restore
+    if not fault.canonical_sanitized_capture_sha256 or not post_restore.canonical_sanitized_capture_sha256:
+        raise Task2RuntimeFaultEvidenceRejected("auxiliary_capture_digest_missing")
+
+
+def _validate_public_row_structure(payload: Task2RuntimeFaultPayloadV2) -> None:
+    if len(payload.pre_fault_rows) != 21 or len(payload.fault_rows) != 21 or len(payload.post_restore_rows) != 21:
+        raise Task2RuntimeFaultEvidenceRejected("task2_row_count_mismatch")
+    try:
+        _validate_task2_row_sets(payload.pre_fault_rows, payload.fault_rows, payload.post_restore_rows)
+    except ValueError as exc:
+        raise Task2RuntimeFaultEvidenceRejected(str(exc)) from exc
+    if {row.transport for row in payload.pre_fault_rows} != {"raw", "xhttp"}:
+        raise Task2RuntimeFaultEvidenceRejected("transport_matrix_missing")
+    if {row.probe_network for row in payload.pre_fault_rows} != {"tcp", "udp"}:
+        raise Task2RuntimeFaultEvidenceRejected("network_matrix_missing")
+    if sum(1 for row in payload.pre_fault_rows if row.traffic_class == "matched_exception") != 17:
+        raise Task2RuntimeFaultEvidenceRejected("matched_row_count_mismatch")
+    if sum(1 for row in payload.pre_fault_rows if row.traffic_class == "unmatched_default") != 4:
+        raise Task2RuntimeFaultEvidenceRejected("unmatched_row_count_mismatch")
 
 
 def _validate_against_run(payload: Task2RuntimeFaultPayload, run: Any, settings_obj: Any) -> None:
