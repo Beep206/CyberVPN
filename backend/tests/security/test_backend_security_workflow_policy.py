@@ -218,12 +218,16 @@ def test_gitleaks_allowlist_policy_rejects_jfrog_rule_override(
     [
         ('condition = "AND"', 'condition = "OR"'),
         (
-            "paths = [\n  '''^(.*/)?services/vpn-test-agent/Dockerfile$''',\n]",
+            "paths = [\n  '''^services/vpn-test-agent/Dockerfile$''',\n]",
             "",
         ),
         (
+            "'''^services/vpn-test-agent/Dockerfile$'''",
             "'''^(.*/)?services/vpn-test-agent/Dockerfile$'''",
-            "'''^(.*/)?services/vpn-test-agent/.*$'''",
+        ),
+        (
+            "'''^services/vpn-test-agent/Dockerfile$'''",
+            "'''^services/vpn-test-agent/.*$'''",
         ),
         (
             "'''^\\n?ARG XRAY_SHA256=[a-f0-9]{64}$'''",
