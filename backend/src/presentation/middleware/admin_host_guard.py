@@ -13,6 +13,8 @@ from src.presentation.dependencies.client_ip import LOOPBACK_TRUSTED_PROXY_IPS, 
 
 ADMIN_PROTECTED_PATH_PREFIXES = ("/api/v1/admin",)
 ADMIN_INTERNAL_EXEMPT_PATH_PREFIXES = ("/api/v1/admin/growth-reporting/internal/",)
+TASK2_ROUTE_EVIDENCE_EXEMPT_PATH = "/api/v1/admin/vpn-tester/internal/task2/route-evidence/xray-routing-webhook"
+TASK2_ROUTE_EVIDENCE_HOST = "task2-evidence.cyber-vpn.org"
 LOCAL_DEVELOPMENT_ADMIN_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "testserver", "backend"})
 
 
@@ -69,6 +71,9 @@ class AdminHostGuardMiddleware(BaseHTTPMiddleware):
 
         candidate_host = request.headers.get("x-forwarded-host") if self._can_trust_forwarded_host(request) else None
         request_host = normalize_host(candidate_host or request.headers.get("host"))
+
+        if request.url.path == TASK2_ROUTE_EVIDENCE_EXEMPT_PATH and request_host == TASK2_ROUTE_EVIDENCE_HOST:
+            return await call_next(request)
 
         if request_host not in self.allowed_hosts:
             return JSONResponse(status_code=404, content={"detail": "Not found"})

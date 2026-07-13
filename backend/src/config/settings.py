@@ -125,6 +125,13 @@ class Settings(BaseSettings):
     vpn_tester_scheduled_enabled: bool = False
     vpn_tester_balancer_recommendations_enabled: bool = False
     vpn_tester_retention_days: int = 30
+    vpn_tester_task2_route_evidence_enabled: bool = False
+    vpn_tester_task2_xray_webhook_secret: SecretStr = SecretStr("")
+    vpn_tester_task2_synthetic_user: str = "cybervpn-task2-route-evidence"
+    vpn_tester_task2_route_evidence_expectation_ttl_seconds: int = 300
+    vpn_tester_task2_route_evidence_result_ttl_seconds: int = 86400
+    vpn_tester_task2_xray_webhook_max_skew_seconds: int = 60
+    vpn_tester_task2_xray_webhook_max_body_bytes: int = 4096
     vpn_test_agent_url: str = ""
     vpn_test_agent_secret: SecretStr | None = None
     vpn_test_agent_moscow_url: str = ""
@@ -766,6 +773,88 @@ class Settings(BaseSettings):
         if v < 1 or v > 300:
             raise ValueError("VPN_TEST_AGENT_SIGNATURE_MAX_SKEW_SECONDS must be between 1 and 300 seconds.")
         return v
+
+    @field_validator("vpn_tester_task2_xray_webhook_secret", mode="after")
+    @classmethod
+    def normalize_vpn_tester_task2_xray_webhook_secret(cls, v: SecretStr) -> SecretStr:
+        return SecretStr(v.get_secret_value().strip())
+
+    @field_validator("vpn_tester_task2_synthetic_user", mode="before")
+    @classmethod
+    def normalize_vpn_tester_task2_synthetic_user(cls, v: str | None) -> str:
+        return (v or "").strip()
+
+    @field_validator("vpn_tester_task2_synthetic_user", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_synthetic_user(cls, v: str) -> str:
+        if len(v) > 128:
+            raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_USER must be at most 128 characters.")
+        if any(char.isspace() or char in {"\r", "\n", "\t"} for char in v):
+            raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_USER must not contain whitespace.")
+        return v
+
+    @field_validator("vpn_tester_task2_route_evidence_expectation_ttl_seconds", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_route_evidence_expectation_ttl_seconds(cls, v: int) -> int:
+        if v < 30 or v > 86400:
+            raise ValueError(
+                "VPN_TESTER_TASK2_ROUTE_EVIDENCE_EXPECTATION_TTL_SECONDS must be between 30 and 86400 seconds."
+            )
+        return v
+
+    @field_validator("vpn_tester_task2_route_evidence_result_ttl_seconds", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_route_evidence_result_ttl_seconds(cls, v: int) -> int:
+        if v < 60 or v > 604800:
+            raise ValueError(
+                "VPN_TESTER_TASK2_ROUTE_EVIDENCE_RESULT_TTL_SECONDS must be between 60 and 604800 seconds."
+            )
+        return v
+
+    @field_validator("vpn_tester_task2_xray_webhook_max_skew_seconds", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_xray_webhook_max_skew_seconds(cls, v: int) -> int:
+        if v < 1 or v > 300:
+            raise ValueError("VPN_TESTER_TASK2_XRAY_WEBHOOK_MAX_SKEW_SECONDS must be between 1 and 300 seconds.")
+        return v
+
+    @field_validator("vpn_tester_task2_xray_webhook_max_body_bytes", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_xray_webhook_max_body_bytes(cls, v: int) -> int:
+        if v < 512 or v > 65536:
+            raise ValueError("VPN_TESTER_TASK2_XRAY_WEBHOOK_MAX_BODY_BYTES must be between 512 and 65536 bytes.")
+        return v
+
+    @model_validator(mode="after")
+    def validate_vpn_tester_task2_route_evidence_secret(self) -> Self:
+        if self.environment.lower() != "production" or not self.vpn_tester_task2_route_evidence_enabled:
+            return self
+
+        if not self.vpn_tester_enabled or not self.vpn_tester_runtime_enabled:
+            raise ValueError(
+                "VPN_TESTER_ENABLED and VPN_TESTER_RUNTIME_ENABLED are required when Task2 route evidence is enabled."
+            )
+        if not self.vpn_tester_synthetic_users_enabled:
+            raise ValueError("VPN_TESTER_SYNTHETIC_USERS_ENABLED is required when Task2 route evidence is enabled.")
+
+        webhook_secret = self.vpn_tester_task2_xray_webhook_secret.get_secret_value().strip()
+        if len(webhook_secret) < 32:
+            raise ValueError("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET must be at least 32 characters in production.")
+        secret_lower = webhook_secret.lower()
+        if any(marker in secret_lower for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS):
+            raise ValueError("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET must not be a placeholder/test value in production.")
+        if not self.vpn_tester_task2_synthetic_user:
+            raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_USER is required when Task2 route evidence is enabled.")
+
+        for label, secret in (
+            ("BACKEND_INTERNAL_SECRET", self.backend_internal_secret),
+            ("TELEGRAM_BOT_INTERNAL_SECRET", self.telegram_bot_internal_secret),
+            ("PAYMENT_SETTLEMENT_WORKER_SECRET", self.payment_settlement_worker_secret),
+        ):
+            other_secret = secret.get_secret_value().strip()
+            if other_secret and hmac.compare_digest(webhook_secret, other_secret):
+                raise ValueError(f"VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET must differ from {label}.")
+        return self
 
     @field_validator("cookie_domain", mode="before")
     @classmethod

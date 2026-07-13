@@ -197,6 +197,7 @@ def classify_route_boundary(route: RouteBoundary) -> str:
         or "_require_frontend_observability_secret" in source
         or "_require_payment_settlement_worker_secret" in source
         or "_require_backend_internal_secret" in source
+        or "_require_task2_xray_webhook_secret" in source
     ):
         return "header-secret-protected"
     if "_resolve_customer_onboarding_actor" in source:

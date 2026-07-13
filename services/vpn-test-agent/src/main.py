@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import ipaddress
 import json
 import os
 import re
@@ -33,6 +34,7 @@ EXPECTED_RAW_COUNT = 4
 EXPECTED_XHTTP_COUNT = 4
 MAX_REQUEST_PROFILE_COUNT = EXPECTED_PROFILE_COUNT
 MAX_PROFILE_PROBE_ATTEMPTS = 4
+MAX_TASK2_ROUTE_EXPECTATIONS = 64
 MAX_REPLAY_NONCES = 4096
 MAX_REQUEST_BODY_BYTES = 256 * 1024
 MAX_CONCURRENT_RUNTIME_CHECKS = 2
@@ -66,6 +68,25 @@ PREMIUM_SMART_RU_LOCATION_KEYS_BY_SERVER = {
     "msk-relay.cyber-vpn.org": "moscow",
     "ru-spb-3.cyber-vpn.org": "spb",
 }
+TASK2_SUITE_ID = "premium_spb_de_exceptions_v1"
+TASK2_ENDPOINT_SERVER = "spb-exceptions.cyber-vpn.org"
+TASK2_ENDPOINT_PORTS = {"raw": 4443, "xhttp": 8444}
+TASK2_REQUIRED_ROUTE_PROBE_PAIRS = frozenset(
+    {
+        ("raw", "tcp"),
+        ("raw", "udp"),
+        ("xhttp", "tcp"),
+        ("xhttp", "udp"),
+    }
+)
+TASK2_BLOCKED_TARGET_NETWORKS = (
+    ipaddress.ip_network("45.87.41.146/32"),
+    ipaddress.ip_network("2a0d:2787:1b:12f5::/64"),
+    ipaddress.ip_network("178.159.94.225/32"),
+    ipaddress.ip_network("193.233.91.99/32"),
+    ipaddress.ip_network("138.124.115.206/32"),
+    ipaddress.ip_network("138.16.140.44/32"),
+)
 HOST_RE = re.compile(r"^(?=.{1,253}$)(?!-)[A-Za-z0-9.-]+(?<!-)$")
 DECIMAL_UNIX_SECONDS_RE = re.compile(r"^(0|[1-9][0-9]{0,15})$")
 LOWER_HEX_32_RE = re.compile(r"^[0-9a-f]{32}$")
@@ -94,6 +115,10 @@ SECRET_DETAIL_KEYS = frozenset(
         "xhttp_path",
         "xhttpPath",
         "path",
+        "target_ip",
+        "targetIp",
+        "target_port",
+        "targetPort",
     }
 )
 
@@ -361,6 +386,181 @@ class RuntimeTransportProfile(BaseModel):
         return "xhttp" if self.network == "xhttp" else "raw"
 
 
+class Task2TransportProfile(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True, str_strip_whitespace=True)
+
+    name: str = Field(..., min_length=1, max_length=160)
+    location: str = Field(..., min_length=1, max_length=80)
+    node: str = Field(..., min_length=1, max_length=160)
+    server: str = Field(..., min_length=1, max_length=253)
+    port: int = Field(..., ge=1, le=65535)
+    network: Literal["raw", "tcp", "xhttp"]
+    uuid: str = Field(..., min_length=1, max_length=80)
+    flow: str = Field(default="", max_length=80)
+    sni: str = Field(..., min_length=1, max_length=253, validation_alias=AliasChoices("sni", "servername"))
+    public_key: str = Field(
+        ...,
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("public_key", "publicKey", "public-key"),
+    )
+    short_id: str = Field(
+        default="",
+        max_length=32,
+        validation_alias=AliasChoices("short_id", "shortId", "short-id"),
+    )
+    xhttp_path: str | None = Field(
+        default=None,
+        max_length=128,
+        validation_alias=AliasChoices("xhttp_path", "xhttpPath", "path"),
+    )
+    xhttp_mode: str | None = Field(
+        default=None,
+        max_length=32,
+        validation_alias=AliasChoices("xhttp_mode", "xhttpMode", "mode"),
+    )
+    fingerprint: str = Field(default="chrome", min_length=1, max_length=40)
+
+    @field_validator("name", "location", "node")
+    @classmethod
+    def _validate_safe_label(cls, value: str) -> str:
+        normalized = value.strip()
+        if any(char in normalized for char in ("\r", "\n", "\t")):
+            raise ValueError("unsafe_label")
+        return normalized
+
+    @field_validator("server", "sni")
+    @classmethod
+    def _validate_hostname(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not HOST_RE.fullmatch(normalized) or ".." in normalized or "/" in normalized or ":" in normalized:
+            raise ValueError("invalid_host")
+        return normalized
+
+    @field_validator("server")
+    @classmethod
+    def _validate_task2_target(cls, value: str) -> str:
+        if value != TASK2_ENDPOINT_SERVER:
+            raise ValueError("task2_vpn_target_not_allowed")
+        return value
+
+    @field_validator("uuid")
+    @classmethod
+    def _validate_uuid(cls, value: str) -> str:
+        normalized = value.strip()
+        try:
+            UUID(normalized)
+        except ValueError as exc:
+            raise ValueError("invalid_vless_uuid") from exc
+        return normalized
+
+    @field_validator("flow")
+    @classmethod
+    def _validate_flow(cls, value: str) -> str:
+        normalized = value.strip()
+        if normalized and not SAFE_TOKEN_RE.fullmatch(normalized):
+            raise ValueError("invalid_flow")
+        return normalized
+
+    @field_validator("public_key")
+    @classmethod
+    def _validate_public_key(cls, value: str) -> str:
+        normalized = value.strip()
+        if not PUBLIC_KEY_RE.fullmatch(normalized):
+            raise ValueError("invalid_reality_public_key")
+        return normalized
+
+    @field_validator("short_id")
+    @classmethod
+    def _validate_short_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not SHORT_ID_RE.fullmatch(normalized):
+            raise ValueError("invalid_reality_short_id")
+        return normalized
+
+    @field_validator("fingerprint")
+    @classmethod
+    def _validate_fingerprint(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not SAFE_TOKEN_RE.fullmatch(normalized):
+            raise ValueError("invalid_fingerprint")
+        return normalized
+
+    @model_validator(mode="after")
+    def _validate_transport_specific_fields(self) -> Task2TransportProfile:
+        if self.transport == "raw":
+            if self.port != TASK2_ENDPOINT_PORTS["raw"]:
+                raise ValueError("task2_raw_profile_port_mismatch")
+            if self.flow != "xtls-rprx-vision":
+                raise ValueError("task2_raw_profiles_must_use_vision_flow")
+            return self
+
+        if self.port != TASK2_ENDPOINT_PORTS["xhttp"]:
+            raise ValueError("task2_xhttp_profile_port_mismatch")
+        if not self.xhttp_path or not SAFE_PATH_RE.fullmatch(self.xhttp_path):
+            raise ValueError("invalid_xhttp_path")
+        if not self.xhttp_mode or not XHTTP_MODE_RE.fullmatch(self.xhttp_mode):
+            raise ValueError("invalid_xhttp_mode")
+        return self
+
+    @property
+    def transport(self) -> Literal["raw", "xhttp"]:
+        return "xhttp" if self.network == "xhttp" else "raw"
+
+
+class Task2RouteExpectation(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    expectation_id: str = Field(..., min_length=1, max_length=120)
+    route_key: str = Field(..., min_length=1, max_length=160)
+    transport: Literal["raw", "xhttp"]
+    probe_network: Literal["tcp", "udp"]
+    target_ip: str = Field(..., min_length=1, max_length=64)
+    target_port: int = Field(..., ge=1, le=65535)
+    expected_outbound: Literal["DE_EXCEPTIONS_BRIDGE", "DIRECT", "BLOCK"]
+    membership: Literal["member", "non_member"]
+    manifest_sha256: str = Field(..., min_length=64, max_length=64)
+    route_feed_version: str = Field(..., min_length=1, max_length=120)
+
+    @field_validator("expectation_id", "route_key", "route_feed_version")
+    @classmethod
+    def _validate_safe_token(cls, value: str) -> str:
+        normalized = value.strip()
+        if not SAFE_TOKEN_RE.fullmatch(normalized):
+            raise ValueError("unsafe_task2_route_token")
+        return normalized
+
+    @field_validator("manifest_sha256")
+    @classmethod
+    def _validate_manifest_sha256(cls, value: str) -> str:
+        normalized = value.strip()
+        if not LOWER_HEX_64_RE.fullmatch(normalized):
+            raise ValueError("invalid_manifest_sha256")
+        return normalized
+
+    @field_validator("target_ip")
+    @classmethod
+    def _validate_target_ip(cls, value: str) -> str:
+        normalized = value.strip()
+        try:
+            parsed = ipaddress.ip_address(normalized)
+        except ValueError as exc:
+            raise ValueError("task2_target_ip_must_be_literal") from exc
+        if (
+            not parsed.is_global
+            or parsed.is_private
+            or parsed.is_loopback
+            or parsed.is_link_local
+            or parsed.is_multicast
+            or parsed.is_unspecified
+            or parsed.is_reserved
+        ):
+            raise ValueError("task2_target_ip_must_be_public")
+        if any(parsed in network for network in TASK2_BLOCKED_TARGET_NETWORKS):
+            raise ValueError("task2_target_ip_is_management_or_node")
+        return parsed.compressed
+
+
 class RuntimeCheckRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -381,12 +581,47 @@ class RuntimeCheckRequest(BaseModel):
         ),
     )
     tun_sandbox_requested: bool = False
-    routes: list[RuntimeRoute] = Field(default_factory=list, max_length=200)
-    transport_profiles: list[RuntimeTransportProfile] = Field(
+    routes: list[RuntimeRoute | Task2RouteExpectation] = Field(default_factory=list, max_length=200)
+    transport_profiles: list[RuntimeTransportProfile | Task2TransportProfile] = Field(
         default_factory=list,
         max_length=HARD_MAX_PROFILE_COUNT,
         validation_alias=AliasChoices("transport_profiles", "profiles", "profile_matrix"),
     )
+
+    @model_validator(mode="after")
+    def _validate_suite_contract(self) -> RuntimeCheckRequest:
+        if self.suite_key == TASK2_SUITE_ID:
+            if self.request_scope != "full":
+                raise ValueError("task2_requires_full_scope")
+            task2_profiles = [
+                profile for profile in self.transport_profiles if isinstance(profile, Task2TransportProfile)
+            ]
+            if len(task2_profiles) != len(self.transport_profiles):
+                raise ValueError("task2_requires_task2_profiles")
+            if Counter(profile.transport for profile in task2_profiles) != Counter({"raw": 1, "xhttp": 1}):
+                raise ValueError("task2_requires_exactly_one_raw_and_one_xhttp_profile")
+
+            task2_routes = [route for route in self.routes if isinstance(route, Task2RouteExpectation)]
+            if len(task2_routes) != len(self.routes):
+                raise ValueError("task2_requires_route_expectations")
+            if not task2_routes:
+                raise ValueError("task2_route_expectations_required")
+            if len(task2_routes) > MAX_TASK2_ROUTE_EXPECTATIONS:
+                raise ValueError("task2_route_expectations_too_large")
+            if len({route.expectation_id for route in task2_routes}) != len(task2_routes):
+                raise ValueError("task2_duplicate_expectation_id")
+            if len({route.route_key for route in task2_routes}) != len(task2_routes):
+                raise ValueError("task2_duplicate_route_key")
+            route_probe_pairs = {(route.transport, route.probe_network) for route in task2_routes}
+            if not TASK2_REQUIRED_ROUTE_PROBE_PAIRS.issubset(route_probe_pairs):
+                raise ValueError("task2_route_probe_matrix_incomplete")
+            return self
+
+        if any(isinstance(profile, Task2TransportProfile) for profile in self.transport_profiles):
+            raise ValueError("task2_profiles_require_task2_suite")
+        if any(isinstance(route, Task2RouteExpectation) for route in self.routes):
+            raise ValueError("task2_routes_require_task2_suite")
+        return self
 
 
 class RuntimeProbeError(Exception):
@@ -409,6 +644,24 @@ class ProfileProbeResult:
     @property
     def passed(self) -> bool:
         return self.dns_ok and self.tcp_connect_ok and self.proxy_handshake_ok and self.http_probe_ok
+
+
+@dataclass(frozen=True)
+class Task2RouteAttempt:
+    expectation_id: str
+    route_key: str
+    transport: Literal["raw", "xhttp"]
+    probe_network: Literal["tcp", "udp"]
+    terminal_class: str
+
+    def as_response(self) -> dict[str, str]:
+        return {
+            "expectation_id": self.expectation_id,
+            "route_key": self.route_key,
+            "transport": self.transport,
+            "probe_network": self.probe_network,
+            "terminal_class": self.terminal_class,
+        }
 
 
 def _profile_timeout_seconds() -> float:
@@ -798,13 +1051,188 @@ async def _tcp_connect(server: str, port: int, timeout_seconds: float) -> bool:
     return True
 
 
+def _socks_target_bytes(target_ip: str, target_port: int) -> bytes:
+    parsed = ipaddress.ip_address(target_ip)
+    atyp = b"\x01" if parsed.version == 4 else b"\x04"
+    return atyp + parsed.packed + target_port.to_bytes(2, "big")
+
+
+async def _read_socks_exactly(reader: asyncio.StreamReader, count: int, timeout_seconds: float) -> bytes:
+    return await asyncio.wait_for(reader.readexactly(count), timeout=timeout_seconds)
+
+
+async def _socks5_no_auth(
+    reader: asyncio.StreamReader,
+    writer: asyncio.StreamWriter,
+    timeout_seconds: float,
+) -> str | None:
+    writer.write(b"\x05\x01\x00")
+    await asyncio.wait_for(writer.drain(), timeout=timeout_seconds)
+    response = await _read_socks_exactly(reader, 2, timeout_seconds)
+    if response != b"\x05\x00":
+        return "socks_auth_rejected"
+    return None
+
+
+async def _socks5_reply(
+    reader: asyncio.StreamReader,
+    timeout_seconds: float,
+) -> tuple[str, tuple[str, int] | None]:
+    header = await _read_socks_exactly(reader, 4, timeout_seconds)
+    if header[0] != 5:
+        return "socks_invalid_reply", None
+    reply_code = header[1]
+    atyp = header[3]
+    if atyp == 1:
+        raw_address = await _read_socks_exactly(reader, 4, timeout_seconds)
+        host = str(ipaddress.IPv4Address(raw_address))
+    elif atyp == 4:
+        raw_address = await _read_socks_exactly(reader, 16, timeout_seconds)
+        host = str(ipaddress.IPv6Address(raw_address))
+    elif atyp == 3:
+        raw_length = await _read_socks_exactly(reader, 1, timeout_seconds)
+        raw_address = await _read_socks_exactly(reader, raw_length[0], timeout_seconds)
+        host = raw_address.decode("ascii", errors="ignore")
+    else:
+        return "socks_invalid_reply", None
+    raw_port = await _read_socks_exactly(reader, 2, timeout_seconds)
+    endpoint = (host, int.from_bytes(raw_port, "big"))
+    if reply_code != 0:
+        return "socks_request_rejected", endpoint
+    return "socks_request_ok", endpoint
+
+
+async def _socks5_request(
+    reader: asyncio.StreamReader,
+    writer: asyncio.StreamWriter,
+    *,
+    command: int,
+    target_ip: str,
+    target_port: int,
+    timeout_seconds: float,
+) -> tuple[str, tuple[str, int] | None]:
+    writer.write(b"\x05" + bytes([command]) + b"\x00" + _socks_target_bytes(target_ip, target_port))
+    await asyncio.wait_for(writer.drain(), timeout=timeout_seconds)
+    return await _socks5_reply(reader, timeout_seconds)
+
+
+async def _socks5_tcp_connect(socks_port: int, target_ip: str, target_port: int, timeout_seconds: float) -> str:
+    try:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection("127.0.0.1", socks_port),
+            timeout=timeout_seconds,
+        )
+    except (OSError, TimeoutError):
+        return "socks_unavailable"
+    try:
+        auth_error = await _socks5_no_auth(reader, writer, timeout_seconds)
+        if auth_error is not None:
+            return auth_error
+        terminal_class, _ = await _socks5_request(
+            reader,
+            writer,
+            command=1,
+            target_ip=target_ip,
+            target_port=target_port,
+            timeout_seconds=timeout_seconds,
+        )
+        if terminal_class == "socks_request_ok":
+            return "tcp_connect_established"
+        return terminal_class
+    except TimeoutError:
+        return "probe_timeout"
+    except (OSError, RuntimeError, asyncio.IncompleteReadError):
+        return "probe_io_error"
+    finally:
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except OSError:
+            pass
+
+
+async def _send_socks_udp_packet(
+    *,
+    relay_host: str,
+    relay_port: int,
+    target_ip: str,
+    target_port: int,
+    timeout_seconds: float,
+) -> str:
+    loop = asyncio.get_running_loop()
+    packet = b"\x00\x00\x00" + _socks_target_bytes(target_ip, target_port) + b"\x00"
+    try:
+        transport, _ = await asyncio.wait_for(
+            loop.create_datagram_endpoint(lambda: asyncio.DatagramProtocol(), local_addr=("127.0.0.1", 0)),
+            timeout=timeout_seconds,
+        )
+    except (OSError, TimeoutError):
+        return "probe_io_error"
+    try:
+        transport.sendto(packet, (relay_host, relay_port))
+    except OSError:
+        return "probe_io_error"
+    finally:
+        transport.close()
+    return "udp_datagram_sent"
+
+
+async def _socks5_udp_associate(socks_port: int, target_ip: str, target_port: int, timeout_seconds: float) -> str:
+    try:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection("127.0.0.1", socks_port),
+            timeout=timeout_seconds,
+        )
+    except (OSError, TimeoutError):
+        return "socks_unavailable"
+    try:
+        auth_error = await _socks5_no_auth(reader, writer, timeout_seconds)
+        if auth_error is not None:
+            return auth_error
+        terminal_class, relay_endpoint = await _socks5_request(
+            reader,
+            writer,
+            command=3,
+            target_ip="0.0.0.0",
+            target_port=0,
+            timeout_seconds=timeout_seconds,
+        )
+        if terminal_class != "socks_request_ok" or relay_endpoint is None:
+            return terminal_class
+        relay_host, relay_port = relay_endpoint
+        if relay_host in {"0.0.0.0", "::", ""}:
+            relay_host = "127.0.0.1"
+        return await _send_socks_udp_packet(
+            relay_host=relay_host,
+            relay_port=relay_port,
+            target_ip=target_ip,
+            target_port=target_port,
+            timeout_seconds=timeout_seconds,
+        )
+    except TimeoutError:
+        return "probe_timeout"
+    except (OSError, RuntimeError, UnicodeDecodeError, asyncio.IncompleteReadError):
+        return "probe_io_error"
+    finally:
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except OSError:
+            pass
+
+
 def _allocate_loopback_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
         return int(sock.getsockname()[1])
 
 
-def _xray_config(profile: RuntimeTransportProfile, socks_port: int) -> dict[str, Any]:
+def _xray_config(
+    profile: RuntimeTransportProfile | Task2TransportProfile,
+    socks_port: int,
+    *,
+    udp_enabled: bool = False,
+) -> dict[str, Any]:
     user: dict[str, Any] = {"id": profile.uuid, "encryption": "none"}
     if profile.flow:
         user["flow"] = profile.flow
@@ -832,7 +1260,7 @@ def _xray_config(profile: RuntimeTransportProfile, socks_port: int) -> dict[str,
                 "listen": "127.0.0.1",
                 "port": socks_port,
                 "protocol": "socks",
-                "settings": {"auth": "noauth", "udp": False},
+                "settings": {"auth": "noauth", "udp": udp_enabled},
             }
         ],
         "outbounds": [
@@ -858,11 +1286,17 @@ def _xray_config(profile: RuntimeTransportProfile, socks_port: int) -> dict[str,
     }
 
 
-def _write_xray_config(profile: RuntimeTransportProfile, socks_port: int, temp_dir: Path) -> Path:
+def _write_xray_config(
+    profile: RuntimeTransportProfile | Task2TransportProfile,
+    socks_port: int,
+    temp_dir: Path,
+    *,
+    udp_enabled: bool = False,
+) -> Path:
     config_path = temp_dir / "xray-config.json"
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     with os.fdopen(os.open(config_path, flags, 0o600), "w", encoding="utf-8") as handle:
-        json.dump(_xray_config(profile, socks_port), handle, separators=(",", ":"))
+        json.dump(_xray_config(profile, socks_port, udp_enabled=udp_enabled), handle, separators=(",", ":"))
     os.chmod(config_path, 0o600)
     return config_path
 
@@ -1021,6 +1455,230 @@ async def _run_profile_with_retry(profile: RuntimeTransportProfile) -> ProfilePr
     return final_result
 
 
+def _task2_profiles(payload: RuntimeCheckRequest) -> list[Task2TransportProfile]:
+    profiles = [profile for profile in payload.transport_profiles if isinstance(profile, Task2TransportProfile)]
+    return sorted(profiles, key=lambda profile: 0 if profile.transport == "raw" else 1)
+
+
+def _smart_ru_profiles(payload: RuntimeCheckRequest) -> list[RuntimeTransportProfile]:
+    profiles = [profile for profile in payload.transport_profiles if isinstance(profile, RuntimeTransportProfile)]
+    if len(profiles) != len(payload.transport_profiles):
+        raise RuntimeProbeError("profile_matrix_invalid")
+    return profiles
+
+
+def _task2_route_expectations(payload: RuntimeCheckRequest) -> list[Task2RouteExpectation]:
+    return [route for route in payload.routes if isinstance(route, Task2RouteExpectation)]
+
+
+def _task2_route_attempts_for_terminal(
+    expectations: list[Task2RouteExpectation],
+    terminal_class: str,
+) -> list[Task2RouteAttempt]:
+    return [
+        Task2RouteAttempt(
+            expectation_id=expectation.expectation_id,
+            route_key=expectation.route_key,
+            transport=expectation.transport,
+            probe_network=expectation.probe_network,
+            terminal_class=terminal_class,
+        )
+        for expectation in expectations
+    ]
+
+
+async def _run_task2_profile_attempts(
+    profile: Task2TransportProfile,
+    expectations: list[Task2RouteExpectation],
+) -> list[Task2RouteAttempt]:
+    completed_expectation_ids: set[str] = set()
+    attempts: list[Task2RouteAttempt] = []
+    timeout_seconds = _profile_timeout_seconds()
+    process: asyncio.subprocess.Process | None = None
+    temp_dir: tempfile.TemporaryDirectory[str] | None = None
+    try:
+        async with asyncio.timeout(timeout_seconds):
+            dns_ok = await _resolve_dns(profile.server, profile.port, min(3.0, timeout_seconds))
+            if not dns_ok:
+                return _task2_route_attempts_for_terminal(expectations, "dns_failed")
+
+            tcp_ok = await _tcp_connect(profile.server, profile.port, min(5.0, timeout_seconds))
+            if not tcp_ok:
+                return _task2_route_attempts_for_terminal(expectations, "profile_tcp_connect_failed")
+
+            socks_port = _allocate_loopback_port()
+            temp_dir = tempfile.TemporaryDirectory(prefix="cybervpn-vpn-test-agent-")
+            config_path = _write_xray_config(profile, socks_port, Path(temp_dir.name), udp_enabled=True)
+            process = await _start_xray(config_path)
+            if not await _wait_for_local_port(socks_port, _xray_start_timeout_seconds()):
+                return _task2_route_attempts_for_terminal(expectations, "xray_start_failed")
+
+            probe_timeout = _proxy_connect_timeout_seconds(timeout_seconds)
+            for expectation in expectations:
+                if expectation.probe_network == "tcp":
+                    terminal_class = await _socks5_tcp_connect(
+                        socks_port,
+                        expectation.target_ip,
+                        expectation.target_port,
+                        probe_timeout,
+                    )
+                else:
+                    terminal_class = await _socks5_udp_associate(
+                        socks_port,
+                        expectation.target_ip,
+                        expectation.target_port,
+                        probe_timeout,
+                    )
+                attempts.append(
+                    Task2RouteAttempt(
+                        expectation_id=expectation.expectation_id,
+                        route_key=expectation.route_key,
+                        transport=expectation.transport,
+                        probe_network=expectation.probe_network,
+                        terminal_class=terminal_class,
+                    )
+                )
+                completed_expectation_ids.add(expectation.expectation_id)
+            return attempts
+    except TimeoutError:
+        timed_out = [
+            expectation for expectation in expectations if expectation.expectation_id not in completed_expectation_ids
+        ]
+        attempts.extend(_task2_route_attempts_for_terminal(timed_out, "timeout"))
+        return attempts
+    except (OSError, RuntimeError, RuntimeProbeError):
+        failed = [
+            expectation for expectation in expectations if expectation.expectation_id not in completed_expectation_ids
+        ]
+        attempts.extend(_task2_route_attempts_for_terminal(failed, "probe_io_error"))
+        return attempts
+    finally:
+        if process is not None:
+            await _cleanup_process(process)
+        if temp_dir is not None:
+            temp_dir.cleanup()
+
+
+def _task2_contract_check(
+    profiles: list[Task2TransportProfile],
+    expectations: list[Task2RouteExpectation],
+) -> dict[str, Any]:
+    return _check(
+        check_key="runtime.task2.contract.accepted",
+        check_name="Task2 runtime request contract",
+        status_value="pass",
+        safe_summary="Task2 runtime request contract accepted exactly one RAW and one XHTTP profile",
+        details={
+            "suite_key": TASK2_SUITE_ID,
+            "profile_count": len(profiles),
+            "route_expectation_count": len(expectations),
+            "max_route_expectations": MAX_TASK2_ROUTE_EXPECTATIONS,
+            "raw_profile_count": sum(1 for profile in profiles if profile.transport == "raw"),
+            "xhttp_profile_count": sum(1 for profile in profiles if profile.transport == "xhttp"),
+            "tcp_route_attempt_count": sum(1 for route in expectations if route.probe_network == "tcp"),
+            "udp_route_attempt_count": sum(1 for route in expectations if route.probe_network == "udp"),
+            "credentials_redacted": True,
+            "target_details_redacted": True,
+        },
+        severity="info",
+    )
+
+
+def _task2_route_attempt_check(attempts: list[Task2RouteAttempt]) -> dict[str, Any]:
+    terminal_counts = Counter(attempt.terminal_class for attempt in attempts)
+    return _check(
+        check_key="runtime.task2.route_attempts",
+        check_name="Task2 route probe attempts",
+        status_value="partial",
+        safe_summary="Task2 route probes were attempted; backend webhook correlation owns route-selection proof",
+        details={
+            "route_attempt_count": len(attempts),
+            "terminal_classes": sorted(terminal_counts),
+            "terminal_class_counts": dict(sorted(terminal_counts.items())),
+            "backend_correlation_required": True,
+            "credentials_redacted": True,
+            "target_details_redacted": True,
+        },
+        severity="warning",
+    )
+
+
+def _task2_bridge_down_unsupported_check() -> dict[str, Any]:
+    return _check(
+        check_key="runtime.task2.bridge_down_injection.unsupported",
+        check_name="Task2 bridge-down injection",
+        status_value="unsupported",
+        safe_summary="Bridge-down injection is unsupported by this agent slice and fails closed",
+        details={"bridge_down_injection_supported": False, "fail_closed": True},
+        severity="warning",
+    )
+
+
+async def _run_task2_runtime_checks(payload: RuntimeCheckRequest) -> dict[str, Any]:
+    profiles = _task2_profiles(payload)
+    expectations = _task2_route_expectations(payload)
+    if payload.runtime_mode == "tun-sandbox" or payload.tun_sandbox_requested:
+        checks = [
+            _task2_contract_check(profiles, expectations),
+            _task2_bridge_down_unsupported_check(),
+        ]
+        logger.info(
+            "vpn_test_agent_task2_bridge_down_unsupported",
+            suite_key=payload.suite_key,
+            runtime_mode=payload.runtime_mode,
+            route_expectation_count=len(expectations),
+            status="fail",
+        )
+        return {
+            "status": "fail",
+            "agent_id": settings.vpn_test_agent_id,
+            "runtime_mode": payload.runtime_mode,
+            "tun_sandbox": False,
+            "reason": "task2_bridge_down_unsupported",
+            "checks": checks,
+            "route_attempts": [],
+        }
+
+    attempts: list[Task2RouteAttempt] = []
+    for profile in profiles:
+        profile_expectations = [
+            expectation for expectation in expectations if expectation.transport == profile.transport
+        ]
+        attempts.extend(await _run_task2_profile_attempts(profile, profile_expectations))
+
+    checks = [
+        _check(
+            check_key="runtime.agent.available",
+            check_name="Runtime agent availability",
+            status_value="pass",
+            safe_summary="Runtime agent accepted the internal proxy-only Task2 request",
+            details={"agent_id": settings.vpn_test_agent_id, "process_id": os.getpid()},
+            severity="info",
+        ),
+        _task2_contract_check(profiles, expectations),
+        _task2_route_attempt_check(attempts),
+        _task2_bridge_down_unsupported_check(),
+    ]
+    logger.info(
+        "vpn_test_agent_task2_runtime_attempts_completed",
+        suite_key=payload.suite_key,
+        runtime_mode=payload.runtime_mode,
+        profile_count=len(profiles),
+        route_expectation_count=len(expectations),
+        terminal_classes=sorted({attempt.terminal_class for attempt in attempts}),
+        status="partial",
+    )
+    return {
+        "status": "partial",
+        "agent_id": settings.vpn_test_agent_id,
+        "runtime_mode": payload.runtime_mode,
+        "tun_sandbox": False,
+        "reason": "backend_correlation_required",
+        "checks": checks,
+        "route_attempts": [attempt.as_response() for attempt in attempts],
+    }
+
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
     return {
@@ -1045,7 +1703,9 @@ async def legacy_runtime_checks(request: Request) -> dict[str, Any]:
     try:
         payload = RuntimeCheckRequest.model_validate_json(body)
     except ValidationError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid request.") from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid request.") from exc
+    if payload.suite_key == TASK2_SUITE_ID:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid request.")
     if not await _runtime_check_capacity.try_acquire():
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Runtime capacity exhausted.")
     try:
@@ -1064,7 +1724,7 @@ async def runtime_checks(request: Request) -> Response:
         return _signed_json_response(
             {"detail": "Invalid request."},
             signed_context,
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
     if not await _runtime_check_capacity.try_acquire():
         return _signed_json_response(
@@ -1079,6 +1739,27 @@ async def runtime_checks(request: Request) -> Response:
 
 
 async def _run_runtime_checks(payload: RuntimeCheckRequest) -> dict[str, Any]:
+    if payload.suite_key == TASK2_SUITE_ID:
+        if payload.runtime_mode == "proxy-only" and not settings.vpn_test_agent_proxy_only_enabled:
+            return {
+                "status": "fail",
+                "agent_id": settings.vpn_test_agent_id,
+                "runtime_mode": payload.runtime_mode,
+                "tun_sandbox": False,
+                "reason": "proxy_only_disabled",
+                "checks": [
+                    _check(
+                        check_key="runtime.proxy_only.enabled",
+                        check_name="Proxy-only runtime enabled",
+                        status_value="fail",
+                        safe_summary="Task2 proxy-only runtime checks are disabled by environment",
+                        severity="error",
+                    )
+                ],
+                "route_attempts": [],
+            }
+        return await _run_task2_runtime_checks(payload)
+
     if payload.runtime_mode == "tun-sandbox" and not settings.vpn_test_agent_tun_enabled:
         return {
             "status": "skipped",
@@ -1114,15 +1795,15 @@ async def _run_runtime_checks(payload: RuntimeCheckRequest) -> dict[str, Any]:
                 )
             ],
         }
-
-    matrix_failure = _matrix_check(payload.transport_profiles, payload.request_scope)
+    smart_ru_profiles = _smart_ru_profiles(payload)
+    matrix_failure = _matrix_check(smart_ru_profiles, payload.request_scope)
     if matrix_failure is not None:
         logger.info(
             "vpn_test_agent_runtime_profile_matrix_failed",
             suite_key=payload.suite_key,
             runtime_mode=payload.runtime_mode,
             request_scope=payload.request_scope,
-            profile_count=len(payload.transport_profiles),
+            profile_count=len(smart_ru_profiles),
         )
         return {
             "status": "fail",
@@ -1134,10 +1815,10 @@ async def _run_runtime_checks(payload: RuntimeCheckRequest) -> dict[str, Any]:
         }
 
     profile_checks = []
-    for profile in payload.transport_profiles:
+    for profile in smart_ru_profiles:
         profile_checks.append(_profile_check(profile, await _run_profile_with_retry(profile)))
 
-    matrix_details = _profile_matrix_details(payload.transport_profiles, payload.request_scope)
+    matrix_details = _profile_matrix_details(smart_ru_profiles, payload.request_scope)
 
     checks = [
         _check(
@@ -1166,7 +1847,7 @@ async def _run_runtime_checks(payload: RuntimeCheckRequest) -> dict[str, Any]:
         suite_key=payload.suite_key,
         runtime_mode=payload.runtime_mode,
         request_scope=payload.request_scope,
-        profile_count=len(payload.transport_profiles),
+        profile_count=len(smart_ru_profiles),
         status=response_status,
     )
     return {

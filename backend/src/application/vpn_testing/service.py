@@ -10,10 +10,11 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from importlib.resources import files
 from time import perf_counter
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from httpx import HTTPError
+from redis.asyncio import Redis
 
 from src.application.services.vpn_product_readiness import (
     SPB_DE_EXCEPTIONS_PRODUCT_CODE,
@@ -30,6 +31,11 @@ from src.application.vpn_testing.generated_subscription_checker import (
 from src.application.vpn_testing.redaction import safe_artifact_preview
 from src.application.vpn_testing.runtime_agent_client import call_runtime_agent, runtime_agent_configured
 from src.application.vpn_testing.suite_loader import load_default_route_registries, load_default_suites
+from src.application.vpn_testing.task2_route_evidence import Task2RouteEvidenceStore
+from src.application.vpn_testing.task2_runtime_agent_client import (
+    call_task2_runtime_agent,
+    task2_runtime_agent_configured,
+)
 from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
@@ -497,9 +503,15 @@ def _sanitize_run_request_context(request_context: Mapping[str, Any] | None) -> 
 
 
 class VpnTesterService:
-    def __init__(self, repository: VpnTesterRepository, remnawave_client: RemnawaveClient | None = None) -> None:
+    def __init__(
+        self,
+        repository: VpnTesterRepository,
+        remnawave_client: RemnawaveClient | None = None,
+        redis_client: Redis | None = None,
+    ) -> None:
         self._repository = repository
         self._remnawave_client = remnawave_client
+        self._redis_client = redis_client
 
     @staticmethod
     def transient_generated_mihomo_artifact(request_context: Mapping[str, Any] | None) -> Any:
@@ -1452,22 +1464,6 @@ class VpnTesterService:
         *,
         generated_mihomo_artifact: Any = None,
     ) -> list[dict[str, Any]]:
-        if run.suite_key == "premium_spb_de_exceptions_v1":
-            return [
-                _result(
-                    check_key="premium_spb_de_exceptions.runtime.dispatch",
-                    check_name="Task2 runtime agent compatibility",
-                    category="runtime",
-                    status="fail",
-                    severity="error",
-                    safe_summary="Task2 runtime dispatch is disabled until a Task2-aware agent is implemented",
-                    details={
-                        "runtime_agent_dispatched": False,
-                        "runtime_evidence_status": "not_claimed",
-                        "smart_ru_agent_reuse_forbidden": True,
-                    },
-                )
-            ]
         if not settings.vpn_tester_runtime_enabled:
             return [
                 _result(
@@ -1480,7 +1476,45 @@ class VpnTesterService:
                     details={"runtime_enabled": False, "tun_sandbox": False},
                 )
             ]
-        if not runtime_agent_configured():
+        is_task2 = run.suite_key == "premium_spb_de_exceptions_v1"
+        if is_task2 and (
+            not settings.vpn_tester_task2_route_evidence_enabled or not settings.vpn_tester_synthetic_users_enabled
+        ):
+            return [
+                _result(
+                    check_key="premium_spb_de_exceptions.runtime.dispatch",
+                    check_name="Task2 runtime selected-outbound evidence",
+                    category="runtime",
+                    status="fail",
+                    severity="error",
+                    safe_summary="Task2 synthetic selected-outbound evidence is disabled",
+                    details={
+                        "runtime_agent_dispatched": False,
+                        "runtime_evidence_status": "not_claimed",
+                        "smart_ru_agent_reuse_forbidden": True,
+                        "route_evidence_enabled": settings.vpn_tester_task2_route_evidence_enabled,
+                        "synthetic_users_enabled": settings.vpn_tester_synthetic_users_enabled,
+                    },
+                )
+            ]
+        if is_task2 and (self._redis_client is None or not task2_runtime_agent_configured()):
+            return [
+                _result(
+                    check_key="premium_spb_de_exceptions.runtime.dispatch",
+                    check_name="Task2 runtime selected-outbound evidence",
+                    category="runtime",
+                    status="fail",
+                    severity="error",
+                    safe_summary="Task2 evidence store or SPB runtime agent is unavailable",
+                    details={
+                        "runtime_agent_dispatched": False,
+                        "runtime_evidence_status": "not_claimed",
+                        "redis_configured": self._redis_client is not None,
+                        "spb_agent_configured": task2_runtime_agent_configured(),
+                    },
+                )
+            ]
+        if not is_task2 and not runtime_agent_configured():
             vpn_tester_runtime_agent_unavailable_total.labels(reason="not_configured").inc()
             return [
                 _result(
@@ -1495,13 +1529,28 @@ class VpnTesterService:
             ]
         started = perf_counter()
         try:
-            payload = await call_runtime_agent(
-                run_id=str(run.id),
-                suite_key=run.suite_key,
-                mode=run.mode,
-                route_entries=route_entries,
-                generated_mihomo_artifact=generated_mihomo_artifact,
-            )
+            if is_task2:
+                redis_client = cast(Redis, self._redis_client)
+                evidence_store = Task2RouteEvidenceStore(
+                    redis_client,
+                    expectation_ttl_seconds=(settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds),
+                    result_ttl_seconds=settings.vpn_tester_task2_route_evidence_result_ttl_seconds,
+                    webhook_secret=(settings.vpn_tester_task2_xray_webhook_secret.get_secret_value().strip()),
+                )
+                payload = await call_task2_runtime_agent(
+                    run_id=str(run.id),
+                    route_entries=route_entries,
+                    generated_mihomo_artifact=generated_mihomo_artifact,
+                    evidence_store=evidence_store,
+                )
+            else:
+                payload = await call_runtime_agent(
+                    run_id=str(run.id),
+                    suite_key=run.suite_key,
+                    mode=run.mode,
+                    route_entries=route_entries,
+                    generated_mihomo_artifact=generated_mihomo_artifact,
+                )
         except HTTPError as exc:
             vpn_tester_runtime_agent_unavailable_total.labels(reason=type(exc).__name__).inc()
             return [
@@ -1550,6 +1599,23 @@ class VpnTesterService:
                     target=str(item.get("target") or "runtime-agent"),
                     safe_summary=str(item.get("safe_summary") or "Runtime check completed"),
                     details=dict(item.get("details") or {}),
+                    started=started,
+                )
+            )
+        if is_task2 and agent_status != "pass":
+            normalized.append(
+                _result(
+                    check_key="premium_spb_de_exceptions.runtime.completeness",
+                    check_name="Task2 runtime evidence completeness",
+                    category="runtime",
+                    status="fail" if agent_status == "fail" else "degraded",
+                    severity="error" if agent_status == "fail" else "warning",
+                    target="spb-runtime-agent",
+                    safe_summary=str(payload.get("reason") or "Task2 runtime evidence is incomplete"),
+                    details={
+                        "agent_status": agent_status,
+                        "bridge_down_evidence_claimed": False,
+                    },
                     started=started,
                 )
             )

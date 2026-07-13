@@ -154,6 +154,10 @@ def _args(tmp_path: Path, manifest_path: Path, module: ModuleType) -> argparse.N
         external_squad=module.EXTERNAL_SQUAD_NAME,
         bridge_squad=module.BRIDGE_SQUAD_NAME,
         bridge_username=module.BRIDGE_USERNAME,
+        task2_route_evidence_enabled="false",
+        task2_xray_webhook_secret="",
+        task2_synthetic_user="",
+        task2_route_evidence_webhook_url=module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
         skip_local_socket_preflight=True,
         allow_remnawave_host=["remnawave", "localhost", "127.0.0.1", "::1"],
         trusted_proxy_headers=False,
@@ -318,6 +322,164 @@ def test_builds_bridge_and_spb_profile_with_fail_closed_exception_order() -> Non
             "level": 0,
         }
     ]
+
+
+def test_task2_route_evidence_disabled_by_default_emits_no_webhooks() -> None:
+    module = _load_module()
+
+    config = module._build_spb_customer_config(
+        _base_config(),
+        "unit-test-bridge-password",
+        "203.0.113.10",
+        [{"ruleTag": "fixture-ipv4", "ip": ["8.8.8.0/24"]}],
+        ipv6_policy_mode="disabled",
+        task2_listen_address="10.0.0.2",
+    )
+
+    assert all("webhook" not in rule for rule in config["routing"]["rules"])
+    assert all("user" not in rule for rule in config["routing"]["rules"])
+
+
+def test_task2_route_evidence_config_is_all_or_none_and_https_only(tmp_path: Path) -> None:
+    module = _load_module()
+    args = _args(tmp_path, tmp_path / "manifest.json", module)
+
+    assert module._task2_route_evidence_config(args) == module.Task2RouteEvidenceConfig(enabled=False)
+
+    args.task2_route_evidence_enabled = "true"
+    with pytest.raises(RuntimeError, match="synthetic user"):
+        module._task2_route_evidence_config(args)
+
+    args.task2_synthetic_user = "task2_probe"
+    with pytest.raises(RuntimeError, match="webhook secret"):
+        module._task2_route_evidence_config(args)
+
+    args.task2_xray_webhook_secret = "unit-test-secret"
+    args.task2_route_evidence_webhook_url = module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL.replace("https://", "http://")
+    with pytest.raises(RuntimeError, match="HTTPS"):
+        module._task2_route_evidence_config(args)
+
+    args.task2_route_evidence_webhook_url = (
+        "https://api.cyber-vpn.net/api/v1/admin/vpn-tester/internal/task2/route-evidence/xray-routing-webhook"
+    )
+    with pytest.raises(RuntimeError, match="host"):
+        module._task2_route_evidence_config(args)
+
+    args.task2_route_evidence_webhook_url = module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL
+    config = module._task2_route_evidence_config(args)
+    assert config.enabled is True
+    assert config.synthetic_user == "task2_probe"
+    assert config.webhook_url == module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL
+
+
+def test_task2_route_evidence_parser_uses_exact_env_names(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = _load_module()
+    monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED", "true")
+    monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET", "env-secret")
+    monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_USER", "env_task2_probe")
+    monkeypatch.setattr(sys, "argv", ["apply-spb-de-exceptions-server-routing.py"])
+
+    args = module._parse_args()
+
+    assert args.task2_route_evidence_enabled == "true"
+    assert args.task2_xray_webhook_secret == "env-secret"
+    assert args.task2_synthetic_user == "env_task2_probe"
+    assert args.task2_route_evidence_webhook_url == module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL
+
+
+def test_task2_route_evidence_webhooks_are_synthetic_only_and_ordered() -> None:
+    module = _load_module()
+    route_evidence = module.Task2RouteEvidenceConfig(
+        enabled=True,
+        synthetic_user="task2_probe_username",
+        webhook_url=module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
+        webhook_secret="unit-test-secret",
+    )
+
+    config = module._build_spb_customer_config(
+        _base_config(),
+        "unit-test-bridge-password",
+        "203.0.113.10",
+        [
+            {"ruleTag": "fixture-ipv4", "ip": ["8.8.8.0/24"]},
+            {"ruleTag": "fixture-ipv4-alt", "ip": ["9.9.9.0/24"]},
+        ],
+        ipv6_policy_mode="disabled",
+        task2_listen_address="10.0.0.2",
+        route_evidence=route_evidence,
+    )
+
+    rules = config["routing"]["rules"]
+    tags = [rule["ruleTag"] for rule in rules]
+    synthetic_tags = [
+        "task2-route-evidence-matched-0001-fixture-ipv4",
+        "task2-route-evidence-matched-0002-fixture-ipv4-alt",
+        "task2-route-evidence-unmatched-direct",
+    ]
+    synthetic_rules = [rules[tags.index(tag)] for tag in synthetic_tags]
+    assert module.TASK2_XRAY_WEBHOOK_DEDUPLICATION_SECONDS == 0
+    assert tags.index("task2-management-private-self-block") < tags.index(synthetic_tags[0])
+    assert tags.index("task2-ipv6-policy-block") < tags.index(synthetic_tags[0])
+    assert tags.index(synthetic_tags[-1]) < tags.index("fixture-ipv4")
+    assert tags.index("fixture-ipv4-alt") < tags.index("task2-final-spb-direct")
+    assert synthetic_rules[0]["outboundTag"] == module.BRIDGE_OUTBOUND_TAG
+    assert synthetic_rules[0]["ip"] == ["8.8.8.0/24"]
+    assert synthetic_rules[1]["outboundTag"] == module.BRIDGE_OUTBOUND_TAG
+    assert synthetic_rules[2]["outboundTag"] == "DIRECT"
+    assert synthetic_rules[2]["network"] == "tcp,udp"
+
+    for rule in synthetic_rules:
+        assert rule["user"] == ["task2_probe_username"]
+        assert rule["webhook"] == {
+            "url": module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
+            "deduplication": module.TASK2_XRAY_WEBHOOK_DEDUPLICATION_SECONDS,
+            "headers": {module.TASK2_XRAY_WEBHOOK_AUTH_HEADER: "unit-test-secret"},
+        }
+
+    ordinary_rules = [rule for rule in rules if rule["ruleTag"] not in synthetic_tags]
+    assert ordinary_rules[-2]["ruleTag"] == "task2-final-spb-direct"
+    assert all("webhook" not in rule for rule in ordinary_rules)
+    assert all("user" not in rule for rule in ordinary_rules)
+
+
+def test_task2_route_evidence_user_matcher_uses_exact_configured_username() -> None:
+    module = _load_module()
+    route_evidence = module.Task2RouteEvidenceConfig(
+        enabled=True,
+        synthetic_user="task2_probe_username",
+        webhook_url=module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
+        webhook_secret="unit-test-secret",
+    )
+    remnawave_user = {
+        "uuid": "550e8400-e29b-41d4-a716-446655440000",
+        "shortUuid": "SHORT123",
+        "username": "task2_probe_username",
+        "vlessUuid": "550e8400-e29b-41d4-a716-446655440002",
+        "tag": module.TASK2_SYNTHETIC_USER_TAG,
+    }
+
+    module._validate_existing_task2_synthetic_user(
+        remnawave_user,
+        expected_username=route_evidence.synthetic_user,
+    )
+    rules = module._task2_route_evidence_rules(
+        [
+            {
+                "ruleTag": "fixture-ipv4",
+                "inboundTag": module.SPB_CUSTOMER_INBOUND_TAGS,
+                "ip": ["8.8.8.0/24"],
+                "outboundTag": module.BRIDGE_OUTBOUND_TAG,
+            }
+        ],
+        module.SPB_CUSTOMER_INBOUND_TAGS,
+        route_evidence,
+    )
+
+    assert remnawave_user["username"] != remnawave_user["shortUuid"]
+    assert remnawave_user["username"] != remnawave_user["vlessUuid"]
+    assert rules[0]["user"] == ["task2_probe_username"]
+    assert rules[0]["user"] != [remnawave_user["shortUuid"]]
+    assert rules[0]["user"] != [remnawave_user["vlessUuid"]]
 
 
 def test_preserved_inbounds_are_globally_unique_and_routing_references_follow() -> None:
@@ -825,6 +987,103 @@ def test_dry_run_is_read_only_and_does_not_write_manifest(
     assert all(method == "GET" for method, _path in instances[0].calls)
 
 
+def test_dry_run_route_evidence_redacts_secret_url_and_user_identifiers(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    manifest_path = _write_artifact(tmp_path, module)
+
+    class FakeRemnawaveApi:
+        def __init__(
+            self,
+            base_url: str,
+            token: str,
+            *,
+            trusted_proxy_headers: bool = False,
+        ) -> None:
+            self.calls: list[tuple[str, str]] = []
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            assert kwargs == {}
+            if method != "GET":
+                raise AssertionError(f"dry-run mutated through {method} {path}")
+            self.calls.append((method, path))
+            if path == "/config-profiles":
+                return {
+                    "configProfiles": [
+                        {"uuid": "spb-base", "name": module.SPB_BASE_PROFILE_NAME},
+                        {"uuid": "de-base", "name": module.DE_BASE_PROFILE_NAME},
+                    ]
+                }
+            if path == "/config-profiles/spb-base":
+                return _base_profile("spb-base", module.SPB_BASE_PROFILE_NAME)
+            if path == "/config-profiles/de-base":
+                return _base_profile("de-base", module.DE_BASE_PROFILE_NAME)
+            if path == "/nodes":
+                return {
+                    "nodes": [
+                        {"uuid": "spb-node", "address": module.SPB_NODE_ADDRESS, "configProfile": {}},
+                        {"uuid": "de-node", "address": module.DE_NODE_ADDRESS, "configProfile": {}},
+                    ]
+                }
+            if path == "/hosts":
+                return {"hosts": []}
+            if path == "/internal-squads":
+                return {
+                    "internalSquads": [{"uuid": "customer-squad", "name": module.CUSTOMER_SQUAD_NAME, "inbounds": []}]
+                }
+            if path == "/external-squads":
+                return {
+                    "externalSquads": [
+                        {"uuid": "external-squad", "name": module.EXTERNAL_SQUAD_NAME, "responseHeaders": {}}
+                    ]
+                }
+            if path == f"/users/by-username/{module.BRIDGE_USERNAME}":
+                return None
+            if path == "/users/by-username/task2_probe_username":
+                return {
+                    "uuid": "probe-user-uuid",
+                    "shortUuid": "PROBE123",
+                    "username": "task2_probe_username",
+                    "vlessUuid": "550e8400-e29b-41d4-a716-446655440002",
+                    "ssPassword": "secret-ss-password",
+                    "subscriptionUrl": "https://vpn.example.com/sub/task2_probe_username",
+                    "tag": module.TASK2_SYNTHETIC_USER_TAG,
+                    "activeInternalSquads": [{"uuid": "customer-squad"}],
+                    "externalSquadUuid": None,
+                }
+            raise AssertionError(f"unexpected request {method} {path}")
+
+        async def close(self) -> None:
+            self.closed = True
+
+    args = _args(tmp_path, manifest_path, module)
+    args.task2_route_evidence_enabled = "true"
+    args.task2_synthetic_user = "task2_probe_username"
+    args.task2_xray_webhook_secret = "unit-test-webhook-secret"
+    monkeypatch.setattr(module, "RemnawaveApi", FakeRemnawaveApi)
+    monkeypatch.setenv("REMNAWAVE_TOKEN", "unit-test-token")
+
+    result = asyncio.run(module._run(args))
+    result_json = json.dumps(result, sort_keys=True)
+
+    assert result["task2RouteEvidence"] == "enabled"
+    assert result["task2SyntheticProbeUser"] == "patch"
+    assert not (tmp_path / "rollback.json").exists()
+    for forbidden in (
+        "unit-test-webhook-secret",
+        module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
+        "task2_probe_username",
+        "probe-user-uuid",
+        "PROBE123",
+        "550e8400-e29b-41d4-a716-446655440002",
+        "secret-ss-password",
+        "https://vpn.example.com/sub/task2_probe_username",
+    ):
+        assert forbidden not in result_json
+
+
 def test_dry_run_rejects_contaminated_bridge_squad_before_mutation(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -932,6 +1191,7 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
         "hosts": [],
         "host_patches": [],
         "nodes": [],
+        "users": [],
     }
 
     class FakeRemnawaveApi:
@@ -1019,6 +1279,8 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                 }
             if path == f"/users/by-username/{module.BRIDGE_USERNAME}" and method == "GET":
                 return None
+            if path == "/users/by-username/task2_probe_username" and method == "GET":
+                return None
             if path == "/config-profiles" and method == "POST":
                 assert isinstance(body, dict)
                 if body["name"] == module.DE_BRIDGE_PROFILE_NAME:
@@ -1044,6 +1306,29 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                     task2_rules = [
                         rule for rule in routing_rules if str(rule.get("ruleTag") or "").startswith("task2-")
                     ]
+                    synthetic_rules = [
+                        rule
+                        for rule in task2_rules
+                        if str(rule.get("ruleTag") or "").startswith("task2-route-evidence-")
+                    ]
+                    assert [rule["ruleTag"] for rule in synthetic_rules] == [
+                        "task2-route-evidence-matched-0001-fixture-ipv4",
+                        "task2-route-evidence-unmatched-direct",
+                    ]
+                    assert synthetic_rules[0]["outboundTag"] == module.BRIDGE_OUTBOUND_TAG
+                    assert synthetic_rules[1]["outboundTag"] == "DIRECT"
+                    assert all(rule["user"] == ["task2_probe_username"] for rule in synthetic_rules)
+                    assert all(
+                        rule["webhook"]["url"] == module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL for rule in synthetic_rules
+                    )
+                    assert all(
+                        rule["webhook"]["headers"]
+                        == {module.TASK2_XRAY_WEBHOOK_AUTH_HEADER: "unit-test-webhook-secret"}
+                        for rule in synthetic_rules
+                    )
+                    ordinary_task2_rules = [rule for rule in task2_rules if rule not in synthetic_rules]
+                    assert all("webhook" not in rule for rule in ordinary_task2_rules)
+                    assert all("user" not in rule for rule in ordinary_task2_rules)
                     assert task2_rules[-1]["inboundTag"] == [
                         "SPB_EXCEPTIONS_REALITY_443",
                         "SPB_EXCEPTIONS_XHTTP_REALITY_8443",
@@ -1078,6 +1363,17 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
             if path == "/internal-squads" and method == "POST":
                 return {"uuid": "bridge-squad", "name": module.BRIDGE_SQUAD_NAME, "inbounds": body["inbounds"]}
             if path == "/users" and method == "POST":
+                assert isinstance(body, dict)
+                if body["username"] == "task2_probe_username":
+                    captured["users"].append(body)
+                    return {
+                        "uuid": "task2-probe-user",
+                        "shortUuid": "PROBE123",
+                        "username": body["username"],
+                        "vlessUuid": body["vlessUuid"],
+                        "activeInternalSquads": body["activeInternalSquads"],
+                        "externalSquadUuid": None,
+                    }
                 return {
                     "uuid": "bridge-user",
                     "username": module.BRIDGE_USERNAME,
@@ -1119,12 +1415,35 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
 
     args = _args(tmp_path, manifest_path, module)
     args.apply = True
+    args.task2_route_evidence_enabled = "true"
+    args.task2_synthetic_user = "task2_probe_username"
+    args.task2_xray_webhook_secret = "unit-test-webhook-secret"
     monkeypatch.setattr(module, "RemnawaveApi", FakeRemnawaveApi)
     monkeypatch.setenv("REMNAWAVE_TOKEN", "unit-test-token")
 
     result = asyncio.run(module._run(args))
 
     assert result["status"] == "applied"
+    assert result["task2RouteEvidence"] == "enabled"
+    assert result["task2SyntheticProbeUser"] == "create"
+    result_json = json.dumps(result, sort_keys=True)
+    assert "unit-test-webhook-secret" not in result_json
+    assert "task2_probe_username" not in result_json
+    assert "task2-probe-user" not in result_json
+    assert captured["users"] == [
+        {
+            "username": "task2_probe_username",
+            "status": "ACTIVE",
+            "vlessUuid": captured["users"][0]["vlessUuid"],
+            "trafficLimitBytes": 0,
+            "trafficLimitStrategy": "NO_RESET",
+            "expireAt": "2099-12-31T23:59:59.000Z",
+            "description": module.TASK2_SYNTHETIC_USER_DESCRIPTION,
+            "tag": module.TASK2_SYNTHETIC_USER_TAG,
+            "activeInternalSquads": ["customer-squad"],
+            "externalSquadUuid": None,
+        }
+    ]
     assert captured["customer_squad"] == [
         {
             "uuid": "customer-squad",
@@ -1152,6 +1471,11 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
     ]
     assert all(patch["excludedInternalSquads"] == [] for patch in spb_host_patches)
     assert "bridge-inbound" not in {host["inbound"]["configProfileInboundUuid"] for host in captured["hosts"]}
+    assert not any(
+        str(host.get("remark", "")).casefold().find("probe") >= 0
+        or str(host.get("remark", "")).casefold().find("synthetic") >= 0
+        for host in captured["hosts"]
+    )
     de_node_patch = next(item for item in captured["nodes"] if item["uuid"] == "de-node")
     assert de_node_patch["configProfile"]["activeInbounds"] == [
         "de-raw-clone",
@@ -1592,6 +1916,93 @@ def test_public_host_rollback_restores_legacy_remark_by_uuid() -> None:
     ]
 
 
+def test_task2_synthetic_user_rollback_restores_existing_state_without_credentials() -> None:
+    module = _load_module()
+    calls: list[tuple[str, str, object]] = []
+
+    class FakeRemnawaveApi:
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            calls.append((method, path, kwargs.get("json")))
+            return kwargs.get("json") or {}
+
+    manifest = {
+        "task2RouteEvidenceEnabled": True,
+        "task2SyntheticUser": {
+            "uuid": "probe-user",
+            "username": "task2_probe_username",
+            "status": "DISABLED",
+            "trafficLimitBytes": 1234,
+            "trafficLimitStrategy": "MONTH",
+            "expireAt": "2028-01-01T00:00:00.000Z",
+            "description": "old description",
+            "tag": "OLD_TAG",
+            "activeInternalSquads": ["old-squad"],
+            "externalSquadUuid": "old-external-squad",
+            "shortUuid": "MUST_NOT_PATCH",
+            "vlessUuid": "550e8400-e29b-41d4-a716-446655440002",
+            "ssPassword": "MUST_NOT_PATCH",
+            "subscriptionUrl": "https://vpn.example.com/sub/task2_probe_username",
+        },
+    }
+
+    asyncio.run(module._restore_or_delete_task2_synthetic_user(FakeRemnawaveApi(), manifest))
+
+    assert calls == [
+        (
+            "PATCH",
+            "/users",
+            {
+                "uuid": "probe-user",
+                "activeInternalSquads": ["old-squad"],
+                "externalSquadUuid": "old-external-squad",
+                "status": "DISABLED",
+                "trafficLimitBytes": 1234,
+                "trafficLimitStrategy": "MONTH",
+                "expireAt": "2028-01-01T00:00:00.000Z",
+                "description": "old description",
+                "tag": "OLD_TAG",
+            },
+        )
+    ]
+
+
+def test_task2_synthetic_user_rollback_deletes_created_manifest_uuid() -> None:
+    module = _load_module()
+    calls: list[tuple[str, str, object]] = []
+
+    class FakeRemnawaveApi:
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            calls.append((method, path, kwargs.get("json")))
+            return {}
+
+    manifest = {
+        "task2RouteEvidenceEnabled": True,
+        "task2SyntheticUsername": "task2_probe_username",
+        "task2SyntheticUser": None,
+        "task2SyntheticUserCreatedUuid": "created-probe-user",
+    }
+
+    asyncio.run(module._restore_or_delete_task2_synthetic_user(FakeRemnawaveApi(), manifest))
+
+    assert calls == [("DELETE", "/users/created-probe-user", None)]
+
+
+def test_existing_task2_synthetic_user_collision_must_be_marked() -> None:
+    module = _load_module()
+
+    with pytest.raises(RuntimeError, match="dedicated probe"):
+        module._validate_existing_task2_synthetic_user(
+            {
+                "uuid": "customer-user",
+                "username": "task2_probe_username",
+                "shortUuid": "CUSTOMER",
+                "activeInternalSquads": [{"uuid": "customer-squad"}],
+                "externalSquadUuid": None,
+            },
+            expected_username="task2_probe_username",
+        )
+
+
 def test_rollback_restores_spb_before_de_and_is_idempotent(tmp_path: Path) -> None:
     module = _load_module()
 
@@ -1621,6 +2032,10 @@ def test_rollback_restores_spb_before_de_and_is_idempotent(tmp_path: Path) -> No
         "bridgeSquadName": module.BRIDGE_SQUAD_NAME,
         "bridgeUser": {"uuid": "bridge-user", "activeInternalSquads": [], "externalSquadUuid": None},
         "bridgeUsername": module.BRIDGE_USERNAME,
+        "task2RouteEvidenceEnabled": True,
+        "task2SyntheticUsername": "task2_probe_username",
+        "task2SyntheticUser": None,
+        "task2SyntheticUserCreatedUuid": "created-probe-user",
         "spbRemappedHosts": [
             {
                 "uuid": "spb-remapped-host",
@@ -1673,8 +2088,11 @@ def test_rollback_restores_spb_before_de_and_is_idempotent(tmp_path: Path) -> No
         if call[0:2] == ("PATCH", "/config-profiles") and call[2]["uuid"] == "de-profile"
     )
     bridge_user_restore_index = next(index for index, call in enumerate(api.calls) if call[0:2] == ("PATCH", "/users"))
+    synthetic_user_delete_index = next(
+        index for index, call in enumerate(api.calls) if call[0:2] == ("DELETE", "/users/created-probe-user")
+    )
     assert spb_host_restore_index < spb_profile_restore_index < spb_restart_index
-    assert spb_restart_index < bridge_user_restore_index
+    assert spb_restart_index < synthetic_user_delete_index < bridge_user_restore_index
     assert bridge_user_restore_index < de_host_restore_index < de_profile_restore_index < de_restart_index
     assert result == {"mode": "rollback", "status": "rolled_back"}
     assert json.loads(manifest_path.read_text(encoding="utf-8"))["phase"] == "rolled_back"

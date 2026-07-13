@@ -422,6 +422,93 @@ def _configured_promoted_manifest(pointer: AntifilterManifestPointer) -> bytes:
     return raw
 
 
+def load_spb_de_exceptions_promoted_manifest_snapshot() -> tuple[
+    AntifilterManifestPointer,
+    Mapping[str, Any],
+    Path,
+]:
+    """Load one stable active/LKG Task2 manifest and its immutable version directory."""
+
+    pointer_inputs = (
+        (
+            settings.remnawave_spb_de_exceptions_readiness_active_pointer,
+            settings.remnawave_spb_de_exceptions_readiness_active_pointer_path,
+            "active",
+        ),
+        (
+            settings.remnawave_spb_de_exceptions_readiness_lkg_pointer,
+            settings.remnawave_spb_de_exceptions_readiness_lkg_pointer_path,
+            "last-known-good",
+        ),
+    )
+    first_snapshot = tuple(
+        _configured_manifest_pointer(pointer_value=value, path_value=path, pointer_name=name)
+        for value, path, name in pointer_inputs
+    )
+    confirmed_snapshot = tuple(
+        _configured_manifest_pointer(pointer_value=value, path_value=path, pointer_name=name)
+        for value, path, name in pointer_inputs
+    )
+    if first_snapshot != confirmed_snapshot:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_CHANGED_REASON,
+            "Premium SPB/DE readiness state changed during verification",
+        )
+    active_pointer, lkg_pointer = confirmed_snapshot
+    if active_pointer != lkg_pointer:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_NOT_PROMOTED_REASON,
+            "Premium SPB/DE active artifact is not promoted to last-known-good",
+        )
+
+    raw = _configured_promoted_manifest(active_pointer)
+    try:
+        manifest = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            "Premium SPB/DE promoted manifest is invalid",
+        ) from exc
+    if not isinstance(manifest, Mapping):
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            "Premium SPB/DE promoted manifest is invalid",
+        )
+
+    store_value = _text_or_empty(settings.remnawave_spb_de_exceptions_readiness_store_path)
+    if not store_value:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_MISSING_REASON,
+            "Premium SPB/DE readiness store is not configured",
+        )
+    version_dir = Path(store_value).expanduser() / "versions" / active_pointer.version
+    try:
+        if version_dir.is_symlink():
+            raise VpnProductReadinessError(
+                TASK2_READINESS_STATE_INVALID_REASON,
+                "Premium SPB/DE promoted manifest path is not trusted",
+            )
+        version_dir.resolve(strict=True).relative_to(Path(store_value).expanduser().resolve(strict=True))
+    except VpnProductReadinessError:
+        raise
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_INVALID_REASON,
+            "Premium SPB/DE promoted manifest path is not trusted",
+        ) from exc
+
+    final_snapshot = tuple(
+        _configured_manifest_pointer(pointer_value=value, path_value=path, pointer_name=name)
+        for value, path, name in pointer_inputs
+    )
+    if final_snapshot != confirmed_snapshot:
+        raise VpnProductReadinessError(
+            TASK2_READINESS_STATE_CHANGED_REASON,
+            "Premium SPB/DE readiness state changed during manifest verification",
+        )
+    return active_pointer, manifest, version_dir
+
+
 def ensure_spb_de_exceptions_manifest_state(
     attestation: SpbDeExceptionsReadinessAttestation,
     *,
