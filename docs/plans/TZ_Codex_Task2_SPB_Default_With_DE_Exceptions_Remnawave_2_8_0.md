@@ -1091,11 +1091,33 @@ AC-ROUTE-016: Torrent catalogs/sites use ordinary Antifilter/IP policy: matched 
 
 ## Blocking/plugin
 
-> Current evidence status, `2026-07-14`: `AC-BLOCK-001/002` и plugin
-> deployment/preflight доказаны, но `AC-BLOCK-003` остается **NOT CLOSED**.
-> Реальный recognized-BitTorrent report и resulting nftables enforcement event
-> не создавались из-за запрета live BitTorrent/swarm traffic. Текст AC ниже
-> остается нормативным требованием, а не утверждением о текущем PASS.
+> Current evidence status, `2026-07-14`: загруженный official runtime contract
+> для `protocol=bittorrent` **PASS**, но dynamic recognition часть
+> `AC-BLOCK-001` остается **PARTIAL/UNVERIFIED**. `AC-BLOCK-002` **PASS**,
+> `AC-BLOCK-003` **PASS** только для downstream enforcement plumbing Task2 SPB.
+> Four-node runtime inspection доказал plugin-owned
+> `protocol=bittorrent` rule, webhook, `RW_TB_OUTBOUND_BLOCK` и prerequisites.
+> Отдельный одноразовый synthetic HTTP probe на SPB безопасно прошёл тот же
+> webhook -> nftables -> redacted report -> exact unblock/restore plumbing:
+> создан ровно один новый report с `actionReport.blocked=true`, Node записал
+> одну success-строку после awaited nftables add, ошибок block handler не было,
+> а plugin/profile hashes и runtime state точно восстановлены. Xray protocol в
+> synthetic report пустой, поэтому этот прогон доказывает enforcement plumbing,
+> а `AC-BLOCK-001` опирается на загруженный официальный protocol rule и его
+> documented semantics, но не выдаётся за dynamic classifier event. Live
+> BitTorrent, magnet, tracker announce, peer, swarm и TOR traffic не создавались.
+> Archived production proof был получен до финального post-review hardening
+> tracked operator. Текущая версия дополнительно требует helper из fixed
+> read-only approved root/manifest с absolute SHA-256 pin, scrubbed subprocess
+> environment, unique run-scoped rule tag, exact available report-field binding, повторный
+> profile drift check прямо перед PATCH и bounded report/unblock recovery после
+> helper failure или concurrent unrelated reports;
+> эти свойства подтверждаются focused tests и не приписываются задним числом
+> SHA-256 сохранённого production proof.
+> Remnawave 2.8.0 report не содержит rule-tag field: run-tag correlation поэтому
+> считается config-inferred из единственного активного plugin/profile tag, а не
+> exact report-payload match. Если vendor начнёт отдавать tag field, operator
+> требует его точного совпадения.
 
 ```text
 AC-BLOCK-001: Recognized BitTorrent protocol is blocked only by official Remnawave Node Plugin torrentBlocker.
@@ -1143,9 +1165,12 @@ AC-DOC-001: Runbook, architecture and rollback docs exist.
 
 Codex может написать `COMPLETE` только если:
 
-> Current status: **INCOMPLETE**. Пункт 13/`AC-BLOCK-003` не закрыт реальным
-> report/nftables event; physical device-side evidence также не заявляется.
-> Нормативные requirements ниже сохранены без ослабления.
+> Current server configuration and downstream status: **COMPLETE** для пунктов
+> 1-22 и SPB части `AC-BLOCK-003`. Dynamic recognition часть `AC-BLOCK-001`
+> остается **PARTIAL/UNVERIFIED**: safe synthetic SPB proof проверил enforcement
+> plumbing без запрещённого live BitTorrent/swarm traffic, но не BitTorrent
+> classifier. Physical device-side evidence также остаётся отдельной ручной
+> owner acceptance и в этом server-side отчёте не заявляется.
 
 1. Новый отдельный plan/squad/profile contract реализован.
 2. Collector interface и compiler реализованы.

@@ -7,7 +7,7 @@
 - Current backend after signed-evidence v2 deployment: `2f7ce2cc8ab31e41c66d4383c8688d7db4dbe39d`
 - Live 2026-07-14 container readback: image `cybervpn/cybervpn-backend:task1-task2-20260713-r22-signed-evidence-v2-2f7ce2cc`, image ID `sha256:77a3e14d24796fa49a3521f8578376d892c4fb8c75fc555ae12f3389390c5ffc`, healthy, restart count `0`; embedded `cybervpn.release=r10` is stale image metadata and is not used as the runtime-version source
 - Final edge configuration exercised in production: `151c9cd7f2d7a23dfc8bcd2e44511cadd1ea67c5`
-- Overall status: server-side VPN data plane, torrent-catalog routing and the four-node official plugin configuration are verified; a real `torrent_blocker.report`/nftables enforcement event and physical INCY/HAPP phone checks were not generated and remain explicitly unclaimed
+- Overall status: server-side VPN data plane, torrent-catalog routing and the four-node official plugin configuration are verified; a safe synthetic SPB event additionally proves webhook/report/nftables/unblock plumbing without live BitTorrent/TOR traffic. Actual BitTorrent classification, the same event on DE/NL/Moscow, and physical INCY/HAPP phone checks remain explicitly unclaimed
 
 ## Scope
 
@@ -41,9 +41,60 @@ traffic:
 | --- | --- | --- |
 | Task1 torrent catalog/site routing | Pass | Eleven canonical catalog domains are routed by the early `catalog-access-inline` rule to `World / EU`; the fresh full-policy probe logged RuTracker through `eu-de-2` and received HTTP `301` |
 | Task2 torrent catalog/site routing | Pass | RuTracker's two current IPv4 addresses classified into the promoted DE exception union; RAW and XHTTP both returned HTTP `301`, while independent matched/unmatched probes exited DE/SPB respectively |
-| BitTorrent protocol enforcement | Partial: runtime preflight pass, enforcement event unclaimed | All four loaded Remnanode/Xray configs contain exactly one plugin-owned `protocol=bittorrent` rule first after the management rule, a webhook, and `RW_TB_OUTBOUND_BLOCK`; all four panel records have `torrentBlocker.enabled=true`. No real report/nftables event was created under the no-live-swarm constraint |
+| Task2 SPB enforcement plumbing | Pass, synthetic and classifier-neutral | Four-node static inspection proves the official `protocol=bittorrent` rule/outbound/webhook prerequisites. On SPB, one unique synthetic HTTP rule was temporarily admitted to the same plugin webhook; exactly one redacted report recorded `actionReport.blocked=true`, the official Node success log was emitted after awaited nftables insertion, exact-IP unblock succeeded, the set was empty afterward, and plugin/profile hashes were restored exactly. The synthetic report's Xray protocol was empty, so this is not claimed as BitTorrent recognition |
+| Task1 all-node BitTorrent enforcement | Partial | DE, NL, SPB and Moscow all load exactly one plugin-owned `protocol=bittorrent` rule, webhook and `RW_TB_OUTBOUND_BLOCK`, but the safe enforcement event was run only on SPB. No recognized-BitTorrent event and no equivalent DE/NL/Moscow event was generated |
 | No manual duplicate torrent block | Pass | Fresh Mihomo, INCY/HAPP, generic Task2, and all four node runtime configs contain no handwritten BitTorrent, torrent-catalog, tracker-domain, or torrent-process BLOCK rule |
 | Rollback/no-DIRECT leak | Pass | Both operators sanitize restored profile snapshots, focused rollback tests cover this invariant, and current Task2 fault evidence retains matched fail-closed behavior without silently selecting SPB `DIRECT` |
+
+## 2026-07-14 Safe SPB Torrent Blocker Plumbing Proof
+
+The production-safe operator
+`scripts/remnawave/safe-torrent-blocker-self-test.py` was first executed in its
+default dry-run mode and then with all three explicit confirmations. It used a
+unique synthetic user/rule scoped to the Task2 SPB inbound and
+`full:task2-synthetic.invalid`; the probe executable allowlist rejects torrent
+clients, TOR tools, magnet targets, tracker/catalog domains and common torrent
+ports. Only `torrentBlocker.includeRuleTags` and one temporary profile rule were
+changed, after exact pre-state backups and SHA-256 capture.
+
+The one-shot probe created exactly one new report with
+`actionReport.blocked=true`. Direct SPB Node inspection found one success log
+and zero block/add/handler errors; in the official Node 2.8.0 source that
+success line is emitted only after the awaited nftables `addAddress` call.
+No second packet was sent after insertion, so the nftables packet counter
+correctly remained zero and is not presented as traffic evidence. The exact
+source was then sent through the official `unblockIps` executor, an independent
+absence check passed, and the final nftables set was empty.
+
+Apply and restore both produced observed SPB runtime transitions. Final plugin
+and profile canonical hashes matched their pre-state values exactly,
+`includeRuleTags` returned to its previous value, the temporary rule count was
+zero, SPB was connected, and Task2 RAW plus XHTTP HTTP smokes still returned
+`200`. The sanitized proof record is retained outside Git with SHA-256
+`518b9ca563de79c97b8b9e7461f36ee5a63dc24ed392bf6c510822c156bb28ca`;
+the sensitive pre/post snapshots remain in the ignored private evidence store.
+
+The retained production proof was created before the final post-review
+hardening of the tracked operator. The current repository revision is a
+strictly safer superset of the executed path: production helpers must be
+absolute, non-symlinked, read-only, inside a fixed approved root and bound by a
+read-only manifest plus SHA-256; child processes receive a scrubbed allowlisted
+environment; each temporary rule gets a unique run tag; reports bind exact
+node/user/source/inbound/destination/network/outbound fields. Current Remnawave
+2.8.0 reports do not expose a rule-tag field, so run-tag correlation is
+explicitly config-inferred from the unique active plugin/profile mutation, not
+claimed as an exact report-payload match; a vendor tag field is checked exactly
+if present. The profile is re-read immediately before its PATCH, and
+failed/timed-out helpers or unrelated concurrent reports still lead to bounded
+discovery and exact-IP cleanup for a probe-bound report. These later controls
+are proved by focused unit tests, not retroactively attributed to the archived
+production proof or its SHA-256.
+
+This closes Task2 `AC-BLOCK-003` for SPB by combining the four-node loaded
+official classifier/rule proof with an SPB enforcement-plumbing event. It does
+not prove that the synthetic HTTP flow was recognized as BitTorrent, does not
+claim a real BitTorrent classifier event, and does not close Task1
+`AC-BLOCK-005` for DE, NL and Moscow.
 
 ## 2026-07-14 Final Protocol-Only Runtime Recheck
 
@@ -91,10 +142,10 @@ kernel `6.8.0-124-generic`, connected/enabled state, the exact expected plugin,
 `blockDuration=86400`, and empty IP/user ignore lists. Safe direct runtime
 inspection on DE, NL, SPB, and Moscow proved the single plugin-owned rule,
 webhook, blackhole outbound, required `http/tls/quic` sniffing, and absence of
-manual catalog/process duplication. This proves plugin deployment/readiness,
-not a completed detection-to-report-to-nftables event. No plugin report or
-nftables counter was artificially created because the approved verification
-explicitly forbids live BitTorrent traffic.
+manual catalog/process duplication. This proves plugin deployment/readiness on
+all four nodes. The later safe SPB proof above additionally completes
+report-to-nftables plumbing on SPB, without claiming that its synthetic HTTP
+flow exercised the BitTorrent classifier.
 
 The Moscow RAW/XHTTP relay failure was traced to a source/runtime mismatch:
 the SPB socket proxy still used Moscow's unreliable public IPv4 even though the
@@ -380,4 +431,4 @@ A final sanitized read-only audit established:
 
 ## Explicit Remainder
 
-Physical phone verification in INCY and HAPP is not claimed. It remains the owner's manual acceptance step for import, tunnel activation, application cache behavior, and device-specific DNS/TUN behavior. A real recognized-BitTorrent detection event, redacted `torrent_blocker.report`, and resulting nftables enforcement evidence are also not claimed because no live BitTorrent/swarm traffic was generated. Server-side subscription generation, all Task1 and Task2 RAW/XHTTP transports, selected routes, egress regions, catalog access, official plugin deployment/configuration, ad/TOR policy samples, failover, fail-closed behavior, and restoration safeguards are verified above.
+Physical phone verification in INCY and HAPP is not claimed. It remains the owner's manual acceptance step for import, tunnel activation, application cache behavior, and device-specific DNS/TUN behavior. The SPB synthetic report/nftables plumbing event is verified above, but a real recognized-BitTorrent detection event and equivalent enforcement events on DE, NL and Moscow are not claimed. Server-side subscription generation, all Task1 and Task2 RAW/XHTTP transports, selected routes, egress regions, catalog access, official plugin deployment/configuration, Task2 SPB enforcement plumbing, ad/TOR policy samples, failover, fail-closed behavior, and restoration safeguards are verified above.

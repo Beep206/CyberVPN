@@ -932,9 +932,13 @@ docs/evidence/releases/YYYY-MM-DD-premium-smart-ru-unified-routing.md
 > Current evidence status, `2026-07-14`: строки `PASS` ниже задают обязательный
 > результат gate и не являются отчетом о текущем прохождении. Catalog routing,
 > отсутствие manual duplicate policy и four-node plugin deployment/preflight
-> доказаны. Реальный `torrent_blocker.report` и resulting nftables enforcement
-> event не создавались из-за запрета live BitTorrent/swarm traffic, поэтому
-> `torrentBlocker redacted plugin evidence` остается **NOT CLOSED**.
+> доказаны. На SPB дополнительно безопасно доказана цепочка
+> webhook -> nftables -> redacted report -> exact unblock/restore с одноразовым
+> synthetic HTTP probe, без BitTorrent/TOR/swarm traffic. Поле Xray protocol в
+> этом synthetic report пустое, поэтому proof не выдаётся за проверку
+> BitTorrent classifier. `torrentBlocker redacted plugin evidence` остается
+> **PARTIAL** для Task1: аналогичный enforcement event не повторён на DE, NL и
+> Moscow, которые также входят в целевые nodes `AC-BLOCK-005`.
 
 ```text
 policy compiler check PASS
@@ -946,7 +950,7 @@ Xray/Mihomo static validation PASS
 route matrix PASS
 failover matrix PASS
 IPv4/IPv6 no-bypass matrix PASS
-torrentBlocker redacted plugin evidence PASS
+torrentBlocker redacted plugin evidence PARTIAL (SPB event only; DE/NL/Moscow pending)
 secret scan PASS
 rollback rehearsal PASS
 ```
@@ -1040,9 +1044,11 @@ AC-DOC-001: Production architecture обновлена после rollout.
 
 Codex имеет право завершить задачу только когда:
 
-> Current status: **INCOMPLETE**. Пункт 11 и `AC-BLOCK-005` не закрыты реальным
-> report/nftables event; physical INCY/HAPP device-side evidence также не
-> заявляется. Нормативные требования ниже сохранены без ослабления.
+> Current status: **INCOMPLETE**. SPB safe synthetic event закрывает
+> report/nftables plumbing только для одной целевой ноды и не доказывает
+> BitTorrent classification; `AC-BLOCK-005` требует redacted evidence на всех
+> целевых nodes. Physical INCY/HAPP device-side evidence также не заявляется.
+> Нормативные требования ниже сохранены без ослабления.
 
 1. Реальная причина текущего неправильного поведения задокументирована и подтверждена тестом.
 2. Product-scoped subscription delivery реализована.

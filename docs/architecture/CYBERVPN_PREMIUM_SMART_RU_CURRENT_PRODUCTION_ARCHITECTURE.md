@@ -33,9 +33,12 @@
 > Remnawave Node Plugin `torrentBlocker` (`https://docs.rw/learn/node-plugins/`). Старые
 > строки про torrent websites/processes ниже помечены как superseded для
 > acceptance. Свежие generated subscriptions, все четыре загруженных node
-> runtime, Task1 full policy и Task2 RAW/XHTTP catalog route проверены; live
-> BitTorrent/swarm traffic намеренно не создавался, поэтому реальный
-> report/nftables enforcement event не заявляется как доказанный.
+> runtime, Task1 full policy и Task2 RAW/XHTTP catalog route проверены. На SPB
+> дополнительно безопасно доказан classifier-neutral путь
+> webhook -> nftables -> redacted report -> exact unblock/restore с synthetic
+> HTTP probe. Live BitTorrent/swarm/TOR traffic намеренно не создавался;
+> synthetic report имел пустой Xray protocol, поэтому реальное распознавание
+> BitTorrent и аналогичные enforcement events на DE/NL/Moscow не заявляются.
 >
 > Дополнение `2026-07-14T13:01Z`: автоматический региональный failover
 > переведен из canary в stable INCY/HAPP response. Stable и canary теперь
@@ -1364,18 +1367,29 @@ Ansible `/etc/hosts`, effective `ExecStart` и end-to-end runtime теперь �
 
 ### 21.4. Abuse plugin compatibility
 
-Current seed source configures node plugin policy:
+Current source controls and the separately archived live production proof for
+the node plugin policy:
 
 | Control | SOURCE behavior | Limitation |
 |---|---|---|
-| Torrent blocker | enabled, block duration `86400s` | coverage still depends on plugin detection |
+| Torrent blocker | enabled on all four nodes, block duration `86400s`; SPB synthetic webhook/report/nftables/unblock plumbing passed with exact restore | BitTorrent recognition itself and equivalent DE/NL/Moscow enforcement events remain unclaimed |
 | Egress mail ports | block `25`, `465`, `587` | may affect legitimate mail clients; diagnostic impact must be explicit |
 | TOR egress lists | named lists exist | lists are empty in seed, so IP-list enforcement is not closed |
 | Ingress filter | disabled | ingress security comes from transport/auth/firewall boundaries |
 | Connection drop | disabled | no generic connection-drop enforcement from this plugin |
 
-Plugin assignment in source does not prove every node loaded the exact config
-after latest restart; validate active plugin and node logs separately.
+Four-node direct runtime inspection proves the exact plugin-owned rule,
+webhook/outbound and prerequisites after restart. The safe one-shot SPB proof
+additionally validates the post-webhook nftables/report/unblock path; it is not
+a BitTorrent classifier test because the synthetic report protocol was empty.
+The archived proof predates the final operator hardening (fixed read-only
+helper root/manifest plus SHA-256, scrubbed subprocess environment, unique run
+tag, exact available report-field binding, pre-PATCH drift recheck and
+failed-helper/concurrent report recovery). Remnawave 2.8.0 reports do not expose
+the rule tag, so that one correlation remains explicitly config-inferred from
+the unique active plugin/profile state; any future vendor tag field is checked
+exactly. These additional controls are covered by the tracked focused tests and
+are not claimed as fields of the older proof record.
 
 ## 22. Automatic failover и client cache: точные ограничения
 
@@ -1433,7 +1447,7 @@ boundary и не подменяется server-side proof.
 | P2 | UDP `443/853` block | **SOURCE:** rule 11 precedes regional routes | QUIC/HTTP3 and DoQ are forced to fallback or fail; latency/page behavior may differ by app | UDP/TCP A/B, browser netlog, verify TCP fallback and DoH continuity |
 | P2 | Direct-process bypass/leak boundary | **SOURCE:** mesh/remote-control processes and private destinations are DIRECT; mobile process finder uncertain | intended compatibility can expose traffic outside VPN or fail to match and create loops | per-process route/egress capture, private/LAN tests, platform-specific process matcher evidence |
 | P2 | Ad/TOR coverage may be read as absolute | **SOURCE:** domain/process lists; TOR node lists empty server-side; policy says best-effort | in-stream ads, renamed processes, bridges and new domains can bypass; false positives can break apps | controlled positive/negative domains/processes, provider status, no claim from one sample |
-| P1 runtime evidence / RESOLVED catalog scope | Protocol-only BitTorrent clarification | **LIVE/PASS for catalog access and plugin deployment:** Task1 routes eleven catalogs before block rules; Task2 RuTracker follows promoted Antifilter/IP policy; all four node runtimes expose one plugin-owned rule/webhook/outbound and no catalog/process duplicate. **UNKNOWN:** real report -> nftables enforcement event, intentionally not generated | plugin can be loaded while report/nftables path is broken; regression could also restore overblocking | retain generated-body checks, four-node preflight and rollback sanitization; close enforcement only with a vendor-supported safe non-swarm test or explicitly owner-approved controlled event |
+| P1 classifier / RESOLVED Task2 downstream plumbing and catalog scope | Protocol-only BitTorrent clarification | **LIVE/PASS:** catalogs route normally, all four runtimes expose the single plugin-owned rule/webhook/outbound, and a safe classifier-neutral SPB event completed report -> nftables -> unblock with exact restore. **UNKNOWN:** actual BitTorrent recognition and equivalent DE/NL/Moscow enforcement events | a future classifier regression can still evade the proven downstream plumbing; Task1 requires target-node evidence and Task2 classifier recognition remains unverified | retain generated-body checks, four-node preflight, safe operator tests and rollback sanitization; repeat approved classifier-neutral node events where useful, while keeping real swarm traffic forbidden and classifier status partial |
 | P2 | Gateway forward-ит HWID/device metadata и client IP в Remnawave | **SOURCE:** allowlist содержит HWID, model, OS/version и `X-Forwarded-For`; это confirmed data flow, не confirmed public leak | stable identifiers коррелируют subscription refresh между backend, proxy и Remnawave logs | определить minimum headers/retention, pseudonymize или opt-in HWID, добавить header/log redaction tests |
 | P2 | Third-party DoH privacy/route boundary | **SOURCE:** INCY/HAPP используют Cloudflare и Google DoH; system fallback/runtime capture не доказаны | DNS metadata уходит внешним processors, а DNS egress может расходиться с RU/DE route expectation | controlled DoH или формальная processor policy, pinned DNS egress и device DNS capture без system fallback |
 | P2 | Monitoring unavailable | **LIVE:** monitoring host maintenance | no current time-series SLO, failover or saturation proof; absence of alert is meaningless | direct synchronized logs/runtime matrix now; restore monitoring then verify scrape/alerts/dashboard timestamps |

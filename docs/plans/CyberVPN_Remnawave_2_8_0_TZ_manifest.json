@@ -1,34 +1,41 @@
 {
   "created_at": "2026-07-11T08:29:14.175336+00:00",
-  "updated_at": "2026-07-14T15:00:12Z",
+  "updated_at": "2026-07-14T18:46:41Z",
+  "scope": "normative-task-plans-readme-and-current-architecture-only",
+  "excludes": [
+    "runtime evidence",
+    "private proof records",
+    "operator source and tests",
+    ".codex/current-task.json"
+  ],
   "files": [
     {
       "name": "TZ_Codex_Task1_Premium_Smart_RU_Remnawave_2_8_0.md",
       "path": "docs/plans/TZ_Codex_Task1_Premium_Smart_RU_Remnawave_2_8_0.md",
-      "size_bytes": 43175,
-      "sha256": "70cf7669b2e540d613b0da9119da2d2499cdf3aedd26a7bcc99813fe32ff5e32",
-      "lines": 1065
+      "size_bytes": 43785,
+      "sha256": "1a4390d5f2911ffd58ed894293daa5f25f35c21aa5fab78dbd242a803da9c067",
+      "lines": 1071
     },
     {
       "name": "TZ_Codex_Task2_SPB_Default_With_DE_Exceptions_Remnawave_2_8_0.md",
       "path": "docs/plans/TZ_Codex_Task2_SPB_Default_With_DE_Exceptions_Remnawave_2_8_0.md",
-      "size_bytes": 40604,
-      "sha256": "83097e50ebafc15f7b2485c7dfb678b0b3e79cb545dae4c0566852e36169aafc",
-      "lines": 1173
+      "size_bytes": 42876,
+      "sha256": "20ce86f6ea5a6d87d2a8a8a94596aa6e020ccf3db73b485f450ec251d0f95f3a",
+      "lines": 1198
     },
     {
       "name": "README_CyberVPN_Remnawave_TZ.md",
       "path": "docs/plans/README_CyberVPN_Remnawave_TZ.md",
-      "size_bytes": 4123,
-      "sha256": "ae268d7c60c4bd78ae49deaab264c3ca77e57566a2bfea291e2ae32812c3192a",
-      "lines": 14
+      "size_bytes": 4834,
+      "sha256": "1500ed43787bb8447b5db289554bfe80943341e3575b561221e28426d00f8007",
+      "lines": 16
     },
     {
       "name": "CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md",
       "path": "docs/architecture/CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md",
-      "size_bytes": 113946,
-      "sha256": "24fe987522af05cc16c5822138716fd587644db1331a4d68fc100405ee12500a",
-      "lines": 1514
+      "size_bytes": 115278,
+      "sha256": "a61aa4cc241474864d80777ca69764a5c5ca977affe5d720b3efb5ba9f417a49",
+      "lines": 1528
     }
   ]
 }
