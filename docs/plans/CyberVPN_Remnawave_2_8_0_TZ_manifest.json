@@ -1,6 +1,6 @@
 {
   "created_at": "2026-07-11T08:29:14.175336+00:00",
-  "updated_at": "2026-07-14T14:08:38Z",
+  "updated_at": "2026-07-14T15:00:12Z",
   "files": [
     {
       "name": "TZ_Codex_Task1_Premium_Smart_RU_Remnawave_2_8_0.md",
@@ -27,7 +27,7 @@
       "name": "CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md",
       "path": "docs/architecture/CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md",
       "size_bytes": 113946,
-      "sha256": "dbf5da30bb92d6bf8f75741538ff15acf030325887c87cea6c049e29bbd1ee89",
+      "sha256": "24fe987522af05cc16c5822138716fd587644db1331a4d68fc100405ee12500a",
       "lines": 1514
     }
   ]
