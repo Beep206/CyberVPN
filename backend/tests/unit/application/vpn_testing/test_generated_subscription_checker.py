@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from uuid import uuid4
@@ -25,6 +26,7 @@ NODE_HOSTS = (
 )
 RAW_PORTS = (2053, 443, 2053, 443)
 XHTTP_PORTS = (2083, 8443, 2083, 8443)
+REPO_ROOT = Path(__file__).resolve().parents[5]
 
 
 @pytest.fixture
@@ -100,11 +102,45 @@ def _generated_mihomo_artifact(
             {
                 "name": name,
                 "type": "select",
-                "proxies": [proxy["name"] for proxy in proxies],
+                "proxies": ["REJECT", "REJECT-DROP"] if name == "⛔ BLOCK" else [proxy["name"] for proxy in proxies],
             }
             for name in groups
         ],
-        "rules": ["MATCH,🌍 World / EU"],
+        "rule-providers": {
+            "catalog-access-inline": {
+                "type": "inline",
+                "behavior": "classical",
+                "payload": [
+                    "DOMAIN-SUFFIX,1337x.to",
+                    "DOMAIN-SUFFIX,eztv.re",
+                    "DOMAIN-SUFFIX,kinozal.tv",
+                    "DOMAIN-SUFFIX,limetorrents.lol",
+                    "DOMAIN-SUFFIX,nnmclub.to",
+                    "DOMAIN-SUFFIX,rutracker.org",
+                    "DOMAIN-SUFFIX,rutor.info",
+                    "DOMAIN-SUFFIX,thepiratebay.org",
+                    "DOMAIN-SUFFIX,torrentdownload.info",
+                    "DOMAIN-SUFFIX,torrentgalaxy.to",
+                    "DOMAIN-SUFFIX,yts.mx",
+                ],
+            },
+            "oisd-big": {
+                "type": "http",
+                "behavior": "domain",
+                "url": "https://rules.example.invalid/oisd-big.mrs",
+            },
+        },
+        "dns": {
+            "nameserver-policy": {
+                "rule-set:catalog-access-inline": ["https://8.8.8.8/dns-query#🌍 World / EU"],
+                "rule-set:oisd-big": ["rcode://name_error"],
+            }
+        },
+        "rules": [
+            "RULE-SET,catalog-access-inline,🌍 World / EU",
+            "RULE-SET,oisd-big,⛔ BLOCK",
+            "MATCH,🌍 World / EU",
+        ],
     }
 
 
@@ -169,6 +205,9 @@ def test_generated_subscription_requires_real_hardened_mihomo_artifact(smart_ru_
     assert by_key["generated_subscription.synthetic_safety"]["status"] == "pass"
     assert by_key["generated_subscription.mihomo_groups"]["status"] == "pass"
     assert by_key["generated_subscription.mihomo_groups"]["details"]["missing_groups"] == []
+    assert by_key["generated_subscription.mihomo_groups"]["details"]["manual_torrent_policy_absent"] is True
+    assert by_key["generated_subscription.mihomo_groups"]["details"]["catalog_access_before_block"] is True
+    assert "🧲 Torrents" not in PREMIUM_SMART_RU_MIHOMO_GROUPS
     assert by_key["generated_subscription.vless_reality_raw_tcp"]["status"] == "pass"
     assert by_key["generated_subscription.xhttp_transport"]["status"] == "pass"
     assert by_key["generated_subscription.remnawave_assignment"]["status"] == "pass"
@@ -196,6 +235,114 @@ def test_generated_mihomo_summary_counts_only_strict_reality_profiles_and_preser
     assert summary["vless_reality_tcp_proxy_count"] == 4
     assert isinstance(summary["sha256"], str)
     assert len(summary["sha256"]) == 64
+
+
+def test_current_compiler_mihomo_has_required_groups_without_static_torrent_policy() -> None:
+    artifact = (REPO_ROOT / "scripts/remnawave/generated/premium_smart_ru/mihomo.yaml").read_text(encoding="utf-8")
+
+    summary = generated_mihomo_artifact_summary(artifact)
+
+    assert set(PREMIUM_SMART_RU_MIHOMO_GROUPS).issubset(summary["groups"])
+    assert summary["manual_torrent_policy_absent"] is True
+    assert summary["manual_torrent_groups"] == []
+    assert summary["manual_torrent_rules"] == []
+    assert summary["catalog_access_before_block"] is True
+
+
+def test_generated_subscription_rejects_catalog_access_after_block_policy(
+    smart_ru_settings: None,
+) -> None:
+    artifact = _generated_mihomo_artifact()
+    catalog_rule = artifact["rules"].pop(0)
+    artifact["rules"].insert(1, catalog_rule)
+
+    by_key = _checks_by_key(artifact)
+
+    check = by_key["generated_subscription.mihomo_groups"]
+    assert check["status"] == "fail"
+    assert check["details"]["manual_torrent_policy_absent"] is True
+    assert check["details"]["catalog_access_before_block"] is False
+
+
+@pytest.mark.parametrize(
+    "manual_policy",
+    [
+        pytest.param("group", id="static-torrent-group"),
+        pytest.param(
+            "RULE-SET,torrent-websites,REJECT,no-resolve",
+            id="catalog-reject-no-resolve",
+        ),
+        pytest.param(
+            "RULE-SET,torrent-websites,BLOCK policy",
+            id="catalog-rule-set-block-policy",
+        ),
+        pytest.param(
+            "DOMAIN-SUFFIX,rutracker.org,BLOCK policy",
+            id="catalog-domain-block-policy",
+        ),
+        pytest.param(
+            "RULE-SET,torrent-websites,reject,no-resolve",
+            id="lowercase-reject",
+        ),
+        pytest.param(
+            "AND,((RULE-SET,torrent-websites),(NETWORK,tcp)),REJECT,no-resolve",
+            id="logical-and-catalog-reject",
+        ),
+        pytest.param("provider-payload", id="neutral-provider-with-catalog-payload"),
+        pytest.param(
+            "provider-regex-block-alias",
+            id="neutral-provider-regex-with-reject-only-group",
+        ),
+    ],
+)
+def test_generated_subscription_rejects_static_torrent_policy(
+    smart_ru_settings: None,
+    manual_policy: str,
+) -> None:
+    artifact = _generated_mihomo_artifact()
+    if manual_policy == "group":
+        artifact["proxy-groups"].append({"name": "🧲 Torrents", "type": "select", "proxies": ["REJECT"]})
+    elif manual_policy == "provider-payload":
+        artifact["rule-providers"] = {
+            "innocent-inline": {
+                "type": "inline",
+                "behavior": "classical",
+                "payload": ["DOMAIN-SUFFIX,rutracker.org"],
+            }
+        }
+        artifact["rules"].insert(
+            0,
+            "RULE-SET,innocent-inline,REJECT,no-resolve",
+        )
+    elif manual_policy == "provider-regex-block-alias":
+        artifact["proxy-groups"].append(
+            {
+                "name": "innocent-sink",
+                "type": "select",
+                "proxies": ["REJECT"],
+            }
+        )
+        artifact["rule-providers"] = {
+            "innocent-inline": {
+                "type": "inline",
+                "behavior": "classical",
+                "payload": [
+                    r"DOMAIN-REGEX,.*rutracker\.org$",
+                    "DOMAIN-KEYWORD,rutor",
+                ],
+            }
+        }
+        artifact["rules"].insert(
+            0,
+            "RULE-SET,innocent-inline,innocent-sink,no-resolve",
+        )
+    else:
+        artifact["rules"].insert(0, manual_policy)
+
+    group_check = _checks_by_key(artifact)["generated_subscription.mihomo_groups"]
+
+    assert group_check["status"] == "fail"
+    assert group_check["details"]["manual_torrent_policy_absent"] is False
 
 
 @pytest.mark.parametrize(

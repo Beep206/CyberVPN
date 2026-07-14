@@ -6,11 +6,14 @@ import json
 import os
 import re
 import shutil
+import stat
 import tempfile
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePosixPath
-from collections.abc import Iterator
+from types import MappingProxyType
 from typing import Any
 
 from .compiler import (
@@ -58,6 +61,85 @@ REQUIRED_ARTIFACTS = {
 }
 
 
+@dataclass(frozen=True)
+class PublishedPointer:
+    version: str
+    manifest_sha256: str
+
+
+@dataclass(frozen=True)
+class PublishedActiveCandidate:
+    active_pointer: PublishedPointer
+    lkg_pointer: PublishedPointer
+    version_dir: Path
+    manifest: Mapping[str, Any]
+    manifest_raw: bytes
+    policy_sha256: str
+    source_manifest_sha256: str
+
+
+def _freeze_json(value: Any) -> Any:
+    if isinstance(value, dict):
+        return MappingProxyType(
+            {str(key): _freeze_json(item) for key, item in value.items()}
+        )
+    if isinstance(value, list):
+        return tuple(_freeze_json(item) for item in value)
+    return value
+
+
+def _is_reparse_point(path: Path) -> bool:
+    if os.name != "nt":
+        return False
+    try:
+        attributes = getattr(path.stat(follow_symlinks=False), "st_file_attributes", 0)
+    except OSError:
+        return False
+    return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0))
+
+
+def _reject_link_or_reparse(path: Path, context: str) -> None:
+    if path.is_symlink() or _is_reparse_point(path):
+        raise PublishError(f"{context} must not be a symlink or reparse point")
+
+
+def _validate_version_dir(root: Path, name: str, version: str) -> Path:
+    versions = root / "versions"
+    _reject_link_or_reparse(versions, "versions directory")
+    if not versions.is_dir():
+        raise PublishError("versions directory is missing")
+    version_dir = versions / version
+    _reject_link_or_reparse(version_dir, f"{name} version directory")
+    if not version_dir.is_dir():
+        raise PublishError(f"{name} points to a missing version")
+    try:
+        version_dir.resolve(strict=True).relative_to(root.resolve(strict=True))
+    except (OSError, ValueError) as exc:
+        raise PublishError(
+            f"{name} version directory escapes the publish store"
+        ) from exc
+    return version_dir
+
+
+def _read_existing_pointer_raw(root: Path, name: str) -> bytes:
+    path = root / f"{name}.json"
+    if path.is_symlink():
+        raise PublishError(f"{name} pointer must not be a symlink")
+    if not path.exists():
+        raise PublishError(f"{name} pointer is required")
+    if not path.is_file():
+        raise PublishError(f"{name} pointer must be a regular file")
+    return _read_limited(path, MAX_POINTER_BYTES, f"{name} pointer")
+
+
+def _reject_unstable_state(root: Path) -> None:
+    lock_path = root / ".state.lock"
+    if lock_path.exists() or lock_path.is_symlink():
+        raise PublishError(
+            "artifact state is locked by another publish/promote/rollback operation"
+        )
+
+
 def _read_limited(path: Path, limit: int, context: str) -> bytes:
     try:
         with path.open("rb") as handle:
@@ -101,8 +183,10 @@ def _safe_artifact_path(root: Path, relative: object) -> Path:
         ) from exc
     current = target
     while current != root.parent:
-        if current.is_symlink():
-            raise PublishError(f"artifact path contains a symlink: {relative!r}")
+        if current.is_symlink() or _is_reparse_point(current):
+            raise PublishError(
+                f"artifact path contains a symlink or reparse point: {relative!r}"
+            )
         if current == root:
             break
         current = current.parent
@@ -112,9 +196,19 @@ def _safe_artifact_path(root: Path, relative: object) -> Path:
 
 
 def _load_candidate(candidate_dir: Path) -> tuple[dict[str, Any], bytes]:
-    if candidate_dir.is_symlink() or not candidate_dir.is_dir():
+    if (
+        candidate_dir.is_symlink()
+        or _is_reparse_point(candidate_dir)
+        or not candidate_dir.is_dir()
+    ):
         raise PublishError("candidate must be a regular directory")
     manifest_path = candidate_dir / "manifest.json"
+    if (
+        manifest_path.is_symlink()
+        or _is_reparse_point(manifest_path)
+        or not manifest_path.is_file()
+    ):
+        raise PublishError("candidate manifest must be a regular non-symlink file")
     try:
         manifest_raw = _read_limited(
             manifest_path, MAX_MANIFEST_BYTES, "candidate manifest"
@@ -582,8 +676,21 @@ def _validate_store_root(store_root: Path) -> Path:
             "publish store must not be placed under repository control metadata"
         )
     root.mkdir(parents=True, exist_ok=True)
-    if root.is_symlink():
-        raise PublishError("publish store root must not be a symlink")
+    _reject_link_or_reparse(root, "publish store root")
+    return root
+
+
+def _validate_existing_store_root(store_root: Path) -> Path:
+    root = store_root.absolute()
+    if any(part.lower() in {".codex", ".git"} for part in root.parts):
+        raise PublishError(
+            "publish store must not be placed under repository control metadata"
+        )
+    _reject_link_or_reparse(root, "publish store root")
+    if not root.exists():
+        raise PublishError("publish store root is missing")
+    if not root.is_dir():
+        raise PublishError("publish store root must be a directory")
     return root
 
 
@@ -649,8 +756,12 @@ def _state_lock(root: Path) -> Iterator[None]:
 
 def _read_pointer(root: Path, name: str) -> dict[str, Any] | None:
     path = root / f"{name}.json"
+    if path.is_symlink():
+        raise PublishError(f"{name} pointer must not be a symlink")
     if not path.exists():
         return None
+    if not path.is_file():
+        raise PublishError(f"{name} pointer must be a regular file")
     try:
         value = json.loads(
             _read_limited(path, MAX_POINTER_BYTES, f"{name} pointer").decode("utf-8"),
@@ -666,9 +777,7 @@ def _read_pointer(root: Path, name: str) -> dict[str, Any] | None:
         str(value["manifestSha256"])
     ):
         raise PublishError(f"{name} pointer checksums are invalid")
-    version_dir = root / "versions" / value["version"]
-    if not version_dir.is_dir():
-        raise PublishError(f"{name} points to a missing version")
+    version_dir = _validate_version_dir(root, name, str(value["version"]))
     manifest_path = version_dir / "manifest.json"
     manifest_sha256, _ = _sha256_file(
         manifest_path, MAX_MANIFEST_BYTES, f"{name} manifest"
@@ -676,6 +785,110 @@ def _read_pointer(root: Path, name: str) -> dict[str, Any] | None:
     if manifest_sha256 != value["manifestSha256"]:
         raise PublishError(f"{name} pointer manifest checksum mismatch")
     return value
+
+
+def _published_pointer(value: dict[str, Any]) -> PublishedPointer:
+    return PublishedPointer(
+        version=str(value["version"]),
+        manifest_sha256=str(value["manifestSha256"]),
+    )
+
+
+def _load_published_pointer(
+    root: Path,
+    name: str,
+    *,
+    policy: CompilePolicy,
+) -> tuple[PublishedPointer, Path, dict[str, Any], bytes]:
+    pointer = _read_pointer(root, name)
+    if pointer is None:
+        raise PublishError(f"{name} pointer is required")
+    published_pointer = _published_pointer(pointer)
+    version_dir = _validate_version_dir(root, name, published_pointer.version)
+    manifest, manifest_raw = _load_candidate(version_dir)
+    if manifest.get("version") != published_pointer.version:
+        raise PublishError(f"{name} pointer/version manifest mismatch")
+    if sha256_bytes(manifest_raw) != published_pointer.manifest_sha256:
+        raise PublishError(f"{name} pointer manifest checksum mismatch")
+    if manifest_raw != canonical_json_bytes(manifest):
+        raise PublishError(f"{name} manifest must use canonical publisher encoding")
+    _verify_candidate_semantics(version_dir, manifest, policy)
+    return published_pointer, version_dir, manifest, manifest_raw
+
+
+def _verify_manifest_provenance(
+    manifest: dict[str, Any], *, policy_sha256: str, context: str
+) -> str:
+    version = manifest.get("version")
+    if not isinstance(version, str) or not VERSION_RE.fullmatch(version):
+        raise PublishError(f"{context} manifest version is invalid")
+    if manifest.get("policySha256") != policy_sha256:
+        raise PublishError(f"{context} manifest policy checksum mismatch")
+    source = manifest.get("source")
+    expected_source_keys = {
+        "type",
+        "provider",
+        "collector",
+        "sourceVersion",
+        "manifestSha256",
+    }
+    if not isinstance(source, dict) or set(source) != expected_source_keys:
+        raise PublishError(f"{context} source provenance is invalid")
+    for key in ("type", "provider", "collector", "sourceVersion"):
+        if not isinstance(source[key], str) or not source[key].strip():
+            raise PublishError(f"{context} source provenance is invalid")
+    source_manifest_sha256 = source["manifestSha256"]
+    if not isinstance(source_manifest_sha256, str) or not VERSION_RE.fullmatch(
+        source_manifest_sha256
+    ):
+        raise PublishError(f"{context} source provenance is invalid")
+    return source_manifest_sha256
+
+
+def load_published_active_candidate(
+    store_root: Path, *, policy: CompilePolicy
+) -> PublishedActiveCandidate:
+    root = _validate_existing_store_root(store_root)
+    _reject_unstable_state(root)
+    active_pointer_raw = _read_existing_pointer_raw(root, "active")
+    lkg_pointer_raw = _read_existing_pointer_raw(root, "last-known-good")
+    active_pointer, active_dir, active_manifest, active_raw = _load_published_pointer(
+        root, "active", policy=policy
+    )
+    lkg_pointer, _, lkg_manifest, _ = _load_published_pointer(
+        root, "last-known-good", policy=policy
+    )
+    policy_sha256 = sha256_bytes(policy.canonical_bytes)
+    source_manifest_sha256 = _verify_manifest_provenance(
+        active_manifest, policy_sha256=policy_sha256, context="active"
+    )
+    _verify_manifest_provenance(
+        lkg_manifest, policy_sha256=policy_sha256, context="last-known-good"
+    )
+    if active_manifest.get("safety") != {"status": "accepted", "reasons": []}:
+        raise PublishError(
+            "published active candidate must be accepted with no safety reasons"
+        )
+    if (
+        active_pointer != lkg_pointer
+        and active_manifest.get("previousManifestSha256") != lkg_pointer.manifest_sha256
+    ):
+        raise PublishError("active previous manifest is not last-known-good")
+    _reject_unstable_state(root)
+    if (
+        _read_existing_pointer_raw(root, "active") != active_pointer_raw
+        or _read_existing_pointer_raw(root, "last-known-good") != lkg_pointer_raw
+    ):
+        raise PublishError("published pointers changed during load")
+    return PublishedActiveCandidate(
+        active_pointer=active_pointer,
+        lkg_pointer=lkg_pointer,
+        version_dir=active_dir,
+        manifest=_freeze_json(active_manifest),
+        manifest_raw=active_raw,
+        policy_sha256=policy_sha256,
+        source_manifest_sha256=source_manifest_sha256,
+    )
 
 
 def approve_candidate(

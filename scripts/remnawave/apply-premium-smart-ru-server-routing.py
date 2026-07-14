@@ -18,8 +18,10 @@ import asyncio
 import base64
 import copy
 import hashlib
+import ipaddress
 import json
 import os
+import re
 import stat
 import sys
 import tempfile
@@ -30,19 +32,44 @@ from urllib.parse import urlsplit
 
 import httpx
 
+if __name__ == "__main__" and not __package__:
+    from node_plugin_preflight import (
+        load_expected_node_plugin,
+        validate_torrent_blocker_preflight,
+    )
+else:
+    from scripts.remnawave.node_plugin_preflight import (
+        load_expected_node_plugin,
+        validate_torrent_blocker_preflight,
+    )
+
 BASE_PROFILE_NAME = "S1 DE VLESS XHTTP"
 DE_PROFILE_NAME = "S1 DE Smart RU Server"
 TASK2_DE_SUPERSET_PROFILE_NAME = "S1 DE SPB Bridge"
 MOSCOW_PROFILE_NAME = "S1 Moscow Smart Global Server"
 DE_NODE_ADDRESS = "138.124.115.206"
+DE_NODE_NAME = "🇩🇪 DE Frankfurt 01 25G"
+NL_NODE_ADDRESS = "138.16.140.44"
+NL_NODE_NAME = "🇳🇱 NL Amsterdam 01 10G"
 DE_PUBLIC_HOST = "de-relay.cyber-vpn.org"
 MOSCOW_PUBLIC_HOST = "msk-relay.cyber-vpn.org"
-MOSCOW_NODE_ADDRESS = "178.159.94.225"
+# Remnawave identifies Moscow by its control-plane address; clients use the host above.
+MOSCOW_NODE_ADDRESS = "172.30.3.1"
 MOSCOW_NODE_NAME = "🇷🇺 RU Moscow 01 25G"
+SPB_NODE_ADDRESS = "193.233.91.99"
+SPB_NODE_NAME = "🇷🇺 RU SPB 01 25G"
 MOSCOW_UPSTREAM_ADDRESS = "2a12:5940:e38b::2"
 FRANKFURT_UPSTREAM_ADDRESS = "2a0b:4140:ba84::2"
 SMART_SQUAD_NAME = "CYBERVPN_PREMIUM_SMART_RU_NODES"
 EXTERNAL_SQUAD_NAME = "CYBERVPN_PREMIUM_SMART_RU"
+EXPECTED_TASK1_NODE_PLUGIN_NAME = "CYBERVPN_PREMIUM_SMART_RU_ABUSE_PROTECTION"
+EXPECTED_TASK1_TORRENT_BLOCKER_DURATION = 86400
+TASK1_PLUGIN_GUARDED_NODE_ADDRESSES = {
+    DE_NODE_ADDRESS,
+    NL_NODE_ADDRESS,
+    MOSCOW_NODE_ADDRESS,
+    SPB_NODE_ADDRESS,
+}
 BRIDGE_SQUAD_NAME = "CYBERVPN_SMART_RU_BRIDGE"
 BRIDGE_USERNAME = "cybervpn_de_ru_bridge"
 BRIDGE_INBOUND_TAG = "MSK_SMART_RU_BRIDGE_9443"
@@ -51,10 +78,32 @@ GLOBAL_BRIDGE_USERNAME = "cybervpn_ru_de_bridge"
 GLOBAL_BRIDGE_INBOUND_TAG = "DE_SMART_GLOBAL_BRIDGE_9443"
 GLOBAL_BRIDGE_OUTBOUND_TAG = "DE_GLOBAL_BRIDGE"
 BRIDGE_PORT = 9443
+INTERNAL_HTTP_REMNAWAVE_HOSTS = {"remnawave", "localhost", "127.0.0.1", "::1"}
 POLICY_ARTIFACT_DIR = Path(__file__).resolve().parent / "generated" / "premium_smart_ru"
 POLICY_PATH = Path(__file__).resolve().parent / "policies" / "premium_smart_ru.yaml"
 XRAY_SERVER_ARTIFACT = "xray-server.json"
 LEGACY_HEADER_ARTIFACT = "legacy-routing-header.json"
+TORRENT_CATALOG_DOMAINS = {
+    "1337x.to",
+    "eztv.re",
+    "kinozal.tv",
+    "limetorrents.lol",
+    "nnmclub.to",
+    "rutracker.org",
+    "rutor.info",
+    "thepiratebay.org",
+    "torrentdownload.info",
+    "torrentgalaxy.to",
+    "yts.mx",
+}
+LEGACY_STATIC_TORRENT_RULE_TAGS = {
+    "block_bittorrent_protocol",
+    "block_torrent_processes",
+    "block_torrent_sources",
+    "task2-bittorrent-protocol-block",
+    "task2-torrent-domain-block",
+}
+TORRENT_BLOCK_OUTBOUND_TAGS = {"block", "rw_tb_outbound_block"}
 DE_INCY_AUXILIARY_TAGS = frozenset(
     {
         "PREMIUM_SMART_RU_INCY_DE_RAW",
@@ -68,6 +117,32 @@ MOSCOW_INCY_AUXILIARY_TAGS = frozenset(
         "PREMIUM_SMART_RU_INCY_MSK_XHTTP",
     }
 )
+
+
+def _normalized_xray_domain(value: Any) -> str:
+    return str(value).strip().casefold().removeprefix("domain:").removeprefix("full:")
+
+
+def _xray_matcher_blocks_catalog(value: Any) -> bool:
+    normalized = str(value).strip().casefold()
+    if normalized.startswith("keyword:"):
+        keyword = normalized.removeprefix("keyword:").strip()
+        return not keyword or any(
+            keyword in domain for domain in TORRENT_CATALOG_DOMAINS
+        )
+    if normalized.startswith("regexp:"):
+        pattern = normalized.removeprefix("regexp:").strip()
+        if not pattern or len(pattern) > 512:
+            return True
+        try:
+            return any(
+                re.search(pattern, candidate, flags=re.IGNORECASE) is not None
+                for domain in TORRENT_CATALOG_DOMAINS
+                for candidate in (domain, f"www.{domain}")
+            )
+        except re.error:
+            return True
+    return _normalized_xray_domain(normalized) in TORRENT_CATALOG_DOMAINS
 
 
 def _find_repo_root() -> Path | None:
@@ -174,6 +249,42 @@ def _load_policy_artifacts(
     legacy = _load_policy_artifact(artifact_dir, LEGACY_HEADER_ARTIFACT)
     if server.get("consumer") != "remnawave-xray-server":
         raise RuntimeError("Compiled server routing artifact has an invalid consumer")
+    torrent_policy = server.get("nodePluginPolicy", {}).get("torrentBlocker", {})
+    if torrent_policy != {
+        "required": True,
+        "protocol": "bittorrent",
+        "injectedRulePosition": "first",
+    }:
+        raise RuntimeError(
+            "Compiled server routing artifact must delegate BitTorrent enforcement "
+            "to the Remnawave Node Plugin"
+        )
+    for rule in server.get("rules") or []:
+        if (
+            not isinstance(rule, dict)
+            or str(rule.get("action") or "").casefold() != "block"
+        ):
+            continue
+        for match in rule.get("matches") or []:
+            if not isinstance(match, dict):
+                continue
+            protocols = match.get("protocol")
+            protocols = protocols if isinstance(protocols, list) else [protocols]
+            processes = match.get("process")
+            processes = processes if isinstance(processes, list) else [processes]
+            domains = match.get("domain")
+            domains = domains if isinstance(domains, list) else [domains]
+            blocked_catalogs = any(
+                _xray_matcher_blocks_catalog(domain) for domain in domains
+            )
+            if (
+                any(str(protocol).casefold() == "bittorrent" for protocol in protocols)
+                or any("torrent" in str(process).casefold() for process in processes)
+                or blocked_catalogs
+            ):
+                raise RuntimeError(
+                    "Compiled server routing artifact contains manual torrent enforcement"
+                )
     if legacy.get("consumer") != "remnawave-legacy-routing-header":
         raise RuntimeError("Compiled legacy routing artifact has an invalid consumer")
     value = legacy.get("value")
@@ -312,11 +423,17 @@ def _node_inbound_uuids(node: dict[str, Any]) -> list[str]:
     ]
 
 
-def _bridge_inbound(tag: str) -> dict[str, Any]:
+def _bridge_inbound(tag: str, listen_address: str) -> dict[str, Any]:
+    try:
+        normalized_listen = str(ipaddress.ip_address(listen_address))
+    except ValueError as exc:
+        raise RuntimeError("Bridge listen address must be an IP literal") from exc
+    if ipaddress.ip_address(normalized_listen).is_unspecified:
+        raise RuntimeError("Bridge listen address must not be a wildcard")
     return {
         "tag": tag,
         "port": BRIDGE_PORT,
-        "listen": "0.0.0.0",  # noqa: S104 - bridge access is service-user/squad scoped.
+        "listen": normalized_listen,
         "protocol": "shadowsocks",
         "settings": {"clients": [], "network": "tcp,udp"},
         "sniffing": {
@@ -325,6 +442,115 @@ def _bridge_inbound(tag: str) -> dict[str, Any]:
             "routeOnly": True,
         },
     }
+
+
+def _ensure_node_plugin_sniffing(inbound: dict[str, Any]) -> None:
+    sniffing = inbound.get("sniffing")
+    if not isinstance(sniffing, dict):
+        sniffing = {}
+        inbound["sniffing"] = sniffing
+    overrides = sniffing.get("destOverride")
+    normalized = (
+        [str(item) for item in overrides if isinstance(item, str)]
+        if isinstance(overrides, list)
+        else []
+    )
+    for required in ("http", "tls", "quic"):
+        if required not in normalized:
+            normalized.append(required)
+    sniffing.update(
+        {
+            "enabled": True,
+            "destOverride": normalized,
+            "routeOnly": True,
+        }
+    )
+
+
+def _torrent_block_outbound_tags(config: dict[str, Any]) -> set[str]:
+    tags = set(TORRENT_BLOCK_OUTBOUND_TAGS)
+    for outbound in config.get("outbounds", []):
+        if not isinstance(outbound, dict):
+            continue
+        if str(outbound.get("protocol") or "").casefold() != "blackhole":
+            continue
+        tag = str(outbound.get("tag") or "").strip().casefold()
+        if tag:
+            tags.add(tag)
+    return tags
+
+
+def _without_legacy_static_torrent_block(
+    rule: dict[str, Any],
+    *,
+    block_outbound_tags: set[str] | None = None,
+) -> dict[str, Any] | None:
+    if str(rule.get("ruleTag") or "").casefold() in LEGACY_STATIC_TORRENT_RULE_TAGS:
+        return None
+
+    protocols = rule.get("protocol")
+    protocols = protocols if isinstance(protocols, list) else [protocols]
+    if any(str(protocol).casefold() == "bittorrent" for protocol in protocols):
+        return None
+
+    processes = rule.get("process")
+    processes = processes if isinstance(processes, list) else [processes]
+    if any("torrent" in str(process).casefold() for process in processes):
+        return None
+
+    if str(rule.get("outboundTag") or "").casefold() not in (
+        block_outbound_tags
+        if block_outbound_tags is not None
+        else TORRENT_BLOCK_OUTBOUND_TAGS
+    ):
+        return rule
+
+    domains_value = rule.get("domain")
+    domains = (
+        domains_value
+        if isinstance(domains_value, list)
+        else [domains_value]
+        if isinstance(domains_value, str)
+        else []
+    )
+    if not domains:
+        return rule
+    filtered_domains = [
+        domain for domain in domains if not _xray_matcher_blocks_catalog(domain)
+    ]
+    if len(filtered_domains) == len(domains):
+        return rule
+    if not filtered_domains:
+        return None
+    sanitized = copy.deepcopy(rule)
+    sanitized["domain"] = (
+        filtered_domains if isinstance(domains_value, list) else filtered_domains[0]
+    )
+    return sanitized
+
+
+def _sanitize_protocol_only_torrent_policy(config: dict[str, Any]) -> dict[str, Any]:
+    sanitized = copy.deepcopy(config)
+    block_outbound_tags = _torrent_block_outbound_tags(sanitized)
+    for inbound in sanitized.get("inbounds", []):
+        if isinstance(inbound, dict):
+            _ensure_node_plugin_sniffing(inbound)
+    routing = sanitized.get("routing")
+    routing = copy.deepcopy(routing) if isinstance(routing, dict) else {}
+    routing["rules"] = [
+        cleaned
+        for rule in routing.get("rules", [])
+        if isinstance(rule, dict)
+        and (
+            cleaned := _without_legacy_static_torrent_block(
+                rule,
+                block_outbound_tags=block_outbound_tags,
+            )
+        )
+        is not None
+    ]
+    sanitized["routing"] = routing
+    return sanitized
 
 
 def _isolated_squad_inbounds(inbound_uuid: str) -> list[str]:
@@ -439,8 +665,45 @@ def _validate_remnawave_url(base_url: str, allowed_hosts: list[str]) -> None:
     if parsed.path.rstrip("/") not in {"", "/api"}:
         raise RuntimeError("Remnawave URL path must be empty or /api")
     normalized_allowed = {host.casefold() for host in allowed_hosts}
-    if parsed.hostname.casefold() not in normalized_allowed:
+    hostname = parsed.hostname.casefold()
+    if hostname not in normalized_allowed:
         raise RuntimeError("Remnawave URL hostname is not in the operator allowlist")
+    if parsed.scheme == "http" and hostname not in INTERNAL_HTTP_REMNAWAVE_HOSTS:
+        raise RuntimeError("Remnawave URL must use https outside local/internal hosts")
+
+
+def _validate_trusted_proxy_headers(base_url: str, enabled: bool) -> None:
+    if not enabled:
+        return
+    hostname = (urlsplit(base_url).hostname or "").casefold()
+    if hostname not in INTERNAL_HTTP_REMNAWAVE_HOSTS:
+        raise RuntimeError(
+            "Trusted proxy headers are allowed only for local/internal Remnawave API hosts"
+        )
+
+
+async def _task1_torrent_blocker_preflight(
+    api: RemnawaveApi,
+    *,
+    nodes: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if nodes is None:
+        nodes = _collection(await api.request("GET", "/nodes"), "nodes")
+    node_plugin_summaries = _collection(
+        await api.request("GET", "/node-plugins"), "nodePlugins"
+    )
+    node_plugin = await load_expected_node_plugin(
+        api.request,
+        node_plugin_summaries,
+        expected_plugin_name=EXPECTED_TASK1_NODE_PLUGIN_NAME,
+    )
+    return validate_torrent_blocker_preflight(
+        nodes,
+        [node_plugin],
+        expected_node_addresses=TASK1_PLUGIN_GUARDED_NODE_ADDRESSES,
+        expected_plugin_name=EXPECTED_TASK1_NODE_PLUGIN_NAME,
+        block_duration=EXPECTED_TASK1_TORRENT_BLOCKER_DURATION,
+    )
 
 
 async def _get_user(api: RemnawaveApi, username: str) -> dict[str, Any] | None:
@@ -455,8 +718,11 @@ async def _get_user(api: RemnawaveApi, username: str) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
-def _build_base_config(base_config: dict[str, Any]) -> dict[str, Any]:
-    config = copy.deepcopy(base_config)
+def _build_base_config(
+    base_config: dict[str, Any],
+    moscow_listen: str = MOSCOW_UPSTREAM_ADDRESS,
+) -> dict[str, Any]:
+    config = _sanitize_protocol_only_torrent_policy(base_config)
     direct_outbound = next(
         (
             outbound
@@ -478,7 +744,7 @@ def _build_base_config(base_config: dict[str, Any]) -> dict[str, Any]:
         for inbound in config.get("inbounds", [])
         if inbound.get("tag") != BRIDGE_INBOUND_TAG
     ]
-    config["inbounds"].append(_bridge_inbound(BRIDGE_INBOUND_TAG))
+    config["inbounds"].append(_bridge_inbound(BRIDGE_INBOUND_TAG, moscow_listen))
     return config
 
 
@@ -579,6 +845,8 @@ def _build_config(
     bridge_ss_password: str,
     moscow_upstream: str,
     policy_artifact: dict[str, Any],
+    *,
+    frankfurt_listen: str = FRANKFURT_UPSTREAM_ADDRESS,
 ) -> dict[str, Any]:
     config = copy.deepcopy(base_config)
     config["inbounds"] = [
@@ -588,7 +856,11 @@ def _build_config(
     ]
     for inbound in config["inbounds"]:
         inbound["tag"] = OLD_TO_NEW_TAG[inbound["tag"]]
-    config["inbounds"].append(_bridge_inbound(GLOBAL_BRIDGE_INBOUND_TAG))
+    config["inbounds"].append(
+        _bridge_inbound(GLOBAL_BRIDGE_INBOUND_TAG, frankfurt_listen)
+    )
+    for inbound in config["inbounds"]:
+        _ensure_node_plugin_sniffing(inbound)
 
     config["outbounds"] = [
         outbound
@@ -635,6 +907,8 @@ def _build_moscow_global_config(
     bridge_ss_password: str,
     frankfurt_upstream: str,
     policy_artifact: dict[str, Any],
+    *,
+    moscow_listen: str = MOSCOW_UPSTREAM_ADDRESS,
 ) -> dict[str, Any]:
     config = copy.deepcopy(base_config)
     inbound_by_tag = {
@@ -653,6 +927,12 @@ def _build_moscow_global_config(
     ]
     for inbound in config["inbounds"]:
         inbound["tag"] = MOSCOW_OLD_TO_NEW_TAG[inbound["tag"]]
+        if inbound["tag"] == MOSCOW_BRIDGE_INBOUND_TAG:
+            inbound["listen"] = _bridge_inbound(
+                MOSCOW_BRIDGE_INBOUND_TAG,
+                moscow_listen,
+            )["listen"]
+        _ensure_node_plugin_sniffing(inbound)
 
     outbounds = [
         outbound
@@ -733,9 +1013,9 @@ def _validate_manifest_parent(path: Path) -> None:
     if os.name != "nt":
         if parent_stat.st_uid != os.geteuid():
             raise RuntimeError("Rollback manifest parent must be owned by the operator")
-        if parent_stat.st_mode & 0o002:
+        if parent_stat.st_mode & 0o022:
             raise RuntimeError(
-                "Rollback manifest parent directory must not be world-writable"
+                "Rollback manifest parent directory must not be group- or world-writable"
             )
 
 
@@ -821,6 +1101,10 @@ def _read_manifest(path: Path) -> dict[str, Any]:
 def _checkpoint(path: Path, manifest: dict[str, Any], phase: str) -> None:
     manifest["phase"] = phase
     _write_manifest(path, manifest)
+
+
+def _safe_failure_reason(error: BaseException) -> str | None:
+    return "runtime_validation_failed" if isinstance(error, RuntimeError) else None
 
 
 async def _delete_if_present(api: RemnawaveApi, path: str) -> None:
@@ -963,7 +1247,7 @@ async def _rollback(
         json={
             "uuid": base_profile["uuid"],
             "name": base_profile["name"],
-            "config": base_profile["config"],
+            "config": _sanitize_protocol_only_torrent_policy(base_profile["config"]),
         },
     )
     de_profile = manifest.get("deProfile")
@@ -974,7 +1258,7 @@ async def _rollback(
             json={
                 "uuid": de_profile["uuid"],
                 "name": de_profile["name"],
-                "config": de_profile["config"],
+                "config": _sanitize_protocol_only_torrent_policy(de_profile["config"]),
             },
         )
     moscow_profile = manifest.get("moscowProfile")
@@ -985,7 +1269,9 @@ async def _rollback(
             json={
                 "uuid": moscow_profile["uuid"],
                 "name": moscow_profile["name"],
-                "config": moscow_profile["config"],
+                "config": _sanitize_protocol_only_torrent_policy(
+                    moscow_profile["config"]
+                ),
             },
         )
 
@@ -1039,6 +1325,10 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("REMNAWAVE_TOKEN or REMNAWAVE_API_TOKEN is required")
 
     _validate_remnawave_url(args.remnawave_url, args.allow_remnawave_host)
+    _validate_trusted_proxy_headers(
+        args.remnawave_url,
+        args.trusted_proxy_headers,
+    )
     manifest_path = _validate_manifest_path(args.rollback_manifest)
 
     api = RemnawaveApi(
@@ -1051,6 +1341,12 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             return await _rollback(api, _read_manifest(manifest_path), manifest_path)
 
         policy_artifact, legacy_routing_header = _load_policy_artifacts()
+
+        nodes = _collection(await api.request("GET", "/nodes"), "nodes")
+        node_plugin_preflight = await _task1_torrent_blocker_preflight(
+            api,
+            nodes=nodes,
+        )
 
         profiles = _collection(
             await api.request("GET", "/config-profiles"), "configProfiles"
@@ -1080,7 +1376,6 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             else None
         )
 
-        nodes = _collection(await api.request("GET", "/nodes"), "nodes")
         de_node = next(
             item for item in nodes if item.get("address") == args.de_node_address
         )
@@ -1184,7 +1479,10 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             global_bridge_squad,
             label="Moscow-to-Frankfurt bridge",
         )
-        planned_base_config = _build_base_config(base_profile["config"])
+        planned_base_config = _build_base_config(
+            base_profile["config"],
+            args.moscow_upstream_address,
+        )
         planned_config = _build_config(
             planned_base_config,
             bridge_user.get("ssPassword", "dry-run-placeholder")
@@ -1192,6 +1490,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             else "dry-run-placeholder",
             args.moscow_upstream_address,
             policy_artifact,
+            frankfurt_listen=args.frankfurt_upstream_address,
         )
         planned_moscow_config = _build_moscow_global_config(
             planned_base_config,
@@ -1200,6 +1499,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             else "dry-run-placeholder",
             args.frankfurt_upstream_address,
             policy_artifact,
+            moscow_listen=args.moscow_upstream_address,
         )
 
         plan = {
@@ -1226,6 +1526,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             else "update",
             "frankfurtHostCount": len(de_hosts),
             "moscowHostCount": len(moscow_hosts),
+            "nodePluginPreflight": node_plugin_preflight,
             "deProfileInboundCount": len(planned_config["inbounds"]),
             "moscowProfileInboundCount": len(planned_moscow_config["inbounds"]),
             "directDomainCount": _policy_domain_count(policy_artifact, "eu"),
@@ -1235,10 +1536,12 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         }
         if not args.apply:
             return plan
+        plan["nodePluginPreflight"] = await _task1_torrent_blocker_preflight(api)
 
         manifest = {
             "version": 3,
             "phase": "planned",
+            "nodePluginPreflight": plan["nodePluginPreflight"],
             "baseProfile": base_profile,
             "deProfile": existing_profile,
             "deProfileName": args.de_profile,
@@ -1408,6 +1711,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 bridge_user["ssPassword"],
                 args.moscow_upstream_address,
                 policy_artifact,
+                frankfurt_listen=args.frankfurt_upstream_address,
             )
             if existing_profile is None:
                 de_profile = await api.request(
@@ -1512,6 +1816,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 global_bridge_user["ssPassword"],
                 args.frankfurt_upstream_address,
                 policy_artifact,
+                moscow_listen=args.moscow_upstream_address,
             )
             if existing_moscow_profile is None:
                 moscow_profile = await api.request(
@@ -1749,8 +2054,8 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         except Exception as apply_error:
             manifest["failurePhase"] = manifest.get("phase")
             manifest["failureClass"] = type(apply_error).__name__
-            if isinstance(apply_error, RuntimeError):
-                manifest["failureReason"] = str(apply_error)
+            if safe_reason := _safe_failure_reason(apply_error):
+                manifest["failureReason"] = safe_reason
             _checkpoint(manifest_path, manifest, "rollback_started")
             try:
                 await _rollback(api, manifest, manifest_path)

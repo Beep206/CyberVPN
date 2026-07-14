@@ -76,7 +76,7 @@ external_squad_upsert as (
           "supportLink": "https://cyber-vpn.org/support",
           "profileUpdateInterval": 24,
           "isProfileWebpageUrlEnabled": true,
-          "happAnnounce": "CyberVPN Premium SPB + DE Exceptions: SPB default, Antifilter exceptions through DE. Torrent prohibited."
+          "happAnnounce": "CyberVPN Premium SPB + DE Exceptions: SPB default, Antifilter exceptions through DE. BitTorrent protocol prohibited; catalog websites remain available."
         }'::jsonb,
         '{}'::jsonb,
         '{

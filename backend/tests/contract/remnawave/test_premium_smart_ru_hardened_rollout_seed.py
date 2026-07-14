@@ -12,20 +12,48 @@ PLAN_TEMPLATE = REPO_ROOT / "docs/plans/cybervpn-premium-smart-ru-de-primary-har
 CANONICAL_TEMPLATE = REPO_ROOT / "scripts/remnawave/templates/cybervpn-premium-smart-ru.yaml"
 HARDENED_TEMPLATE = REPO_ROOT / "scripts/remnawave/templates/cybervpn-premium-smart-ru-de-primary-hardened.yaml"
 SEED_SQL = REPO_ROOT / "scripts/remnawave/seed-cybervpn-premium-smart-ru.sql"
+INCY_SEED_SQL = REPO_ROOT / "scripts/remnawave/seed-cybervpn-premium-smart-ru-incy-xray.sql"
 DIAGNOSTIC_SQL = REPO_ROOT / "scripts/remnawave/diagnose-premium-smart-ru-inbounds.sql"
 SERVER_ROUTING_SCRIPT = REPO_ROOT / "scripts/remnawave/apply-premium-smart-ru-server-routing.py"
 GENERATED_DIR = REPO_ROOT / "scripts/remnawave/generated/premium_smart_ru"
 GENERATED_MIHOMO = GENERATED_DIR / "mihomo.yaml"
 GENERATED_MANIFEST = GENERATED_DIR / "manifest.json"
 GENERATED_LEGACY_HEADER = GENERATED_DIR / "legacy-routing-header.json"
+GENERATED_XRAY_CLIENT = GENERATED_DIR / "xray-client.json"
+GENERATED_XRAY_SERVER = GENERATED_DIR / "xray-server.json"
 MOSCOW_RELAY_SOCKETS = (
     REPO_ROOT / "infra/systemd/cybervpn-msk-relay-reality.socket",
     REPO_ROOT / "infra/systemd/cybervpn-msk-relay-xhttp.socket",
 )
+MOSCOW_RELAY_SERVICES = {
+    REPO_ROOT / "infra/systemd/cybervpn-msk-relay-reality.service": 443,
+    REPO_ROOT / "infra/systemd/cybervpn-msk-relay-xhttp.service": 8443,
+}
 
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def test_incy_seed_normalizes_scalar_domain_full_and_case_for_both_templates() -> None:
+    seed_sql = _read(INCY_SEED_SQL)
+
+    assert seed_sql.count("when 'string' then jsonb_build_array(rule->'domain')") == 4
+    assert seed_sql.count("when 'string' then jsonb_build_array(rule->'protocol')") == 2
+    assert seed_sql.count("when 'string' then jsonb_build_array(rule->'process')") == 2
+    assert seed_sql.count("'^(domain|full):'") == 8
+    assert "lower(btrim(domain_value.value))" in seed_sql
+    assert "lower(btrim(protocol_value.value)) = 'bittorrent'" in seed_sql
+    assert seed_sql.count("like 'keyword:%'") == 2
+    assert seed_sql.count("like 'regexp:%'") == 2
+    assert seed_sql.count("substring(lower(btrim(domain_value.value)) from 9)") == 2
+    assert seed_sql.count("substring(domain_value.value from 8)") == 4
+    assert seed_sql.count("jsonb_array_elements(v_incy->'outbounds')") == 1
+    assert seed_sql.count("jsonb_array_elements(v_incy_canary->'outbounds')") == 1
+    assert seed_sql.count("lower(coalesce(outbound->>'protocol', '')) = 'blackhole'") == 2
+    assert seed_sql.count("route_catalog_exceptions") == 2
+    assert seed_sql.count("with ordinality as catalog_rule(rule, position)") == 2
+    assert seed_sql.count("block_rule.position < catalog_rule.position") == 2
 
 
 def test_public_moscow_relay_sockets_bound_global_and_per_source_connections() -> None:
@@ -33,6 +61,13 @@ def test_public_moscow_relay_sockets_bound_global_and_per_source_connections() -
         unit = _read(socket_path)
         assert "MaxConnections=4096" in unit
         assert "MaxConnectionsPerSource=256" in unit
+
+
+def test_public_moscow_relays_use_inventory_managed_ipv6_origin() -> None:
+    for service_path, port in MOSCOW_RELAY_SERVICES.items():
+        unit = _read(service_path)
+        assert f"msk-origin-v6.cybervpn.internal:{port}" in unit
+        assert "178.159.94.225" not in unit
 
 
 def _jsonb_literal(sql: str, marker: str) -> dict[str, object]:
@@ -68,31 +103,44 @@ def test_premium_smart_ru_hardened_templates_are_canonical_and_parseable() -> No
 
     data = yaml.safe_load(canonical_text)
     assert data["bind-address"] == "127.0.0.1"
-    assert len(data["proxy-groups"]) == 20
-    assert len(data["rule-providers"]) == 39
-    assert len(data["rules"]) == 59
+    assert len(data["proxy-groups"]) == 19
+    assert len(data["rule-providers"]) == 35
+    assert len(data["rules"]) == 44
     assert data["rules"][-1] == "MATCH,🌍 World / EU"
 
-    torrent_group = next(group for group in data["proxy-groups"] if group["name"] == "🧲 Torrents")
-    assert torrent_group["proxies"] == ["REJECT"]
+    assert "🧲 Torrents" not in {group["name"] for group in data["proxy-groups"]}
+    assert not any("torrent" in provider_id for provider_id in data["rule-providers"])
+    assert not any("torrent" in rule.lower() for rule in data["rules"])
 
     dns_policy = data["dns"]["nameserver-policy"]
-    assert dns_policy["rule-set:oisd_big,ads-all,win-spy,tor-inline"] == ["rcode://name_error"]
+    dns_keys = list(dns_policy)
+    assert dns_keys.index("rule-set:catalog-access-inline") < dns_keys.index("rule-set:oisd-big")
+    assert dns_policy["rule-set:catalog-access-inline"] == data["dns"]["nameserver"]
+    for provider_id in ("oisd-big", "ads-all", "win-spy", "tor-inline"):
+        assert dns_policy[f"rule-set:{provider_id}"] == ["rcode://name_error"]
     bootstrap_nameservers = data["dns"]["proxy-server-nameserver"]
     assert "system" in bootstrap_nameservers
     assert all("#" not in nameserver for nameserver in bootstrap_nameservers)
 
-    for group_name in ("🇩🇪 DE Auto", "🇳🇱 NL Auto", "⚡ RU Auto", "🇷🇺 Moscow Auto", "🇷🇺 SPB Auto"):
+    for group_name in (
+        "🇩🇪 DE Auto",
+        "🇳🇱 NL Auto",
+        "🇷🇺 Moscow Auto",
+        "🇷🇺 SPB Auto",
+    ):
         group = next(item for item in data["proxy-groups"] if item["name"] == group_name)
         assert group["include-all"] is True
         assert group["remnawave"]["include-proxies"] is False
         assert "filter" in group
         assert "exclude-filter" in group
 
+    ru_auto = next(item for item in data["proxy-groups"] if item["name"] == "⚡ RU Auto")
+    assert ru_auto["type"] == "fallback"
+    assert ru_auto["proxies"] == ["🇷🇺 Moscow Auto", "🇷🇺 SPB Auto"]
     for group_name in ("⚡ RU Auto", "🇷🇺 Moscow Auto", "🇷🇺 SPB Auto"):
         group = next(item for item in data["proxy-groups"] if item["name"] == group_name)
-        assert group["url"] == "https://www.google.com/generate_204"
-        assert group["expected-status"] == 204
+        assert group["url"] == "https://www.ozon.ru/"
+        assert group["expected-status"] == 307
 
 
 def test_premium_smart_ru_seed_loads_generated_template_and_rollout_settings() -> None:
@@ -100,6 +148,8 @@ def test_premium_smart_ru_seed_loads_generated_template_and_rollout_settings() -
     generated_mihomo = GENERATED_MIHOMO.read_bytes()
     manifest = json.loads(_read(GENERATED_MANIFEST))
     legacy_header = json.loads(_read(GENERATED_LEGACY_HEADER))
+    xray_client = json.loads(_read(GENERATED_XRAY_CLIENT))
+    xray_server = json.loads(_read(GENERATED_XRAY_SERVER))
 
     assert "$cybervpn_premium_smart_ru_yaml$" not in seed_sql
     assert "/tmp/cybervpn-premium-smart-ru" not in seed_sql  # noqa: S108
@@ -115,6 +165,8 @@ def test_premium_smart_ru_seed_loads_generated_template_and_rollout_settings() -
     assert "encode(sha256(v_legacy_header_bytes), 'hex') <> v_contract.legacy_header_sha256" in seed_sql
     assert "v_manifest#>>'{artifacts,mihomo.yaml,sha256}' is distinct from v_contract.mihomo_sha256" in seed_sql
     assert "v_manifest#>>'{artifacts,incy-xray.json,sha256}' is distinct from v_contract.incy_sha256" in seed_sql
+    assert "v_manifest#>>'{validation,mihomoProtocolOnlyTorrentPolicy}' is distinct from 'true'" in seed_sql
+    assert "v_manifest#>>'{validation,mihomoProtocolOnlyTorrentPolicy}' is distinct from 'true'" in _read(INCY_SEED_SQL)
     assert "select mihomo_template from cybervpn_premium_smart_ru_artifact_contract" in seed_sql
     assert "select legacy_header->>'value'" in seed_sql
     assert "convert_from(decode(v_legacy_value, 'base64'), 'UTF8')::jsonb" in seed_sql
@@ -197,7 +249,25 @@ def test_premium_smart_ru_seed_loads_generated_template_and_rollout_settings() -
     assert subscription_settings["supportLink"] == "https://cyber-vpn.org/support"
     assert subscription_settings["profileUpdateInterval"] == 24
     assert subscription_settings["isProfileWebpageUrlEnabled"] is True
-    assert "Torrent запрещён" in str(subscription_settings["happAnnounce"])
+    assert "BitTorrent-протокол запрещён" in str(subscription_settings["happAnnounce"])
+    assert "сайты-каталоги не блокируются" in str(subscription_settings["happAnnounce"])
+
+    assert "nodePluginPolicy" not in xray_client
+    assert xray_server["nodePluginPolicy"]["torrentBlocker"] == {
+        "required": True,
+        "protocol": "bittorrent",
+        "injectedRulePosition": "first",
+    }
+    assert "bittorrent_protocol" not in xray_client["ruleOrder"]
+    assert "bittorrent_protocol" not in xray_server["ruleOrder"]
+    for artifact in (xray_client, xray_server):
+        assert not any("bittorrent" in json.dumps(rule, sort_keys=True).casefold() for rule in artifact["rules"])
+        catalog_rule = next(rule for rule in artifact["rules"] if rule["id"] == "route_catalog_exceptions")
+        catalog_domains = catalog_rule["matches"][0]["domain"]
+        block_rules = [rule for rule in artifact["rules"] if rule["action"] == "block"]
+        assert not any(
+            domain in json.dumps(rule, sort_keys=True).casefold() for rule in block_rules for domain in catalog_domains
+        )
 
     assert "'x-cybervpn-plan', 'premium_smart_ru'" in seed_sql
     assert "'x-cybervpn-routing', 'de-primary-ru-smart'" in seed_sql
@@ -208,9 +278,10 @@ def test_premium_smart_ru_seed_loads_generated_template_and_rollout_settings() -
     assert incy_routing["Name"] == "CyberVPN Premium Smart RU"
     assert incy_routing["GlobalProxy"] == "true"
     assert incy_routing["DomainStrategy"] == "AsIs"
-    assert incy_routing["BlockSites"][0] == "domain:1337x.to"
-    assert "domain:rutracker.org" in incy_routing["BlockSites"]
-    assert "domain:yts.mx" in incy_routing["BlockSites"]
+    assert incy_routing["BlockSites"][0] == "geosite:category-ads-all"
+    assert "domain:rutracker.org" not in incy_routing["BlockSites"]
+    assert "domain:rutor.info" not in incy_routing["BlockSites"]
+    assert "domain:yts.mx" not in incy_routing["BlockSites"]
     assert "geosite:category-ads-all" in incy_routing["BlockSites"]
 
     plugin_config = _jsonb_literal(seed_sql, '"ingressFilter": {"enabled": false')

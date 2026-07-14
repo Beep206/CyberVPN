@@ -4,9 +4,7 @@
   "ruleOrder": [
     "private_networks",
     "direct_processes",
-    "bittorrent_protocol",
-    "torrent_processes",
-    "torrent_sources",
+    "catalog_exceptions",
     "ads_trackers",
     "tor",
     "quic_doq",
@@ -112,105 +110,32 @@
       "stage": "direct_processes"
     },
     {
-      "action": "block",
+      "action": "eu",
       "assurance": "enforced",
-      "id": "block_bittorrent_protocol",
-      "matches": [
-        {
-          "protocol": [
-            "bittorrent"
-          ]
-        }
-      ],
-      "providers": [],
-      "sourceGroup": "bittorrent_protocol",
-      "sourceIds": [
-        "bittorrent-protocol"
-      ],
-      "stage": "bittorrent_protocol"
-    },
-    {
-      "action": "block",
-      "assurance": "enforced",
-      "id": "block_torrent_processes",
-      "matches": [
-        {
-          "process": [
-            "regexp:(?i).*torrent.*"
-          ]
-        }
-      ],
-      "providers": [],
-      "sourceGroup": "torrent_processes",
-      "sourceIds": [
-        "torrent-processes"
-      ],
-      "stage": "torrent_processes"
-    },
-    {
-      "action": "block",
-      "assurance": "enforced",
-      "id": "block_torrent_sources",
+      "id": "route_catalog_exceptions",
       "matches": [
         {
           "domain": [
             "domain:1337x.to",
             "domain:eztv.re",
+            "domain:kinozal.tv",
             "domain:limetorrents.lol",
             "domain:nnmclub.to",
+            "domain:rutracker.org",
+            "domain:rutor.info",
             "domain:thepiratebay.org",
             "domain:torrentdownload.info",
             "domain:torrentgalaxy.to",
-            "domain:rutracker.org",
-            "domain:rutor.info",
-            "domain:kinozal.tv",
             "domain:yts.mx"
           ]
         }
       ],
-      "providers": [
-        {
-          "behavior": "classical",
-          "entries": [],
-          "format": "yaml",
-          "id": "torrent-clients",
-          "intervalSeconds": 86400,
-          "kind": "http",
-          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
-          "sha256": "31b26f266129bac396f523c3309f768430ef487fb9e16d8eafcffbcd52aab9ba",
-          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-clients.yaml"
-        },
-        {
-          "behavior": "domain",
-          "entries": [],
-          "format": "mrs",
-          "id": "torrent-trackers",
-          "intervalSeconds": 86400,
-          "kind": "http",
-          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
-          "sha256": "f2832fedc058999ba039052d684f1b8b05433dc378cd041d36bf625e209848c5",
-          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-trackers.mrs"
-        },
-        {
-          "behavior": "domain",
-          "entries": [],
-          "format": "mrs",
-          "id": "torrent-websites",
-          "intervalSeconds": 86400,
-          "kind": "http",
-          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
-          "sha256": "68efec804d027ba03a76bf4baaf6be7fd6c92571930cb439eab25143821448ce",
-          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-websites.mrs"
-        }
-      ],
-      "sourceGroup": "torrent_sources",
+      "providers": [],
+      "sourceGroup": "catalog_exceptions",
       "sourceIds": [
-        "torrent-clients",
-        "torrent-trackers",
-        "torrent-websites",
-        "torrent-domains-inline"
+        "catalog-access-inline"
       ],
-      "stage": "torrent_sources"
+      "stage": "catalog_exceptions"
     },
     {
       "action": "block",
@@ -888,7 +813,7 @@
         "onFallbackUnavailable": "use_primary_if_healthy",
         "onPrimaryUnavailable": "use_fallback"
       },
-      "fallback": "moscow",
+      "fallback": "spb",
       "fallbackTransport": "xhttp",
       "members": {
         "moscow": [
@@ -900,7 +825,7 @@
           "xhttp"
         ]
       },
-      "primary": "spb",
+      "primary": "moscow",
       "primaryTransport": "xhttp",
       "probe": {
         "constrainToRegion": true,

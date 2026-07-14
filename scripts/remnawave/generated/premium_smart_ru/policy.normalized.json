@@ -18,8 +18,8 @@
       "primary": "de"
     },
     "ru": {
-      "fallback": "moscow",
-      "primary": "spb"
+      "fallback": "spb",
+      "primary": "moscow"
     }
   },
   "routes": {
@@ -44,25 +44,11 @@
       "stage": "direct_processes"
     },
     {
-      "action": "block",
+      "action": "eu",
       "assurance": "enforced",
-      "id": "block_bittorrent_protocol",
-      "source_group": "bittorrent_protocol",
-      "stage": "bittorrent_protocol"
-    },
-    {
-      "action": "block",
-      "assurance": "enforced",
-      "id": "block_torrent_processes",
-      "source_group": "torrent_processes",
-      "stage": "torrent_processes"
-    },
-    {
-      "action": "block",
-      "assurance": "enforced",
-      "id": "block_torrent_sources",
-      "source_group": "torrent_sources",
-      "stage": "torrent_sources"
+      "id": "route_catalog_exceptions",
+      "source_group": "catalog_exceptions",
+      "stage": "catalog_exceptions"
     },
     {
       "action": "block",
@@ -128,12 +114,12 @@
       "win-spy",
       "tracker-domains-inline"
     ],
-    "bittorrent_protocol": [
-      "bittorrent-protocol"
-    ],
     "broad_ru": [
       "geosite-ru",
       "geoip-for-ru"
+    ],
+    "catalog_exceptions": [
+      "catalog-access-inline"
     ],
     "direct_processes": [
       "direct-processes",
@@ -178,15 +164,6 @@
     "tor": [
       "tor-inline",
       "tor-processes"
-    ],
-    "torrent_processes": [
-      "torrent-processes"
-    ],
-    "torrent_sources": [
-      "torrent-clients",
-      "torrent-trackers",
-      "torrent-websites",
-      "torrent-domains-inline"
     ]
   },
   "sources": {
@@ -242,12 +219,22 @@
       "kind": "http",
       "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/category-ai-!cn.mrs"
     },
-    "bittorrent-protocol": {
-      "behavior": "protocol",
+    "catalog-access-inline": {
+      "behavior": "classical",
       "entries": [
-        "bittorrent"
+        "DOMAIN-SUFFIX,1337x.to",
+        "DOMAIN-SUFFIX,eztv.re",
+        "DOMAIN-SUFFIX,kinozal.tv",
+        "DOMAIN-SUFFIX,limetorrents.lol",
+        "DOMAIN-SUFFIX,nnmclub.to",
+        "DOMAIN-SUFFIX,rutracker.org",
+        "DOMAIN-SUFFIX,rutor.info",
+        "DOMAIN-SUFFIX,thepiratebay.org",
+        "DOMAIN-SUFFIX,torrentdownload.info",
+        "DOMAIN-SUFFIX,torrentgalaxy.to",
+        "DOMAIN-SUFFIX,yts.mx"
       ],
-      "kind": "builtin"
+      "kind": "inline"
     },
     "cloudflare-ips": {
       "behavior": "ipcidr",
@@ -754,69 +741,6 @@
       ],
       "kind": "process"
     },
-    "torrent-clients": {
-      "behavior": "classical",
-      "entries": [],
-      "format": "yaml",
-      "integrity": {
-        "pinned": true,
-        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
-        "sha256": "31b26f266129bac396f523c3309f768430ef487fb9e16d8eafcffbcd52aab9ba"
-      },
-      "interval_seconds": 86400,
-      "kind": "http",
-      "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-clients.yaml"
-    },
-    "torrent-domains-inline": {
-      "behavior": "domain",
-      "entries": [
-        "1337x.to",
-        "eztv.re",
-        "limetorrents.lol",
-        "nnmclub.to",
-        "thepiratebay.org",
-        "torrentdownload.info",
-        "torrentgalaxy.to",
-        "rutracker.org",
-        "rutor.info",
-        "kinozal.tv",
-        "yts.mx"
-      ],
-      "kind": "inline"
-    },
-    "torrent-processes": {
-      "behavior": "classical",
-      "entries": [
-        "(?i).*torrent.*"
-      ],
-      "kind": "process"
-    },
-    "torrent-trackers": {
-      "behavior": "domain",
-      "entries": [],
-      "format": "mrs",
-      "integrity": {
-        "pinned": true,
-        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
-        "sha256": "f2832fedc058999ba039052d684f1b8b05433dc378cd041d36bf625e209848c5"
-      },
-      "interval_seconds": 86400,
-      "kind": "http",
-      "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-trackers.mrs"
-    },
-    "torrent-websites": {
-      "behavior": "domain",
-      "entries": [],
-      "format": "mrs",
-      "integrity": {
-        "pinned": true,
-        "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
-        "sha256": "68efec804d027ba03a76bf4baaf6be7fd6c92571930cb439eab25143821448ce"
-      },
-      "interval_seconds": 86400,
-      "kind": "http",
-      "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-websites.mrs"
-    },
     "tracker-domains-inline": {
       "behavior": "domain",
       "entries": [
@@ -912,7 +836,7 @@
         "on_fallback_unavailable": "use_primary_if_healthy",
         "on_primary_unavailable": "use_fallback"
       },
-      "fallback": "moscow",
+      "fallback": "spb",
       "fallback_transport": "xhttp",
       "health": {
         "constrain_probe_to_region": true,
@@ -932,7 +856,7 @@
           "xhttp"
         ]
       },
-      "primary": "spb",
+      "primary": "moscow",
       "primary_transport": "xhttp"
     }
   },

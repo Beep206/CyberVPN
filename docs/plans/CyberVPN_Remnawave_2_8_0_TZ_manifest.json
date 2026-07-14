@@ -1,34 +1,34 @@
 {
   "created_at": "2026-07-11T08:29:14.175336+00:00",
-  "updated_at": "2026-07-12T19:41:00+00:00",
+  "updated_at": "2026-07-14T14:08:38Z",
   "files": [
     {
       "name": "TZ_Codex_Task1_Premium_Smart_RU_Remnawave_2_8_0.md",
       "path": "docs/plans/TZ_Codex_Task1_Premium_Smart_RU_Remnawave_2_8_0.md",
-      "size_bytes": 37086,
-      "sha256": "7464b948bef1b0e79eee48052f3239915b40a6aa2fd58d93d18114ac1376b6b2",
-      "lines": 1004
+      "size_bytes": 43175,
+      "sha256": "70cf7669b2e540d613b0da9119da2d2499cdf3aedd26a7bcc99813fe32ff5e32",
+      "lines": 1065
     },
     {
       "name": "TZ_Codex_Task2_SPB_Default_With_DE_Exceptions_Remnawave_2_8_0.md",
       "path": "docs/plans/TZ_Codex_Task2_SPB_Default_With_DE_Exceptions_Remnawave_2_8_0.md",
-      "size_bytes": 35871,
-      "sha256": "7fa9258e6e2aac9a7d41cf5bc373cb5b1af3515529027022d2da1ac3ab441326",
-      "lines": 1105
+      "size_bytes": 40604,
+      "sha256": "83097e50ebafc15f7b2485c7dfb678b0b3e79cb545dae4c0566852e36169aafc",
+      "lines": 1173
     },
     {
       "name": "README_CyberVPN_Remnawave_TZ.md",
       "path": "docs/plans/README_CyberVPN_Remnawave_TZ.md",
-      "size_bytes": 2969,
-      "sha256": "0e2ec5f71c4dabe3e18551fbfb3cb10f6ed377879ad9fbdb39aa57f178e92474",
-      "lines": 12
+      "size_bytes": 4123,
+      "sha256": "ae268d7c60c4bd78ae49deaab264c3ca77e57566a2bfea291e2ae32812c3192a",
+      "lines": 14
     },
     {
       "name": "CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md",
       "path": "docs/architecture/CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md",
-      "size_bytes": 107728,
-      "sha256": "dbbe44f7d2b003f68e2e59c840437f0cf8d15f1dfd43e910422add2e42ae6484",
-      "lines": 1463
+      "size_bytes": 113946,
+      "sha256": "dbf5da30bb92d6bf8f75741538ff15acf030325887c87cea6c049e29bbd1ee89",
+      "lines": 1514
     }
   ]
 }

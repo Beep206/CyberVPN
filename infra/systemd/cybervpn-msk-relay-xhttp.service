@@ -6,7 +6,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart=/lib/systemd/systemd-socket-proxyd --connections-max=4096 --exit-idle-time=5min 178.159.94.225:8443
+ExecStart=/lib/systemd/systemd-socket-proxyd --connections-max=4096 --exit-idle-time=5min msk-origin-v6.cybervpn.internal:8443
 DynamicUser=true
 PrivateDevices=true
 PrivateTmp=true

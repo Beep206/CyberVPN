@@ -11,8 +11,10 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import importlib
 import json
 import os
+import re
 import runpy
 import shutil
 import stat
@@ -20,9 +22,15 @@ import subprocess
 import tempfile
 import uuid
 from dataclasses import dataclass
+from fnmatch import fnmatchcase
 from pathlib import Path
 from pathlib import PurePosixPath
 from typing import Any
+
+try:
+    yaml = importlib.import_module("yaml")
+except ModuleNotFoundError:  # pragma: no cover - production seed fails closed below
+    yaml = None
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GENERATED_DIR = REPO_ROOT / "scripts/remnawave/generated/premium_smart_ru"
@@ -51,6 +59,42 @@ INCY_TEMPLATE_NAMES = (
     "CyberVPN Premium Smart RU INCY",
     "CyberVPN Premium Smart RU INCY Failover Canary",
 )
+TORRENT_CATALOG_DOMAINS = {
+    "domain:1337x.to",
+    "domain:eztv.re",
+    "domain:kinozal.tv",
+    "domain:limetorrents.lol",
+    "domain:nnmclub.to",
+    "domain:rutracker.org",
+    "domain:rutor.info",
+    "domain:thepiratebay.org",
+    "domain:torrentdownload.info",
+    "domain:torrentgalaxy.to",
+    "domain:yts.mx",
+}
+REQUIRED_EU_TORRENT_CATALOG_DOMAINS = TORRENT_CATALOG_DOMAINS
+TORRENT_CATALOG_HOSTS = {
+    value.removeprefix("domain:") for value in TORRENT_CATALOG_DOMAINS
+}
+REQUIRED_EU_TORRENT_CATALOG_HOSTS = TORRENT_CATALOG_HOSTS
+MIHOMO_TRAILING_RULE_OPTIONS = frozenset({"no-resolve"})
+MIHOMO_DOMAIN_MATCHER_PATTERN = re.compile(
+    r"(?:^|[^a-z0-9_-])domain-(keyword|regex|regexp|wildcard),([^,)\r\n]+)",
+    re.IGNORECASE,
+)
+MIHOMO_TORRENT_BLOCK_TARGETS = frozenset(
+    {
+        "reject",
+        "reject-drop",
+        "block",
+        "block policy",
+        "⛔ block",
+        "torrents",
+        "🧲 torrents",
+    }
+)
+MIHOMO_CATALOG_ACCESS_PROVIDER = "catalog-access-inline"
+MIHOMO_CATALOG_ACCESS_TARGET = "🌍 world / eu"
 
 
 def _sha256(content: bytes) -> str:
@@ -79,23 +123,283 @@ def _load_json(content: bytes, label: str) -> dict[str, Any]:
     return value
 
 
+def _xray_domain_hosts(value: Any) -> set[str]:
+    values = (
+        value if isinstance(value, list) else [value] if isinstance(value, str) else []
+    )
+    return {
+        str(item).strip().casefold().removeprefix("domain:").removeprefix("full:")
+        for item in values
+        if str(item).strip()
+    }
+
+
+def _xray_matcher_blocks_catalog(value: Any) -> bool:
+    normalized = str(value).strip().casefold()
+    if normalized.startswith("keyword:"):
+        keyword = normalized.removeprefix("keyword:").strip()
+        return not keyword or any(keyword in host for host in TORRENT_CATALOG_HOSTS)
+    if normalized.startswith("regexp:"):
+        pattern = normalized.removeprefix("regexp:").strip()
+        if not pattern or len(pattern) > 512:
+            return True
+        try:
+            return any(
+                re.search(pattern, candidate, flags=re.IGNORECASE) is not None
+                for host in TORRENT_CATALOG_HOSTS
+                for candidate in (host, f"www.{host}")
+            )
+        except re.error:
+            return True
+    return _xray_domain_hosts(normalized).intersection(TORRENT_CATALOG_HOSTS) != set()
+
+
+def _mihomo_text_matches_catalog(text: str) -> bool:
+    normalized = text.casefold()
+    unescaped = normalized.replace("\\", "")
+    if any(host in normalized or host in unescaped for host in TORRENT_CATALOG_HOSTS):
+        return True
+    for match in MIHOMO_DOMAIN_MATCHER_PATTERN.finditer(normalized):
+        matcher_type = match.group(1).casefold()
+        matcher = match.group(2).strip().strip("'\"")
+        if not matcher or len(matcher) > 512:
+            return True
+        if matcher_type == "keyword":
+            if any(matcher in host for host in TORRENT_CATALOG_HOSTS):
+                return True
+            continue
+        if matcher_type == "wildcard":
+            if any(fnmatchcase(host, matcher) for host in TORRENT_CATALOG_HOSTS):
+                return True
+            continue
+        try:
+            if any(
+                re.search(matcher, host, flags=re.IGNORECASE)
+                for host in TORRENT_CATALOG_HOSTS
+            ):
+                return True
+        except re.error:
+            return True
+    return False
+
+
+def _split_mihomo_rule(rule: str) -> list[str]:
+    parts: list[str] = []
+    current: list[str] = []
+    depth = 0
+    for character in rule:
+        if character == "(":
+            depth += 1
+        elif character == ")" and depth:
+            depth -= 1
+        if character == "," and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+        else:
+            current.append(character)
+    parts.append("".join(current).strip())
+    return parts
+
+
+def _mihomo_rule_subject_and_target(rule: str) -> tuple[str, str]:
+    parts = _split_mihomo_rule(rule)
+    while parts and parts[-1].casefold() in MIHOMO_TRAILING_RULE_OPTIONS:
+        parts.pop()
+    if len(parts) < 2:
+        return "", ""
+    return ",".join(parts[:-1]).casefold(), parts[-1].casefold()
+
+
+def _mihomo_rule_provider_ids(subject: str) -> set[str]:
+    return {
+        match.group(1).strip().casefold()
+        for match in re.finditer(
+            r"(?:^|[,(])rule-set,([^,)]+)", subject, flags=re.IGNORECASE
+        )
+        if match.group(1).strip()
+    }
+
+
+def _load_mihomo_mapping(text: str) -> dict[str, Any]:
+    if yaml is None:
+        raise RuntimeError("PyYAML is required to validate the Mihomo artifact")
+    try:
+        value = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise RuntimeError("Mihomo artifact must be valid YAML") from exc
+    if not isinstance(value, dict):
+        raise RuntimeError("Mihomo artifact must be a YAML mapping")
+    return value
+
+
+def _mihomo_block_targets(artifact: dict[str, Any]) -> set[str]:
+    targets = set(MIHOMO_TORRENT_BLOCK_TARGETS)
+    group_proxies: dict[str, set[str]] = {}
+    groups = artifact.get("proxy-groups")
+    if not isinstance(groups, list):
+        raise RuntimeError("Mihomo artifact proxy-groups must be a list")
+    for group in groups:
+        if not isinstance(group, dict):
+            raise RuntimeError("Mihomo proxy-groups entries must be mappings")
+        name = str(group.get("name") or "").strip().casefold()
+        raw_proxies = group.get("proxies", [])
+        if not isinstance(raw_proxies, list):
+            raise RuntimeError("Mihomo proxy-group proxies must be a list")
+        proxies = {
+            str(proxy).strip().casefold() for proxy in raw_proxies if str(proxy).strip()
+        }
+        if name and proxies:
+            group_proxies[name] = proxies
+    changed = True
+    while changed:
+        changed = False
+        for name, proxies in group_proxies.items():
+            if name not in targets and proxies.issubset(targets):
+                targets.add(name)
+                changed = True
+    return targets
+
+
+def _manual_mihomo_torrent_rules(artifact: dict[str, Any]) -> list[str]:
+    rules = artifact.get("rules")
+    providers = artifact.get("rule-providers")
+    if not isinstance(rules, list) or not all(isinstance(rule, str) for rule in rules):
+        raise RuntimeError("Mihomo artifact rules must be a list of strings")
+    if not isinstance(providers, dict):
+        raise RuntimeError("Mihomo artifact rule-providers must be a mapping")
+    provider_ids = {
+        str(name).strip().casefold()
+        for name, provider in providers.items()
+        if str(name).strip()
+        for provider_text in [
+            json.dumps(provider, ensure_ascii=False, sort_keys=True, default=str)
+        ]
+        if "torrent" in provider_text or _mihomo_text_matches_catalog(provider_text)
+    }
+    block_targets = _mihomo_block_targets(artifact)
+    manual_rules: list[str] = []
+    for rule in rules:
+        subject, target = _mihomo_rule_subject_and_target(rule)
+        torrent_related = "torrent" in subject or _mihomo_text_matches_catalog(subject)
+        torrent_related = torrent_related or bool(
+            _mihomo_rule_provider_ids(subject) & provider_ids
+        )
+        if torrent_related and target in block_targets:
+            manual_rules.append(rule)
+    return manual_rules
+
+
+def _mihomo_catalog_access_is_safe(artifact: dict[str, Any]) -> bool:
+    providers = artifact.get("rule-providers")
+    rules = artifact.get("rules")
+    dns = artifact.get("dns")
+    if (
+        not isinstance(providers, dict)
+        or not isinstance(rules, list)
+        or not isinstance(dns, dict)
+    ):
+        return False
+
+    provider = providers.get(MIHOMO_CATALOG_ACCESS_PROVIDER)
+    if not isinstance(provider, dict):
+        return False
+    payload = provider.get("payload")
+    if not isinstance(payload, list):
+        return False
+    catalog_hosts = {
+        parts[1].strip().casefold()
+        for item in payload
+        if isinstance(item, str)
+        for parts in [_split_mihomo_rule(item)]
+        if len(parts) >= 2 and parts[0].casefold() in {"domain", "domain-suffix"}
+    }
+    if not REQUIRED_EU_TORRENT_CATALOG_HOSTS.issubset(catalog_hosts):
+        return False
+
+    block_targets = _mihomo_block_targets(artifact)
+    parsed_rules = [
+        _mihomo_rule_subject_and_target(rule) for rule in rules if isinstance(rule, str)
+    ]
+    catalog_rule_indexes = [
+        index
+        for index, (subject, target) in enumerate(parsed_rules)
+        if MIHOMO_CATALOG_ACCESS_PROVIDER in _mihomo_rule_provider_ids(subject)
+        and target == MIHOMO_CATALOG_ACCESS_TARGET
+    ]
+    block_rule_indexes = [
+        index
+        for index, (_subject, target) in enumerate(parsed_rules)
+        if target in block_targets
+    ]
+    if (
+        len(parsed_rules) != len(rules)
+        or len(catalog_rule_indexes) != 1
+        or not block_rule_indexes
+        or not all(catalog_rule_indexes[0] < index for index in block_rule_indexes)
+    ):
+        return False
+
+    nameserver_policy = dns.get("nameserver-policy")
+    if not isinstance(nameserver_policy, dict):
+        return False
+    dns_keys = [str(key).strip().casefold() for key in nameserver_policy]
+    catalog_dns_key = f"rule-set:{MIHOMO_CATALOG_ACCESS_PROVIDER}"
+    if catalog_dns_key not in dns_keys:
+        return False
+    catalog_dns_index = dns_keys.index(catalog_dns_key)
+    blocked_dns_indexes = [
+        index
+        for index, value in enumerate(nameserver_policy.values())
+        if isinstance(value, list)
+        and any(str(item).strip().casefold() == "rcode://name_error" for item in value)
+    ]
+    return bool(blocked_dns_indexes) and all(
+        catalog_dns_index < index for index in blocked_dns_indexes
+    )
+
+
 def _validate_mihomo(content: bytes) -> None:
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise RuntimeError("Mihomo artifact must be valid UTF-8") from exc
+    artifact = _load_mihomo_mapping(text)
     required = (
-        "MATCH,World / EU",
-        "name: Torrents",
-        "name: RU Sites",
-        "name: World / EU",
-        "RULE-SET,smtp-abuse,REJECT",
+        "MATCH,🌍 World / EU",
+        "name: 🇷🇺 RU Sites",
+        "name: 🌍 World / EU",
+        "RULE-SET,smtp-abuse,⛔ BLOCK",
+        "DOMAIN-SUFFIX,rutracker.org",
+        "RULE-SET,ru-eu-exceptions,🌍 World / EU",
     )
-    if any(marker not in text for marker in required) or "MATCH,DIRECT" in text:
+    forbidden = (
+        "name: Torrents",
+        "torrent-websites",
+        "torrent-trackers",
+        "torrent-clients",
+        "PROCESS-NAME-REGEX,(?i).*torrent.*",
+        "DOMAIN-SUFFIX,rutracker.org,REJECT",
+    )
+    normalized_text = text.casefold()
+    if (
+        any(marker not in text for marker in required)
+        or any(marker in text for marker in forbidden)
+        or "name: torrents" in normalized_text
+        or "name: 🧲 torrents" in normalized_text
+        or _manual_mihomo_torrent_rules(artifact)
+        or not _mihomo_catalog_access_is_safe(artifact)
+        or "MATCH,DIRECT" in text
+    ):
         raise RuntimeError("Mihomo artifact semantics are invalid")
 
 
-def _validate_incy(content: bytes, *, automatic_failover: bool = False) -> None:
+def _validate_incy(
+    content: bytes,
+    *,
+    automatic_failover: bool = True,
+    canary: bool = False,
+) -> None:
+    artifact_label = "INCY canary" if canary else "INCY"
     artifact = _load_json(content, "INCY artifact")
     remnawave = artifact.get("remnawave")
     routing = artifact.get("routing")
@@ -140,13 +444,13 @@ def _validate_incy(content: bytes, *, automatic_failover: bool = False) -> None:
             },
             {
                 "tag": "ru-primary",
-                "selector": ["ru-spb-2"],
+                "selector": ["ru-msk-2"],
                 "strategy": {"type": "leastPing"},
                 "fallbackTag": "ru-fallback-loop",
             },
             {
                 "tag": "ru-fallback",
-                "selector": ["ru-msk-2"],
+                "selector": ["ru-spb-2"],
                 "strategy": {"type": "leastPing"},
                 "fallbackTag": "block",
             },
@@ -158,35 +462,101 @@ def _validate_incy(content: bytes, *, automatic_failover: bool = False) -> None:
         ru_probe = ru_health.get("probe") if isinstance(ru_health, dict) else None
         expected_probe_url = ru_probe.get("url") if isinstance(ru_probe, dict) else None
         expected_observatory = {
-            "subjectSelector": ["eu-de-2", "eu-nl-2", "ru-spb-2", "ru-msk-2"],
+            "subjectSelector": ["eu-de-2", "eu-nl-2", "ru-msk-2", "ru-spb-2"],
             "probeUrl": expected_probe_url,
             "probeInterval": "10s",
             "enableConcurrency": True,
         }
         if (
-            route_policy.get("rendererMode") != "automatic-failover-canary"
+            route_policy.get("rendererMode")
+            != ("automatic-failover-canary" if canary else "automatic-failover")
             or balancers != expected_balancers
             or not isinstance(expected_probe_url, str)
             or artifact.get("observatory") != expected_observatory
             or artifact.get("burstObservatory") is not None
         ):
             raise RuntimeError(
-                "INCY canary artifact lacks regional failover health checks"
+                f"{artifact_label} artifact lacks regional failover health checks"
             )
     routes_by_tag = {
         rule.get("ruleTag"): rule
         for rule in routing["rules"]
         if isinstance(rule, dict) and isinstance(rule.get("ruleTag"), str)
     }
+    block_outbound_tags = {"block", "rw_tb_outbound_block"}
+    for outbound in artifact.get("outbounds", []):
+        if not isinstance(outbound, dict):
+            continue
+        if str(outbound.get("protocol") or "").casefold() != "blackhole":
+            continue
+        tag = str(outbound.get("tag") or "").strip().casefold()
+        if tag:
+            block_outbound_tags.add(tag)
+    for rule in routing["rules"]:
+        if not isinstance(rule, dict):
+            continue
+        protocols = rule.get("protocol")
+        protocols = protocols if isinstance(protocols, list) else [protocols]
+        processes = rule.get("process")
+        processes = processes if isinstance(processes, list) else [processes]
+        domains = rule.get("domain")
+        domains = domains if isinstance(domains, list) else [domains]
+        if (
+            str(rule.get("ruleTag") or "")
+            in {
+                "block_bittorrent_protocol",
+                "block_torrent_processes",
+                "block_torrent_sources",
+            }
+            or any(str(protocol).casefold() == "bittorrent" for protocol in protocols)
+            or any("torrent" in str(process).casefold() for process in processes)
+            or (
+                str(rule.get("outboundTag") or "").casefold() in block_outbound_tags
+                and any(_xray_matcher_blocks_catalog(domain) for domain in domains)
+            )
+        ):
+            raise RuntimeError(
+                "INCY artifact must delegate BitTorrent enforcement to the Remnawave node plugin"
+            )
     route_key = "balancerTag" if automatic_failover else "outboundTag"
     expected_eu = "eu-primary" if automatic_failover else "eu-de-2"
-    expected_ru = "ru-primary" if automatic_failover else "ru-spb-2"
+    expected_ru = "ru-primary" if automatic_failover else "ru-msk-2"
     if routes_by_tag.get("route_final_eu", {}).get(route_key) != expected_eu:
         raise RuntimeError(
             "INCY artifact must route default traffic to the DE-first path"
         )
     if routes_by_tag.get("route_ru_services", {}).get(route_key) != expected_ru:
-        raise RuntimeError("INCY artifact must route RU services to the SPB-first path")
+        raise RuntimeError(
+            "INCY artifact must route RU services to the Moscow-first path"
+        )
+    catalog_rule_indexes = [
+        index
+        for index, rule in enumerate(routing["rules"])
+        if isinstance(rule, dict) and rule.get("ruleTag") == "route_catalog_exceptions"
+    ]
+    block_rule_indexes = [
+        index
+        for index, rule in enumerate(routing["rules"])
+        if isinstance(rule, dict)
+        and str(rule.get("outboundTag") or "").casefold() in block_outbound_tags
+    ]
+    if len(catalog_rule_indexes) != 1:
+        raise RuntimeError(
+            "INCY torrent-catalog websites require one dedicated EU access route"
+        )
+    catalog_rule = routing["rules"][catalog_rule_indexes[0]]
+    if (
+        not isinstance(catalog_rule, dict)
+        or catalog_rule.get(route_key) != expected_eu
+        or not REQUIRED_EU_TORRENT_CATALOG_HOSTS.issubset(
+            _xray_domain_hosts(catalog_rule.get("domain"))
+        )
+        or not block_rule_indexes
+        or not all(catalog_rule_indexes[0] < index for index in block_rule_indexes)
+    ):
+        raise RuntimeError(
+            "INCY torrent-catalog websites must route through EU before block policies"
+        )
     if automatic_failover:
         expected_loop_rules = [
             {
@@ -210,7 +580,7 @@ def _validate_incy(content: bytes, *, automatic_failover: bool = False) -> None:
             or routes_by_tag.get("route_ru_failover_loop") != expected_loop_rules[1]
         ):
             raise RuntimeError(
-                "INCY canary failover must remain regional and fail closed"
+                f"{artifact_label} failover must remain regional and fail closed"
             )
     smtp_rule = routes_by_tag.get("block_smtp_abuse", {})
     if smtp_rule != {
@@ -257,7 +627,10 @@ def _validate_legacy_header(content: bytes) -> None:
     direct_ip = decoded.get("DirectIp")
     if (
         not isinstance(block_sites, list)
-        or "domain:rutracker.org" not in block_sites
+        or any(
+            str(site).strip().casefold() in TORRENT_CATALOG_DOMAINS
+            for site in block_sites
+        )
         or "geosite:category-ads-all" not in block_sites
         or not isinstance(direct_ip, list)
         or "10.0.0.0/8" not in direct_ip
@@ -278,7 +651,7 @@ def _load_and_validate_sources() -> dict[str, bytes]:
     try:
         generator = runpy.run_path(str(INCY_GENERATOR_SOURCE))
         expected_incy = generator["build_template"]()
-        expected_incy_canary = generator["build_template"](automatic_failover=True)
+        expected_incy_canary = generator["build_template"](canary=True)
     except (KeyError, OSError, RuntimeError) as exc:
         raise RuntimeError(
             "Cannot regenerate INCY artifact from the canonical compiler output"
@@ -292,7 +665,7 @@ def _load_and_validate_sources() -> dict[str, bytes]:
     ).encode()
     _validate_mihomo(artifacts["mihomo"])
     _validate_incy(artifacts["incy"])
-    _validate_incy(artifacts["incy_canary"], automatic_failover=True)
+    _validate_incy(artifacts["incy_canary"], canary=True)
     _validate_legacy_header(artifacts["legacy_header"])
     compiler_manifest = _load_json(compiler_manifest_content, "compiler manifest")
     if (
@@ -397,6 +770,9 @@ def _stage_artifacts(stage_root: Path) -> StageContract:
         manifest = {
             "schemaVersion": 1,
             "product": "premium_smart_ru",
+            "validation": {
+                "mihomoProtocolOnlyTorrentPolicy": True,
+            },
             "sourceCompilerManifestSha256": _sha256(artifacts["compiler_manifest"]),
             "artifacts": {
                 STAGED_NAMES[key]: {

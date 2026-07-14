@@ -45,6 +45,20 @@ _NETWORK_PORT_RULE = re.compile(
     r"AND,\(\(NETWORK,(?P<network>TCP|UDP)\),\(DST-PORT,(?P<port>[0-9,-]+)\)\)",
     re.IGNORECASE,
 )
+_MIHOMO_EU_SOURCE_TARGETS = {
+    "youtube": "📺 YouTube",
+    "discord-domains": "💬 Discord",
+    "discord-voice": "💬 Discord",
+    "telegram-domains": "➤ Telegram",
+    "telegram-ips": "➤ Telegram",
+    "additional-telegram-domains": "➤ Telegram",
+    "additional-telegram-ips": "➤ Telegram",
+    "whatsapp": "💬 Messengers",
+    "meta-ips": "💬 Messengers",
+    "ai": "🤖 AI",
+    "google-deepmind": "🤖 AI",
+    "github": "👨‍💻 Dev Services",
+}
 
 
 def _json_bytes(value: object) -> bytes:
@@ -225,12 +239,20 @@ def render_xray_client(policy: PremiumSmartRuPolicy) -> dict[str, object]:
 
 
 def render_xray_server(policy: PremiumSmartRuPolicy) -> dict[str, object]:
+    rules = _typed_rules(policy)
     return {
         "schemaVersion": policy.version,
         "product": policy.product,
         "consumer": "remnawave-xray-server",
-        "ruleOrder": [rule.stage for rule in policy.rules],
-        "rules": _typed_rules(policy),
+        "ruleOrder": [rule["stage"] for rule in rules],
+        "nodePluginPolicy": {
+            "torrentBlocker": {
+                "required": True,
+                "protocol": "bittorrent",
+                "injectedRulePosition": "first",
+            }
+        },
+        "rules": rules,
     }
 
 
@@ -252,7 +274,7 @@ def _mihomo_provider(source_id: str, source: PolicySource) -> dict[str, object] 
         "type": "http",
         "behavior": source.behavior,
         "format": source.format,
-        "proxy": "World / EU",
+        "proxy": "🌍 World / EU",
         "interval": source.interval_seconds,
         "url": source.url,
         "path": f"./rule-sets/{source_id}.{suffix}",
@@ -286,8 +308,8 @@ def _regional_mihomo_groups(
         group["interval"] = ru.health.interval_seconds
         group["lazy"] = ru.health.lazy
 
-    world: dict[str, object] = {
-        "name": "World / EU",
+    eu_auto: dict[str, object] = {
+        "name": "⚡ EU Auto",
         "type": "fallback",
         "remnawave": {"include-proxies": False},
         "proxies": ["🇩🇪 DE Auto", "🇳🇱 NL Auto"],
@@ -295,9 +317,16 @@ def _regional_mihomo_groups(
         "expected-status": eu.health.expected_status,
         "interval": eu.health.interval_seconds,
         "lazy": eu.health.lazy,
+        "hidden": True,
     }
-    ru_sites: dict[str, object] = {
-        "name": "RU Sites",
+    world: dict[str, object] = {
+        "name": "🌍 World / EU",
+        "type": "select",
+        "remnawave": {"include-proxies": False},
+        "proxies": ["⚡ EU Auto", "🇩🇪 DE Auto", "🇳🇱 NL Auto", "DIRECT"],
+    }
+    ru_auto: dict[str, object] = {
+        "name": "⚡ RU Auto",
         "type": "fallback",
         "remnawave": {"include-proxies": False},
         "proxies": [
@@ -308,67 +337,111 @@ def _regional_mihomo_groups(
         "expected-status": ru.health.expected_status,
         "interval": ru.health.interval_seconds,
         "lazy": ru.health.lazy,
+        "hidden": True,
     }
-    torrent: dict[str, object] = {
-        "name": "Torrents",
+    ru_sites: dict[str, object] = {
+        "name": "🇷🇺 RU Sites",
         "type": "select",
         "remnawave": {"include-proxies": False},
-        "proxies": ["REJECT"],
+        "proxies": [
+            "⚡ RU Auto",
+            {"moscow": "🇷🇺 Moscow Auto", "spb": "🇷🇺 SPB Auto"}[ru.primary],
+            {"moscow": "🇷🇺 Moscow Auto", "spb": "🇷🇺 SPB Auto"}[ru.fallback],
+            "🌍 World / EU",
+            "DIRECT",
+        ],
     }
+    category_groups = [
+        {
+            "name": name,
+            "type": "select",
+            "remnawave": {"include-proxies": False},
+            "proxies": proxies,
+        }
+        for name, proxies in (
+            ("📺 YouTube", ["🌍 World / EU", "🇩🇪 DE Auto", "🇳🇱 NL Auto"]),
+            ("💬 Discord", ["🌍 World / EU", "🇩🇪 DE Auto", "🇳🇱 NL Auto", "DIRECT"]),
+            ("➤ Telegram", ["🌍 World / EU", "🇷🇺 RU Sites", "DIRECT"]),
+            ("💬 Messengers", ["🌍 World / EU", "🇷🇺 RU Sites", "DIRECT"]),
+            ("🤖 AI", ["🌍 World / EU", "🇩🇪 DE Auto", "🇳🇱 NL Auto"]),
+            (
+                "👨‍💻 Dev Services",
+                ["🌍 World / EU", "🇩🇪 DE Auto", "🇳🇱 NL Auto", "DIRECT"],
+            ),
+            ("🎮 Games", ["DIRECT", "🌍 World / EU", "🇷🇺 RU Sites"]),
+            ("🧪 Speedtest", ["🌍 World / EU", "🇷🇺 RU Sites", "DIRECT"]),
+        )
+    ]
     direct: dict[str, object] = {
-        "name": "DIRECT policy",
+        "name": "♻️ DIRECT",
         "type": "select",
         "remnawave": {"include-proxies": False},
         "hidden": True,
         "proxies": ["DIRECT"],
     }
     block: dict[str, object] = {
-        "name": "BLOCK policy",
+        "name": "⛔ BLOCK",
         "type": "select",
         "remnawave": {"include-proxies": False},
         "hidden": True,
         "proxies": ["REJECT", "REJECT-DROP"],
     }
-    return [world, ru_sites, torrent, de, nl, moscow, spb, direct, block]
+    proxy: dict[str, object] = {
+        "name": "PROXY",
+        "type": "select",
+        "remnawave": {"include-proxies": False},
+        "hidden": True,
+        "proxies": ["🌍 World / EU"],
+    }
+    return [
+        world,
+        ru_sites,
+        *category_groups,
+        eu_auto,
+        nl,
+        de,
+        ru_auto,
+        moscow,
+        spb,
+        direct,
+        block,
+        proxy,
+    ]
 
 
-def _mihomo_target(stage: str, action: str) -> str:
+def _mihomo_target(action: str) -> str:
     if action == "direct":
-        return "DIRECT"
+        return "♻️ DIRECT"
     if action == "eu":
-        return "World / EU"
+        return "🌍 World / EU"
     if action == "ru":
-        return "RU Sites"
+        return "🇷🇺 RU Sites"
     if action == "block":
-        return (
-            "Torrents"
-            if stage.startswith("torrent") or stage == "bittorrent_protocol"
-            else "REJECT"
-        )
+        return "⛔ BLOCK"
     raise RuntimeError(f"Unsupported Mihomo policy action {action}")
 
 
 def _mihomo_rules(policy: PremiumSmartRuPolicy) -> list[str]:
     rendered: list[str] = []
     for rule in policy.rules:
-        target = _mihomo_target(rule.stage, rule.action)
+        target = _mihomo_target(rule.action)
         if rule.stage == "final":
             rendered.append(f"MATCH,{target}")
             continue
         source_ids = _source_ids(policy, rule)
         for source_id in source_ids:
             source = policy.sources[source_id]
+            source_target = _MIHOMO_EU_SOURCE_TARGETS.get(source_id, target)
             if source.kind == "process":
                 rendered.extend(
-                    f"PROCESS-NAME-REGEX,{entry},{target}" for entry in source.entries
+                    f"PROCESS-NAME-REGEX,{entry},{source_target}"
+                    for entry in source.entries
                 )
             elif source.kind == "builtin":
-                # Mihomo has no BitTorrent protocol matcher. The adjacent canonical
-                # process/client/tracker/site rules remain enforced by the REJECT-only group.
                 continue
             else:
                 suffix = ",no-resolve" if source.behavior == "ipcidr" else ""
-                rendered.append(f"RULE-SET,{source_id},{target}{suffix}")
+                rendered.append(f"RULE-SET,{source_id},{source_target}{suffix}")
     return rendered
 
 
@@ -406,24 +479,29 @@ def render_mihomo(policy: PremiumSmartRuPolicy) -> dict[str, object]:
         "https://77.88.8.8/dns-query",
     ]
     dns["nameserver"] = [
-        "https://8.8.8.8/dns-query#World / EU",
-        "https://1.1.1.1/dns-query#World / EU",
+        "https://8.8.8.8/dns-query#🌍 World / EU",
+        "https://1.1.1.1/dns-query#🌍 World / EU",
     ]
     nameserver_policy: dict[str, list[str]] = {"rule-set:geosite-private": ["system"]}
+    for source_id in policy.source_groups.catalog_exceptions:
+        if _supports_mihomo_dns_policy(policy.sources[source_id]):
+            nameserver_policy[f"rule-set:{source_id}"] = [
+                str(item) for item in dns["nameserver"]
+            ]
     for source_id in policy.source_groups.ads_trackers + policy.source_groups.tor:
         if _supports_mihomo_dns_policy(policy.sources[source_id]):
             nameserver_policy[f"rule-set:{source_id}"] = ["rcode://name_error"]
     for source_id in policy.source_groups.eu_exceptions:
         if _supports_mihomo_dns_policy(policy.sources[source_id]):
             nameserver_policy[f"rule-set:{source_id}"] = [
-                "https://8.8.8.8/dns-query#World / EU",
-                "https://1.1.1.1/dns-query#World / EU",
+                "https://8.8.8.8/dns-query#🌍 World / EU",
+                "https://1.1.1.1/dns-query#🌍 World / EU",
             ]
     for source_id in policy.source_groups.ru_services + policy.source_groups.broad_ru:
         if _supports_mihomo_dns_policy(policy.sources[source_id]):
             nameserver_policy[f"rule-set:{source_id}"] = [
-                "https://77.88.8.8/dns-query#RU Sites",
-                "https://8.8.8.8/dns-query#RU Sites",
+                "https://77.88.8.8/dns-query#🇷🇺 RU Sites",
+                "https://8.8.8.8/dns-query#🇷🇺 RU Sites",
             ]
     dns["nameserver-policy"] = nameserver_policy
     return config
@@ -472,7 +550,7 @@ def render_legacy_header(policy: PremiumSmartRuPolicy) -> dict[str, object]:
         ip_values = match.get("ip")
         if isinstance(ip_values, list):
             private_ips.extend(str(item) for item in ip_values)
-    block_stages = ("torrent_sources", "ads_trackers", "tor")
+    block_stages = ("ads_trackers", "tor")
     decoded: dict[str, Any] = {
         "Name": "CyberVPN Premium Smart RU",
         "GlobalProxy": "true",

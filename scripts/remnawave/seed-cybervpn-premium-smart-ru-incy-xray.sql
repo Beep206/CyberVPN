@@ -94,6 +94,7 @@ begin
 
     if v_manifest->>'schemaVersion' is distinct from '1'
        or v_manifest->>'product' is distinct from 'premium_smart_ru'
+       or v_manifest#>>'{validation,mihomoProtocolOnlyTorrentPolicy}' is distinct from 'true'
        or v_manifest#>>'{artifacts,mihomo.yaml,sha256}' is distinct from v_contract.mihomo_sha256
        or v_manifest#>>'{artifacts,incy-xray.json,sha256}' is distinct from v_contract.incy_sha256
        or v_manifest#>>'{artifacts,incy-xray-failover-canary.json,sha256}'
@@ -112,25 +113,259 @@ begin
     if jsonb_typeof(v_incy) is distinct from 'object'
        or v_incy#>>'{remnawave,routePolicy,schemaVersion}' is distinct from '1'
        or v_incy#>>'{remnawave,routePolicy,product}' is distinct from 'premium_smart_ru'
+       or v_incy#>>'{remnawave,routePolicy,rendererMode}'
+            is distinct from 'automatic-failover'
        or jsonb_typeof(v_incy#>'{remnawave,injectHosts}') is distinct from 'array'
        or jsonb_array_length(v_incy#>'{remnawave,injectHosts}') <> 4
        or jsonb_typeof(v_incy->'inbounds') is distinct from 'array'
        or jsonb_array_length(v_incy->'inbounds') <> 2
        or jsonb_typeof(v_incy#>'{routing,rules}') is distinct from 'array'
        or jsonb_array_length(v_incy#>'{routing,rules}') = 0
-       or v_incy#>'{routing,balancers}' is not null
-       or v_incy->'observatory' is not null
+       or jsonb_typeof(v_incy#>'{routing,balancers}') is distinct from 'array'
+       or jsonb_array_length(v_incy#>'{routing,balancers}') <> 4
+       or v_incy#>'{routing,balancers}' is distinct from '[
+            {"tag":"eu-primary","selector":["eu-de-2"],"strategy":{"type":"leastPing"},"fallbackTag":"eu-fallback-loop"},
+            {"tag":"eu-fallback","selector":["eu-nl-2"],"strategy":{"type":"leastPing"},"fallbackTag":"block"},
+            {"tag":"ru-primary","selector":["ru-msk-2"],"strategy":{"type":"leastPing"},"fallbackTag":"ru-fallback-loop"},
+            {"tag":"ru-fallback","selector":["ru-spb-2"],"strategy":{"type":"leastPing"},"fallbackTag":"block"}
+       ]'::jsonb
+       or v_incy->'observatory' is distinct from '{
+            "subjectSelector":["eu-de-2","eu-nl-2","ru-msk-2","ru-spb-2"],
+            "probeUrl":"https://www.ozon.ru/",
+            "probeInterval":"10s",
+            "enableConcurrency":true
+       }'::jsonb
+       or v_incy->'burstObservatory' is not null
+       or v_incy#>'{routing,rules,0}' is distinct from '{
+            "type":"field",
+            "ruleTag":"route_eu_failover_loop",
+            "inboundTag":["eu-fallback-in"],
+            "network":"tcp,udp",
+            "balancerTag":"eu-fallback"
+       }'::jsonb
+       or v_incy#>'{routing,rules,1}' is distinct from '{
+            "type":"field",
+            "ruleTag":"route_ru_failover_loop",
+            "inboundTag":["ru-fallback-in"],
+            "network":"tcp,udp",
+            "balancerTag":"ru-fallback"
+       }'::jsonb
+       or exists (
+            select 1
+            from jsonb_array_elements(v_incy#>'{routing,balancers}') as balancer
+            where balancer->>'fallbackTag' = 'direct'
+       )
        or not exists (
             select 1
             from jsonb_array_elements(v_incy#>'{routing,rules}') as rule
             where rule->>'ruleTag' = 'route_final_eu'
-              and rule->>'outboundTag' = 'eu-de-2'
+              and rule->>'balancerTag' = 'eu-primary'
        )
        or not exists (
             select 1
             from jsonb_array_elements(v_incy#>'{routing,rules}') as rule
             where rule->>'ruleTag' = 'route_ru_services'
-              and rule->>'outboundTag' = 'ru-spb-2'
+              and rule->>'balancerTag' = 'ru-primary'
+       )
+       or exists (
+            select 1
+            from jsonb_array_elements(v_incy#>'{routing,rules}') as rule
+            where rule->>'ruleTag' in (
+                    'block_bittorrent_protocol',
+                    'block_torrent_processes',
+                    'block_torrent_sources'
+                  )
+               or exists (
+                    select 1
+                    from jsonb_array_elements_text(
+                        case jsonb_typeof(rule->'protocol')
+                            when 'array' then rule->'protocol'
+                            when 'string' then jsonb_build_array(rule->'protocol')
+                            else '[]'::jsonb
+                        end
+                    ) as protocol_value(value)
+                    where lower(btrim(protocol_value.value)) = 'bittorrent'
+               )
+               or exists (
+                    select 1
+                    from jsonb_array_elements_text(
+                        case jsonb_typeof(rule->'process')
+                            when 'array' then rule->'process'
+                            when 'string' then jsonb_build_array(rule->'process')
+                            else '[]'::jsonb
+                        end
+                    ) as process_value(value)
+                    where lower(btrim(process_value.value)) like '%torrent%'
+               )
+               or (
+                    (
+                        lower(coalesce(rule->>'outboundTag', '')) in (
+                            'block',
+                            'rw_tb_outbound_block'
+                        )
+                        or exists (
+                            select 1
+                            from jsonb_array_elements(v_incy->'outbounds') as outbound
+                            where lower(coalesce(outbound->>'tag', '')) =
+                                  lower(coalesce(rule->>'outboundTag', ''))
+                              and lower(coalesce(outbound->>'protocol', '')) = 'blackhole'
+                        )
+                    )
+                    and exists (
+                        select 1
+                        from jsonb_array_elements_text(
+                            case jsonb_typeof(rule->'domain')
+                                when 'array' then rule->'domain'
+                                when 'string' then jsonb_build_array(rule->'domain')
+                                else '[]'::jsonb
+                            end
+                        ) as domain_value(value)
+                        where (
+                                lower(btrim(domain_value.value)) like 'keyword:%'
+                                and exists (
+                                    select 1
+                                    from unnest(array[
+                                        '1337x.to',
+                                        'eztv.re',
+                                        'kinozal.tv',
+                                        'limetorrents.lol',
+                                        'nnmclub.to',
+                                        'rutracker.org',
+                                        'rutor.info',
+                                        'thepiratebay.org',
+                                        'torrentdownload.info',
+                                        'torrentgalaxy.to',
+                                        'yts.mx'
+                                    ]) as catalog_domain(value)
+                                    where position(
+                                        btrim(substring(lower(btrim(domain_value.value)) from 9))
+                                        in catalog_domain.value
+                                    ) > 0
+                                )
+                              )
+                           or (
+                                lower(btrim(domain_value.value)) like 'regexp:%'
+                                and exists (
+                                    select 1
+                                    from unnest(array[
+                                        '1337x.to',
+                                        'eztv.re',
+                                        'kinozal.tv',
+                                        'limetorrents.lol',
+                                        'nnmclub.to',
+                                        'rutracker.org',
+                                        'rutor.info',
+                                        'thepiratebay.org',
+                                        'torrentdownload.info',
+                                        'torrentgalaxy.to',
+                                        'yts.mx'
+                                    ]) as catalog_domain(value)
+                                    where catalog_domain.value ~* btrim(
+                                            substring(domain_value.value from 8)
+                                        )
+                                       or ('www.' || catalog_domain.value) ~* btrim(
+                                            substring(domain_value.value from 8)
+                                        )
+                                )
+                              )
+                           or regexp_replace(
+                                lower(btrim(domain_value.value)),
+                                '^(domain|full):',
+                                ''
+                              ) = any(array[
+                                '1337x.to',
+                                'eztv.re',
+                                'kinozal.tv',
+                                'limetorrents.lol',
+                                'nnmclub.to',
+                                'rutracker.org',
+                                'rutor.info',
+                                'thepiratebay.org',
+                                'torrentdownload.info',
+                                'torrentgalaxy.to',
+                                'yts.mx'
+                              ])
+                    )
+               )
+       )
+       or not exists (
+            select 1
+            from jsonb_array_elements(v_incy#>'{routing,rules}')
+                with ordinality as catalog_rule(rule, position)
+            where catalog_rule.rule->>'ruleTag' = 'route_catalog_exceptions'
+              and catalog_rule.rule->>'balancerTag' = 'eu-primary'
+              and (
+                    select count(distinct regexp_replace(
+                        lower(btrim(domain_value.value)),
+                        '^(domain|full):',
+                        ''
+                    ))
+                    from jsonb_array_elements_text(
+                        case jsonb_typeof(catalog_rule.rule->'domain')
+                            when 'array' then catalog_rule.rule->'domain'
+                            when 'string' then jsonb_build_array(catalog_rule.rule->'domain')
+                            else '[]'::jsonb
+                        end
+                    ) as domain_value(value)
+                    where regexp_replace(
+                        lower(btrim(domain_value.value)),
+                        '^(domain|full):',
+                        ''
+                    ) = any(array[
+                        '1337x.to',
+                        'eztv.re',
+                        'kinozal.tv',
+                        'limetorrents.lol',
+                        'nnmclub.to',
+                        'rutracker.org',
+                        'rutor.info',
+                        'thepiratebay.org',
+                        'torrentdownload.info',
+                        'torrentgalaxy.to',
+                        'yts.mx'
+                    ])
+              ) = 11
+              and not exists (
+                    select 1
+                    from jsonb_array_elements(v_incy#>'{routing,rules}')
+                        with ordinality as block_rule(rule, position)
+                    where block_rule.rule->>'ruleTag' = any(array[
+                        'block_ads_trackers',
+                        'block_tor_best_effort',
+                        'block_quic_doq',
+                        'block_smtp_abuse'
+                    ])
+                      and block_rule.position < catalog_rule.position
+              )
+       )
+       or exists (
+            select 1
+            from jsonb_array_elements(v_incy#>'{routing,rules}') as rule
+            cross join lateral jsonb_array_elements_text(
+                case jsonb_typeof(rule->'domain')
+                    when 'array' then rule->'domain'
+                    when 'string' then jsonb_build_array(rule->'domain')
+                    else '[]'::jsonb
+                end
+            ) as domain_value(value)
+            where rule->>'ruleTag' = 'route_eu_exceptions'
+              and regexp_replace(
+                    lower(btrim(domain_value.value)),
+                    '^(domain|full):',
+                    ''
+                  ) = any(array[
+                    '1337x.to',
+                    'eztv.re',
+                    'kinozal.tv',
+                    'limetorrents.lol',
+                    'nnmclub.to',
+                    'rutracker.org',
+                    'rutor.info',
+                    'thepiratebay.org',
+                    'torrentdownload.info',
+                    'torrentgalaxy.to',
+                    'yts.mx'
+                  ])
        )
        or not exists (
             select 1
@@ -155,12 +390,12 @@ begin
        or v_incy_canary#>'{routing,balancers}' is distinct from '[
             {"tag":"eu-primary","selector":["eu-de-2"],"strategy":{"type":"leastPing"},"fallbackTag":"eu-fallback-loop"},
             {"tag":"eu-fallback","selector":["eu-nl-2"],"strategy":{"type":"leastPing"},"fallbackTag":"block"},
-            {"tag":"ru-primary","selector":["ru-spb-2"],"strategy":{"type":"leastPing"},"fallbackTag":"ru-fallback-loop"},
-            {"tag":"ru-fallback","selector":["ru-msk-2"],"strategy":{"type":"leastPing"},"fallbackTag":"block"}
+            {"tag":"ru-primary","selector":["ru-msk-2"],"strategy":{"type":"leastPing"},"fallbackTag":"ru-fallback-loop"},
+            {"tag":"ru-fallback","selector":["ru-spb-2"],"strategy":{"type":"leastPing"},"fallbackTag":"block"}
        ]'::jsonb
        or jsonb_typeof(v_incy_canary->'observatory') is distinct from 'object'
        or v_incy_canary->'observatory' is distinct from '{
-            "subjectSelector":["eu-de-2","eu-nl-2","ru-spb-2","ru-msk-2"],
+            "subjectSelector":["eu-de-2","eu-nl-2","ru-msk-2","ru-spb-2"],
             "probeUrl":"https://www.ozon.ru/",
             "probeInterval":"10s",
             "enableConcurrency":true
@@ -209,6 +444,206 @@ begin
             where rule->>'ruleTag' = 'route_ru_failover_loop'
               and rule->>'balancerTag' = 'ru-fallback'
        )
+       or exists (
+            select 1
+            from jsonb_array_elements(v_incy_canary#>'{routing,rules}') as rule
+            where rule->>'ruleTag' in (
+                    'block_bittorrent_protocol',
+                    'block_torrent_processes',
+                    'block_torrent_sources'
+                  )
+               or exists (
+                    select 1
+                    from jsonb_array_elements_text(
+                        case jsonb_typeof(rule->'protocol')
+                            when 'array' then rule->'protocol'
+                            when 'string' then jsonb_build_array(rule->'protocol')
+                            else '[]'::jsonb
+                        end
+                    ) as protocol_value(value)
+                    where lower(btrim(protocol_value.value)) = 'bittorrent'
+               )
+               or exists (
+                    select 1
+                    from jsonb_array_elements_text(
+                        case jsonb_typeof(rule->'process')
+                            when 'array' then rule->'process'
+                            when 'string' then jsonb_build_array(rule->'process')
+                            else '[]'::jsonb
+                        end
+                    ) as process_value(value)
+                    where lower(btrim(process_value.value)) like '%torrent%'
+               )
+               or (
+                    (
+                        lower(coalesce(rule->>'outboundTag', '')) in (
+                            'block',
+                            'rw_tb_outbound_block'
+                        )
+                        or exists (
+                            select 1
+                            from jsonb_array_elements(v_incy_canary->'outbounds') as outbound
+                            where lower(coalesce(outbound->>'tag', '')) =
+                                  lower(coalesce(rule->>'outboundTag', ''))
+                              and lower(coalesce(outbound->>'protocol', '')) = 'blackhole'
+                        )
+                    )
+                    and exists (
+                        select 1
+                        from jsonb_array_elements_text(
+                            case jsonb_typeof(rule->'domain')
+                                when 'array' then rule->'domain'
+                                when 'string' then jsonb_build_array(rule->'domain')
+                                else '[]'::jsonb
+                            end
+                        ) as domain_value(value)
+                        where (
+                                lower(btrim(domain_value.value)) like 'keyword:%'
+                                and exists (
+                                    select 1
+                                    from unnest(array[
+                                        '1337x.to',
+                                        'eztv.re',
+                                        'kinozal.tv',
+                                        'limetorrents.lol',
+                                        'nnmclub.to',
+                                        'rutracker.org',
+                                        'rutor.info',
+                                        'thepiratebay.org',
+                                        'torrentdownload.info',
+                                        'torrentgalaxy.to',
+                                        'yts.mx'
+                                    ]) as catalog_domain(value)
+                                    where position(
+                                        btrim(substring(lower(btrim(domain_value.value)) from 9))
+                                        in catalog_domain.value
+                                    ) > 0
+                                )
+                              )
+                           or (
+                                lower(btrim(domain_value.value)) like 'regexp:%'
+                                and exists (
+                                    select 1
+                                    from unnest(array[
+                                        '1337x.to',
+                                        'eztv.re',
+                                        'kinozal.tv',
+                                        'limetorrents.lol',
+                                        'nnmclub.to',
+                                        'rutracker.org',
+                                        'rutor.info',
+                                        'thepiratebay.org',
+                                        'torrentdownload.info',
+                                        'torrentgalaxy.to',
+                                        'yts.mx'
+                                    ]) as catalog_domain(value)
+                                    where catalog_domain.value ~* btrim(
+                                            substring(domain_value.value from 8)
+                                        )
+                                       or ('www.' || catalog_domain.value) ~* btrim(
+                                            substring(domain_value.value from 8)
+                                        )
+                                )
+                              )
+                           or regexp_replace(
+                                lower(btrim(domain_value.value)),
+                                '^(domain|full):',
+                                ''
+                              ) = any(array[
+                                '1337x.to',
+                                'eztv.re',
+                                'kinozal.tv',
+                                'limetorrents.lol',
+                                'nnmclub.to',
+                                'rutracker.org',
+                                'rutor.info',
+                                'thepiratebay.org',
+                                'torrentdownload.info',
+                                'torrentgalaxy.to',
+                                'yts.mx'
+                              ])
+                    )
+               )
+       )
+       or not exists (
+            select 1
+            from jsonb_array_elements(v_incy_canary#>'{routing,rules}')
+                with ordinality as catalog_rule(rule, position)
+            where catalog_rule.rule->>'ruleTag' = 'route_catalog_exceptions'
+              and catalog_rule.rule->>'balancerTag' = 'eu-primary'
+              and (
+                    select count(distinct regexp_replace(
+                        lower(btrim(domain_value.value)),
+                        '^(domain|full):',
+                        ''
+                    ))
+                    from jsonb_array_elements_text(
+                        case jsonb_typeof(catalog_rule.rule->'domain')
+                            when 'array' then catalog_rule.rule->'domain'
+                            when 'string' then jsonb_build_array(catalog_rule.rule->'domain')
+                            else '[]'::jsonb
+                        end
+                    ) as domain_value(value)
+                    where regexp_replace(
+                        lower(btrim(domain_value.value)),
+                        '^(domain|full):',
+                        ''
+                    ) = any(array[
+                        '1337x.to',
+                        'eztv.re',
+                        'kinozal.tv',
+                        'limetorrents.lol',
+                        'nnmclub.to',
+                        'rutracker.org',
+                        'rutor.info',
+                        'thepiratebay.org',
+                        'torrentdownload.info',
+                        'torrentgalaxy.to',
+                        'yts.mx'
+                    ])
+              ) = 11
+              and not exists (
+                    select 1
+                    from jsonb_array_elements(v_incy_canary#>'{routing,rules}')
+                        with ordinality as block_rule(rule, position)
+                    where block_rule.rule->>'ruleTag' = any(array[
+                        'block_ads_trackers',
+                        'block_tor_best_effort',
+                        'block_quic_doq',
+                        'block_smtp_abuse'
+                    ])
+                      and block_rule.position < catalog_rule.position
+              )
+       )
+       or exists (
+            select 1
+            from jsonb_array_elements(v_incy_canary#>'{routing,rules}') as rule
+            cross join lateral jsonb_array_elements_text(
+                case jsonb_typeof(rule->'domain')
+                    when 'array' then rule->'domain'
+                    when 'string' then jsonb_build_array(rule->'domain')
+                    else '[]'::jsonb
+                end
+            ) as domain_value(value)
+            where rule->>'ruleTag' = 'route_eu_exceptions'
+              and regexp_replace(
+                    lower(btrim(domain_value.value)),
+                    '^(domain|full):',
+                    ''
+                  ) = any(array[
+                    '1337x.to',
+                    'eztv.re',
+                    'kinozal.tv',
+                    'limetorrents.lol',
+                    'nnmclub.to',
+                    'rutracker.org',
+                    'rutor.info',
+                    'thepiratebay.org',
+                    'torrentdownload.info',
+                    'torrentgalaxy.to',
+                    'yts.mx'
+                  ])
+       )
        or not exists (
             select 1
             from jsonb_array_elements(v_incy_canary#>'{routing,rules}') as rule
@@ -240,7 +675,7 @@ begin
        or v_legacy_decoded->>'RemoteDNSDomain' is distinct from 'https://cloudflare-dns.com/dns-query'
        or v_legacy_decoded->>'RemoteDNSIP' is distinct from '1.1.1.1'
        or jsonb_typeof(v_legacy_decoded->'BlockSites') is distinct from 'array'
-       or not (v_legacy_decoded->'BlockSites' ? 'domain:rutracker.org')
+       or (v_legacy_decoded->'BlockSites' ? 'domain:rutracker.org')
        or not (v_legacy_decoded->'BlockSites' ? 'geosite:category-ads-all')
        or jsonb_typeof(v_legacy_decoded->'DirectIp') is distinct from 'array'
        or not (v_legacy_decoded->'DirectIp' ? '10.0.0.0/8') then

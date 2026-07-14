@@ -27,6 +27,10 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _incy_bytes(template: dict[str, object]) -> bytes:
+    return (json.dumps(template, ensure_ascii=False, indent=2) + "\n").encode()
+
+
 def test_stage_contract_is_private_complete_and_bound_to_out_of_band_hashes(
     tmp_path: Path,
 ) -> None:
@@ -44,6 +48,9 @@ def test_stage_contract_is_private_complete_and_bound_to_out_of_band_hashes(
         assert contract.directory.parent == root.resolve()
         assert manifest["schemaVersion"] == 1
         assert manifest["product"] == "premium_smart_ru"
+        assert manifest["validation"] == {
+            "mihomoProtocolOnlyTorrentPolicy": True,
+        }
         assert set(manifest["artifacts"]) == {
             "mihomo.yaml",
             "incy-xray.json",
@@ -110,7 +117,7 @@ def test_stage_regenerates_incy_instead_of_trusting_mutable_template(
         expected = (json.dumps(generator["build_template"](), ensure_ascii=False, indent=2) + "\n").encode()
         expected_canary = (
             json.dumps(
-                generator["build_template"](automatic_failover=True),
+                generator["build_template"](canary=True),
                 ensure_ascii=False,
                 indent=2,
             )
@@ -126,10 +133,12 @@ def test_stage_regenerates_incy_instead_of_trusting_mutable_template(
 def test_checked_xray_templates_match_canonical_generator_bytes() -> None:
     module = _load_module()
     generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
-    stable = (json.dumps(generator["build_template"](), ensure_ascii=False, indent=2) + "\n").encode()
+    stable_template = generator["build_template"]()
+    canary_template = generator["build_template"](canary=True)
+    stable = (json.dumps(stable_template, ensure_ascii=False, indent=2) + "\n").encode()
     canary = (
         json.dumps(
-            generator["build_template"](automatic_failover=True),
+            canary_template,
             ensure_ascii=False,
             indent=2,
         )
@@ -138,6 +147,351 @@ def test_checked_xray_templates_match_canonical_generator_bytes() -> None:
 
     assert module.INCY_SOURCE.read_bytes() == stable
     assert module.INCY_CANARY_SOURCE.read_bytes() == canary
+    for template in (stable_template, canary_template):
+        rules = template["routing"]["rules"]
+        assert not any("bittorrent" in json.dumps(rule, sort_keys=True).casefold() for rule in rules)
+        block_rules = [rule for rule in rules if rule.get("outboundTag") == "block"]
+        assert not any(
+            host in json.dumps(rule, sort_keys=True).casefold()
+            for rule in block_rules
+            for host in module.REQUIRED_EU_TORRENT_CATALOG_HOSTS
+        )
+        eu_exception_rules = [rule for rule in rules if rule.get("ruleTag") == "route_catalog_exceptions"]
+        assert any(
+            module.REQUIRED_EU_TORRENT_CATALOG_HOSTS.issubset(module._xray_domain_hosts(rule.get("domain")))
+            for rule in eu_exception_rules
+        )
+
+
+@pytest.mark.parametrize(
+    "manual_rule",
+    [
+        "DOMAIN-SUFFIX,rutracker.org,REJECT",
+        "Domain-Suffix, RuTracker.Org , reject,no-resolve",
+        "DOMAIN-KEYWORD,rutor,REJECT,no-resolve",
+        r"DOMAIN-REGEX,.*rutracker\.org$,REJECT,no-resolve",
+        "AND,((RULE-SET,catalog-access-inline),(NETWORK,tcp)),REJECT,no-resolve",
+    ],
+)
+def test_mihomo_validator_rejects_direct_and_logical_catalog_block_rules(
+    manual_rule: str,
+) -> None:
+    module = _load_module()
+    text = module.MIHOMO_SOURCE.read_text(encoding="utf-8")
+    mutated = text.replace(
+        "\n- MATCH,🌍 World / EU\n",
+        f"\n- {manual_rule}\n- MATCH,🌍 World / EU\n",
+        1,
+    )
+
+    with pytest.raises(RuntimeError, match="Mihomo artifact semantics"):
+        module._validate_mihomo(mutated.encode())
+
+
+def test_mihomo_validator_rejects_neutral_provider_with_catalog_payload_block() -> None:
+    module = _load_module()
+    text = module.MIHOMO_SOURCE.read_text(encoding="utf-8")
+    mutated = text.replace(
+        "rule-providers:\n",
+        (
+            "rule-providers:\n"
+            "  innocent-inline:\n"
+            "    type: inline\n"
+            "    behavior: classical\n"
+            "    payload:\n"
+            "    - DOMAIN-SUFFIX,rutracker.org\n"
+        ),
+        1,
+    ).replace(
+        "\n- MATCH,🌍 World / EU\n",
+        "\n- RULE-SET,innocent-inline,REJECT,no-resolve\n- MATCH,🌍 World / EU\n",
+        1,
+    )
+
+    with pytest.raises(RuntimeError, match="Mihomo artifact semantics"):
+        module._validate_mihomo(mutated.encode())
+
+
+def test_mihomo_validator_rejects_regex_provider_via_reject_only_alias() -> None:
+    module = _load_module()
+    text = module.MIHOMO_SOURCE.read_text(encoding="utf-8")
+    prefix, remainder = text.split("proxy-groups:\n", 1)
+    group_text, suffix = remainder.split("rule-providers:\n", 1)
+    indented_groups = "\n".join(f"  {line}" for line in group_text.rstrip("\n").splitlines())
+    standard_indented = (
+        f"{prefix}proxy-groups:\n{indented_groups}\n"
+        "  - name: innocent-sink\n"
+        "    type: select\n"
+        "    proxies:\n"
+        "      - REJECT\n"
+        f"rule-providers:\n{suffix}"
+    )
+    mutated = standard_indented.replace(
+        "rule-providers:\n",
+        (
+            "rule-providers:\n"
+            "  innocent-inline:\n"
+            "    type: inline\n"
+            "    behavior: classical\n"
+            "    payload:\n"
+            r"    - DOMAIN-REGEX,.*rutracker\.org$"
+            "\n"
+            "    - DOMAIN-KEYWORD,rutor\n"
+        ),
+        1,
+    ).replace(
+        "\n- MATCH,🌍 World / EU\n",
+        "\n- RULE-SET,innocent-inline,innocent-sink,no-resolve\n- MATCH,🌍 World / EU\n",
+        1,
+    )
+
+    with pytest.raises(RuntimeError, match="Mihomo artifact semantics"):
+        module._validate_mihomo(mutated.encode())
+
+
+def test_mihomo_validator_allows_catalog_provider_on_normal_eu_route() -> None:
+    module = _load_module()
+    text = module.MIHOMO_SOURCE.read_text(encoding="utf-8")
+    mutated = text.replace(
+        "rule-providers:\n",
+        (
+            "rule-providers:\n"
+            "  innocent-inline:\n"
+            "    type: inline\n"
+            "    behavior: classical\n"
+            "    payload:\n"
+            "    - DOMAIN-SUFFIX,rutracker.org\n"
+        ),
+        1,
+    ).replace(
+        "\n- MATCH,🌍 World / EU\n",
+        "\n- RULE-SET,innocent-inline,🌍 World / EU\n- MATCH,🌍 World / EU\n",
+        1,
+    )
+
+    module._validate_mihomo(mutated.encode())
+
+
+def test_mihomo_validator_fails_closed_without_structured_yaml_parser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_module()
+    monkeypatch.setattr(module, "yaml", None)
+
+    with pytest.raises(RuntimeError, match="PyYAML is required"):
+        module._validate_mihomo(module.MIHOMO_SOURCE.read_bytes())
+
+
+def test_mihomo_validator_rejects_invalid_yaml() -> None:
+    module = _load_module()
+
+    with pytest.raises(RuntimeError, match="must be valid YAML"):
+        module._validate_mihomo(b"proxy-groups: [unterminated\n")
+
+
+def test_mihomo_validator_rejects_catalog_access_after_block_rules() -> None:
+    module = _load_module()
+    text = module.MIHOMO_SOURCE.read_text(encoding="utf-8")
+    catalog_rule = "- RULE-SET,catalog-access-inline,🌍 World / EU\n"
+    mutated = text.replace(catalog_rule, "", 1).replace(
+        "- MATCH,🌍 World / EU\n",
+        f"{catalog_rule}- MATCH,🌍 World / EU\n",
+        1,
+    )
+
+    with pytest.raises(RuntimeError, match="Mihomo artifact semantics"):
+        module._validate_mihomo(mutated.encode())
+
+
+def test_mihomo_validator_rejects_catalog_dns_after_block_policies() -> None:
+    module = _load_module()
+    artifact = module.yaml.safe_load(module.MIHOMO_SOURCE.read_text(encoding="utf-8"))
+    nameserver_policy = artifact["dns"]["nameserver-policy"]
+    catalog_dns = nameserver_policy.pop("rule-set:catalog-access-inline")
+    nameserver_policy["rule-set:catalog-access-inline"] = catalog_dns
+    mutated = module.yaml.safe_dump(
+        artifact,
+        allow_unicode=True,
+        sort_keys=False,
+        width=1000,
+    ).encode()
+
+    with pytest.raises(RuntimeError, match="Mihomo artifact semantics"):
+        module._validate_mihomo(mutated)
+
+
+@pytest.mark.parametrize(
+    "manual_rule",
+    [
+        {
+            "type": "field",
+            "ruleTag": "block_bittorrent_protocol",
+            "protocol": ["bittorrent"],
+            "outboundTag": "block",
+        },
+        {
+            "type": "field",
+            "ruleTag": "block_torrent_processes",
+            "process": ["qbittorrent.exe"],
+            "outboundTag": "block",
+        },
+        {
+            "type": "field",
+            "ruleTag": "block_torrent_sources",
+            "domain": ["domain:rutracker.org"],
+            "outboundTag": "block",
+        },
+        {
+            "type": "field",
+            "ruleTag": "legacy-rutor-block",
+            "domain": ["domain:rutor.info"],
+            "outboundTag": "BLOCK",
+        },
+        {
+            "type": "field",
+            "ruleTag": "plugin-shaped-manual-kinozal-block",
+            "domain": ["domain:kinozal.tv"],
+            "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+        },
+        {
+            "type": "field",
+            "ruleTag": "scalar-catalog-block",
+            "domain": "domain:rutracker.org",
+            "outboundTag": "block",
+        },
+        {
+            "type": "field",
+            "ruleTag": "full-catalog-block",
+            "domain": ["full:rutor.info"],
+            "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+        },
+        {
+            "type": "field",
+            "ruleTag": "scalar-full-catalog-block",
+            "domain": " Full:Kinozal.TV ",
+            "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+        },
+        {
+            "type": "field",
+            "ruleTag": "keyword-catalog-block",
+            "domain": "keyword:rutor",
+            "outboundTag": "block",
+        },
+        {
+            "type": "field",
+            "ruleTag": "regexp-catalog-block",
+            "domain": [r"regexp:.*rutracker\.org$"],
+            "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+        },
+    ],
+)
+@pytest.mark.parametrize("automatic_failover", [False, True])
+def test_incy_validator_rejects_manual_torrent_block_rules(
+    manual_rule: dict[str, object],
+    automatic_failover: bool,
+) -> None:
+    module = _load_module()
+    generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
+    template = generator["build_template"](automatic_failover=automatic_failover)
+    template["routing"]["rules"].append(manual_rule)
+
+    with pytest.raises(RuntimeError, match="delegate BitTorrent enforcement"):
+        module._validate_incy(_incy_bytes(template), automatic_failover=automatic_failover)
+
+
+@pytest.mark.parametrize("automatic_failover", [False, True])
+def test_incy_validator_rejects_catalog_rule_via_custom_blackhole_outbound(
+    automatic_failover: bool,
+) -> None:
+    module = _load_module()
+    generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
+    template = generator["build_template"](automatic_failover=automatic_failover)
+    template["outbounds"].append(
+        {
+            "tag": "innocent-sink",
+            "protocol": "blackhole",
+            "settings": {},
+        }
+    )
+    template["routing"]["rules"].append(
+        {
+            "type": "field",
+            "ruleTag": "innocent-catalog-rule",
+            "domain": "keyword:rutor",
+            "outboundTag": "innocent-sink",
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="delegate BitTorrent enforcement"):
+        module._validate_incy(
+            _incy_bytes(template),
+            automatic_failover=automatic_failover,
+        )
+
+
+@pytest.mark.parametrize("automatic_failover", [False, True])
+def test_incy_validator_rejects_catalog_access_after_block_policy(
+    automatic_failover: bool,
+) -> None:
+    module = _load_module()
+    generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
+    template = generator["build_template"](automatic_failover=automatic_failover)
+    rules = template["routing"]["rules"]
+    catalog_index = next(index for index, rule in enumerate(rules) if rule.get("ruleTag") == "route_catalog_exceptions")
+    catalog_rule = rules.pop(catalog_index)
+    first_block_index = next(index for index, rule in enumerate(rules) if rule.get("ruleTag") == "block_ads_trackers")
+    rules.insert(first_block_index + 1, catalog_rule)
+
+    with pytest.raises(RuntimeError, match="before block policies"):
+        module._validate_incy(
+            _incy_bytes(template),
+            automatic_failover=automatic_failover,
+        )
+
+
+@pytest.mark.parametrize("automatic_failover", [False, True])
+def test_incy_validator_accepts_full_prefix_for_required_catalog_eu_routes(
+    automatic_failover: bool,
+) -> None:
+    module = _load_module()
+    generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
+    template = generator["build_template"](automatic_failover=automatic_failover)
+    for rule in template["routing"]["rules"]:
+        if rule.get("ruleTag") == "route_catalog_exceptions":
+            rule["domain"] = [
+                value.replace("domain:", "full:", 1) if value in module.REQUIRED_EU_TORRENT_CATALOG_DOMAINS else value
+                for value in rule.get("domain", [])
+            ]
+
+    module._validate_incy(_incy_bytes(template), automatic_failover=automatic_failover)
+
+
+@pytest.mark.parametrize("automatic_failover", [False, True])
+@pytest.mark.parametrize(
+    "missing_domain",
+    [
+        "domain:nnmclub.to",
+        "domain:rutracker.org",
+        "domain:rutor.info",
+        "domain:kinozal.tv",
+    ],
+)
+def test_incy_validator_requires_torrent_catalogs_on_dedicated_eu_route(
+    automatic_failover: bool,
+    missing_domain: str,
+) -> None:
+    module = _load_module()
+    generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
+    template = generator["build_template"](automatic_failover=automatic_failover)
+    for rule in template["routing"]["rules"]:
+        if rule.get("ruleTag") == "route_catalog_exceptions":
+            rule["domain"] = [domain for domain in rule.get("domain", []) if domain != missing_domain]
+
+    with pytest.raises(RuntimeError, match="torrent-catalog websites"):
+        module._validate_incy(
+            _incy_bytes(template),
+            automatic_failover=automatic_failover,
+        )
 
 
 @pytest.mark.parametrize(
@@ -152,7 +506,7 @@ def test_checked_xray_templates_match_canonical_generator_bytes() -> None:
 def test_canary_validator_rejects_topology_drift(mutation: str) -> None:
     module = _load_module()
     generator = module.runpy.run_path(str(module.INCY_GENERATOR_SOURCE))
-    canary = generator["build_template"](automatic_failover=True)
+    canary = generator["build_template"](canary=True)
     if mutation == "wrong_selector":
         canary["routing"]["balancers"][0]["selector"] = ["ru-msk-2"]
     elif mutation == "swapped_fallback":
@@ -165,7 +519,7 @@ def test_canary_validator_rejects_topology_drift(mutation: str) -> None:
     with pytest.raises(RuntimeError, match="INCY canary"):
         module._validate_incy(
             (json.dumps(canary, ensure_ascii=False, indent=2) + "\n").encode(),
-            automatic_failover=True,
+            canary=True,
         )
 
 

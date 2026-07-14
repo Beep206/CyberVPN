@@ -46,10 +46,14 @@ route pipeline. The operator expects:
 - `artifacts.xrayRulesSha256`
 - an Xray rules artifact with non-empty `ip` match rules
 
-The operator validates freshness, checksum, product, schema, path containment,
-non-empty rule content, CIDR syntax, wildcard routes, and management/self
-network exclusions before any write. `ipv6Policy.mode=enabled` is accepted only
-when the artifact contains IPv6 prefixes.
+The operator resolves the artifact only through the canonical versioned publish
+store. It validates `active.json`, `last-known-good.json`, their immutable
+version directories, policy/source provenance, accepted safety status,
+active-to-LKG ancestry, pointer stability, freshness, checksums, product,
+schema, path containment, non-empty rule content, CIDR syntax, wildcard routes,
+and management/self network exclusions before any write.
+`ipv6Policy.mode=enabled` is accepted only when the artifact contains IPv6
+prefixes. A hand-built candidate directory is not a valid input.
 
 ## Dry Run
 
@@ -60,7 +64,8 @@ only:
 REMNAWAVE_TOKEN="$REMNAWAVE_TOKEN" \
 python scripts/remnawave/apply-spb-de-exceptions-server-routing.py \
   --remnawave-url "$REMNAWAVE_URL" \
-  --artifact-manifest /path/to/artifacts/antifilter/manifest.json \
+  --artifact-store /run/cybervpn/readiness/task2 \
+  --artifact-policy /data/antifilter/production-policy.example.json \
   --rollback-manifest /root/cybervpn-spb-de-exceptions-rollback.json
 ```
 
@@ -71,13 +76,20 @@ Expected dry-run evidence:
 - `bridgePortFree` is `true`
 - `bridgePublicHost` is `none`
 - `ipv6PolicyMode` matches the Antifilter manifest
-- restart order is `["de", "spb"]`
+- restart order is `["supplemental", "de", "spb"]`
+- `supplementalTorrentPolicyProfiles` reports `update` or `noop` for the
+  shared NL/base and Moscow profiles without exposing profile contents
 - artifact manifest and rules checksums are present
+- active/LKG versions, policy checksum, source-manifest checksum and
+  `artifactSafetyStatus=accepted` are present
+- `nodePluginPreflight` confirms the expected Torrent Blocker plugin on all four
+  production VPN nodes without exposing plugin UUIDs or configuration payloads
 - no rollback manifest is written
 - no non-GET Remnawave calls occur
 
 Abort if dry-run reports a port conflict, a public bridge Host, stale or
-checksum-mismatched artifacts, a contaminated bridge user, or missing Task2
+checksum-mismatched artifacts, active/LKG ancestry or pointer-race failure,
+missing/disabled Torrent Blocker, a contaminated bridge user, or missing Task2
 squads.
 
 On a shared SPB node, duplicate address/port bindings remain forbidden. The
@@ -113,8 +125,8 @@ hostname for Task2.
 
 Before an authorized apply:
 
-1. Capture a Remnawave backup and the current SPB/DE profile JSON outside the
-   repository.
+1. Capture a Remnawave backup and the current SPB/DE/NL/Moscow profile JSON
+   outside the repository.
 2. Validate that `/root/cybervpn-spb-de-exceptions-rollback.json` or the chosen
    manifest path resolves outside the repository and `.codex`.
 3. Run the port preflight on DE:
@@ -139,30 +151,44 @@ Before an authorized apply:
 The operator applies in dependency-safe order:
 
 1. Write rollback manifest before the first mutation.
-2. Create or update the DE bridge Config Profile.
-3. Create or update `CYBERVPN_SPB_DE_BRIDGE`.
-4. Create or update `CYBERVPN_SPB_DE_BRIDGE_USER`.
-5. Render the SPB customer profile with `DE_EXCEPTIONS_BRIDGE` and a
+2. Remove legacy manual BitTorrent/process/catalog BLOCK rules from the shared
+   NL/base and Moscow profiles, preserve unrelated rules, enforce plugin
+   sniffing, and restart only nodes actively using changed supplemental
+   profiles.
+3. Create or update the DE bridge Config Profile.
+4. Create or update `CYBERVPN_SPB_DE_BRIDGE`.
+5. Create or update `CYBERVPN_SPB_DE_BRIDGE_USER`.
+6. Render the SPB customer profile with `DE_EXCEPTIONS_BRIDGE` and a
    non-conflicting Task2 listener design.
-6. Create or update only the two Task2 public customer Hosts for RAW `4443` and
+7. Create or update only the two Task2 public customer Hosts for RAW `4443` and
    XHTTP `8444`.
-7. Attach only the two dedicated Task2 inbounds to the Task2 customer squad;
+8. Attach only the two dedicated Task2 inbounds to the Task2 customer squad;
    never attach preserved Smart RU or bridge inbounds.
-8. Switch and restart DE first.
-9. Switch and restart SPB after the DE bridge is ready.
+9. Switch and restart DE first.
+10. Switch and restart SPB after the DE bridge is ready.
 
 The rollback manifest records pre-change profiles, node profile assignments,
 customer/external squad state, remapped shared SPB/DE Host state, Task2 SPB
 Host state, bridge squad state, bridge user squad state, artifact checksums,
-and phase checkpoints. It must remain outside the repository, must remain mode `0600`,
+supplemental NL/Moscow profile and active-node snapshots, and phase checkpoints.
+It must remain outside the repository, must remain mode `0600`,
 and must not be copied into tickets, logs, commits, or evidence bundles.
 The profile and Host snapshots are intentionally not redacted because rollback
-must restore the shared node configuration byte-equivalent to the pre-change
-state where Remnawave returns it.
+must restore operational identity and topology. Automated rollback applies one
+safety normalization to every restored profile: legacy manual BitTorrent,
+torrent-process and torrent-catalog BLOCK rules remain removed, and required
+Remnawave `torrentBlocker` sniffing remains enabled. This prevents rollback from
+reintroducing the defect that triggered this migration.
 
 ## Rollback Command
 
-Use the same Remnawave URL and manifest path:
+Use the same Remnawave URL and the private rollback manifest. Emergency rollback
+intentionally restores/sanitizes profiles **without** requiring the live Node
+Plugin metadata API first. This keeps rollback available during a panel/plugin
+API outage. Plugin preflight remains mandatory for dry-run/apply and must be
+repeated as a separate post-rollback verification before normal rollout work is
+resumed; inability to run that postcheck is reported as degraded plugin evidence,
+not used to delay the emergency profile restore.
 
 ```bash
 REMNAWAVE_TOKEN="$REMNAWAVE_TOKEN" \
@@ -174,18 +200,27 @@ python scripts/remnawave/apply-spb-de-exceptions-server-routing.py \
 
 Rollback order:
 
-1. Restore the previous SPB node profile assignment.
-2. Restore the previous customer internal squad and external squad headers.
-3. Restore remapped shared SPB Host snapshots and restore or delete the two
+1. Restore supplemental NL/Moscow profile snapshots with protocol-only torrent
+   policy normalization; defer their node restarts until profile/state restore
+   is complete.
+2. Restore the previous SPB node profile assignment.
+3. Restore the previous customer internal squad and external squad headers.
+4. Restore remapped shared SPB Host snapshots and restore or delete the two
    Task2 SPB public Hosts.
-4. Restore or remove the SPB Task2 profile.
-5. Restart SPB so customer traffic no longer points at the Task2 bridge.
-6. Restore or remove the bridge user and bridge squad.
-7. Restore the previous DE node profile assignment.
-8. Restore remapped shared DE Host snapshots.
-9. Restore or remove the DE bridge profile.
-10. Restart DE.
-11. Mark the manifest phase as `rolled_back`.
+5. Restore or remove the SPB Task2 profile with protocol-only torrent policy
+   normalization.
+6. Restart SPB so customer traffic no longer points at the Task2 bridge.
+7. Restore or remove the bridge user and bridge squad.
+8. Restore the previous DE node profile assignment.
+9. Restore remapped shared DE Host snapshots.
+10. Restore or remove the DE bridge profile with protocol-only torrent policy
+    normalization.
+11. Restart DE.
+12. Restart active supplemental nodes not already restarted as SPB/DE.
+13. Mark the manifest phase as `rolled_back`.
+14. Run the four-node plugin preflight/postcheck separately. Do not claim a real
+    `torrent_blocker.report` or nftables enforcement event unless such evidence
+    was actually produced under an explicitly approved safe procedure.
 
 Rollback is idempotent. Re-running against a `rolled_back` manifest should not
 create new objects.

@@ -8,6 +8,13 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from src.application.vpn_testing.mihomo_rules import (
+    mihomo_block_targets,
+    mihomo_rule_provider_ids,
+    mihomo_rule_subject_and_target,
+    mihomo_text_matches_domains,
+    split_mihomo_rule,
+)
 from src.config.settings import settings
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 
@@ -18,14 +25,54 @@ except ImportError:  # pragma: no cover - keeps import safe in minimal tooling e
 
 PREMIUM_SMART_RU_MIHOMO_GROUPS = (
     "🌍 World / EU",
+    "🇷🇺 RU Sites",
+    "📺 YouTube",
+    "💬 Discord",
+    "➤ Telegram",
+    "💬 Messengers",
+    "🤖 AI",
+    "👨‍💻 Dev Services",
+    "🎮 Games",
+    "🧪 Speedtest",
+    "⚡ EU Auto",
     "🇩🇪 DE Auto",
     "🇳🇱 NL Auto",
     "⚡ RU Auto",
-    "🇷🇺 RU Sites",
     "🇷🇺 Moscow Auto",
     "🇷🇺 SPB Auto",
-    "🧲 Torrents",
+    "♻️ DIRECT",
+    "⛔ BLOCK",
+    "PROXY",
 )
+FORBIDDEN_STATIC_TORRENT_GROUPS = frozenset({"torrents", "🧲 torrents"})
+TORRENT_BLOCK_TARGETS = frozenset(
+    {
+        "reject",
+        "reject-drop",
+        "block",
+        "block policy",
+        "⛔ block",
+        *FORBIDDEN_STATIC_TORRENT_GROUPS,
+    }
+)
+TORRENT_CATALOG_MARKERS = frozenset(
+    {
+        "1337x.to",
+        "eztv.re",
+        "kinozal.tv",
+        "limetorrents.lol",
+        "nnmclub.to",
+        "rutracker.org",
+        "rutor.info",
+        "thepiratebay.org",
+        "torrentdownload.info",
+        "torrentgalaxy.to",
+        "yts.mx",
+    }
+)
+CATALOG_ACCESS_PROVIDER = "catalog-access-inline"
+CATALOG_ACCESS_TARGETS = frozenset({"world / eu", "🌍 world / eu"})
+REQUIRED_CATALOG_ACCESS_DOMAINS = TORRENT_CATALOG_MARKERS
 EXPECTED_PREMIUM_SMART_RU_TRANSPORT_PROFILE_COUNT = 4
 PREMIUM_SMART_RU_ENDPOINT_PORTS = {
     "de-relay.cyber-vpn.org": {"raw": 2053, "xhttp": 2083},
@@ -151,6 +198,110 @@ def _artifact_mapping(artifact: Any) -> Mapping[str, Any] | None:
     return None
 
 
+def _manual_torrent_rules(mapping: Mapping[str, Any]) -> list[str]:
+    rules = mapping.get("rules")
+    if not isinstance(rules, list):
+        return []
+    providers_value = mapping.get("rule-providers") or mapping.get("rule_providers")
+    providers = providers_value if isinstance(providers_value, Mapping) else {}
+    torrent_provider_ids: set[str] = set()
+    for name, provider in providers.items():
+        provider_text = json.dumps(
+            {"name": name, "provider": provider},
+            ensure_ascii=False,
+            sort_keys=True,
+            default=str,
+        ).casefold()
+        if "torrent" in provider_text or mihomo_text_matches_domains(
+            provider_text,
+            TORRENT_CATALOG_MARKERS,
+        ):
+            torrent_provider_ids.add(str(name).strip().casefold())
+    groups_value = mapping.get("proxy-groups") or mapping.get("proxy_groups")
+    groups = [item for item in groups_value if isinstance(item, Mapping)] if isinstance(groups_value, list) else []
+    block_targets = mihomo_block_targets(groups, TORRENT_BLOCK_TARGETS)
+    manual_rules: list[str] = []
+    for value in rules:
+        if not isinstance(value, str):
+            continue
+        subject, policy = mihomo_rule_subject_and_target(value)
+        torrent_related = (
+            "torrent" in subject
+            or mihomo_text_matches_domains(subject, TORRENT_CATALOG_MARKERS)
+            or bool(mihomo_rule_provider_ids(subject) & torrent_provider_ids)
+        )
+        if torrent_related and policy in block_targets:
+            manual_rules.append(value)
+    return manual_rules
+
+
+def _catalog_access_summary(mapping: Mapping[str, Any]) -> dict[str, Any]:
+    rules = [str(rule).strip() for rule in mapping.get("rules", []) if str(rule).strip()]
+    groups = _list_dicts(mapping.get("proxy-groups") or mapping.get("proxy_groups"))
+    providers = mapping.get("rule-providers") or mapping.get("rule_providers")
+    provider = (
+        next(
+            (value for name, value in providers.items() if str(name).strip().casefold() == CATALOG_ACCESS_PROVIDER),
+            None,
+        )
+        if isinstance(providers, Mapping)
+        else None
+    )
+    payload = provider.get("payload") if isinstance(provider, Mapping) else None
+    catalog_hosts = (
+        {
+            parts[1].strip().casefold()
+            for item in payload
+            if isinstance(item, str)
+            for parts in [split_mihomo_rule(item)]
+            if len(parts) >= 2 and parts[0].casefold() in {"domain", "domain-suffix"}
+        }
+        if isinstance(payload, list)
+        else set()
+    )
+    block_targets = mihomo_block_targets(groups, TORRENT_BLOCK_TARGETS)
+    parsed_rules = [mihomo_rule_subject_and_target(rule) for rule in rules]
+    catalog_rule_indexes = [
+        index
+        for index, (subject, target) in enumerate(parsed_rules)
+        if CATALOG_ACCESS_PROVIDER in mihomo_rule_provider_ids(subject) and target in CATALOG_ACCESS_TARGETS
+    ]
+    block_rule_indexes = [index for index, (_subject, target) in enumerate(parsed_rules) if target in block_targets]
+    dns = mapping.get("dns")
+    nameserver_policy = dns.get("nameserver-policy") if isinstance(dns, Mapping) else None
+    dns_keys = (
+        [str(key).strip().casefold() for key in nameserver_policy] if isinstance(nameserver_policy, Mapping) else []
+    )
+    catalog_dns_key = f"rule-set:{CATALOG_ACCESS_PROVIDER}"
+    catalog_dns_index = dns_keys.index(catalog_dns_key) if catalog_dns_key in dns_keys else None
+    blocked_dns_indexes = (
+        [
+            index
+            for index, value in enumerate(nameserver_policy.values())
+            if isinstance(value, list) and any(str(item).strip().casefold() == "rcode://name_error" for item in value)
+        ]
+        if isinstance(nameserver_policy, Mapping)
+        else []
+    )
+    safe = (
+        REQUIRED_CATALOG_ACCESS_DOMAINS.issubset(catalog_hosts)
+        and len(catalog_rule_indexes) == 1
+        and bool(block_rule_indexes)
+        and all(catalog_rule_indexes[0] < index for index in block_rule_indexes)
+        and catalog_dns_index is not None
+        and bool(blocked_dns_indexes)
+        and all(catalog_dns_index < index for index in blocked_dns_indexes)
+    )
+    return {
+        "safe": safe,
+        "catalog_hosts": sorted(catalog_hosts),
+        "catalog_rule_indexes": catalog_rule_indexes,
+        "block_rule_indexes": block_rule_indexes,
+        "catalog_dns_index": catalog_dns_index,
+        "blocked_dns_indexes": blocked_dns_indexes,
+    }
+
+
 def generated_mihomo_artifact_summary(artifact: Any) -> dict[str, Any]:
     text = _artifact_text(artifact)
     mapping = _artifact_mapping(artifact)
@@ -177,6 +328,16 @@ def generated_mihomo_artifact_summary(artifact: Any) -> dict[str, Any]:
     raw_server_counts: Counter[str] = Counter()
     xhttp_server_counts: Counter[str] = Counter()
     proxy_count = 0
+    manual_torrent_groups: list[str] = []
+    manual_torrent_rules: list[str] = []
+    catalog_access = {
+        "safe": False,
+        "catalog_hosts": [],
+        "catalog_rule_indexes": [],
+        "block_rule_indexes": [],
+        "catalog_dns_index": None,
+        "blocked_dns_indexes": [],
+    }
     if mapping is not None:
         if isinstance(mapping.get("groups"), list):
             groups = [str(item).strip() for item in mapping.get("groups", []) if str(item).strip()]
@@ -194,6 +355,9 @@ def generated_mihomo_artifact_summary(artifact: Any) -> dict[str, Any]:
         vless_reality_tcp_proxy_count = len(valid_raw)
         raw_server_counts.update(str(proxy.get("server") or "").strip().lower() for proxy in valid_raw)
         xhttp_server_counts.update(str(proxy.get("server") or "").strip().lower() for proxy in valid_xhttp)
+        manual_torrent_groups = sorted(group for group in groups if group.casefold() in FORBIDDEN_STATIC_TORRENT_GROUPS)
+        manual_torrent_rules = _manual_torrent_rules(mapping)
+        catalog_access = _catalog_access_summary(mapping)
 
     expected_server_counts = Counter({server: 1 for server in PREMIUM_SMART_RU_REQUIRED_SERVERS})
     raw_location_matrix_valid = raw_server_counts == expected_server_counts
@@ -211,6 +375,11 @@ def generated_mihomo_artifact_summary(artifact: Any) -> dict[str, Any]:
         "vless_reality_tcp_proxy_count": vless_reality_tcp_proxy_count,
         "raw_location_matrix_valid": raw_location_matrix_valid,
         "xhttp_location_matrix_valid": xhttp_location_matrix_valid,
+        "manual_torrent_policy_absent": not manual_torrent_groups and not manual_torrent_rules,
+        "manual_torrent_groups": manual_torrent_groups,
+        "manual_torrent_rules": manual_torrent_rules,
+        "catalog_access_before_block": catalog_access["safe"],
+        "catalog_access": catalog_access,
         "byte_count": len(text.encode("utf-8")) if text is not None else 0,
         "sha256": digest,
     }
@@ -240,9 +409,7 @@ def expected_remnawave_assignment(plan: SubscriptionPlanModel) -> dict[str, Any]
 def build_subscription_dry_run(plan: SubscriptionPlanModel, route_entries: Sequence[Any]) -> dict[str, Any]:
     assignment = expected_remnawave_assignment(plan)
     expected_groups = (
-        list(PREMIUM_SMART_RU_MIHOMO_GROUPS)
-        if assignment["is_premium_smart_ru"]
-        else ["🇩🇪 DE Auto", "🇷🇺 RU Sites", "🧲 Torrents"]
+        list(PREMIUM_SMART_RU_MIHOMO_GROUPS) if assignment["is_premium_smart_ru"] else ["🇩🇪 DE Auto", "🇷🇺 RU Sites"]
     )
     route_domains = []
     for entry in route_entries:
@@ -283,16 +450,18 @@ def generated_subscription_checks(
     target = _plan_target(plan)
     artifact_summary = generated_mihomo_artifact_summary(generated_mihomo_artifact)
     required_groups = (
-        list(PREMIUM_SMART_RU_MIHOMO_GROUPS)
-        if assignment["is_premium_smart_ru"]
-        else ["🇩🇪 DE Auto", "🇷🇺 RU Sites", "🧲 Torrents"]
+        list(PREMIUM_SMART_RU_MIHOMO_GROUPS) if assignment["is_premium_smart_ru"] else ["🇩🇪 DE Auto", "🇷🇺 RU Sites"]
     )
     artifact_groups = artifact_summary["groups"]
     missing_groups = sorted(set(required_groups) - set(artifact_groups))
     generated_groups_ok = (
-        artifact_summary["present"] and not missing_groups
+        artifact_summary["present"]
+        and not missing_groups
+        and artifact_summary["manual_torrent_policy_absent"]
+        and artifact_summary["catalog_access_before_block"]
         if assignment["is_premium_smart_ru"]
-        else not missing_groups or not artifact_summary["present"]
+        else (not missing_groups and artifact_summary["manual_torrent_policy_absent"])
+        or not artifact_summary["present"]
     )
     checks: list[dict[str, Any]] = [
         {
@@ -315,9 +484,14 @@ def generated_subscription_checks(
             "status": "pass" if generated_groups_ok else "fail",
             "severity": "error",
             "target": target,
-            "safe_summary": "Generated Mihomo artifact exposes required route groups"
+            "safe_summary": (
+                "Generated Mihomo artifact exposes required groups and early "
+                "catalog access without static torrent policy"
+            )
             if generated_groups_ok
-            else "Premium Smart RU generated Mihomo artifact is missing required route groups",
+            else (
+                "Generated Mihomo artifact has missing groups, unsafe catalog order, or forbidden static torrent policy"
+            ),
             "details": {
                 "artifact_source": artifact_summary["source"],
                 "artifact_present": artifact_summary["present"],
@@ -331,6 +505,11 @@ def generated_subscription_checks(
                 "groups": artifact_groups,
                 "required_groups": required_groups,
                 "missing_groups": missing_groups if assignment["is_premium_smart_ru"] else [],
+                "manual_torrent_policy_absent": artifact_summary["manual_torrent_policy_absent"],
+                "manual_torrent_groups": artifact_summary["manual_torrent_groups"],
+                "manual_torrent_rules": artifact_summary["manual_torrent_rules"],
+                "catalog_access_before_block": artifact_summary["catalog_access_before_block"],
+                "catalog_access": artifact_summary["catalog_access"],
                 "links_redacted": True,
             },
             "duration_ms": 0,

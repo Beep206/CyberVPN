@@ -91,12 +91,14 @@ def test_incy_template_is_semantically_validated_before_first_mutation() -> None
     assert "jsonb_array_length(v_incy#>'{remnawave,injectHosts}') <> 4" in sql
     assert "jsonb_array_length(v_incy->'inbounds') <> 2" in sql
     assert "jsonb_array_length(v_incy#>'{routing,rules}') = 0" in sql
-    assert "v_incy#>'{routing,balancers}' is not null" in sql
-    assert "v_incy->'observatory' is not null" in sql
+    assert "v_incy#>>'{remnawave,routePolicy,rendererMode}'" in sql
+    assert "is distinct from 'automatic-failover'" in sql
+    assert "jsonb_array_length(v_incy#>'{routing,balancers}') <> 4" in sql
+    assert "v_incy->'observatory' is distinct from" in sql
     assert "rule->>'ruleTag' = 'route_final_eu'" in sql
-    assert "rule->>'outboundTag' = 'eu-de-2'" in sql
+    assert "rule->>'balancerTag' = 'eu-primary'" in sql
     assert "rule->>'ruleTag' = 'route_ru_services'" in sql
-    assert "rule->>'outboundTag' = 'ru-spb-2'" in sql
+    assert "rule->>'balancerTag' = 'ru-primary'" in sql
     assert "rule->>'ruleTag' = 'block_smtp_abuse'" in sql
     assert "rule->>'port' = '25,465,587'" in sql
     assert "rule->>'outboundTag' = 'block'" in sql
@@ -108,9 +110,9 @@ def test_incy_template_is_semantically_validated_before_first_mutation() -> None
     assert "where balancer->>'fallbackTag' = 'direct'" in sql
     assert '"tag":"eu-primary","selector":["eu-de-2"]' in sql
     assert '"tag":"eu-fallback","selector":["eu-nl-2"]' in sql
-    assert '"tag":"ru-primary","selector":["ru-spb-2"]' in sql
-    assert '"tag":"ru-fallback","selector":["ru-msk-2"]' in sql
-    assert '"subjectSelector":["eu-de-2","eu-nl-2","ru-spb-2","ru-msk-2"]' in sql
+    assert '"tag":"ru-primary","selector":["ru-msk-2"]' in sql
+    assert '"tag":"ru-fallback","selector":["ru-spb-2"]' in sql
+    assert '"subjectSelector":["eu-de-2","eu-nl-2","ru-msk-2","ru-spb-2"]' in sql
     assert "v_incy_canary#>'{routing,rules,0}' is distinct from" in sql
     assert "v_incy_canary#>'{routing,rules,1}' is distinct from" in sql
 

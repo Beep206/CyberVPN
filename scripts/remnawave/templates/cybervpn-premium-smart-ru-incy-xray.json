@@ -40,9 +40,7 @@
       "ruleOrder": [
         "private_networks",
         "direct_processes",
-        "bittorrent_protocol",
-        "torrent_processes",
-        "torrent_sources",
+        "catalog_exceptions",
         "ads_trackers",
         "tor",
         "quic_doq",
@@ -94,7 +92,7 @@
             "onFallbackUnavailable": "use_primary_if_healthy",
             "onPrimaryUnavailable": "use_fallback"
           },
-          "fallback": "moscow",
+          "fallback": "spb",
           "fallbackTransport": "xhttp",
           "members": {
             "moscow": [
@@ -106,7 +104,7 @@
               "xhttp"
             ]
           },
-          "primary": "spb",
+          "primary": "moscow",
           "primaryTransport": "xhttp",
           "probe": {
             "constrainToRegion": true,
@@ -120,9 +118,9 @@
       },
       "rendererDeviations": [
         {
-          "id": "xray-single-observatory-shared-ru-safe-probe",
-          "reason": "Xray 26.6.27 observatory caused user-traffic stalls with XHTTP",
-          "effect": "INCY uses deterministic XHTTP primaries; fallback transports remain manual",
+          "id": "xray-stable-single-observatory-shared-ru-safe-probe",
+          "reason": "Xray 26.6.27 must use one deterministic observatory feature for all failover balancers",
+          "effect": "All four transports use the shared RU-accessible probe for liveness; destination routing remains policy-driven and is validated separately",
           "probeUrl": "https://www.ozon.ru/"
         }
       ],
@@ -148,39 +146,6 @@
           "revision": "05bfd6e7af58d4cc2f06382e82d1a38bb35d1959",
           "sha256": "0d1fdf64b303a04d4b6f524dccb4334c38cfc722ccbb94663395ece2da917d7a",
           "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/05bfd6e7af58d4cc2f06382e82d1a38bb35d1959/geo/geosite/category-remote-control.mrs"
-        },
-        {
-          "behavior": "classical",
-          "entries": [],
-          "format": "yaml",
-          "id": "torrent-clients",
-          "intervalSeconds": 86400,
-          "kind": "http",
-          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
-          "sha256": "31b26f266129bac396f523c3309f768430ef487fb9e16d8eafcffbcd52aab9ba",
-          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-clients.yaml"
-        },
-        {
-          "behavior": "domain",
-          "entries": [],
-          "format": "mrs",
-          "id": "torrent-trackers",
-          "intervalSeconds": 86400,
-          "kind": "http",
-          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
-          "sha256": "f2832fedc058999ba039052d684f1b8b05433dc378cd041d36bf625e209848c5",
-          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-trackers.mrs"
-        },
-        {
-          "behavior": "domain",
-          "entries": [],
-          "format": "mrs",
-          "id": "torrent-websites",
-          "intervalSeconds": 86400,
-          "kind": "http",
-          "revision": "049c25a0d334d0ba6a4680a2fe62893557dd6d35",
-          "sha256": "68efec804d027ba03a76bf4baaf6be7fd6c92571930cb439eab25143821448ce",
-          "url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/049c25a0d334d0ba6a4680a2fe62893557dd6d35/other/torrent-websites.mrs"
         },
         {
           "behavior": "domain",
@@ -446,7 +411,8 @@
           "sha256": "897bca0c49492fe839d359e059ef2c2456c43524b0f8742e5c5f5db50ec54dfe",
           "url": "https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/836b578f61d71de43cea3a2b0658e239e7fabd27/ip-for-ru/lists/ips-for-ru.mrs"
         }
-      ]
+      ],
+      "rendererMode": "automatic-failover"
     }
   },
   "log": {
@@ -526,12 +492,86 @@
           "type": "none"
         }
       }
+    },
+    {
+      "tag": "eu-fallback-loop",
+      "protocol": "loopback",
+      "settings": {
+        "inboundTag": "eu-fallback-in"
+      }
+    },
+    {
+      "tag": "ru-fallback-loop",
+      "protocol": "loopback",
+      "settings": {
+        "inboundTag": "ru-fallback-in"
+      }
     }
   ],
   "routing": {
     "domainMatcher": "hybrid",
     "domainStrategy": "IPIfNonMatch",
+    "balancers": [
+      {
+        "tag": "eu-primary",
+        "selector": [
+          "eu-de-2"
+        ],
+        "strategy": {
+          "type": "leastPing"
+        },
+        "fallbackTag": "eu-fallback-loop"
+      },
+      {
+        "tag": "eu-fallback",
+        "selector": [
+          "eu-nl-2"
+        ],
+        "strategy": {
+          "type": "leastPing"
+        },
+        "fallbackTag": "block"
+      },
+      {
+        "tag": "ru-primary",
+        "selector": [
+          "ru-msk-2"
+        ],
+        "strategy": {
+          "type": "leastPing"
+        },
+        "fallbackTag": "ru-fallback-loop"
+      },
+      {
+        "tag": "ru-fallback",
+        "selector": [
+          "ru-spb-2"
+        ],
+        "strategy": {
+          "type": "leastPing"
+        },
+        "fallbackTag": "block"
+      }
+    ],
     "rules": [
+      {
+        "type": "field",
+        "ruleTag": "route_eu_failover_loop",
+        "inboundTag": [
+          "eu-fallback-in"
+        ],
+        "network": "tcp,udp",
+        "balancerTag": "eu-fallback"
+      },
+      {
+        "type": "field",
+        "ruleTag": "route_ru_failover_loop",
+        "inboundTag": [
+          "ru-fallback-in"
+        ],
+        "network": "tcp,udp",
+        "balancerTag": "ru-fallback"
+      },
       {
         "type": "field",
         "ruleTag": "direct_private",
@@ -588,37 +628,21 @@
       },
       {
         "type": "field",
-        "ruleTag": "block_bittorrent_protocol",
-        "protocol": [
-          "bittorrent"
-        ],
-        "outboundTag": "block"
-      },
-      {
-        "type": "field",
-        "ruleTag": "block_torrent_processes",
-        "process": [
-          "regexp:(?i).*torrent.*"
-        ],
-        "outboundTag": "block"
-      },
-      {
-        "type": "field",
-        "ruleTag": "block_torrent_sources",
+        "ruleTag": "route_catalog_exceptions",
         "domain": [
           "domain:1337x.to",
           "domain:eztv.re",
+          "domain:kinozal.tv",
           "domain:limetorrents.lol",
           "domain:nnmclub.to",
+          "domain:rutracker.org",
+          "domain:rutor.info",
           "domain:thepiratebay.org",
           "domain:torrentdownload.info",
           "domain:torrentgalaxy.to",
-          "domain:rutracker.org",
-          "domain:rutor.info",
-          "domain:kinozal.tv",
           "domain:yts.mx"
         ],
-        "outboundTag": "block"
+        "balancerTag": "eu-primary"
       },
       {
         "type": "field",
@@ -732,7 +756,7 @@
           "keyword:animego",
           "keyword:yummyanime"
         ],
-        "outboundTag": "eu-de-2"
+        "balancerTag": "eu-primary"
       },
       {
         "type": "field",
@@ -741,7 +765,7 @@
           "geoip:telegram",
           "geoip:facebook"
         ],
-        "outboundTag": "eu-de-2"
+        "balancerTag": "eu-primary"
       },
       {
         "type": "field",
@@ -866,7 +890,7 @@
           "keyword:gosslugi",
           "keyword:gosuslugi"
         ],
-        "outboundTag": "ru-spb-2"
+        "balancerTag": "ru-primary"
       },
       {
         "type": "field",
@@ -874,7 +898,7 @@
         "domain": [
           "geosite:category-ru"
         ],
-        "outboundTag": "ru-spb-2"
+        "balancerTag": "ru-primary"
       },
       {
         "type": "field",
@@ -882,15 +906,26 @@
         "ip": [
           "geoip:ru"
         ],
-        "outboundTag": "ru-spb-2"
+        "balancerTag": "ru-primary"
       },
       {
         "type": "field",
         "ruleTag": "route_final_eu",
         "network": "tcp,udp",
-        "outboundTag": "eu-de-2"
+        "balancerTag": "eu-primary"
       }
     ]
   },
-  "stats": {}
+  "stats": {},
+  "observatory": {
+    "subjectSelector": [
+      "eu-de-2",
+      "eu-nl-2",
+      "ru-msk-2",
+      "ru-spb-2"
+    ],
+    "probeUrl": "https://www.ozon.ru/",
+    "probeInterval": "10s",
+    "enableConcurrency": true
+  }
 }
