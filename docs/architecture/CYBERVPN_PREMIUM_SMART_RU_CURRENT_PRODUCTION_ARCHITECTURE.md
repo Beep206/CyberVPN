@@ -1252,7 +1252,7 @@ Group filters depend on Remnawave proxy names containing expected region tokens.
 
 ### 20.5. Providers
 
-Canonical policy/compiler tests описывают 41 sources, из них 29 HTTP. Generated
+Canonical policy/compiler tests описывают 37 sources, из них 26 HTTP. Generated
 artifact содержит inline и remote providers следующих классов:
 
 | Класс | Примеры provider roles | Runtime risk |
